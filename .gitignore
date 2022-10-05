@@ -30,3 +30,16 @@
 *.exe
 *.out
 *.app
+
+# build folder for ESP-IDF
+build/
+
+# we only version sdkconfig.defaults
+sdkconfig
+sdkconfig.old
+
+# for now we don't care about ESP IDF dependencies
+dependencies.lock
+
+# weird mac folders...
+.DS_Store
