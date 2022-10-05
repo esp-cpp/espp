@@ -3,10 +3,7 @@
 #include <string>
 #include <string_view>
 
-#define FMT_HEADER_ONLY
-#include "fmt/color.h"
-#include "fmt/format.h"
-#include "fmt/ranges.h"
+#include "format.hpp"
 
 namespace espp {
   class Logger {
