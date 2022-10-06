@@ -1,3 +1,6 @@
 [submodule "external/fmt"]
 	path = external/fmt
 	url = git@github.com:fmtlib/fmt
+[submodule "external/alpaca"]
+	path = external/alpaca
+	url = git@github.com:p-ranav/alpaca
