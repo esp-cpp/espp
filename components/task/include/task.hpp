@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <thread>
@@ -15,12 +16,20 @@ namespace espp {
   class Task {
   public:
 
+    typedef std::function<void(std::mutex& m, std::condition_variable& cv)> task_fn;
+
     // NOTE: the callback is run repeatedly within the Task, therefore it MUST
     // return, and also SHOULD have a sleep to give the processor over to other
-    // tasks
+    // tasks. For this reason, the callback is provided a
+    // std::condition_variable (and associated mutex) which the callback can use
+    // when they need to wait. If the cv.wait_for / cv.wait_until return
+    // std::cv_status::timeout, no action is necessary, but if they return
+    // std::cv_status::no_timeout, then the function should return immediately
+    // since the task is being stopped (optionally performing any task-specific
+    // tear-down).
     struct Config {
       std::string_view name;
-      std::function<void()> callback;
+      task_fn callback;
       size_t stack_size_bytes{4*1024};
       size_t priority{0};
       int core_id{-1};
@@ -37,8 +46,11 @@ namespace espp {
     static std::unique_ptr<Task> make_unique(const Config& config) { return std::make_unique<Task>(config); }
 
     ~Task() {
+      logger_.debug("Destroying task");
       // stop the task if it was started
-      stop();
+      if (started_) {
+        stop();
+      }
       logger_.debug("Task destroyed");
     }
 
@@ -74,6 +86,7 @@ namespace espp {
         return false;
       }
       started_ = false;
+      cv_.notify_all();
       if (thread_.joinable()) {
         thread_.join();
       }
@@ -87,7 +100,7 @@ namespace espp {
     void thread_function() {
       while (started_) {
         if (callback_) {
-          callback_();
+          callback_(cv_m_, cv_);
         } else {
           break;
         }
@@ -95,7 +108,7 @@ namespace espp {
     }
 
     std::string name_;
-    std::function<void()> callback_;
+    task_fn callback_;
 
     // NOTE: the below parameters are only used on ESP / FreeRTOS platform
     size_t stack_size_bytes_;
@@ -105,6 +118,8 @@ namespace espp {
     Logger logger_;
 
     std::atomic<bool> started_{false};
+    std::condition_variable cv_;
+    std::mutex cv_m_;
     std::thread thread_;
   };
 }
