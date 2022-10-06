@@ -9,44 +9,74 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   // we get access to fmt since we include logger.hpp
   fmt::print("Stating logger example!\n");
-  auto logger_fn = []() {
-    // create logger
+  {
     //! [Logger example]
+    float num_seconds_to_run = 10.0f;
+    // create loggers
     auto logger = espp::Logger({
-        .tag = "Thread 2",
-        .level = espp::Logger::Verbosity::INFO
+        .tag = "Cool Logger",
+        .level = espp::Logger::Verbosity::DEBUG
       });
-    size_t loop_iteration{0};
-    while (true) {
-      // log - note: debug shouldn't be shown!
-      logger.debug("some debug info: {}", loop_iteration);
-      logger.info("some info: {}", loop_iteration);
-      logger.warn("some warning: {}", loop_iteration);
-      logger.error("some error: {}", loop_iteration);
-      // update loop variables
-      loop_iteration++;
-      // sleep
-      std::this_thread::sleep_for(300ms);
+    auto start = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::high_resolution_clock::now();
+    float elapsed = std::chrono::duration<float>(now-start).count();
+    while (elapsed < num_seconds_to_run) {
+      now = std::chrono::high_resolution_clock::now();
+      elapsed = std::chrono::duration<float>(now-start).count();
+      auto remaining = num_seconds_to_run - elapsed;
+      logger.debug("debug: {:%Y-%m-%d %H:%M:%S} - {:%Y-%m-%d %H:%M:%S} = {}", now, start, elapsed);
+      logger.info("elapsed: {:.3f}s", elapsed);
+      logger.warn("remaining: {:.3f}s", remaining);
+      if (remaining < 0) {
+        logger.error("You overstayed your welcome by {:.03}s!", -remaining);
+      }
+      std::this_thread::sleep_for(500ms);
     }
     //! [Logger example]
-  };
-  auto logger_thread = std::thread(logger_fn);
-
-  // create another logger
-  auto logger = espp::Logger({
-      .tag = "Thread 1",
-      .level = espp::Logger::Verbosity::DEBUG
-    });
-  size_t loop_iteration{0};
-  while (true) {
-    // log
-    logger.debug("some debug info: {}", loop_iteration);
-    logger.info("some info: {}", loop_iteration);
-    logger.warn("some warning: {}", loop_iteration);
-    logger.error("some error: {}", loop_iteration);
-    // update loop variables
-    loop_iteration++;
-    // sleep
-    std::this_thread::sleep_for(1s);
+  }
+  {
+    //! [MultiLogger example]
+    // create loggers
+    auto logger1 = espp::Logger({
+        .tag = "Thread 1",
+        .level = espp::Logger::Verbosity::INFO
+      });
+    auto logger2 = espp::Logger({
+        .tag = "Thread 2",
+        .level = espp::Logger::Verbosity::DEBUG
+      });
+    // lambda for logging to those two loggers from multiple threads
+    auto logger_fn = [](espp::Logger *logger) {
+      size_t loop_iteration{0};
+      while (true) {
+        // log - note: debug shouldn't be shown!
+        logger->debug("some debug info: {}", loop_iteration);
+        logger->info("some info: {}", loop_iteration);
+        logger->warn("some warning: {}", loop_iteration);
+        logger->error("some error: {}", loop_iteration);
+        // update loop variables
+        loop_iteration++;
+        // sleep
+        std::this_thread::sleep_for(300ms);
+      }
+    };
+    // start two threads, binding the lambda to each logger
+    auto logger1_thread = std::thread(std::bind(logger_fn, &logger1));
+    auto logger2_thread = std::thread(std::bind(logger_fn, &logger2));
+    uint8_t level{static_cast<uint8_t>(espp::Logger::Verbosity::DEBUG)};
+    // every 1 second, change the loggers' verbosity
+    while (true) {
+      // update the loggers' verbosity
+      level++;
+      if (level > static_cast<uint8_t>(espp::Logger::Verbosity::ERROR)) {
+        level = static_cast<uint8_t>(espp::Logger::Verbosity::DEBUG);
+      }
+      espp::Logger::Verbosity verbosity = static_cast<espp::Logger::Verbosity>(level);
+      logger1.set_verbosity(verbosity);
+      logger2.set_verbosity(verbosity);
+      // sleep
+      std::this_thread::sleep_for(1s);
+    }
+    //! [MultiLogger example]
   }
 }

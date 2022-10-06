@@ -13,8 +13,10 @@ namespace espp {
    * run-time. Logger currently is a light wrapper around libfmt (future
    * std::format).
    *
-   * \section logger_ex1 Example
+   * \section logger_ex1 Basic Example
    * \snippet logger_example.cpp Logger example
+   * \section logger_ex2 Threaded Logging and Verbosity Example
+   * \snippet logger_example.cpp MultiLogger example
    */
   class Logger {
   public:
@@ -36,7 +38,7 @@ namespace espp {
      * @brief Change the verbosity for the logger. \sa Logger::Verbosity
      * @param level new verbosity level
      */
-    void set_log_level(const Verbosity level) { level_ = level; }
+    void set_verbosity(const Verbosity level) { level_ = level; }
 
     /**
      * @brief Format args into string according to format string. From:
