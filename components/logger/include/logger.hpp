@@ -24,11 +24,15 @@ namespace espp {
     };
 
     struct Config {
-      std::string_view tag;
-      Level level = Level::WARN;
+      std::string_view tag; /**< The TAG that will be prepended to all logs. */
+      Level level = Level::WARN; /**< The verbosity level for the logger. */
     };
     Logger(const Config& config) : tag_(config.tag), level_(config.level) {}
 
+    /**
+     * @brief Change the verbosity for the logger. \sa Logger::Level
+     * @param level new verbosity level
+     */
     void set_log_level(const Level level) { level_ = level; }
 
     /**

@@ -22,24 +22,36 @@ namespace espp {
   class Task {
   public:
 
-    // NOTE: the callback is run repeatedly within the Task, therefore it MUST
-    // return, and also SHOULD have a sleep to give the processor over to other
-    // tasks. For this reason, the callback is provided a
-    // std::condition_variable (and associated mutex) which the callback can use
-    // when they need to wait. If the cv.wait_for / cv.wait_until return
-    // std::cv_status::timeout, no action is necessary, but if they return
-    // std::cv_status::no_timeout, then the function should return immediately
-    // since the task is being stopped (optionally performing any task-specific
-    // tear-down).
+    /**
+     * @brief Task callback function signature.
+     *
+     *    NOTE: the callback is run repeatedly within the Task, therefore it
+     *      MUST return, and also SHOULD have a sleep to give the processor over
+     *      to other tasks. For this reason, the callback is provided a
+     *      std::condition_variable (and associated mutex) which the callback
+     *      can use when they need to wait. If the cv.wait_for / cv.wait_until
+     *      return <a href="https://en.cppreference.com/w/cpp/thread/cv_status">
+     *      std::cv_status::timeout</a>, no action is necessary, but if they
+     *      return <a href="https://en.cppreference.com/w/cpp/thread/cv_status">
+     *      std::cv_status::no_timeout</a>, then the function should return
+     *      immediately since the task is being stopped (optionally performing
+     *      any task-specific tear-down).
+     *
+     * @param m mutex associated with the condition variable (should be locked
+     *          before calling cv.wait_for() or cv.wait_until())
+     *
+     * @param cv condition variable the callback can use to perform an
+     *           interruptible wait.
+     */
     typedef std::function<void(std::mutex& m, std::condition_variable& cv)> callback_fn;
 
     struct Config {
-      std::string_view name;
-      callback_fn callback;
-      size_t stack_size_bytes{4*1024};
-      size_t priority{0};
-      int core_id{-1};
-      Logger::Level log_level{Logger::Level::WARN};
+      std::string_view name; /**< Name of the task */
+      callback_fn callback; /**< Callback function  */
+      size_t stack_size_bytes{4*1024}; /**< Stack Size (B) allocated to the task. */
+      size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
+      int core_id{-1}; /**< Core ID of the task, -1 means it is not pinned to any core.  */
+      Logger::Level log_level{Logger::Level::WARN}; /**< Log verbosity for the task.  */
     };
 
     Task(const Config& config) : name_(config.name),

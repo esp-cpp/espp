@@ -79,6 +79,16 @@ INLINE_INHERITED_MEMB  = YES
 
 INHERIT_DOCS           = YES
 
+# When the INLINE_SIMPLE_STRUCTS tag is set to YES, structs, classes, and unions
+# with only public data fields or simple typedef fields will be shown inline in
+# the documentation of the scope in which they are defined (i.e. file,
+# namespace, or group documentation), provided this scope is documented. If set
+# to NO, structs, classes, and unions are shown on a separate page (for HTML and
+# Man pages) or section (for LaTeX and RTF).
+# The default value is: NO.
+
+INLINE_SIMPLE_STRUCTS  = YES
+
 # If the EXTRACT_ALL tag is set to YES doxygen will assume all entities in
 # documentation are documented, even if no documentation was available. Private
 # class members and static file members will be hidden unless the
