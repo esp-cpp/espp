@@ -13,10 +13,14 @@
 #include "logger.hpp"
 
 namespace espp {
+
+  /**
+   * @brief Task provides an abstraction over std::thread which optionally
+   * includes memory / priority configuration on ESP systems. It allows users to
+   * easily stop the task, and will automatically stop itself if destroyed.
+   */
   class Task {
   public:
-
-    typedef std::function<void(std::mutex& m, std::condition_variable& cv)> task_fn;
 
     // NOTE: the callback is run repeatedly within the Task, therefore it MUST
     // return, and also SHOULD have a sleep to give the processor over to other
@@ -27,9 +31,11 @@ namespace espp {
     // std::cv_status::no_timeout, then the function should return immediately
     // since the task is being stopped (optionally performing any task-specific
     // tear-down).
+    typedef std::function<void(std::mutex& m, std::condition_variable& cv)> callback_fn;
+
     struct Config {
       std::string_view name;
-      task_fn callback;
+      callback_fn callback;
       size_t stack_size_bytes{4*1024};
       size_t priority{0};
       int core_id{-1};
@@ -45,6 +51,9 @@ namespace espp {
 
     static std::unique_ptr<Task> make_unique(const Config& config) { return std::make_unique<Task>(config); }
 
+    /**
+     * @brief Destroy the task, stopping it if it was started.
+     */
     ~Task() {
       logger_.debug("Destroying task");
       // stop the task if it was started
@@ -54,6 +63,11 @@ namespace espp {
       logger_.debug("Task destroyed");
     }
 
+    /**
+     * @brief Start executing the task.
+     *
+     * @return true if the task started, false if it was already started.
+     */
     bool start() {
       logger_.debug("Starting task");
       if (started_) {
@@ -79,6 +93,12 @@ namespace espp {
       return true;
     }
 
+    /**
+     * @brief Stop the task execution, blocking until it stops.
+     *
+     * @return true if the task stopped, false if it was not started / already
+     * stopped.
+     */
     bool stop() {
       logger_.debug("Stopping task");
       if (!started_) {
@@ -94,6 +114,11 @@ namespace espp {
       return true;
     }
 
+    /**
+     * @brief Has the task been started or not?
+     *
+     * @return true if the task is started / running, false otherwise.
+     */
     bool is_started() { return started_; }
 
   protected:
@@ -107,12 +132,34 @@ namespace espp {
       }
     }
 
+
+    /**
+     * @brief Name of the task (used in logs and taks monitoring).
+     */
     std::string name_;
-    task_fn callback_;
+
+    /**
+     * @brief Callback function called within Task::thread_function() when
+     * started.
+     */
+    callback_fn callback_;
 
     // NOTE: the below parameters are only used on ESP / FreeRTOS platform
+    /**
+     * @brief On ESP platform, the amount of bytes allocated to the Task stack.
+     */
     size_t stack_size_bytes_;
+
+    /**
+     * @brief On ESP platform, the priority of the task, with 0 being lowest
+     * priority.
+     */
     size_t priority_;
+
+    /**
+     * @brief On ESP platform, the core id that the task is pinned to. If -1,
+     * then the task is not pinned to a core.
+     */
     int core_id_;
 
     Logger logger_;
