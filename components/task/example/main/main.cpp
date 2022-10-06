@@ -5,11 +5,41 @@
 
 using namespace std::chrono_literals;
 
+/**
+ *   This example showcases a few different ways of using the espp::Task API:
+ *
+ *     * [LIFECYCLE] Simple task that does a little bit of math/logging, then
+ *       waits. This example turns on DEBUG logging to better showcase the Task
+ *       lifecycle as it's started and then destroyed when it goes out of scope.
+ *
+ *     * [CV.WAIT_FOR] Spawning many tasks that each do a little bit of
+ *       math/logging/waiting. This example shows how many tasks can be quickly
+ *       and efficiently started and stopped leveraging the cv.wait_for() /
+ *       cv.wait_until() API.
+ *
+ *     * [SLEEP_FOR] Spawning many tasks that each do a little bit of
+ *       math/logging/waiting. This example shows the effect of significantly
+ *       increased task stop / destruction time (and therefore total test
+ *       run-time) using the std::this_thread::sleep_for() / sleep_until()
+ *       instead of the condition variable provided to the task function.
+ *
+ *     * [EARLY EXIT] Complex task that performs many steps of work per task
+ *       function iteration. This example showcases using the std::cv_status
+ *       return value from cv.wait_for() / cv.wait_until() to determine if it
+ *       should stop its long-running processing steps early. This example turns
+ *       on DEBUG logging to better showcase the Task lifecycle as it's started
+ *       and then destroyed when it goes out of scope.
+ *
+ */
 extern "C" void app_main(void) {
+  /**
+   *   Set up some variables we'll re-use to control and measure our tests.
+   */
   size_t num_seconds_to_run = 2;
   auto test_start = std::chrono::high_resolution_clock::now();
   auto test_end = std::chrono::high_resolution_clock::now();
   auto test_duration = std::chrono::duration<float>(test_end - test_start).count();
+
   /**
    *   Show a simple task running for a short period and then stopping. Enable
    *   DEBUG logging so that the task prints out when it starts, stops, and is
@@ -146,6 +176,9 @@ extern "C" void app_main(void) {
             // if there was no timeout, then we were notified, therefore we need
             // to shut down.
             fmt::print("Task stopping early (step {}/{}) on iteration {}\n", i, num_steps_per_iteration, task_iterations);
+            // NOTE: use this_thread::sleep_for() to fake cleaning up work that
+            // we would do
+            std::this_thread::sleep_for(10ms);
             // now that we've (fake) cleaned-up our work, return from the task
             // function so the task can fully destruct.
             return;
