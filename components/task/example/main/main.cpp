@@ -132,7 +132,7 @@ extern "C" void app_main(void) {
     auto task_fn = [](std::mutex& m, std::condition_variable& cv) {
       static size_t task_iterations{0};
       const size_t num_steps_per_iteration = 10;
-      task_iterations++;
+      fmt::print("Task processing iteration {}...\n", task_iterations);
       for (size_t i=0; i<num_steps_per_iteration; i++) {
         // NOTE: sleeping in this way allows the sleep to exit early when the
         // task is being stopped / destroyed
@@ -152,6 +152,8 @@ extern "C" void app_main(void) {
           }
         }
       }
+      fmt::print("Task processing iteration {} complete\n", task_iterations);
+      task_iterations++;
     };
     auto task = espp::Task({
         .name = "Complex Task",
