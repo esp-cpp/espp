@@ -11,6 +11,7 @@ extern "C" void app_main(void) {
   fmt::print("Stating logger example!\n");
   auto logger_fn = []() {
     // create logger
+    //! [Logger example]
     auto logger = espp::Logger({
         .tag = "Thread 2",
         .level = espp::Logger::Level::INFO
@@ -27,6 +28,7 @@ extern "C" void app_main(void) {
       // sleep
       std::this_thread::sleep_for(300ms);
     }
+    //! [Logger example]
   };
   auto logger_thread = std::thread(logger_fn);
 

@@ -12,8 +12,16 @@
 # For the complete list of configuration statements see:
 # http://doxygen.nl/manual/config.html
 
+FILE_PATTERNS    = *.cpp *.hpp *.md
+
+RECURSIVE = YES
+EXAMPLE_RECURSIVE = YES
 
 PROJECT_NAME = "ESPP (ESP C++ Library)"
+
+EXAMPLE_PATH =
+EXAMPLE_PATH += $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
 ## to automatically generate API reference list files header_file.inc
@@ -27,10 +35,6 @@ INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
 INPUT += $(PROJECT_PATH)/components/logger/include/logger.hpp
 
 USE_MDFILE_AS_MAINPAGE = ../README.md
-
-FILE_PATTERNS    = *.cpp *.hpp *.md
-
-RECURSIVE = YES
 
 ## Get warnings for functions that have no documentation for their parameters or return value
 ##

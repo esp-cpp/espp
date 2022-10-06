@@ -50,6 +50,7 @@ extern "C" void app_main(void) {
   test_start = std::chrono::high_resolution_clock::now();
   {
     fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
+    //! [Task example]
     auto task_fn = [](std::mutex& m, std::condition_variable& cv) {
       static size_t task_iterations{0};
       fmt::print("Task: #iterations = {}\n", task_iterations);
@@ -67,7 +68,7 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Level::DEBUG
       });
     task.start();
-
+    //! [Task example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
   test_end = std::chrono::high_resolution_clock::now();
@@ -82,6 +83,7 @@ extern "C" void app_main(void) {
    */
   test_start = std::chrono::high_resolution_clock::now();
   {
+    //! [ManyTask example]
     std::vector<std::unique_ptr<espp::Task>> tasks;
     size_t num_tasks = 10;
     fmt::print("Spawning {} tasks!\n", num_tasks);
@@ -110,6 +112,7 @@ extern "C" void app_main(void) {
     }
     fmt::print("Tasks spawned, waiting for {} seconds!\n", num_seconds_to_run);
     std::this_thread::sleep_until(start + num_seconds_to_run * 1s);
+    //! [ManyTask example]
   }
   test_end = std::chrono::high_resolution_clock::now();
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
@@ -159,6 +162,7 @@ extern "C" void app_main(void) {
   test_start = std::chrono::high_resolution_clock::now();
   {
     fmt::print("Spawning complex task for {} seconds!\n", num_seconds_to_run);
+    //! [LongRunningTask example]
     auto task_fn = [](std::mutex& m, std::condition_variable& cv) {
       static size_t task_iterations{0};
       const size_t num_steps_per_iteration = 10;
@@ -194,7 +198,7 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Level::DEBUG
       });
     task.start();
-
+    //! [LongRunningTask example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
   test_end = std::chrono::high_resolution_clock::now();

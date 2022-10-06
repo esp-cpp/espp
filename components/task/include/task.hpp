@@ -18,6 +18,13 @@ namespace espp {
    * @brief Task provides an abstraction over std::thread which optionally
    * includes memory / priority configuration on ESP systems. It allows users to
    * easily stop the task, and will automatically stop itself if destroyed.
+   *
+   * \section task_ex1 Basic Task Example
+   * \snippet task_example.cpp Task example
+   * \section task_ex2 Many Task Example
+   * \snippet task_example.cpp ManyTask example
+   * \section task_ex3 Long Running Task Example
+   * \snippet task_example.cpp LongRunningTask example
    */
   class Task {
   public:

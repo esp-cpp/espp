@@ -12,6 +12,9 @@ namespace espp {
    * standard ESP_LOG* macros with the ability to change the log level at
    * run-time. Logger currently is a light wrapper around libfmt (future
    * std::format).
+   *
+   * \section logger_ex1 Example
+   * \snippet logger_example.cpp Logger example
    */
   class Logger {
   public:
