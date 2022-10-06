@@ -65,7 +65,7 @@ extern "C" void app_main(void) {
     auto task = espp::Task({
         .name = "Task 1",
         .callback = task_fn,
-        .log_level = espp::Logger::Level::DEBUG
+        .log_level = espp::Logger::Verbosity::DEBUG
       });
     task.start();
     //! [Task example]
@@ -195,7 +195,7 @@ extern "C" void app_main(void) {
     auto task = espp::Task({
         .name = "Complex Task",
         .callback = task_fn,
-        .log_level = espp::Logger::Level::DEBUG
+        .log_level = espp::Logger::Verbosity::DEBUG
       });
     task.start();
     //! [LongRunningTask example]

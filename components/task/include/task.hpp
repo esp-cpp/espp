@@ -58,7 +58,7 @@ namespace espp {
       size_t stack_size_bytes{4*1024}; /**< Stack Size (B) allocated to the task. */
       size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
       int core_id{-1}; /**< Core ID of the task, -1 means it is not pinned to any core.  */
-      Logger::Level log_level{Logger::Level::WARN}; /**< Log verbosity for the task.  */
+      Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
     };
 
     Task(const Config& config) : name_(config.name),

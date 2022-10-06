@@ -22,21 +22,21 @@ namespace espp {
     /**
      *   Verbosity levels for the logger, in order of increasing priority.
      */
-    enum class Level {
+    enum class Verbosity {
       DEBUG, INFO, WARN, ERROR,
     };
 
     struct Config {
       std::string_view tag; /**< The TAG that will be prepended to all logs. */
-      Level level = Level::WARN; /**< The verbosity level for the logger. */
+      Verbosity level = Verbosity::WARN; /**< The verbosity level for the logger. */
     };
     Logger(const Config& config) : tag_(config.tag), level_(config.level) {}
 
     /**
-     * @brief Change the verbosity for the logger. \sa Logger::Level
+     * @brief Change the verbosity for the logger. \sa Logger::Verbosity
      * @param level new verbosity level
      */
-    void set_log_level(const Level level) { level_ = level; }
+    void set_log_level(const Verbosity level) { level_ = level; }
 
     /**
      * @brief Format args into string according to format string. From:
@@ -52,49 +52,49 @@ namespace espp {
     }
 
     /**
-     * @brief Print log in GRAY if level is Level::DEBUG or greater.
+     * @brief Print log in GRAY if level is Verbosity::DEBUG or greater.
      * @param rt_fmt_str format string
      * @param args optional arguments passed to be formatted.
      */
     template <typename... Args>
     void debug(std::string_view rt_fmt_str, Args&&... args) {
-      if (level_ > Level::DEBUG) return;
+      if (level_ > Verbosity::DEBUG) return;
       auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
       fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
     }
 
     /**
-     * @brief Print log in GREEN if level is Level::INFO or greater
+     * @brief Print log in GREEN if level is Verbosity::INFO or greater
      * @param rt_fmt_str format string
      * @param args optional arguments passed to be formatted.
      */
     template <typename... Args>
     void info(std::string_view rt_fmt_str, Args&&... args) {
-      if (level_ > Level::INFO) return;
+      if (level_ > Verbosity::INFO) return;
       auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
       fmt::print(fg(fmt::color::green), "[{}/I]:{}\n", tag_, msg);
     }
 
     /**
-     * @brief Print log in YELLOW if level is Level::WARN or greater
+     * @brief Print log in YELLOW if level is Verbosity::WARN or greater
      * @param rt_fmt_str format string
      * @param args optional arguments passed to be formatted.
      */
     template <typename... Args>
     void warn(std::string_view rt_fmt_str, Args&&... args) {
-      if (level_ > Level::WARN) return;
+      if (level_ > Verbosity::WARN) return;
       auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
       fmt::print(fg(fmt::color::yellow), "[{}/W]:{}\n", tag_, msg);
     }
 
     /**
-     * @brief Print log in RED if level is Level::ERROR or greater
+     * @brief Print log in RED if level is Verbosity::ERROR or greater
      * @param rt_fmt_str format string
      * @param args optional arguments passed to be formatted.
      */
     template <typename... Args>
     void error(std::string_view rt_fmt_str, Args&&... args) {
-      if (level_ > Level::ERROR) return;
+      if (level_ > Verbosity::ERROR) return;
       auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
       fmt::print(fg(fmt::color::red), "[{}/E]:{}\n", tag_, msg);
     }
@@ -106,9 +106,9 @@ namespace espp {
     std::string tag_;
 
     /**
-     *   Current level of the logger. Determines what will be printed to
+     *   Current verbosity of the logger. Determines what will be printed to
      *   console.
      */
-    std::atomic<Level> level_;
+    std::atomic<Verbosity> level_;
   };
 }

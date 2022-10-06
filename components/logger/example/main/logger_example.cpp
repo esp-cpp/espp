@@ -14,7 +14,7 @@ extern "C" void app_main(void) {
     //! [Logger example]
     auto logger = espp::Logger({
         .tag = "Thread 2",
-        .level = espp::Logger::Level::INFO
+        .level = espp::Logger::Verbosity::INFO
       });
     size_t loop_iteration{0};
     while (true) {
@@ -35,7 +35,7 @@ extern "C" void app_main(void) {
   // create another logger
   auto logger = espp::Logger({
       .tag = "Thread 1",
-      .level = espp::Logger::Level::DEBUG
+      .level = espp::Logger::Verbosity::DEBUG
     });
   size_t loop_iteration{0};
   while (true) {
