@@ -8,6 +8,8 @@
 
 #if defined(ESP_PLATFORM)
 #include <esp_pthread.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #endif
 
 #include "logger.hpp"
@@ -68,6 +70,12 @@ namespace espp {
                                  core_id_(config.core_id),
                                  logger_({.tag = config.name, .level = config.log_level}) {}
 
+    /**
+     * @brief Get a unique pointer to a new task created with \p config.
+     *        Useful to not have to use templated std::make_unique (less typing).
+     * @param config Config struct to initialize the Task with.
+     * @return std::unique_ptr<Task> pointer to the newly created task.
+     */
     static std::unique_ptr<Task> make_unique(const Config& config) { return std::make_unique<Task>(config); }
 
     /**
@@ -93,18 +101,40 @@ namespace espp {
         logger_.warn("Task already started!");
         return false;
       }
-      started_ = true;
 
 #if defined(ESP_PLATFORM)
       auto thread_config = esp_pthread_get_default_config();
       thread_config.thread_name = name_.c_str();
-      if (core_id_ > 0)
+      if (core_id_ >= 0)
         thread_config.pin_to_core = core_id_;
+      if (core_id_ >= portNUM_PROCESSORS) {
+        logger_.error("core_id ({}) is larger than portNUM_PROCESSORS ({}), cannot create Task '{}'",
+                      core_id_,
+                      portNUM_PROCESSORS,
+                      name_);
+        return false;
+      }
       thread_config.stack_size = stack_size_bytes_;
       thread_config.prio = priority_;
-      esp_pthread_set_cfg(&thread_config);
+      // this will set the config for the next created thread
+      auto err = esp_pthread_set_cfg(&thread_config);
+      if (err == ESP_ERR_NO_MEM) {
+        logger_.error("Out of memory, cannot create Task '{}'", name_);
+        return false;
+      }
+      if (err == ESP_ERR_INVALID_ARG) {
+        // see https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/pthread.html?highlight=esp_pthread_set_cfg#_CPPv419esp_pthread_set_cfgPK17esp_pthread_cfg_t
+        logger_.error("Configured stack size ({}) is less than PTHREAD_STACK_MIN ({}), cannot create Task '{}'",
+                      stack_size_bytes_,
+                      PTHREAD_STACK_MIN,
+                      name_);
+        return false;
+      }
 #endif
 
+      // set the atomic so that when the thread starts it won't immediately
+      // exit.
+      started_ = true;
       // create and start the std::thread
       thread_ = std::thread(&Task::thread_function, this);
 
@@ -139,6 +169,36 @@ namespace espp {
      * @return true if the task is started / running, false otherwise.
      */
     bool is_started() { return started_; }
+
+#if defined(ESP_PLATFORM)
+    /**
+     * @brief Get the info (as a string) for the task of the current context.
+     * @return std::string containing name, core ID, priority, and stack high
+     *         water mark (B)
+     */
+    static std::string get_info() {
+      return fmt::format("[T] '{}',{},{},{}\n",
+                         pcTaskGetName(nullptr),
+                         xPortGetCoreID(),
+                         uxTaskPriorityGet(nullptr),
+                         uxTaskGetStackHighWaterMark(nullptr));
+    }
+
+    /**
+     * @brief Get the info (as a string) for the provided \p task.
+     * @param task Reference to the task for which you want the information.
+     * @return std::string containing name, core ID, priority, and stack high
+     *         water mark (B)
+     */
+    static std::string get_info(const Task& task) {
+      TaskHandle_t freertos_handle = xTaskGetHandle(task.name_.c_str());
+      return fmt::format("[T] '{}',{},{},{}\n",
+                         pcTaskGetName(freertos_handle),
+                         xPortGetCoreID(),
+                         uxTaskPriorityGet(freertos_handle),
+                         uxTaskGetStackHighWaterMark(freertos_handle));
+    }
+#endif
 
   protected:
     void thread_function() {
