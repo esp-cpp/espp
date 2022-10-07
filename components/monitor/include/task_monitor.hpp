@@ -44,7 +44,7 @@ namespace espp {
       task_->start();
 #else
       logger_.warn("Project was not built with "
-                   "CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS"
+                   "CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS "
                    "cannot monitor task performance!");
 #endif
     }
@@ -137,7 +137,7 @@ namespace espp {
       return std::string{info_str};
 #else
       logger_.error("Project was not built with "
-                    "CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS"
+                    "CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS "
                     "cannot monitor task performance!");
       return "";
 #endif
