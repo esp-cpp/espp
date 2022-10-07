@@ -13,15 +13,24 @@
 
 namespace espp {
   /**
-   *     Class which monitors the currently running tasks in the system and
+   *  @brief Class which monitors the currently running tasks in the system and
    *     periodically logs their states. See also <a
    *     href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html#_CPPv412vTaskGetInfo12TaskHandle_tP12TaskStatus_t10BaseType_t10eTaskState">FreeRTOS::vTaskGetInfo()</a>.
+   *     NOTE: you must enable CONFIG_FREERTOS_USE_TRACE_FACILITY and
+   *     CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS for this class to do anything.
+   *     This means that you can always instantiate this class in your app_main,
+   *     and then based on those two config settings it will either do nothing
+   *     (default) or print out the stats for you to analyze. Finally, the
+   *     monitoring period can be configured as well.
+   *
+   * \section task_monitor_ex1 Basic Task Monitor Example
+   * \snippet monitor_example.cpp TaskMonitor example
    */
   class TaskMonitor {
   public:
     struct Config {
-      std::chrono::duration<float> period;
-      size_t task_stack_size_bytes{8*1024};
+      std::chrono::duration<float> period;  /**< Period (s) the TaskMonitor::task_callback runs at. */
+      size_t task_stack_size_bytes{8*1024}; /**< Stack size (B) allocated to the TaskMonitor::task_callback.  */
     };
 
     TaskMonitor(const Config& config) : period_(config.period), logger_({.tag = "TaskMonitor"}) {
