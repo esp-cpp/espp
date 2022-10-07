@@ -9,4 +9,5 @@ API Reference
 -------------
 
 .. include-build-file:: inc/logger.inc
+.. include-build-file:: inc/task_monitor.inc
 .. include-build-file:: inc/task.inc

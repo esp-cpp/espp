@@ -50,18 +50,19 @@ namespace espp {
     }
 
     /**
-     * @brief Get a single information about all the tasks running.
+     * @brief Get information about all the tasks running.
      *        Will provide for each task the following information:
      *          * name
      *          * % CPU run time the task has used
      *          * stack high water mark (bytes)
      *          * current priority of the task
-
+     *
      *        Where each entry is separated by ',' and each set of task data is
      *        separated by ';'. NOTE: there is no newline returned.
      *
-     * @return std::string containing sequence of
-     *         <name>,cpu%,high_water_mark,priority;; entries
+     * @return std::string containing sequence of entries, formatted:
+     *
+     *     name, cpu%, high_water_mark, priority;;
      */
     std::string get_latest_info() {
 #if CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS

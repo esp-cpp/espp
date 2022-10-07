@@ -21,6 +21,7 @@ PROJECT_NAME = "ESPP (ESP C++ Library)"
 
 EXAMPLE_PATH =
 EXAMPLE_PATH += $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
@@ -31,8 +32,9 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
 EXTRACT_ALL = YES
 
 INPUT =
-INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
 INPUT += $(PROJECT_PATH)/components/logger/include/logger.hpp
+INPUT += $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp
+INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
 
 USE_MDFILE_AS_MAINPAGE = ../README.md
 
