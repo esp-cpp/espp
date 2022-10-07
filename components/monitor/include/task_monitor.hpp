@@ -89,14 +89,14 @@ namespace espp {
       pxTaskStatusArray = static_cast<TaskStatus_t*>(pvPortMalloc( uxArraySize * sizeof( TaskStatus_t ) ));
 
       if( pxTaskStatusArray != NULL ) {
-		// Generate raw status information about each task.
-		uxArraySize = uxTaskGetSystemState( pxTaskStatusArray, uxArraySize, &ulTotalRunTime );
+        // Generate raw status information about each task.
+        uxArraySize = uxTaskGetSystemState( pxTaskStatusArray, uxArraySize, &ulTotalRunTime );
 
-		// For percentage calculations.
-		ulTotalRunTime /= 100UL;
+        // For percentage calculations.
+        ulTotalRunTime /= 100UL;
 
-		// Avoid divide by zero errors.
-		if( ulTotalRunTime > 0 ) {
+        // Avoid divide by zero errors.
+        if( ulTotalRunTime > 0 ) {
           // For each populated position in the pxTaskStatusArray array,
           // format the raw data as human readable ASCII data
           for(size_t x = 0; x < uxArraySize; x++ ) {
@@ -130,9 +130,9 @@ namespace espp {
 
             pcWriteBuffer += strlen( ( char * ) pcWriteBuffer );
           }
-		}
-		// The array is no longer needed, free the memory it consumes.
-		vPortFree( pxTaskStatusArray );
+        }
+        // The array is no longer needed, free the memory it consumes.
+        vPortFree( pxTaskStatusArray );
       }
       return std::string{info_str};
 #else
