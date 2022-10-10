@@ -35,7 +35,8 @@ extern "C" void app_main(void) {
       std::string task_name = fmt::format("Task {}", i);
       auto task = espp::Task::make_unique({
           .name = task_name,
-          .callback = std::bind(task_fn, i, _1, _2)
+          .callback = std::bind(task_fn, i, _1, _2),
+          .stack_size_bytes = 5*1024
         });
       tasks[i] = std::move(task);
       tasks[i]->start();
