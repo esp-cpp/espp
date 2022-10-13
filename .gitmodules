@@ -4,3 +4,6 @@
 [submodule "external/alpaca"]
 	path = external/alpaca
 	url = git@github.com:p-ranav/alpaca
+[submodule "external/esp-idf-cxx"]
+	path = external/esp-idf-cxx
+	url = git@github.com:espressif/esp-idf-cxx
