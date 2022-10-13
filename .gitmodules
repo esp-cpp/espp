@@ -10,3 +10,6 @@
 [submodule "external/esp_littlefs"]
 	path = external/esp_littlefs
 	url = git@github.com:joltwallet/esp_littlefs
+[submodule "external/lvgl"]
+	path = external/lvgl
+	url = git@github.com:lvgl/lvgl
