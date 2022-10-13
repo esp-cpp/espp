@@ -74,7 +74,7 @@ namespace espp {
     void info(std::string_view rt_fmt_str, Args&&... args) {
       if (level_ > Verbosity::INFO) return;
       auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-      fmt::print(fg(fmt::color::green), "[{}/I]:{}\n", tag_, msg);
+      fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
     }
 
     /**
@@ -86,7 +86,7 @@ namespace espp {
     void warn(std::string_view rt_fmt_str, Args&&... args) {
       if (level_ > Verbosity::WARN) return;
       auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-      fmt::print(fg(fmt::color::yellow), "[{}/W]:{}\n", tag_, msg);
+      fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
     }
 
     /**
@@ -98,7 +98,7 @@ namespace espp {
     void error(std::string_view rt_fmt_str, Args&&... args) {
       if (level_ > Verbosity::ERROR) return;
       auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-      fmt::print(fg(fmt::color::red), "[{}/E]:{}\n", tag_, msg);
+      fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
     }
 
   protected:
