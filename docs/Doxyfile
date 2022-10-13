@@ -23,6 +23,7 @@ EXAMPLE_PATH =
 EXAMPLE_PATH += $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/socket/example/main/socket_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
 ## to automatically generate API reference list files header_file.inc
@@ -35,6 +36,9 @@ INPUT =
 INPUT += $(PROJECT_PATH)/components/logger/include/logger.hpp
 INPUT += $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp
 INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
+INPUT += $(PROJECT_PATH)/components/socket/include/socket_common.hpp
+INPUT += $(PROJECT_PATH)/components/socket/include/udp_socket.hpp
+INPUT += $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp
 
 USE_MDFILE_AS_MAINPAGE = ../README.md
 
