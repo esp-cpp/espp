@@ -7,3 +7,6 @@
 [submodule "external/esp-idf-cxx"]
 	path = external/esp-idf-cxx
 	url = git@github.com:espressif/esp-idf-cxx
+[submodule "external/esp_littlefs"]
+	path = external/esp_littlefs
+	url = git@github.com:joltwallet/esp_littlefs
