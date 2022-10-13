@@ -20,8 +20,8 @@ namespace espp {
   class WifiAp {
   public:
     struct Config {
-      std::string ssid;
-      std::string password;
+      std::string ssid; /**< SSID for the access point. */
+      std::string password; /**< Password for the access point. If empty, the AP will be open / have no security. */
       uint8_t channel{1}; /**< WiFi channel, range [1,13]. */
       uint8_t max_number_of_stations{4}; /**< Max number of connected stations to this AP. */
       Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity of WifiAp logger. */
