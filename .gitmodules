@@ -4,12 +4,12 @@
 [submodule "external/alpaca"]
 	path = external/alpaca
 	url = git@github.com:p-ranav/alpaca
-[submodule "external/esp-idf-cxx"]
+[submodule "components/esp-idf-cxx"]
 	path = components/esp-idf-cxx
 	url = git@github.com:espressif/esp-idf-cxx
-[submodule "external/esp_littlefs"]
+[submodule "components/esp_littlefs"]
 	path = components/esp_littlefs
 	url = git@github.com:joltwallet/esp_littlefs
-[submodule "external/lvgl"]
+[submodule "components/lvgl"]
 	path = components/lvgl
 	url = git@github.com:lvgl/lvgl
