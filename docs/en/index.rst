@@ -8,6 +8,9 @@ This is the documentation for the ESP-IDF C++ library esp-cpp/espp.
 API Reference
 -------------
 
+.. include-build-file:: inc/display.inc
+.. include-build-file:: inc/ili9341.inc
+.. include-build-file:: inc/st7789.inc
 .. include-build-file:: inc/logger.inc
 .. include-build-file:: inc/task_monitor.inc
 .. include-build-file:: inc/task.inc

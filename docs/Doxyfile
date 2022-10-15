@@ -20,6 +20,7 @@ EXAMPLE_RECURSIVE = YES
 PROJECT_NAME = "ESPP (ESP C++ Library)"
 
 EXAMPLE_PATH =
+EXAMPLE_PATH += $(PROJECT_PATH)/components/display_drivers/example/main/display_drivers_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
@@ -33,6 +34,9 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/socket/example/main/socket_example.cp
 EXTRACT_ALL = YES
 
 INPUT =
+INPUT += $(PROJECT_PATH)/components/display/include/display.hpp
+INPUT += $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp
+INPUT += $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp
 INPUT += $(PROJECT_PATH)/components/logger/include/logger.hpp
 INPUT += $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp
 INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
