@@ -178,7 +178,9 @@ extern "C" void app_main(void) {
   // NOTE: see esp-box/components/bsp/src/boards/esp32_s3_box.c
   {
     //! [st7789 esp-box example]
-    size_t pixel_buffer_size = 6*1024;
+    size_t display_width = 320;
+    size_t display_height = 240;
+    size_t pixel_buffer_size = display_width*50;
     // create the spi host for the ST7789 on ESP BOX
     idf::SPIMaster master(idf::SPINum(SPI2_HOST),
                           idf::MOSI(6),
@@ -187,7 +189,7 @@ extern "C" void app_main(void) {
                           idf::SPI_DMAConfig::AUTO(),
                           idf::SPITransferSize(pixel_buffer_size * sizeof(lv_color_t)));
     // create the spi device
-    auto lcd = master.create_dev(idf::CS(5), idf::Frequency::MHz(40));
+    auto lcd = master.create_dev(idf::CS(5), idf::Frequency::MHz(60));
     // create the lcd_write function
     espp::Display::write_fn lcd_write = [&lcd](auto data, auto length, auto user_data) {
       if (length == 0) {
@@ -222,8 +224,8 @@ extern "C" void app_main(void) {
       });
     // initialize the display / lvgl
     auto display = std::make_shared<espp::Display>(espp::Display::Config{
-        .width = 320,
-        .height = 240,
+        .width = display_width,
+        .height = display_height,
         .pixel_buffer_size = pixel_buffer_size,
         .flush_callback = espp::St7789::flush,
         .rotation = espp::Display::Rotation::LANDSCAPE,
