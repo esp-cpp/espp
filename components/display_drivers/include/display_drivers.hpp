@@ -1,6 +1,7 @@
 #pragma once
 
 #include "driver/gpio.h"
+#include "esp_lcd_panel_commands.h"
 #include "display.hpp"
 
 namespace espp {
@@ -10,7 +11,13 @@ namespace espp {
       gpio_num_t reset_pin; /**< GPIO used for resetting the display. */
       gpio_num_t data_command_pin; /**< GPIO used for indicating to the LCD whether the bits are data or command bits. */
       gpio_num_t backlight_pin; /**< GPIO used for controlling the backlight of the display. */
+      bool backlight_on_value{false}; /**< Whether backlight is active high or active low(default). */
       bool invert_colors{false}; /**< Whether to invert the colors on the display. */
+      int offset_x{0}; /**< X Gap / offset, in pixels. */
+      int offset_y{0}; /**< Y Gap / offset, in pixels. */
+      bool swap_xy{false};  /**< Swap row/column order. */
+      bool mirror_x{false}; /**< Mirror the display horizontally. */
+      bool mirror_y{false}; /**< Mirror the display vertically. */
     };
 
     /**
@@ -27,7 +34,7 @@ namespace espp {
       uint8_t length; /**< Number of data bytes; bit 7 means delay after, 0xFF means end of commands. */
     };
 
-    static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t backlight) {
+    static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t backlight, uint8_t backlight_on) {
       // Initialize display pins
       uint64_t gpio_output_pin_sel =
         ((1ULL << data_command) | (1ULL << reset) | (1ULL << backlight));
@@ -40,7 +47,7 @@ namespace espp {
       ESP_ERROR_CHECK(gpio_config(&o_conf));
 
       // turn on the backlight
-      gpio_set_level(backlight, 0);
+      gpio_set_level(backlight, backlight_on);
 
       using namespace std::chrono_literals;
       //Reset the display

@@ -30,6 +30,11 @@ namespace espp {
       reset_pin_ = config.reset_pin;
       dc_pin_ = config.data_command_pin;
       backlight_pin_ = config.backlight_pin;
+      offset_x_ = config.offset_x;
+      offset_y_ = config.offset_y;
+
+      // Initialize display pins
+      display_drivers::init_pins(reset_pin_, dc_pin_, backlight_pin_, config.backlight_on_value);
 
       // init the display
       display_drivers::LcdInitCmd ili_init_cmds[]={
@@ -60,9 +65,6 @@ namespace espp {
         {0, {0}, 0xff},
       };
 
-      // Initialize display pins
-      display_drivers::init_pins(reset_pin_, dc_pin_, backlight_pin_);
-
       // send the init commands
       display_drivers::send_commands(ili_init_cmds, dc_pin_, lcd_write_);
 
@@ -83,20 +85,25 @@ namespace espp {
     static void flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map) {
       uint8_t data[4];
 
+      uint16_t start_x = area->x1 + offset_x_;
+      uint16_t end_x = area->x2 + offset_x_;
+      uint16_t start_y = area->y1 + offset_y_;
+      uint16_t end_y = area->y2 + offset_y_;
+
       // Set start and end column addresses
       display_drivers::send_command(0x2A, dc_pin_, lcd_write_);
-      data[0] = (area->x1 >> 8) & 0xFF;
-      data[1] = area->x1 & 0xFF;
-      data[2] = (area->x2 >> 8) & 0xFF;
-      data[3] = area->x2 & 0xFF;
+      data[0] = (start_x >> 8) & 0xFF;
+      data[1] = start_x & 0xFF;
+      data[2] = (end_x >> 8) & 0xFF;
+      data[3] = end_x & 0xFF;
       display_drivers::send_data(data, 4, dc_pin_, lcd_write_);
 
       // Set start and end row addresses
       display_drivers::send_command(0x2B, dc_pin_, lcd_write_);
-      data[0] = (area->y1 >> 8) & 0xFF;
-      data[1] = area->y1 & 0xFF;
-      data[2] = (area->y2 >> 8) & 0xFF;
-      data[3] = area->y2 & 0xFF;
+      data[0] = (start_y >> 8) & 0xFF;
+      data[1] = start_y & 0xFF;
+      data[2] = (end_y >> 8) & 0xFF;
+      data[3] = end_y & 0xFF;
       display_drivers::send_data(data, 4, dc_pin_, lcd_write_);
 
       // Write the color data to the configured section of controller memory
@@ -106,10 +113,11 @@ namespace espp {
     }
 
   protected:
-
     static Display::write_fn lcd_write_;
     static gpio_num_t reset_pin_;
     static gpio_num_t dc_pin_;
     static gpio_num_t backlight_pin_;
+    static int offset_x_;
+    static int offset_y_;
   };
 }

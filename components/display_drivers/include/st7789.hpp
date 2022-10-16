@@ -36,9 +36,11 @@ namespace espp {
       reset_pin_ = config.reset_pin;
       dc_pin_ = config.data_command_pin;
       backlight_pin_ = config.backlight_pin;
+      offset_x_ = config.offset_x;
+      offset_y_ = config.offset_y;
 
       // Initialize display pins
-      display_drivers::init_pins(reset_pin_, dc_pin_, backlight_pin_);
+      display_drivers::init_pins(reset_pin_, dc_pin_, backlight_pin_, config.backlight_on_value);
 
       // set up the init commands
       display_drivers::LcdInitCmd st_init_cmds[] = {
@@ -52,7 +54,7 @@ namespace espp {
         {(uint8_t)St7789Command::idset, {0x11}, 1},
         {(uint8_t)St7789Command::vcmofset, {0x35, 0x3E}, 2},
         {(uint8_t)St7789Command::cabcctrl, {0xBE}, 1},
-        {(uint8_t)St7789Command::madctl, {0x00}, 1}, // Set to 0x28 if your display is flipped
+        {(uint8_t)St7789Command::madctl, {0x00}, 1},
         {(uint8_t)St7789Command::colmod, {0x55}, 1},
         {(uint8_t)St7789Command::invon, {0}, 0},
         {(uint8_t)St7789Command::rgbctrl, {0x00, 0x1B}, 2},
@@ -71,6 +73,16 @@ namespace espp {
         {(uint8_t)St7789Command::dispon, {0}, 0x80},
         {0, {0}, 0xff},
       };
+      // NOTE: these configurations operates on the MADCTL command / register
+      if (config.mirror_x) {
+        st_init_cmds[10].data[0] |= LCD_CMD_MX_BIT;
+      }
+      if (config.mirror_y) {
+        st_init_cmds[10].data[0] |= LCD_CMD_MY_BIT;
+      }
+      if (config.swap_xy) {
+        st_init_cmds[10].data[0] |= LCD_CMD_MV_BIT;
+      }
 
       // NOTE: ST7789 setting the reverse color is the normal color so we inver
       // the logic here.
@@ -121,13 +133,12 @@ namespace espp {
     }
 
   protected:
-    static constexpr int offset_x_ = 40;
-    static constexpr int offset_y_ = 53;
-
     static Display::write_fn lcd_write_;
     static gpio_num_t reset_pin_;
     static gpio_num_t dc_pin_;
     static gpio_num_t backlight_pin_;
+    static int offset_x_;
+    static int offset_y_;
 
     enum class St7789Command : uint8_t {
       nop = 0x00,        // no operation

@@ -2,13 +2,15 @@ menu "Display Drivers Example Configuration"
 
     choice
         prompt "Hardware Configuration"
-        default HARDwARE_WROVER_KIT
+        default HARDWARE_WROVER_KIT
         help
             Select the dev-kit / hardware you're using.
         config HARDWARE_WROVER_KIT
             bool "ESP32 WROVER KIT V4"
         config HARDWARE_TTGO
             bool "TTGO T-DISPLAY"
+        config HARDWARE_BOX
+            bool "ESP BOX"
     endchoice
 
 endmenu
