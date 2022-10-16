@@ -209,9 +209,7 @@ extern "C" void app_main(void) {
                     },
                     (void*)user_data).get();
     };
-    // initialize the controller, for the ESP32s3 box we need to:
-    // * mirror x
-    // * mirror y
+    // initialize the controller
     espp::St7789::initialize({
         .lcd_write = lcd_write,
         .reset_pin = (gpio_num_t)48,
