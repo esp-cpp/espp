@@ -241,8 +241,6 @@ extern "C" void app_main(void) {
       iterations++;
       std::this_thread::sleep_for(100ms);
     }
-    /*
-    */
     //! [st7789 esp-box example]
     // and sleep
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
