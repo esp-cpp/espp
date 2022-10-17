@@ -139,6 +139,9 @@ namespace espp {
      */
     size_t height() const { return height_; }
 
+    void pause() { paused_ = true; }
+    void resume() { paused_ = false; }
+
   protected:
     /**
      * @brief Flush the data to the display, called within the task_.
@@ -148,8 +151,10 @@ namespace espp {
      *   https://docs.lvgl.io/latest/en/html/porting/tick.html
      */
     void update(std::mutex& m, std::condition_variable& cv) {
-      // we shouldn't stop, update the display
-      lv_tick_inc(10);
+      if (!paused_){
+        // we shouldn't stop, update the display
+        lv_tick_inc(10);
+      }
       // delay
       {
         using namespace std::chrono_literals;
@@ -158,6 +163,7 @@ namespace espp {
       }
     }
 
+    std::atomic<bool> paused_{false};
     std::unique_ptr<Task> task_;
     size_t width_;
     size_t height_;
