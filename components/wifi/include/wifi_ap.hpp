@@ -32,6 +32,7 @@ namespace espp {
 
     /**
       * @brief Initialize the WiFi Access Point (AP)
+      * @param config WifiAp::Config structure with initialization information.
       */
     WifiAp(const Config& config) : logger_({.tag = "WifiAp", .level = config.log_level}) {
       // Code below is modified from:
@@ -69,24 +70,11 @@ namespace espp {
         logger_.error("Could not register wifi event handler: {}", err);
       }
 
-      wifi_config_t wifi_config = {
-        .ap = {
-          .ssid = "",
-          .password = "",
-          .ssid_len = (uint8_t)config.ssid.size(),
-          .channel = config.channel,
-          .authmode = WIFI_AUTH_WPA_WPA2_PSK,
-          .ssid_hidden = false, // default
-          .max_connection = config.max_number_of_stations,
-          .beacon_interval = 100, // default
-          .pairwise_cipher = WIFI_CIPHER_TYPE_TKIP_CCMP,
-          .ftm_responder = true,
-          .pmf_cfg = {
-            .capable = true, // default, this is deprecated
-            .required = false,
-          },
-        },
-      };
+      wifi_config_t wifi_config;
+      memset(&wifi_config, 0, sizeof(wifi_config));
+      wifi_config.ap.ssid_len = (uint8_t)config.ssid.size();
+      wifi_config.ap.channel = config.channel;
+      wifi_config.ap.max_connection = config.max_number_of_stations;
       memcpy(wifi_config.ap.ssid, config.ssid.data(), config.ssid.size());
       memcpy(wifi_config.ap.password, config.password.data(), config.password.size());
       if (config.password.size() == 0) {
