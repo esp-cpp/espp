@@ -19,6 +19,18 @@ namespace espp {
    */
   class Ili9341 {
   public:
+    enum class Command : uint8_t {
+      invoff = 0x20, // display inversion off
+      invon = 0x21,  // display inversion on
+      gamset = 0x26, // gamma set
+      dispoff = 0x28,// display off
+      dispon = 0x29, // display on
+      caset = 0x2a,  // column address set
+      raset = 0x2b,  // row address set
+      ramwr = 0x2c,  // ram write
+      rgbset = 0x2d, // color setting for 4096, 64k and 262k colors
+      ramrd = 0x2e,  // ram read
+    };
     /**
      * @brief Store the config data and send the initialization commands to the
      *        display controller.
@@ -66,13 +78,13 @@ namespace espp {
       };
 
       // send the init commands
-      display_drivers::send_commands(ili_init_cmds, dc_pin_, lcd_write_);
+      send_commands(ili_init_cmds);
 
       // configure the display color configuration
       if (config.invert_colors) {
-        display_drivers::send_command(0x21, dc_pin_, lcd_write_);
+        send_command(0x21);
       } else {
-        display_drivers::send_command(0x20, dc_pin_, lcd_write_);
+        send_command(0x20);
       }
     }
 
@@ -83,6 +95,16 @@ namespace espp {
      * @param *color_map Pointer to array of colors to flush to the display.
      */
     static void flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map) {
+      fill(drv, area, color_map, (uint32_t)Display::Signal::FLUSH);
+    }
+
+    /**
+     * @brief Flush the pixel data for the provided area to the display.
+     * @param *drv Pointer to the LVGL display driver.
+     * @param *area Pointer to the structure describing the pixel area.
+     * @param *color_map Pointer to array of colors to flush to the display.
+     */
+    static void fill(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map, uint32_t flags=(uint32_t)Display::Signal::NONE) {
       uint8_t data[4];
 
       uint16_t start_x = area->x1 + offset_x_;
@@ -91,25 +113,113 @@ namespace espp {
       uint16_t end_y = area->y2 + offset_y_;
 
       // Set start and end column addresses
-      display_drivers::send_command(0x2A, dc_pin_, lcd_write_);
+      send_command((uint8_t)Command::caset);
       data[0] = (start_x >> 8) & 0xFF;
       data[1] = start_x & 0xFF;
       data[2] = (end_x >> 8) & 0xFF;
       data[3] = end_x & 0xFF;
-      display_drivers::send_data(data, 4, dc_pin_, lcd_write_);
+      send_data(data, 4);
 
       // Set start and end row addresses
-      display_drivers::send_command(0x2B, dc_pin_, lcd_write_);
+      send_command((uint8_t)Command::raset);
       data[0] = (start_y >> 8) & 0xFF;
       data[1] = start_y & 0xFF;
       data[2] = (end_y >> 8) & 0xFF;
       data[3] = end_y & 0xFF;
-      display_drivers::send_data(data, 4, dc_pin_, lcd_write_);
+      send_data(data, 4);
 
       // Write the color data to the configured section of controller memory
-      display_drivers::send_command(0x2C, dc_pin_, lcd_write_);
+      send_command((uint8_t)Command::ramwr);
       uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      display_drivers::send_colors((uint8_t*)color_map, size * 2, dc_pin_, lcd_write_);
+      send_data((uint8_t*)color_map, size * 2, flags);
+    }
+
+    /**
+     * @param Clear the display area, filling it with the provided color.
+     * @param x X coordinate of the upper left corner of the display area.
+     * @param y Y coordinate of the upper left corner of the display area.
+     * @param width Width of the display area to clear.
+     * @param height Height of the display area to clear.
+     * @param color 16 bit color (default 0x0000) to fill with.
+     */
+    static void clear(size_t x, size_t y, size_t width, size_t height, uint16_t color=0x0000) {
+      uint8_t data[4] = {0};
+
+      uint16_t start_x = x + offset_x_;
+      uint16_t end_x = (x+width) + offset_x_;
+      uint16_t start_y = y + offset_y_;
+      uint16_t end_y = (y+width) + offset_y_;
+
+      // Set the column (x) start / end addresses
+      send_command((uint8_t)Command::caset);
+      data[0] = (start_x >> 8) & 0xFF;
+      data[1] = start_x & 0xFF;
+      data[2] = (end_x >> 8) & 0xFF;
+      data[3] = end_x & 0xFF;
+      send_data(data, 4);
+
+      // Set the row (y) start / end addresses
+      send_command((uint8_t)Command::raset);
+      data[0] = (start_y >> 8) & 0xFF;
+      data[1] = start_y & 0xFF;
+      data[2] = (end_y >> 8) & 0xFF;
+      data[3] = end_y & 0xFF;
+      send_data(data, 4);
+
+      // Write the color data to controller RAM
+      send_command((uint8_t)Command::ramwr);
+      uint32_t size = width * height;
+      static constexpr int max_bytes_to_send = 1024 * 2;
+      uint16_t color_data[max_bytes_to_send];
+      memset(color_data, color, max_bytes_to_send * sizeof(uint16_t));
+      for (int i=0; i<size; i+=max_bytes_to_send) {
+        int num_bytes = std::min((int)(size-i), (int)(max_bytes_to_send));
+        send_data((uint8_t *)color_data, num_bytes * 2);
+      }
+    }
+
+    /**
+     * @brief Sets the DC pin to command and sends the command code.
+     * @param command Command code to send
+     */
+    static void send_command(uint8_t command) {
+      gpio_set_level(dc_pin_, (uint8_t)display_drivers::Mode::COMMAND);
+      lcd_write_(&command, 1, (uint32_t)Display::Signal::NONE);
+    }
+
+    /**
+     * @brief Sets the DC pin to data and sends the data, with optional flags.
+     * @param data Pointer to array of bytes to be sent
+     * @param length Number of bytes of data to send.
+     * @param flags Optional (default = Display::Signal::NONE) flags associated with transfer.
+     */
+    static void send_data(uint8_t* data, size_t length, uint32_t flags=(uint32_t)Display::Signal::NONE) {
+      gpio_set_level(dc_pin_, (uint8_t)display_drivers::Mode::DATA);
+      lcd_write_(data, length, flags);
+    }
+
+    static void send_commands(display_drivers::LcdInitCmd *commands) {
+      using namespace std::chrono_literals;
+      //Send all the commands
+      uint16_t cmd = 0;
+      while (commands[cmd].length!=0xff) {
+        send_command(commands[cmd].command);
+        send_data(commands[cmd].data, commands[cmd].length&0x1F);
+        if (commands[cmd].length & 0x80) {
+          std::this_thread::sleep_for(100ms);
+        }
+        cmd++;
+      }
+    }
+
+    static void set_offset(int x, int y) {
+      offset_x_ = x;
+      offset_y_ = y;
+    }
+
+    static void get_offset(int &x, int &y) {
+      x = offset_x_;
+      y = offset_y_;
     }
 
   protected:

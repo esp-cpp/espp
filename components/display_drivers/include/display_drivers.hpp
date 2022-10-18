@@ -56,34 +56,5 @@ namespace espp {
       gpio_set_level(reset, 1);
       std::this_thread::sleep_for(100ms);
     }
-
-    static void send_command(uint8_t command, gpio_num_t dc_pin, Display::write_fn lcd_write) {
-      gpio_set_level(dc_pin, (uint8_t)Mode::COMMAND);
-      lcd_write((uint8_t*)&command, 1, (uint32_t)Display::Signal::NONE);
-    }
-
-    static void send_data(uint8_t *data, size_t length, gpio_num_t dc_pin, Display::write_fn lcd_write) {
-      gpio_set_level(dc_pin, (uint8_t)Mode::DATA);
-      lcd_write(data, length, (uint32_t)Display::Signal::NONE);
-    }
-
-    static void send_colors(uint8_t *data, size_t length, gpio_num_t dc_pin, Display::write_fn lcd_write) {
-      gpio_set_level(dc_pin, (uint8_t)Mode::DATA);
-      lcd_write(data, length, (uint32_t)Display::Signal::FLUSH);
-    }
-
-    static void send_commands(LcdInitCmd *commands, gpio_num_t dc_pin, Display::write_fn lcd_write) {
-      using namespace std::chrono_literals;
-      //Send all the commands
-      uint16_t cmd = 0;
-      while (commands[cmd].length!=0xff) {
-        send_command(commands[cmd].command, dc_pin, lcd_write);
-        send_data(commands[cmd].data, commands[cmd].length&0x1F, dc_pin, lcd_write);
-        if (commands[cmd].length & 0x80) {
-          std::this_thread::sleep_for(100ms);
-        }
-        cmd++;
-      }
-    }
   } // namespace display_drivers
 } // namespace espp
