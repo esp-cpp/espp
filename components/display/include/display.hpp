@@ -142,6 +142,8 @@ namespace espp {
     void pause() { paused_ = true; }
     void resume() { paused_ = false; }
 
+    uint16_t* vram() { return (uint16_t*) vram_0_; }
+
   protected:
     /**
      * @brief Flush the data to the display, called within the task_.
