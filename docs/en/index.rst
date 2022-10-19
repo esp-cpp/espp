@@ -18,3 +18,4 @@ API Reference
 .. include-build-file:: inc/tcp_socket.inc
 .. include-build-file:: inc/socket_common.inc
 .. include-build-file:: inc/wifi_ap.inc
+.. include-build-file:: inc/wifi_sta.inc

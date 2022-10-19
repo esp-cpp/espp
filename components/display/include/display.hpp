@@ -75,20 +75,19 @@ namespace espp {
      */
     Display(const Config& config)
       : width_(config.width), height_(config.height),
+        display_buffer_px_size_(config.pixel_buffer_size),
         logger_({.tag="Display", .level=config.log_level}) {
       lv_init();
 
       // create the display buffers
-      size_t buffer_pix_size =  config.pixel_buffer_size;
-      size_t buffer_heap_size = buffer_pix_size * sizeof(lv_color_t);
       // NOTE: could also use LV_BUF_ALLOC_INTERNAL
       uint32_t malloc_caps = MALLOC_CAP_DMA;
-      vram_0_ = (lv_color_t*)heap_caps_malloc(buffer_heap_size, malloc_caps);
+      vram_0_ = (lv_color_t*)heap_caps_malloc(vram_size_bytes(), malloc_caps);
       assert(vram_0_ != NULL);
 
       // Use double buffered when not working with monochrome displays
 #ifndef CONFIG_LV_TFT_DISPLAY_MONOCHROME
-      vram_1_ = (lv_color_t*)heap_caps_malloc(buffer_heap_size, malloc_caps);
+      vram_1_ = (lv_color_t*)heap_caps_malloc(vram_size_bytes(), malloc_caps);
       assert(vram_1_ != NULL);
 #endif
 
@@ -139,10 +138,35 @@ namespace espp {
      */
     size_t height() const { return height_; }
 
+    /**
+     * @brief Pause the display update task, to prevent LVGL from writing to the
+     *        display.
+     */
     void pause() { paused_ = true; }
+
+    /**
+     * @brief Resume the display update task, to allow LVGL to write to the
+     *        display.
+     */
     void resume() { paused_ = false; }
 
+    /**
+     * @brief Get pointer to main display buffer for custom writing.
+     * @return uint16_t* Pointer to the main display buffer.
+     */
     uint16_t* vram() { return (uint16_t*) vram_0_; }
+
+    /**
+     * @brief Return the number of pixels that vram() can hold.
+     * @return size_t Number of pixels that fit in the display buffer.
+     */
+    size_t vram_size_px() { return display_buffer_px_size_; }
+
+    /**
+     * @brief Return the number of bytes that vram() can hold.
+     * @return size_t Number of bytes that fit in the display buffer.
+     */
+    size_t vram_size_bytes() { return display_buffer_px_size_ * sizeof(lv_color_t); }
 
   protected:
     /**
@@ -169,6 +193,7 @@ namespace espp {
     std::unique_ptr<Task> task_;
     size_t width_;
     size_t height_;
+    size_t display_buffer_px_size_;
     lv_color_t *vram_0_{nullptr};
     lv_color_t *vram_1_{nullptr};
     lv_disp_draw_buf_t disp_buffer_;

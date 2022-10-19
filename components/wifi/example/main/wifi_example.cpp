@@ -7,6 +7,7 @@
 
 #include "sdkconfig.h"
 #include "wifi_sta.hpp"
+#include "wifi_ap.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
@@ -27,6 +28,7 @@ extern "C" void app_main(void) {
 #endif
 
   {
+    //! [wifi sta example]
     espp::WifiSta wifi_sta({
         .ssid = CONFIG_ESP_WIFI_SSID,
         .password = CONFIG_ESP_WIFI_PASSWORD,
@@ -41,6 +43,18 @@ extern "C" void app_main(void) {
     while (!wifi_sta.is_connected()) {
       std::this_thread::sleep_for(100ms);
     }
+    //! [wifi sta example]
+
+    std::this_thread::sleep_for(num_seconds_to_run * 1s);
+  }
+
+  {
+    //! [wifi ap example]
+    espp::WifiAp wifi_ap({
+        .ssid = CONFIG_ESP_WIFI_SSID,
+        .password = CONFIG_ESP_WIFI_PASSWORD
+      });
+    //! [wifi ap example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }

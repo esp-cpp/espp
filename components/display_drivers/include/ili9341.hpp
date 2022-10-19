@@ -103,6 +103,7 @@ namespace espp {
      * @param *drv Pointer to the LVGL display driver.
      * @param *area Pointer to the structure describing the pixel area.
      * @param *color_map Pointer to array of colors to flush to the display.
+     * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
      */
     static void fill(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map, uint32_t flags=(uint32_t)Display::Signal::NONE) {
       uint8_t data[4];
@@ -135,7 +136,7 @@ namespace espp {
     }
 
     /**
-     * @param Clear the display area, filling it with the provided color.
+     * @brief Clear the display area, filling it with the provided color.
      * @param x X coordinate of the upper left corner of the display area.
      * @param y Y coordinate of the upper left corner of the display area.
      * @param width Width of the display area to clear.

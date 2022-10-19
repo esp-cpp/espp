@@ -20,12 +20,27 @@ namespace espp {
     *
     * NOTE: if CONFIG_ESP32_WIFI_NVS_ENABLED is set to `y` (which is the
     * default), then you must ensure that you call `nvs_flash_init()` prior to
-    * creating the WiFi Access Point.
+    * creating the WiFi Station.
+    *
+    * \section wifista_ex1 WiFi Station Example
+    * \snippet wifi_example.cpp wifi sta example
     */
   class WifiSta {
   public:
+    /**
+     * @brief called when the WiFi station connects to an access point.
+     */
     typedef std::function<void(void)> connect_callback;
+    /**
+     * @brief Called when the WiFi station is disconnected from the access point
+     *        and has exceeded the configured Config::num_connect_retries.
+     */
     typedef std::function<void(void)> disconnect_callback;
+    /**
+      * @brief Called whe nthe WiFi station has gotten an IP from the access
+      *        point.
+      * @param ip_event_got_ip_t* IP Event data structure (contains ip address).
+      */
     typedef std::function<void(ip_event_got_ip_t*)> ip_callback;
 
     struct Config {
@@ -38,19 +53,19 @@ namespace espp {
       uint8_t channel{0}; /**< Channel of target AP; set to 0 for unknown. */
       bool set_ap_mac{false}; /**< Whether to check MAC address of the AP (generally no). If yes, provide ap_mac. */
       uint8_t ap_mac[6]{0}; /**< MAC address of the AP to check if set_ap_mac is set to true. */
-      Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity of WifiAp logger. */
+      Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity of WifiSta logger. */
     };
 
     /**
      * @brief Initialize the WiFi Station (STA)
-     * @param config WifiAp::Config structure with initialization information.
+     * @param config WifiSta::Config structure with initialization information.
      */
     WifiSta(const Config& config)
       : num_retries_(config.num_connect_retries),
         connect_callback_(config.on_connected),
         disconnect_callback_(config.on_disconnected),
         ip_callback_(config.on_got_ip),
-        logger_({.tag = "WifiAp", .level = config.log_level}) {
+        logger_({.tag = "WifiSta", .level = config.log_level}) {
       // Code below is modified from:
       // https://github.com/espressif/esp-idf/blob/1c84cfde14dcffdc77d086a5204ce8a548dce935/examples/wifi/getting_started/station/main/station_example_main.c
       esp_err_t err;
@@ -112,6 +127,9 @@ namespace espp {
       }
     }
 
+    /**
+     * @brief Stop the WiFi station and deinit the wifi subystem.
+     */
     ~WifiSta() {
       esp_err_t err;
       if (event_handler_instance_any_id_) {
@@ -148,6 +166,10 @@ namespace espp {
       logger_.info("WiFi stopped");
     }
 
+    /**
+     * @brief Whether the station is connected to an access point.
+     * @return true if it is currently connected, false otherwise.
+     */
     bool is_connected() {
       return connected_;
     }
