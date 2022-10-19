@@ -16,6 +16,7 @@ namespace espp {
    *  @brief Class which monitors the currently running tasks in the system and
    *     periodically logs their states. See also <a
    *     href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html#_CPPv412vTaskGetInfo12TaskHandle_tP12TaskStatus_t10BaseType_t10eTaskState">FreeRTOS::vTaskGetInfo()</a>.
+   *
    *     NOTE: you must enable CONFIG_FREERTOS_USE_TRACE_FACILITY and
    *     CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS for this class to do anything.
    *     This means that you can always instantiate this class in your app_main,
@@ -23,8 +24,15 @@ namespace espp {
    *     (default) or print out the stats for you to analyze. Finally, the
    *     monitoring period can be configured as well.
    *
+   *     NOTE: You can use the static TaskMonitor::get_latest_info() to get a
+   *     string with the latest info without needing to construct a class /
+   *     start the task.
+   *
    * \section task_monitor_ex1 Basic Task Monitor Example
    * \snippet monitor_example.cpp TaskMonitor example
+   *
+   * \section task_monitor_ex2 get_latest_info() Example
+   * \snippet monitor_example.cpp get_latest_info example
    */
   class TaskMonitor {
   public:
@@ -60,11 +68,14 @@ namespace espp {
      *        Where each entry is separated by ',' and each set of task data is
      *        separated by ';'. NOTE: there is no newline returned.
      *
+     *        This is a static function, so it can be called without having to
+     *        instantiate a TaskMonitor object.
+     *
      * @return std::string containing sequence of entries, formatted:
      *
      *     name, cpu%, high_water_mark, priority;;
      */
-    std::string get_latest_info() {
+    static std::string get_latest_info() {
 #if CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS
       // make this static so that we don't allocate on the stack each time we
       // call this function (and then deallocate later). NOTE(WARN): doing this
@@ -136,9 +147,6 @@ namespace espp {
       }
       return std::string{info_str};
 #else
-      logger_.error("Project was not built with "
-                    "CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS "
-                    "cannot monitor task performance!");
       return "";
 #endif
     }
