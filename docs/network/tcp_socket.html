@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TCP Sockets - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'network/tcp_socket';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Task APIs" href="../task.html" />
+    <link rel="prev" title="UDP Sockets" href="udp_socket.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Network APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="socket.html">Sockets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="udp_socket.html">UDP Sockets</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">TCP Sockets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Network APIs</a> &raquo;</li>
+      <li>TCP Sockets</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/7464edd/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tcp-sockets">
+<h1>TCP Sockets<a class="headerlink" href="#tcp-sockets" title="Permalink to this headline"></a></h1>
+<p>TCP sockets provide reliable, ordered communication over IP network sockets and
+have built-in protocols for handling packet acknowledgement as well as
+transmission speed / bandwidth adjustment.</p>
+<p>TCP sockets cannot be used with multicast (many to one, one to many).</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/83518fc/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocketE">
+<span id="_CPPv3N4espp9TcpSocketE"></span><span id="_CPPv2N4espp9TcpSocketE"></span><span id="espp::TcpSocket"></span><span class="target" id="classespp_1_1_tcp_socket"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TcpSocket</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="socket.html#_CPPv4N4espp6SocketE" title="espp::Socket"><span class="n"><span class="pre">Socket</span></span></a><a class="headerlink" href="#_CPPv4N4espp9TcpSocketE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for managing sending and receiving data using TCP/IP. Can be used to create client or server sockets. </p>
+<section id="classespp_1_1_tcp_socket_1tcp_ex1">
+<h4>TCP Client Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_tcp_socket_1tcp_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="nf">client_socket</span><span class="p">({});</span><span class="w"></span>
+<span class="w">    </span><span class="n">client_socket</span><span class="p">.</span><span class="n">connect</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">ip_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">server_address</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">port</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// create thread for sending data using the socket</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">client_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">server_address</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">client_socket</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">port</span><span class="p">](</span><span class="k">auto</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">iterations</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">};</span><span class="w"></span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">d</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">iterations</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">tx_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="o">::</span><span class="n">TransmitConfig</span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="p">};</span><span class="w"></span>
+<span class="w">      </span><span class="n">client_socket</span><span class="p">.</span><span class="n">transmit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">tx_config</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">iterations</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">client_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">make_unique</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Client Task&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">client_task_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="o">*</span><span class="mi">1024</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">client_task</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<section id="classespp_1_1_tcp_socket_1tcp_ex2">
+<h4>TCP Server Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex2" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_tcp_socket_1tcp_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="nf">server_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">server_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;TcpServer&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">server_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="o">::</span><span class="n">ReceiveConfig</span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">port</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">source</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Server received: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">                   </span><span class="s">&quot;    from source: {}:{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                   </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">address</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">port</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="n">server_socket</span><span class="p">.</span><span class="n">start_receiving</span><span class="p">(</span><span class="n">server_task_config</span><span class="p">,</span><span class="w"> </span><span class="n">server_config</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+</p>
+</section>
+<section id="classespp_1_1_tcp_socket_1tcp_ex3">
+<h4>TCP Client Response Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex3" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_tcp_socket_1tcp_ex3"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="nf">client_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">client_socket</span><span class="p">.</span><span class="n">connect</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">ip_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">server_address</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">port</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// create threads</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">client_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">server_address</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">client_socket</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">port</span><span class="p">](</span><span class="k">auto</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">iterations</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">};</span><span class="w"></span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">d</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">iterations</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">transmit_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="o">::</span><span class="n">TransmitConfig</span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">wait_for_response</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">response_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">128</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">on_response_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">response</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Client received: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">response</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">},</span><span class="w"></span>
+<span class="w">      </span><span class="p">};</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: now this call blocks until the response is received</span>
+<span class="w">      </span><span class="n">client_socket</span><span class="p">.</span><span class="n">transmit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">transmit_config</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">iterations</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">client_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">make_unique</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Client Task&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">client_task_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="o">*</span><span class="mi">1024</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">client_task</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<section id="classespp_1_1_tcp_socket_1tcp_ex4">
+<h4>TCP Server Response Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex4" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_tcp_socket_1tcp_ex4"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="nf">server_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">server_task_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;TcpServer&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">server_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="o">::</span><span class="n">ReceiveConfig</span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">port</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">source</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Server received: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">                   </span><span class="s">&quot;    from source: {}:{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                   </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">address</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">port</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// reverse the data</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">reverse</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">end</span><span class="p">());</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// and send it back</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">data</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="n">server_socket</span><span class="p">.</span><span class="n">start_receiving</span><span class="p">(</span><span class="n">server_task_config</span><span class="p">,</span><span class="w"> </span><span class="n">server_config</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket19receive_callback_fnE">
+<span id="_CPPv3N4espp9TcpSocket19receive_callback_fnE"></span><span id="_CPPv2N4espp9TcpSocket19receive_callback_fnE"></span><span id="espp::TcpSocket::receive_callback_fn"></span><span class="target" id="classespp_1_1_socket_1a30e4c43d35a4873b4b55d3c0f7e7ca61"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Info</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">receive_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket19receive_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback function to be called when receiving data from a client. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param std::vector&lt;uint8_t&gt;&amp;</dt>
+<dd class="field-odd"><p>data </p>
+</dd>
+<dt class="field-even">Param Info&amp;</dt>
+<dd class="field-even"><p>Sender information (address, port) </p>
+</dd>
+<dt class="field-odd">Return</dt>
+<dd class="field-odd"><p>std::optional&lt;std::vector&lt;uint8_t&gt;&gt; optional data to return to sender. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket20response_callback_fnE">
+<span id="_CPPv3N4espp9TcpSocket20response_callback_fnE"></span><span id="_CPPv2N4espp9TcpSocket20response_callback_fnE"></span><span id="espp::TcpSocket::response_callback_fn"></span><span class="target" id="classespp_1_1_socket_1acea94451ae13084dd108bdf78f11d9ce"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">response_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket20response_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback function to be called with data returned after transmitting data to a server. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param std::vector&lt;uint8_t&gt;&amp;</dt>
+<dd class="field-odd"><p>data </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket9TcpSocketERK6Config">
+<span id="_CPPv3N4espp9TcpSocket9TcpSocketERK6Config"></span><span id="_CPPv2N4espp9TcpSocket9TcpSocketERK6Config"></span><span id="espp::TcpSocket::TcpSocket__ConfigCR"></span><span class="target" id="classespp_1_1_tcp_socket_1a552b49ad9da339e05dccdc09ca83cc9f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TcpSocket</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket6ConfigE" title="espp::TcpSocket::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket9TcpSocketERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the socket and associated resources. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1_tcp_socket_1_1_config"><span class="std std-ref">Config</span></a> for the socket. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocketD0Ev">
+<span id="_CPPv3N4espp9TcpSocketD0Ev"></span><span id="_CPPv2N4espp9TcpSocketD0Ev"></span><span id="espp::TcpSocket::~TcpSocket"></span><span class="target" id="classespp_1_1_tcp_socket_1ade32b8e938c94f932e395fb8b91a0bd9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~TcpSocket</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocketD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Tear down any resources associted with the socket. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket7connectERK13ConnectConfig">
+<span id="_CPPv3N4espp9TcpSocket7connectERK13ConnectConfig"></span><span id="_CPPv2N4espp9TcpSocket7connectERK13ConnectConfig"></span><span id="espp::TcpSocket::connect__ConnectConfigCR"></span><span class="target" id="classespp_1_1_tcp_socket_1afb3310f908c4659b72f1e1579b34b41c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">connect</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket13ConnectConfigE" title="espp::TcpSocket::ConnectConfig"><span class="n"><span class="pre">ConnectConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">connect_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket7connectERK13ConnectConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Open a connection to the remote TCP server. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>connect_config</strong> – <a class="reference internal" href="#structespp_1_1_tcp_socket_1_1_connect_config"><span class="std std-ref">ConnectConfig</span></a> struct describing the server endpoint. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the client successfully connected to the server. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket8transmitERKNSt6vectorI7uint8_tEERK14TransmitConfig">
+<span id="_CPPv3N4espp9TcpSocket8transmitERKNSt6vectorI7uint8_tEERK14TransmitConfig"></span><span id="_CPPv2N4espp9TcpSocket8transmitERKNSt6vectorI7uint8_tEERK14TransmitConfig"></span><span id="espp::TcpSocket::transmit__std::vector:uint8_t:CR.TransmitConfigCR"></span><span class="target" id="classespp_1_1_tcp_socket_1a0490ed19c3ac750bfb77fa44943210b4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">transmit</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket14TransmitConfigE" title="espp::TcpSocket::TransmitConfig"><span class="n"><span class="pre">TransmitConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">transmit_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket8transmitERKNSt6vectorI7uint8_tEERK14TransmitConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Send data to the endpoint already connected to by <a class="reference internal" href="#classespp_1_1_tcp_socket_1afb3310f908c4659b72f1e1579b34b41c"><span class="std std-ref">TcpSocket::connect</span></a>. Can be configured to block waiting for a response from the remote. </p>
+<p>If response is requested, a callback can be provided in send_config which will be provided the response data for processing. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – vector of bytes to send to the remote endpoint. </p></li>
+<li><p><strong>transmit_config</strong> – <a class="reference internal" href="#structespp_1_1_tcp_socket_1_1_transmit_config"><span class="std std-ref">TransmitConfig</span></a> struct indicating whether to wait for a response. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the data was sent, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket7receiveEi6size_tRNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp9TcpSocket7receiveEi6size_tRNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp9TcpSocket7receiveEi6size_tRNSt6vectorI7uint8_tEE"></span><span id="espp::TcpSocket::receive__i.s.std::vector:uint8_t:R"></span><span class="target" id="classespp_1_1_tcp_socket_1a4f381b3a6aa311b92c9822b70be41637"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">receive</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">socket_fd</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_num_bytes</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket7receiveEi6size_tRNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Call read on the socket, assuming it has already been configured appropriately. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>socket_fd</strong> – <a class="reference internal" href="socket.html#classespp_1_1_socket"><span class="std std-ref">Socket</span></a> file descriptor. </p></li>
+<li><p><strong>max_num_bytes</strong> – Maximum number of bytes to receive. </p></li>
+<li><p><strong>data</strong> – Vector of bytes of received data. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if successfully received, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket15start_receivingERN4Task6ConfigERK13ReceiveConfig">
+<span id="_CPPv3N4espp9TcpSocket15start_receivingERN4Task6ConfigERK13ReceiveConfig"></span><span id="_CPPv2N4espp9TcpSocket15start_receivingERN4Task6ConfigERK13ReceiveConfig"></span><span id="espp::TcpSocket::start_receiving__Task::ConfigR.ReceiveConfigCR"></span><span class="target" id="classespp_1_1_tcp_socket_1a2f581bfbbc75fb4b9583382d8f4aea84"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_receiving</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../task.html#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../task.html#_CPPv4N4espp4Task6ConfigE" title="espp::Task::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">task_config</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket13ReceiveConfigE" title="espp::TcpSocket::ReceiveConfig"><span class="n"><span class="pre">ReceiveConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">receive_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket15start_receivingERN4Task6ConfigERK13ReceiveConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure a server socket and start a thread to continuously receive and handle data coming in on that socket. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task_config</strong> – <a class="reference internal" href="../task.html#structespp_1_1_task_1_1_config"><span class="std std-ref">Task::Config</span></a> struct for configuring the receive task. </p></li>
+<li><p><strong>receive_config</strong> – <a class="reference internal" href="#structespp_1_1_tcp_socket_1_1_receive_config"><span class="std std-ref">ReceiveConfig</span></a> struct with socket and callback info. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the socket was created and task was started, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket8is_validEv">
+<span id="_CPPv3N4espp9TcpSocket8is_validEv"></span><span id="_CPPv2N4espp9TcpSocket8is_validEv"></span><span id="espp::TcpSocket::is_valid"></span><span class="target" id="classespp_1_1_socket_1a7de2424c97570dc62d2a79584eec89c6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket8is_validEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Is the socket valid. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>true if the socket file descriptor is &gt;= 0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket19set_receive_timeoutERKNSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp9TcpSocket19set_receive_timeoutERKNSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp9TcpSocket19set_receive_timeoutERKNSt6chrono8durationIfEE"></span><span id="espp::TcpSocket::set_receive_timeout__std::chrono::duration:float:CR"></span><span class="target" id="classespp_1_1_socket_1a2dab4b5708750315d2286de42ec198a3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_receive_timeout</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">timeout</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket19set_receive_timeoutERKNSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the receive timeout on the provided socket. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timeout</strong> – requested timeout, must be &gt; 0. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if SO_RECVTIMEO was successfully set. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket12enable_reuseEv">
+<span id="_CPPv3N4espp9TcpSocket12enable_reuseEv"></span><span id="_CPPv2N4espp9TcpSocket12enable_reuseEv"></span><span id="espp::TcpSocket::enable_reuse"></span><span class="target" id="classespp_1_1_socket_1a5c3b81c9311b51975f85a6dd51f8d887"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable_reuse</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket12enable_reuseEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Allow others to use this address/port combination after we’re done with it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>true if SO_REUSEADDR and SO_REUSEPORT were successfully set. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket14make_multicastE7uint8_t7uint8_t">
+<span id="_CPPv3N4espp9TcpSocket14make_multicastE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp9TcpSocket14make_multicastE7uint8_t7uint8_t"></span><span id="espp::TcpSocket::make_multicast__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_socket_1a8bd3c686dcb16bd099435ed5c50e205e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_multicast</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">time_to_live</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">loopback_enabled</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket14make_multicastE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the socket to be multicast (if time_to_live &gt; 0). Sets the IP_MULTICAST_TTL (number of multicast hops allowed) and optionally configures whether this node should receive its own multicast packets (IP_MULTICAST_LOOP). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time_to_live</strong> – number of multicast hops allowed (TTL). </p></li>
+<li><p><strong>loopback_enabled</strong> – Whether to receive our own multicast packets. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if IP_MULTICAST_TTL and IP_MULTICAST_LOOP were set. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket19add_multicast_groupERKNSt6stringE">
+<span id="_CPPv3N4espp9TcpSocket19add_multicast_groupERKNSt6stringE"></span><span id="_CPPv2N4espp9TcpSocket19add_multicast_groupERKNSt6stringE"></span><span id="espp::TcpSocket::add_multicast_group__ssCR"></span><span class="target" id="classespp_1_1_socket_1ab159462da2daea10fb7d0d28553639fc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_multicast_group</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">multicast_group</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket19add_multicast_groupERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If this is a server socket, add it to the provided the multicast group. </p>
+<p>NOTE: multicast groups must be Class D addresses (224.0.0.0 to 239.255.255.255)</p>
+<p>See <a class="reference external" href="https://en.wikipedia.org/wiki/Multicast_address">https://en.wikipedia.org/wiki/Multicast_address</a> for more information. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>multicast_group</strong> – multicast group to join. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if IP_ADD_MEMBERSHIP was successfully set. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket8is_validEi">
+<span id="_CPPv3N4espp9TcpSocket8is_validEi"></span><span id="_CPPv2N4espp9TcpSocket8is_validEi"></span><span id="espp::TcpSocket::is_valid__i"></span><span class="target" id="classespp_1_1_socket_1a8d0555f621a81a3d06db64500eb0c502"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">socket_fd</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket8is_validEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Is the socket valid. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>socket_fd</strong> – <a class="reference internal" href="socket.html#classespp_1_1_socket"><span class="std std-ref">Socket</span></a> file descriptor. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the socket file descriptor is &gt;= 0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket6ConfigE">
+<span id="_CPPv3N4espp9TcpSocket6ConfigE"></span><span id="_CPPv2N4espp9TcpSocket6ConfigE"></span><span id="espp::TcpSocket::Config"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket6Config9log_levelE">
+<span id="_CPPv3N4espp9TcpSocket6Config9log_levelE"></span><span id="_CPPv2N4espp9TcpSocket6Config9log_levelE"></span><span id="espp::TcpSocket::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_config_1a4b098cfd17bf7b07fe4958e7bb5d6be5"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity level for the TCP socket logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket13ConnectConfigE">
+<span id="_CPPv3N4espp9TcpSocket13ConnectConfigE"></span><span id="_CPPv2N4espp9TcpSocket13ConnectConfigE"></span><span id="espp::TcpSocket::ConnectConfig"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_connect_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ConnectConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket13ConnectConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket13ConnectConfig10ip_addressE">
+<span id="_CPPv3N4espp9TcpSocket13ConnectConfig10ip_addressE"></span><span id="_CPPv2N4espp9TcpSocket13ConnectConfig10ip_addressE"></span><span id="espp::TcpSocket::ConnectConfig::ip_address__ss"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_connect_config_1a94a9642d9696d8fbd1a770fc1c4b4031"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ip_address</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket13ConnectConfig10ip_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Address to send data to. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket13ConnectConfig4portE">
+<span id="_CPPv3N4espp9TcpSocket13ConnectConfig4portE"></span><span id="_CPPv2N4espp9TcpSocket13ConnectConfig4portE"></span><span id="espp::TcpSocket::ConnectConfig::port__s"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_connect_config_1a9c2e9d67476539332caab83532f192b8"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">port</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket13ConnectConfig4portE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Port number to send data to. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket13ReceiveConfigE">
+<span id="_CPPv3N4espp9TcpSocket13ReceiveConfigE"></span><span id="_CPPv2N4espp9TcpSocket13ReceiveConfigE"></span><span id="espp::TcpSocket::ReceiveConfig"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_receive_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ReceiveConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket13ReceiveConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket13ReceiveConfig4portE">
+<span id="_CPPv3N4espp9TcpSocket13ReceiveConfig4portE"></span><span id="_CPPv2N4espp9TcpSocket13ReceiveConfig4portE"></span><span id="espp::TcpSocket::ReceiveConfig::port__s"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_receive_config_1a634da5f41b355258824c698a181f9a8e"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">port</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket13ReceiveConfig4portE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Port number to bind to / receive from. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket13ReceiveConfig23max_pending_connectionsE">
+<span id="_CPPv3N4espp9TcpSocket13ReceiveConfig23max_pending_connectionsE"></span><span id="_CPPv2N4espp9TcpSocket13ReceiveConfig23max_pending_connectionsE"></span><span id="espp::TcpSocket::ReceiveConfig::max_pending_connections__s"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_receive_config_1a7493388c516f96ecabd959c260edd712"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_pending_connections</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">5</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket13ReceiveConfig23max_pending_connectionsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum length to which the queue of pending connections may grow. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket13ReceiveConfig11buffer_sizeE">
+<span id="_CPPv3N4espp9TcpSocket13ReceiveConfig11buffer_sizeE"></span><span id="_CPPv2N4espp9TcpSocket13ReceiveConfig11buffer_sizeE"></span><span id="espp::TcpSocket::ReceiveConfig::buffer_size__s"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_receive_config_1af5414a33ac97990dba3e5f1d70ed0d51"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">buffer_size</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket13ReceiveConfig11buffer_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Max size of data we can receive at one time. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket13ReceiveConfig19on_receive_callbackE">
+<span id="_CPPv3N4espp9TcpSocket13ReceiveConfig19on_receive_callbackE"></span><span id="_CPPv2N4espp9TcpSocket13ReceiveConfig19on_receive_callbackE"></span><span id="espp::TcpSocket::ReceiveConfig::on_receive_callback__receive_callback_fn"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_receive_config_1ad1ed5d7fe383e221745f1d48196d7f9b"></span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket19receive_callback_fnE" title="espp::TcpSocket::receive_callback_fn"><span class="n"><span class="pre">receive_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_receive_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket13ReceiveConfig19on_receive_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function containing business logic to handle data received. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket14TransmitConfigE">
+<span id="_CPPv3N4espp9TcpSocket14TransmitConfigE"></span><span id="_CPPv2N4espp9TcpSocket14TransmitConfigE"></span><span id="espp::TcpSocket::TransmitConfig"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_transmit_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TransmitConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket14TransmitConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket14TransmitConfig17wait_for_responseE">
+<span id="_CPPv3N4espp9TcpSocket14TransmitConfig17wait_for_responseE"></span><span id="_CPPv2N4espp9TcpSocket14TransmitConfig17wait_for_responseE"></span><span id="espp::TcpSocket::TransmitConfig::wait_for_response__b"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_transmit_config_1ac78236e756318c768ee0d40a4f48ade4"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">wait_for_response</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket14TransmitConfig17wait_for_responseE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to wait for a response from the remote or not. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket14TransmitConfig13response_sizeE">
+<span id="_CPPv3N4espp9TcpSocket14TransmitConfig13response_sizeE"></span><span id="_CPPv2N4espp9TcpSocket14TransmitConfig13response_sizeE"></span><span id="espp::TcpSocket::TransmitConfig::response_size__s"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_transmit_config_1ae77bbf44bd9a821f4d4121ac09f7826e"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">response_size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket14TransmitConfig13response_sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If waiting for a response, this is the maximum size response we will receive. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket14TransmitConfig20on_response_callbackE">
+<span id="_CPPv3N4espp9TcpSocket14TransmitConfig20on_response_callbackE"></span><span id="_CPPv2N4espp9TcpSocket14TransmitConfig20on_response_callbackE"></span><span id="espp::TcpSocket::TransmitConfig::on_response_callback__response_callback_fn"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_transmit_config_1a3b1a66778837bc5d02d4a3a94c4da66a"></span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket20response_callback_fnE" title="espp::TcpSocket::response_callback_fn"><span class="n"><span class="pre">response_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">on_response_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket14TransmitConfig20on_response_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If waiting for a response, this is an optional handler which is provided the response data. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket14TransmitConfig16response_timeoutE">
+<span id="_CPPv3N4espp9TcpSocket14TransmitConfig16response_timeoutE"></span><span id="_CPPv2N4espp9TcpSocket14TransmitConfig16response_timeoutE"></span><span id="espp::TcpSocket::TransmitConfig::response_timeout__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1_tcp_socket_1_1_transmit_config_1a0a82f2cc84f08272b3823959d8f386b5"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">response_timeout</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.5f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket14TransmitConfig16response_timeoutE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If waiting for a response, this is the maximum timeout to wait. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="udp_socket.html" class="btn btn-neutral float-left" title="UDP Sockets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../task.html" class="btn btn-neutral float-right" title="Task APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2022, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
