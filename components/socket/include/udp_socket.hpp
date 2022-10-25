@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "logger.hpp"
-#include "socket_common.hpp"
+#include "socket.hpp"
 #include "task.hpp"
 
 // TODO: should this class _contain_ a socket or just create sockets within each
@@ -35,26 +35,8 @@ namespace espp {
    * \snippet socket_example.cpp UDP Multicast Server example
    *
    */
-  class UdpSocket {
+  class UdpSocket : public Socket {
   public:
-
-    /**
-     * @brief Callback function to be called with data received from a remote when calling recvfrom.
-     * @param std::vector<uint8_t>& data
-     * @param Socket::Info& Sender information (address, port)
-     * @return std::optional<std::vector<uint8_t>> optional data to return to sender.
-     */
-    typedef std::function<std::optional<std::vector<uint8_t>>(std::vector<uint8_t>&, const Socket::Info&)> receive_callback_fn;
-
-    /**
-     * @brief Callback function to be called with data returned from remote after calling sendto.
-     * @param std::vector<uint8_t>& data
-     */
-    typedef std::function<void(std::vector<uint8_t>&)> response_callback_fn;
-
-    struct Config {
-      Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity level for the UDP socket logger. */
-    };
 
     struct ReceiveConfig {
       size_t port; /**< Port number to bind to / receive from. */
@@ -74,15 +56,22 @@ namespace espp {
       std::chrono::duration<float> response_timeout{0.5f}; /**< If waiting for a response, this is the maximum timeout to wait. */
     };
 
-    UdpSocket(const Config& config) : logger_({.tag="UdpSocket", .level=config.log_level}) {
-      init();
-    }
+    struct Config {
+      Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity level for the UDP socket logger. */
+    };
+
+    /**
+      * @brief Initialize the socket and associated resources.
+      * @param config Config for the socket.
+      */
+    UdpSocket(const Config& config) : Socket(Type::DGRAM, Logger::Config{.tag="UdpSocket", .level=config.log_level}) { }
 
     /**
      * @brief Tear down any resources associted with the socket.
      */
     ~UdpSocket() {
-      // clean up socket resources here
+      // we have to explicitly call cleanup here so that the server recvfrom
+      // will return and the task can stop.
       cleanup();
     }
 
@@ -103,19 +92,19 @@ namespace espp {
      * @return true if the data was sent, false otherwise.
      */
     bool send(const std::vector<uint8_t>& data, const SendConfig& send_config) {
-      if (!Socket::is_valid(socket_)) {
+      if (!is_valid()) {
         logger_.error("Socket invalid, cannot send");
         return false;
       }
       if (send_config.is_multicast_endpoint) {
         // configure it for multicast
-        if (!Socket::make_multicast(socket_)) {
+        if (!make_multicast()) {
           logger_.error("Cannot make multicast: {} - '{}'", errno, strerror(errno));
           return false;
         }
       }
       // set the receive timeout
-      if (!Socket::set_receive_timeout(socket_, send_config.response_timeout)) {
+      if (!set_receive_timeout(send_config.response_timeout)) {
         logger_.error("Could not set receive timeout to {}: {} - '{}'",
                       send_config.response_timeout.count(), errno, strerror(errno));
         return false;
@@ -167,7 +156,7 @@ namespace espp {
      * @return true if successfully received, false otherwise.
      */
     bool receive(size_t max_num_bytes, std::vector<uint8_t>& data, Socket::Info& remote_info) {
-      if (!Socket::is_valid(socket_)) {
+      if (!is_valid()) {
         logger_.error("Socket invalid, cannot receive.");
         return false;
       }
@@ -207,7 +196,7 @@ namespace espp {
         logger_.error("Server is alrady receiving");
         return false;
       }
-      if (!Socket::is_valid(socket_)) {
+      if (!is_valid()) {
         logger_.error("Socket invalid, cannot start receiving.");
         return false;
       }
@@ -226,12 +215,12 @@ namespace espp {
       }
       if (receive_config.is_multicast_endpoint) {
         // enable multicast
-        if (!Socket::make_multicast(socket_)) {
+        if (!make_multicast()) {
           logger_.error("Unable to make bound socket multicast: {} - '{}'", errno, strerror(errno));
           return false;
         }
         // add multicast group
-        if (!Socket::add_multicast_group(socket_, receive_config.multicast_group)) {
+        if (!add_multicast_group(receive_config.multicast_group)) {
           logger_.error("Unable to add multicast group to bound socket: {} - '{}'", errno, strerror(errno));
           return false;
         }
@@ -249,44 +238,16 @@ namespace espp {
   protected:
 
     /**
-     * @brief Create the UDP socket and enable reuse.
-     * @return true if the socket was initialized properly, false otherwise
-     */
-    bool init() {
-      // actually make the socket
-      socket_ = socket(address_family_, SOCK_DGRAM, ip_protocol_);
-      if (!Socket::is_valid(socket_)) {
-        logger_.error("Cannot create socket: {} - '{}'", errno, strerror(errno));
-        return false;
-      }
-      if (!Socket::enable_reuse(socket_)) {
-        logger_.error("Cannot enable reuse: {} - '{}'", errno, strerror(errno));
-        return false;
-      }
-      return true;
-    }
-
-    /**
-     *  @brief If the socket was created, we shut it down and close it here.
-     */
-    void cleanup() {
-      if (Socket::is_valid(socket_)) {
-        shutdown(socket_, 0);
-        close(socket_);
-        socket_ = -1;
-        logger_.info("Closed socket");
-      }
-    }
-
-    /**
      * @brief Function run in the task_ when start_receiving is called.
      *        Continuously receive data on the socket, pass the received data to
      *        the registered callback function (registered in start_receiving in
      *        the ReceiveConfig struct), and optionally respond to the sender if
      *        the registered callback returns data.
-     * @param buffer_size [description]
-     * @param m [description]
-     * @param cv [description]
+     * @param buffer_size number of bytes of receive buffer allowed.
+     * @param m std::mutex provided from the task for use with the
+     *          condition_variable (cv)
+     * @param cv std::condition_variable from the task for allowing
+     *           interruptible wait / delay.
      */
     void server_task_function(size_t buffer_size, std::mutex& m, std::condition_variable& cv) {
       // receive data
@@ -321,12 +282,7 @@ namespace espp {
       logger_.info("Server responded with {} bytes", num_bytes_sent);
     }
 
-    static constexpr int address_family_{AF_INET};
-    static constexpr int ip_protocol_{IPPROTO_IP};
-
-    int socket_;
     std::unique_ptr<Task> task_;
     receive_callback_fn server_receive_callback_;
-    Logger logger_;
   };
 }

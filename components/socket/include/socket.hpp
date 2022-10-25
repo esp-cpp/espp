@@ -10,11 +10,26 @@
 
 #include <math.h>
 
+#include "logger.hpp"
 #include "format.hpp"
 
 namespace espp {
+  /**
+   *   @brief Class for a generic socket with some helper functions for
+   *          configuring the socket.
+   */
   class Socket {
   public:
+    enum class Type : int {
+      RAW = SOCK_RAW,       /**< Only IP headers, no TCP or UDP headers as well. */
+      DGRAM = SOCK_DGRAM,   /**< UDP/IP socket - datagram. */
+      STREAM = SOCK_STREAM  /**< TCP/IP socket - stream. */
+    };
+
+    /**
+      *  @brief Storage for socket information (address, port) with convenience
+      *         functions to convert to/from POSIX structures.
+      */
     struct Info {
     protected:
       struct sockaddr_storage raw; /**< Raw sockaddr structure, allows this
@@ -105,17 +120,60 @@ namespace espp {
       std::string to_string() const { return fmt::format("{}:{}", address, port); }
     };
 
+    /**
+     * @brief Callback function to be called when receiving data from a client.
+     * @param std::vector<uint8_t>& data
+     * @param Info& Sender information (address, port)
+     * @return std::optional<std::vector<uint8_t>> optional data to return to sender.
+     */
+    typedef std::function<std::optional<std::vector<uint8_t>>(std::vector<uint8_t>&, const Info&)> receive_callback_fn;
+
+    /**
+     * @brief Callback function to be called with data returned after transmitting data to a server.
+     * @param std::vector<uint8_t>& data
+     */
+    typedef std::function<void(std::vector<uint8_t>&)> response_callback_fn;
+
+    /**
+     * @brief Initialize the socket (calling init()).
+     * @param type The Socket::Type of the socket to make.
+     * @param logger_config configuration for the logger associated with the
+     *        socket.
+     */
+    Socket(Type type, const Logger::Config& logger_config) : logger_(logger_config) {
+      init(type);
+    }
+
+    /**
+     * @brief Tear down any resources associted with the socket.
+     */
+    ~Socket() {
+      cleanup();
+    }
+
+    /**
+     * @brief Is the socket valid.
+     * @return true if the socket file descriptor is >= 0.
+     */
+    bool is_valid() {
+      return socket_ >= 0;
+    }
+
+    /**
+     * @brief Is the socket valid.
+     * @param socket_fd Socket file descriptor.
+     * @return true if the socket file descriptor is >= 0.
+     */
     static bool is_valid(int socket_fd) {
       return socket_fd >= 0;
     }
 
     /**
      * @brief Set the receive timeout on the provided socket.
-     * @param socket_fd socket file descriptor.
      * @param timeout requested timeout, must be > 0.
      * @return true if SO_RECVTIMEO was successfully set.
      */
-    static bool set_receive_timeout(int socket_fd, const std::chrono::duration<float>& timeout) {
+    bool set_receive_timeout(const std::chrono::duration<float>& timeout) {
       float seconds = timeout.count();
       if (seconds <= 0) {
         return true;
@@ -132,7 +190,7 @@ namespace espp {
       struct timeval tv;
       tv.tv_sec = response_timeout_s;
       tv.tv_usec = response_timeout_us;
-      int err = setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof (tv));
+      int err = setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof (tv));
       if (err < 0) {
         return false;
       }
@@ -142,23 +200,22 @@ namespace espp {
     /**
      * @brief Allow others to use this address/port combination after we're done
      *        with it.
-     * @param socket_fd socket file descriptor
      * @return true if SO_REUSEADDR and SO_REUSEPORT were successfully set.
      */
-    static bool enable_reuse(int socket_fd) {
+    bool enable_reuse() {
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
       fmt::print(fg(fmt::color::red), "CONFIG_LWIP_SO_REUSE not defined!\n");
       return false;
 #endif
       int err = 0;
       int enabled = 1;
-      err = setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
+      err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
       if (err < 0) {
         fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEADDR\n");
         return false;
       }
 #if !defined(ESP_PLATFORM)
-      err = setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &enabled, sizeof(enabled));
+      err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &enabled, sizeof(enabled));
       if (err < 0) {
         fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT\n");
         return false;
@@ -172,22 +229,21 @@ namespace espp {
      *        Sets the IP_MULTICAST_TTL (number of multicast hops allowed) and
      *        optionally configures whether this node should receive its own
      *        multicast packets (IP_MULTICAST_LOOP).
-     * @param socket_fd socket file descriptor.
      * @param time_to_live number of multicast hops allowed (TTL).
      * @param loopback_enabled Whether to receive our own multicast packets.
      * @return true if IP_MULTICAST_TTL and IP_MULTICAST_LOOP were set.
      */
-    static bool make_multicast(int socket_fd, uint8_t time_to_live=1, uint8_t loopback_enabled=true) {
+    bool make_multicast(uint8_t time_to_live=1, uint8_t loopback_enabled=true) {
       int err = 0;
       // Assign multicast TTL - separate from normal interface TTL
-      err = setsockopt(socket_fd, IPPROTO_IP, IP_MULTICAST_TTL,
+      err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL,
                        &time_to_live, sizeof(uint8_t));
       if (err < 0) {
         fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_TTL\n");
         return false;
       }
       // select whether multicast traffic should be received by this device, too
-      err = setsockopt(socket_fd, IPPROTO_IP, IP_MULTICAST_LOOP,
+      err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP,
                        &loopback_enabled, sizeof(uint8_t));
       if (err < 0) {
         fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_LOOP\n");
@@ -205,11 +261,10 @@ namespace espp {
      *
      *        See https://en.wikipedia.org/wiki/Multicast_address for more
      *        information.
-     * @param socket_fd socket file descriptor
      * @param multicast_group multicast group to join.
      * @return true if IP_ADD_MEMBERSHIP was successfully set.
      */
-    static bool add_multicast_group(int socket_fd, const std::string& multicast_group) {
+    bool add_multicast_group(const std::string& multicast_group) {
       struct ip_mreq imreq;
       int err = 0;
 
@@ -227,14 +282,14 @@ namespace espp {
       // Assign the IPv4 multicast source interface, via its IP
       // (only necessary if this socket is IPV4 only)
       struct in_addr iaddr;
-      err = setsockopt(socket_fd, IPPROTO_IP, IP_MULTICAST_IF, &iaddr,
+      err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, &iaddr,
                        sizeof(struct in_addr));
       if (err < 0) {
         fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_IF: {} - '{}'\n", errno, strerror(errno));
         return false;
       }
 
-      err = setsockopt(socket_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+      err = setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP,
                        &imreq, sizeof(struct ip_mreq));
       if (err < 0) {
         fmt::print(fg(fmt::color::red), "Couldn't set IP_ADD_MEMBERSHIP: {} - '{}'\n", errno, strerror(errno));
@@ -243,5 +298,43 @@ namespace espp {
 
       return true;
     }
+
+  protected:
+
+    /**
+     * @brief Create the TCP socket and enable reuse.
+     * @return true if the socket was initialized properly, false otherwise
+     */
+    bool init(Type type) {
+      // actually make the socket
+      socket_ = socket(address_family_, (int)type, ip_protocol_);
+      if (!is_valid()) {
+        logger_.error("Cannot create socket: {} - '{}'", errno, strerror(errno));
+        return false;
+      }
+      if (!enable_reuse()) {
+        logger_.error("Cannot enable reuse: {} - '{}'", errno, strerror(errno));
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     *  @brief If the socket was created, we shut it down and close it here.
+     */
+    void cleanup() {
+      if (is_valid()) {
+        shutdown(socket_, 0);
+        close(socket_);
+        socket_ = -1;
+        logger_.info("Closed socket");
+      }
+    }
+
+    static constexpr int address_family_{AF_INET};
+    static constexpr int ip_protocol_{IPPROTO_IP};
+
+    int socket_;
+    Logger logger_;
   };
 }
