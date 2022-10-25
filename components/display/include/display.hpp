@@ -11,9 +11,9 @@ namespace espp {
   /**
    * @brief Wrapper class around LVGL display buffer and display driver.
    *
-   *  Allocates and owns the memory associated with the pixel display buffers.
-   *  Starts and maintains a task which runs the high priority lv_tick_inc()
-   *  function every 10 ms.
+   *  Optionally allocates and owns the memory associated with the pixel display
+   *  buffers. Initializes the LVGL subsystem then starts and maintains a task
+   *  which runs the high priority lv_tick_inc() function every 10 ms.
    *
    *  For more information, see
    *  https://docs.lvgl.io/8.3/porting/display.html#display-interface
@@ -91,7 +91,7 @@ namespace espp {
     };
 
     /**
-     * @brief Setup the dsiplay buffers and low-level LVGL, then start the
+     * @brief Allocate the dsiplay buffers, initialize LVGL, then start the
      *        update task.
      * @param config Display configuration including buffer size and flush
      *        callback.
@@ -112,6 +112,11 @@ namespace espp {
       init(config.flush_callback, config.software_rotation_enabled, config.rotation);
     }
 
+    /**
+     * @brief Initialize LVGL then start the update task.
+     * @param config Display configuration including pointers to display buffer
+     *        memory, the pixel buffer size and flush callback.
+     */
     Display(const NonAllocatingConfig& config)
     : width_(config.width), height_(config.height),
       display_buffer_px_size_(config.pixel_buffer_size),

@@ -111,7 +111,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/c14066a/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/e70fafe/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -129,7 +129,7 @@ high-priority lvgl update task which sends data to the display.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c14066a/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e70fafe/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -138,7 +138,7 @@ high-priority lvgl update task which sends data to the display.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7DisplayE">
 <span id="_CPPv3N4espp7DisplayE"></span><span id="_CPPv2N4espp7DisplayE"></span><span id="espp::Display"></span><span class="target" id="classespp_1_1_display"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><a class="headerlink" href="#_CPPv4N4espp7DisplayE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Wrapper class around LVGL display buffer and display driver. </p>
-<p>Allocates and owns the memory associated with the pixel display buffers. Starts and maintains a task which runs the high priority lv_tick_inc() function every 10 ms.</p>
+<p>Optionally allocates and owns the memory associated with the pixel display buffers. Initializes the LVGL subsystem then starts and maintains a task which runs the high priority lv_tick_inc() function every 10 ms.</p>
 <p>For more information, see <a class="reference external" href="https://docs.lvgl.io/8.3/porting/display.html#display-interface">https://docs.lvgl.io/8.3/porting/display.html#display-interface</a> </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
@@ -226,10 +226,21 @@ high-priority lvgl update task which sends data to the display.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Display7DisplayERK16AllocatingConfig">
 <span id="_CPPv3N4espp7Display7DisplayERK16AllocatingConfig"></span><span id="_CPPv2N4espp7Display7DisplayERK16AllocatingConfig"></span><span id="espp::Display::Display__AllocatingConfigCR"></span><span class="target" id="classespp_1_1_display_1aae07860e7c9d7550d5aeb0ea4b29b12e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display16AllocatingConfigE" title="espp::Display::AllocatingConfig"><span class="n"><span class="pre">AllocatingConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display7DisplayERK16AllocatingConfig" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Setup the dsiplay buffers and low-level LVGL, then start the update task. </p>
+<dd><p>Allocate the dsiplay buffers, initialize LVGL, then start the update task. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#classespp_1_1_display"><span class="std std-ref">Display</span></a> configuration including buffer size and flush callback. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display7DisplayERK19NonAllocatingConfig">
+<span id="_CPPv3N4espp7Display7DisplayERK19NonAllocatingConfig"></span><span id="_CPPv2N4espp7Display7DisplayERK19NonAllocatingConfig"></span><span id="espp::Display::Display__NonAllocatingConfigCR"></span><span class="target" id="classespp_1_1_display_1a07021984b42515cb90e5f4db00d61aac"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Display19NonAllocatingConfigE" title="espp::Display::NonAllocatingConfig"><span class="n"><span class="pre">NonAllocatingConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display7DisplayERK19NonAllocatingConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize LVGL then start the update task. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#classespp_1_1_display"><span class="std std-ref">Display</span></a> configuration including pointers to display buffer memory, the pixel buffer size and flush callback. </p>
 </dd>
 </dl>
 </dd></dl>
