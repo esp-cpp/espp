@@ -75,7 +75,7 @@ extern "C" void app_main(void) {
         .invert_colors = false
       });
     // initialize the display / lvgl
-    auto display = std::make_shared<espp::Display>(espp::Display::Config{
+    auto display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
         .width = 320,
         .height = 240,
         .pixel_buffer_size = pixel_buffer_size,
@@ -147,7 +147,7 @@ extern "C" void app_main(void) {
         .offset_y = 53,
       });
     // initialize the display / lvgl
-    auto display = std::make_shared<espp::Display>(espp::Display::Config{
+    auto display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
         .width = 240,
         .height = 135,
         .pixel_buffer_size = pixel_buffer_size,
@@ -221,7 +221,7 @@ extern "C" void app_main(void) {
         .mirror_y = true,
       });
     // initialize the display / lvgl
-    auto display = std::make_shared<espp::Display>(espp::Display::Config{
+    auto display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
         .width = display_width,
         .height = display_height,
         .pixel_buffer_size = pixel_buffer_size,
