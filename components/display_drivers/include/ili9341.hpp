@@ -30,6 +30,12 @@ namespace espp {
       ramwr = 0x2c,  // ram write
       rgbset = 0x2d, // color setting for 4096, 64k and 262k colors
       ramrd = 0x2e,  // ram read
+      madctl = 0x36,  // memory data access control
+      idmoff = 0x38,  // idle mode off
+      idmon = 0x39,   // idle mode on
+      ramwrc = 0x3c,  // memory write continue (st7789v)
+      ramrdc = 0x3e,  // memory read continue (st7789v)
+      colmod = 0x3a,  // color mode - pixel format
     };
     /**
      * @brief Store the config data and send the initialization commands to the
@@ -99,57 +105,30 @@ namespace espp {
     }
 
     /**
-     * @brief Flush the pixel data for the provided area to the display.
-     * @param *drv Pointer to the LVGL display driver.
-     * @param *area Pointer to the structure describing the pixel area.
-     * @param *color_map Pointer to array of colors to flush to the display.
-     * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
+     * @brief Set the drawing area for the display, resets the cursor to the
+     *        starting position of the area.
+     * @param *area Pointer to lv_area_t strcuture with start/end x/y
+     *              coordinates.
      */
-    static void fill(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map, uint32_t flags=(uint32_t)Display::Signal::NONE) {
-      uint8_t data[4];
-
-      uint16_t start_x = area->x1 + offset_x_;
-      uint16_t end_x = area->x2 + offset_x_;
-      uint16_t start_y = area->y1 + offset_y_;
-      uint16_t end_y = area->y2 + offset_y_;
-
-      // Set start and end column addresses
-      send_command((uint8_t)Command::caset);
-      data[0] = (start_x >> 8) & 0xFF;
-      data[1] = start_x & 0xFF;
-      data[2] = (end_x >> 8) & 0xFF;
-      data[3] = end_x & 0xFF;
-      send_data(data, 4);
-
-      // Set start and end row addresses
-      send_command((uint8_t)Command::raset);
-      data[0] = (start_y >> 8) & 0xFF;
-      data[1] = start_y & 0xFF;
-      data[2] = (end_y >> 8) & 0xFF;
-      data[3] = end_y & 0xFF;
-      send_data(data, 4);
-
-      // Write the color data to the configured section of controller memory
-      send_command((uint8_t)Command::ramwr);
-      uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      send_data((uint8_t*)color_map, size * 2, flags);
+    static void set_drawing_area(const lv_area_t *area) {
+      set_drawing_area(area->x1, area->y1, area->x2, area->y2);
     }
 
     /**
-     * @brief Clear the display area, filling it with the provided color.
-     * @param x X coordinate of the upper left corner of the display area.
-     * @param y Y coordinate of the upper left corner of the display area.
-     * @param width Width of the display area to clear.
-     * @param height Height of the display area to clear.
-     * @param color 16 bit color (default 0x0000) to fill with.
+     * @brief Set the drawing area for the display, resets the cursor to the
+     *        starting position of the area.
+     * @param xs Starting x coordinate of the area.
+     * @param ys Starting y coordinate of the area.
+     * @param xe Ending x coordinate of the area.
+     * @param ye Ending y coordinate of the area.
      */
-    static void clear(size_t x, size_t y, size_t width, size_t height, uint16_t color=0x0000) {
+    static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
       uint8_t data[4] = {0};
 
-      uint16_t start_x = x + offset_x_;
-      uint16_t end_x = (x+width) + offset_x_;
-      uint16_t start_y = y + offset_y_;
-      uint16_t end_y = (y+width) + offset_y_;
+      uint16_t start_x = xs + offset_x_;
+      uint16_t end_x = xe + offset_x_;
+      uint16_t start_y = ys + offset_y_;
+      uint16_t end_y = ye + offset_y_;
 
       // Set the column (x) start / end addresses
       send_command((uint8_t)Command::caset);
@@ -166,6 +145,34 @@ namespace espp {
       data[2] = (end_y >> 8) & 0xFF;
       data[3] = end_y & 0xFF;
       send_data(data, 4);
+    }
+
+    /**
+     * @brief Flush the pixel data for the provided area to the display.
+     * @param *drv Pointer to the LVGL display driver.
+     * @param *area Pointer to the structure describing the pixel area.
+     * @param *color_map Pointer to array of colors to flush to the display.
+     * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
+     */
+    static void fill(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map, uint32_t flags=(uint32_t)Display::Signal::NONE) {
+      set_drawing_area(area);
+
+      // Write the color data to the configured section of controller memory
+      send_command((uint8_t)Command::ramwr);
+      uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
+      send_data((uint8_t*)color_map, size * 2, flags);
+    }
+
+    /**
+     * @brief Clear the display area, filling it with the provided color.
+     * @param x X coordinate of the upper left corner of the display area.
+     * @param y Y coordinate of the upper left corner of the display area.
+     * @param width Width of the display area to clear.
+     * @param height Height of the display area to clear.
+     * @param color 16 bit color (default 0x0000) to fill with.
+     */
+    static void clear(size_t x, size_t y, size_t width, size_t height, uint16_t color=0x0000) {
+      set_drawing_area(x, y, x+width, y+height);
 
       // Write the color data to controller RAM
       send_command((uint8_t)Command::ramwr);
@@ -194,7 +201,7 @@ namespace espp {
      * @param length Number of bytes of data to send.
      * @param flags Optional (default = Display::Signal::NONE) flags associated with transfer.
      */
-    static void send_data(uint8_t* data, size_t length, uint32_t flags=(uint32_t)Display::Signal::NONE) {
+    static void send_data(const uint8_t* data, size_t length, uint32_t flags=(uint32_t)Display::Signal::NONE) {
       gpio_set_level(dc_pin_, (uint8_t)display_drivers::Mode::DATA);
       lcd_write_(data, length, flags);
     }

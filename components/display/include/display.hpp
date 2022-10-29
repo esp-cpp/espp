@@ -36,7 +36,7 @@ namespace espp {
       * @param size_t Number of bytes to write.
       * @param uint16_t user data associated with this transfer, used for flags.
       */
-    typedef std::function<void(uint8_t*, size_t, uint16_t)> write_fn;
+    typedef std::function<void(const uint8_t*, size_t, uint16_t)> write_fn;
 
     /**
      *  @brief Signals used by LVGL to let the post_transfer_callback know
@@ -66,6 +66,7 @@ namespace espp {
       size_t height; /**< Height of the display, in pixels. */
       size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
       flush_fn flush_callback; /**< Function provided to LVGL for it to flush data to the display. */
+      std::chrono::duration<float> update_period{0.01}; /**< How frequently to run the update function. */
       bool double_buffered{true}; /**< Whether to use double buffered rendering (two display buffers) or not. */
       uint32_t allocation_flags{MALLOC_CAP_8BIT | MALLOC_CAP_DMA}; /**< For configuring how the display buffer is allocated*/
       Rotation rotation{Rotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
@@ -85,6 +86,7 @@ namespace espp {
       size_t height; /**< Height of the display, in pixels. */
       size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
       flush_fn flush_callback; /**< Function provided to LVGL for it to flush data to the display. */
+      std::chrono::duration<float> update_period{0.01}; /**< How frequently to run the update function. */
       Rotation rotation{Rotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
       bool software_rotation_enabled{true}; /**< Enable LVGL software display rotation, incurs additional overhead. */
       Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity for the Display logger_. */
@@ -99,6 +101,7 @@ namespace espp {
     Display(const AllocatingConfig& config)
       : width_(config.width), height_(config.height),
         display_buffer_px_size_(config.pixel_buffer_size),
+        update_period_(config.update_period),
         logger_({.tag="Display", .level=config.log_level}) {
       logger_.debug("Initializing with allocating config!");
       // create the display buffers
@@ -118,10 +121,11 @@ namespace espp {
      *        memory, the pixel buffer size and flush callback.
      */
     Display(const NonAllocatingConfig& config)
-    : width_(config.width), height_(config.height),
-      display_buffer_px_size_(config.pixel_buffer_size),
-      vram_0_(config.vram0), vram_1_(config.vram1),
-      logger_({.tag="Display", .level=config.log_level}) {
+      : width_(config.width), height_(config.height),
+        display_buffer_px_size_(config.pixel_buffer_size),
+        vram_0_(config.vram0), vram_1_(config.vram1),
+        update_period_(config.update_period),
+        logger_({.tag="Display", .level=config.log_level}) {
       logger_.debug("Initializing with non-allocating config!");
       init(config.flush_callback, config.software_rotation_enabled, config.rotation);
     }
@@ -165,7 +169,13 @@ namespace espp {
      * @brief Get pointer to main display buffer for custom writing.
      * @return uint16_t* Pointer to the main display buffer.
      */
-    uint16_t* vram() { return (uint16_t*) vram_0_; }
+    uint16_t* vram0() { return (uint16_t*) vram_0_; }
+
+    /**
+     * @brief Get pointer to secondary display buffer for custom writing.
+     * @return uint16_t* Pointer to the secondary display buffer.
+     */
+    uint16_t* vram1() { return (uint16_t*) vram_1_; }
 
     /**
      * @brief Return the number of pixels that vram() can hold.
@@ -212,7 +222,7 @@ namespace espp {
           .name = "Display",
           .callback = std::bind(&Display::update, this, _1, _2),
           .stack_size_bytes = 4096 * 2,
-          .priority = 99,
+          .priority = 20,
           .core_id = 0, // pin it to a core for maximum speed
         });
       task_->start();
@@ -227,15 +237,20 @@ namespace espp {
      *   https://docs.lvgl.io/latest/en/html/porting/tick.html
      */
     void update(std::mutex& m, std::condition_variable& cv) {
+      static auto prev = std::chrono::high_resolution_clock::now();
       if (!paused_){
+        auto now = std::chrono::high_resolution_clock::now();
+        int elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now-prev).count();
         // we shouldn't stop, update the display
-        lv_tick_inc(10);
+        lv_tick_inc(elapsed_ms);
+        // update previous timestamp
+        prev = now;
       }
       // delay
       {
         using namespace std::chrono_literals;
         std::unique_lock<std::mutex> lk(m);
-        cv.wait_for(lk, 10ms);
+        cv.wait_for(lk, update_period_);
       }
     }
 
@@ -247,6 +262,7 @@ namespace espp {
     lv_color_t *vram_0_{nullptr};
     lv_color_t *vram_1_{nullptr};
     bool created_vram_{false};
+    std::chrono::duration<float> update_period_;
     lv_disp_draw_buf_t disp_buffer_;
     lv_disp_drv_t disp_driver_;
     Logger logger_;
