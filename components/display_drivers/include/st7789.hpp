@@ -131,7 +131,7 @@ namespace espp {
         {(uint8_t)Command::idset, {0x11}, 1},
         {(uint8_t)Command::vcmofset, {0x35, 0x3E}, 2},
         {(uint8_t)Command::cabcctrl, {0xBE}, 1},
-        {(uint8_t)Command::madctl, {0x00}, 1},
+        {(uint8_t)Command::madctl, {0b00001000}, 1}, // D3 sets BGR mode instead of RGB
         {(uint8_t)Command::colmod, {0x55}, 1},
         {(uint8_t)Command::invon, {0}, 0},
         {(uint8_t)Command::rgbctrl, {0x00, 0x1B}, 2},
