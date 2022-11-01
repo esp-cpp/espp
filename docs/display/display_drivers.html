@@ -75,6 +75,7 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Display APIs</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="display.html">Display</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Display Drivers</a><ul>
@@ -113,7 +114,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display Drivers</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/e70fafe/docs/en/display/display_drivers.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6efb788/docs/en/display/display_drivers.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -131,7 +132,7 @@ boards.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e70fafe/components/display_drivers/include/ili9341.hpp">components/display_drivers/include/ili9341.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6efb788/components/display_drivers/include/ili9341.hpp">components/display_drivers/include/ili9341.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -237,6 +238,33 @@ boards.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ili934116set_drawing_areaEPK9lv_area_t">
+<span id="_CPPv3N4espp7Ili934116set_drawing_areaEPK9lv_area_t"></span><span id="_CPPv2N4espp7Ili934116set_drawing_areaEPK9lv_area_t"></span><span id="espp::Ili9341::set_drawing_area__lv_area_tCP"></span><span class="target" id="classespp_1_1_ili9341_1a7c85b6f80e4c7de3b221c6b470c2a5dc"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_drawing_area</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">area</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ili934116set_drawing_areaEPK9lv_area_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the drawing area for the display, resets the cursor to the starting position of the area. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>*area</strong> – Pointer to lv_area_t strcuture with start/end x/y coordinates. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ili934116set_drawing_areaE6size_t6size_t6size_t6size_t">
+<span id="_CPPv3N4espp7Ili934116set_drawing_areaE6size_t6size_t6size_t6size_t"></span><span id="_CPPv2N4espp7Ili934116set_drawing_areaE6size_t6size_t6size_t6size_t"></span><span id="espp::Ili9341::set_drawing_area__s.s.s.s"></span><span class="target" id="classespp_1_1_ili9341_1a31845601906e29cb7683d92101884cea"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_drawing_area</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xs</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ys</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xe</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ye</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ili934116set_drawing_areaE6size_t6size_t6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the drawing area for the display, resets the cursor to the starting position of the area. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> – Starting x coordinate of the area. </p></li>
+<li><p><strong>ys</strong> – Starting y coordinate of the area. </p></li>
+<li><p><strong>xe</strong> – Ending x coordinate of the area. </p></li>
+<li><p><strong>ye</strong> – Ending y coordinate of the area. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ili93414fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t">
 <span id="_CPPv3N4espp7Ili93414fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t"></span><span id="_CPPv2N4espp7Ili93414fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t"></span><span id="espp::Ili9341::fill__lv_disp_drv_tP.lv_area_tCP.lv_color_tP.uint32_t"></span><span class="target" id="classespp_1_1_ili9341_1a7f59f3ec70632e899240e8e1a3ea5145"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fill</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">lv_disp_drv_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">drv</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">area</span></span>, <span class="n"><span class="pre">lv_color_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">color_map</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">)</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6SignalE" title="espp::Display::Signal"><span class="n"><span class="pre">Signal</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6Signal4NONEE" title="espp::Display::Signal::NONE"><span class="n"><span class="pre">NONE</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ili93414fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Flush the pixel data for the provided area to the display. </p>
@@ -281,8 +309,8 @@ boards.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ili93419send_dataEP7uint8_t6size_t8uint32_t">
-<span id="_CPPv3N4espp7Ili93419send_dataEP7uint8_t6size_t8uint32_t"></span><span id="_CPPv2N4espp7Ili93419send_dataEP7uint8_t6size_t8uint32_t"></span><span id="espp::Ili9341::send_data__uint8_tP.s.uint32_t"></span><span class="target" id="classespp_1_1_ili9341_1a5885477a0f357d4bd18bb091ce420d87"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">)</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6SignalE" title="espp::Display::Signal"><span class="n"><span class="pre">Signal</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6Signal4NONEE" title="espp::Display::Signal::NONE"><span class="n"><span class="pre">NONE</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ili93419send_dataEP7uint8_t6size_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ili93419send_dataEPK7uint8_t6size_t8uint32_t">
+<span id="_CPPv3N4espp7Ili93419send_dataEPK7uint8_t6size_t8uint32_t"></span><span id="_CPPv2N4espp7Ili93419send_dataEPK7uint8_t6size_t8uint32_t"></span><span id="espp::Ili9341::send_data__uint8_tCP.s.uint32_t"></span><span class="target" id="classespp_1_1_ili9341_1a03e9c611d5a7da482097dabf3c9e18c6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">)</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6SignalE" title="espp::Display::Signal"><span class="n"><span class="pre">Signal</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6Signal4NONEE" title="espp::Display::Signal::NONE"><span class="n"><span class="pre">NONE</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ili93419send_dataEPK7uint8_t6size_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Sets the DC pin to data and sends the data, with optional flags. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -302,7 +330,7 @@ boards.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e70fafe/components/display_drivers/include/st7789.hpp">components/display_drivers/include/st7789.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6efb788/components/display_drivers/include/st7789.hpp">components/display_drivers/include/st7789.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -410,6 +438,33 @@ boards.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St778916set_drawing_areaEPK9lv_area_t">
+<span id="_CPPv3N4espp6St778916set_drawing_areaEPK9lv_area_t"></span><span id="_CPPv2N4espp6St778916set_drawing_areaEPK9lv_area_t"></span><span id="espp::St7789::set_drawing_area__lv_area_tCP"></span><span class="target" id="classespp_1_1_st7789_1abc129ba7da677d0ac339f4df3ecb1478"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_drawing_area</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">area</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St778916set_drawing_areaEPK9lv_area_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the drawing area for the display, resets the cursor to the starting position of the area. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>*area</strong> – Pointer to lv_area_t strcuture with start/end x/y coordinates. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St778916set_drawing_areaE6size_t6size_t6size_t6size_t">
+<span id="_CPPv3N4espp6St778916set_drawing_areaE6size_t6size_t6size_t6size_t"></span><span id="_CPPv2N4espp6St778916set_drawing_areaE6size_t6size_t6size_t6size_t"></span><span id="espp::St7789::set_drawing_area__s.s.s.s"></span><span class="target" id="classespp_1_1_st7789_1a62109ae278655caaa31470e3a43dda46"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_drawing_area</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xs</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ys</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xe</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ye</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St778916set_drawing_areaE6size_t6size_t6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the drawing area for the display, resets the cursor to the starting position of the area. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> – Starting x coordinate of the area. </p></li>
+<li><p><strong>ys</strong> – Starting y coordinate of the area. </p></li>
+<li><p><strong>xe</strong> – Ending x coordinate of the area. </p></li>
+<li><p><strong>ye</strong> – Ending y coordinate of the area. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6St77894fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t">
 <span id="_CPPv3N4espp6St77894fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t"></span><span id="_CPPv2N4espp6St77894fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t"></span><span id="espp::St7789::fill__lv_disp_drv_tP.lv_area_tCP.lv_color_tP.uint32_t"></span><span class="target" id="classespp_1_1_st7789_1ac5572c5b8dcff8b51e05e3ca75e53f25"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fill</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">lv_disp_drv_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">drv</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">area</span></span>, <span class="n"><span class="pre">lv_color_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">color_map</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">)</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6SignalE" title="espp::Display::Signal"><span class="n"><span class="pre">Signal</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6Signal4NONEE" title="espp::Display::Signal::NONE"><span class="n"><span class="pre">NONE</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St77894fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Flush the pixel data for the provided area to the display. </p>
@@ -454,8 +509,8 @@ boards.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6St77899send_dataEP7uint8_t6size_t8uint32_t">
-<span id="_CPPv3N4espp6St77899send_dataEP7uint8_t6size_t8uint32_t"></span><span id="_CPPv2N4espp6St77899send_dataEP7uint8_t6size_t8uint32_t"></span><span id="espp::St7789::send_data__uint8_tP.s.uint32_t"></span><span class="target" id="classespp_1_1_st7789_1afcb1522224d99eb668f89ecfc7118224"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">)</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6SignalE" title="espp::Display::Signal"><span class="n"><span class="pre">Signal</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6Signal4NONEE" title="espp::Display::Signal::NONE"><span class="n"><span class="pre">NONE</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St77899send_dataEP7uint8_t6size_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St77899send_dataEPK7uint8_t6size_t8uint32_t">
+<span id="_CPPv3N4espp6St77899send_dataEPK7uint8_t6size_t8uint32_t"></span><span id="_CPPv2N4espp6St77899send_dataEPK7uint8_t6size_t8uint32_t"></span><span id="espp::St7789::send_data__uint8_tCP.s.uint32_t"></span><span class="target" id="classespp_1_1_st7789_1a5c81b59478e824b466c583f978be7110"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">)</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7DisplayE" title="espp::Display"><span class="n"><span class="pre">Display</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6SignalE" title="espp::Display::Signal"><span class="n"><span class="pre">Signal</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="display.html#_CPPv4N4espp7Display6Signal4NONEE" title="espp::Display::Signal::NONE"><span class="n"><span class="pre">NONE</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St77899send_dataEPK7uint8_t6size_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Sets the DC pin to data and sends the data, with optional flags. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

@@ -10,6 +10,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
 .. toctree::
    :maxdepth: 2
 
+   adc/index
    display/index
    logger
    monitor

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Continuous ADC - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'adc/continuous_adc';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ADC Types" href="adc_types.html" />
+    <link rel="prev" title="Oneshot ADC" href="oneshot_adc.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">ADC APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="oneshot_adc.html">Oneshot ADC</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Continuous ADC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="adc_types.html">ADC Types</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">ADC APIs</a> &raquo;</li>
+      <li>Continuous ADC</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/6efb788/docs/en/adc/continuous_adc.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="continuous-adc">
+<h1>Continuous ADC<a class="headerlink" href="#continuous-adc" title="Permalink to this headline"></a></h1>
+<p>The <cite>ContinuousAdc</cite> provides a mechanism for high-frequency, continuous,
+deterministic sampling of analog voltages for multiple channels (potentially
+across multiple ADC units, depending on the ESP32 chip used). It does this be
+enabling the continuous ADC DMA mode and then running its own task which
+retrieves the data and filters it. When the user calls <cite>get_mv(adc_channel_t)</cite>,
+it simply returns the most recent filtered value for that channel, if it was
+configured.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6efb788/components/adc/include/continuous_adc.hpp">components/adc/include/continuous_adc.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdcE">
+<span id="_CPPv3N4espp13ContinuousAdcE"></span><span id="_CPPv2N4espp13ContinuousAdcE"></span><span id="espp::ContinuousAdc"></span><span class="target" id="classespp_1_1_continuous_adc"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ContinuousAdc</span></span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdcE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1_continuous_adc"><span class="std std-ref">ContinuousAdc</span></a> provides a wrapper around the ESP-IDF continuous adc subsystem, enabling high-frequency, filtered measurements of analog values. The <code class="docutils literal notranslate"><a class="reference internal" href="#classespp_1_1_continuous_adc_1a049bcf564350cb1ca5f046c216ec9767"><span class="std std-ref"><span class="pre">get_mv()</span></span></a></code> function will always return the most up to date value, without needing to perform additional reads (therefore it is non-blocking). </p>
+<p>NOTE: The available modes, frequencies, and throughput is dependent on whether you run on ESP32, ESP32s2, or ESP32s3.</p>
+<section id="classespp_1_1_continuous_adc_1adc_continuous_ex1">
+<h4>Continuous ADC Example<a class="headerlink" href="#classespp_1_1_continuous_adc_1adc_continuous_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_continuous_adc_1adc_continuous_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">AdcConfig</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_UNIT_2</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_CHANNEL_1</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">attenuation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_ATTEN_DB_11</span><span class="w"></span>
+<span class="w">      </span><span class="p">},</span><span class="w"></span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_UNIT_2</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_CHANNEL_2</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">attenuation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_ATTEN_DB_11</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// this initailizes the DMA and filter task for the continuous adc</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ContinuousAdc</span><span class="w"> </span><span class="nf">adc</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">sample_rate_hz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span><span class="o">*</span><span class="mi">1000</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">channels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">channels</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">convert_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_CONV_SINGLE_UNIT_2</span><span class="p">,</span><span class="w"> </span><span class="c1">// or BOTH_UNIT, ALTER_UNIT, SINGLE_UNIT_1</span>
+<span class="w">        </span><span class="p">.</span><span class="n">window_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">adc</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">channels</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conf</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">channels</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">conf</span><span class="p">.</span><span class="n">channel</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">maybe_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">get_mv</span><span class="p">(</span><span class="n">channel</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">maybe_mv</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Channel {}: {} mV</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">channel</span><span class="p">,</span><span class="w"> </span><span class="n">maybe_mv</span><span class="p">.</span><span class="n">value</span><span class="p">());</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Channel {}: no value!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">channel</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">maybe_rate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">get_rate</span><span class="p">(</span><span class="n">channel</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">maybe_rate</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Channel {}: {} Hz</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">channel</span><span class="p">,</span><span class="w"> </span><span class="n">maybe_rate</span><span class="p">.</span><span class="n">value</span><span class="p">());</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Channel {}: no rate!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">channel</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Read ADC&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc13ContinuousAdcERK6Config">
+<span id="_CPPv3N4espp13ContinuousAdc13ContinuousAdcERK6Config"></span><span id="_CPPv2N4espp13ContinuousAdc13ContinuousAdcERK6Config"></span><span id="espp::ContinuousAdc::ContinuousAdc__ConfigCR"></span><span class="target" id="classespp_1_1_continuous_adc_1a698f47847851a39957125639fabb009c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ContinuousAdc</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13ContinuousAdc6ConfigE" title="espp::ContinuousAdc::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc13ContinuousAdcERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize and start the continuous adc reader. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1_continuous_adc_1_1_config"><span class="std std-ref">Config</span></a> used to initialize the reader. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdcD0Ev">
+<span id="_CPPv3N4espp13ContinuousAdcD0Ev"></span><span id="_CPPv2N4espp13ContinuousAdcD0Ev"></span><span id="espp::ContinuousAdc::~ContinuousAdc"></span><span class="target" id="classespp_1_1_continuous_adc_1a028543ecbd9e02c9bdeaab16d1e91821"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~ContinuousAdc</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdcD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop, deinit, and destroy the adc reader. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc6get_mvE13adc_channel_t">
+<span id="_CPPv3N4espp13ContinuousAdc6get_mvE13adc_channel_t"></span><span id="_CPPv2N4espp13ContinuousAdc6get_mvE13adc_channel_t"></span><span id="espp::ContinuousAdc::get_mv__adc_channel_t"></span><span class="target" id="classespp_1_1_continuous_adc_1a049bcf564350cb1ca5f046c216ec9767"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mv</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">adc_channel_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc6get_mvE13adc_channel_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the most up to date filtered voltage (in mV) from the provided <code class="docutils literal notranslate"><span class="pre">channel</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channel</strong> – The channel to get the latest data for. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>std::optional&lt;float&gt; voltage in mV for the provided channel (if it was configured). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc8get_rateE13adc_channel_t">
+<span id="_CPPv3N4espp13ContinuousAdc8get_rateE13adc_channel_t"></span><span id="_CPPv2N4espp13ContinuousAdc8get_rateE13adc_channel_t"></span><span id="espp::ContinuousAdc::get_rate__adc_channel_t"></span><span class="target" id="classespp_1_1_continuous_adc_1a4e7c9a3f75b4f3ef08a13ba298e642dc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_rate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">adc_channel_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc8get_rateE13adc_channel_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the most up to date sampling rate (in Hz) from the provided <code class="docutils literal notranslate"><span class="pre">channel</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channel</strong> – The channel to get the latest sampling rate for. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>std::optional&lt;float&gt; Rate in Hz for the provided channel (if it was configured). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc6ConfigE">
+<span id="_CPPv3N4espp13ContinuousAdc6ConfigE"></span><span id="_CPPv2N4espp13ContinuousAdc6ConfigE"></span><span id="espp::ContinuousAdc::Config"></span><span class="target" id="structespp_1_1_continuous_adc_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the sample rate (globally applied to each channel), select the number of channels, and the conversion mode (for S2 S3) </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc6Config14sample_rate_hzE">
+<span id="_CPPv3N4espp13ContinuousAdc6Config14sample_rate_hzE"></span><span id="_CPPv2N4espp13ContinuousAdc6Config14sample_rate_hzE"></span><span id="espp::ContinuousAdc::Config::sample_rate_hz__s"></span><span class="target" id="structespp_1_1_continuous_adc_1_1_config_1a6c4ed33d1a03b9aca554701c27a7800a"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_rate_hz</span></span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc6Config14sample_rate_hzE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Samples per second to read from each channel. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc6Config8channelsE">
+<span id="_CPPv3N4espp13ContinuousAdc6Config8channelsE"></span><span id="_CPPv2N4espp13ContinuousAdc6Config8channelsE"></span><span id="espp::ContinuousAdc::Config::channels__std::vector:AdcConfig:"></span><span class="target" id="structespp_1_1_continuous_adc_1_1_config_1a20a079cab00f206401e022811feaae7b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">AdcConfig</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channels</span></span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc6Config8channelsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channels to read from, with associated attenuations. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc6Config12convert_modeE">
+<span id="_CPPv3N4espp13ContinuousAdc6Config12convert_modeE"></span><span id="_CPPv2N4espp13ContinuousAdc6Config12convert_modeE"></span><span id="espp::ContinuousAdc::Config::convert_mode__adc_digi_convert_mode_t"></span><span class="target" id="structespp_1_1_continuous_adc_1_1_config_1aeeff9dd4d5c6d64ce32c864fee22a97b"></span><span class="n"><span class="pre">adc_digi_convert_mode_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">convert_mode</span></span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc6Config12convert_modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Conversion mode (unit 1, unit 2, alternating, or both). May depend on ESP32 chip. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc6Config13task_priorityE">
+<span id="_CPPv3N4espp13ContinuousAdc6Config13task_priorityE"></span><span id="_CPPv2N4espp13ContinuousAdc6Config13task_priorityE"></span><span id="espp::ContinuousAdc::Config::task_priority__s"></span><span class="target" id="structespp_1_1_continuous_adc_1_1_config_1a3ff428ab735ae09e210fb9375119c480"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_priority</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">5</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc6Config13task_priorityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Priority to run the adc data reading / filtering task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc6Config17window_size_bytesE">
+<span id="_CPPv3N4espp13ContinuousAdc6Config17window_size_bytesE"></span><span id="_CPPv2N4espp13ContinuousAdc6Config17window_size_bytesE"></span><span id="espp::ContinuousAdc::Config::window_size_bytes__s"></span><span class="target" id="structespp_1_1_continuous_adc_1_1_config_1add44dda354bf168d46188fd85512411e"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">window_size_bytes</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc6Config17window_size_bytesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Amount of bytes to allocate for the DMA buffer when reading results. Larger values lead to more filtering. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdc6Config9log_levelE">
+<span id="_CPPv3N4espp13ContinuousAdc6Config9log_levelE"></span><span id="_CPPv2N4espp13ContinuousAdc6Config9log_levelE"></span><span id="espp::ContinuousAdc::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1_continuous_adc_1_1_config_1a340672e6e98306319b5433c4aa9ed8ad"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdc6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity for the adc logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="oneshot_adc.html" class="btn btn-neutral float-left" title="Oneshot ADC" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="adc_types.html" class="btn btn-neutral float-right" title="ADC Types" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2022, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
