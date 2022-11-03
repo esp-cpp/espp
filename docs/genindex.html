@@ -74,8 +74,10 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
@@ -97,7 +99,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/6efb788/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/4393a2d/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -241,6 +243,34 @@
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp7Ili934116set_drawing_areaE6size_t6size_t6size_t6size_t">espp::Ili9341::set_drawing_area (C++ function)</a>, <a href="display/display_drivers.html#_CPPv4N4espp7Ili934116set_drawing_areaEPK9lv_area_t">[1]</a>
 </li>
+      <li><a href="joystick.html#_CPPv4N4espp8JoystickE">espp::Joystick (C++ class)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick6ConfigE">espp::Joystick::Config (C++ struct)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config10get_valuesE">espp::Joystick::Config::get_values (C++ member)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config9log_levelE">espp::Joystick::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config13x_calibrationE">espp::Joystick::Config::x_calibration (C++ member)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config13y_calibrationE">espp::Joystick::Config::y_calibration (C++ member)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick13get_values_fnE">espp::Joystick::get_values_fn (C++ type)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick8JoystickERK6Config">espp::Joystick::Joystick (C++ function)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4NK4espp8Joystick8positionEv">espp::Joystick::position (C++ function)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4NK4espp8Joystick3rawEv">espp::Joystick::raw (C++ function)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigE">espp::Joystick::set_calibration (C++ function)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick6updateEv">espp::Joystick::update (C++ function)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4NK4espp8Joystick1xEv">espp::Joystick::x (C++ function)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4NK4espp8Joystick1yEv">espp::Joystick::y (C++ function)</a>
+</li>
       <li><a href="logger.html#_CPPv4N4espp6LoggerE">espp::Logger (C++ class)</a>
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger6ConfigE">espp::Logger::Config (C++ struct)</a>
@@ -289,6 +319,24 @@
 </li>
       <li><a href="adc/oneshot_adc.html#_CPPv4N4espp10OneshotAdcD0Ev">espp::OneshotAdc::~OneshotAdc (C++ function)</a>
 </li>
+      <li><a href="math/range_mapper.html#_CPPv4I0EN4espp11RangeMapperE">espp::RangeMapper (C++ class)</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper6ConfigE">espp::RangeMapper::Config (C++ struct)</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper6Config6centerE">espp::RangeMapper::Config::center (C++ member)</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper6Config8deadbandE">espp::RangeMapper::Config::deadband (C++ member)</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper6Config7maximumE">espp::RangeMapper::Config::maximum (C++ member)</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper6Config7minimumE">espp::RangeMapper::Config::minimum (C++ member)</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper9configureERK6Config">espp::RangeMapper::configure (C++ function)</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper3mapERK1T">espp::RangeMapper::map (C++ function)</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper11RangeMapperERK6Config">espp::RangeMapper::RangeMapper (C++ function)</a>
+</li>
       <li><a href="network/socket.html#_CPPv4N4espp6SocketE">espp::Socket (C++ class)</a>
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket19add_multicast_groupERKNSt6stringE">espp::Socket::add_multicast_group (C++ function)</a>
@@ -327,12 +375,12 @@
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6SocketD0Ev">espp::Socket::~Socket (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St7789E">espp::St7789 (C++ class)</a>
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St77895clearE6size_t6size_t6size_t6size_t8uint16_t">espp::St7789::clear (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St77894fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t">espp::St7789::fill (C++ function)</a>
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St77895flushEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t">espp::St7789::flush (C++ function)</a>
@@ -498,6 +546,44 @@
       <li><a href="network/udp_socket.html#_CPPv4N4espp9UdpSocket9UdpSocketERK6Config">espp::UdpSocket::UdpSocket (C++ function)</a>
 </li>
       <li><a href="network/udp_socket.html#_CPPv4N4espp9UdpSocketD0Ev">espp::UdpSocket::~UdpSocket (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4I0EN4espp8Vector2dE">espp::Vector2d (C++ class)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2d3dotERK8Vector2d">espp::Vector2d::dot (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2d9magnitudeEv">espp::Vector2d::magnitude (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2d17magnitude_squaredEv">espp::Vector2d::magnitude_squared (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2d10normalizedEv">espp::Vector2d::normalized (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2dmlERK1T">espp::Vector2d::operator* (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4N4espp8Vector2dmLERK1T">espp::Vector2d::operator*= (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2dplERK8Vector2d">espp::Vector2d::operator+ (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4N4espp8Vector2dpLERK8Vector2d">espp::Vector2d::operator+= (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2dmiERK8Vector2d">espp::Vector2d::operator- (C++ function)</a>, <a href="math/vector2d.html#_CPPv4NK4espp8Vector2dmiEv">[1]</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4N4espp8Vector2dmIERK8Vector2d">espp::Vector2d::operator-= (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2ddvERK1T">espp::Vector2d::operator/ (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4N4espp8Vector2ddVERK1T">espp::Vector2d::operator/= (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4N4espp8Vector2dixEi">espp::Vector2d::operator[] (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4I0_PNSt9enable_ifINSt17is_floating_pointI1UE5valueEE4typeEENK4espp8Vector2d7rotatedE8Vector2d1T">espp::Vector2d::rotated (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4NK4espp8Vector2d9to_stringEv">espp::Vector2d::to_string (C++ function)</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4N4espp8Vector2d8Vector2dE1T1T">espp::Vector2d::Vector2d (C++ function)</a>, <a href="math/vector2d.html#_CPPv4N4espp8Vector2d8Vector2dERK8Vector2d">[1]</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4N4espp8Vector2d1xE1T">espp::Vector2d::x (C++ function)</a>, <a href="math/vector2d.html#_CPPv4NK4espp8Vector2d1xEv">[1]</a>
+</li>
+      <li><a href="math/vector2d.html#_CPPv4N4espp8Vector2d1yE1T">espp::Vector2d::y (C++ function)</a>, <a href="math/vector2d.html#_CPPv4NK4espp8Vector2d1yEv">[1]</a>
 </li>
       <li><a href="wifi/wifi_ap.html#_CPPv4N4espp6WifiApE">espp::WifiAp (C++ class)</a>
 </li>

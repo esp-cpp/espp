@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Range Mapper - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'math/range_mapper';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Vector2d" href="vector2d.html" />
+    <link rel="prev" title="Math APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Math APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Range Mapper</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vector2d.html">Vector2d</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Math APIs</a> &raquo;</li>
+      <li>Range Mapper</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/4393a2d/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="range-mapper">
+<h1>Range Mapper<a class="headerlink" href="#range-mapper" title="Permalink to this headline"></a></h1>
+<p>The <cite>RangeMapper</cite> provides a class which allows you to map from a configurable
+input range to a standardized output range of [-1,1].</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/4393a2d/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp11RangeMapperE">
+<span id="_CPPv3I0EN4espp11RangeMapperE"></span><span id="_CPPv2I0EN4espp11RangeMapperE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_range_mapper"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">RangeMapper</span></span></span><a class="headerlink" href="#_CPPv4I0EN4espp11RangeMapperE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Template class for converting a value from an uncentered [minimum, maximum] range into a centered [-1,1] range. If provided a non-zero deadband, it will convert all values within [center-deadband, center+deadband] to be 0. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper11RangeMapperERK6Config">
+<span id="_CPPv3N4espp11RangeMapper11RangeMapperERK6Config"></span><span id="_CPPv2N4espp11RangeMapper11RangeMapperERK6Config"></span><span id="espp::RangeMapper::RangeMapper__ConfigCR"></span><span class="target" id="classespp_1_1_range_mapper_1a263673ae03de79304ee87060e68f124b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RangeMapper</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11RangeMapper6ConfigE" title="espp::RangeMapper::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper11RangeMapperERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the <a class="reference internal" href="#classespp_1_1_range_mapper"><span class="std std-ref">RangeMapper</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration describing the input distribution. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper9configureERK6Config">
+<span id="_CPPv3N4espp11RangeMapper9configureERK6Config"></span><span id="_CPPv2N4espp11RangeMapper9configureERK6Config"></span><span id="espp::RangeMapper::configure__ConfigCR"></span><span class="target" id="classespp_1_1_range_mapper_1a657df92a602ae9c22fd6b79ac38f5ab5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11RangeMapper6ConfigE" title="espp::RangeMapper::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper9configureERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the input distribution with the new configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – New input distribution configuration to use. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper3mapERK1T">
+<span id="_CPPv3N4espp11RangeMapper3mapERK1T"></span><span id="_CPPv2N4espp11RangeMapper3mapERK1T"></span><span id="espp::RangeMapper::map__TCR"></span><span class="target" id="classespp_1_1_range_mapper_1abbdd196672edea16fedeec2d5ca9e742"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper3mapERK1T" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Map a value <code class="docutils literal notranslate"><span class="pre">v</span></code> from the input distribution into the range [-1,1]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>v</strong> – Value from the input distribution </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Value within range [-1,1] </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6ConfigE">
+<span id="_CPPv3N4espp11RangeMapper6ConfigE"></span><span id="_CPPv2N4espp11RangeMapper6ConfigE"></span><span id="espp::RangeMapper::Config"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the input uncentered range. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6Config6centerE">
+<span id="_CPPv3N4espp11RangeMapper6Config6centerE"></span><span id="_CPPv2N4espp11RangeMapper6Config6centerE"></span><span id="espp::RangeMapper::Config::center__T"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config_1a3329976c8dbffa58755abaac9ba063d6"></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">center</span></span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6Config6centerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Center value for the input range. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6Config8deadbandE">
+<span id="_CPPv3N4espp11RangeMapper6Config8deadbandE"></span><span id="_CPPv2N4espp11RangeMapper6Config8deadbandE"></span><span id="espp::RangeMapper::Config::deadband__T"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config_1a30a45ddf493ecbbabc84902d8a2a9ab3"></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deadband</span></span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6Config8deadbandE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deadband amount around (+-) the center for which output will be 0. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6Config7minimumE">
+<span id="_CPPv3N4espp11RangeMapper6Config7minimumE"></span><span id="_CPPv2N4espp11RangeMapper6Config7minimumE"></span><span id="espp::RangeMapper::Config::minimum__T"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config_1a3d84603830ea3ecfd900074e3cb4259e"></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">minimum</span></span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6Config7minimumE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Minimum value for the input range. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6Config7maximumE">
+<span id="_CPPv3N4espp11RangeMapper6Config7maximumE"></span><span id="_CPPv2N4espp11RangeMapper6Config7maximumE"></span><span id="espp::RangeMapper::Config::maximum__T"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config_1a85e34790eb2f696359d3cb3e74f50e93"></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">maximum</span></span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6Config7maximumE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum value for the input range. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Math APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="vector2d.html" class="btn btn-neutral float-right" title="Vector2d" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2022, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

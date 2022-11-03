@@ -12,8 +12,10 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
 
    adc/index
    display/index
+   joystick
    logger
    monitor
+   math/index
    network/index
    task
    wifi/index
