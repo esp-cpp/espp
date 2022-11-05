@@ -166,6 +166,24 @@ namespace espp {
     void resume() { paused_ = false; }
 
     /**
+     * @brief Force a redraw / refresh of the display. NOTE: this is mainly
+     *        useful after you have called pause() on the display (to draw to it
+     *        with something other than LVGL) and want to switch back to the
+     *        LVGL gui. Normally you should not call this function.
+     */
+    void force_refresh() {
+      auto disp = lv_disp_get_default();
+      // lv_refr_now(disp);
+      lv_area_t area = {
+        .x1 = 0,
+        .y1 = 0,
+        .x2 = (int16_t)width_,
+        .y2 = (int16_t)height_
+      };
+      _lv_inv_area(disp, &area);
+    }
+
+    /**
      * @brief Get pointer to main display buffer for custom writing.
      * @return uint16_t* Pointer to the main display buffer.
      */

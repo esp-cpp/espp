@@ -88,6 +88,7 @@
 <li class="toctree-l2"><a class="reference internal" href="display_drivers.html">Display Drivers</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
@@ -114,7 +115,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/4393a2d/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9e86894/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -132,7 +133,7 @@ high-priority lvgl update task which sends data to the display.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/4393a2d/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9e86894/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -286,6 +287,12 @@ high-priority lvgl update task which sends data to the display.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Display6resumeEv">
 <span id="_CPPv3N4espp7Display6resumeEv"></span><span id="_CPPv2N4espp7Display6resumeEv"></span><span id="espp::Display::resume"></span><span class="target" id="classespp_1_1_display_1a0959550c2c6d0a61a791ded9d4b34fcc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resume</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display6resumeEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Resume the display update task, to allow LVGL to write to the display. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display13force_refreshEv">
+<span id="_CPPv3N4espp7Display13force_refreshEv"></span><span id="_CPPv2N4espp7Display13force_refreshEv"></span><span id="espp::Display::force_refresh"></span><span class="target" id="classespp_1_1_display_1ae8a01b1a5b94765cac40ea00182837e1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">force_refresh</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display13force_refreshEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Force a redraw / refresh of the display. NOTE: this is mainly useful after you have called <a class="reference internal" href="#classespp_1_1_display_1a1be19313d64c8bfcc3003cd3790b9862"><span class="std std-ref">pause()</span></a> on the display (to draw to it with something other than LVGL) and want to switch back to the LVGL gui. Normally you should not call this function. </p>
 </dd></dl>
 
 <dl class="cpp function">
