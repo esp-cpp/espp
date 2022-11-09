@@ -136,7 +136,7 @@ namespace espp {
       }
       for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
         adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t *>(&result_data_[i]);
-#if CONFIG_IDF_TARET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
+#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
         if (output_format_ == ADC_DIGI_OUTPUT_FORMAT_TYPE1) {
           auto unit = (conv_mode_ == ADC_CONV_SINGLE_UNIT_1) ? 1 : 2;
           auto channel = (adc_channel_t)p->type1.channel;
