@@ -234,9 +234,9 @@ namespace espp {
         adc_pattern[i].unit = conf.unit;
         adc_pattern[i].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
 
-        logger_.info("adc_pattern[{}].atten is :{:x}", i, (int)adc_pattern[i].atten);
-        logger_.info("adc_pattern[{}].channel is :{:x}", i, (int)adc_pattern[i].channel);
-        logger_.info("adc_pattern[{}].unit is :{:x}", i, (int)adc_pattern[i].unit);
+        logger_.info("adc_pattern[{}].atten is 0x{:02x}", i, (int)adc_pattern[i].atten);
+        logger_.info("adc_pattern[{}].channel is 0x{:02x}", i, (int)adc_pattern[i].channel);
+        logger_.info("adc_pattern[{}].unit is 0x{:02x}", i, (int)adc_pattern[i].unit);
 
         // save the channel
         channels_.push_back(conf.channel);
