@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <vector>
+#include <string_view>
 
 #include "logger.hpp"
 #include "socket.hpp"
@@ -92,6 +93,26 @@ namespace espp {
      * @return true if the data was sent, false otherwise.
      */
     bool send(const std::vector<uint8_t>& data, const SendConfig& send_config) {
+      return send(std::string_view{(const char*)data.data(), data.size()}, send_config);
+    }
+
+    /**
+     * @brief Send data to the endpoint specified by the send_config.
+     *        Can be configured to multicast (within send_config) and can be
+     *        configured to block waiting for a response from the remote.
+     *
+     *          NOTE: in the case of multicast, it will block only until the
+     *                first response.
+     *
+     *        If response is requested, a callback can be provided in
+     *        send_config which will be provided the response data for
+     *        processing.
+     * @param data String view of bytes to send to the remote endpoint.
+     * @param send_config SendConfig struct indicating where to send and whether
+     *        to wait for a response.
+     * @return true if the data was sent, false otherwise.
+     */
+    bool send(std::string_view data, const SendConfig& send_config) {
       if (!is_valid()) {
         logger_.error("Socket invalid, cannot send");
         return false;

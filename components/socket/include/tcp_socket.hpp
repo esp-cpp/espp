@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <vector>
+#include <string_view>
 
 #include "logger.hpp"
 #include "socket.hpp"
@@ -100,6 +101,22 @@ namespace espp {
      * @return true if the data was sent, false otherwise.
      */
     bool transmit(const std::vector<uint8_t>& data, const TransmitConfig& transmit_config) {
+      return transmit(std::string_view{(const char*)data.data(), data.size()}, transmit_config);
+    }
+
+    /**
+     * @brief Send data to the endpoint already connected to by TcpSocket::connect.
+     *        Can be configured to block waiting for a response from the remote.
+     *
+     *        If response is requested, a callback can be provided in
+     *        send_config which will be provided the response data for
+     *        processing.
+     * @param data string view of bytes to send to the remote endpoint.
+     * @param transmit_config TransmitConfig struct indicating whether to wait for a
+     *        response.
+     * @return true if the data was sent, false otherwise.
+     */
+    bool transmit(std::string_view data, const TransmitConfig& transmit_config) {
       if (!is_valid()) {
         logger_.error("Socket invalid, cannot send");
         return false;
