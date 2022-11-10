@@ -116,7 +116,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>TCP Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/9e86894/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/118dc9a/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -135,7 +135,7 @@ transmission speed / bandwidth adjustment.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9e86894/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/118dc9a/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -336,6 +336,24 @@ transmission speed / bandwidth adjustment.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> – vector of bytes to send to the remote endpoint. </p></li>
+<li><p><strong>transmit_config</strong> – <a class="reference internal" href="#structespp_1_1_tcp_socket_1_1_transmit_config"><span class="std std-ref">TransmitConfig</span></a> struct indicating whether to wait for a response. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the data was sent, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket8transmitENSt11string_viewERK14TransmitConfig">
+<span id="_CPPv3N4espp9TcpSocket8transmitENSt11string_viewERK14TransmitConfig"></span><span id="_CPPv2N4espp9TcpSocket8transmitENSt11string_viewERK14TransmitConfig"></span><span id="espp::TcpSocket::transmit__std::string_view.TransmitConfigCR"></span><span class="target" id="classespp_1_1_tcp_socket_1afb7bd80ce753af1a4c4f654e537e205e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">transmit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket14TransmitConfigE" title="espp::TcpSocket::TransmitConfig"><span class="n"><span class="pre">TransmitConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">transmit_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket8transmitENSt11string_viewERK14TransmitConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Send data to the endpoint already connected to by <a class="reference internal" href="#classespp_1_1_tcp_socket_1afb3310f908c4659b72f1e1579b34b41c"><span class="std std-ref">TcpSocket::connect</span></a>. Can be configured to block waiting for a response from the remote. </p>
+<p>If response is requested, a callback can be provided in send_config which will be provided the response data for processing. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – string view of bytes to send to the remote endpoint. </p></li>
 <li><p><strong>transmit_config</strong> – <a class="reference internal" href="#structespp_1_1_tcp_socket_1_1_transmit_config"><span class="std std-ref">TransmitConfig</span></a> struct indicating whether to wait for a response. </p></li>
 </ul>
 </dd>

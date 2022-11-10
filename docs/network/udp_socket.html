@@ -116,7 +116,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>UDP Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/9e86894/docs/en/network/udp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/118dc9a/docs/en/network/udp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -134,7 +134,7 @@ many to one), and broadcast (one to all).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9e86894/components/socket/include/udp_socket.hpp">components/socket/include/udp_socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/118dc9a/components/socket/include/udp_socket.hpp">components/socket/include/udp_socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -384,6 +384,25 @@ many to one), and broadcast (one to all).</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> – vector of bytes to send to the remote endpoint. </p></li>
+<li><p><strong>send_config</strong> – <a class="reference internal" href="#structespp_1_1_udp_socket_1_1_send_config"><span class="std std-ref">SendConfig</span></a> struct indicating where to send and whether to wait for a response. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the data was sent, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9UdpSocket4sendENSt11string_viewERK10SendConfig">
+<span id="_CPPv3N4espp9UdpSocket4sendENSt11string_viewERK10SendConfig"></span><span id="_CPPv2N4espp9UdpSocket4sendENSt11string_viewERK10SendConfig"></span><span id="espp::UdpSocket::send__std::string_view.SendConfigCR"></span><span class="target" id="classespp_1_1_udp_socket_1a3f769128542e019cde983a8583c3311e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9UdpSocket10SendConfigE" title="espp::UdpSocket::SendConfig"><span class="n"><span class="pre">SendConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">send_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9UdpSocket4sendENSt11string_viewERK10SendConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Send data to the endpoint specified by the send_config. Can be configured to multicast (within send_config) and can be configured to block waiting for a response from the remote. </p>
+<p>NOTE: in the case of multicast, it will block only until the first response.</p>
+<p>If response is requested, a callback can be provided in send_config which will be provided the response data for processing. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – String view of bytes to send to the remote endpoint. </p></li>
 <li><p><strong>send_config</strong> – <a class="reference internal" href="#structespp_1_1_udp_socket_1_1_send_config"><span class="std std-ref">SendConfig</span></a> struct indicating where to send and whether to wait for a response. </p></li>
 </ul>
 </dd>
