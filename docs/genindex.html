@@ -76,6 +76,7 @@
 <li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
@@ -100,7 +101,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/118dc9a/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/3780905/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -274,6 +275,48 @@
 </li>
       <li><a href="joystick.html#_CPPv4NK4espp8Joystick1yEv">espp::Joystick::y (C++ function)</a>
 </li>
+      <li><a href="led.html#_CPPv4N4espp3LedE">espp::Led (C++ class)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led10can_changeE14ledc_channel_t">espp::Led::can_change (C++ function)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led13ChannelConfigE">espp::Led::ChannelConfig (C++ struct)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led13ChannelConfig7channelE">espp::Led::ChannelConfig::channel (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led13ChannelConfig4dutyE">espp::Led::ChannelConfig::duty (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led13ChannelConfig4gpioE">espp::Led::ChannelConfig::gpio (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led13ChannelConfig13output_invertE">espp::Led::ChannelConfig::output_invert (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led13ChannelConfig10speed_modeE">espp::Led::ChannelConfig::speed_mode (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led13ChannelConfig5timerE">espp::Led::ChannelConfig::timer (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led6ConfigE">espp::Led::Config (C++ struct)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led6Config8channelsE">espp::Led::Config::channels (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led6Config15duty_resolutionE">espp::Led::Config::duty_resolution (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led6Config12frequency_hzE">espp::Led::Config::frequency_hz (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led6Config9log_levelE">espp::Led::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led6Config10speed_modeE">espp::Led::Config::speed_mode (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led6Config5timerE">espp::Led::Config::timer (C++ member)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led8get_dutyE14ledc_channel_t">espp::Led::get_duty (C++ function)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led3LedERK6Config">espp::Led::Led (C++ function)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led8set_dutyE14ledc_channel_tf">espp::Led::set_duty (C++ function)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t">espp::Led::set_fade_with_time (C++ function)</a>
+</li>
+      <li><a href="led.html#_CPPv4N4espp3LedD0Ev">espp::Led::~Led (C++ function)</a>
+</li>
       <li><a href="logger.html#_CPPv4N4espp6LoggerE">espp::Logger (C++ class)</a>
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger6ConfigE">espp::Logger::Config (C++ struct)</a>
@@ -368,6 +411,8 @@
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket14make_multicastE7uint8_t7uint8_t">espp::Socket::make_multicast (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket19receive_callback_fnE">espp::Socket::receive_callback_fn (C++ type)</a>
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket20response_callback_fnE">espp::Socket::response_callback_fn (C++ type)</a>
@@ -388,8 +433,6 @@
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St778910initializeERKN15display_drivers6ConfigE">espp::St7789::initialize (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St778912send_commandE7uint8_t">espp::St7789::send_command (C++ function)</a>
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St77899send_dataEPK7uint8_t6size_t8uint32_t">espp::St7789::send_data (C++ function)</a>
@@ -451,6 +494,8 @@
       <li><a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocket13ConnectConfig4portE">espp::TcpSocket::ConnectConfig::port (C++ member)</a>
 </li>
       <li><a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocket12enable_reuseEv">espp::TcpSocket::enable_reuse (C++ function)</a>
+</li>
+      <li><a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocket12is_connectedEv">espp::TcpSocket::is_connected (C++ function)</a>
 </li>
       <li><a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocket8is_validEi">espp::TcpSocket::is_valid (C++ function)</a>, <a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocket8is_validEv">[1]</a>
 </li>

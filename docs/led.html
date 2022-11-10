@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LED APIs - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'led';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Logging APIs" href="logger.html" />
+    <link rel="prev" title="Joystick APIs" href="joystick.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ESPP
+            <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">LED APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#led">LED</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>LED APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/3780905/docs/en/led.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="led-apis">
+<h1>LED APIs<a class="headerlink" href="#led-apis" title="Permalink to this headline"></a></h1>
+<section id="led">
+<h2>LED<a class="headerlink" href="#led" title="Permalink to this headline"></a></h2>
+<p>The LED provides a convenient and thread-safe wrapper around the <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/ledc.html#led-control-ledc">ESP-IDF LEDC
+perhipheral</a>.</p>
+<p>It allows for both instant and hardware-based timed changing (fading) of duty cycle (in
+floating point percent [0,100]).</p>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/3780905/components/led/include/led.hpp">components/led/include/led.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3LedE">
+<span id="_CPPv3N4espp3LedE"></span><span id="_CPPv2N4espp3LedE"></span><span id="espp::Led"></span><span class="target" id="classespp_1_1_led"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Led</span></span></span><a class="headerlink" href="#_CPPv4N4espp3LedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Provides a wrapper around the LEDC peripheral in ESP-IDF which allows for thread-safe control over one or more channels of LEDs using a simpler API. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led3LedERK6Config">
+<span id="_CPPv3N4espp3Led3LedERK6Config"></span><span id="_CPPv2N4espp3Led3LedERK6Config"></span><span id="espp::Led::Led__ConfigCR"></span><span class="target" id="classespp_1_1_led_1a289ac979f1a6657b705c5d5848e3d7e0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Led</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp3Led6ConfigE" title="espp::Led::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Led3LedERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the LEDC subsystem according to the configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration structure for the LEDC subsystem. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3LedD0Ev">
+<span id="_CPPv3N4espp3LedD0Ev"></span><span id="_CPPv2N4espp3LedD0Ev"></span><span id="espp::Led::~Led"></span><span class="target" id="classespp_1_1_led_1aafbb0b73dad6d2f26abd023135b8b40d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Led</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3LedD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the LEDC subsystem and free memory. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led10can_changeE14ledc_channel_t">
+<span id="_CPPv3N4espp3Led10can_changeE14ledc_channel_t"></span><span id="_CPPv2N4espp3Led10can_changeE14ledc_channel_t"></span><span id="espp::Led::can_change__ledc_channel_t"></span><span class="target" id="classespp_1_1_led_1aecd4aedb75c9731121a6867b1eb1e7c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">can_change</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ledc_channel_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Led10can_changeE14ledc_channel_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Can the LED settings can be changed for the channel? If this function returns true, then (threaded race conditions aside), the <a class="reference internal" href="#classespp_1_1_led_1ad96c6ad8935d625a14d4fe96a2b6ffbe"><span class="std std-ref">set_duty()</span></a> and <a class="reference internal" href="#classespp_1_1_led_1a6eb3a380f549d44851b4bb6f89686a94"><span class="std std-ref">set_fade_with_time()</span></a> functions should not block. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channel</strong> – The channel to check </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if the channel settings can be changed, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led8get_dutyE14ledc_channel_t">
+<span id="_CPPv3N4espp3Led8get_dutyE14ledc_channel_t"></span><span id="_CPPv2N4espp3Led8get_dutyE14ledc_channel_t"></span><span id="espp::Led::get_duty__ledc_channel_t"></span><span class="target" id="classespp_1_1_led_1ae1f0879d864bbbc3f1234df0994e167d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_duty</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ledc_channel_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Led8get_dutyE14ledc_channel_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current duty cycle this channel has. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channel</strong> – The channel in question </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The duty percentage [0.0f, 100.0f] if the channel is managed, std::nullopt otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led8set_dutyE14ledc_channel_tf">
+<span id="_CPPv3N4espp3Led8set_dutyE14ledc_channel_tf"></span><span id="_CPPv2N4espp3Led8set_dutyE14ledc_channel_tf"></span><span id="espp::Led::set_duty__ledc_channel_t.float"></span><span class="target" id="classespp_1_1_led_1ad96c6ad8935d625a14d4fe96a2b6ffbe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_duty</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ledc_channel_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_percent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Led8set_dutyE14ledc_channel_tf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the duty cycle for this channel. NOTE: this function will block until until a current fade process completes (if there is one). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – The channel to set the duty cycle for. </p></li>
+<li><p><strong>duty_percent</strong> – The new duty percentage, [0.0, 100.0]. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t">
+<span id="_CPPv3N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t"></span><span id="_CPPv2N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t"></span><span id="espp::Led::set_fade_with_time__ledc_channel_t.float.uint32_t"></span><span class="target" id="classespp_1_1_led_1a6eb3a380f549d44851b4bb6f89686a94"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_fade_with_time</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ledc_channel_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_percent</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fade_time_ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the duty cycle for this channel, fading from the current duty cycle to the new duty cycle over <code class="docutils literal notranslate"><span class="pre">fade_time_ms</span></code> milliseconds. NOTE: this function will block until a current fade process completes (if there is one). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – The channel to fade. </p></li>
+<li><p><strong>duty_percent</strong> – The new duty percentage to fade to, [0.0, 100.0]. </p></li>
+<li><p><strong>fade_time_ms</strong> – The number of milliseconds for which to fade. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfigE">
+<span id="_CPPv3N4espp3Led13ChannelConfigE"></span><span id="_CPPv2N4espp3Led13ChannelConfigE"></span><span id="espp::Led::ChannelConfig"></span><span class="target" id="structespp_1_1_led_1_1_channel_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ChannelConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Represents one LED channel. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfig4gpioE">
+<span id="_CPPv3N4espp3Led13ChannelConfig4gpioE"></span><span id="_CPPv2N4espp3Led13ChannelConfig4gpioE"></span><span id="espp::Led::ChannelConfig::gpio__s"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1a2addf7111c29e9e64c332d05007e428c"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig4gpioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The GPIO pin the LED is connected to. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfig7channelE">
+<span id="_CPPv3N4espp3Led13ChannelConfig7channelE"></span><span id="_CPPv2N4espp3Led13ChannelConfig7channelE"></span><span id="espp::Led::ChannelConfig::channel__ledc_channel_t"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1aecb99da151714dd74be2794aea56b381"></span><span class="n"><span class="pre">ledc_channel_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channel</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig7channelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The LEDC channel that you want associated with this LED. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfig5timerE">
+<span id="_CPPv3N4espp3Led13ChannelConfig5timerE"></span><span id="_CPPv2N4espp3Led13ChannelConfig5timerE"></span><span id="espp::Led::ChannelConfig::timer__ledc_timer_t"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1ac712871c3c047d022b6b74ccbc1901ef"></span><span class="n"><span class="pre">ledc_timer_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">timer</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig5timerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The LEDC timer that you want associated with this LED channel. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfig4dutyE">
+<span id="_CPPv3N4espp3Led13ChannelConfig4dutyE"></span><span id="_CPPv2N4espp3Led13ChannelConfig4dutyE"></span><span id="espp::Led::ChannelConfig::duty__float"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1a8ee9157bd68f3a3da61be77586076d11"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">duty</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig4dutyE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The starting duty cycle (%) [0, 100] that you want the LED channel to have. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfig10speed_modeE">
+<span id="_CPPv3N4espp3Led13ChannelConfig10speed_modeE"></span><span id="_CPPv2N4espp3Led13ChannelConfig10speed_modeE"></span><span id="espp::Led::ChannelConfig::speed_mode__ledc_mode_t"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1a63ea3e43a4aa33609b5a7736a4029df8"></span><span class="n"><span class="pre">ledc_mode_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">speed_mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_HIGH_SPEED_MODE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig10speed_modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The LEDC speed mode you want for this LED channel. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfig13output_invertE">
+<span id="_CPPv3N4espp3Led13ChannelConfig13output_invertE"></span><span id="_CPPv2N4espp3Led13ChannelConfig13output_invertE"></span><span id="espp::Led::ChannelConfig::output_invert__b"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1ad7014381668ea057d36064b80bfbcf16"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output_invert</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig13output_invertE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to invert the GPIO output for this LED channel. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6ConfigE">
+<span id="_CPPv3N4espp3Led6ConfigE"></span><span id="_CPPv2N4espp3Led6ConfigE"></span><span id="espp::Led::Config"></span><span class="target" id="structespp_1_1_led_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration Struct for the LEDC subsystem including the different LED channels that should be associated. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config5timerE">
+<span id="_CPPv3N4espp3Led6Config5timerE"></span><span id="_CPPv2N4espp3Led6Config5timerE"></span><span id="espp::Led::Config::timer__ledc_timer_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1a79abd040f5760fd6dc40cc02c9aa6d89"></span><span class="n"><span class="pre">ledc_timer_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">timer</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config5timerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The LEDC timer that you want associated with the LEDs. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config12frequency_hzE">
+<span id="_CPPv3N4espp3Led6Config12frequency_hzE"></span><span id="_CPPv2N4espp3Led6Config12frequency_hzE"></span><span id="espp::Led::Config::frequency_hz__s"></span><span class="target" id="structespp_1_1_led_1_1_config_1a512fe6d534e296b36004769f0fd0536a"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">frequency_hz</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config12frequency_hzE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The frequency that you want to run the PWM hardawre for the LEDs at. NOTE: this is inversely related to the duty resolution configuration. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config8channelsE">
+<span id="_CPPv3N4espp3Led6Config8channelsE"></span><span id="_CPPv2N4espp3Led6Config8channelsE"></span><span id="espp::Led::Config::channels__std::vector:ChannelConfig:"></span><span class="target" id="structespp_1_1_led_1_1_config_1acd21eaa3c9c69621e77a3d45c044158b"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp3Led13ChannelConfigE" title="espp::Led::ChannelConfig"><span class="n"><span class="pre">ChannelConfig</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">channels</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config8channelsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The LED channels that you want to control. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config15duty_resolutionE">
+<span id="_CPPv3N4espp3Led6Config15duty_resolutionE"></span><span id="_CPPv2N4espp3Led6Config15duty_resolutionE"></span><span id="espp::Led::Config::duty_resolution__ledc_timer_bit_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1a1d067b77e0362a3ba01cffc96815ab77"></span><span class="n"><span class="pre">ledc_timer_bit_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">duty_resolution</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_TIMER_13_BIT</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config15duty_resolutionE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The resolution of the duty cycle for these LEDs. NOTE: this is inversely related to the frequency configuration. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config10speed_modeE">
+<span id="_CPPv3N4espp3Led6Config10speed_modeE"></span><span id="_CPPv2N4espp3Led6Config10speed_modeE"></span><span id="espp::Led::Config::speed_mode__ledc_mode_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1aba839552af43f1e30ca277eddc71633e"></span><span class="n"><span class="pre">ledc_mode_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">speed_mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_HIGH_SPEED_MODE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config10speed_modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The LEDC speed mode you want for these LED channels. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config9log_levelE">
+<span id="_CPPv3N4espp3Led6Config9log_levelE"></span><span id="_CPPv2N4espp3Led6Config9log_levelE"></span><span id="espp::Led::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1_led_1_1_config_1a1e003d64dfc277a2417f2f08120aff6a"></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity for the task. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="joystick.html" class="btn btn-neutral float-left" title="Joystick APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="logger.html" class="btn btn-neutral float-right" title="Logging APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2022, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

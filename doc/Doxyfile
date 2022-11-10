@@ -45,6 +45,7 @@ INPUT += $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp
 INPUT += $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp
 INPUT += $(PROJECT_PATH)/components/input_drivers/include/touchpad_input.hpp
 INPUT += $(PROJECT_PATH)/components/joystick/include/joystick.hpp
+INPUT += $(PROJECT_PATH)/components/led/include/led.hpp
 INPUT += $(PROJECT_PATH)/components/logger/include/logger.hpp
 INPUT += $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp
 INPUT += $(PROJECT_PATH)/components/math/include/range_mapper.hpp
