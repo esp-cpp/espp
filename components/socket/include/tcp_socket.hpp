@@ -85,7 +85,19 @@ namespace espp {
         logger_.error("Could not connect to the server: {} - '{}'", errno, strerror(errno));
         return false;
       }
+      connected_ = true;
       return true;
+    }
+
+    /**
+     * @brief Is this TCP client socket connected to a server? NOTE: This will
+     *        be set to TRUE if the connect() call succeeded, but will reset to
+     *        FALSE if the transmit call fails.
+     * @return True if the socket has successfully called connect() and can call
+     *         transmit().
+     */
+    bool is_connected() {
+      return connected_;
     }
 
     /**
@@ -132,6 +144,8 @@ namespace espp {
       int num_bytes_sent = write(socket_, data.data(), data.size());
       if (num_bytes_sent < 0) {
         logger_.error("Error occurred during sending: {} - '{}'", errno, strerror(errno));
+        // update our connection state here since remote end was likely closed...
+        connected_ = false;
         return false;
       }
       logger_.debug("Client sent {} bytes", num_bytes_sent);
@@ -149,7 +163,8 @@ namespace espp {
       logger_.info("Client waiting for response");
       // read
       if (!receive(socket_, transmit_config.response_size, received_data)) {
-        logger_.warn("Client could not get response");
+        logger_.warn("Client could not get response, remote socket might have closed!");
+        // TODO: should we upate our connected_ variable here?
         return false;
       }
       logger_.info("Client got {} bytes of response", received_data.size());
@@ -200,6 +215,10 @@ namespace espp {
      * @return true if the socket was created and task was started, false otherwise.
      */
     bool start_receiving(Task::Config& task_config, const ReceiveConfig& receive_config) {
+      // TODO: allow this to start multiple threads up to some max number of
+      // connected clients. In this way we would have a thread that calls
+      // accept, which in turn creates a new thread for each client that
+      // accepts.
       if (task_ && task_->is_started()) {
         logger_.error("Server is alrady receiving");
         return false;
@@ -301,6 +320,7 @@ namespace espp {
       close(accepted_socket);
     }
 
+    std::atomic<bool> connected_{false};
     std::unique_ptr<Task> task_;
     receive_callback_fn server_receive_callback_;
   };
