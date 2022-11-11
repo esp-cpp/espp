@@ -19,5 +19,6 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    monitor
    math/index
    network/index
+   serialization
    task
    wifi/index
