@@ -105,6 +105,14 @@ namespace espp {
     ~Led() {
       ledc_fade_func_uninstall();
       // TODO: should we call ledc_stop(...) for the channels?
+      // clean up the semaphores
+      for (auto& sem : fade_semaphores_) {
+        // take the semaphore (so that we don't delete it until no one is
+        // blocked on it)
+        xSemaphoreTake(sem, portMAX_DELAY);
+        // and delete it
+        vSemaphoreDelete(sem);
+      }
     }
 
     /**
