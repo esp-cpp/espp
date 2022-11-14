@@ -31,14 +31,6 @@ namespace espp {
     typedef void (*flush_fn)(lv_disp_drv_t*, const lv_area_t*, lv_color_t*);
 
     /**
-      * @brief Low-level callback to write bytes to the display controller.
-      * @param uint8_t* Pointer to array of bytes to write.
-      * @param size_t Number of bytes to write.
-      * @param uint16_t user data associated with this transfer, used for flags.
-      */
-    typedef std::function<void(const uint8_t*, size_t, uint16_t)> write_fn;
-
-    /**
      *  @brief Signals used by LVGL to let the post_transfer_callback know
      *         whether or not to call lv_disp_flush_ready.
      */

@@ -45,6 +45,7 @@ namespace espp {
     static void initialize(const display_drivers::Config& config) {
       // update the static members
       lcd_write_ = config.lcd_write;
+      lcd_send_lines_ = config.lcd_send_lines;
       reset_pin_ = config.reset_pin;
       dc_pin_ = config.data_command_pin;
       backlight_pin_ = config.backlight_pin;
@@ -101,7 +102,7 @@ namespace espp {
      * @param *color_map Pointer to array of colors to flush to the display.
      */
     static void flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map) {
-      fill(drv, area, color_map, (uint32_t)Display::Signal::FLUSH);
+      fill(drv, area, color_map, (1 << (int)display_drivers::Flags::FLUSH_BIT));
     }
 
     /**
@@ -154,13 +155,20 @@ namespace espp {
      * @param *color_map Pointer to array of colors to flush to the display.
      * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
      */
-    static void fill(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map, uint32_t flags=(uint32_t)Display::Signal::NONE) {
-      set_drawing_area(area);
-
-      // Write the color data to the configured section of controller memory
-      send_command((uint8_t)Command::ramwr);
-      uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      send_data((uint8_t*)color_map, size * 2, flags);
+    static void fill(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map, uint32_t flags=0) {
+      if (lcd_send_lines_) {
+        lcd_send_lines_(area->x1 + offset_x_,
+                        area->y1 + offset_y_,
+                        area->x2 + offset_x_,
+                        area->y2 + offset_y_,
+                        (uint8_t*)color_map,
+                        flags);
+      } else {
+        set_drawing_area(area);
+        send_command((uint8_t)Command::ramwr);
+        uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
+        send_data((uint8_t*)color_map, size * 2, flags);
+      }
     }
 
     /**
@@ -187,22 +195,25 @@ namespace espp {
     }
 
     /**
-     * @brief Sets the DC pin to command and sends the command code.
+     * @brief Sends the command, sets flags such that the pre-cb should set the
+     *        DC pin to command mode.
      * @param command Command code to send
      */
     static void send_command(uint8_t command) {
-      gpio_set_level(dc_pin_, (uint8_t)display_drivers::Mode::COMMAND);
-      lcd_write_(&command, 1, (uint32_t)Display::Signal::NONE);
+      uint16_t flags = 0;
+      lcd_write_(&command, 1, flags);
     }
 
     /**
-     * @brief Sets the DC pin to data and sends the data, with optional flags.
+     * @brief Send data to the display. Adds (1<<DC_LEVEL_BIT) to the flags so
+     *        that the pre-cb receives it in user data and can configure the DC
+     *        pin to data mode.
      * @param data Pointer to array of bytes to be sent
      * @param length Number of bytes of data to send.
-     * @param flags Optional (default = Display::Signal::NONE) flags associated with transfer.
+     * @param flags Optional (default = 0) flags associated with transfer.
      */
-    static void send_data(const uint8_t* data, size_t length, uint32_t flags=(uint32_t)Display::Signal::NONE) {
-      gpio_set_level(dc_pin_, (uint8_t)display_drivers::Mode::DATA);
+    static void send_data(const uint8_t* data, size_t length, uint32_t flags=0) {
+      flags |= (1 << (int)display_drivers::Flags::DC_LEVEL_BIT);
       lcd_write_(data, length, flags);
     }
 
@@ -231,7 +242,8 @@ namespace espp {
     }
 
   protected:
-    static Display::write_fn lcd_write_;
+    static display_drivers::write_fn lcd_write_;
+    static display_drivers::send_lines_fn lcd_send_lines_;
     static gpio_num_t reset_pin_;
     static gpio_num_t dc_pin_;
     static gpio_num_t backlight_pin_;

@@ -6,8 +6,29 @@
 
 namespace espp {
   namespace display_drivers {
+    /**
+      * @brief Low-level callback to write bytes to the display controller.
+      * @param uint8_t* Pointer to array of bytes to write.
+      * @param size_t Number of bytes to write.
+      * @param uint16_t user data associated with this transfer, used for flags.
+      */
+    typedef std::function<void(const uint8_t*, size_t, uint32_t)> write_fn;
+
+    /**
+     * @brief Send color data to the display, with optional flags.
+     * @param int The starting x-coordinate of the area to fill.
+     * @param int The starting y-coordinate of the area to fill.
+     * @param int The ending x-coordinate of the area to fill.
+     * @param int The ending y-coordinate of the area to fill.
+     * @param uint8_t* Pointer to the color data. Should be at least
+     *                 (x_end-x_start)*(y_end-y_start)*2 bytes.
+     * @param uint32_t Optional flags to send with the transaction.
+     */
+    typedef std::function<void(int, int, int, int, const uint8_t*, uint32_t)> send_lines_fn;
+
     struct Config {
-      Display::write_fn lcd_write; /**< Function which the display driver uses to write data to the display. */
+      write_fn lcd_write; /**< Function which the display driver uses to write data (blocking) to the display. */
+      send_lines_fn lcd_send_lines{nullptr}; /**< Function which the display driver uses to send bulk (color) data (non-blocking) to be written to the display. If not provided, it will default to using the provided lcd_write (blocking) call. */
       gpio_num_t reset_pin; /**< GPIO used for resetting the display. */
       gpio_num_t data_command_pin; /**< GPIO used for indicating to the LCD whether the bits are data or command bits. */
       gpio_num_t backlight_pin; /**< GPIO used for controlling the backlight of the display. */
@@ -24,6 +45,8 @@ namespace espp {
      * @brief Mode for configuring the data/command pin.
      */
     enum class Mode { COMMAND = 0, DATA = 1 };
+
+    enum class Flags { FLUSH_BIT = 0, DC_LEVEL_BIT = 1 };
 
     /**
      * @brief command structure for initializing the lcd

@@ -48,7 +48,9 @@ extern "C" void app_main(void) {
     // create the spi device
     auto lcd = master.create_dev(idf::CS(22), idf::Frequency::MHz(20));
     // create the lcd_write function
-    espp::Display::write_fn lcd_write = [&lcd](auto data, auto length, auto user_data) {
+    static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
+    static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
+    auto lcd_write = [&lcd](auto data, auto length, auto user_data) {
       if (length == 0) {
         // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
         return;
@@ -56,10 +58,19 @@ extern "C" void app_main(void) {
       // NOTE: we could simply provide user_data as context to the function
       // NOTE: if we don't call get() to block for the transaction, then the
       // transaction will go out scope and fail.
-      lcd->transfer(data, data+length, nullptr,
+      lcd->transfer(data, data+length,
+                    // pre-transfer callback
                     [](void* ud) {
-                      uint32_t flags = (uint32_t)ud;
-                      if (flags & (uint32_t)espp::Display::Signal::FLUSH) {
+                      uint32_t user_flags = (uint32_t)(ud);
+                      bool dc_level = user_flags & DC_LEVEL_BIT;
+                      // DC pin is 4 (see below)
+                      gpio_set_level((gpio_num_t)21, dc_level);
+                    },
+                    // post-transfer callback
+                    [](void* ud) {
+                      uint32_t user_flags = (uint32_t)(ud);
+                      bool should_flush = user_flags & FLUSH_BIT;
+                      if (should_flush) {
                         lv_disp_t * disp = _lv_refr_get_disp_refreshing();
                         lv_disp_flush_ready(disp->driver);
                       }
@@ -67,7 +78,7 @@ extern "C" void app_main(void) {
                     (void*)user_data).get();
     };
     // initialize the controller
-    espp::Ili9341::initialize({
+    espp::Ili9341::initialize(espp::display_drivers::Config{
         .lcd_write = lcd_write,
         .reset_pin = (gpio_num_t)18,
         .data_command_pin = (gpio_num_t)21,
@@ -118,7 +129,9 @@ extern "C" void app_main(void) {
     // create the spi device
     auto lcd = master.create_dev(idf::CS(5), idf::Frequency::MHz(60));
     // create the lcd_write function
-    espp::Display::write_fn lcd_write = [&lcd](auto data, auto length, auto user_data) {
+    static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
+    static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
+    auto lcd_write = [&lcd](auto data, auto length, auto user_data) {
       if (length == 0) {
         // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
         return;
@@ -126,10 +139,19 @@ extern "C" void app_main(void) {
       // NOTE: we could simply provide user_data as context to the function
       // NOTE: if we don't call get() to block for the transaction, then the
       // transaction will go out scope and fail.
-      lcd->transfer(data, data+length, nullptr,
+      lcd->transfer(data, data+length,
+                    // pre-transfer callback
                     [](void* ud) {
-                      uint32_t flags = (uint32_t)ud;
-                      if (flags & (uint32_t)espp::Display::Signal::FLUSH) {
+                      uint32_t user_flags = (uint32_t)(ud);
+                      bool dc_level = user_flags & DC_LEVEL_BIT;
+                      // DC pin is 4 (see below)
+                      gpio_set_level((gpio_num_t)16, dc_level);
+                    },
+                    // post-transfer callback
+                    [](void* ud) {
+                      uint32_t user_flags = (uint32_t)(ud);
+                      bool should_flush = user_flags & FLUSH_BIT;
+                      if (should_flush) {
                         lv_disp_t * disp = _lv_refr_get_disp_refreshing();
                         lv_disp_flush_ready(disp->driver);
                       }
@@ -137,7 +159,7 @@ extern "C" void app_main(void) {
                     (void*)user_data).get();
     };
     // initialize the controller
-    espp::St7789::initialize({
+    espp::St7789::initialize(espp::display_drivers::Config{
         .lcd_write = lcd_write,
         .reset_pin = (gpio_num_t)23,
         .data_command_pin = (gpio_num_t)16,
@@ -191,7 +213,9 @@ extern "C" void app_main(void) {
     // create the spi device
     auto lcd = master.create_dev(idf::CS(5), idf::Frequency::MHz(60));
     // create the lcd_write function
-    espp::Display::write_fn lcd_write = [&lcd](auto data, auto length, auto user_data) {
+    static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
+    static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
+    auto lcd_write = [&lcd](auto data, auto length, auto user_data) {
       if (length == 0) {
         // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
         return;
@@ -199,10 +223,19 @@ extern "C" void app_main(void) {
       // NOTE: we could simply provide user_data as context to the function
       // NOTE: if we don't call get() to block for the transaction, then the
       // transaction will go out scope and fail.
-      lcd->transfer(data, data+length, nullptr,
+      lcd->transfer(data, data+length,
+                    // pre-transfer callback
                     [](void* ud) {
-                      uint32_t flags = (uint32_t)ud;
-                      if (flags & (uint32_t)espp::Display::Signal::FLUSH) {
+                      uint32_t user_flags = (uint32_t)(ud);
+                      bool dc_level = user_flags & DC_LEVEL_BIT;
+                      // DC pin is 4 (see below)
+                      gpio_set_level((gpio_num_t)4, dc_level);
+                    },
+                    // post-transfer callback
+                    [](void* ud) {
+                      uint32_t user_flags = (uint32_t)(ud);
+                      bool should_flush = user_flags & FLUSH_BIT;
+                      if (should_flush) {
                         lv_disp_t * disp = _lv_refr_get_disp_refreshing();
                         lv_disp_flush_ready(disp->driver);
                       }
@@ -210,7 +243,7 @@ extern "C" void app_main(void) {
                     (void*)user_data).get();
     };
     // initialize the controller
-    espp::St7789::initialize({
+    espp::St7789::initialize(espp::display_drivers::Config{
         .lcd_write = lcd_write,
         .reset_pin = (gpio_num_t)48,
         .data_command_pin = (gpio_num_t)4,
