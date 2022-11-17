@@ -27,9 +27,9 @@ namespace espp {
       int a_gpio; /**< GPIO number for the a channel pulse. */
       int b_gpio; /**< GPIO number for the b channel pulse. */
       int i_gpio{-1}; /**< GPIO number for the index (I/Z) pulse). NOTE: This is currently unused. */
-      size_t counts_per_revolution; /**< How many counts equate to a single revolution, cannot be 0. NOTE: this unused if the type is not EncoderType::ROTATIONAL. */
       int16_t high_limit; /**< High limit for the hardware counter before it resets to 0. Lowering (to zero) this value increases the number of interrupts / overflows of the counter. */
       int16_t low_limit; /**< Low limit for the hardware counter before it resets to 0. Lowering (to zero) this value increases the number of interrupts / overflows of the counter. */
+      size_t counts_per_revolution{0}; /**< How many counts equate to a single revolution. NOTE: this unused if the type is not EncoderType::ROTATIONAL. */
       size_t max_glitch_ns{1000}; /**< Max glitch witdth in nanoseconds that is ignored. 0 will disable the glitch filter. */
       espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Verbosity for the adc logger. */
     };
@@ -39,9 +39,19 @@ namespace espp {
      *        this does not start the pulse count hardware, for that you must
      *        call the start() method at least once.
      */
+    template <EncoderType type = T>
     AbiEncoder(const Config& config)
-      : counts_per_revolution_(config.counts_per_revolution),
-        logger_({.tag = "AbiEncoder", .level = config.log_level}) {
+      : logger_({.tag = "AbiEncoder", .level = config.log_level}) {
+      // we only care about counts_per_revolution if it is EncoderType::ROTATIONAL
+      if constexpr(type == EncoderType::ROTATIONAL) {
+        if (config.counts_per_revolution == 0) {
+          logger_.warn("Configured as ROTATIONAL encoder, but provided a 0 counts_per_revolution, "
+                       "setting CPR to config.high_limit {}", config.high_limit);
+          counts_per_revolution_ = config.high_limit;
+        } else {
+          counts_per_revolution_ = config.counts_per_revolution;
+        }
+      }
       init(config);
     }
 

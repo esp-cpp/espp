@@ -74,6 +74,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
@@ -102,7 +103,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/d2c0afb/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/2f2b613/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -130,6 +131,44 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="serialization.html#_CPPv4N4espp31__serialization_documentation__E">espp::__serialization_documentation__ (C++ class)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4I_11EncoderTypeEN4espp10AbiEncoderE">espp::AbiEncoder (C++ class)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder10AbiEncoderERK6Config">espp::AbiEncoder::AbiEncoder (C++ function)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder5clearEv">espp::AbiEncoder::clear (C++ function)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6ConfigE">espp::AbiEncoder::Config (C++ struct)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6Config6a_gpioE">espp::AbiEncoder::Config::a_gpio (C++ member)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6Config6b_gpioE">espp::AbiEncoder::Config::b_gpio (C++ member)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6Config21counts_per_revolutionE">espp::AbiEncoder::Config::counts_per_revolution (C++ member)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6Config10high_limitE">espp::AbiEncoder::Config::high_limit (C++ member)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6Config6i_gpioE">espp::AbiEncoder::Config::i_gpio (C++ member)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6Config9log_levelE">espp::AbiEncoder::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6Config9low_limitE">espp::AbiEncoder::Config::low_limit (C++ member)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder6Config13max_glitch_nsE">espp::AbiEncoder::Config::max_glitch_ns (C++ member)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder9get_countEv">espp::AbiEncoder::get_count (C++ function)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder11get_degreesENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv">espp::AbiEncoder::get_degrees (C++ function)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder11get_radiansENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv">espp::AbiEncoder::get_radians (C++ function)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder15get_revolutionsENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv">espp::AbiEncoder::get_revolutions (C++ function)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder5startEv">espp::AbiEncoder::start (C++ function)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoder4stopEv">espp::AbiEncoder::stop (C++ function)</a>
+</li>
+      <li><a href="encoder/abi_encoder.html#_CPPv4N4espp10AbiEncoderD0Ev">espp::AbiEncoder::~AbiEncoder (C++ function)</a>
 </li>
       <li><a href="adc/continuous_adc.html#_CPPv4N4espp13ContinuousAdcE">espp::ContinuousAdc (C++ class)</a>
 </li>
@@ -238,8 +277,6 @@
       <li><a href="display/display.html#_CPPv4N4espp7Display12vram_size_pxEv">espp::Display::vram_size_px (C++ function)</a>
 </li>
       <li><a href="display/display.html#_CPPv4NK4espp7Display5widthEv">espp::Display::width (C++ function)</a>
-</li>
-      <li><a href="display/display.html#_CPPv4N4espp7Display8write_fnE">espp::Display::write_fn (C++ type)</a>
 </li>
       <li><a href="display/display.html#_CPPv4N4espp7DisplayD0Ev">espp::Display::~Display (C++ function)</a>
 </li>
@@ -403,6 +440,8 @@
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket4InfoE">espp::Socket::Info (C++ struct)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket4Info7addressE">espp::Socket::Info::address (C++ member)</a>
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket4Info13from_sockaddrERK11sockaddr_in">espp::Socket::Info::from_sockaddr (C++ function)</a>, <a href="network/socket.html#_CPPv4N4espp6Socket4Info13from_sockaddrERK12sockaddr_in6">[1]</a>, <a href="network/socket.html#_CPPv4N4espp6Socket4Info13from_sockaddrERK16sockaddr_storage">[2]</a>
@@ -421,8 +460,6 @@
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket8is_validEi">espp::Socket::is_valid (C++ function)</a>, <a href="network/socket.html#_CPPv4N4espp6Socket8is_validEv">[1]</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket14make_multicastE7uint8_t7uint8_t">espp::Socket::make_multicast (C++ function)</a>
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket19receive_callback_fnE">espp::Socket::receive_callback_fn (C++ type)</a>

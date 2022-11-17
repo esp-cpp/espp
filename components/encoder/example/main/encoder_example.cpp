@@ -15,9 +15,9 @@ extern "C" void app_main(void) {
     espp::AbiEncoder<espp::EncoderType::ROTATIONAL> encoder({
         .a_gpio = 9,
         .b_gpio = 10,
-        .counts_per_revolution = 4096,
         .high_limit = 8192,
         .low_limit = -8192,
+        .counts_per_revolution = 4096,
       });
     encoder.start();
     auto task_fn = [&encoder](std::mutex& m, std::condition_variable& cv) {
@@ -48,7 +48,6 @@ extern "C" void app_main(void) {
     espp::AbiEncoder<espp::EncoderType::LINEAR> encoder({
         .a_gpio = 9,
         .b_gpio = 10,
-        .counts_per_revolution = 4096,
         .high_limit = 8192,
         .low_limit = -8192,
       });

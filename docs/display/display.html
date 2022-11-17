@@ -88,6 +88,7 @@
 <li class="toctree-l2"><a class="reference internal" href="display_drivers.html">Display Drivers</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
@@ -117,7 +118,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/d2c0afb/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/2f2b613/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -135,7 +136,7 @@ high-priority lvgl update task which sends data to the display.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d2c0afb/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/2f2b613/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -205,23 +206,6 @@ high-priority lvgl update task which sends data to the display.</p>
 </dd>
 <dt class="field-odd">Param lv_color_t*</dt>
 <dd class="field-odd"><p>Pointer to pixel buffer containing color data. </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display8write_fnE">
-<span id="_CPPv3N4espp7Display8write_fnE"></span><span id="_CPPv2N4espp7Display8write_fnE"></span><span id="espp::Display::write_fn"></span><span class="target" id="classespp_1_1_display_1aab5cec8c260f946725511fa203c5778b"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display8write_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Low-level callback to write bytes to the display controller. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Param uint8_t*</dt>
-<dd class="field-odd"><p>Pointer to array of bytes to write. </p>
-</dd>
-<dt class="field-even">Param size_t</dt>
-<dd class="field-even"><p>Number of bytes to write. </p>
-</dd>
-<dt class="field-odd">Param uint16_t</dt>
-<dd class="field-odd"><p>user data associated with this transfer, used for flags. </p>
 </dd>
 </dl>
 </dd></dl>
