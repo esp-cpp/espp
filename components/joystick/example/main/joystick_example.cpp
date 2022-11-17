@@ -11,7 +11,7 @@ extern "C" void app_main(void) {
   size_t num_seconds_to_run = 5;
 
   {
-    fmt::print("Running ADC joystick for {} seconds", num_seconds_to_run);
+    fmt::print("Running ADC joystick for {} seconds\n", num_seconds_to_run);
     //! [adc joystick example]
     std::vector<espp::AdcConfig> channels{
       {

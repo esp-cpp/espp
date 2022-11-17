@@ -11,7 +11,7 @@ extern "C" void app_main(void) {
   size_t num_seconds_to_run = 5;
 
   {
-    fmt::print("Reading oneshot adc for {} seconds", num_seconds_to_run);
+    fmt::print("Reading oneshot adc for {} seconds\n", num_seconds_to_run);
     //! [oneshot adc example]
     std::vector<espp::AdcConfig> channels{
       {
@@ -57,7 +57,7 @@ extern "C" void app_main(void) {
   }
 
   {
-    fmt::print("Reading continuous adc for {} seconds", num_seconds_to_run);
+    fmt::print("Reading continuous adc for {} seconds\n", num_seconds_to_run);
     //! [continuous adc example]
     std::vector<espp::AdcConfig> channels{
       {
