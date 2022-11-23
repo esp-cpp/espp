@@ -96,6 +96,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
@@ -118,7 +119,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/2f2b613/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -136,7 +137,7 @@ high-priority lvgl update task which sends data to the display.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/2f2b613/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -145,7 +146,7 @@ high-priority lvgl update task which sends data to the display.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7DisplayE">
 <span id="_CPPv3N4espp7DisplayE"></span><span id="_CPPv2N4espp7DisplayE"></span><span id="espp::Display"></span><span class="target" id="classespp_1_1_display"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><a class="headerlink" href="#_CPPv4N4espp7DisplayE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Wrapper class around LVGL display buffer and display driver. </p>
-<p>Optionally allocates and owns the memory associated with the pixel display buffers. Initializes the LVGL subsystem then starts and maintains a task which runs the high priority lv_tick_inc() function every 10 ms.</p>
+<p>Optionally allocates and owns the memory associated with the pixel display buffers. Initializes the LVGL subsystem then starts and maintains a task which runs the high priority lv_tick_inc() function every update period (default = 10 ms).</p>
 <p>For more information, see <a class="reference external" href="https://docs.lvgl.io/8.3/porting/display.html#display-interface">https://docs.lvgl.io/8.3/porting/display.html#display-interface</a> </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
@@ -195,16 +196,16 @@ high-priority lvgl update task which sends data to the display.</p>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Display8flush_fnE">
-<span id="_CPPv3N4espp7Display8flush_fnE"></span><span id="_CPPv2N4espp7Display8flush_fnE"></span><span id="espp::Display::flush_fn"></span><span class="target" id="classespp_1_1_display_1a57ed5348cd97dd96e86ed79d71dfc1dc"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">flush_fn</span></span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">lv_disp_drv_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">lv_color_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp7Display8flush_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Display8flush_fnE"></span><span id="_CPPv2N4espp7Display8flush_fnE"></span><span id="espp::Display::flush_fn"></span><span class="target" id="classespp_1_1_display_1ab944eab9dd1f4a21dd21b50c9a6eb1bc"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">flush_fn</span></span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">lv_disp_drv_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">driver</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">area</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">lv_color_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">color_data</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp7Display8flush_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback for lvgl to flush segments of pixel data from the pixel buffers to the display. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param lv_disp_drv_t*</dt>
+<dt class="field-odd">Param driver</dt>
 <dd class="field-odd"><p>Pointer to display driver. </p>
 </dd>
-<dt class="field-even">Param const</dt>
-<dd class="field-even"><p>lv_area_t* Pointer to structure describing the area of pixels to flush. </p>
+<dt class="field-even">Param area</dt>
+<dd class="field-even"><p>Pointer to structure describing the area of pixels to flush. </p>
 </dd>
-<dt class="field-odd">Param lv_color_t*</dt>
+<dt class="field-odd">Param color_data</dt>
 <dd class="field-odd"><p>Pointer to pixel buffer containing color data. </p>
 </dd>
 </dl>
