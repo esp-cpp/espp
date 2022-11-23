@@ -119,7 +119,7 @@
           <li><a href="index.html">Encoder APIs</a> &raquo;</li>
       <li>ABI Encoder</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/encoder/abi_encoder.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/encoder/abi_encoder.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -140,7 +140,7 @@ current <cite>count</cite> of the encoder (including the overflow underflow cond
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/encoder/include/abi_encoder.hpp">components/encoder/include/abi_encoder.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/encoder/include/abi_encoder.hpp">components/encoder/include/abi_encoder.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -216,7 +216,11 @@ current <cite>count</cite> of the encoder (including the overflow underflow cond
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I_11EncoderTypeEN4espp10AbiEncoder10AbiEncoderERK6Config">
 <span id="_CPPv3I_11EncoderTypeEN4espp10AbiEncoder10AbiEncoderERK6Config"></span><span id="_CPPv2I_11EncoderTypeEN4espp10AbiEncoder10AbiEncoderERK6Config"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">EncoderType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoderE" title="espp::AbiEncoder::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_abi_encoder_1aab5999a2547ff89cea07c5230ae06423"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AbiEncoder</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10AbiEncoder6ConfigE" title="espp::AbiEncoder::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder10AbiEncoderERK6Config" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Initialize the pulse count hardware for the ABI encoder. NOTE: this does not start the pulse count hardware, for that you must call the <a class="reference internal" href="#classespp_1_1_abi_encoder_1ad3b1354e556826147d71e76998dd9020"><span class="std std-ref">start()</span></a> method at least once. </p>
+<dd><p>Initialize the pulse count hardware for the ABI encoder. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This does not start the pulse count hardware, for that you must call the <a class="reference internal" href="#classespp_1_1_abi_encoder_1ad3b1354e556826147d71e76998dd9020"><span class="std std-ref">start()</span></a> method at least once. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp function">
@@ -239,7 +243,11 @@ current <cite>count</cite> of the encoder (including the overflow underflow cond
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I_11EncoderTypeEN4espp10AbiEncoder15get_revolutionsENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv">
 <span id="_CPPv3I_11EncoderTypeEN4espp10AbiEncoder15get_revolutionsEv"></span><span id="_CPPv2I_11EncoderTypeEN4espp10AbiEncoder15get_revolutionsEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">EncoderType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoderE" title="espp::AbiEncoder::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_abi_encoder_1a85ad92c30ff32ce6553af4796c7177c8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder15get_revolutionsENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv" title="espp::AbiEncoder::get_revolutions::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="o"><span class="pre">==</span></span><span class="w"> </span><span class="n"><span class="pre">EncoderType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ROTATIONAL</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">type</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_revolutions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder15get_revolutionsENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Get the total number of revolutions this ABI encoder has measured since it was created or <a class="reference internal" href="#classespp_1_1_abi_encoder_1aa2792fd08c9bb06df1e8c9f10d9c730b"><span class="std std-ref">clear()</span></a>-ed last. NOTE: this is only available if the <a class="reference internal" href="#classespp_1_1_abi_encoder"><span class="std std-ref">AbiEncoder</span></a> is EncoderType::ROTATIONAL. </p>
+<dd><p>Get the total number of revolutions this ABI encoder has measured since it was created or <a class="reference internal" href="#classespp_1_1_abi_encoder_1aa2792fd08c9bb06df1e8c9f10d9c730b"><span class="std std-ref">clear()</span></a>-ed last. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available if the <a class="reference internal" href="#classespp_1_1_abi_encoder"><span class="std std-ref">AbiEncoder</span></a> is EncoderType::ROTATIONAL. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>Number of revolutions, as a floating point number. </p>
@@ -250,7 +258,11 @@ current <cite>count</cite> of the encoder (including the overflow underflow cond
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I_11EncoderTypeEN4espp10AbiEncoder11get_radiansENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv">
 <span id="_CPPv3I_11EncoderTypeEN4espp10AbiEncoder11get_radiansEv"></span><span id="_CPPv2I_11EncoderTypeEN4espp10AbiEncoder11get_radiansEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">EncoderType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoderE" title="espp::AbiEncoder::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_abi_encoder_1ab355f1fed5957b953dc3ee05a6ab791d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder11get_radiansENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv" title="espp::AbiEncoder::get_radians::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="o"><span class="pre">==</span></span><span class="w"> </span><span class="n"><span class="pre">EncoderType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ROTATIONAL</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">type</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_radians</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder11get_radiansENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Get the total number of radians this ABI encoder has measured since it was created or <a class="reference internal" href="#classespp_1_1_abi_encoder_1aa2792fd08c9bb06df1e8c9f10d9c730b"><span class="std std-ref">clear()</span></a>-ed last. NOTE: this is only available if the <a class="reference internal" href="#classespp_1_1_abi_encoder"><span class="std std-ref">AbiEncoder</span></a> is EncoderType::ROTATIONAL. </p>
+<dd><p>Get the total number of radians this ABI encoder has measured since it was created or <a class="reference internal" href="#classespp_1_1_abi_encoder_1aa2792fd08c9bb06df1e8c9f10d9c730b"><span class="std std-ref">clear()</span></a>-ed last. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available if the <a class="reference internal" href="#classespp_1_1_abi_encoder"><span class="std std-ref">AbiEncoder</span></a> is EncoderType::ROTATIONAL. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>Number of radians, as a floating point number. </p>
@@ -261,7 +273,11 @@ current <cite>count</cite> of the encoder (including the overflow underflow cond
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I_11EncoderTypeEN4espp10AbiEncoder11get_degreesENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv">
 <span id="_CPPv3I_11EncoderTypeEN4espp10AbiEncoder11get_degreesEv"></span><span id="_CPPv2I_11EncoderTypeEN4espp10AbiEncoder11get_degreesEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">EncoderType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoderE" title="espp::AbiEncoder::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_abi_encoder_1a9988c7e5d0d1cd31cfd886002002b6c9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">enable_if</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder11get_degreesENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv" title="espp::AbiEncoder::get_degrees::type"><span class="n"><span class="pre">type</span></span></a><span class="w"> </span><span class="o"><span class="pre">==</span></span><span class="w"> </span><span class="n"><span class="pre">EncoderType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ROTATIONAL</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">type</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_degrees</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I_11EncoderTypeEN4espp10AbiEncoder11get_degreesENSt9enable_ifIXeq4typeN11EncoderType10ROTATIONALEEfE4typeEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Get the total number of degrees this ABI encoder has measured since it was created or <a class="reference internal" href="#classespp_1_1_abi_encoder_1aa2792fd08c9bb06df1e8c9f10d9c730b"><span class="std std-ref">clear()</span></a>-ed last. NOTE: this is only available if the <a class="reference internal" href="#classespp_1_1_abi_encoder"><span class="std std-ref">AbiEncoder</span></a> is EncoderType::ROTATIONAL. </p>
+<dd><p>Get the total number of degrees this ABI encoder has measured since it was created or <a class="reference internal" href="#classespp_1_1_abi_encoder_1aa2792fd08c9bb06df1e8c9f10d9c730b"><span class="std std-ref">clear()</span></a>-ed last. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available if the <a class="reference internal" href="#classespp_1_1_abi_encoder"><span class="std std-ref">AbiEncoder</span></a> is EncoderType::ROTATIONAL. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>Number of degrees, as a floating point number. </p>
@@ -283,7 +299,11 @@ current <cite>count</cite> of the encoder (including the overflow underflow cond
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10AbiEncoder4stopEv">
 <span id="_CPPv3N4espp10AbiEncoder4stopEv"></span><span id="_CPPv2N4espp10AbiEncoder4stopEv"></span><span id="espp::AbiEncoder::stop"></span><span class="target" id="classespp_1_1_abi_encoder_1a803c412cfa67727436f8e9fdca2041fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10AbiEncoder4stopEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Stop the pulse count hardware. NOTE: this does not clear the counter so calling <a class="reference internal" href="#classespp_1_1_abi_encoder_1ad3b1354e556826147d71e76998dd9020"><span class="std std-ref">start()</span></a> later will allow it to pick up where it left off. </p>
+<dd><p>Stop the pulse count hardware. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This does not clear the counter so calling <a class="reference internal" href="#classespp_1_1_abi_encoder_1ad3b1354e556826147d71e76998dd9020"><span class="std std-ref">start()</span></a> later will allow it to pick up where it left off. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>True if it was successfully stopped. </p>
@@ -323,7 +343,11 @@ current <cite>count</cite> of the encoder (including the overflow underflow cond
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10AbiEncoder6Config6i_gpioE">
 <span id="_CPPv3N4espp10AbiEncoder6Config6i_gpioE"></span><span id="_CPPv2N4espp10AbiEncoder6Config6i_gpioE"></span><span id="espp::AbiEncoder::Config::i_gpio__i"></span><span class="target" id="structespp_1_1_abi_encoder_1_1_config_1a3784fcf849799f993db02f7e2adb03a0"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">i_gpio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10AbiEncoder6Config6i_gpioE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>GPIO number for the index (I/Z) pulse). NOTE: This is currently unused. </p>
+<dd><p>GPIO number for the index (I/Z) pulse). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is currently unused. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
@@ -341,7 +365,11 @@ current <cite>count</cite> of the encoder (including the overflow underflow cond
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10AbiEncoder6Config21counts_per_revolutionE">
 <span id="_CPPv3N4espp10AbiEncoder6Config21counts_per_revolutionE"></span><span id="_CPPv2N4espp10AbiEncoder6Config21counts_per_revolutionE"></span><span id="espp::AbiEncoder::Config::counts_per_revolution__s"></span><span class="target" id="structespp_1_1_abi_encoder_1_1_config_1a7367c6d65a0c15cdf53e56dc080cfa23"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">counts_per_revolution</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10AbiEncoder6Config21counts_per_revolutionE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>How many counts equate to a single revolution. NOTE: this unused if the type is not EncoderType::ROTATIONAL. </p>
+<dd><p>How many counts equate to a single revolution. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>this unused if the type is not EncoderType::ROTATIONAL. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">

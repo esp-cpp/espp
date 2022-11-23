@@ -115,7 +115,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Monitoring APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/monitor.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/monitor.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -140,7 +140,7 @@ or into a table for visualization.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/monitor/include/task_monitor.hpp">components/monitor/include/task_monitor.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/monitor/include/task_monitor.hpp">components/monitor/include/task_monitor.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -149,8 +149,6 @@ or into a table for visualization.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitorE">
 <span id="_CPPv3N4espp11TaskMonitorE"></span><span id="_CPPv2N4espp11TaskMonitorE"></span><span id="espp::TaskMonitor"></span><span class="target" id="classespp_1_1_task_monitor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TaskMonitor</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitorE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class which monitors the currently running tasks in the system and periodically logs their states. See also <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html#_CPPv412vTaskGetInfo12TaskHandle_tP12TaskStatus_t10BaseType_t10eTaskState">FreeRTOS::vTaskGetInfo()</a>. </p>
-<p>NOTE: you must enable CONFIG_FREERTOS_USE_TRACE_FACILITY and CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS for this class to do anything. This means that you can always instantiate this class in your app_main, and then based on those two config settings it will either do nothing (default) or print out the stats for you to analyze. Finally, the monitoring period can be configured as well.</p>
-<p>NOTE: You can use the static <a class="reference internal" href="#classespp_1_1_task_monitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"><span class="std std-ref">TaskMonitor::get_latest_info()</span></a> to get a string with the latest info without needing to construct a class / start the task.</p>
 <section id="classespp_1_1_task_monitor_1task_monitor_ex1">
 <h4>Basic Task Monitor Example<a class="headerlink" href="#classespp_1_1_task_monitor_1task_monitor_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_task_monitor_1task_monitor_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create the monitor</span>
@@ -220,6 +218,14 @@ or into a table for visualization.</p>
 </div>
  </p>
 </section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>you must enable CONFIG_FREERTOS_USE_TRACE_FACILITY and CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS for this class to do anything. This means that you can always instantiate this class in your app_main, and then based on those two config settings it will either do nothing (default) or print out the stats for you to analyze. Finally, the monitoring period can be configured as well.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You can use the static <a class="reference internal" href="#classespp_1_1_task_monitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"><span class="std std-ref">TaskMonitor::get_latest_info()</span></a> to get a string with the latest info without needing to construct a class / start the task.</p>
+</div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
@@ -233,8 +239,13 @@ or into a table for visualization.</p>
 <li><p>current priority of the task</p></li>
 </ul>
 </p>
-<p>Where each entry is separated by ‘,’ and each set of task data is separated by ‘;’. NOTE: there is no newline returned.</p>
-<p>This is a static function, so it can be called without having to instantiate a <a class="reference internal" href="#classespp_1_1_task_monitor"><span class="std std-ref">TaskMonitor</span></a> object.</p>
+<p>Where each entry is separated by ‘,’ and each set of task data is separated by ‘;’.</p>
+<p>
+This is a static function, so it can be called without having to instantiate a <a class="reference internal" href="#classespp_1_1_task_monitor"><span class="std std-ref">TaskMonitor</span></a> object.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There is no newline returned.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>std::string containing sequence of entries, formatted: <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">name</span><span class="p">,</span> <span class="n">cpu</span><span class="o">%</span><span class="p">,</span> <span class="n">high_water_mark</span><span class="p">,</span> <span class="n">priority</span><span class="p">;;</span>

@@ -115,7 +115,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Joystick APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/joystick.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/joystick.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -138,7 +138,7 @@ axis according to the configuration provided.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/joystick/include/joystick.hpp">components/joystick/include/joystick.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/joystick/include/joystick.hpp">components/joystick/include/joystick.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -211,14 +211,14 @@ axis according to the configuration provided.</p>
 <span id="_CPPv3N4espp8Joystick13get_values_fnE"></span><span id="_CPPv2N4espp8Joystick13get_values_fnE"></span><span id="espp::Joystick::get_values_fn"></span><span class="target" id="classespp_1_1_joystick_1abf390a38bf4faa319a03b2d8545bcd6e"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_values_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick13get_values_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>function for gettin x/y values for the joystick. Values should be in the range [-1,1]. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param &amp;x</dt>
-<dd class="field-odd"><p>Reference to the x value. Function should fill this variable with the latest reading. </p>
+<dt class="field-odd">Param x</dt>
+<dd class="field-odd"><p>Pointer to the x value. Function should fill this variable with the latest reading. </p>
 </dd>
-<dt class="field-even">Param &amp;y</dt>
-<dd class="field-even"><p>Reference to the y value. Function should fill this variable with the latest reading. </p>
+<dt class="field-even">Param y</dt>
+<dd class="field-even"><p>Pointer to the y value. Function should fill this variable with the latest reading. </p>
 </dd>
 <dt class="field-odd">Return</dt>
-<dd class="field-odd"><p>True if the values were able to be gotten, false otherwise. </p>
+<dd class="field-odd"><p>True if the values were able to be retrieved, false otherwise. </p>
 </dd>
 </dl>
 </dd></dl>

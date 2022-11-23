@@ -34,9 +34,9 @@ namespace espp {
     /**
      * @brief Task callback function signature.
      *
-     *    NOTE: the callback is run repeatedly within the Task, therefore it
-     *      MUST return, and also SHOULD have a sleep to give the processor over
-     *      to other tasks. For this reason, the callback is provided a
+     * @note The callback is run repeatedly within the Task, therefore it MUST
+     *      return, and also SHOULD have a sleep to give the processor over to
+     *      other tasks. For this reason, the callback is provided a
      *      std::condition_variable (and associated mutex) which the callback
      *      can use when they need to wait. If the cv.wait_for / cv.wait_until
      *      return <a href="https://en.cppreference.com/w/cpp/thread/cv_status">

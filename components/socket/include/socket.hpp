@@ -122,17 +122,17 @@ namespace espp {
 
     /**
      * @brief Callback function to be called when receiving data from a client.
-     * @param std::vector<uint8_t>& data
-     * @param Info& Sender information (address, port)
+     * @param data Byte array of data received from client
+     * @param sender_info Sender information (address, port)
      * @return std::optional<std::vector<uint8_t>> optional data to return to sender.
      */
-    typedef std::function<std::optional<std::vector<uint8_t>>(std::vector<uint8_t>&, const Info&)> receive_callback_fn;
+    typedef std::function<std::optional<std::vector<uint8_t>>(std::vector<uint8_t>& data, const Info& sender_info)> receive_callback_fn;
 
     /**
      * @brief Callback function to be called with data returned after transmitting data to a server.
-     * @param std::vector<uint8_t>& data
+     * @param data The data that the server responded with
      */
-    typedef std::function<void(std::vector<uint8_t>&)> response_callback_fn;
+    typedef std::function<void(std::vector<uint8_t>& data)> response_callback_fn;
 
     /**
      * @brief Initialize the socket (calling init()).
@@ -256,7 +256,7 @@ namespace espp {
      * @brief If this is a server socket, add it to the provided the multicast
      *        group.
      *
-     *          NOTE: multicast groups must be Class D addresses (224.0.0.0 to
+     *         @note Multicast groups must be Class D addresses (224.0.0.0 to
      *                239.255.255.255)
      *
      *        See https://en.wikipedia.org/wiki/Multicast_address for more

@@ -13,7 +13,8 @@ namespace espp {
    *
    *  Optionally allocates and owns the memory associated with the pixel display
    *  buffers. Initializes the LVGL subsystem then starts and maintains a task
-   *  which runs the high priority lv_tick_inc() function every 10 ms.
+   *  which runs the high priority lv_tick_inc() function every update period
+   *  (default = 10 ms).
    *
    *  For more information, see
    *  https://docs.lvgl.io/8.3/porting/display.html#display-interface
@@ -21,14 +22,13 @@ namespace espp {
   class Display {
   public:
     /**
-      * @brief Callback for lvgl to flush segments of pixel data from the pixel
-      *        buffers to the display.
-      * @param lv_disp_drv_t* Pointer to display driver.
-      * @param const lv_area_t* Pointer to structure describing the area of
-      *        pixels to flush.
-      * @param lv_color_t* Pointer to pixel buffer containing color data.
-      */
-    typedef void (*flush_fn)(lv_disp_drv_t*, const lv_area_t*, lv_color_t*);
+     * @brief Callback for lvgl to flush segments of pixel data from the pixel
+     *        buffers to the display.
+     * @param driver Pointer to display driver.
+     * @param area Pointer to structure describing the area of pixels to flush.
+     * @param color_data Pointer to pixel buffer containing color data.
+     */
+    typedef void (*flush_fn)(lv_disp_drv_t* driver, const lv_area_t* area, lv_color_t* color_data);
 
     /**
      *  @brief Signals used by LVGL to let the post_transfer_callback know
@@ -158,10 +158,11 @@ namespace espp {
     void resume() { paused_ = false; }
 
     /**
-     * @brief Force a redraw / refresh of the display. NOTE: this is mainly
-     *        useful after you have called pause() on the display (to draw to it
-     *        with something other than LVGL) and want to switch back to the
-     *        LVGL gui. Normally you should not call this function.
+     * @brief Force a redraw / refresh of the display.
+     *
+     * @note This is mainly useful after you have called pause() on the display
+     *       (to draw to it with something other than LVGL) and want to switch
+     *       back to the LVGL gui. Normally you should not call this function.
      */
     void force_refresh() {
       auto disp = lv_disp_get_default();

@@ -115,7 +115,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>LED APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/led.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/led.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -137,7 +137,7 @@ floating point percent [0,100]).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/led/include/led.hpp">components/led/include/led.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/led/include/led.hpp">components/led/include/led.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -196,7 +196,11 @@ floating point percent [0,100]).</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Led8set_dutyE14ledc_channel_tf">
 <span id="_CPPv3N4espp3Led8set_dutyE14ledc_channel_tf"></span><span id="_CPPv2N4espp3Led8set_dutyE14ledc_channel_tf"></span><span id="espp::Led::set_duty__ledc_channel_t.float"></span><span class="target" id="classespp_1_1_led_1ad96c6ad8935d625a14d4fe96a2b6ffbe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_duty</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ledc_channel_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_percent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Led8set_dutyE14ledc_channel_tf" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Set the duty cycle for this channel. NOTE: this function will block until until a current fade process completes (if there is one). </p>
+<dd><p>Set the duty cycle for this channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will block until until a current fade process completes (if there is one). </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -210,7 +214,11 @@ floating point percent [0,100]).</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t">
 <span id="_CPPv3N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t"></span><span id="_CPPv2N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t"></span><span id="espp::Led::set_fade_with_time__ledc_channel_t.float.uint32_t"></span><span class="target" id="classespp_1_1_led_1a6eb3a380f549d44851b4bb6f89686a94"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_fade_with_time</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">ledc_channel_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duty_percent</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">fade_time_ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Led18set_fade_with_timeE14ledc_channel_tf8uint32_t" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Set the duty cycle for this channel, fading from the current duty cycle to the new duty cycle over <code class="docutils literal notranslate"><span class="pre">fade_time_ms</span></code> milliseconds. NOTE: this function will block until a current fade process completes (if there is one). </p>
+<dd><p>Set the duty cycle for this channel, fading from the current duty cycle to the new duty cycle over <code class="docutils literal notranslate"><span class="pre">fade_time_ms</span></code> milliseconds. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will block until until a current fade process completes (if there is one). </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -283,7 +291,11 @@ floating point percent [0,100]).</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config12frequency_hzE">
 <span id="_CPPv3N4espp3Led6Config12frequency_hzE"></span><span id="_CPPv2N4espp3Led6Config12frequency_hzE"></span><span id="espp::Led::Config::frequency_hz__s"></span><span class="target" id="structespp_1_1_led_1_1_config_1a512fe6d534e296b36004769f0fd0536a"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">frequency_hz</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config12frequency_hzE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The frequency that you want to run the PWM hardawre for the LEDs at. NOTE: this is inversely related to the duty resolution configuration. </p>
+<dd><p>The frequency that you want to run the PWM hardawre for the LEDs at. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>this is inversely related to the duty resolution configuration. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
@@ -295,7 +307,11 @@ floating point percent [0,100]).</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config15duty_resolutionE">
 <span id="_CPPv3N4espp3Led6Config15duty_resolutionE"></span><span id="_CPPv2N4espp3Led6Config15duty_resolutionE"></span><span id="espp::Led::Config::duty_resolution__ledc_timer_bit_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1a1d067b77e0362a3ba01cffc96815ab77"></span><span class="n"><span class="pre">ledc_timer_bit_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">duty_resolution</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_TIMER_13_BIT</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config15duty_resolutionE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The resolution of the duty cycle for these LEDs. NOTE: this is inversely related to the frequency configuration. </p>
+<dd><p>The resolution of the duty cycle for these LEDs. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>this is inversely related to the frequency configuration. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">

@@ -12,11 +12,11 @@ namespace espp {
    * std::arrays, std::vectors, etc.). and for deserializing such containers into
    * structures / classes.
    *
-   * NOTE: when defining types to be serialized, you _MUST_ use strictly sized
+   * @note When defining types to be serialized, you _MUST_ use strictly sized
    * types, such as uint8_t / int8_t or uint32_t or int8_t instead of just int or
    * even size_t.
    *
-   * NOTE: this class does not really exist or do anything, but it's the only
+   * @note This class does not really exist or do anything, but it's the only
    * way I could figure out how to get this documentation built into the system
    * :(
    *

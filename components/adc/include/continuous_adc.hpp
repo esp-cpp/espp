@@ -18,7 +18,7 @@ namespace espp {
    *        date value, without needing to perform additional reads (therefore
    *        it is non-blocking).
    *
-   * NOTE: The available modes, frequencies, and throughput is dependent on
+   * @note The available modes, frequencies, and throughput is dependent on
    *       whether you run on ESP32, ESP32s2, or ESP32s3.
    *
    * \section adc_continuous_ex1 Continuous ADC Example

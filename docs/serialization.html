@@ -117,7 +117,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Serialization APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/serialization.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/serialization.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -145,7 +145,7 @@ example folder.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/serialization/include/serialization.hpp">components/serialization/include/serialization.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/serialization/include/serialization.hpp">components/serialization/include/serialization.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -162,8 +162,6 @@ example folder.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp31__serialization_documentation__E">
 <span id="_CPPv3N4espp31__serialization_documentation__E"></span><span id="_CPPv2N4espp31__serialization_documentation__E"></span><span id="espp::__serialization_documentation__"></span><span class="target" id="classespp_1_1____serialization__documentation____"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">__serialization_documentation__</span></span></span><a class="headerlink" href="#_CPPv4N4espp31__serialization_documentation__E" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Serialization convenience wrapper for espp, providing methods for serializaing structures / classes into containers (such as c-sytle arrays, std::arrays, std::vectors, etc.). and for deserializing such containers into structures / classes. </p>
-<p>NOTE: when defining types to be serialized, you <em>MUST</em> use strictly sized types, such as uint8_t / int8_t or uint32_t or int8_t instead of just int or even size_t.</p>
-<p>NOTE: this class does not really exist or do anything, but it’s the only way I could figure out how to get this documentation built into the system :(</p>
 <section id="namespaceespp_1serialization_ex1">
 <h4>(De-)Serialization Example<a class="headerlink" href="#namespaceespp_1serialization_ex1" title="Permalink to this headline"></a></h4>
 <p id="namespaceespp_1serialization_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">MyStruct</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -264,6 +262,14 @@ example folder.</p>
 </div>
  </p>
 </section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When defining types to be serialized, you <em>MUST</em> use strictly sized types, such as uint8_t / int8_t or uint32_t or int8_t instead of just int or even size_t.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class does not really exist or do anything, but it’s the only way I could figure out how to get this documentation built into the system :(</p>
+</div>
 </dd></dl>
 
 </section>

@@ -120,7 +120,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>Continuous ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/adc/continuous_adc.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/adc/continuous_adc.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -142,7 +142,7 @@ configured.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/adc/include/continuous_adc.hpp">components/adc/include/continuous_adc.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/adc/include/continuous_adc.hpp">components/adc/include/continuous_adc.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -151,7 +151,6 @@ configured.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdcE">
 <span id="_CPPv3N4espp13ContinuousAdcE"></span><span id="_CPPv2N4espp13ContinuousAdcE"></span><span id="espp::ContinuousAdc"></span><span class="target" id="classespp_1_1_continuous_adc"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ContinuousAdc</span></span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdcE" title="Permalink to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="#classespp_1_1_continuous_adc"><span class="std std-ref">ContinuousAdc</span></a> provides a wrapper around the ESP-IDF continuous adc subsystem, enabling high-frequency, filtered measurements of analog values. The <code class="docutils literal notranslate"><a class="reference internal" href="#classespp_1_1_continuous_adc_1a049bcf564350cb1ca5f046c216ec9767"><span class="std std-ref"><span class="pre">get_mv()</span></span></a></code> function will always return the most up to date value, without needing to perform additional reads (therefore it is non-blocking). </p>
-<p>NOTE: The available modes, frequencies, and throughput is dependent on whether you run on ESP32, ESP32s2, or ESP32s3.</p>
 <section id="classespp_1_1_continuous_adc_1adc_continuous_ex1">
 <h4>Continuous ADC Example<a class="headerlink" href="#classespp_1_1_continuous_adc_1adc_continuous_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_continuous_adc_1adc_continuous_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">AdcConfig</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="p">{</span><span class="w"></span>
@@ -207,6 +206,10 @@ configured.</p>
 </div>
  </p>
 </section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The available modes, frequencies, and throughput is dependent on whether you run on ESP32, ESP32s2, or ESP32s3.</p>
+</div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">

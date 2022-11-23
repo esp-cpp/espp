@@ -16,9 +16,9 @@ namespace espp {
     * see
     * https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-ap-general-scenario
     *
-    * NOTE: if CONFIG_ESP32_WIFI_NVS_ENABLED is set to `y` (which is the
-    * default), then you must ensure that you call `nvs_flash_init()` prior to
-    * creating the WiFi Access Point.
+    * @note If CONFIG_ESP32_WIFI_NVS_ENABLED is set to `y` (which is the
+    *       default), then you must ensure that you call `nvs_flash_init()`
+    *       prior to creating the WiFi Access Point.
     *
     * \section wifiap_ex1 WiFi Access Point Example
     * \snippet wifi_example.cpp wifi ap example

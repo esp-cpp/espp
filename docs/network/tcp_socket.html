@@ -120,7 +120,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>TCP Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -139,7 +139,7 @@ transmission speed / bandwidth adjustment.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -271,13 +271,13 @@ transmission speed / bandwidth adjustment.</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket19receive_callback_fnE">
-<span id="_CPPv3N4espp9TcpSocket19receive_callback_fnE"></span><span id="_CPPv2N4espp9TcpSocket19receive_callback_fnE"></span><span id="espp::TcpSocket::receive_callback_fn"></span><span class="target" id="classespp_1_1_socket_1a30e4c43d35a4873b4b55d3c0f7e7ca61"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Info</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">receive_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket19receive_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp9TcpSocket19receive_callback_fnE"></span><span id="_CPPv2N4espp9TcpSocket19receive_callback_fnE"></span><span id="espp::TcpSocket::receive_callback_fn"></span><span class="target" id="classespp_1_1_socket_1ad7aa52efbe3fddded14da5271a4398d2"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Info</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">sender_info</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">receive_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket19receive_callback_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback function to be called when receiving data from a client. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param std::vector&lt;uint8_t&gt;&amp;</dt>
-<dd class="field-odd"><p>data </p>
+<dt class="field-odd">Param data</dt>
+<dd class="field-odd"><p>Byte array of data received from client </p>
 </dd>
-<dt class="field-even">Param Info&amp;</dt>
+<dt class="field-even">Param sender_info</dt>
 <dd class="field-even"><p>Sender information (address, port) </p>
 </dd>
 <dt class="field-odd">Return</dt>
@@ -288,11 +288,11 @@ transmission speed / bandwidth adjustment.</p>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket20response_callback_fnE">
-<span id="_CPPv3N4espp9TcpSocket20response_callback_fnE"></span><span id="_CPPv2N4espp9TcpSocket20response_callback_fnE"></span><span id="espp::TcpSocket::response_callback_fn"></span><span class="target" id="classespp_1_1_socket_1acea94451ae13084dd108bdf78f11d9ce"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">response_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket20response_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp9TcpSocket20response_callback_fnE"></span><span id="_CPPv2N4espp9TcpSocket20response_callback_fnE"></span><span id="espp::TcpSocket::response_callback_fn"></span><span class="target" id="classespp_1_1_socket_1a1eeadcfd4dad5ad1798fa192118a923b"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">response_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket20response_callback_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback function to be called with data returned after transmitting data to a server. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param std::vector&lt;uint8_t&gt;&amp;</dt>
-<dd class="field-odd"><p>data </p>
+<dt class="field-odd">Param data</dt>
+<dd class="field-odd"><p>The data that the server responded with </p>
 </dd>
 </dl>
 </dd></dl>
@@ -334,7 +334,11 @@ transmission speed / bandwidth adjustment.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket12is_connectedEv">
 <span id="_CPPv3N4espp9TcpSocket12is_connectedEv"></span><span id="_CPPv2N4espp9TcpSocket12is_connectedEv"></span><span id="espp::TcpSocket::is_connected"></span><span class="target" id="classespp_1_1_tcp_socket_1a6a05217f9d9182d10252483a84827c5a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_connected</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket12is_connectedEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Is this TCP client socket connected to a server? NOTE: This will be set to TRUE if the <a class="reference internal" href="#classespp_1_1_tcp_socket_1afb3310f908c4659b72f1e1579b34b41c"><span class="std std-ref">connect()</span></a> call succeeded, but will reset to FALSE if the transmit call fails. </p>
+<dd><p>Is this TCP client socket connected to a server? </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will be set to TRUE if the <a class="reference internal" href="#classespp_1_1_tcp_socket_1afb3310f908c4659b72f1e1579b34b41c"><span class="std std-ref">connect()</span></a> call succeeded, but will reset to FALSE if the transmit call fails. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>True if the socket has successfully called <a class="reference internal" href="#classespp_1_1_tcp_socket_1afb3310f908c4659b72f1e1579b34b41c"><span class="std std-ref">connect()</span></a> and can call <a class="reference internal" href="#classespp_1_1_tcp_socket_1a0490ed19c3ac750bfb77fa44943210b4"><span class="std std-ref">transmit()</span></a>. </p>
@@ -470,8 +474,12 @@ transmission speed / bandwidth adjustment.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket19add_multicast_groupERKNSt6stringE">
 <span id="_CPPv3N4espp9TcpSocket19add_multicast_groupERKNSt6stringE"></span><span id="_CPPv2N4espp9TcpSocket19add_multicast_groupERKNSt6stringE"></span><span id="espp::TcpSocket::add_multicast_group__ssCR"></span><span class="target" id="classespp_1_1_socket_1ab159462da2daea10fb7d0d28553639fc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_multicast_group</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">multicast_group</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket19add_multicast_groupERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>If this is a server socket, add it to the provided the multicast group. </p>
-<p>NOTE: multicast groups must be Class D addresses (224.0.0.0 to 239.255.255.255)</p>
-<p>See <a class="reference external" href="https://en.wikipedia.org/wiki/Multicast_address">https://en.wikipedia.org/wiki/Multicast_address</a> for more information. </p>
+<p>
+See <a class="reference external" href="https://en.wikipedia.org/wiki/Multicast_address">https://en.wikipedia.org/wiki/Multicast_address</a> for more information. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Multicast groups must be Class D addresses (224.0.0.0 to 239.255.255.255)</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>multicast_group</strong> – multicast group to join. </p>
