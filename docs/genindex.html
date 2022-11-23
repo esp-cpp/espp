@@ -82,6 +82,7 @@
 <li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
@@ -103,7 +104,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/2f2b613/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -414,6 +415,36 @@
 </li>
       <li><a href="adc/oneshot_adc.html#_CPPv4N4espp10OneshotAdcD0Ev">espp::OneshotAdc::~OneshotAdc (C++ function)</a>
 </li>
+      <li><a href="pid.html#_CPPv4N4espp3PidE">espp::Pid (C++ class)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid12change_gainsERK6Config">espp::Pid::change_gains (C++ function)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid5clearEv">espp::Pid::clear (C++ function)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6ConfigE">espp::Pid::Config (C++ struct)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config14integrator_maxE">espp::Pid::Config::integrator_max (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config14integrator_minE">espp::Pid::Config::integrator_min (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config2kdE">espp::Pid::Config::kd (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config2kiE">espp::Pid::Config::ki (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config2kpE">espp::Pid::Config::kp (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config9log_levelE">espp::Pid::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config10output_maxE">espp::Pid::Config::output_max (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config10output_minE">espp::Pid::Config::output_min (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6Config15sampling_time_sE">espp::Pid::Config::sampling_time_s (C++ member)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid3PidERK6Config">espp::Pid::Pid (C++ function)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid6updateEf">espp::Pid::update (C++ function)</a>
+</li>
       <li><a href="math/range_mapper.html#_CPPv4I0EN4espp11RangeMapperE">espp::RangeMapper (C++ class)</a>
 </li>
       <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper6ConfigE">espp::RangeMapper::Config (C++ struct)</a>
@@ -426,6 +457,8 @@
 </li>
       <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper6Config7minimumE">espp::RangeMapper::Config::minimum (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper9configureERK6Config">espp::RangeMapper::configure (C++ function)</a>
 </li>
       <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper3mapERK1T">espp::RangeMapper::map (C++ function)</a>
@@ -440,8 +473,6 @@
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket4InfoE">espp::Socket::Info (C++ struct)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket4Info7addressE">espp::Socket::Info::address (C++ member)</a>
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6Socket4Info13from_sockaddrERK11sockaddr_in">espp::Socket::Info::from_sockaddr (C++ function)</a>, <a href="network/socket.html#_CPPv4N4espp6Socket4Info13from_sockaddrERK12sockaddr_in6">[1]</a>, <a href="network/socket.html#_CPPv4N4espp6Socket4Info13from_sockaddrERK16sockaddr_storage">[2]</a>
