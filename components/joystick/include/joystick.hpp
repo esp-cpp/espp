@@ -18,11 +18,11 @@ namespace espp {
     /**
      * @brief function for gettin x/y values for the joystick. Values should be
      *        in the range [-1,1].
-     * @param &x Reference to the x value. Function should fill this variable
-     *           with the latest reading.
-     * @param &y Reference to the y value. Function should fill this variable
-     *           with the latest reading.
-     * @return True if the values were able to be gotten, false otherwise.
+     * @param x Pointer to the x value. Function should fill this variable
+     *          with the latest reading.
+     * @param y Pointer to the y value. Function should fill this variable
+     *          with the latest reading.
+     * @return True if the values were able to be retrieved, false otherwise.
      */
     typedef std::function<bool(float *x, float *y)> get_values_fn;
 

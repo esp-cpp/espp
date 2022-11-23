@@ -120,7 +120,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>Oneshot ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/adc/oneshot_adc.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/adc/oneshot_adc.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -141,7 +141,7 @@ channel (if it was configured to do so).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/adc/include/oneshot_adc.hpp">components/adc/include/oneshot_adc.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/adc/include/oneshot_adc.hpp">components/adc/include/oneshot_adc.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -246,13 +246,21 @@ channel (if it was configured to do so).</p>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10OneshotAdc6ConfigE">
 <span id="_CPPv3N4espp10OneshotAdc6ConfigE"></span><span id="_CPPv2N4espp10OneshotAdc6ConfigE"></span><span id="espp::OneshotAdc::Config"></span><span class="target" id="structespp_1_1_oneshot_adc_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp10OneshotAdc6ConfigE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Configure the unit for which to read adc values from the provided channels. NOTE: the <code class="docutils literal notranslate"><span class="pre">unit</span></code> must be the same as what is provided in each element of <code class="docutils literal notranslate"><span class="pre">channels</span></code>. </p>
+<dd><p>Configure the unit for which to read adc values from the provided channels. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">unit</span></code> must be the same as what is provided in each element of <code class="docutils literal notranslate"><span class="pre">channels</span></code>. </p>
+</div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10OneshotAdc6Config4unitE">
 <span id="_CPPv3N4espp10OneshotAdc6Config4unitE"></span><span id="_CPPv2N4espp10OneshotAdc6Config4unitE"></span><span id="espp::OneshotAdc::Config::unit__adc_unit_t"></span><span class="target" id="structespp_1_1_oneshot_adc_1_1_config_1ab824cca9769cda5e59d57b8e6d0bb7ab"></span><span class="n"><span class="pre">adc_unit_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unit</span></span></span><a class="headerlink" href="#_CPPv4N4espp10OneshotAdc6Config4unitE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Unit this oneshot reader will be associated with. NOTE: all channels must use this unit. </p>
+<dd><p>Unit this oneshot reader will be associated with. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>all channels must use this unit. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">

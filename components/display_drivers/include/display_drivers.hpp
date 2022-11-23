@@ -8,23 +8,23 @@ namespace espp {
   namespace display_drivers {
     /**
       * @brief Low-level callback to write bytes to the display controller.
-      * @param uint8_t* Pointer to array of bytes to write.
-      * @param size_t Number of bytes to write.
-      * @param uint16_t user data associated with this transfer, used for flags.
+      * @param data Pointer to array of bytes to write.
+      * @param length Number of bytes to write.
+      * @param user_data User data associated with this transfer, used for flags.
       */
-    typedef std::function<void(const uint8_t*, size_t, uint32_t)> write_fn;
+    typedef std::function<void(const uint8_t* data, size_t length, uint32_t user_data)> write_fn;
 
     /**
      * @brief Send color data to the display, with optional flags.
-     * @param int The starting x-coordinate of the area to fill.
-     * @param int The starting y-coordinate of the area to fill.
-     * @param int The ending x-coordinate of the area to fill.
-     * @param int The ending y-coordinate of the area to fill.
-     * @param uint8_t* Pointer to the color data. Should be at least
-     *                 (x_end-x_start)*(y_end-y_start)*2 bytes.
-     * @param uint32_t Optional flags to send with the transaction.
+     * @param sx The starting x-coordinate of the area to fill.
+     * @param sy The starting y-coordinate of the area to fill.
+     * @param ex The ending x-coordinate of the area to fill.
+     * @param ey The ending y-coordinate of the area to fill.
+     * @param color_data Pointer to the color data. Should be at least
+     *                   (x_end-x_start)*(y_end-y_start)*2 bytes.
+     * @param flags Optional flags to send with the transaction.
      */
-    typedef std::function<void(int, int, int, int, const uint8_t*, uint32_t)> send_lines_fn;
+    typedef std::function<void(int sx, int sy, int ex, int ey, const uint8_t* color_data, uint32_t flags)> send_lines_fn;
 
     struct Config {
       write_fn lcd_write; /**< Function which the display driver uses to write data (blocking) to the display. */

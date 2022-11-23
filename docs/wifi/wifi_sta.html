@@ -119,7 +119,7 @@
           <li><a href="index.html">WiFi APIs</a> &raquo;</li>
       <li>WiFi Station (STA)</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/wifi/wifi_sta.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/wifi/wifi_sta.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -136,7 +136,7 @@ access point.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/wifi/include/wifi_sta.hpp">components/wifi/include/wifi_sta.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/wifi/include/wifi_sta.hpp">components/wifi/include/wifi_sta.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -146,7 +146,6 @@ access point.</p>
 <span id="_CPPv3N4espp7WifiStaE"></span><span id="_CPPv2N4espp7WifiStaE"></span><span id="espp::WifiSta"></span><span class="target" id="classespp_1_1_wifi_sta"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">WifiSta</span></span></span><a class="headerlink" href="#_CPPv4N4espp7WifiStaE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>WiFi Station (STA)</p>
 <p>see <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-station-general-scenario">https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-station-general-scenario</a></p>
-<p>NOTE: if CONFIG_ESP32_WIFI_NVS_ENABLED is set to <code class="docutils literal notranslate"><span class="pre">y</span></code> (which is the default), then you must ensure that you call <code class="docutils literal notranslate"><span class="pre">nvs_flash_init()</span></code> prior to creating the WiFi Station.</p>
 <section id="classespp_1_1_wifi_sta_1wifista_ex1">
 <h4>WiFi Station Example<a class="headerlink" href="#classespp_1_1_wifi_sta_1wifista_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_wifi_sta_1wifista_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiSta</span><span class="w"> </span><span class="nf">wifi_sta</span><span class="p">({</span><span class="w"></span>
@@ -167,6 +166,10 @@ access point.</p>
 </div>
  </p>
 </section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If CONFIG_ESP32_WIFI_NVS_ENABLED is set to <code class="docutils literal notranslate"><span class="pre">y</span></code> (which is the default), then you must ensure that you call <code class="docutils literal notranslate"><span class="pre">nvs_flash_init()</span></code> prior to creating the WiFi Station.</p>
+</div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
@@ -183,11 +186,11 @@ access point.</p>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7WifiSta11ip_callbackE">
-<span id="_CPPv3N4espp7WifiSta11ip_callbackE"></span><span id="_CPPv2N4espp7WifiSta11ip_callbackE"></span><span id="espp::WifiSta::ip_callback"></span><span class="target" id="classespp_1_1_wifi_sta_1a3458c6df8d159d64c92aeb81ab528a39"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ip_event_got_ip_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ip_callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp7WifiSta11ip_callbackE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7WifiSta11ip_callbackE"></span><span id="_CPPv2N4espp7WifiSta11ip_callbackE"></span><span id="espp::WifiSta::ip_callback"></span><span class="target" id="classespp_1_1_wifi_sta_1a9f56f3be5470bc909d347eedeed8afe1"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">ip_event_got_ip_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">ip_evt</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ip_callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp7WifiSta11ip_callbackE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Called whe nthe WiFi station has gotten an IP from the access point. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param ip_event_got_ip_t*</dt>
-<dd class="field-odd"><p>IP Event data structure (contains ip address). </p>
+<dt class="field-odd">Param ip_evt</dt>
+<dd class="field-odd"><p>Pointer to IP Event data structure (contains ip address). </p>
 </dd>
 </dl>
 </dd></dl>

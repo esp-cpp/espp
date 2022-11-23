@@ -90,9 +90,9 @@ namespace espp {
     }
 
     /**
-     * @brief Is this TCP client socket connected to a server? NOTE: This will
-     *        be set to TRUE if the connect() call succeeded, but will reset to
-     *        FALSE if the transmit call fails.
+     * @brief Is this TCP client socket connected to a server?
+     * @note This will be set to TRUE if the connect() call succeeded, but will
+     *       reset to FALSE if the transmit call fails.
      * @return True if the socket has successfully called connect() and can call
      *         transmit().
      */

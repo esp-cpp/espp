@@ -118,7 +118,7 @@
           <li><a href="index.html">Input APIs</a> &raquo;</li>
       <li>Touchpad Input</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/input/touchpad_input.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/input/touchpad_input.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -136,7 +136,7 @@ button (part of the touch panel).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/input_drivers/include/touchpad_input.hpp">components/input_drivers/include/touchpad_input.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/input_drivers/include/touchpad_input.hpp">components/input_drivers/include/touchpad_input.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -149,19 +149,19 @@ button (part of the touch panel).</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13TouchpadInput16touchpad_read_fnE">
-<span id="_CPPv3N4espp13TouchpadInput16touchpad_read_fnE"></span><span id="_CPPv2N4espp13TouchpadInput16touchpad_read_fnE"></span><span id="espp::TouchpadInput::touchpad_read_fn"></span><span class="target" id="classespp_1_1_touchpad_input_1af25f5f380b91848de79037ed346585af"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp13TouchpadInput16touchpad_read_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp13TouchpadInput16touchpad_read_fnE"></span><span id="_CPPv2N4espp13TouchpadInput16touchpad_read_fnE"></span><span id="espp::TouchpadInput::touchpad_read_fn"></span><span class="target" id="classespp_1_1_touchpad_input_1a625368a24a5f0fef4f0a9e455495169c"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">num_touches</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp13TouchpadInput16touchpad_read_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function prototype for getting the latest input data from the touchpad. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param uint8_t*</dt>
+<dt class="field-odd">Param num_touches</dt>
 <dd class="field-odd"><p>Number of touch points / presses (pointer to data to be filled). </p>
 </dd>
-<dt class="field-even">Param uint16_t*</dt>
+<dt class="field-even">Param x</dt>
 <dd class="field-even"><p>Current x position (pointer to data to be filled). </p>
 </dd>
-<dt class="field-odd">Param uint16_t*</dt>
+<dt class="field-odd">Param y</dt>
 <dd class="field-odd"><p>Current y position (pointer to data to be filled). </p>
 </dd>
-<dt class="field-even">Param uint8_t*</dt>
+<dt class="field-even">Param state</dt>
 <dd class="field-even"><p>Home button state if there is a home button (pointer to data to be filled). </p>
 </dd>
 </dl>

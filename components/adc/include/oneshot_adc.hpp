@@ -26,11 +26,13 @@ namespace espp {
   public:
     /**
      *  @brief Configure the unit for which to read adc values from the provided
-     *         channels. NOTE: the \c unit must be the same as what is provided
-     *         in each element of \p channels.
+     *         channels.
+     *
+     *  @note The \c unit must be the same as what is provided in each element
+     *         of \p channels.
      */
     struct Config {
-      adc_unit_t unit; /**< Unit this oneshot reader will be associated with. NOTE: all channels must use this unit. */
+      adc_unit_t unit; /**< Unit this oneshot reader will be associated with. @note all channels must use this unit. */
       std::vector<AdcConfig> channels; /**< Channels to read from, with associated attenuations. */
       espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Verbosity for the adc logger. */
     };

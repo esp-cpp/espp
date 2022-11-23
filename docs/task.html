@@ -115,7 +115,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Task APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/task.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/task.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -138,7 +138,7 @@ sleeps and termination of the task.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/task/include/task.hpp">components/task/include/task.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/task/include/task.hpp">components/task/include/task.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -251,7 +251,10 @@ sleeps and termination of the task.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Task11callback_fnE">
 <span id="_CPPv3N4espp4Task11callback_fnE"></span><span id="_CPPv2N4espp4Task11callback_fnE"></span><span id="espp::Task::callback_fn"></span><span class="target" id="classespp_1_1_task_1a46984b35ac123f177c4c455ae3ab3aef"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">mutex</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">m</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">condition_variable</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n"><span class="pre">cv</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task11callback_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="#classespp_1_1_task"><span class="std std-ref">Task</span></a> callback function signature. </p>
-<p>NOTE: the callback is run repeatedly within the <a class="reference internal" href="#classespp_1_1_task"><span class="std std-ref">Task</span></a>, therefore it MUST return, and also SHOULD have a sleep to give the processor over to other tasks. For this reason, the callback is provided a std::condition_variable (and associated mutex) which the callback can use when they need to wait. If the cv.wait_for / cv.wait_until return <a class="reference external" href="https://en.cppreference.com/w/cpp/thread/cv_status">std::cv_status::timeout</a>, no action is necessary, but if they return <a class="reference external" href="https://en.cppreference.com/w/cpp/thread/cv_status">std::cv_status::no_timeout</a>, then the function should return immediately since the task is being stopped (optionally performing any task-specific tear-down).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The callback is run repeatedly within the <a class="reference internal" href="#classespp_1_1_task"><span class="std std-ref">Task</span></a>, therefore it MUST return, and also SHOULD have a sleep to give the processor over to other tasks. For this reason, the callback is provided a std::condition_variable (and associated mutex) which the callback can use when they need to wait. If the cv.wait_for / cv.wait_until return <a class="reference external" href="https://en.cppreference.com/w/cpp/thread/cv_status">std::cv_status::timeout</a>, no action is necessary, but if they return <a class="reference external" href="https://en.cppreference.com/w/cpp/thread/cv_status">std::cv_status::no_timeout</a>, then the function should return immediately since the task is being stopped (optionally performing any task-specific tear-down).</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Param m</dt>
 <dd class="field-odd"><p>mutex associated with the condition variable (should be locked before calling cv.wait_for() or cv.wait_until())</p>

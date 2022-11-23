@@ -18,9 +18,9 @@ namespace espp {
     * see
     * https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-station-general-scenario
     *
-    * NOTE: if CONFIG_ESP32_WIFI_NVS_ENABLED is set to `y` (which is the
-    * default), then you must ensure that you call `nvs_flash_init()` prior to
-    * creating the WiFi Station.
+    * @note If CONFIG_ESP32_WIFI_NVS_ENABLED is set to `y` (which is the
+    *       default), then you must ensure that you call `nvs_flash_init()`
+    *       prior to creating the WiFi Station.
     *
     * \section wifista_ex1 WiFi Station Example
     * \snippet wifi_example.cpp wifi sta example
@@ -39,9 +39,9 @@ namespace espp {
     /**
       * @brief Called whe nthe WiFi station has gotten an IP from the access
       *        point.
-      * @param ip_event_got_ip_t* IP Event data structure (contains ip address).
+      * @param ip_evt Pointer to IP Event data structure (contains ip address).
       */
-    typedef std::function<void(ip_event_got_ip_t*)> ip_callback;
+    typedef std::function<void(ip_event_got_ip_t* ip_evt)> ip_callback;
 
     struct Config {
       std::string ssid; /**< SSID for the access point. */

@@ -76,8 +76,8 @@ namespace espp {
     }
 
     /**
-     * @brief Index operator for vector elements. NOTE: Returns a mutable
-     *        reference to the element.
+     * @brief Index operator for vector elements.
+     * @note Returns a mutable reference to the element.
      * @param index The index to return.
      * @return Mutable reference to the element at \p index.
      */

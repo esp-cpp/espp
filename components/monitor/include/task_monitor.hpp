@@ -17,14 +17,14 @@ namespace espp {
    *     periodically logs their states. See also <a
    *     href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html#_CPPv412vTaskGetInfo12TaskHandle_tP12TaskStatus_t10BaseType_t10eTaskState">FreeRTOS::vTaskGetInfo()</a>.
    *
-   *     NOTE: you must enable CONFIG_FREERTOS_USE_TRACE_FACILITY and
+   *  @note you must enable CONFIG_FREERTOS_USE_TRACE_FACILITY and
    *     CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS for this class to do anything.
    *     This means that you can always instantiate this class in your app_main,
    *     and then based on those two config settings it will either do nothing
    *     (default) or print out the stats for you to analyze. Finally, the
    *     monitoring period can be configured as well.
    *
-   *     NOTE: You can use the static TaskMonitor::get_latest_info() to get a
+   *  @note You can use the static TaskMonitor::get_latest_info() to get a
    *     string with the latest info without needing to construct a class /
    *     start the task.
    *
@@ -66,7 +66,9 @@ namespace espp {
      *          * current priority of the task
      *
      *        Where each entry is separated by ',' and each set of task data is
-     *        separated by ';'. NOTE: there is no newline returned.
+     *        separated by ';'.
+     *
+     *        @note There is no newline returned.
      *
      *        This is a static function, so it can be called without having to
      *        instantiate a TaskMonitor object.

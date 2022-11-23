@@ -26,18 +26,19 @@ namespace espp {
     struct Config {
       int a_gpio; /**< GPIO number for the a channel pulse. */
       int b_gpio; /**< GPIO number for the b channel pulse. */
-      int i_gpio{-1}; /**< GPIO number for the index (I/Z) pulse). NOTE: This is currently unused. */
+      int i_gpio{-1}; /**< GPIO number for the index (I/Z) pulse). @note This is currently unused. */
       int16_t high_limit; /**< High limit for the hardware counter before it resets to 0. Lowering (to zero) this value increases the number of interrupts / overflows of the counter. */
       int16_t low_limit; /**< Low limit for the hardware counter before it resets to 0. Lowering (to zero) this value increases the number of interrupts / overflows of the counter. */
-      size_t counts_per_revolution{0}; /**< How many counts equate to a single revolution. NOTE: this unused if the type is not EncoderType::ROTATIONAL. */
+      size_t counts_per_revolution{0}; /**< How many counts equate to a single revolution. @note this unused if the type is not EncoderType::ROTATIONAL. */
       size_t max_glitch_ns{1000}; /**< Max glitch witdth in nanoseconds that is ignored. 0 will disable the glitch filter. */
       espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Verbosity for the adc logger. */
     };
 
     /**
-     * @brief Initialize the pulse count hardware for the ABI encoder. NOTE:
-     *        this does not start the pulse count hardware, for that you must
-     *        call the start() method at least once.
+     * @brief Initialize the pulse count hardware for the ABI encoder.
+     *
+     * @note This does not start the pulse count hardware, for that you must
+     *       call the start() method at least once.
      */
     template <EncoderType type = T>
     AbiEncoder(const Config& config)
@@ -93,8 +94,9 @@ namespace espp {
 
     /**
      * @brief Get the total number of revolutions this ABI encoder has measured
-     *        since it was created or clear()-ed last. NOTE: this is only
-     *        available if the AbiEncoder is EncoderType::ROTATIONAL.
+     *        since it was created or clear()-ed last.
+     * @note This is only available if the AbiEncoder is
+     *       EncoderType::ROTATIONAL.
      * @return Number of revolutions, as a floating point number.
      */
     template <EncoderType type = T>
@@ -107,8 +109,9 @@ namespace espp {
 
     /**
      * @brief Get the total number of radians this ABI encoder has measured
-     *        since it was created or clear()-ed last. NOTE: this is only
-     *        available if the AbiEncoder is EncoderType::ROTATIONAL.
+     *        since it was created or clear()-ed last.
+     * @note This is only available if the AbiEncoder is
+     *       EncoderType::ROTATIONAL.
      * @return Number of radians, as a floating point number.
      */
     template <EncoderType type = T>
@@ -120,8 +123,9 @@ namespace espp {
 
     /**
      * @brief Get the total number of degrees this ABI encoder has measured
-     *        since it was created or clear()-ed last. NOTE: this is only
-     *        available if the AbiEncoder is EncoderType::ROTATIONAL.
+     *        since it was created or clear()-ed last.
+     * @note This is only available if the AbiEncoder is
+     *       EncoderType::ROTATIONAL.
      * @return Number of degrees, as a floating point number.
      */
     template <EncoderType type = T>
@@ -146,9 +150,9 @@ namespace espp {
     }
 
     /**
-     * @brief Stop the pulse count hardware. NOTE: this does not clear the
-     *        counter so calling start() later will allow it to pick up where
-     *        it left off.
+     * @brief Stop the pulse count hardware.
+     * @note This does not clear the counter so calling start() later will allow
+     *       it to pick up where it left off.
      * @return True if it was successfully stopped.
      */
     bool stop() {

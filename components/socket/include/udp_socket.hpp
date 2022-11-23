@@ -81,8 +81,8 @@ namespace espp {
      *        Can be configured to multicast (within send_config) and can be
      *        configured to block waiting for a response from the remote.
      *
-     *          NOTE: in the case of multicast, it will block only until the
-     *                first response.
+     *        @note in the case of multicast, it will block only until the first
+     *              response.
      *
      *        If response is requested, a callback can be provided in
      *        send_config which will be provided the response data for
@@ -101,8 +101,8 @@ namespace espp {
      *        Can be configured to multicast (within send_config) and can be
      *        configured to block waiting for a response from the remote.
      *
-     *          NOTE: in the case of multicast, it will block only until the
-     *                first response.
+     *        @note in the case of multicast, it will block only until the first
+     *              response.
      *
      *        If response is requested, a callback can be provided in
      *        send_config which will be provided the response data for

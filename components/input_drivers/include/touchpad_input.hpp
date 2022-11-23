@@ -18,14 +18,14 @@ namespace espp {
     /**
      * @brief Function prototype for getting the latest input data from the
      *        touchpad.
-     * @param uint8_t* Number of touch points / presses (pointer to data to be
-     *                 filled).
-     * @param uint16_t* Current x position (pointer to data to be filled).
-     * @param uint16_t* Current y position (pointer to data to be filled).
-     * @param uint8_t* Home button state if there is a home button (pointer to
-     *                 data to be filled).
+     * @param num_touches Number of touch points / presses (pointer to data to
+     *                    be filled).
+     * @param x Current x position (pointer to data to be filled).
+     * @param y Current y position (pointer to data to be filled).
+     * @param state Home button state if there is a home button (pointer to data
+     *              to be filled).
      */
-    typedef std::function<void(uint8_t*, uint16_t*, uint16_t*, uint8_t*)> touchpad_read_fn;
+    typedef std::function<void(uint8_t* num_touches, uint16_t* x, uint16_t* y, uint8_t* state)> touchpad_read_fn;
 
     /**
      *  @brief Configuration structure, containing the read function for the

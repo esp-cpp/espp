@@ -22,13 +22,13 @@ namespace espp {
   public:
     struct Config {
       float kp; /**< Proportional gain. */
-      float ki; /**< Integral gain. NOTE: should not be pre-multiplied by the time constant. */
-      float kd; /**< Derivative gain. NOTE: should not be pre-divided by the time-constant. */
+      float ki; /**< Integral gain. @note should not be pre-multiplied by the time constant. */
+      float kd; /**< Derivative gain. @note should not be pre-divided by the time-constant. */
       float integrator_min; /**< Minimum value the integrator can have. Could be 0 or negative. Can have different magnitude from integrator_max for asymmetric response. */
       float integrator_max; /**< Maximum value the integrator can wind up to. */
       float output_min; /**< Limit the minimum output value. Can be a different magnitude from output max for asymmetric output behavior. */
       float output_max; /**< Limit the maximum output value. */
-      float sampling_time_s; /**< Sampling time, the time between calls of the update() function. NOTE: the PID class measures time between calls to update(), but this value is used for startup and to provide warnings. */
+      float sampling_time_s; /**< Sampling time, the time between calls of the update() function. @note the PID class measures time between calls to update(), but this value is used for startup and to provide warnings. */
       espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Verbosity for the adc logger. */
     };
 

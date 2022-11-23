@@ -34,9 +34,9 @@ namespace espp {
      */
     struct Config {
       ledc_timer_t timer; /**< The LEDC timer that you want associated with the LEDs. */
-      size_t frequency_hz; /**< The frequency that you want to run the PWM hardawre for the LEDs at. NOTE: this is inversely related to the duty resolution configuration. */
+      size_t frequency_hz; /**< The frequency that you want to run the PWM hardawre for the LEDs at. @note this is inversely related to the duty resolution configuration. */
       std::vector<ChannelConfig> channels; /**< The LED channels that you want to control. */
-      ledc_timer_bit_t duty_resolution{LEDC_TIMER_13_BIT}; /**< The resolution of the duty cycle for these LEDs. NOTE: this is inversely related to the frequency configuration. */
+      ledc_timer_bit_t duty_resolution{LEDC_TIMER_13_BIT}; /**< The resolution of the duty cycle for these LEDs. @note this is inversely related to the frequency configuration. */
       ledc_mode_t speed_mode{LEDC_HIGH_SPEED_MODE}; /**< The LEDC speed mode you want for these LED channels. */
       Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
     };
@@ -148,9 +148,9 @@ namespace espp {
     }
 
     /**
-     * @brief Set the duty cycle for this channel. NOTE: this function will
-     *        block until until a current fade process completes (if there is
-     *        one).
+     * @brief Set the duty cycle for this channel.
+     * @note This function will block until until a current fade process
+     *        completes (if there is one).
      * @param channel The channel to set the duty cycle for.
      * @param duty_percent The new duty percentage, [0.0, 100.0].
      */
@@ -173,7 +173,7 @@ namespace espp {
     /**
      * @brief Set the duty cycle for this channel, fading from the current duty
      *        cycle to the new duty cycle over \p fade_time_ms milliseconds.
-     *        NOTE: this function will block until a current fade process
+     * @note This function will block until until a current fade process
      *        completes (if there is one).
      * @param channel The channel to fade.
      * @param duty_percent The new duty percentage to fade to, [0.0, 100.0].
@@ -197,10 +197,10 @@ namespace espp {
 
   protected:
     /**
-      * @brief Get the index of channel in channels_, -1 if not found. NOTE: we
-      *        implement this instead of using std::find because we cannot use
-      *        an iterator efficiently with the semaphore array which we need to
-      *        do.
+      * @brief Get the index of channel in channels_, -1 if not found.
+      * @note We implement this instead of using std::find because we cannot use
+      *       an iterator efficiently with the semaphore array which we need to
+      *       do.
       * @param channel Channel to find.
       * @return -1 if not found, index of channel if found.
       */

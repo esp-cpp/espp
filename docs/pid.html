@@ -115,7 +115,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>PID APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f0eb532/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -137,7 +137,7 @@ have its gains change dynamically.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0eb532/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -270,13 +270,21 @@ have its gains change dynamically.</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid6Config2kiE">
 <span id="_CPPv3N4espp3Pid6Config2kiE"></span><span id="_CPPv2N4espp3Pid6Config2kiE"></span><span id="espp::Pid::Config::ki__float"></span><span class="target" id="structespp_1_1_pid_1_1_config_1a94663ffce341f6e869a1e640a35ab51c"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ki</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Pid6Config2kiE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Integral gain. NOTE: should not be pre-multiplied by the time constant. </p>
+<dd><p>Integral gain. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>should not be pre-multiplied by the time constant. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid6Config2kdE">
 <span id="_CPPv3N4espp3Pid6Config2kdE"></span><span id="_CPPv2N4espp3Pid6Config2kdE"></span><span id="espp::Pid::Config::kd__float"></span><span class="target" id="structespp_1_1_pid_1_1_config_1acee99ba2eecb4fd5b12405ed24ce4dcb"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kd</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Pid6Config2kdE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Derivative gain. NOTE: should not be pre-divided by the time-constant. </p>
+<dd><p>Derivative gain. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>should not be pre-divided by the time-constant. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
@@ -306,7 +314,11 @@ have its gains change dynamically.</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid6Config15sampling_time_sE">
 <span id="_CPPv3N4espp3Pid6Config15sampling_time_sE"></span><span id="_CPPv2N4espp3Pid6Config15sampling_time_sE"></span><span id="espp::Pid::Config::sampling_time_s__float"></span><span class="target" id="structespp_1_1_pid_1_1_config_1a4f1ab8c63d927b81393ac73ce16a10ce"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sampling_time_s</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Pid6Config15sampling_time_sE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Sampling time, the time between calls of the <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a> function. NOTE: the PID class measures time between calls to <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a>, but this value is used for startup and to provide warnings. </p>
+<dd><p>Sampling time, the time between calls of the <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a> function. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>the PID class measures time between calls to <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a>, but this value is used for startup and to provide warnings. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
