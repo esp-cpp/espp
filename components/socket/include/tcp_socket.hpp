@@ -206,7 +206,7 @@ namespace espp {
       std::unique_ptr<uint8_t[]> receive_buffer(new uint8_t[max_num_bytes]());
       logger_.info("Receiving up to {} bytes", max_num_bytes);
       // now actually read data from the socket
-      int num_bytes_received = read(socket_fd, receive_buffer.get(), max_num_bytes);
+      int num_bytes_received = receive(socket_fd, max_num_bytes, receive_buffer.get());
       // if we didn't receive anything return false and don't do anything else
       if (num_bytes_received < 0) {
         logger_.error("Receive failed: {} - '{}'", errno, strerror(errno));
@@ -216,6 +216,29 @@ namespace espp {
       data.assign(receive_buffer.get(), receive_buffer.get() + num_bytes_received);
       logger_.debug("Received {} bytes", num_bytes_received);
       return true;
+    }
+
+    /**
+     * @brief Call read on the socket, assuming it has already been configured
+     *        appropriately.
+     *
+     * @note The \p data must point to memory that can contain at least \p
+     *       max_num_bytes bytes.
+     *
+     * @param socket_fd Socket file descriptor.
+     * @param max_num_bytes Maximum number of bytes to receive.
+     * @param data Pointer to container that will be filled with up to
+     *        max_num_bytes received.
+     * @return number of bytes reeived
+     */
+    int receive(int socket_fd, size_t max_num_bytes, uint8_t* data) {
+      if (!is_valid(socket_fd)) {
+        logger_.error("Socket invalid, cannot receive.");
+        return false;
+      }
+      logger_.info("Receiving up to {} bytes", max_num_bytes);
+      // now actually read data from the socket
+      return read(socket_fd, data, max_num_bytes);
     }
 
     /**
@@ -235,30 +258,16 @@ namespace espp {
         logger_.error("Server is alrady receiving");
         return false;
       }
-      if (!is_valid()) {
-        logger_.error("Socket invalid, cannot start receiving.");
-        return false;
-      }
-      server_receive_callback_ = receive_config.on_receive_callback;
       // bind
-      struct sockaddr_in server_addr;
-      // configure the server socket accordingly - assume IPV4 and bind to the
-      // any address "0.0.0.0"
-      server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-      server_addr.sin_family = address_family_;
-      server_addr.sin_port = htons(receive_config.port);
-      int err = bind(socket_, (struct sockaddr *)&server_addr, sizeof(server_addr));
-      if (err < 0) {
-        logger_.error("Unable to bind: {} - '{}'", errno, strerror(errno));
+      if (!bind(receive_config.port)) {
         return false;
       }
       // listen
-      err = listen(socket_, receive_config.max_pending_connections);
-      if (err < 0) {
-        logger_.error("Unable to listen: {} - '{}'", errno, strerror(errno));
+      if (!listen(receive_config.max_pending_connections)) {
         return false;
       }
       // set the callback function
+      server_receive_callback_ = receive_config.on_receive_callback;
       using namespace std::placeholders;
       task_config.callback = std::bind(&TcpSocket::server_task_function, this,
                                        receive_config.buffer_size, _1, _2);
@@ -266,6 +275,100 @@ namespace espp {
       task_ = Task::make_unique(task_config);
       task_->start();
       return true;
+    }
+
+    /**
+     * @brief Bind the socket as a server on \p port.
+     * @param port The port to which to bind the socket.
+     * @return true if the socket was bound.
+     */
+    bool bind(int port) {
+      if (!is_valid()) {
+        logger_.error("Socket invalid, cannot bind.");
+        return false;
+      }
+      struct sockaddr_in server_addr;
+      // configure the server socket accordingly - assume IPV4 and bind to the
+      // any address "0.0.0.0"
+      server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+      server_addr.sin_family = address_family_;
+      server_addr.sin_port = htons(port);
+      auto err = ::bind(socket_, (struct sockaddr *)&server_addr, sizeof(server_addr));
+      if (err < 0) {
+        logger_.error("Unable to bind: {} - '{}'", errno, strerror(errno));
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     * @brief Listen for incoming client connections.
+     * @param max_pending_connections Max number of allowed pending connections.
+     * @return True if socket was able to start listening.
+     */
+    bool listen(int max_pending_connections) {
+      if (!is_valid()) {
+        logger_.error("Socket invalid, cannot listen.");
+        return false;
+      }
+      auto err = ::listen(socket_, max_pending_connections);
+      if (err < 0) {
+        logger_.error("Unable to listen: {} - '{}'", errno, strerror(errno));
+        return false;
+      }
+      return true;
+    }
+
+    /**
+     * @brief Block on a socket that is listening until a client connects.
+     *
+     * @note If a client connects, it will store the accepted client socket,
+     *       which can be retrieved by calling get_accepted_socket() and then
+     *       later closed (if desired) using close_accepted_socket().
+     *
+     * @return True if the socket successfully accepted a client connection
+     *         (filling out accepted_socket).
+     */
+    bool accept() {
+      if (accepted_socket_ != -1) {
+        logger_.warn("Socket already accepted connection!");
+        return false;
+      }
+      if (!is_valid()) {
+        logger_.error("Socket invalid, cannot accept incoming connections.");
+        return false;
+      }
+      auto sender_address = connected_client_info_.ipv4_ptr();
+      socklen_t socklen = sizeof(*sender_address);
+      // accept connection
+      accepted_socket_ = ::accept(socket_, (struct sockaddr*)sender_address, &socklen);
+      if (accepted_socket_ < 0) {
+        logger_.error("Could not accept connection: {} - '{}'", errno, strerror(errno));
+        accepted_socket_ = -1;
+        return false;
+      }
+      connected_client_info_.update();
+      logger_.info("Server accepted connection with {}", connected_client_info_.to_string());
+      return true;
+    }
+
+    /**
+     * @brief The current accepted socket (active client connection), that would
+     *        have been set by a successful call to accept().
+     * @return The low_level socket file descriptor or -1 if not connected.
+     */
+    int get_accepted_socket() {
+      return accepted_socket_;
+    }
+
+    /**
+     * @brief If there is an active client connection to this server, close it.
+     */
+    void close_accepted_socket() {
+      if (accepted_socket_ != -1) {
+        close(accepted_socket_);
+        accepted_socket_ = -1;
+      }
     }
 
   protected:
@@ -283,27 +386,18 @@ namespace espp {
      *           interruptible wait / delay.
      */
     void server_task_function(size_t buffer_size, std::mutex& m, std::condition_variable& cv) {
-      Socket::Info sender_info;
-      auto sender_address = sender_info.ipv4_ptr();
-      socklen_t socklen = sizeof(*sender_address);
-      // accept connection
-      // int flags = 0; // TODO: could set to SOCK_NONBLOCK or SOCK_CLOEXEC
-      int accepted_socket = accept(socket_, (struct sockaddr*)sender_address, &socklen);
-      if (accepted_socket < 0) {
-        logger_.error("Could not accept connection: {} - '{}'", errno, strerror(errno));
+      if (!accept()) {
         // if we failed to accept that means there are no connections available
         // so we should delay a little bit
         using namespace std::chrono_literals;
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 1ms);
-        return;
       }
-      sender_info.update();
-      logger_.info("Server accepted connection with {}", sender_info.to_string());
+      auto client_socket = get_accepted_socket();
       while (true) {
         // receive data
         std::vector<uint8_t> received_data;
-        if (!receive(accepted_socket, buffer_size, received_data)) {
+        if (!receive(client_socket, buffer_size, received_data)) {
           logger_.error("Could not receive data: {} - '{}'", errno, strerror(errno));
           break;
         }
@@ -312,15 +406,15 @@ namespace espp {
           break;
         }
         // callback
-        auto maybe_response = server_receive_callback_(received_data, sender_info);
+        auto maybe_response = server_receive_callback_(received_data, connected_client_info_);
         // send if callback returned data
         if (!maybe_response.has_value()) {
           continue;
         }
         auto response = maybe_response.value();
         // write
-        logger_.info("Server responding to {} with message of length {}", sender_info.to_string(), response.size());
-        int num_bytes_sent = write(accepted_socket, response.data(), response.size());
+        logger_.info("Server responding to {} with message of length {}", connected_client_info_.to_string(), response.size());
+        int num_bytes_sent = write(client_socket, response.data(), response.size());
         if (num_bytes_sent < 0) {
           logger_.error("Error occurred responding: {} - '{}'", errno, strerror(errno));
           break;
@@ -329,9 +423,11 @@ namespace espp {
       }
       // if we've gotten here, we are no longer receiving data from the client,
       // so close the accepted socket and accept other connections.
-      close(accepted_socket);
+      close_accepted_socket();
     }
 
+    Socket::Info connected_client_info_;
+    int accepted_socket_{-1};
     std::atomic<bool> connected_{false};
     std::unique_ptr<Task> task_;
     receive_callback_fn server_receive_callback_;
