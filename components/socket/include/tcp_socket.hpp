@@ -66,6 +66,18 @@ namespace espp {
     }
 
     /**
+     * @brief Reinitialize the socket, cleaning it up if first it is already
+     *        initalized.
+     */
+    void reinit() {
+      if (is_valid()) {
+        // cleanup our socket
+        cleanup();
+      }
+      init(Type::STREAM);
+    }
+
+    /**
      * @brief Open a connection to the remote TCP server.
      * @param connect_config ConnectConfig struct describing the server endpoint.
      * @return true if the client successfully connected to the server.
