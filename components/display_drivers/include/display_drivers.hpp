@@ -26,6 +26,9 @@ namespace espp {
      */
     typedef std::function<void(int sx, int sy, int ex, int ey, const uint8_t* color_data, uint32_t flags)> send_lines_fn;
 
+    /**
+     * @brief Config structure for all display drivers.
+     */
     struct Config {
       write_fn lcd_write; /**< Function which the display driver uses to write data (blocking) to the display. */
       send_lines_fn lcd_send_lines{nullptr}; /**< Function which the display driver uses to send bulk (color) data (non-blocking) to be written to the display. If not provided, it will default to using the provided lcd_write (blocking) call. */
@@ -44,17 +47,27 @@ namespace espp {
     /**
      * @brief Mode for configuring the data/command pin.
      */
-    enum class Mode { COMMAND = 0, DATA = 1 };
-
-    enum class Flags { FLUSH_BIT = 0, DC_LEVEL_BIT = 1 };
+    enum class Mode {
+      COMMAND = 0, /**< Mode for sending commands to the display. */
+      DATA = 1     /**< Mode for sending data (config / color) to the display. */
+    };
 
     /**
-     * @brief command structure for initializing the lcd
+     * @brief Flags that will be used by each display driver to signal to the
+     *        low level pre/post callbacks to perform different actions.
+     */
+    enum class Flags {
+      FLUSH_BIT = 0,    /**< Flag for use with the LVGL subsystem, indicating that the display is ready to be flushed. */
+      DC_LEVEL_BIT = 1  /**< Flag for use with the pre-transfer callback to set the data/command pin into the correct level for the upcoming transfer. */
+    };
+
+    /**
+     * @brief Command structure for initializing the lcd
      */
     struct LcdInitCmd {
-      uint8_t command; /**< Command byte */
+      uint8_t command;  /**< Command byte */
       uint8_t data[16]; /**< Data bytes */
-      uint8_t length; /**< Number of data bytes; bit 7 means delay after, 0xFF means end of commands. */
+      uint8_t length;   /**< Number of data bytes; bit 7 means delay after, 0xFF means end of commands. */
     };
 
     static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t backlight, uint8_t backlight_on) {
