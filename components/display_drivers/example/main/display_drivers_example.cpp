@@ -3,16 +3,19 @@
 #include <vector>
 
 #include "hal/spi_types.h"
-#include "spi_host_cxx.hpp"
+#include "driver/spi_master.h"
 
 #include "display.hpp"
 
 #if CONFIG_HARDWARE_WROVER_KIT
 #include "ili9341.hpp"
+static constexpr int DC_PIN_NUM = 21;
 #elif CONFIG_HARDWARE_TTGO
 #include "st7789.hpp"
+static constexpr int DC_PIN_NUM = 16;
 #elif CONFIG_HARDWARE_BOX
 #include "st7789.hpp"
+static constexpr int DC_PIN_NUM = 4;
 #else
 #error "Misconfigured hardware!"
 #endif
@@ -21,6 +24,146 @@
 #include "gui.hpp"
 
 using namespace std::chrono_literals;
+
+static spi_device_handle_t spi;
+static const int spi_queue_size = 7;
+static size_t num_queued_trans = 0;
+
+// the user flag for the callbacks does two things:
+// 1. Provides the GPIO level for the data/command pin, and
+// 2. Sets some bits for other signaling (such as LVGL FLUSH)
+static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
+static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
+
+//! [pre_transfer_callback example]
+// This function is called (in irq context!) just before a transmission starts.
+// It will set the D/C line to the value indicated in the user field
+// (DC_LEVEL_BIT).
+static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t)
+{
+    uint32_t user_flags = (uint32_t)(t->user);
+    bool dc_level = user_flags & DC_LEVEL_BIT;
+    gpio_set_level((gpio_num_t)DC_PIN_NUM, dc_level);
+}
+//! [pre_transfer_callback example]
+
+//! [post_transfer_callback example]
+// This function is called (in irq context!) just after a transmission ends. It
+// will indicate to lvgl that the next flush is ready to be done if the
+// FLUSH_BIT is set.
+static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t)
+{
+    uint16_t user_flags = (uint32_t)(t->user);
+    bool should_flush = user_flags & FLUSH_BIT;
+    if (should_flush) {
+        lv_disp_t * disp = _lv_refr_get_disp_refreshing();
+        lv_disp_flush_ready(disp->driver);
+    }
+}
+//! [post_transfer_callback example]
+
+//! [polling_transmit example]
+extern "C" void IRAM_ATTR lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
+    if (length == 0) {
+        return;
+    }
+    static spi_transaction_t t;
+    memset(&t, 0, sizeof(t));
+    t.length = length * 8;
+    t.tx_buffer = data;
+    t.user = (void*)user_data;
+    spi_device_polling_transmit(spi, &t);
+}
+//! [polling_transmit example]
+
+//! [queued_transmit example]
+static void lcd_wait_lines() {
+    spi_transaction_t *rtrans;
+    esp_err_t ret;
+    // Wait for all transactions to be done and get back the results.
+    while (num_queued_trans) {
+        // fmt::print("Waiting for {} lines\n", num_queued_trans);
+        ret=spi_device_get_trans_result(spi, &rtrans, portMAX_DELAY);
+        if (ret != ESP_OK) {
+            fmt::print("Could not get trans result: {} '{}'\n", ret, esp_err_to_name(ret));
+        }
+        num_queued_trans--;
+        //We could inspect rtrans now if we received any info back. The LCD is treated as write-only, though.
+    }
+}
+
+void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
+    // if we haven't waited by now, wait here...
+    lcd_wait_lines();
+    esp_err_t ret;
+    //Transaction descriptors. Declared static so they're not allocated on the stack; we need this memory even when this
+    //function is finished because the SPI driver needs access to it even while we're already calculating the next line.
+    static spi_transaction_t trans[6];
+    //In theory, it's better to initialize trans and data only once and hang on to the initialized
+    //variables. We allocate them on the stack, so we need to re-init them each call.
+    for (int i=0; i<6; i++) {
+        memset(&trans[i], 0, sizeof(spi_transaction_t));
+        if ((i&1)==0) {
+            //Even transfers are commands
+            trans[i].length=8;
+            trans[i].user=(void*)0;
+        } else {
+            //Odd transfers are data
+            trans[i].length=8*4;
+            trans[i].user=(void*)DC_LEVEL_BIT;
+        }
+        trans[i].flags=SPI_TRANS_USE_TXDATA;
+    }
+    size_t length = (xe-xs+1)*(ye-ys+1)*2;
+#if CONFIG_HARDWARE_WROVER_KIT
+    trans[0].tx_data[0]=(uint8_t)espp::Ili9341::Command::caset;
+#endif
+#if CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
+    trans[0].tx_data[0]=(uint8_t)espp::St7789::Command::caset;
+#endif
+    trans[1].tx_data[0]=(xs)>> 8;
+    trans[1].tx_data[1]=(xs)&0xff;
+    trans[1].tx_data[2]=(xe)>>8;
+    trans[1].tx_data[3]=(xe)&0xff;
+#if CONFIG_HARDWARE_WROVER_KIT
+    trans[2].tx_data[0]=(uint8_t)espp::Ili9341::Command::raset;
+#endif
+#if CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
+    trans[2].tx_data[0]=(uint8_t)espp::St7789::Command::raset;
+#endif
+    trans[3].tx_data[0]=(ys)>>8;
+    trans[3].tx_data[1]=(ys)&0xff;
+    trans[3].tx_data[2]=(ye)>>8;
+    trans[3].tx_data[3]=(ye)&0xff;
+#if CONFIG_HARDWARE_WROVER_KIT
+    trans[4].tx_data[0]=(uint8_t)espp::Ili9341::Command::ramwr;
+#endif
+#if CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
+    trans[4].tx_data[0]=(uint8_t)espp::St7789::Command::ramwr;
+#endif
+    trans[5].tx_buffer=data;
+    trans[5].length=length*8;
+    // undo SPI_TRANS_USE_TXDATA flag
+    trans[5].flags=0;
+    // we need to keep the dc bit set, but also add our flags
+    trans[5].user = (void*)(DC_LEVEL_BIT | user_data);
+    //Queue all transactions.
+    for (int i=0; i<6; i++) {
+        ret=spi_device_queue_trans(spi, &trans[i], portMAX_DELAY);
+        if (ret != ESP_OK) {
+            fmt::print("Couldn't queue trans: {} '{}'\n", ret, esp_err_to_name(ret));
+        } else {
+            num_queued_trans++;
+        }
+    }
+    //When we are here, the SPI driver is busy (in the background) getting the
+    //transactions sent. That happens mostly using DMA, so the CPU doesn't have
+    //much to do here. We're not going to wait for the transaction to finish
+    //because we may as well spend the time calculating the next line. When that
+    //is done, we can call send_line_finish, which will wait for the transfers
+    //to be done and check their status.
+}
+//! [queued_transmit example]
 
 extern "C" void app_main(void) {
   size_t num_seconds_to_run = 10;
@@ -32,234 +175,139 @@ extern "C" void app_main(void) {
    */
 
 #if CONFIG_HARDWARE_WROVER_KIT
-  fmt::print("Starting display_drivers example for ESP WROVER KIT\n");
+  //! [wrover_kit_config example]
+  static constexpr std::string_view dev_kit = "ESP-WROVER-DevKit";
+  int clock_speed  = 20*1000*1000;
+  auto spi_num = SPI2_HOST;
+  gpio_num_t mosi  = GPIO_NUM_23;
+  gpio_num_t sclk  = GPIO_NUM_19;
+  gpio_num_t spics = GPIO_NUM_22;
+  gpio_num_t reset = GPIO_NUM_18;
+  gpio_num_t dc_pin= (gpio_num_t) DC_PIN_NUM;
+  gpio_num_t backlight = GPIO_NUM_5;
+  size_t width  = 320;
+  size_t height = 240;
+  size_t pixel_buffer_size = 16384;
+  bool invert_colors = false;
+  auto flush_cb = espp::Ili9341::flush;
+  auto rotation = espp::Display::Rotation::LANDSCAPE;
+  //! [wrover_kit_config example]
+#endif
+#if CONFIG_HARDWARE_TTGO
+  //! [ttgo_config example]
+  static constexpr std::string_view dev_kit = "TTGO T-Display";
+  int clock_speed  = 60*1000*1000;
+  auto spi_num = SPI2_HOST;
+  gpio_num_t mosi  = GPIO_NUM_19;
+  gpio_num_t sclk  = GPIO_NUM_18;
+  gpio_num_t spics = GPIO_NUM_5;
+  gpio_num_t reset = GPIO_NUM_23;
+  gpio_num_t dc_pin= (gpio_num_t) DC_PIN_NUM;
+  gpio_num_t backlight = GPIO_NUM_4;
+  size_t width  = 240;
+  size_t height = 135;
+  size_t pixel_buffer_size = 12800;
+  bool invert_colors = false;
+  auto flush_cb = espp::St7789::flush;
+  auto rotation = espp::Display::Rotation::PORTRAIT;
+  //! [ttgo_config example]
+#endif
+#if CONFIG_HARDWARE_BOX
+  //! [box_config example]
+  static constexpr std::string_view dev_kit = "ESP32-S3-BOX";
+  int clock_speed  = 60*1000*1000;
+  auto spi_num = SPI2_HOST;
+  gpio_num_t mosi  = GPIO_NUM_6;
+  gpio_num_t sclk  = GPIO_NUM_7;
+  gpio_num_t spics = GPIO_NUM_5;
+  gpio_num_t reset = GPIO_NUM_48;
+  gpio_num_t dc_pin= (gpio_num_t) DC_PIN_NUM;
+  gpio_num_t backlight = GPIO_NUM_45;
+  size_t width  = 320;
+  size_t height = 240;
+  size_t pixel_buffer_size = width * 50;
+  bool invert_colors = true;
+  auto flush_cb = espp::St7789::flush;
+  auto rotation = espp::Display::Rotation::LANDSCAPE;
+  //! [box_config example]
+#endif
+
+  fmt::print("Starting display_drivers example for {}\n", dev_kit);
   {
-    //! [ili9341 example]
-    size_t pixel_buffer_size = 16384;
-    // create the spi host for the ILI9331 on ESP_WROVER_DEV_KIT
-    idf::SPIMaster master(idf::SPINum(2),
-                          idf::MOSI(23),
-                          // NOTE: this is actually the reset pin, but we don't
-                          // need MISO since it's a screen, so it's OK
-                          idf::MISO(18),
-                          idf::SCLK(19),
-                          idf::SPI_DMAConfig::AUTO(),
-                          idf::SPITransferSize(pixel_buffer_size * sizeof(lv_color_t)));
+    //! [display_drivers example]
+    // create the spi host
+    spi_bus_config_t buscfg;
+    memset(&buscfg, 0, sizeof(buscfg));
+    buscfg.mosi_io_num = mosi;
+    buscfg.miso_io_num = -1;
+    buscfg.sclk_io_num = sclk;
+    buscfg.quadwp_io_num = -1;
+    buscfg.quadhd_io_num = -1;
+    buscfg.max_transfer_sz = (int)(pixel_buffer_size * sizeof(lv_color_t));
     // create the spi device
-    auto lcd = master.create_dev(idf::CS(22), idf::Frequency::MHz(20));
-    // create the lcd_write function
-    static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
-    static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
-    auto lcd_write = [&lcd](auto data, auto length, auto user_data) {
-      if (length == 0) {
-        // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
-        return;
-      }
-      // NOTE: we could simply provide user_data as context to the function
-      // NOTE: if we don't call get() to block for the transaction, then the
-      // transaction will go out scope and fail.
-      lcd->transfer(data, data+length,
-                    // pre-transfer callback
-                    [](void* ud) {
-                      uint32_t user_flags = (uint32_t)(ud);
-                      bool dc_level = user_flags & DC_LEVEL_BIT;
-                      // DC pin is 4 (see below)
-                      gpio_set_level((gpio_num_t)21, dc_level);
-                    },
-                    // post-transfer callback
-                    [](void* ud) {
-                      uint32_t user_flags = (uint32_t)(ud);
-                      bool should_flush = user_flags & FLUSH_BIT;
-                      if (should_flush) {
-                        lv_disp_t * disp = _lv_refr_get_disp_refreshing();
-                        lv_disp_flush_ready(disp->driver);
-                      }
-                    },
-                    (void*)user_data).get();
-    };
+    spi_device_interface_config_t devcfg;
+    memset(&devcfg, 0, sizeof(devcfg));
+    devcfg.mode = 0;
+    devcfg.clock_speed_hz = clock_speed;
+    devcfg.input_delay_ns = 0;
+    devcfg.spics_io_num = spics;
+    devcfg.queue_size = spi_queue_size;
+    devcfg.pre_cb = lcd_spi_pre_transfer_callback;
+    devcfg.post_cb = lcd_spi_post_transfer_callback;
+    esp_err_t ret;
+    //Initialize the SPI bus
+    ret = spi_bus_initialize(spi_num, &buscfg, SPI_DMA_CH_AUTO);
+    ESP_ERROR_CHECK(ret);
+    //Attach the LCD to the SPI bus
+    ret = spi_bus_add_device(spi_num, &devcfg, &spi);
+    ESP_ERROR_CHECK(ret);
+
+#if CONFIG_HARDWARE_WROVER_KIT
     // initialize the controller
     espp::Ili9341::initialize(espp::display_drivers::Config{
         .lcd_write = lcd_write,
-        .reset_pin = (gpio_num_t)18,
-        .data_command_pin = (gpio_num_t)21,
-        .backlight_pin = (gpio_num_t)5,
-        .invert_colors = false
+        .lcd_send_lines = lcd_send_lines,
+        .reset_pin = reset,
+        .data_command_pin = dc_pin,
+        .backlight_pin = backlight,
+        .invert_colors = invert_colors
       });
-    // initialize the display / lvgl
-    auto display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
-        .width = 320,
-        .height = 240,
-        .pixel_buffer_size = pixel_buffer_size,
-        .flush_callback = espp::Ili9341::flush,
-        .rotation = espp::Display::Rotation::LANDSCAPE,
-        .software_rotation_enabled = true
-      });
-    // initialize the gui
-    Gui gui({
-        .display = display
-      });
-    size_t iterations = 0;
-    while (true) {
-      auto label = fmt::format("Iterations: {}", iterations);
-      gui.set_label(label);
-      gui.set_meter(iterations % 100);
-      iterations++;
-      std::this_thread::sleep_for(100ms);
-    }
-    //! [ili9341 example]
-    // and sleep
-    std::this_thread::sleep_for(num_seconds_to_run * 1s);
-  }
 #endif
-
 #if CONFIG_HARDWARE_TTGO
-  fmt::print("Starting display_drivers example for TTGO T-Display\n");
-  {
-    //! [st7789 example]
-    size_t pixel_buffer_size = 12800;
-    // create the spi host for the ST7789 on TTGO T-Display
-    idf::SPIMaster master(idf::SPINum(2),
-                          idf::MOSI(19),
-                          // NOTE: this is actually the reset pin, but we don't
-                          // need MISO since it's a screen, so it's OK
-                          idf::MISO(23),
-                          idf::SCLK(18),
-                          idf::SPI_DMAConfig::AUTO(),
-                          idf::SPITransferSize(pixel_buffer_size * sizeof(lv_color_t)));
-    // create the spi device
-    auto lcd = master.create_dev(idf::CS(5), idf::Frequency::MHz(60));
-    // create the lcd_write function
-    static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
-    static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
-    auto lcd_write = [&lcd](auto data, auto length, auto user_data) {
-      if (length == 0) {
-        // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
-        return;
-      }
-      // NOTE: we could simply provide user_data as context to the function
-      // NOTE: if we don't call get() to block for the transaction, then the
-      // transaction will go out scope and fail.
-      lcd->transfer(data, data+length,
-                    // pre-transfer callback
-                    [](void* ud) {
-                      uint32_t user_flags = (uint32_t)(ud);
-                      bool dc_level = user_flags & DC_LEVEL_BIT;
-                      // DC pin is 4 (see below)
-                      gpio_set_level((gpio_num_t)16, dc_level);
-                    },
-                    // post-transfer callback
-                    [](void* ud) {
-                      uint32_t user_flags = (uint32_t)(ud);
-                      bool should_flush = user_flags & FLUSH_BIT;
-                      if (should_flush) {
-                        lv_disp_t * disp = _lv_refr_get_disp_refreshing();
-                        lv_disp_flush_ready(disp->driver);
-                      }
-                    },
-                    (void*)user_data).get();
-    };
     // initialize the controller
     espp::St7789::initialize(espp::display_drivers::Config{
         .lcd_write = lcd_write,
-        .reset_pin = (gpio_num_t)23,
-        .data_command_pin = (gpio_num_t)16,
-        .backlight_pin = (gpio_num_t)4,
-        .invert_colors = false,
+        .lcd_send_lines = lcd_send_lines,
+        .reset_pin = reset,
+        .data_command_pin = dc_pin,
+        .backlight_pin = backlight,
+        .invert_colors = invert_colors,
         .offset_x = 40,
         .offset_y = 53,
       });
-    // initialize the display / lvgl
-    auto display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
-        .width = 240,
-        .height = 135,
-        .pixel_buffer_size = pixel_buffer_size,
-        .flush_callback = espp::St7789::flush,
-        .rotation = espp::Display::Rotation::PORTRAIT,
-        .software_rotation_enabled = true
-      });
-    // initialize the gui
-    Gui gui({
-        .display = display
-      });
-    size_t iterations = 0;
-    while (true) {
-      auto label = fmt::format("Iterations: {}", iterations);
-      gui.set_label(label);
-      gui.set_meter(iterations % 100);
-      iterations++;
-      std::this_thread::sleep_for(100ms);
-    }
-    //! [st7789 example]
-    // and sleep
-    std::this_thread::sleep_for(num_seconds_to_run * 1s);
-  }
 #endif
-
 #if CONFIG_HARDWARE_BOX
-  fmt::print("Starting display_drivers example for ESP32s3 BOX\n");
-  // NOTE: see esp-box/components/bsp/src/boards/esp32_s3_box.c
-  {
-    //! [st7789 esp-box example]
-    size_t display_width = 320;
-    size_t display_height = 240;
-    size_t pixel_buffer_size = display_width*50;
-    // create the spi host for the ST7789 on ESP BOX
-    idf::SPIMaster master(idf::SPINum(SPI2_HOST),
-                          idf::MOSI(6),
-                          idf::MISO(18),
-                          idf::SCLK(7),
-                          idf::SPI_DMAConfig::AUTO(),
-                          idf::SPITransferSize(pixel_buffer_size * sizeof(lv_color_t)));
-    // create the spi device
-    auto lcd = master.create_dev(idf::CS(5), idf::Frequency::MHz(60));
-    // create the lcd_write function
-    static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
-    static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
-    auto lcd_write = [&lcd](auto data, auto length, auto user_data) {
-      if (length == 0) {
-        // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
-        return;
-      }
-      // NOTE: we could simply provide user_data as context to the function
-      // NOTE: if we don't call get() to block for the transaction, then the
-      // transaction will go out scope and fail.
-      lcd->transfer(data, data+length,
-                    // pre-transfer callback
-                    [](void* ud) {
-                      uint32_t user_flags = (uint32_t)(ud);
-                      bool dc_level = user_flags & DC_LEVEL_BIT;
-                      // DC pin is 4 (see below)
-                      gpio_set_level((gpio_num_t)4, dc_level);
-                    },
-                    // post-transfer callback
-                    [](void* ud) {
-                      uint32_t user_flags = (uint32_t)(ud);
-                      bool should_flush = user_flags & FLUSH_BIT;
-                      if (should_flush) {
-                        lv_disp_t * disp = _lv_refr_get_disp_refreshing();
-                        lv_disp_flush_ready(disp->driver);
-                      }
-                    },
-                    (void*)user_data).get();
-    };
     // initialize the controller
     espp::St7789::initialize(espp::display_drivers::Config{
         .lcd_write = lcd_write,
-        .reset_pin = (gpio_num_t)48,
-        .data_command_pin = (gpio_num_t)4,
-        .backlight_pin = (gpio_num_t)45,
-        .backlight_on_value = true,
+        .lcd_send_lines = lcd_send_lines,
+        .reset_pin = reset,
+        .data_command_pin = dc_pin,
+        .backlight_pin = backlight,
+        .backlight_on_value = invert_colors,
         .invert_colors = true,
         .mirror_x = true,
         .mirror_y = true,
       });
+#endif
+
     // initialize the display / lvgl
     auto display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
-        .width = display_width,
-        .height = display_height,
+        .width = width,
+        .height = height,
         .pixel_buffer_size = pixel_buffer_size,
-        .flush_callback = espp::St7789::flush,
-        .rotation = espp::Display::Rotation::LANDSCAPE,
+        .flush_callback = flush_cb,
+        .rotation = rotation,
         .software_rotation_enabled = true
       });
     // initialize the gui
@@ -274,11 +322,10 @@ extern "C" void app_main(void) {
       iterations++;
       std::this_thread::sleep_for(100ms);
     }
-    //! [st7789 esp-box example]
+    //! [display_drivers example]
     // and sleep
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
-#endif
 
   fmt::print("Display Driver example complete!\n");
 

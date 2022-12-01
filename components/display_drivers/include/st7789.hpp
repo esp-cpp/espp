@@ -20,8 +20,12 @@ namespace espp {
    *   or
    *   https://github.com/mireq/esp32-st7789-demo/blob/master/components/st7789/st7789.c
    *
+   * \section st7789_ttgo_cfg TTGO St7789 Config
+   * \snippet display_drivers_example.cpp ttgo_config example
+   * \section st7789_box_cfg ESP32-S3-BOX St7789 Config
+   * \snippet display_drivers_example.cpp box_config example
    * \section st7789_ex1 st7789 Example
-   * \snippet display_drivers_example.cpp st7789 example
+   * \snippet display_drivers_example.cpp display_drivers example
    */
   class St7789 {
   public:
@@ -310,11 +314,31 @@ namespace espp {
       }
     }
 
+    /**
+     * @brief Set the offset (upper left starting coordinate) of the display.
+     * @note This modifies internal variables that are used when sending
+     *       coordinates / filling parts of the display.
+     * @param x New starting x coordinate (so writing to x address 0 later will
+     *          actually write to this offset).
+     * @param y New starting y coordinate (so writing to y address 0 later will
+     *          actually write to this offset).
+     */
     static void set_offset(int x, int y) {
       offset_x_ = x;
       offset_y_ = y;
     }
 
+    /**
+     * @brief Get the offset (upper left starting coordinate) of the display.
+     * @note This returns internal variables that are used when sending
+     *       coordinates / filling parts of the display.
+     * @param x Reference variable that will be filled with the currently
+     *          configured starting x coordinate that was provided in the config
+     *          or set by set_offset().
+     * @param y Reference variable that will be filled with the currently
+     *          configured starting y coordinate that was provided in the config
+     *          or set by set_offset().
+     */
     static void get_offset(int &x, int &y) {
       x = offset_x_;
       y = offset_y_;

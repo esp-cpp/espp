@@ -120,7 +120,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>TCP Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/1e29a0e/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ee60097/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -139,7 +139,7 @@ transmission speed / bandwidth adjustment.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e29a0e/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ee60097/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -318,6 +318,12 @@ transmission speed / bandwidth adjustment.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket6reinitEv">
+<span id="_CPPv3N4espp9TcpSocket6reinitEv"></span><span id="_CPPv2N4espp9TcpSocket6reinitEv"></span><span id="espp::TcpSocket::reinit"></span><span class="target" id="classespp_1_1_tcp_socket_1a6d90926f56e98ba9bf63286b55b8a21c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reinit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket6reinitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reinitialize the socket, cleaning it up if first it is already initalized. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket7connectERK13ConnectConfig">
 <span id="_CPPv3N4espp9TcpSocket7connectERK13ConnectConfig"></span><span id="_CPPv2N4espp9TcpSocket7connectERK13ConnectConfig"></span><span id="espp::TcpSocket::connect__ConnectConfigCR"></span><span class="target" id="classespp_1_1_tcp_socket_1afb3310f908c4659b72f1e1579b34b41c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">connect</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket13ConnectConfigE" title="espp::TcpSocket::ConnectConfig"><span class="n"><span class="pre">ConnectConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">connect_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket7connectERK13ConnectConfig" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Open a connection to the remote TCP server. </p>
@@ -401,6 +407,28 @@ transmission speed / bandwidth adjustment.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket7receiveEi6size_tP7uint8_t">
+<span id="_CPPv3N4espp9TcpSocket7receiveEi6size_tP7uint8_t"></span><span id="_CPPv2N4espp9TcpSocket7receiveEi6size_tP7uint8_t"></span><span id="espp::TcpSocket::receive__i.s.uint8_tP"></span><span class="target" id="classespp_1_1_tcp_socket_1a5ae30763f43f232d17804e7a17d111fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">receive</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">socket_fd</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_num_bytes</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket7receiveEi6size_tP7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Call read on the socket, assuming it has already been configured appropriately. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">data</span></code> must point to memory that can contain at least <code class="docutils literal notranslate"><span class="pre">max_num_bytes</span></code> bytes.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>socket_fd</strong> – <a class="reference internal" href="socket.html#classespp_1_1_socket"><span class="std std-ref">Socket</span></a> file descriptor. </p></li>
+<li><p><strong>max_num_bytes</strong> – Maximum number of bytes to receive. </p></li>
+<li><p><strong>data</strong> – Pointer to container that will be filled with up to max_num_bytes received. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>number of bytes reeived </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket15start_receivingERN4Task6ConfigERK13ReceiveConfig">
 <span id="_CPPv3N4espp9TcpSocket15start_receivingERN4Task6ConfigERK13ReceiveConfig"></span><span id="_CPPv2N4espp9TcpSocket15start_receivingERN4Task6ConfigERK13ReceiveConfig"></span><span id="espp::TcpSocket::start_receiving__Task::ConfigR.ReceiveConfigCR"></span><span class="target" id="classespp_1_1_tcp_socket_1a2f581bfbbc75fb4b9583382d8f4aea84"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_receiving</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../task.html#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../task.html#_CPPv4N4espp4Task6ConfigE" title="espp::Task::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">task_config</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TcpSocket13ReceiveConfigE" title="espp::TcpSocket::ReceiveConfig"><span class="n"><span class="pre">ReceiveConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">receive_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket15start_receivingERN4Task6ConfigERK13ReceiveConfig" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure a server socket and start a thread to continuously receive and handle data coming in on that socket. </p>
@@ -415,6 +443,66 @@ transmission speed / bandwidth adjustment.</p>
 <dd class="field-even"><p>true if the socket was created and task was started, false otherwise. </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket4bindEi">
+<span id="_CPPv3N4espp9TcpSocket4bindEi"></span><span id="_CPPv2N4espp9TcpSocket4bindEi"></span><span id="espp::TcpSocket::bind__i"></span><span class="target" id="classespp_1_1_tcp_socket_1ad5042f4f906158a59141e06bf4c2bf54"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">bind</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket4bindEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bind the socket as a server on <code class="docutils literal notranslate"><span class="pre">port</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>port</strong> – The port to which to bind the socket. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the socket was bound. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket6listenEi">
+<span id="_CPPv3N4espp9TcpSocket6listenEi"></span><span id="_CPPv2N4espp9TcpSocket6listenEi"></span><span id="espp::TcpSocket::listen__i"></span><span class="target" id="classespp_1_1_tcp_socket_1a984804a8f6153474bf597915d999f8df"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">listen</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_pending_connections</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket6listenEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Listen for incoming client connections. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>max_pending_connections</strong> – Max number of allowed pending connections. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if socket was able to start listening. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket6acceptEv">
+<span id="_CPPv3N4espp9TcpSocket6acceptEv"></span><span id="_CPPv2N4espp9TcpSocket6acceptEv"></span><span id="espp::TcpSocket::accept"></span><span class="target" id="classespp_1_1_tcp_socket_1a36477c6caed33595c5bfaeaf03cd3476"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">accept</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket6acceptEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Block on a socket that is listening until a client connects. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If a client connects, it will store the accepted client socket, which can be retrieved by calling <a class="reference internal" href="#classespp_1_1_tcp_socket_1a10ed5bbdcda818ba716ce8b0cd9ac46e"><span class="std std-ref">get_accepted_socket()</span></a> and then later closed (if desired) using <a class="reference internal" href="#classespp_1_1_tcp_socket_1ad186df53108d0243668c2a52db6d9b42"><span class="std std-ref">close_accepted_socket()</span></a>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the socket successfully accepted a client connection (filling out accepted_socket). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket19get_accepted_socketEv">
+<span id="_CPPv3N4espp9TcpSocket19get_accepted_socketEv"></span><span id="_CPPv2N4espp9TcpSocket19get_accepted_socketEv"></span><span id="espp::TcpSocket::get_accepted_socket"></span><span class="target" id="classespp_1_1_tcp_socket_1a10ed5bbdcda818ba716ce8b0cd9ac46e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_accepted_socket</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket19get_accepted_socketEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The current accepted socket (active client connection), that would have been set by a successful call to <a class="reference internal" href="#classespp_1_1_tcp_socket_1a36477c6caed33595c5bfaeaf03cd3476"><span class="std std-ref">accept()</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The low_level socket file descriptor or -1 if not connected. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocket21close_accepted_socketEv">
+<span id="_CPPv3N4espp9TcpSocket21close_accepted_socketEv"></span><span id="_CPPv2N4espp9TcpSocket21close_accepted_socketEv"></span><span id="espp::TcpSocket::close_accepted_socket"></span><span class="target" id="classespp_1_1_tcp_socket_1ad186df53108d0243668c2a52db6d9b42"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">close_accepted_socket</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TcpSocket21close_accepted_socketEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If there is an active client connection to this server, close it. </p>
 </dd></dl>
 
 <dl class="cpp function">

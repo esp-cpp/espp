@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 
 #include "display.hpp"
 #include "task.hpp"
@@ -26,12 +27,12 @@ public:
   }
 
   void set_label(const std::string_view& label) {
-    std::scoped_lock<std::mutex> lk(mutex_);
+    std::scoped_lock<std::recursive_mutex> lk(mutex_);
     lv_label_set_text(label_, label.data());
   }
 
   void set_meter(size_t value, bool animate=true) {
-    std::scoped_lock<std::mutex> lk(mutex_);
+    std::scoped_lock<std::recursive_mutex> lk(mutex_);
     if (animate) {
       lv_bar_set_value(meter_, value, LV_ANIM_ON);
     } else {
@@ -65,7 +66,7 @@ protected:
 
   void update(std::mutex& m, std::condition_variable& cv) {
     {
-      std::scoped_lock<std::mutex> lk(mutex_);
+      std::scoped_lock<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
     }
     {
@@ -83,5 +84,5 @@ protected:
   std::shared_ptr<espp::Display> display_;
   std::unique_ptr<espp::Task> task_;
   espp::Logger logger_;
-  std::mutex mutex_;
+  std::recursive_mutex mutex_;
 };
