@@ -14,8 +14,10 @@ namespace espp {
    *   See also:
    *   https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_ili9341/esp_lcd_ili9341.c
    *
+   * \section ili9341_wrover_cfg WROVER-KIT ILI9341 Config
+   * \snippet display_drivers_example.cpp wrover_kit_config example
    * \section ili9341_ex1 ili9341 Example
-   * \snippet display_drivers_example.cpp display drivers example
+   * \snippet display_drivers_example.cpp display_drivers example
    */
   class Ili9341 {
   public:

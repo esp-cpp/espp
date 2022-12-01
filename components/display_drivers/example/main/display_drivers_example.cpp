@@ -35,6 +35,7 @@ static size_t num_queued_trans = 0;
 static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
 static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
 
+//! [pre_transfer_callback example]
 // This function is called (in irq context!) just before a transmission starts.
 // It will set the D/C line to the value indicated in the user field
 // (DC_LEVEL_BIT).
@@ -44,7 +45,9 @@ static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t)
     bool dc_level = user_flags & DC_LEVEL_BIT;
     gpio_set_level((gpio_num_t)DC_PIN_NUM, dc_level);
 }
+//! [pre_transfer_callback example]
 
+//! [post_transfer_callback example]
 // This function is called (in irq context!) just after a transmission ends. It
 // will indicate to lvgl that the next flush is ready to be done if the
 // FLUSH_BIT is set.
@@ -57,7 +60,9 @@ static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t)
         lv_disp_flush_ready(disp->driver);
     }
 }
+//! [post_transfer_callback example]
 
+//! [polling_transmit example]
 extern "C" void IRAM_ATTR lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
     if (length == 0) {
         return;
@@ -69,7 +74,9 @@ extern "C" void IRAM_ATTR lcd_write(const uint8_t *data, size_t length, uint32_t
     t.user = (void*)user_data;
     spi_device_polling_transmit(spi, &t);
 }
+//! [polling_transmit example]
 
+//! [queued_transmit example]
 static void lcd_wait_lines() {
     spi_transaction_t *rtrans;
     esp_err_t ret;
@@ -156,6 +163,7 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
     //is done, we can call send_line_finish, which will wait for the transfers
     //to be done and check their status.
 }
+//! [queued_transmit example]
 
 extern "C" void app_main(void) {
   size_t num_seconds_to_run = 10;
@@ -167,6 +175,7 @@ extern "C" void app_main(void) {
    */
 
 #if CONFIG_HARDWARE_WROVER_KIT
+  //! [wrover_kit_config example]
   static constexpr std::string_view dev_kit = "ESP-WROVER-DevKit";
   int clock_speed  = 20*1000*1000;
   auto spi_num = SPI2_HOST;
@@ -182,8 +191,10 @@ extern "C" void app_main(void) {
   bool invert_colors = false;
   auto flush_cb = espp::Ili9341::flush;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
+  //! [wrover_kit_config example]
 #endif
 #if CONFIG_HARDWARE_TTGO
+  //! [ttgo_config example]
   static constexpr std::string_view dev_kit = "TTGO T-Display";
   int clock_speed  = 60*1000*1000;
   auto spi_num = SPI2_HOST;
@@ -199,8 +210,10 @@ extern "C" void app_main(void) {
   bool invert_colors = false;
   auto flush_cb = espp::St7789::flush;
   auto rotation = espp::Display::Rotation::PORTRAIT;
+  //! [ttgo_config example]
 #endif
 #if CONFIG_HARDWARE_BOX
+  //! [box_config example]
   static constexpr std::string_view dev_kit = "ESP32-S3-BOX";
   int clock_speed  = 60*1000*1000;
   auto spi_num = SPI2_HOST;
@@ -216,11 +229,12 @@ extern "C" void app_main(void) {
   bool invert_colors = true;
   auto flush_cb = espp::St7789::flush;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
+  //! [box_config example]
 #endif
 
   fmt::print("Starting display_drivers example for {}\n", dev_kit);
   {
-    //! [display_driver example]
+    //! [display_drivers example]
     // create the spi host
     spi_bus_config_t buscfg;
     memset(&buscfg, 0, sizeof(buscfg));
@@ -308,7 +322,7 @@ extern "C" void app_main(void) {
       iterations++;
       std::this_thread::sleep_for(100ms);
     }
-    //! [display driver example]
+    //! [display_drivers example]
     // and sleep
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }

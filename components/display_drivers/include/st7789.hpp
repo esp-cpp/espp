@@ -20,8 +20,12 @@ namespace espp {
    *   or
    *   https://github.com/mireq/esp32-st7789-demo/blob/master/components/st7789/st7789.c
    *
+   * \section st7789_ttgo_cfg TTGO St7789 Config
+   * \snippet display_drivers_example.cpp ttgo_config example
+   * \section st7789_box_cfg ESP32-S3-BOX St7789 Config
+   * \snippet display_drivers_example.cpp box_config example
    * \section st7789_ex1 st7789 Example
-   * \snippet display_drivers_example.cpp display drivers example
+   * \snippet display_drivers_example.cpp display_drivers example
    */
   class St7789 {
   public:
