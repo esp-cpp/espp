@@ -110,6 +110,21 @@ namespace espp {
       return std::clamp(output, output_min_, output_max_);
     }
 
+    /**
+     * @brief Update the PID controller with the latest error measurement,
+     *        getting the output control signal in return.
+     *
+     * @note Tracks invocation timing to better compute time-accurate
+     *       integral/derivative signals. Should be called at or close to the
+     *       frequency defined by the configured Config::sampling_time_s.
+     *
+     * @param error Latest error signal.
+     * @return The output control signal based on the PID state and error.
+     */
+    float operator() (float error) {
+      return update(error);
+    }
+
   protected:
     float kp_;
     float ki_;
