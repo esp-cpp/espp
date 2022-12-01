@@ -51,6 +51,16 @@ namespace espp {
       return output;
     }
 
+    /**
+     * @brief Filter the signal sampled by input, updating internal state, and
+     *        returning the filtered output.
+     * @param input New sample of the input data.
+     * @return Filtered output based on input and history.
+     */
+    float operator() (float input) {
+      return update(input);
+    }
+
   protected:
     void init(const Config& config) {
       dsps_biquad_gen_lpf_f32(coeffs_, config.normalized_cutoff_frequency, config.q_factor);

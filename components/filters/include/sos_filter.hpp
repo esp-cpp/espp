@@ -41,6 +41,16 @@ namespace espp {
     }
 
     /**
+     * @brief Filter the signal sampled by input, updating internal state, and
+     *        returning the filtered output.
+     * @param input New sample of the input data.
+     * @return Filtered output based on input and history.
+     */
+    float operator() (float input) {
+      return update(input);
+    }
+
+    /**
      * @brief Format all the sections' coefficients to string and return it.
      * @return std::string of formatted section coefficients, newline separated.
      */
