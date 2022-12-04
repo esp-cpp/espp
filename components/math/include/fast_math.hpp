@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <cmath>
 
 namespace espp {
@@ -11,16 +12,18 @@ namespace espp {
    * @return [description]
    */
   float fast_sqrt(float value) {
-    long i;
-    float y;
+    uint32_t i{0};
+    float y{0};
     // float x;
     // const float f = 1.5F; // better precision
 
     // x = number * 0.5F;
     y = value;
-    i = * ( long * ) &y;
+    memcpy(&i, &y, sizeof(i));
+    // i = * reinterpret_cast<uint32_t *>(&y);
     i = 0x5f375a86 - ( i >> 1 );
-    y = * ( float * ) &i;
+    // y = * reinterpret_cast<float *>(&i);
+    memcpy(&y, &i, sizeof(y));
     // y = y * ( f - ( x * y * y ) ); // better precision
     return value * y;
   }
@@ -52,12 +55,15 @@ namespace espp {
    * @return ln(x)
    */
   float fast_ln(float x) {
-    unsigned int bx = * (unsigned int *) (&x);
-    unsigned int ex = bx >> 23;
+    uint32_t bx = 0;
+    memcpy(&bx, &x, sizeof(bx));
+    // bx = * reinterpret_cast<uint32_t *> (&x);
+    uint32_t ex = bx >> 23;
     signed int t = (signed int)ex-(signed int)127;
-    unsigned int s = (t < 0) ? (-t) : t;
+    uint32_t s = (t < 0) ? (-t) : t;
     bx = 1065353216 | (bx & 8388607);
-    x = * (float *) (&bx);
+    // x = * reinterpret_cast<float *>(&bx);
+    memcpy (&x, &bx, sizeof(x));
     return -1.49278+(2.11263+(-0.729104+0.10969*x)*x)*x+0.6931471806*t;
   }
 
