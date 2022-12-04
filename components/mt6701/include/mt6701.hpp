@@ -174,6 +174,12 @@ namespace espp {
 
     void update() {
       logger_.info("update");
+      // measure update timing
+      static auto prev_time = std::chrono::high_resolution_clock::now();
+      auto now = std::chrono::high_resolution_clock::now();
+      float elapsed = std::chrono::duration<float>(now - prev_time).count();
+      prev_time = now;
+      float seconds = elapsed ? elapsed : update_period_.count();
       // update raw count
       count_ = read_count();
       static int prev_count = count_;
@@ -193,11 +199,6 @@ namespace espp {
       accumulator_ += diff;
       logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
       // update velocity (filtering it)
-      static auto prev_time = std::chrono::high_resolution_clock::now();
-      auto now = std::chrono::high_resolution_clock::now();
-      float elapsed = std::chrono::duration<float>(now - prev_time).count();
-      prev_time = now;
-      float seconds = elapsed ? elapsed : update_period_.count();
       float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
       velocity_rpm_ = velocity_filter_(raw_velocity);
       static float max_velocity = 0.5f / update_period_.count() * SECONDS_PER_MINUTE;
