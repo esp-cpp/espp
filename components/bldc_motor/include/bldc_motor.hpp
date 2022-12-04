@@ -36,27 +36,6 @@ namespace espp {
     static_cast<bool (FOO::*)(float) const>(&FOO::driver_align);
   };
 
-  enum class MotionControlType {
-    TORQUE,
-    VELOCITY,
-    ANGLE,
-    VELOCITY_OPENLOOP,
-    ANGLE_OPENLOOP
-  };
-
-  enum class TorqueControlType {
-    VOLTAGE,     /**< Torque control using voltage */
-    DC_CURRENT,  /**< Torque control using DC current (one current magnitude) */
-    FOC_CURRENT  /**< Torque control using DQ currents */
-  };
-
-  enum class FocType {
-    SINE_PWM,          /**< Sinusoidal PWM modulation */
-    SPACE_VECTOR_PWM,  /**< Space Vector modulation */
-    TRAPEZOID_120,
-    TRAPEZOID_150
-  };
-
   // Provide a dummy current sense type here (as default) if you don't want to
   // use (or your hardware doesn't support) an actual current sensor for FOC.
   struct DummyCurrentSense {
@@ -75,6 +54,27 @@ namespace espp {
       UNKNOWN = 0
     };
 
+    enum class MotionControlType {
+      TORQUE,
+      VELOCITY,
+      ANGLE,
+      VELOCITY_OPENLOOP,
+      ANGLE_OPENLOOP
+    };
+
+    enum class TorqueControlType {
+      VOLTAGE,     /**< Torque control using voltage */
+      DC_CURRENT,  /**< Torque control using DC current (one current magnitude) */
+      FOC_CURRENT  /**< Torque control using DQ currents */
+    };
+
+    enum class FocType {
+      SINE_PWM,          /**< Sinusoidal PWM modulation */
+      SPACE_VECTOR_PWM,  /**< Space Vector modulation */
+      TRAPEZOID_120,
+      TRAPEZOID_150
+    };
+
     /**
      * @brief Filter the raw input sample and return it.
      * @param raw Most recent raw sample measured.
@@ -88,6 +88,9 @@ namespace espp {
       float kv_rating; /**< Motor KV rating (1/K_bemf) - rpm/V */
       float current_limit{1.0f}; /**< Current limit (Amps) for the controller. */
       float velocity_limit{1000.0f}; /**< Velocity limit (RPM) for the controller. */
+      float zero_electric_offset{0.0f};
+      Direction sensor_direction{Direction::CLOCKWISE};
+      FocType foc_type{FocType::SPACE_VECTOR_PWM}; /**< How the voltage for the phases should be calculated. */
       TorqueControlType torque_controller{TorqueControlType::VOLTAGE}; /**< Torque controller type. */
       std::shared_ptr<D> driver; /**< Driver for low-level setting of phase PWMs. */
       std::shared_ptr<S> sensor; /**< Sensor for measuring position / speed. */
@@ -107,6 +110,8 @@ namespace espp {
         kv_rating_(config.kv_rating),
         current_limit_(config.current_limit),
         velocity_limit_(config.velocity_limit),
+        sensor_direction_(config.sensor_direction),
+        foc_type_(config.foc_type),
         torque_control_type_(config.torque_controller),
         driver_(config.driver),
         sensor_(config.sensor),
@@ -126,26 +131,30 @@ namespace espp {
 
       // update the pid limits
       auto current_pid_config = config.current_pid_config;
+      current_pid_config.output_min = -voltage_limit_;
       current_pid_config.output_max = voltage_limit_;
       pid_current_q_.change_gains(current_pid_config);
       pid_current_d_.change_gains(current_pid_config);
 
       auto velocity_pid_config = config.velocity_pid_config;
       if (phase_resistance_ > 0 || torque_control_type_ != TorqueControlType::VOLTAGE) {
+        velocity_pid_config.output_min = -current_limit_;
         velocity_pid_config.output_max = current_limit_;
       } else {
+        velocity_pid_config.output_min = -voltage_limit_;
         velocity_pid_config.output_max = voltage_limit_;
       }
       pid_velocity_.change_gains(velocity_pid_config);
 
       auto angle_pid_config = config.angle_pid_config;
+      angle_pid_config.output_min = -velocity_limit_;
       angle_pid_config.output_max = velocity_limit_;
       pid_angle_.change_gains(angle_pid_config);
 
       // finish the rest of init
       init();
       // then initialize the foc (calibration etc.)
-      init_foc();
+      init_foc(config.zero_electric_offset, config.sensor_direction);
     }
 
     ~BldcMotor() {
@@ -365,15 +374,20 @@ namespace espp {
       driver_->set_voltage(Ua, Ub, Uc);
     }
 
+    /**
+     * @brief Return the shaft angle, in radians.
+     * @return MOtor shaft angle in radians.
+     */
     float get_shaft_angle() {
       // if no sensor linked return previous value ( for open loop )
       if (!sensor_) return shaft_angle_;
-      return (float)sensor_direction_ * lpf_angle_(sensor_->get_radians()) - sensor_offset_;
+      // return (float)sensor_direction_ * lpf_angle_(sensor_->get_radians()) - sensor_offset_;
+      return (float)sensor_direction_ * sensor_->get_radians() - sensor_offset_;
     }
 
     /**
-     *   [summary]
-     * @return [description]
+     * @brief Return the shaft velocity, in radians per second (rad/s).
+     * @return Motor shaft velocity (rad/s).
      */
     float get_shaft_velocity() {
       // if no sensor linked return previous value ( for open loop )
@@ -542,9 +556,11 @@ namespace espp {
     }
 
     void init_foc(float zero_electric_offset = 0, Direction sensor_direction = Direction::CLOCKWISE) {
+      logger_.info("Init FOC");
       status_ = Status::CALIBRATING;
       // align motor with sensor - necessary for encoders
       if (zero_electric_offset) {
+        logger_.info("Updating electrical zero angle and direction: {}, {}", zero_electric_offset, (int)sensor_direction);
         zero_electrical_angle_ = zero_electric_offset;
         sensor_direction_ = sensor_direction;
       }
@@ -557,12 +573,13 @@ namespace espp {
       }
 
       status_ = success ? Status::READY : Status::FAILED_CALIBRATION;
+      logger_.debug("Init FOC completed: {}", success);
     }
 
     bool align_sensor() {
       using namespace std::chrono_literals;
       int exit_flag = 1; //success
-      logger_.debug("Align sensor.");
+      logger_.info("Aligning sensor");
 
       // check if sensor needs zero search
       if (sensor_->needs_zero_search()) exit_flag = search_absolute_zero();
@@ -592,7 +609,7 @@ namespace espp {
         std::this_thread::sleep_for(1ms * 200);
         // determine the direction the sensor moved
         if (mid_angle == end_angle) {
-          logger_.debug("Failed to notice movement");
+          logger_.warn("Failed to notice movement");
           return 0; // failed calibration
         } else if (mid_angle < end_angle) {
           logger_.debug("sensor_direction==CCW");
@@ -612,6 +629,7 @@ namespace espp {
 
       // zero electric angle not known
       if (!zero_electrical_angle_) {
+        logger_.info("Calibrating electrical angle.");
         // align the electrical phases of the motor and sensor
         // set angle -90(270 = 3PI/2) degrees
         set_phase_voltage(voltage_sensor_align_, 0,  _3PI_2);
@@ -619,6 +637,7 @@ namespace espp {
         // get the current zero electric angle
         zero_electrical_angle_ = 0;
         zero_electrical_angle_ = get_electrical_angle();
+        logger_.info("Got electrical angle: {}", zero_electrical_angle_);
         //zero_electrical_angle_ =  normalize_angle(get_electrical_angle(sensor_direction_*sensor_->get_radians(), num_pole_pairs_));
         std::this_thread::sleep_for(1ms * 20);
         // stop everything
@@ -631,7 +650,7 @@ namespace espp {
     bool align_current_sense() {
       int exit_flag = 1; // success
 
-      logger_.debug("Align current sense.");
+      logger_.info("Aligning current sense");
 
       // align current sense and the driver
       exit_flag = current_sense_->driver_align(voltage_sensor_align_);
@@ -650,7 +669,7 @@ namespace espp {
     bool search_absolute_zero() {
       // sensor precision: this is all ok, as the search happens near the 0-angle, where the precision
       //                    of float is sufficient.
-      logger_.debug("Index search...");
+      logger_.info("Index search...");
       // search the absolute zero with small velocity
       float limit_vel = velocity_limit_;
       float limit_volt = voltage_limit_;
@@ -787,9 +806,9 @@ namespace espp {
     float zero_electrical_angle_{0};
     Direction sensor_direction_{Direction::CLOCKWISE};
 
+    FocType foc_type_{FocType::SPACE_VECTOR_PWM};
     MotionControlType motion_control_type_{MotionControlType::VELOCITY_OPENLOOP};
     TorqueControlType torque_control_type_{TorqueControlType::VOLTAGE};
-    FocType foc_type_{FocType::SPACE_VECTOR_PWM};
 
     bool modulation_centered_{true}; //!< true: centered modulation around driver limit /2; false: pulled to 0
 
