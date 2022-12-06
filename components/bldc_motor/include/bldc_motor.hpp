@@ -95,9 +95,9 @@ namespace espp {
       std::shared_ptr<D> driver; /**< Driver for low-level setting of phase PWMs. */
       std::shared_ptr<S> sensor; /**< Sensor for measuring position / speed. */
       std::shared_ptr<CS> current_sense{nullptr}; /**< Sensor for measuring current through the motor. */
-      Pid::Config current_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0, .sampling_time_s=1e-3}; /**< PID configuration for current (amps) pid controller. */
-      Pid::Config velocity_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0, .sampling_time_s=1e-3}; /**< PID configuration for velocity pid controller. */
-      Pid::Config angle_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0, .sampling_time_s=1e-3}; /**< PID configuration for angle pid controller. */
+      Pid::Config current_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0}; /**< PID configuration for current (amps) pid controller. */
+      Pid::Config velocity_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0}; /**< PID configuration for velocity pid controller. */
+      Pid::Config angle_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0}; /**< PID configuration for angle pid controller. */
       LowpassFilter::Config current_lpf_config{.normalized_cutoff_frequency = 10.0f, .q_factor = 1.0f}; /**< Configuration for the low pass filter of current (amps) measurement. */
       LowpassFilter::Config velocity_lpf_config{.normalized_cutoff_frequency = 10.0f, .q_factor = 1.0f}; /**< Configuration for the low pass filter of velocity measurement. */
       LowpassFilter::Config angle_lpf_config{.normalized_cutoff_frequency = 10.0f, .q_factor = 1.0f}; /**< Configuration for the low pass filter of angle measurement. */

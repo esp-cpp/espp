@@ -125,19 +125,27 @@ extern "C" void app_main(void) {
           .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
           .output_min = -1.0, // velocity pid works on current (if we have phase resistance)
           .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
-          .sampling_time_s = core_update_period
+        },
+        .angle_pid_config = {
+          .kp = 5.000f,
+          .ki = 0.100f,
+          .kd = 0.010f,
+          .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
+          .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
+          .output_min = -20.0, // angle pid works on velocity (rad/s)
+          .output_max = 20.0,  // angle pid works on velocity (rad/s)
         },
         .log_level = espp::Logger::Verbosity::INFO
       });
-    static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY;
-    // static auto motion_control_type = BldcMotor::MotionControlType::ANGLE;
+    // static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY;
+    static auto motion_control_type = BldcMotor::MotionControlType::ANGLE;
     // static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY_OPENLOOP;
     // static auto motion_control_type = BldcMotor::MotionControlType::ANGLE_OPENLOOP;
 
     motor.set_motion_control_type(motion_control_type);
     std::atomic<float> target;
     enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
-    static IncrementDirection increment_direction = IncrementDirection::UP; // HOLD
+    static IncrementDirection increment_direction = IncrementDirection::HOLD;
     switch (motion_control_type) {
     case BldcMotor::MotionControlType::VELOCITY:
     case BldcMotor::MotionControlType::VELOCITY_OPENLOOP:

@@ -28,7 +28,6 @@ namespace espp {
       float integrator_max; /**< Maximum value the integrator can wind up to. @note Operates at the same scale as \p output_min and \p output_max. */
       float output_min; /**< Limit the minimum output value. Can be a different magnitude from output max for asymmetric output behavior. */
       float output_max; /**< Limit the maximum output value. */
-      float sampling_time_s; /**< Sampling time, the time between calls of the update() function. @note the PID class measures time between calls to update(), but this value is used for startup and to provide warnings. */
       espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Verbosity for the adc logger. */
     };
 
@@ -78,8 +77,7 @@ namespace espp {
      *        getting the output control signal in return.
      *
      * @note Tracks invocation timing to better compute time-accurate
-     *       integral/derivative signals. Should be called at or close to the
-     *       frequency defined by the configured Config::sampling_time_s.
+     *       integral/derivative signals.
      *
      * @param error Latest error signal.
      * @return The output control signal based on the PID state and error.
@@ -122,8 +120,7 @@ namespace espp {
      *        getting the output control signal in return.
      *
      * @note Tracks invocation timing to better compute time-accurate
-     *       integral/derivative signals. Should be called at or close to the
-     *       frequency defined by the configured Config::sampling_time_s.
+     *       integral/derivative signals.
      *
      * @param error Latest error signal.
      * @return The output control signal based on the PID state and error.
