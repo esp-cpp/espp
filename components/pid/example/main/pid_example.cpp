@@ -20,8 +20,7 @@ extern "C" void app_main(void) {
         .integrator_min = -1000.0f,
         .integrator_max = 1000.0f,
         .output_min = -100.0f,
-        .output_max = 100.0f,
-        .sampling_time_s = 0.005f
+        .output_max = 100.0f
       });
     for (int i=0; i<num_seconds_to_run; i++) {
       float error = (float)num_seconds_to_run / (float) (i+1);
@@ -42,8 +41,7 @@ extern "C" void app_main(void) {
       .integrator_min = -1000.0f,
       .integrator_max = 1000.0f,
       .output_min = -100.0f,
-      .output_max = 100.0f,
-      .sampling_time_s = 0.1f
+      .output_max = 100.0f
     };
     espp::Pid pid(pid_config);
     auto task_fn = [&pid](std::mutex& m, std::condition_variable& cv) {
