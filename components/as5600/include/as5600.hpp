@@ -65,7 +65,7 @@ namespace espp {
     struct Config {
       write_fn write; ///< Function to write to the device.
       read_fn read; ///< Function to read from the device.
-      velocity_filter_fn velocity_filter; ///< Function to filter the veolcity. @note Will be called once every update_period seconds.
+      velocity_filter_fn velocity_filter{nullptr}; ///< Function to filter the veolcity. @note Will be called once every update_period seconds.
       std::chrono::duration<float> update_period{.01f}; ///< Update period (1/sample rate) in seconds. This determines the periodicity of the task which will read the position, update the accumulator, and update/filter velocity.
       Logger::Verbosity log_level{Logger::Verbosity::WARN};
     };
@@ -201,7 +201,7 @@ namespace espp {
       prev_time = now;
       float seconds = elapsed ? elapsed : update_period_.count();
       float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
-      velocity_rpm_ = velocity_filter_(raw_velocity);
+      velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
       static float max_velocity = 0.5f / update_period_.count() * SECONDS_PER_MINUTE;
       if (raw_velocity >= max_velocity) {
         logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your update period!",
