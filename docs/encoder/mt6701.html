@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MT6701 Magnetic Encoder - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'encoder/mt6701';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Input APIs" href="../input/index.html" />
+    <link rel="prev" title="AS5600 Magnetic Encoder" href="as5600.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Encoder APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="abi_encoder.html">ABI Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="encoder_types.html">Encoder Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="as5600.html">AS5600 Magnetic Encoder</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MT6701 Magnetic Encoder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Encoder APIs</a> &raquo;</li>
+      <li>MT6701 Magnetic Encoder</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/544cec9/docs/en/encoder/mt6701.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="mt6701-magnetic-encoder">
+<h1>MT6701 Magnetic Encoder<a class="headerlink" href="#mt6701-magnetic-encoder" title="Permalink to this headline"></a></h1>
+<p>The <cite>MT6701</cite> magnetic encoder component provides the user a convenient way to
+measure</p>
+<ul class="simple">
+<li><p>Raw count</p></li>
+<li><p>Raw radians</p></li>
+<li><p>Raw degrees</p></li>
+<li><p>Accumulated count (since the component was created)</p></li>
+<li><p>Accumulated radians (since the component was created)</p></li>
+<li><p>Accumulated degrees (since the component was created)</p></li>
+<li><p>Speed (rotations per minute / RPM)</p></li>
+</ul>
+<p>It does so by spawning a task which periodically reads the magnetic encoder,
+updates the accumulator, and computes the velocity. The component can be
+configured to optionally filter the velocity.</p>
+<p>The periodicity / update rate of the encoder can be configured at time of
+creation.</p>
+<p>The encoder is designed to fulfill the needs of the <cite>BldcMotor</cite> API, to provide
+closed-loop motor control.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/544cec9/components/mt6701/include/mt6701.hpp">components/mt6701/include/mt6701.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt6701E">
+<span id="_CPPv3N4espp6Mt6701E"></span><span id="_CPPv2N4espp6Mt6701E"></span><span id="espp::Mt6701"></span><span class="target" id="classespp_1_1_mt6701"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Mt6701</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Mt6701E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for position and velocity measurement using a MT6701 magnetic encoder. This class starts its own measurement task at the specified frequency which reads the current angle, updates the accumulator, and filters / updates the velocity measurement. </p>
+<section id="classespp_1_1_mt6701_1mt6701_ex1">
+<h4>Mt6701 Example<a class="headerlink" href="#classespp_1_1_mt6701_1mt6701_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_mt6701_1mt6701_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">i2c_cfg</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SDA_IO</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SCL_IO</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">master</span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_FREQ_HZ</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_param_config</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;config i2c failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_driver_install</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;install i2c driver failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the mt6701</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mt6701_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">data</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">};</span><span class="w"></span>
+<span class="w">      </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">espp</span><span class="o">::</span><span class="n">Mt6701</span><span class="o">::</span><span class="n">ADDRESS</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">data</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="mi">2</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mt6701_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">uint8_t</span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">data</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">i2c_master_write_read_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">espp</span><span class="o">::</span><span class="n">Mt6701</span><span class="o">::</span><span class="n">ADDRESS</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="o">&amp;</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="o">&amp;</span><span class="n">data</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">data</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make the velocity filter</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">filter_cutoff_hz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">encoder_update_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01f</span><span class="p">;</span><span class="w"> </span><span class="c1">// seconds</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">ButterworthFilter</span><span class="o">&lt;</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">BiquadFilterDf2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">filter</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">normalized_cutoff_frequency</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">filter_cutoff_hz</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">encoder_update_period</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">filter_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">filter</span><span class="p">](</span><span class="kt">float</span><span class="w"> </span><span class="n">raw</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">filter</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">raw</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// now make the mt6701 which decodes the data</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Mt6701</span><span class="w"> </span><span class="nf">mt6701</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mt6701_write</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mt6701_read</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">velocity_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">filter_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">update_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">encoder_update_period</span><span class="p">),</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the mt6701 and print the</span>
+<span class="w">    </span><span class="c1">// state. NOTE: the Mt6701 runs its own task to maintain state, so we&#39;re</span>
+<span class="w">    </span><span class="c1">// just polling the current state.</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">quit_test</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mt6701</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="o">-</span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mt6701</span><span class="p">.</span><span class="n">get_count</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">radians</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mt6701</span><span class="p">.</span><span class="n">get_radians</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">degrees</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mt6701</span><span class="p">.</span><span class="n">get_degrees</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">rpm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mt6701</span><span class="p">.</span><span class="n">get_rpm</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {}, {:.3f}, {:.3f}, {:.3f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">seconds</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">count</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">radians</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">degrees</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">rpm</span><span class="w"></span>
+<span class="w">                 </span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">quit_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">degrees</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mf">-720.0f</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Mt6701 Task&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="o">*</span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;%time(s), count, radians, degrees, rpm</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There is an implicit assumption in this class regarding the maximum velocity it can measure (above which there will be aliasing). The fastest velocity it can measure will be (0.5f * update_period * 60.0f) which is half a rotation in one update period.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The assumption above also affects the reliability of the accumulator, since it is based on accumulating position differences every update period.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67018write_fnE">
+<span id="_CPPv3N4espp6Mt67018write_fnE"></span><span id="_CPPv2N4espp6Mt67018write_fnE"></span><span id="espp::Mt6701::write_fn"></span><span class="target" id="classespp_1_1_mt6701_1a99beebeb781619b7cc0f218e8824b70d"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Mt67018write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write a byte to a register for <a class="reference internal" href="#classespp_1_1_mt6701"><span class="std std-ref">Mt6701</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param reg_addr</dt>
+<dd class="field-odd"><p>Register address to write to. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>Data to be written. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67017read_fnE">
+<span id="_CPPv3N4espp6Mt67017read_fnE"></span><span id="_CPPv2N4espp6Mt67017read_fnE"></span><span id="espp::Mt6701::read_fn"></span><span class="target" id="classespp_1_1_mt6701_1a2570bbe066dbb44b7641cfd28ac3e18f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Mt67017read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read a byte from a register for <a class="reference internal" href="#classespp_1_1_mt6701"><span class="std std-ref">Mt6701</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param reg_addr</dt>
+<dd class="field-odd"><p>Register address to read from. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>Byte read from register. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt670118velocity_filter_fnE">
+<span id="_CPPv3N4espp6Mt670118velocity_filter_fnE"></span><span id="_CPPv2N4espp6Mt670118velocity_filter_fnE"></span><span id="espp::Mt6701::velocity_filter_fn"></span><span class="target" id="classespp_1_1_mt6701_1ae374f362f424f1fa5e55e47c625823de"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">raw</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">velocity_filter_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Mt670118velocity_filter_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Filter the input raw velocity and return it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param raw</dt>
+<dd class="field-odd"><p>Most recent raw velocity measured. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>Filtered velocity. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67016Mt6701ERK6Config">
+<span id="_CPPv3N4espp6Mt67016Mt6701ERK6Config"></span><span id="_CPPv2N4espp6Mt67016Mt6701ERK6Config"></span><span id="espp::Mt6701::Mt6701__ConfigCR"></span><span class="target" id="classespp_1_1_mt6701_1a65499df3f9fc0dfe5196a19eb77765e3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mt6701</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Mt67016ConfigE" title="espp::Mt6701::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Mt67016Mt6701ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the <a class="reference internal" href="#classespp_1_1_mt6701"><span class="std std-ref">Mt6701</span></a> and start the update task. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mt670117needs_zero_searchEv">
+<span id="_CPPv3NK4espp6Mt670117needs_zero_searchEv"></span><span id="_CPPv2NK4espp6Mt670117needs_zero_searchEv"></span><span id="espp::Mt6701::needs_zero_searchC"></span><span class="target" id="classespp_1_1_mt6701_1aeb507696c6212128200c88b3ae9d7a8a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">needs_zero_search</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mt670117needs_zero_searchEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return whether the sensor has found absolute 0 yet. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The MT6701 (using I2C/SPI) does not need to search for absolute 0 and will always know it on startup. Therefore this function always returns false. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True because the magnetic sensor (using I2C/SPI) does not need to sarch for 0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mt67019get_countEv">
+<span id="_CPPv3NK4espp6Mt67019get_countEv"></span><span id="_CPPv2NK4espp6Mt67019get_countEv"></span><span id="espp::Mt6701::get_countC"></span><span class="target" id="classespp_1_1_mt6701_1a61b9621f21aa3a4fff02ee0ad55fae1d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_count</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mt67019get_countEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the most recently updated raw count value from the encoder. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This value always represents the angle of the encoder modulo one rotation, meaning it only represents the range 0 to 360 degrees. It is not recommended to use this function, but is provided for edge use cases. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Raw count value in the range [0, 16384] (0 to 360 degrees). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mt670115get_accumulatorEv">
+<span id="_CPPv3NK4espp6Mt670115get_accumulatorEv"></span><span id="_CPPv2NK4espp6Mt670115get_accumulatorEv"></span><span id="espp::Mt6701::get_accumulatorC"></span><span class="target" id="classespp_1_1_mt6701_1a597b0a0091fb28a2a7895f99c08bc584"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_accumulator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mt670115get_accumulatorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the accumulated count that the encoder has generated since it was initialized. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This value is a raw counter value that can be +/-, meaning COUNTS_PER_REVOLUTION can be used to convert it to revolutions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Raw accumulator value. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mt670122get_mechanical_radiansEv">
+<span id="_CPPv3NK4espp6Mt670122get_mechanical_radiansEv"></span><span id="_CPPv2NK4espp6Mt670122get_mechanical_radiansEv"></span><span id="espp::Mt6701::get_mechanical_radiansC"></span><span class="target" id="classespp_1_1_mt6701_1a13b49a11d19625bd0ec35f6c2b1a32c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mechanical_radians</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mt670122get_mechanical_radiansEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the mechanical / shaft angle of the encoder, in radians, within the range [0, 2pi]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Angle in radians of the encoder within the range [0, 2pi]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mt670122get_mechanical_degreesEv">
+<span id="_CPPv3NK4espp6Mt670122get_mechanical_degreesEv"></span><span id="_CPPv2NK4espp6Mt670122get_mechanical_degreesEv"></span><span id="espp::Mt6701::get_mechanical_degreesC"></span><span class="target" id="classespp_1_1_mt6701_1a58708dbc91de41da3c8454bb307bee76"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mechanical_degrees</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mt670122get_mechanical_degreesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the mechanical / shaft angle of the encoder, in degrees, within the range [0, 360]. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Angle in degrees of the encoder within the range [0, 360]. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mt670111get_radiansEv">
+<span id="_CPPv3NK4espp6Mt670111get_radiansEv"></span><span id="_CPPv2NK4espp6Mt670111get_radiansEv"></span><span id="espp::Mt6701::get_radiansC"></span><span class="target" id="classespp_1_1_mt6701_1a030fc416d5576dbb23cd69377172211b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_radians</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mt670111get_radiansEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the accumulated position of the encoder, in radians. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This can be any value, it is not restricted to [0, 2pi]. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Position in radians of the encoder. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mt670111get_degreesEv">
+<span id="_CPPv3NK4espp6Mt670111get_degreesEv"></span><span id="_CPPv2NK4espp6Mt670111get_degreesEv"></span><span id="espp::Mt6701::get_degreesC"></span><span class="target" id="classespp_1_1_mt6701_1a440659a4ce8006fbf3e53106b55cebea"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_degrees</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mt670111get_degreesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the accumulated position of the encoder, in degrees. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This can be any value, it is not restricted to [0, 360]. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Position in degrees of the encoder. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Mt67017get_rpmEv">
+<span id="_CPPv3NK4espp6Mt67017get_rpmEv"></span><span id="_CPPv2NK4espp6Mt67017get_rpmEv"></span><span id="espp::Mt6701::get_rpmC"></span><span class="target" id="classespp_1_1_mt6701_1a8c08a6cfb3be6d0cd7e93b25e333bf4d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_rpm</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Mt67017get_rpmEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the filtered velocity of the encoder, in RPM. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Filtered velocity (revolutions / minute, RPM). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67017ADDRESSE">
+<span id="_CPPv3N4espp6Mt67017ADDRESSE"></span><span id="_CPPv2N4espp6Mt67017ADDRESSE"></span><span id="espp::Mt6701::ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_mt6701_1ae58008ddb72ad913b1ae566bd0fdf1b1"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0b0000110</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp6Mt67017ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the MT6701. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt670121COUNTS_PER_REVOLUTIONE">
+<span id="_CPPv3N4espp6Mt670121COUNTS_PER_REVOLUTIONE"></span><span id="_CPPv2N4espp6Mt670121COUNTS_PER_REVOLUTIONE"></span><span id="espp::Mt6701::COUNTS_PER_REVOLUTION__i"></span><span class="target" id="classespp_1_1_mt6701_1ac2faa5c8e49b2d50601fb45e2cb7e486"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTS_PER_REVOLUTION</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">16384</span></span><a class="headerlink" href="#_CPPv4N4espp6Mt670121COUNTS_PER_REVOLUTIONE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Int number of counts per revolution for the magnetic encoder. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt670123COUNTS_PER_REVOLUTION_FE">
+<span id="_CPPv3N4espp6Mt670123COUNTS_PER_REVOLUTION_FE"></span><span id="_CPPv2N4espp6Mt670123COUNTS_PER_REVOLUTION_FE"></span><span id="espp::Mt6701::COUNTS_PER_REVOLUTION_F__float"></span><span class="target" id="classespp_1_1_mt6701_1a846b0eef7a1b485620f7b24db30f56d8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTS_PER_REVOLUTION_F</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">16384.0f</span></span><a class="headerlink" href="#_CPPv4N4espp6Mt670123COUNTS_PER_REVOLUTION_FE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Float number of counts per revolution for the magnetic encoder. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt670117COUNTS_TO_RADIANSE">
+<span id="_CPPv3N4espp6Mt670117COUNTS_TO_RADIANSE"></span><span id="_CPPv2N4espp6Mt670117COUNTS_TO_RADIANSE"></span><span id="espp::Mt6701::COUNTS_TO_RADIANS__float"></span><span class="target" id="classespp_1_1_mt6701_1a1018673dc420f10303af1715b9707fd2"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTS_TO_RADIANS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2.0f</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="n"><span class="pre">M_PI</span></span><span class="w"> </span><span class="o"><span class="pre">/</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Mt670123COUNTS_PER_REVOLUTION_FE" title="espp::Mt6701::COUNTS_PER_REVOLUTION_F"><span class="n"><span class="pre">COUNTS_PER_REVOLUTION_F</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Mt670117COUNTS_TO_RADIANSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Conversion factor to convert from count value to radians. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt670117COUNTS_TO_DEGREESE">
+<span id="_CPPv3N4espp6Mt670117COUNTS_TO_DEGREESE"></span><span id="_CPPv2N4espp6Mt670117COUNTS_TO_DEGREESE"></span><span id="espp::Mt6701::COUNTS_TO_DEGREES__float"></span><span class="target" id="classespp_1_1_mt6701_1aa65258127de593472603e585ec01cd24"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">COUNTS_TO_DEGREES</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">360.0f</span></span><span class="w"> </span><span class="o"><span class="pre">/</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Mt670123COUNTS_PER_REVOLUTION_FE" title="espp::Mt6701::COUNTS_PER_REVOLUTION_F"><span class="n"><span class="pre">COUNTS_PER_REVOLUTION_F</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Mt670117COUNTS_TO_DEGREESE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Conversion factor to convert from count value to degrees. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt670118SECONDS_PER_MINUTEE">
+<span id="_CPPv3N4espp6Mt670118SECONDS_PER_MINUTEE"></span><span id="_CPPv2N4espp6Mt670118SECONDS_PER_MINUTEE"></span><span id="espp::Mt6701::SECONDS_PER_MINUTE__float"></span><span class="target" id="classespp_1_1_mt6701_1a6fe3b41fa5ead0667d583ae866b6f022"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SECONDS_PER_MINUTE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">60.0f</span></span><a class="headerlink" href="#_CPPv4N4espp6Mt670118SECONDS_PER_MINUTEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Conversion factor to convert from seconds to minutes. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67016ConfigE">
+<span id="_CPPv3N4espp6Mt67016ConfigE"></span><span id="_CPPv2N4espp6Mt67016ConfigE"></span><span id="espp::Mt6701::Config"></span><span class="target" id="structespp_1_1_mt6701_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Mt67016ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration information for the <a class="reference internal" href="#classespp_1_1_mt6701"><span class="std std-ref">Mt6701</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67016Config5writeE">
+<span id="_CPPv3N4espp6Mt67016Config5writeE"></span><span id="_CPPv2N4espp6Mt67016Config5writeE"></span><span id="espp::Mt6701::Config::write__write_fn"></span><span class="target" id="structespp_1_1_mt6701_1_1_config_1afed07bfb3c0b1a2d838c749d8d4f53f7"></span><a class="reference internal" href="#_CPPv4N4espp6Mt67018write_fnE" title="espp::Mt6701::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Mt67016Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67016Config4readE">
+<span id="_CPPv3N4espp6Mt67016Config4readE"></span><span id="_CPPv2N4espp6Mt67016Config4readE"></span><span id="espp::Mt6701::Config::read__read_fn"></span><span class="target" id="structespp_1_1_mt6701_1_1_config_1ab951e6e28ebd7d1634e63782ffe3e26f"></span><a class="reference internal" href="#_CPPv4N4espp6Mt67017read_fnE" title="espp::Mt6701::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Mt67016Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read from the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67016Config15velocity_filterE">
+<span id="_CPPv3N4espp6Mt67016Config15velocity_filterE"></span><span id="_CPPv2N4espp6Mt67016Config15velocity_filterE"></span><span id="espp::Mt6701::Config::velocity_filter__velocity_filter_fn"></span><span class="target" id="structespp_1_1_mt6701_1_1_config_1a6759c9b35c6f7ca875c4fab81ed6e496"></span><a class="reference internal" href="#_CPPv4N4espp6Mt670118velocity_filter_fnE" title="espp::Mt6701::velocity_filter_fn"><span class="n"><span class="pre">velocity_filter_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">velocity_filter</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Mt67016Config15velocity_filterE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to filter the veolcity. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Will be called once every update_period seconds. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Mt67016Config13update_periodE">
+<span id="_CPPv3N4espp6Mt67016Config13update_periodE"></span><span id="_CPPv2N4espp6Mt67016Config13update_periodE"></span><span id="espp::Mt6701::Config::update_period__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1_mt6701_1_1_config_1a542b094887ccfee0489978887094d4b3"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_period</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">.01f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Mt67016Config13update_periodE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update period (1/sample rate) in seconds. This determines the periodicity of the task which will read the position, update the accumulator, and update/filter velocity. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="as5600.html" class="btn btn-neutral float-left" title="AS5600 Magnetic Encoder" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../input/index.html" class="btn btn-neutral float-right" title="Input APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2022, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

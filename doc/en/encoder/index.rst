@@ -6,5 +6,9 @@ Encoder APIs
 
     abi_encoder
     encoder_types
+    as5600
+    mt6701
 
-Code examples for the Encoder API are provided in the `encoder` example folder.
+There are several different types of encoders provided, some within the encoder
+component directly, as well as some that are standalone components for
+interacting with encoder chips over a serial interface such as I2C.

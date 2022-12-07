@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BLDC Motor - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'bldc/bldc_motor';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Display APIs" href="../display/index.html" />
+    <link rel="prev" title="BLDC Driver" href="bldc_driver.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">BLDC APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="bldc_driver.html">BLDC Driver</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">BLDC Motor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">BLDC APIs</a> &raquo;</li>
+      <li>BLDC Motor</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/544cec9/docs/en/bldc/bldc_motor.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bldc-motor">
+<h1>BLDC Motor<a class="headerlink" href="#bldc-motor" title="Permalink to this headline"></a></h1>
+<p>The <cite>BldcMotor</cite> implements the Field-Oriented Control (FOC) algorithm with
+support for multiple transforms to drive voltage (such as Sinusoidal and Space
+Vector). It supports the following motion control configurations (which can be
+changed dynamically):</p>
+<ul class="simple">
+<li><p>Closed-loop angle</p></li>
+<li><p>Closed-loop velocity</p></li>
+<li><p>Open-loop angle</p></li>
+<li><p>Open-loop velocity</p></li>
+</ul>
+<p>Note: currently the code has some support for Torque control, but that requires
+current sense - for which I don’t yet have the hardware to support the
+development of.</p>
+<p>The <cite>BldcMotor</cite> should be configured with a <cite>BldcDriver</cite> and optional <cite>Sensor</cite>
+(for angle &amp; speed of the motor), and optional <cite>CurrentSensor</cite> (for measuring
+the phase currents of the motor and providing torque control).</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/544cec9/components/bldc_motor/include/bldc_motor.hpp">components/bldc_motor/include/bldc_motor.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE">
+<span id="_CPPv3I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE"></span><span id="_CPPv2I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">DriverConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">D</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">SensorConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">S</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">CurrentSensorConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DummyCurrentSense</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_bldc_motor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">BldcMotor</span></span></span><a class="headerlink" href="#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor9filter_fnE">
+<span id="_CPPv3N4espp9BldcMotor9filter_fnE"></span><span id="_CPPv2N4espp9BldcMotor9filter_fnE"></span><span id="espp::BldcMotor::filter_fn"></span><span class="target" id="classespp_1_1_bldc_motor_1a336ddd09190be9425c8259ca0b90d8c2"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">raw</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">filter_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor9filter_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Filter the raw input sample and return it. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param raw</dt>
+<dd class="field-odd"><p>Most recent raw sample measured. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>Filtered output from the input. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6enableEv">
+<span id="_CPPv3N4espp9BldcMotor6enableEv"></span><span id="_CPPv2N4espp9BldcMotor6enableEv"></span><span id="espp::BldcMotor::enable"></span><span class="target" id="classespp_1_1_bldc_motor_1a3ee238046b212f9b6e22bebca8e1f2eb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">enable</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6enableEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable the controller and driver output. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor7disableEv">
+<span id="_CPPv3N4espp9BldcMotor7disableEv"></span><span id="_CPPv2N4espp9BldcMotor7disableEv"></span><span id="espp::BldcMotor::disable"></span><span class="target" id="classespp_1_1_bldc_motor_1a3dcd2ecc8f7f3e43cb4a582e67a282de"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor7disableEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disable the controller and driver output. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor17set_phase_voltageEfff">
+<span id="_CPPv3N4espp9BldcMotor17set_phase_voltageEfff"></span><span id="_CPPv2N4espp9BldcMotor17set_phase_voltageEfff"></span><span id="espp::BldcMotor::set_phase_voltage__float.float.float"></span><span class="target" id="classespp_1_1_bldc_motor_1a9e25a43c7276f70dd8fdfb48e8f6a1d8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_phase_voltage</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uq</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ud</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">el_angle</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor17set_phase_voltageEfff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Method using FOC to set Uq to the motor at the optimal angle. Heart of the FOC algorithm. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uq</strong> – Current voltage in q axis to set to the motor </p></li>
+<li><p><strong>ud</strong> – Current voltage in d axis to set to the motor </p></li>
+<li><p><strong>el_angle</strong> – current electrical angle of the motor </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor15get_shaft_angleEv">
+<span id="_CPPv3N4espp9BldcMotor15get_shaft_angleEv"></span><span id="_CPPv2N4espp9BldcMotor15get_shaft_angleEv"></span><span id="espp::BldcMotor::get_shaft_angle"></span><span class="target" id="classespp_1_1_bldc_motor_1a43e01293312f709160832a7147c22f90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_shaft_angle</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor15get_shaft_angleEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the shaft angle, in radians. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>MOtor shaft angle in radians. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor18get_shaft_velocityEv">
+<span id="_CPPv3N4espp9BldcMotor18get_shaft_velocityEv"></span><span id="_CPPv2N4espp9BldcMotor18get_shaft_velocityEv"></span><span id="espp::BldcMotor::get_shaft_velocity"></span><span class="target" id="classespp_1_1_bldc_motor_1a257b84d1bc23ddb7b301133b1bbbe695"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_shaft_velocity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor18get_shaft_velocityEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the shaft velocity, in radians per second (rad/s). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Motor shaft velocity (rad/s). </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6ConfigE">
+<span id="_CPPv3N4espp9BldcMotor6ConfigE"></span><span id="_CPPv2N4espp9BldcMotor6ConfigE"></span><span id="espp::BldcMotor::Config"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config14num_pole_pairsE">
+<span id="_CPPv3N4espp9BldcMotor6Config14num_pole_pairsE"></span><span id="_CPPv2N4espp9BldcMotor6Config14num_pole_pairsE"></span><span id="espp::BldcMotor::Config::num_pole_pairs__s"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1aacdfdaf88741d2424934c0b6b3d6a2c4"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_pole_pairs</span></span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config14num_pole_pairsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Number of pole pairs in the motor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config16phase_resistanceE">
+<span id="_CPPv3N4espp9BldcMotor6Config16phase_resistanceE"></span><span id="_CPPv2N4espp9BldcMotor6Config16phase_resistanceE"></span><span id="espp::BldcMotor::Config::phase_resistance__float"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1ac00c1e76db9d4215955a935420cc66f3"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">phase_resistance</span></span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config16phase_resistanceE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Motor phase resistance (ohms). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config9kv_ratingE">
+<span id="_CPPv3N4espp9BldcMotor6Config9kv_ratingE"></span><span id="_CPPv2N4espp9BldcMotor6Config9kv_ratingE"></span><span id="espp::BldcMotor::Config::kv_rating__float"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a2dfb390b1abb9b72e4e77b5765b0f9ed"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kv_rating</span></span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config9kv_ratingE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Motor KV rating (1/K_bemf) - rpm/V </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config13current_limitE">
+<span id="_CPPv3N4espp9BldcMotor6Config13current_limitE"></span><span id="_CPPv2N4espp9BldcMotor6Config13current_limitE"></span><span id="espp::BldcMotor::Config::current_limit__float"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1ae20a969adeaf4e8d594bace4fd463f9b"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">current_limit</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config13current_limitE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Current limit (Amps) for the controller. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config14velocity_limitE">
+<span id="_CPPv3N4espp9BldcMotor6Config14velocity_limitE"></span><span id="_CPPv2N4espp9BldcMotor6Config14velocity_limitE"></span><span id="espp::BldcMotor::Config::velocity_limit__float"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a83cc5fbc71c2280772be3be255909a0a"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">velocity_limit</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1000.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config14velocity_limitE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Velocity limit (RPM) for the controller. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config8foc_typeE">
+<span id="_CPPv3N4espp9BldcMotor6Config8foc_typeE"></span><span id="_CPPv2N4espp9BldcMotor6Config8foc_typeE"></span><span id="espp::BldcMotor::Config::foc_type__FocType"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1ac195abaad15f6c0afe2917f911567f7c"></span><span class="n"><span class="pre">FocType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">foc_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">FocType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">SPACE_VECTOR_PWM</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config8foc_typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>How the voltage for the phases should be calculated. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config17torque_controllerE">
+<span id="_CPPv3N4espp9BldcMotor6Config17torque_controllerE"></span><span id="_CPPv2N4espp9BldcMotor6Config17torque_controllerE"></span><span id="espp::BldcMotor::Config::torque_controller__TorqueControlType"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1aa2946f76ce6fa7ef2e725b65367d93fe"></span><span class="n"><span class="pre">TorqueControlType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">torque_controller</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">TorqueControlType</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">VOLTAGE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config17torque_controllerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Torque controller type. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config6driverE">
+<span id="_CPPv3N4espp9BldcMotor6Config6driverE"></span><span id="_CPPv2N4espp9BldcMotor6Config6driverE"></span><span id="espp::BldcMotor::Config::driver__std::shared_ptr:D:"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1ad73ebf41ff88919fb39f2ee3e69c5ba1"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="espp::BldcMotor::D"><span class="n"><span class="pre">D</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">driver</span></span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config6driverE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Driver for low-level setting of phase PWMs. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config6sensorE">
+<span id="_CPPv3N4espp9BldcMotor6Config6sensorE"></span><span id="_CPPv2N4espp9BldcMotor6Config6sensorE"></span><span id="espp::BldcMotor::Config::sensor__std::shared_ptr:S:"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a7ba3c3eb1b70b34ce55a2335d4a4baba"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="espp::BldcMotor::S"><span class="n"><span class="pre">S</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sensor</span></span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config6sensorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sensor for measuring position / speed. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config13current_senseE">
+<span id="_CPPv3N4espp9BldcMotor6Config13current_senseE"></span><span id="_CPPv2N4espp9BldcMotor6Config13current_senseE"></span><span id="espp::BldcMotor::Config::current_sense__std::shared_ptr:CS:"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a49fd80639ec11c7ce39291907eb89976"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="espp::BldcMotor::CS"><span class="n"><span class="pre">CS</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">current_sense</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config13current_senseE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sensor for measuring current through the motor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a6620a6cb66e438757367977d7aee9615"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">current_pid_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.kp=0,</span> <span class="pre">.ki=0,</span> <span class="pre">.kd=0,</span> <span class="pre">.integrator_min=0,</span> <span class="pre">.integrator_max=0,</span>&#160; <span class="pre">.output_min=0,</span> <span class="pre">.output_max=0}</span></span></dt>
+<dd><p>PID configuration for current (amps) pid controller. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1aebff56fc6b1b5824019ac75ab5a7eebc"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">velocity_pid_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.kp=0,</span> <span class="pre">.ki=0,</span> <span class="pre">.kd=0,</span> <span class="pre">.integrator_min=0,</span> <span class="pre">.integrator_max=0,</span>&#160; <span class="pre">.output_min=0,</span> <span class="pre">.output_max=0}</span></span></dt>
+<dd><p>PID configuration for velocity pid controller. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1ae4661004e59378432c706422d0b42976"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">angle_pid_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.kp=0,</span> <span class="pre">.ki=0,</span> <span class="pre">.kd=0,</span> <span class="pre">.integrator_min=0,</span> <span class="pre">.integrator_max=0,</span>&#160; <span class="pre">.output_min=0,</span> <span class="pre">.output_max=0}</span></span></dt>
+<dd><p>PID configuration for angle pid controller. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a6651b0e8cbbb9f3b8b2e64c0fd012541"></span><span class="sig-name descname"><span class="pre">LowpassFilter::Config</span> <span class="pre">current_lpf_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.normalized_cutoff_frequency</span> <span class="pre">=</span> <span class="pre">10.0f,</span> <span class="pre">.q_factor</span> <span class="pre">=</span> <span class="pre">1.0f}</span></span></dt>
+<dd><p>Configuration for the low pass filter of current (amps) measurement. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a3734b57708b705b740d257a92b188d1f"></span><span class="sig-name descname"><span class="pre">LowpassFilter::Config</span> <span class="pre">velocity_lpf_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.normalized_cutoff_frequency</span> <span class="pre">=</span> <span class="pre">10.0f,</span> <span class="pre">.q_factor</span> <span class="pre">=</span> <span class="pre">1.0f}</span></span></dt>
+<dd><p>Configuration for the low pass filter of velocity measurement. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a62db8bd0cb27c21cbfea8f8d43a6f2f7"></span><span class="sig-name descname"><span class="pre">LowpassFilter::Config</span> <span class="pre">angle_lpf_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.normalized_cutoff_frequency</span> <span class="pre">=</span> <span class="pre">10.0f,</span> <span class="pre">.q_factor</span> <span class="pre">=</span> <span class="pre">1.0f}</span></span></dt>
+<dd><p>Configuration for the low pass filter of angle measurement. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config9log_levelE">
+<span id="_CPPv3N4espp9BldcMotor6Config9log_levelE"></span><span id="_CPPv2N4espp9BldcMotor6Config9log_levelE"></span><span id="espp::BldcMotor::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a1b625128a1becc25438125035135aa2c"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity for the Motor. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="bldc_driver.html" class="btn btn-neutral float-left" title="BLDC Driver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../display/index.html" class="btn btn-neutral float-right" title="Display APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2022, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

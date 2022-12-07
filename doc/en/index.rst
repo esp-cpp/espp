@@ -11,6 +11,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    :maxdepth: 2
 
    adc/index
+   bldc/index
    display/index
    encoder/index
    input/index
