@@ -3,7 +3,6 @@
 
 #include "driver/i2c.h"
 
-
 #include "bldc_driver.hpp"
 #include "bldc_motor.hpp"
 #include "lowpass_filter.hpp"
@@ -21,10 +20,10 @@ using namespace std::chrono_literals;
 #define I2C_TIMEOUT_MS  (10)
 
 extern "C" void app_main(void) {
-  constexpr int num_seconds_to_run = 60;
+  constexpr int num_seconds_to_run = 120;
   {
     fmt::print("Running BLDC Motor (FOC) example for {} seconds!\n", num_seconds_to_run);
-    //! [bldc motor example]
+
     // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
     i2c_config_t i2c_cfg;
     fmt::print("initializing i2c driver...\n");
@@ -60,14 +59,15 @@ extern "C" void app_main(void) {
                                    I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
       return data;
     };
+
     // make the velocity filter
     static constexpr float core_update_period = 0.001f; // seconds
     static constexpr float filter_cutoff_hz = 4.0f;
     espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter({
-        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period
+        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01 // core_update_period
       });
     espp::LowpassFilter lpfilter({
-        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period,
+        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01, // core_update_period,
         .q_factor = 1.0f
       });
     auto filter_fn = [&bwfilter, &lpfilter](float raw) -> float {
@@ -82,6 +82,8 @@ extern "C" void app_main(void) {
       //       account?
       return raw;
     };
+
+    //! [bldc_motor example]
     // now make the mt6701 which decodes the data
     std::shared_ptr<espp::Mt6701> mt6701 = std::make_shared<espp::Mt6701>(espp::Mt6701::Config{
         .write = mt6701_write,
@@ -90,6 +92,7 @@ extern "C" void app_main(void) {
         .update_period = std::chrono::duration<float>(core_update_period),
         .log_level = espp::Logger::Verbosity::WARN
       });
+
     // now make the bldc driver
     std::shared_ptr<espp::BldcDriver> driver = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
         .gpio_a_h = 9,
@@ -103,6 +106,7 @@ extern "C" void app_main(void) {
         .limit_voltage = 3.5f,
         .log_level = espp::Logger::Verbosity::WARN
       });
+
     // now make the bldc motor
     using BldcMotor = espp::BldcMotor<espp::BldcDriver, espp::Mt6701>;
     auto motor = BldcMotor(BldcMotor::Config{
@@ -127,8 +131,8 @@ extern "C" void app_main(void) {
           .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
         },
         .angle_pid_config = {
-          .kp = 5.000f,
-          .ki = 0.100f,
+          .kp = 7.000f,
+          .ki = 0.300f,
           .kd = 0.010f,
           .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
           .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
@@ -137,46 +141,20 @@ extern "C" void app_main(void) {
         },
         .log_level = espp::Logger::Verbosity::INFO
       });
+
     // static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY;
-    static auto motion_control_type = BldcMotor::MotionControlType::ANGLE;
+    static constexpr auto motion_control_type = BldcMotor::MotionControlType::ANGLE;
     // static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY_OPENLOOP;
     // static auto motion_control_type = BldcMotor::MotionControlType::ANGLE_OPENLOOP;
 
+    // Set the motion control type and create a target for the motor (will be
+    // updated in the target update task below)
     motor.set_motion_control_type(motion_control_type);
-    std::atomic<float> target;
-    enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
-    static IncrementDirection increment_direction = IncrementDirection::HOLD;
-    switch (motion_control_type) {
-    case BldcMotor::MotionControlType::VELOCITY:
-    case BldcMotor::MotionControlType::VELOCITY_OPENLOOP:
-      target = 50.0f;
-      break;
-    case BldcMotor::MotionControlType::ANGLE:
-    case BldcMotor::MotionControlType::ANGLE_OPENLOOP:
-      target = M_PI; // 180 degrees (whereever that is...)
-      break;
-    default:
-      break;
-    }
+    std::atomic<float> target = 0;
+
     auto motor_task_fn = [&motor, &target](std::mutex& m, std::condition_variable& cv) {
-      static constexpr float max_target = 200.0f;
-      static constexpr float target_delta = 50.0f * core_update_period;
       static auto delay = std::chrono::duration<float>(core_update_period);
       auto start = std::chrono::high_resolution_clock::now();
-      // update target
-      if (increment_direction == IncrementDirection::UP) {
-        target += target_delta;
-        if (target > max_target) {
-          increment_direction = IncrementDirection::DOWN;
-          target -= target_delta;
-        }
-      } else if (increment_direction == IncrementDirection::DOWN) {
-        target -= target_delta;
-        if (target < -max_target) {
-          increment_direction = IncrementDirection::UP;
-          target += target_delta;
-        }
-      }
       // command the motor
       motor.loop_foc();
       if (motion_control_type == BldcMotor::MotionControlType::VELOCITY ||
@@ -202,11 +180,64 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN
       });
     motor_task.start();
+    //! [bldc_motor example]
+
+    // Configure the target
+    enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
+    static IncrementDirection increment_direction = IncrementDirection::UP;
+    static constexpr bool is_angle =
+      motion_control_type == BldcMotor::MotionControlType::ANGLE ||
+      motion_control_type == BldcMotor::MotionControlType::ANGLE_OPENLOOP;
+    static constexpr float max_target = is_angle ? (2.0f * M_PI) : 200.0f;
+    static constexpr float target_delta = is_angle ? (M_PI / 4.0f) : (50.0f * core_update_period);
+    switch (motion_control_type) {
+    case BldcMotor::MotionControlType::VELOCITY:
+    case BldcMotor::MotionControlType::VELOCITY_OPENLOOP:
+      target = 50.0f;
+      break;
+    case BldcMotor::MotionControlType::ANGLE:
+    case BldcMotor::MotionControlType::ANGLE_OPENLOOP:
+      target = M_PI; // 180 degrees (whereever that is...)
+      break;
+    default:
+      break;
+    }
+
+    // make a task which will update the target (velocity or angle)
+    auto target_task_fn = [&target](std::mutex &m, std::condition_variable &cv) {
+      static auto delay = std::chrono::duration<float>(is_angle ? 1.0f : core_update_period);
+      auto start = std::chrono::high_resolution_clock::now();
+      // update target
+      if (increment_direction == IncrementDirection::UP) {
+        target += target_delta;
+        if (target > max_target) {
+          increment_direction = IncrementDirection::DOWN;
+          target -= target_delta;
+        }
+      } else if (increment_direction == IncrementDirection::DOWN) {
+        target -= target_delta;
+        if (target < -max_target) {
+          increment_direction = IncrementDirection::UP;
+          target += target_delta;
+        }
+      }
+      // NOTE: sleeping in this way allows the sleep to exit early when the
+      // task is being stopped / destroyed
+      {
+        std::unique_lock<std::mutex> lk(m);
+        cv.wait_until(lk, start + delay);
+      }
+    };
+    auto target_task = espp::Task({
+        .name = "Target Task",
+        .callback = target_task_fn,
+      });
+    target_task.start();
 
     // and finally, make the task to periodically poll the mt6701 and print the
     // state. NOTE: the Mt6701 runs its own task to maintain state, so we're
     // just polling the current state.
-    auto task_fn = [&mt6701, &target](std::mutex& m, std::condition_variable& cv) {
+    auto task_fn = [&mt6701, &target, &lpfilter](std::mutex& m, std::condition_variable& cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds = std::chrono::duration<float>(now-start).count();
@@ -221,7 +252,7 @@ extern "C" void app_main(void) {
                  radians,
                  degrees,
                  _target,
-                 rpm
+                 lpfilter(rpm)
                  );
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
@@ -245,7 +276,7 @@ extern "C" void app_main(void) {
       fmt::print("%time(s), count, radians, degrees, target angle (radians), actual speed (rpm)\n");
     }
     task.start();
-    //! [bldc_motor example]
+
     static auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
     auto seconds = std::chrono::duration<float>(now-start).count();
