@@ -10,6 +10,12 @@
 #include "logger.hpp"
 
 namespace espp {
+  /**
+   * @brief Interface for controlling the 6 PWMs (high/low sides for phases
+   *        A,B,C) of a brushless dc motor (BLDC motor). Wraps around the ESP32
+   *        https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html
+   *        peripheral.
+   */
   class BldcDriver {
   public:
     static constexpr size_t TIMER_RESOLUTION_HZ = 80 * 1000 * 1000; // 80 MHz
@@ -26,7 +32,7 @@ namespace espp {
       int gpio_b_l; /**< Phase B low side gpio. */
       int gpio_c_h; /**< Phase C high side gpio. */
       int gpio_c_l; /**< Phase C low side gpio. */
-      int gpio_enable{-1}; /**< Enalbe pin for the BLDC driver (if any). */
+      int gpio_enable{-1}; /**< Enable pin for the BLDC driver (if any). */
       float power_supply_voltage; /**< Voltage of the power supply. */
       float limit_voltage{-1}; /**< What voltage the motor should be limited to. Less than 0 means no limit. Will be clamped to power supply voltage. */
       float dead_zone{0.02}; /**< Percentage [0.0, 1.0] of time the gates are off. */
@@ -35,6 +41,7 @@ namespace espp {
 
     /**
       * @brief Initialize the bldc driver.
+      * @note Enables the driver.
       * @param config Config used to initialize the driver.
       */
     BldcDriver(const Config& config)
@@ -89,8 +96,8 @@ namespace espp {
     }
 
     /**
-     * @brief This function does nothing, merely exists for later if choose to
-     *        implement it as part of the FOC control algorithm.
+     * @brief This function does nothing, merely exists for later if we choose
+     *        to implement it as part of the FOC control algorithm.
      * @note The integers provided are -1 (low), 0 (high impedance), and 1
      *       (active) for the 3 possible states.
      * @param state_a Desired state for phase A.
@@ -103,7 +110,6 @@ namespace espp {
 
     /**
      * @brief Set the phase voltages (in volts) to the driver.
-
      * @note Uses the previously configured power supply voltage and limit
      *       voltage (if any was provided) to convert to the appropriate pwm.
      * @param ua Desired voltage [0.0f, power_supply_voltage] for phase A.

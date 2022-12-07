@@ -12,6 +12,9 @@
 
 namespace espp {
 
+  /**
+   * @brief Concept defining the required interfaces for the Driver.
+   */
   template <class FOO>
   concept DriverConcept = requires {
     static_cast<void (FOO::*)(void)>(&FOO::enable);
@@ -21,6 +24,9 @@ namespace espp {
     static_cast<float (FOO::*)(void) const>(&FOO::get_voltage_limit);
   };
 
+  /**
+   * @brief Concept defining the required interfacese for the Sensor.
+   */
   template <class FOO>
   concept SensorConcept = requires {
     static_cast<bool (FOO::*)(void) const>(&FOO::needs_zero_search);
@@ -29,6 +35,9 @@ namespace espp {
     static_cast<float (FOO::*)(void) const>(&FOO::get_mechanical_radians);
   };
 
+  /**
+   * @brief Concept defining the required interfacese for the Current Sensor.
+   */
   template <class FOO>
   concept CurrentSensorConcept = requires {
     static_cast<float (FOO::*)(float) const>(&FOO::get_dc_current);
@@ -44,7 +53,12 @@ namespace espp {
     bool driver_align(float v) const { return true; }
   };
 
-  // TODO: actually support current sense?
+  /**
+   * @brief Motor control class for a Brushless DC (BLDC) motor, implementing
+   *        the field-oriented control (FOC) algorithm. Must be provided a
+   *        driver object / type, and optionally a position/velocity sensor
+   *        object/type and optionally a current sensor object / type.
+   */
   template <DriverConcept D, SensorConcept S, CurrentSensorConcept CS = DummyCurrentSense>
   class BldcMotor {
   public:
