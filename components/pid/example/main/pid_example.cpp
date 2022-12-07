@@ -47,7 +47,6 @@ extern "C" void app_main(void) {
     auto task_fn = [&pid](std::mutex& m, std::condition_variable& cv) {
       auto now = std::chrono::high_resolution_clock::now();
       float elapsed = std::chrono::duration<float>(now-start).count();
-      // TODO: update PID here...
       float error = 2.0f / elapsed;
       float output = pid.update(error);
       fmt::print("PID: {:0.3f} -> {:0.3f}\n", error, output);
