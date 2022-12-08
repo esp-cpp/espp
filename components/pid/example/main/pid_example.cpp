@@ -20,8 +20,7 @@ extern "C" void app_main(void) {
         .integrator_min = -1000.0f,
         .integrator_max = 1000.0f,
         .output_min = -100.0f,
-        .output_max = 100.0f,
-        .sampling_time_s = 0.005f
+        .output_max = 100.0f
       });
     for (int i=0; i<num_seconds_to_run; i++) {
       float error = (float)num_seconds_to_run / (float) (i+1);
@@ -42,14 +41,12 @@ extern "C" void app_main(void) {
       .integrator_min = -1000.0f,
       .integrator_max = 1000.0f,
       .output_min = -100.0f,
-      .output_max = 100.0f,
-      .sampling_time_s = 0.1f
+      .output_max = 100.0f
     };
     espp::Pid pid(pid_config);
     auto task_fn = [&pid](std::mutex& m, std::condition_variable& cv) {
       auto now = std::chrono::high_resolution_clock::now();
       float elapsed = std::chrono::duration<float>(now-start).count();
-      // TODO: update PID here...
       float error = 2.0f / elapsed;
       float output = pid.update(error);
       fmt::print("PID: {:0.3f} -> {:0.3f}\n", error, output);

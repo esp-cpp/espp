@@ -24,19 +24,26 @@ namespace espp {
       float kp; /**< Proportional gain. */
       float ki; /**< Integral gain. @note should not be pre-multiplied by the time constant. */
       float kd; /**< Derivative gain. @note should not be pre-divided by the time-constant. */
-      float integrator_min; /**< Minimum value the integrator can have. Could be 0 or negative. Can have different magnitude from integrator_max for asymmetric response. */
-      float integrator_max; /**< Maximum value the integrator can wind up to. */
+      float integrator_min; /**< Minimum value the integrator can wind down to. @note Operates at the same scale as \p output_min and \p output_max. Could be 0 or negative. Can have different magnitude from integrator_max for asymmetric response. */
+      float integrator_max; /**< Maximum value the integrator can wind up to. @note Operates at the same scale as \p output_min and \p output_max. */
       float output_min; /**< Limit the minimum output value. Can be a different magnitude from output max for asymmetric output behavior. */
       float output_max; /**< Limit the maximum output value. */
-      float sampling_time_s; /**< Sampling time, the time between calls of the update() function. @note the PID class measures time between calls to update(), but this value is used for startup and to provide warnings. */
       espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; /**< Verbosity for the adc logger. */
     };
 
     /**
      * @brief Create the PID controller.
      */
-    Pid(const Config& config) : logger_({.tag = "PID", .level = config.log_level}) {
-      change_gains(config);
+    Pid(const Config& config)
+      : kp_(config.kp),
+        ki_(config.ki),
+        kd_(config.kd),
+        integrator_min_(config.integrator_min),
+        integrator_max_(config.integrator_max),
+        output_min_(config.output_min),
+        output_max_(config.output_max),
+        prev_ts_(std::chrono::high_resolution_clock::now()),
+        logger_({.tag = "PID", .level = config.log_level}) {
     }
 
     /**
@@ -52,12 +59,6 @@ namespace espp {
       integrator_max_ = config.integrator_max;
       output_min_ = config.output_min;
       output_max_ = config.output_max;
-      if (config.sampling_time_s <= 0) {
-        logger_.warn("Was not provided valid sampling time, setting it to 1e-3 seconds!");
-        ts_ = 1e-3;
-      } else {
-        ts_ = config.sampling_time_s;
-      }
       clear();
     }
 
@@ -76,38 +77,56 @@ namespace espp {
      *        getting the output control signal in return.
      *
      * @note Tracks invocation timing to better compute time-accurate
-     *       integral/derivative signals. Should be called at or close to the
-     *       frequency defined by the configured Config::sampling_time_s.
+     *       integral/derivative signals.
      *
      * @param error Latest error signal.
      * @return The output control signal based on the PID state and error.
      */
     float update(float error) {
-      static auto prev_ts = std::chrono::high_resolution_clock::now();
       auto curr_ts = std::chrono::high_resolution_clock::now();
-      float t = std::chrono::duration<float>(curr_ts - prev_ts).count();
-      prev_ts = curr_ts;
+      float t = std::chrono::duration<float>(curr_ts - prev_ts_).count();
+      prev_ts_ = curr_ts;
+      std::lock_guard<std::recursive_mutex> lk(mutex_);
       // NOTE: for ESP platform, we shouldn't be running PID on anything faster
       //       than a few KHz so check against 100KHz here.
       if (t <= 1e-5) {
-        // during startup, just use the the configured sampling time
-        t = ts_;
+        // during startup, use a small value until we get reasonable values...
+        t = 1e-3;
       }
-      std::lock_guard<std::recursive_mutex> lk(mutex_);
       error_ = error;
-      integrator_ = std::clamp(integrator_ + error_, integrator_min_, integrator_max_);
+      float integrand = ki_ * error_ * t;
+      integrator_ = std::clamp(integrator_ + integrand, integrator_min_, integrator_max_);
       float p = kp_ * error_;
-      float i = ki_ * integrator_ * t;
+      float i = integrator_;
       float d = kd_ * (error_ - previous_error_) / t;
       float output = p + i + d;
-      // ensure we don't continue growing integrator if the output is saturated
-      if (output >= output_max_ || output <= output_min_) {
-        integrator_ -= error_;
-      }
       // update our state for next loop
       previous_error_ = error_;
+      // ensure we don't continue growing integrator (windup) if the output is saturated
+      if (output >= output_max_ || output <= output_min_) {
+        integrator_ = integrator_ - integrand;
+      }
       // clamp the output and return it
       return std::clamp(output, output_min_, output_max_);
+    }
+
+    std::string to_string() {
+      std::lock_guard<std::recursive_mutex> lk(mutex_);
+      return fmt::format("{}, {}, {}", error_, previous_error_, integrator_);
+    }
+
+    /**
+     * @brief Update the PID controller with the latest error measurement,
+     *        getting the output control signal in return.
+     *
+     * @note Tracks invocation timing to better compute time-accurate
+     *       integral/derivative signals.
+     *
+     * @param error Latest error signal.
+     * @return The output control signal based on the PID state and error.
+     */
+    float operator() (float error) {
+      return update(error);
     }
 
   protected:
@@ -118,10 +137,10 @@ namespace espp {
     float integrator_max_;
     float output_min_;
     float output_max_;
-    float error_;
-    float previous_error_;
-    float integrator_;
-    float ts_;
+    float error_{0};
+    float previous_error_{0};
+    float integrator_{0};
+    std::chrono::time_point<std::chrono::high_resolution_clock> prev_ts_;
     std::recursive_mutex mutex_;
     Logger logger_;
   };

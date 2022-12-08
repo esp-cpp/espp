@@ -76,6 +76,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Encoder APIs</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ABI Encoder</a><ul>
@@ -87,6 +88,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="encoder_types.html">Encoder Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="as5600.html">AS5600 Magnetic Encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mt6701.html">MT6701 Magnetic Encoder</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
@@ -119,7 +122,7 @@
           <li><a href="index.html">Encoder APIs</a> &raquo;</li>
       <li>ABI Encoder</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/ee60097/docs/en/encoder/abi_encoder.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/encoder/abi_encoder.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -135,12 +138,13 @@ ESP peripheral api as it would be configured for an incremental encoder with
 quadrature output (see <a class="reference external" href="https://en.wikipedia.org/wiki/Incremental_encoder">Wikipedia</a>). The AbiEncoder can be
 configured to be either <cite>LINEAR</cite> or <cite>ROTATIONAL</cite>, and provides access to the
 current <cite>count</cite> of the encoder (including the overflow underflow conditions).</p>
+<p>Code examples for the ABI Encoder are provided in the <cite>encoder</cite> example folder.</p>
 <section id="api-reference">
 <h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ee60097/components/encoder/include/abi_encoder.hpp">components/encoder/include/abi_encoder.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/encoder/include/abi_encoder.hpp">components/encoder/include/abi_encoder.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">

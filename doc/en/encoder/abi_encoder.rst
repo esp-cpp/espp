@@ -10,6 +10,8 @@ quadrature output (see `Wikipedia
 configured to be either `LINEAR` or `ROTATIONAL`, and provides access to the
 current `count` of the encoder (including the overflow underflow conditions).
 
+Code examples for the ABI Encoder are provided in the `encoder` example folder.
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

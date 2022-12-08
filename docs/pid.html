@@ -76,6 +76,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
@@ -115,7 +116,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>PID APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/ee60097/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -137,7 +138,7 @@ have its gains change dynamically.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ee60097/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -155,8 +156,7 @@ have its gains change dynamically.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">integrator_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-1000.0f</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">integrator_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1000.0f</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">output_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-100.0f</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">output_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100.0f</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">sampling_time_s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.005f</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">output_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100.0f</span><span class="w"></span>
 <span class="w">      </span><span class="p">});</span><span class="w"></span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">&lt;</span><span class="n">num_seconds_to_run</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">num_seconds_to_run</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
@@ -177,14 +177,12 @@ have its gains change dynamically.</p>
 <span class="w">      </span><span class="p">.</span><span class="n">integrator_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-1000.0f</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">integrator_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1000.0f</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">output_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-100.0f</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">output_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100.0f</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">sampling_time_s</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">output_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100.0f</span><span class="w"></span>
 <span class="w">    </span><span class="p">};</span><span class="w"></span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Pid</span><span class="w"> </span><span class="nf">pid</span><span class="p">(</span><span class="n">pid_config</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">pid</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="o">-</span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
-<span class="w">      </span><span class="c1">// TODO: update PID here...</span>
 <span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">elapsed</span><span class="p">;</span><span class="w"></span>
 <span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pid</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">error</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;PID: {:0.3f} -&gt; {:0.3f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">);</span><span class="w"></span>
@@ -243,7 +241,25 @@ have its gains change dynamically.</p>
 <dd><p>Update the PID controller with the latest error measurement, getting the output control signal in return. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Tracks invocation timing to better compute time-accurate integral/derivative signals. Should be called at or close to the frequency defined by the configured <a class="reference internal" href="#structespp_1_1_pid_1_1_config_1a4f1ab8c63d927b81393ac73ce16a10ce"><span class="std std-ref">Config::sampling_time_s</span></a>.</p>
+<p>Tracks invocation timing to better compute time-accurate integral/derivative signals.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>error</strong> – Latest error signal. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The output control signal based on the PID state and error. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3PidclEf">
+<span id="_CPPv3N4espp3PidclEf"></span><span id="_CPPv2N4espp3PidclEf"></span><span id="espp::Pid::call-operator__float"></span><span class="target" id="classespp_1_1_pid_1ac9a380868d8ea5237d29fdb6d85ea622"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">error</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3PidclEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the PID controller with the latest error measurement, getting the output control signal in return. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Tracks invocation timing to better compute time-accurate integral/derivative signals.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -290,13 +306,21 @@ have its gains change dynamically.</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid6Config14integrator_minE">
 <span id="_CPPv3N4espp3Pid6Config14integrator_minE"></span><span id="_CPPv2N4espp3Pid6Config14integrator_minE"></span><span id="espp::Pid::Config::integrator_min__float"></span><span class="target" id="structespp_1_1_pid_1_1_config_1aa8da30ccd33728c3633d1600a24ea0c6"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">integrator_min</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Pid6Config14integrator_minE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Minimum value the integrator can have. Could be 0 or negative. Can have different magnitude from integrator_max for asymmetric response. </p>
+<dd><p>Minimum value the integrator can wind down to. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Operates at the same scale as <code class="docutils literal notranslate"><span class="pre">output_min</span></code> and <code class="docutils literal notranslate"><span class="pre">output_max</span></code>. Could be 0 or negative. Can have different magnitude from integrator_max for asymmetric response. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid6Config14integrator_maxE">
 <span id="_CPPv3N4espp3Pid6Config14integrator_maxE"></span><span id="_CPPv2N4espp3Pid6Config14integrator_maxE"></span><span id="espp::Pid::Config::integrator_max__float"></span><span class="target" id="structespp_1_1_pid_1_1_config_1a2bde4df714e773c69041665417b92ff9"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">integrator_max</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Pid6Config14integrator_maxE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Maximum value the integrator can wind up to. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Operates at the same scale as <code class="docutils literal notranslate"><span class="pre">output_min</span></code> and <code class="docutils literal notranslate"><span class="pre">output_max</span></code>. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
@@ -309,16 +333,6 @@ have its gains change dynamically.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid6Config10output_maxE">
 <span id="_CPPv3N4espp3Pid6Config10output_maxE"></span><span id="_CPPv2N4espp3Pid6Config10output_maxE"></span><span id="espp::Pid::Config::output_max__float"></span><span class="target" id="structespp_1_1_pid_1_1_config_1a85450e9dd5fca8a0c2891892f7a08c9d"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output_max</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Pid6Config10output_maxE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Limit the maximum output value. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid6Config15sampling_time_sE">
-<span id="_CPPv3N4espp3Pid6Config15sampling_time_sE"></span><span id="_CPPv2N4espp3Pid6Config15sampling_time_sE"></span><span id="espp::Pid::Config::sampling_time_s__float"></span><span class="target" id="structespp_1_1_pid_1_1_config_1a4f1ab8c63d927b81393ac73ce16a10ce"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sampling_time_s</span></span></span><a class="headerlink" href="#_CPPv4N4espp3Pid6Config15sampling_time_sE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Sampling time, the time between calls of the <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a> function. </p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>the PID class measures time between calls to <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a>, but this value is used for startup and to provide warnings. </p>
-</div>
 </dd></dl>
 
 <dl class="cpp var">
