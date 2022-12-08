@@ -136,6 +136,10 @@ namespace espp {
       Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the Motor.  */
     };
 
+    /**
+     * @brief Create and initialize the BLDC motor, running through any
+     *        necessary sensor calibration.
+     */
     BldcMotor(const Config& config)
       : num_pole_pairs_(config.num_pole_pairs),
         phase_resistance_(config.phase_resistance),
@@ -189,6 +193,10 @@ namespace espp {
       init_foc(config.zero_electric_offset, config.sensor_direction);
     }
 
+    /**
+     * @brief Destroy the motor, making sure to disable it first to ensure power
+     *        is cutoff.
+     */
     ~BldcMotor() {
       disable();
     }
@@ -209,6 +217,10 @@ namespace espp {
       driver_->disable();
     }
 
+    /**
+     * @brief Update the motoion control scheme the motor control loop uses.
+     * @param motion_control_type New motion control to use.
+     */
     void set_motion_control_type(MotionControlType motion_control_type) {
       motion_control_type_ = motion_control_type;
     }
@@ -428,12 +440,23 @@ namespace espp {
       return (float)sensor_direction_ * sensed * RPM_TO_RADS;
     }
 
+    /**
+     * @brief Get the electrical angle of the motor - using the mechanical
+     *        angle, the number of pole pairs, and the zero electrical angle.
+     * @return The electrical angle of the motor (in radians)
+     */
     float get_electrical_angle() {
       if (!sensor_) return electrical_angle_;
       float el_angle = (float)sensor_direction_ * (float)num_pole_pairs_ * sensor_->get_mechanical_radians() - zero_electrical_angle_;
       return normalize_angle(el_angle);
     }
 
+    /**
+     * @brief Main FOC loop for implementing the torque control, based on the
+     *        configured TorqueControlType.
+     * @note Only TorqueControlType::VOLTAGE is supported right now, because the
+     *       other types require current sense.
+     */
     void loop_foc() {
       if (!enabled_) {
         return;
@@ -481,6 +504,16 @@ namespace espp {
       set_phase_voltage(voltage_.q, voltage_.d, electrical_angle_);
     }
 
+    /**
+     * @brief Main motion control loop implementing the closed-loop and
+     *        open-loop angle & velocity control.
+     * @param new_target The new target for the configured MotionControlType.
+     * @note Units are based on the MotionControlType; radians if it's
+     *       MotionControlType::ANGLE or MotionControlType::ANGLE_OPENLOOP,
+     *       radians/second if it's MotionControlType::VELOCITY or
+     *       MotionControlType::VELOCITY_OPENLOOP, volts if it's
+     *       MotionControlType::VOLTAGE.
+     */
     void move(float new_target) {
       // if disabled do nothing
       if (!enabled_) return;
