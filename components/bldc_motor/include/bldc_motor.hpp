@@ -3,7 +3,6 @@
 #include <atomic>
 
 #include "logger.hpp"
-#include "lowpass_filter.hpp"
 #include "fast_math.hpp"
 #include "pid.hpp"
 #include "task.hpp"
@@ -62,26 +61,41 @@ namespace espp {
   template <DriverConcept D, SensorConcept S, CurrentSensorConcept CS = DummyCurrentSense>
   class BldcMotor {
   public:
+    /**
+     *  @brief Sensor Direction Configuration
+     */
     enum class Direction {
-      CLOCKWISE = 1,
-      COUNTER_CLOCKWISE = -1,
-      UNKNOWN = 0
+      CLOCKWISE = 1, /**< The sensor is mounted clockwise (so the positive phase direction leads to positive angle increase). */
+      COUNTER_CLOCKWISE = -1,  /**< The sensor is mounted counter-clockwise (so the positive phase direction leads to negative angle increase). */
+      UNKNOWN = 0 /**< The direction is unknown. */
     };
 
+    /**
+     * @brief The type of control loop the motor runs.
+     */
     enum class MotionControlType {
-      TORQUE,
-      VELOCITY,
-      ANGLE,
-      VELOCITY_OPENLOOP,
-      ANGLE_OPENLOOP
+      TORQUE,  /**< Torque-control (providing constant torque with current feedback). */
+      VELOCITY,  /**< Velocity closed-loop control, using speed feedback from the sensor. */
+      ANGLE,  /**< Angle closed-loop control, using angle feedback from the sensor. */
+      VELOCITY_OPENLOOP,  /**< Velocity open-loop control, without feedback. */
+      ANGLE_OPENLOOP  /**< Angle open-loop control, without feedback. */
     };
 
+    /**
+     * @brief The type of torque control to provide.
+     * @note VOLTAGE is the only one supported right now, since the other two
+     *       require current sense.
+     */
     enum class TorqueControlType {
       VOLTAGE,     /**< Torque control using voltage */
       DC_CURRENT,  /**< Torque control using DC current (one current magnitude) */
       FOC_CURRENT  /**< Torque control using DQ currents */
     };
 
+    /**
+     *  @brief How the voltages / pwms are calculated based on the magnitude and
+     *         phase of the drive vector.
+     */
     enum class FocType {
       SINE_PWM,          /**< Sinusoidal PWM modulation */
       SPACE_VECTOR_PWM,  /**< Space Vector modulation */
@@ -96,6 +110,9 @@ namespace espp {
      */
     typedef std::function<float(float raw)> filter_fn;
 
+    /**
+     * @brief BLDC Motor / FOC configuration structure
+     */
     struct Config {
       size_t num_pole_pairs; /**< Number of pole pairs in the motor. */
       float phase_resistance; /**< Motor phase resistance (ohms). */
@@ -112,9 +129,10 @@ namespace espp {
       Pid::Config current_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0}; /**< PID configuration for current (amps) pid controller. */
       Pid::Config velocity_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0}; /**< PID configuration for velocity pid controller. */
       Pid::Config angle_pid_config{.kp=0, .ki=0, .kd=0, .integrator_min=0, .integrator_max=0,  .output_min=0, .output_max=0}; /**< PID configuration for angle pid controller. */
-      LowpassFilter::Config current_lpf_config{.normalized_cutoff_frequency = 10.0f, .q_factor = 1.0f}; /**< Configuration for the low pass filter of current (amps) measurement. */
-      LowpassFilter::Config velocity_lpf_config{.normalized_cutoff_frequency = 10.0f, .q_factor = 1.0f}; /**< Configuration for the low pass filter of velocity measurement. */
-      LowpassFilter::Config angle_lpf_config{.normalized_cutoff_frequency = 10.0f, .q_factor = 1.0f}; /**< Configuration for the low pass filter of angle measurement. */
+      filter_fn q_current_filter{nullptr}; /**< Optional filter added to the sensed q current. */
+      filter_fn d_current_filter{nullptr}; /**< Optional filter added to the sensed d current. */
+      filter_fn velocity_filter{nullptr}; /**< Optional filter added to the sensed velocity. */
+      filter_fn angle_filter{nullptr}; /**< Optional filter added to the sensed angle. */
       Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the Motor.  */
     };
 
@@ -131,13 +149,13 @@ namespace espp {
         sensor_(config.sensor),
         current_sense_(config.current_sense),
         pid_current_q_(config.current_pid_config),
-        lpf_current_q_(config.current_lpf_config),
         pid_current_d_(config.current_pid_config),
-        lpf_current_d_(config.current_lpf_config),
         pid_velocity_(config.current_pid_config),
-        lpf_velocity_(config.velocity_lpf_config),
         pid_angle_(config.current_pid_config),
-        lpf_angle_(config.angle_lpf_config),
+        q_current_filter_(config.q_current_filter),
+        d_current_filter_(config.d_current_filter),
+        velocity_filter_(config.velocity_filter),
+        angle_filter_(config.angle_filter),
         logger_({.tag = "BldcMotor", .level = config.log_level}) {
       // initialize the voltage limit
       voltage_limit_ = driver_->get_voltage_limit();
@@ -395,8 +413,8 @@ namespace espp {
     float get_shaft_angle() {
       // if no sensor linked return previous value ( for open loop )
       if (!sensor_) return shaft_angle_;
-      // return (float)sensor_direction_ * lpf_angle_(sensor_->get_radians()) - sensor_offset_;
-      return (float)sensor_direction_ * sensor_->get_radians() - sensor_offset_;
+      auto sensed = angle_filter_ ? angle_filter_(sensor_->get_radians()) : sensor_->get_radians();
+      return (float)sensor_direction_ * sensed - sensor_offset_;
     }
 
     /**
@@ -406,8 +424,8 @@ namespace espp {
     float get_shaft_velocity() {
       // if no sensor linked return previous value ( for open loop )
       if (!sensor_) return shaft_velocity_;
-      // return (float)sensor_direction_ * lpf_velocity_(sensor_->get_rpm());
-      return (float)sensor_direction_ * sensor_->get_rpm() * RPM_TO_RADS;
+      auto sensed = velocity_filter_ ? velocity_filter_(sensor_->get_rpm()) : sensor_->get_rpm();
+      return (float)sensor_direction_ * sensed * RPM_TO_RADS;
     }
 
     float get_electrical_angle() {
@@ -439,7 +457,7 @@ namespace espp {
         // read overall current magnitude
         current_.q = current_sense_->get_dc_current(electrical_angle_);
         // filter the value values
-        current_.q = lpf_current_q_(current_.q);
+        current_.q = q_current_filter_ ? q_current_filter_(current_.q) : current_.q;
         // calculate the phase voltage
         voltage_.q = pid_current_q_(target_current_ - current_.q);
         voltage_.d = 0;
@@ -449,8 +467,8 @@ namespace espp {
         // read dq currents
         current_ = current_sense_->get_foc_currents(electrical_angle_);
         // filter values
-        current_.q = lpf_current_q_(current_.q);
-        current_.d = lpf_current_d_(current_.d);
+        current_.q = q_current_filter_ ? q_current_filter_(current_.q) : current_.q;
+        current_.d = d_current_filter_ ? d_current_filter_(current_.d) : current_.d;
         // calculate the phase voltages
         voltage_.q = pid_current_q_(target_current_ - current_.q);
         voltage_.d = pid_current_d_(-current_.d);
@@ -834,13 +852,13 @@ namespace espp {
     std::shared_ptr<CS> current_sense_;
 
     Pid pid_current_q_;
-    LowpassFilter lpf_current_q_;
     Pid pid_current_d_;
-    LowpassFilter lpf_current_d_;
     Pid pid_velocity_;
-    LowpassFilter lpf_velocity_;
     Pid pid_angle_;
-    LowpassFilter lpf_angle_;
+    filter_fn q_current_filter_{nullptr};
+    filter_fn d_current_filter_{nullptr};
+    filter_fn velocity_filter_{nullptr};
+    filter_fn angle_filter_{nullptr};
     std::atomic<bool> enabled_{false};
     Status status_{Status::UNINITIALIZED};
     Logger logger_;
