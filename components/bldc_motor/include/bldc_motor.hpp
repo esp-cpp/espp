@@ -57,6 +57,8 @@ namespace espp {
    *        the field-oriented control (FOC) algorithm. Must be provided a
    *        driver object / type, and optionally a position/velocity sensor
    *        object/type and optionally a current sensor object / type.
+   * @note This is a port (with some modifications) of the excellent work by
+   *       SimpleFOC - https://simplefoc.com
    */
   template <DriverConcept D, SensorConcept S, CurrentSensorConcept CS = DummyCurrentSense>
   class BldcMotor {
@@ -420,7 +422,7 @@ namespace espp {
 
     /**
      * @brief Return the shaft angle, in radians.
-     * @return MOtor shaft angle in radians.
+     * @return Motor shaft angle in radians.
      */
     float get_shaft_angle() {
       // if no sensor linked return previous value ( for open loop )
@@ -511,8 +513,8 @@ namespace espp {
      * @note Units are based on the MotionControlType; radians if it's
      *       MotionControlType::ANGLE or MotionControlType::ANGLE_OPENLOOP,
      *       radians/second if it's MotionControlType::VELOCITY or
-     *       MotionControlType::VELOCITY_OPENLOOP, volts if it's
-     *       MotionControlType::VOLTAGE.
+     *       MotionControlType::VELOCITY_OPENLOOP, Nm if it's
+     *       MotionControlType::TORQUE.
      */
     void move(float new_target) {
       // if disabled do nothing
@@ -549,8 +551,8 @@ namespace espp {
       switch (motion_control_type_) {
       case MotionControlType::TORQUE:
         if (torque_control_type_ == TorqueControlType::VOLTAGE) { // if voltage torque control
-          if (!phase_resistance_)  voltage_.q = target_;
-          else  voltage_.q =  target_ * phase_resistance_ + bemf_voltage_;
+          if (!phase_resistance_) voltage_.q = target_;
+          else voltage_.q =  target_ * phase_resistance_ + bemf_voltage_;
           voltage_.q = std::clamp(voltage_.q, -voltage_limit_, voltage_limit_);
           voltage_.d = 0;
         } else {
