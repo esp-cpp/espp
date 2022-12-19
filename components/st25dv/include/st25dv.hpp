@@ -95,15 +95,6 @@ namespace espp {
       return it_sts;
     }
 
-    void write_uri(std::string_view protocol, std::string_view uri, std::string_view info) {
-      //
-    }
-
-    std::string read_uri() {
-      std::string uri;
-      return uri;
-    }
-
     /**
      * @brief Enable fast transfer mode (using up to 255 bytes at a time)
      *        between RF and I2C. After calling this, you can call transfer(),

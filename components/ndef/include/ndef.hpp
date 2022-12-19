@@ -22,6 +22,9 @@ namespace espp {
    * @note TNF01 (Well Known) could have a record type of "T" for text message,
    *       "U" for URI message, "Sp" if the payload is a smart poster.
    *
+   * @note There is also a well known type (WKT) for bluetooth handover which is
+   *       a MIME (multipurpose internet mail extensions) type.
+   *
    * @note Will see TNF04 frequently since Android uses an External type called
    *       an Android Application Record to trigger apps to open.
    *
@@ -87,10 +90,31 @@ namespace espp {
       return make(TNF::EXTERNAL_TYPE, "android.com:pkg", uri);
     }
 
-  protected:
+    static std::vector<uint8_t> make_oob_pairing() {
+      std::vector<uint8_t> data;
+      // TODO: fill the data
+      // 2 bytes of data length (e.g. 0x20, 0x00)
+      // 6 bytes of BT device address
+      // local name field:
+      //  * 1 byte length
+      //  * 1 byte EIR data type (local name = 0x09)
+      //  * local name (length - 1 bytes)
+      // class of device field:
+      //  * 1 byte length
+      //  * 1 byte EIR data type (class of device = 0x0D)
+      //  * class of device (length - 1 bytes)
+      // uuid field:
+      //  * 1 byte length
+      //  * 1 byte EIR data type (UUID = 0x03)
+      //  * groups of 2 byte fields (each is two bytes, total bytes is length - 1)
+      //
+      auto sv_data = std::string_view{(const char*)data.data(), data.size()};
+      // TODO: do we need ID?
+      return make(TNF::MIME_MEDIA, "application/vnd.bluetooth.ep.oob", sv_data);
+    }
+
     /**
      * @brief Makes an NDEF packet with header and payload.
-     * @note \p data will be resized to fit header and payload.
      * @note This does not include ID functionality for the packet.
      * @param tnf The TNF for this packet.
      * @param type String view for the type of this packet
