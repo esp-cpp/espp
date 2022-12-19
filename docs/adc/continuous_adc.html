@@ -16,7 +16,9 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -98,6 +100,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
@@ -121,7 +124,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>Continuous ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/adc/continuous_adc.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/3ff7e46/docs/en/adc/continuous_adc.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -130,7 +133,7 @@
            <div itemprop="articleBody">
              
   <section id="continuous-adc">
-<h1>Continuous ADC<a class="headerlink" href="#continuous-adc" title="Permalink to this headline"></a></h1>
+<h1>Continuous ADC<a class="headerlink" href="#continuous-adc" title="Permalink to this heading"></a></h1>
 <p>The <cite>ContinuousAdc</cite> provides a mechanism for high-frequency, continuous,
 deterministic sampling of analog voltages for multiple channels (potentially
 across multiple ADC units, depending on the ESP32 chip used). It does this be
@@ -139,21 +142,21 @@ retrieves the data and filters it. When the user calls <cite>get_mv(adc_channel_
 it simply returns the most recent filtered value for that channel, if it was
 configured.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/adc/include/continuous_adc.hpp">components/adc/include/continuous_adc.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/3ff7e46/components/adc/include/continuous_adc.hpp">components/adc/include/continuous_adc.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13ContinuousAdcE">
-<span id="_CPPv3N4espp13ContinuousAdcE"></span><span id="_CPPv2N4espp13ContinuousAdcE"></span><span id="espp::ContinuousAdc"></span><span class="target" id="classespp_1_1_continuous_adc"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ContinuousAdc</span></span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdcE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp13ContinuousAdcE"></span><span id="_CPPv2N4espp13ContinuousAdcE"></span><span id="espp::ContinuousAdc"></span><span class="target" id="classespp_1_1_continuous_adc"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ContinuousAdc</span></span></span><a class="headerlink" href="#_CPPv4N4espp13ContinuousAdcE" title="Permalink to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="#classespp_1_1_continuous_adc"><span class="std std-ref">ContinuousAdc</span></a> provides a wrapper around the ESP-IDF continuous adc subsystem, enabling high-frequency, filtered measurements of analog values. The <code class="docutils literal notranslate"><a class="reference internal" href="#classespp_1_1_continuous_adc_1a049bcf564350cb1ca5f046c216ec9767"><span class="std std-ref"><span class="pre">get_mv()</span></span></a></code> function will always return the most up to date value, without needing to perform additional reads (therefore it is non-blocking). </p>
 <section id="classespp_1_1_continuous_adc_1adc_continuous_ex1">
-<h4>Continuous ADC Example<a class="headerlink" href="#classespp_1_1_continuous_adc_1adc_continuous_ex1" title="Permalink to this headline"></a></h4>
+<h4>Continuous ADC Example<a class="headerlink" href="#classespp_1_1_continuous_adc_1adc_continuous_ex1" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_continuous_adc_1adc_continuous_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">AdcConfig</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_UNIT_2</span><span class="p">,</span><span class="w"></span>

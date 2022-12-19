@@ -16,7 +16,9 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -97,6 +99,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
@@ -120,7 +123,7 @@
           <li><a href="index.html">BLDC APIs</a> &raquo;</li>
       <li>BLDC Driver</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/bldc/bldc_driver.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/3ff7e46/docs/en/bldc/bldc_driver.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -129,22 +132,22 @@
            <div itemprop="articleBody">
              
   <section id="bldc-driver">
-<h1>BLDC Driver<a class="headerlink" href="#bldc-driver" title="Permalink to this headline"></a></h1>
+<h1>BLDC Driver<a class="headerlink" href="#bldc-driver" title="Permalink to this heading"></a></h1>
 <p>The <cite>BldcDriver</cite> component wraps around the <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html">ESP MCPWM Peripheral</a>
 to provide full 6 PWM control over a 3 phase brushless dc motor.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/bldc_driver/include/bldc_driver.hpp">components/bldc_driver/include/bldc_driver.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/3ff7e46/components/bldc_driver/include/bldc_driver.hpp">components/bldc_driver/include/bldc_driver.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriverE">
-<span id="_CPPv3N4espp10BldcDriverE"></span><span id="_CPPv2N4espp10BldcDriverE"></span><span id="espp::BldcDriver"></span><span class="target" id="classespp_1_1_bldc_driver"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">BldcDriver</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriverE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp10BldcDriverE"></span><span id="_CPPv2N4espp10BldcDriverE"></span><span id="espp::BldcDriver"></span><span class="target" id="classespp_1_1_bldc_driver"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BldcDriver</span></span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriverE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Interface for controlling the 6 PWMs (high/low sides for phases A,B,C) of a brushless dc motor (BLDC motor). Wraps around the ESP32 <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html">https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html</a> peripheral. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>

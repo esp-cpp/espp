@@ -24,16 +24,24 @@ namespace espp {
     static constexpr uint8_t DATA_ADDRESS = (0xA6 >> 1); ///< I2C Address for writing / reading data
     static constexpr uint8_t SYST_ADDRESS = (0xAE >> 1); ///< I2C Address for writing / reading system config
 
+    /**
+     * @brief Encapsulates the different flags / bit fields that the IT_STS
+     * dynamic register holds for the different states it represents. Reading
+     * this register clears it to 0x00.
+
+     * @note RF events are reported in the IT_STS register even if GPO output is
+     * disabled.
+     */
     class IT_STS {
     public:
-      static constexpr int RF_USER       = 0b00000001;
-      static constexpr int RF_ACTIVITY   = 0b00000010;
-      static constexpr int RF_INTTERUPT  = 0b00000100;
-      static constexpr int FIELD_FALLING = 0b00001000;
-      static constexpr int FIELD_RISING  = 0b00010000;
-      static constexpr int RF_PUT_MSG    = 0b00100000;
-      static constexpr int RF_GET_MSG    = 0b01000000;
-      static constexpr int RF_WRITE      = 0b10000000;
+      static constexpr int RF_USER       = 0b00000001; ///< Manage GPO (set / reset GPO)
+      static constexpr int RF_ACTIVITY   = 0b00000010; ///< Indicates RF Access
+      static constexpr int RF_INTTERUPT  = 0b00000100; ///< GPO Interrupt request
+      static constexpr int FIELD_FALLING = 0b00001000; ///< RF field is falling
+      static constexpr int FIELD_RISING  = 0b00010000; ///< RF field is rising
+      static constexpr int RF_PUT_MSG    = 0b00100000; ///< Message put by RF into FTM mailbox
+      static constexpr int RF_GET_MSG    = 0b01000000; ///< Message read by RF from FTM mailbox, and end of message has been reached.
+      static constexpr int RF_WRITE      = 0b10000000; ///< Write in eeprom
     };
 
     /**
@@ -60,7 +68,7 @@ namespace espp {
     struct Config {
       write_fn write; ///< Function to write to the device.
       read_fn read; ///< Function to read from the device.
-      Logger::Verbosity log_level{Logger::Verbosity::WARN};
+      Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the component.  */
     };
 
     /**
@@ -73,6 +81,13 @@ namespace espp {
       init();
     }
 
+    /**
+     * @brief Get the interrupt status register (dynamic IT_STS).
+     * @note Reading the interrupt status register clears it.
+     * @note The available states / flags in the register are available in \c
+     *       St25dv::IT_STS.
+     * @return The raw interrupt status register value read from the chip.
+     */
     uint8_t get_interrupt_status() {
       uint8_t it_sts = 0;
       read_(DATA_ADDRESS, (uint16_t)Registers::IT_STS, &it_sts, 1);
@@ -88,6 +103,12 @@ namespace espp {
       return uri;
     }
 
+    /**
+     * @brief Enable fast transfer mode (using up to 255 bytes at a time)
+     *        between RF and I2C. After calling this, you can call transfer(),
+     *        receive(), and get_ftm_length() for fast bi-directional
+     *        communications between RF and I2C.
+     */
     void start_fast_transfer_mode() {
       uint16_t reg_addr = (uint16_t)Registers::MB_CTRL;
       uint8_t data[3] = {
@@ -99,6 +120,12 @@ namespace espp {
       write_(DATA_ADDRESS, data, sizeof(data));
     }
 
+    /**
+     * @brief Disable fast transfer mode (using up to 255 bytes at a time)
+     *        between RF and I2C. After calling this, you cannot call transfer()
+     *        or receive() without again calling start_fast_transfer_mode()
+     *        first.
+     */
     void stop_fast_transfer_mode() {
       uint16_t reg_addr = (uint16_t)Registers::MB_CTRL;
       uint8_t data[3] = {
@@ -110,6 +137,11 @@ namespace espp {
       write_(DATA_ADDRESS, data, sizeof(data));
     }
 
+    /**
+     * @brief Returns the available message length in the FTM message box.
+     * @details Will return non-zero if the RF received data into the FTM.
+     * @return Number of bytes (up to 255) available in the FTM message box.
+     */
     uint8_t get_ftm_length() {
       uint8_t len = 0;
       read_(DATA_ADDRESS, (uint16_t)Registers::MB_LEN, &len, 1);
@@ -118,6 +150,7 @@ namespace espp {
 
     /**
      * @brief Write data to the FTM message box to send.
+     * @note Must call start_fast_transfer_mode() prior to use.
      * @param data Data to be written.
      * @param length Number of bytes to write.
      */
@@ -127,6 +160,9 @@ namespace espp {
 
     /**
      * @brief Read data from the FTM message box.
+     * @note Must call start_fast_transfer_mode() prior to use.
+     * @note The length available to be read can be found by calling
+     *       get_ftm_length().
      * @param data Pointer to memory to be filled with data.
      * @param length Number of bytes to read.
      */

@@ -16,7 +16,9 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -39,7 +41,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Serialization APIs" href="serialization.html" />
-    <link rel="prev" title="TCP Sockets" href="network/tcp_socket.html" /> 
+    <link rel="prev" title="ST25DV" href="nfc/st25dv.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -86,6 +88,7 @@
 <li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">PID APIs</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#pid">PID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
@@ -116,7 +119,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>PID APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/3ff7e46/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -125,30 +128,30 @@
            <div itemprop="articleBody">
              
   <section id="pid-apis">
-<h1>PID APIs<a class="headerlink" href="#pid-apis" title="Permalink to this headline"></a></h1>
+<h1>PID APIs<a class="headerlink" href="#pid-apis" title="Permalink to this heading"></a></h1>
 <section id="pid">
-<h2>PID<a class="headerlink" href="#pid" title="Permalink to this headline"></a></h2>
+<h2>PID<a class="headerlink" href="#pid" title="Permalink to this heading"></a></h2>
 <p>The <cite>PID</cite> component provides a simple, thread-safe class representing a PID
 controller. It tracks how frequently its <cite>update()</cite> method is called and can
 have its gains change dynamically.</p>
 <p>Code examples for the task API are provided in the <cite>pid</cite> example folder.</p>
 </section>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/3ff7e46/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3PidE">
-<span id="_CPPv3N4espp3PidE"></span><span id="_CPPv2N4espp3PidE"></span><span id="espp::Pid"></span><span class="target" id="classespp_1_1_pid"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Pid</span></span></span><a class="headerlink" href="#_CPPv4N4espp3PidE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp3PidE"></span><span id="_CPPv2N4espp3PidE"></span><span id="espp::Pid"></span><span class="target" id="classespp_1_1_pid"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Pid</span></span></span><a class="headerlink" href="#_CPPv4N4espp3PidE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Simple PID (proportional, integral, derivative) controller class with integrator clamping, output clamping, and prevention of integrator windup during output saturation. This class is thread-safe, so you can <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a>, <a class="reference internal" href="#classespp_1_1_pid_1af0a2c66aa72fa8c7a1300b5856a05a39"><span class="std std-ref">clear()</span></a>, and <a class="reference internal" href="#classespp_1_1_pid_1a8ff421776a0c842e0329f3edd59acd73"><span class="std std-ref">change_gains()</span></a> from multiple threads if needed. </p>
 <section id="classespp_1_1_pid_1pid_ex1">
-<h4>Basic PID Example<a class="headerlink" href="#classespp_1_1_pid_1pid_ex1" title="Permalink to this headline"></a></h4>
+<h4>Basic PID Example<a class="headerlink" href="#classespp_1_1_pid_1pid_ex1" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_pid_1pid_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Pid</span><span class="w"> </span><span class="nf">pid</span><span class="p">({</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">ki</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">,</span><span class="w"></span>
@@ -169,7 +172,7 @@ have its gains change dynamically.</p>
  </p>
 </section>
 <section id="classespp_1_1_pid_1pid_ex2">
-<h4>Complex PID Example<a class="headerlink" href="#classespp_1_1_pid_1pid_ex2" title="Permalink to this headline"></a></h4>
+<h4>Complex PID Example<a class="headerlink" href="#classespp_1_1_pid_1pid_ex2" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_pid_1pid_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Pid</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">pid_config</span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">ki</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">,</span><span class="w"></span>
@@ -354,7 +357,7 @@ have its gains change dynamically.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="network/tcp_socket.html" class="btn btn-neutral float-left" title="TCP Sockets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="nfc/st25dv.html" class="btn btn-neutral float-left" title="ST25DV" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="serialization.html" class="btn btn-neutral float-right" title="Serialization APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

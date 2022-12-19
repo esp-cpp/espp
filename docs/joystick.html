@@ -16,7 +16,9 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -94,6 +96,7 @@
 <li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
@@ -116,7 +119,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Joystick APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/joystick.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/3ff7e46/docs/en/joystick.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -125,9 +128,9 @@
            <div itemprop="articleBody">
              
   <section id="joystick-apis">
-<h1>Joystick APIs<a class="headerlink" href="#joystick-apis" title="Permalink to this headline"></a></h1>
+<h1>Joystick APIs<a class="headerlink" href="#joystick-apis" title="Permalink to this heading"></a></h1>
 <section id="joystick">
-<h2>Joystick<a class="headerlink" href="#joystick" title="Permalink to this headline"></a></h2>
+<h2>Joystick<a class="headerlink" href="#joystick" title="Permalink to this heading"></a></h2>
 <p>The <cite>Joystick</cite> class provides a wrapper around a 2-axis analog joystick, with an
 associated reader function for grabbing the raw values. When the joystick
 <cite>update()</cite> is called, the raw values are mapped into the range [-1,1] for each
@@ -135,21 +138,21 @@ axis according to the configuration provided.</p>
 <p>Code examples for the task API are provided in the <cite>joystick</cite> example folder.</p>
 </section>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/joystick/include/joystick.hpp">components/joystick/include/joystick.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/3ff7e46/components/joystick/include/joystick.hpp">components/joystick/include/joystick.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8JoystickE">
-<span id="_CPPv3N4espp8JoystickE"></span><span id="_CPPv2N4espp8JoystickE"></span><span id="espp::Joystick"></span><span class="target" id="classespp_1_1_joystick"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Joystick</span></span></span><a class="headerlink" href="#_CPPv4N4espp8JoystickE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp8JoystickE"></span><span id="_CPPv2N4espp8JoystickE"></span><span id="espp::Joystick"></span><span class="target" id="classespp_1_1_joystick"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Joystick</span></span></span><a class="headerlink" href="#_CPPv4N4espp8JoystickE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>2-axis <a class="reference internal" href="#classespp_1_1_joystick"><span class="std std-ref">Joystick</span></a> with axis mapping / calibration. </p>
 <section id="classespp_1_1_joystick_1joystick_ex1">
-<h4>ADC Joystick Example<a class="headerlink" href="#classespp_1_1_joystick_1joystick_ex1" title="Permalink to this headline"></a></h4>
+<h4>ADC Joystick Example<a class="headerlink" href="#classespp_1_1_joystick_1joystick_ex1" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_joystick_1joystick_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">AdcConfig</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_UNIT_2</span><span class="p">,</span><span class="w"></span>
