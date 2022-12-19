@@ -21,8 +21,20 @@ namespace espp {
     // NOTE: when the datasheet mentions E2 device select, they are talking
     // about Bit 4 of the address which selects between the data (user memory,
     // dynamic registers, FTM mailbox), and system memory
-    static constexpr uint8_t DATA_ADDRESS = (0b10100110 >> 1); ///< I2C Address for writing / reading data
-    static constexpr uint8_t SYST_ADDRESS = (0x10101110 >> 1); ///< I2C Address for writing / reading system config
+    static constexpr uint8_t DATA_ADDRESS = (0xA6 >> 1); ///< I2C Address for writing / reading data
+    static constexpr uint8_t SYST_ADDRESS = (0xAE >> 1); ///< I2C Address for writing / reading system config
+
+    class IT_STS {
+    public:
+      static constexpr int RF_USER       = 0b00000001;
+      static constexpr int RF_ACTIVITY   = 0b00000010;
+      static constexpr int RF_INTTERUPT  = 0b00000100;
+      static constexpr int FIELD_FALLING = 0b00001000;
+      static constexpr int FIELD_RISING  = 0b00010000;
+      static constexpr int RF_PUT_MSG    = 0b00100000;
+      static constexpr int RF_GET_MSG    = 0b01000000;
+      static constexpr int RF_WRITE      = 0b10000000;
+    };
 
     /**
      * @brief Function to write bytes to St25dv.
@@ -63,7 +75,7 @@ namespace espp {
 
     uint8_t get_interrupt_status() {
       uint8_t it_sts = 0;
-      read_(SYST_ADDRESS, (uint16_t)Registers::IT_STS, &it_sts, 1);
+      read_(DATA_ADDRESS, (uint16_t)Registers::IT_STS, &it_sts, 1);
       return it_sts;
     }
 
@@ -84,7 +96,7 @@ namespace espp {
         // data
         MB_CTRL::EN,
       };
-      write_(SYST_ADDRESS, data, sizeof(data));
+      write_(DATA_ADDRESS, data, sizeof(data));
     }
 
     void stop_fast_transfer_mode() {
@@ -95,12 +107,12 @@ namespace espp {
         // data
         0,
       };
-      write_(SYST_ADDRESS, data, sizeof(data));
+      write_(DATA_ADDRESS, data, sizeof(data));
     }
 
     uint8_t get_ftm_length() {
       uint8_t len = 0;
-      read_(SYST_ADDRESS, (uint16_t)Registers::MB_LEN, &len, 1);
+      read_(DATA_ADDRESS, (uint16_t)Registers::MB_LEN, &len, 1);
       return len;
     }
 
@@ -127,6 +139,10 @@ namespace espp {
       logger_.info("Initializing");
       read_uuid();
       read_password();
+      auto block_size_bytes = read_block_size_bytes();
+      auto memory_size_blocks = read_memory_size_blocks();
+      memory_size_bytes_ = block_size_bytes * memory_size_blocks;
+      logger_.info("Memory size (B): {}", memory_size_bytes_);
     }
 
     void write_ftm(uint8_t* data, uint8_t length) {
@@ -135,7 +151,7 @@ namespace espp {
       all_data[0] = (uint8_t)(FTM_START_ADDR >> 8);
       all_data[1] = (uint8_t)(FTM_START_ADDR & 0xFF);
       memcpy(&all_data[2], data, length);
-      write_(DATA_ADDRESS, data, length);
+      write_(DATA_ADDRESS, all_data, length+2);
     }
 
     void read_ftm(uint8_t* data, uint8_t length, uint8_t offset=0) {
@@ -148,6 +164,20 @@ namespace espp {
       read_(SYST_ADDRESS, (uint16_t)Registers::UID, uuid, sizeof(uuid));
       memcpy(&uuid_, uuid, sizeof(uuid));
       logger_.debug("Got uuid: 0x{:016X}", uuid_);
+    }
+
+    uint8_t read_block_size_bytes() {
+      uint8_t block_size_bytes = 0;
+      read_(SYST_ADDRESS, (uint16_t)Registers::MEM_SIZE, &block_size_bytes, 1);
+      logger_.debug("Block size (B): {}", block_size_bytes);
+      return block_size_bytes;
+    }
+
+    uint16_t read_memory_size_blocks() {
+      uint16_t memory_size_blocks = 0;
+      read_(SYST_ADDRESS, (uint16_t)Registers::BLK_SIZE, (uint8_t*)&memory_size_blocks, 2);
+      logger_.debug("Memory size (blocks): {}", memory_size_blocks);
+      return memory_size_blocks;
     }
 
     void read_password() {
@@ -183,6 +213,8 @@ namespace espp {
       // E2=1, and a security session must be opened first by presenting a valid
       // I2C password.
       GPO_CONF = 0x0000,  /**< Enable / Disable interrupts on GPO. */
+      MEM_SIZE = 0x0014,  /**< Memory size value in blocks, 2 bytes. */
+      BLK_SIZE = 0x0016,  /**< Block size value in bytes. */
       UID      = 0x0018,  /**< Unique identifier, 8 bytes. */
       I2C_PWD  = 0x0900,  /**< I2C Security session password, 8 bytes. */
       // Dynamic registers:
@@ -215,18 +247,6 @@ namespace espp {
       static constexpr int VCC_ON      = 0b00001000;
     };
 
-    class IT_STS {
-    public:
-      static constexpr int RF_USER       = 0b00000001;
-      static constexpr int RF_ACTIVITY   = 0b00000010;
-      static constexpr int RF_INTTERUPT  = 0b00000100;
-      static constexpr int FIELD_FALLING = 0b00001000;
-      static constexpr int FIELD_RISING  = 0b00010000;
-      static constexpr int RF_PUT_MSG    = 0b00100000;
-      static constexpr int RF_GET_MSG    = 0b01000000;
-      static constexpr int RF_WRITE      = 0b10000000;
-    };
-
     class MB_CTRL {
     public:
       static constexpr int EN               = 0b00000001;
@@ -243,6 +263,7 @@ namespace espp {
 
     write_fn write_;
     read_fn read_;
+    uint32_t memory_size_bytes_;
     uint64_t uuid_;
     uint64_t password_;
     Logger logger_;

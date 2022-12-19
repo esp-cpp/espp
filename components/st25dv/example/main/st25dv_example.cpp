@@ -70,7 +70,7 @@ extern "C" void app_main(void) {
       auto seconds = std::chrono::duration<float>(now-start).count();
       auto it_sts = st25dv.get_interrupt_status();
       fmt::print("IT STS: {:02x}\n", it_sts);
-      quit_test = it_sts == 0x00;
+      quit_test = it_sts && espp::St25dv::IT_STS::FIELD_RISING;
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
