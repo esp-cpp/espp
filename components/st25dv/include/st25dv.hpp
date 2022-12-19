@@ -18,11 +18,11 @@ namespace espp {
    */
   class St25dv {
   public:
-    // A6 (data access)
-    // AE (system access)
-    static constexpr uint8_t ADDRESS = (0x2D); ///< I2C address of the ST25DV
-    static constexpr uint8_t DATA_ADDRESS = (0xA6 >> 1); ///< I2C Address for writing / reading data
-    static constexpr uint8_t SYST_ADDRESS = (0xAE >> 1); ///< I2C Address for writing / reading system config
+    // NOTE: when the datasheet mentions E2 device select, they are talking
+    // about Bit 4 of the address which selects between the data (user memory,
+    // dynamic registers, FTM mailbox), and system memory
+    static constexpr uint8_t DATA_ADDRESS = (0b10100110 >> 1); ///< I2C Address for writing / reading data
+    static constexpr uint8_t SYST_ADDRESS = (0x10101110 >> 1); ///< I2C Address for writing / reading system config
 
     /**
      * @brief Function to write bytes to St25dv.
