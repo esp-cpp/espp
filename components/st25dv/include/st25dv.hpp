@@ -6,6 +6,7 @@
 
 #include "logger.hpp"
 #include "task.hpp"
+#include "ndef.hpp"
 
 namespace espp {
   /**
