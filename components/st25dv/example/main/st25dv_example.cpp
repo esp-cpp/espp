@@ -62,7 +62,7 @@ extern "C" void app_main(void) {
         .read = st25dv_read,
         .log_level = espp::Logger::Verbosity::DEBUG
       });
-    std::vector<uint8_t> text_record = espp::Ndef::make_text("hello!");
+    std::vector<uint8_t> text_record = espp::Ndef::make_text("hello! ");
     std::vector<uint8_t> uri_record = espp::Ndef::make_uri("github.com/esp-cpp/espp", espp::Ndef::Uic::HTTPS);
     st25dv.write(std::string_view{(const char*)text_record.data(), text_record.size()});
     std::array<uint8_t, 100> programmed_data;
@@ -70,8 +70,7 @@ extern "C" void app_main(void) {
     fmt::print("Read: {}\n", programmed_data);
     fmt::print("Ours: {}\n", text_record);
     // and finally, make the task to periodically poll the st25dv and print the
-    // state. NOTE: the St25dv runs its own task to maintain state, so we're
-    // just polling the current state.
+    // state.
     auto task_fn = [&quit_test, &st25dv](std::mutex& m, std::condition_variable& cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
