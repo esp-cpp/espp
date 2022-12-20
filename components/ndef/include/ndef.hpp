@@ -13,6 +13,9 @@ namespace espp {
    * @note Some information about NDEF can be found
    *       https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/
    *
+   * @note Some other information about NDEF for BT OOB pairing can be found
+   *       https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html
+   *
    * @note Some additional information can be found
    *       https://developer.android.com/reference/android/nfc/NdefMessage
    *
@@ -90,27 +93,51 @@ namespace espp {
       return make(TNF::EXTERNAL_TYPE, "android.com:pkg", uri);
     }
 
-    static std::vector<uint8_t> make_oob_pairing() {
+    static std::vector<uint8_t> make_oob_pairing(uint64_t mac_addr, uint32_t device_class, std::string_view name) {
       std::vector<uint8_t> data;
+      // NOTE: for the EIR data types see the BT_HANDOVER_TYPE_ codes here:
+      // https://android.googlesource.com/platform/packages/apps/Nfc/+/master/src/com/android/nfc/handover/HandoverDataParser.java#61
+
       // TODO: fill the data
-      // 2 bytes of data length (e.g. 0x20, 0x00)
-      // 6 bytes of BT device address
-      // local name field:
-      //  * 1 byte length
-      //  * 1 byte EIR data type (local name = 0x09)
-      //  * local name (length - 1 bytes)
-      // class of device field:
-      //  * 1 byte length
-      //  * 1 byte EIR data type (class of device = 0x0D)
-      //  * class of device (length - 1 bytes)
-      // uuid field:
-      //  * 1 byte length
-      //  * 1 byte EIR data type (UUID = 0x03)
-      //  * groups of 2 byte fields (each is two bytes, total bytes is length - 1)
+      // 2 bytes of data length (e.g. 0x20, 0x00) including length field
+      // 6 bytes of BT device MAC address
+      // OOB optional data as extended inquiry response (EIR) - no specific
+      //   order. Example below:
+      //   * local name field:
+      //    * 1 byte length
+      //    * 1 byte EIR data type (local name = 0x09)
+      //    * local name (length - 1 bytes)
+      //   * class of device field:
+      //    * 1 byte length
+      //    * 1 byte EIR data type (class of device = 0x0D, 24 bit class of device value)
+      //    * class of device (length - 1 bytes) (service class, major class, minor class)
+      //   * uuid field:
+      //    * 1 byte length
+      //    * 1 byte EIR data type (UUID = 0x03, 16bit service class uuids)
+      //    * groups of 2 byte fields (each is two bytes, total bytes is length - 1)
       //
       auto sv_data = std::string_view{(const char*)data.data(), data.size()};
       // TODO: do we need ID?
       return make(TNF::MIME_MEDIA, "application/vnd.bluetooth.ep.oob", sv_data);
+    }
+
+    static std::vector<uint8_t> make_le_oob_pairing(uint64_t mac_addr, uint32_t device_class, std::string_view name) {
+      std::vector<uint8_t> data;
+      // NOTE: for the EIR data types see the BT_HANDOVER_TYPE_ codes here:
+      // https://android.googlesource.com/platform/packages/apps/Nfc/+/master/src/com/android/nfc/handover/HandoverDataParser.java#61
+
+      // TODO: fill the data - NOTE: all BLE data is passed as EIR data with no additional data
+      // (mandatory 0x1B) LE device address
+      // (mandatory 0x1C) LE role
+      // (optional  0x10) Security Manager TK value (LE legacy pairing)
+      // (optional  0x19) 2 byte Appearance, e.g. 'Remote Control', 'Computer', or 'Heart Rate Sensor'
+      // (optional  0x01) Flags
+      // (optional  0x08 or 0x09) Shortend or complete bluetooth local name, e.g. 'My BLE Device'
+      // (optional  0x22) LE secure connections confirmation value
+      // (optional  0x23) LE secure connections random value
+      auto sv_data = std::string_view{(const char*)data.data(), data.size()};
+      // TODO: do we need ID?
+      return make(TNF::MIME_MEDIA, "application/vnd.bluetooth.le.oob", sv_data);
     }
 
     /**
