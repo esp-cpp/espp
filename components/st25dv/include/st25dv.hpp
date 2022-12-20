@@ -95,6 +95,18 @@ namespace espp {
       return it_sts;
     }
 
+    void write(std::string_view payload) {
+      uint8_t data[2 + payload.size()];
+      data[0] = (uint8_t)(AREA_1_START_ADDR >> 8);
+      data[1] = (uint8_t)(AREA_1_START_ADDR & 0xFF);
+      memcpy(&data[2], payload.data(), payload.size());
+      write_(DATA_ADDRESS, data, sizeof(data));
+    }
+
+    void read(uint8_t *data, uint8_t length, uint16_t offset = 0) {
+      read_(DATA_ADDRESS, AREA_1_START_ADDR + offset, data, length);
+    }
+
     /**
      * @brief Enable fast transfer mode (using up to 255 bytes at a time)
      *        between RF and I2C. After calling this, you can call transfer(),
@@ -285,6 +297,8 @@ namespace espp {
       static constexpr int HOST_CURRENT_MSG = 0b01000000;
       static constexpr int RF_CURRENT_MSG   = 0b10000000;
     };
+
+    static constexpr uint16_t AREA_1_START_ADDR = 0x0000; /**< Start address of the first user memory area. */
 
     static constexpr uint16_t FTM_START_ADDR = 0x2008; /**< Start address of the Fast Transfer Mode Mailbox. */
     static constexpr int FTM_SIZE = 0xFF; /**< Number of bytes in the Fast Transfer Mode Mailbox. */

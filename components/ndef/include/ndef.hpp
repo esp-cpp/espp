@@ -71,22 +71,60 @@ namespace espp {
       RESERVED       = 0x07, ///< Reserved by the NFC forum for future use
     };
 
+    /**
+     * Common record types:
+     * * Text (T)
+     * * URI  (U)
+     * * Smart Poster (Sp)
+     * * Alternative Carrier (ac)
+     * * Handover Carrier (Hc)
+     * * Handover Request (Hr)
+     * * Handover Select (Hs)
+     */
+
     struct Flags {
       union {
         struct {
-          uint8_t MB : 1;
-          uint8_t ME : 1;
-          uint8_t CF : 1;
-          uint8_t SR : 1;
-          uint8_t IL : 1;
           uint8_t TNF : 3;
+          uint8_t IL : 1;
+          uint8_t SR : 1;
+          uint8_t CF : 1;
+          uint8_t ME : 1;
+          uint8_t MB : 1;
         };
         uint8_t raw;
       };
     };
 
-    static std::vector<uint8_t> make_uri(std::string_view uri) {
-      return make(TNF::WELL_KNOWN, "U", uri);
+    /**
+     * URI Identifier Codes (UIC), See Table A-3 at
+     * https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html
+     */
+    enum class Uic {
+      NONE        = 0x00, ///< Exactly as written
+      HTTP_WWW    = 0x01, ///< http://www.
+      HTTPS_WWW   = 0x02, ///< https://www.
+      HTTP        = 0x03, ///< http://
+      HTTPS       = 0x04, ///< https://
+      TEL         = 0x05, ///< tel:
+      MAILTO      = 0x06, ///< mailto:
+    };
+
+    static std::vector<uint8_t> make_text(std::string_view text) {
+      // TODO: only supports english (en) text right now...
+      // need to preprend start of text / language
+      static const std::string start{0x02, 'e', 'n'};
+      std::string full = start + std::string(text);
+      return make(TNF::WELL_KNOWN, "T", full);
+    }
+
+    static std::vector<uint8_t> make_uri(std::string_view uri, Uic uic = Uic::NONE) {
+      // prepend URI with identifier code
+      std::vector<uint8_t> full;
+      full.resize(1 + uri.size());
+      full[0] = (uint8_t)uic;
+      memcpy(&full[1], uri.data(), uri.size());
+      return make(TNF::WELL_KNOWN, "U", std::string_view{(const char*)full.data(), full.size()});
     }
 
     static std::vector<uint8_t> make_android_launcher(std::string_view uri) {
@@ -117,7 +155,6 @@ namespace espp {
       //    * groups of 2 byte fields (each is two bytes, total bytes is length - 1)
       //
       auto sv_data = std::string_view{(const char*)data.data(), data.size()};
-      // TODO: do we need ID?
       return make(TNF::MIME_MEDIA, "application/vnd.bluetooth.ep.oob", sv_data);
     }
 
@@ -136,7 +173,6 @@ namespace espp {
       // (optional  0x22) LE secure connections confirmation value
       // (optional  0x23) LE secure connections random value
       auto sv_data = std::string_view{(const char*)data.data(), data.size()};
-      // TODO: do we need ID?
       return make(TNF::MIME_MEDIA, "application/vnd.bluetooth.le.oob", sv_data);
     }
 
@@ -159,7 +195,7 @@ namespace espp {
       Flags flags;
       flags.TNF = (uint8_t)tnf;
       flags.IL = 0; // no id length / field
-      flags.SR = num_payload_length_bytes == 1;
+      flags.SR = num_payload_length_bytes == 1 ? 1 : 0;
       flags.CF = 0; // first record of a chunk
       flags.ME = 1; // message end
       flags.MB = 1; // message begin
