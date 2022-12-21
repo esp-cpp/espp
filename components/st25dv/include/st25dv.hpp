@@ -14,6 +14,11 @@ namespace espp {
    *        tag. The datasheet for the ST25DV can be found here:
    *        https://www.st.com/resource/en/datasheet/st25dv04k.pdf
    *
+   * @note See
+   * https://stackoverflow.com/questions/61622309/base-address-requirement-for-ndef-messages-on-type-5-tags
+   * for some discussion about the Capability Container (CC) header that must be
+   * the first data in the EEPROM.
+   *
    * \section st25dv_ex1 St25dv Example
    * \snippet st25dv_example.cpp st25dv example
    */

@@ -73,6 +73,7 @@ namespace espp {
     /**
      * URI Identifier Codes (UIC), See Table A-3 at
      * https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html
+     * and https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef
      */
     enum class Uic {
       NONE        = 0x00, ///< Exactly as written
@@ -82,6 +83,35 @@ namespace espp {
       HTTPS       = 0x04, ///< https://
       TEL         = 0x05, ///< tel:
       MAILTO      = 0x06, ///< mailto:
+      FTP_ANON    = 0x07, ///< ftp://anonymous:anonymous@
+      FTP_FTP     = 0x08, ///< ftp://ftp.
+      FTPS        = 0x09, ///< ftps://
+      SFTP        = 0x0A, ///< sftp://
+      SMB         = 0x0B, ///< smb://
+      NFS         = 0x0C, ///< nfs://
+      FTP         = 0x0D, ///< ftp://
+      DAV         = 0x0E, ///< dav://
+      NEWS        = 0x0F, ///< news:
+      TELNET      = 0x10, ///< telnet://
+      IMAP        = 0x11, ///< imap:
+      RSTP        = 0x12, ///< rtsp://
+      URN         = 0x13, ///< urn:
+      POP         = 0x14, ///< pop:
+      SIP         = 0x15, ///< sip:
+      SIPS        = 0x16, ///< sips:
+      TFTP        = 0x17, ///< tftp:
+      BTSPP       = 0x18, ///< btspp://
+      BTL2CAP     = 0x19, ///< btl2cap://
+      BTGOEP      = 0x1A, ///< btgoep://
+      TCPOBEX     = 0x1B, ///< tcpobex://
+      IRDAOBEX    = 0x1C, ///< irdaobex://
+      FILE        = 0x1D, ///< file://
+      URN_EPC_ID  = 0x1E, ///< urn:epc:id:
+      URN_EPC_TAG = 0x1F, ///< urn:epc:tag:
+      URN_EPC_PAT = 0x20, ///< urn:epc:pat:
+      URN_EPC_RAW = 0x21, ///< urn:epc:raw:
+      URN_EPC     = 0x22, ///< urn:epc:
+      URN_NFC     = 0x23, ///< urn:nfc:
     };
 
     /**

@@ -124,7 +124,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>NDEF</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/1c46033/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/a0f6938/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -141,7 +141,7 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1c46033/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a0f6938/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
 </ul>
 </section>
 <section id="unions">
@@ -272,7 +272,7 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3UicE">
 <span id="_CPPv3N4espp4Ndef3UicE"></span><span id="_CPPv2N4espp4Ndef3UicE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Uic</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3UicE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>URI Identifier Codes (UIC), See Table A-3 at <a class="reference external" href="https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html">https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html</a> </p>
+<dd><p>URI Identifier Codes (UIC), See Table A-3 at <a class="reference external" href="https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html">https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html</a> and <a class="reference external" href="https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef">https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef</a> </p>
 <p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4NONEE">
@@ -314,6 +314,180 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic6MAILTOE">
 <span id="_CPPv3N4espp4Ndef3Uic6MAILTOE"></span><span id="_CPPv2N4espp4Ndef3Uic6MAILTOE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a43b8b3d092408ddc2ae9af844fe50850"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAILTO</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic6MAILTOE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>mailto: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic8FTP_ANONE">
+<span id="_CPPv3N4espp4Ndef3Uic8FTP_ANONE"></span><span id="_CPPv2N4espp4Ndef3Uic8FTP_ANONE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a472afb56940f76c4ad36f06ad4ddc1d7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FTP_ANON</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic8FTP_ANONE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="ftp://anonymous:anonymous&#64;">ftp://anonymous:anonymous&#64;</a> </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7FTP_FTPE">
+<span id="_CPPv3N4espp4Ndef3Uic7FTP_FTPE"></span><span id="_CPPv2N4espp4Ndef3Uic7FTP_FTPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17aec69ec65586bccf2924fd029d1a4141e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FTP_FTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7FTP_FTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="ftp://ftp">ftp://ftp</a>. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4FTPSE">
+<span id="_CPPv3N4espp4Ndef3Uic4FTPSE"></span><span id="_CPPv2N4espp4Ndef3Uic4FTPSE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a29f97c79cb913145ca7c7b259f68eda9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FTPS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4FTPSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="ftps://">ftps://</a> </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4SFTPE">
+<span id="_CPPv3N4espp4Ndef3Uic4SFTPE"></span><span id="_CPPv2N4espp4Ndef3Uic4SFTPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17aea1386cf13bf90b95782349fdd4b2721"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SFTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4SFTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="sftp://">sftp://</a> </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3SMBE">
+<span id="_CPPv3N4espp4Ndef3Uic3SMBE"></span><span id="_CPPv2N4espp4Ndef3Uic3SMBE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17ab4fdd997b1f33e0d4c6964444c2bf399"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SMB</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3SMBE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>smb:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3NFSE">
+<span id="_CPPv3N4espp4Ndef3Uic3NFSE"></span><span id="_CPPv2N4espp4Ndef3Uic3NFSE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a1d1a594959ec615f56516f5d0f5e8ddb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NFS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3NFSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>nfs:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3FTPE">
+<span id="_CPPv3N4espp4Ndef3Uic3FTPE"></span><span id="_CPPv2N4espp4Ndef3Uic3FTPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17ac728a49363c9a93a43a7e7f232b5a54a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3FTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="ftp://">ftp://</a> </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3DAVE">
+<span id="_CPPv3N4espp4Ndef3Uic3DAVE"></span><span id="_CPPv2N4espp4Ndef3Uic3DAVE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a6c994b55210b8ad59f2663f3bb049673"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DAV</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3DAVE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>dav:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4NEWSE">
+<span id="_CPPv3N4espp4Ndef3Uic4NEWSE"></span><span id="_CPPv2N4espp4Ndef3Uic4NEWSE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17aff4e2dc4962dc25a1512353299992c8d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NEWS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4NEWSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>news: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic6TELNETE">
+<span id="_CPPv3N4espp4Ndef3Uic6TELNETE"></span><span id="_CPPv2N4espp4Ndef3Uic6TELNETE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a1360d1787ff8bb4f8eca82602452a58d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TELNET</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic6TELNETE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>telnet:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4IMAPE">
+<span id="_CPPv3N4espp4Ndef3Uic4IMAPE"></span><span id="_CPPv2N4espp4Ndef3Uic4IMAPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a0b787be1ef17df10d26758673ae24325"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IMAP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4IMAPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>imap: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4RSTPE">
+<span id="_CPPv3N4espp4Ndef3Uic4RSTPE"></span><span id="_CPPv2N4espp4Ndef3Uic4RSTPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a70c93323ddcb89632da9dcb77ba54844"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RSTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4RSTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>rtsp:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3URNE">
+<span id="_CPPv3N4espp4Ndef3Uic3URNE"></span><span id="_CPPv2N4espp4Ndef3Uic3URNE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a159673fd09d9000e8d7706ea5a751b10"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3URNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3POPE">
+<span id="_CPPv3N4espp4Ndef3Uic3POPE"></span><span id="_CPPv2N4espp4Ndef3Uic3POPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17aefdb39a4c7286afcecf0e8a7435fce6a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">POP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3POPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>pop: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3SIPE">
+<span id="_CPPv3N4espp4Ndef3Uic3SIPE"></span><span id="_CPPv2N4espp4Ndef3Uic3SIPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a7eb2de9ed94db7230fcafeb1d7c40878"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SIP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3SIPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>sip: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4SIPSE">
+<span id="_CPPv3N4espp4Ndef3Uic4SIPSE"></span><span id="_CPPv2N4espp4Ndef3Uic4SIPSE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a44a76d8e5ffed8c0e72f6207902dba14"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SIPS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4SIPSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>sips: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4TFTPE">
+<span id="_CPPv3N4espp4Ndef3Uic4TFTPE"></span><span id="_CPPv2N4espp4Ndef3Uic4TFTPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a34d3dff1acba95184204f7a379c6d4f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TFTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4TFTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>tftp: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic5BTSPPE">
+<span id="_CPPv3N4espp4Ndef3Uic5BTSPPE"></span><span id="_CPPv2N4espp4Ndef3Uic5BTSPPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a81090b5fcb6f86a2e1630cbbfbf3662d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BTSPP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic5BTSPPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>btspp:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7BTL2CAPE">
+<span id="_CPPv3N4espp4Ndef3Uic7BTL2CAPE"></span><span id="_CPPv2N4espp4Ndef3Uic7BTL2CAPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a1ee9bbae71c45ab4397c161feaec4840"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BTL2CAP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7BTL2CAPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>btl2cap:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic6BTGOEPE">
+<span id="_CPPv3N4espp4Ndef3Uic6BTGOEPE"></span><span id="_CPPv2N4espp4Ndef3Uic6BTGOEPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17aff6343cef8f89994d9c9eb5df5b71593"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BTGOEP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic6BTGOEPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>btgoep:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7TCPOBEXE">
+<span id="_CPPv3N4espp4Ndef3Uic7TCPOBEXE"></span><span id="_CPPv2N4espp4Ndef3Uic7TCPOBEXE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17ae3c51d88bdea51cfc57178bfd6709596"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TCPOBEX</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7TCPOBEXE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>tcpobex:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic8IRDAOBEXE">
+<span id="_CPPv3N4espp4Ndef3Uic8IRDAOBEXE"></span><span id="_CPPv2N4espp4Ndef3Uic8IRDAOBEXE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a8790d2ac467ea1bef0e6ddd6cdf5c294"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IRDAOBEX</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic8IRDAOBEXE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>irdaobex:// </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4FILEE">
+<span id="_CPPv3N4espp4Ndef3Uic4FILEE"></span><span id="_CPPv2N4espp4Ndef3Uic4FILEE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a9fc5887c030f7a3e19821ebec457e719"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FILE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4FILEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="file://">file://</a> </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic10URN_EPC_IDE">
+<span id="_CPPv3N4espp4Ndef3Uic10URN_EPC_IDE"></span><span id="_CPPv2N4espp4Ndef3Uic10URN_EPC_IDE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a7c5fab2988fa4a6868131391acb98569"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC_ID</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic10URN_EPC_IDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc:id: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic11URN_EPC_TAGE">
+<span id="_CPPv3N4espp4Ndef3Uic11URN_EPC_TAGE"></span><span id="_CPPv2N4espp4Ndef3Uic11URN_EPC_TAGE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a21380900a76174819c59015ffcd17f7e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC_TAG</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic11URN_EPC_TAGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc:tag: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic11URN_EPC_PATE">
+<span id="_CPPv3N4espp4Ndef3Uic11URN_EPC_PATE"></span><span id="_CPPv2N4espp4Ndef3Uic11URN_EPC_PATE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a0d93e64775449882c412ffc993c2fbe0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC_PAT</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic11URN_EPC_PATE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc:pat: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic11URN_EPC_RAWE">
+<span id="_CPPv3N4espp4Ndef3Uic11URN_EPC_RAWE"></span><span id="_CPPv2N4espp4Ndef3Uic11URN_EPC_RAWE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a49194a2bedc87e93c1fa90ed70d440ec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC_RAW</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic11URN_EPC_RAWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc:raw: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7URN_EPCE">
+<span id="_CPPv3N4espp4Ndef3Uic7URN_EPCE"></span><span id="_CPPv2N4espp4Ndef3Uic7URN_EPCE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a2d330bbe4ce80a2e335abf1ac0cf557c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_EPC</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7URN_EPCE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:epc: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic7URN_NFCE">
+<span id="_CPPv3N4espp4Ndef3Uic7URN_NFCE"></span><span id="_CPPv2N4espp4Ndef3Uic7URN_NFCE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17ab7009d66ae58d7ad9ef3213164f455f7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">URN_NFC</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic7URN_NFCE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>urn:nfc: </p>
 </dd></dl>
 
 </dd></dl>
