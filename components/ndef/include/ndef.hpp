@@ -114,11 +114,17 @@ namespace espp {
       URN_NFC     = 0x23, ///< urn:nfc:
     };
 
+    enum class BtType {
+      BREDR = 0x00, ///< BT Classic
+      BLE   = 0x01, ///< BT Low Energy
+    };
+
     /**
      * @brief Handover codes for data types in BT and BLE out of band (OOB)
      *        pairing NDEF records.
      */
     enum class BtHandover {
+      FLAGS                  = 0x01, ///< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode, b2: BR/EDR not supported, b3: Simultaneous LE & BR/EDR controller, b4: simultaneous LE & BR/EDR Host
       UUIDS_16_BIT_PARTIAL   = 0x02, ///< Incomplete list of 16 bit service class UUIDs
       UUIDS_16_BIT_COMPLETE  = 0x03, ///< Complete list of 16 bit service class UUIDs
       UUIDS_32_BIT_PARTIAL   = 0x04, ///< Incomplete list of 32 bit service class UUIDs
@@ -127,10 +133,12 @@ namespace espp {
       UUIDS_128_BIT_COMPLETE = 0x07, ///< Complete list of 128 bit service class UUIDs
       SHORT_LOCAL_NAME       = 0x08, ///< Shortened Bluetooth Local Name
       LONG_LOCAL_NAME        = 0x09, ///< Complete Bluetooth Local Name
+      TX_POWER_LEVEL         = 0x0A, ///< TX Power level (1 byte), -127 dBm to +127 dBm
       CLASS_OF_DEVICE        = 0x0D, ///< Class of Device
       SP_HASH_C192           = 0x0E, ///< Simple Pairing Hash C-192
       SP_RANDOM_R192         = 0x0F, ///< Simple Pairing Randomizer R-192
       SECURITY_MANAGER_TK    = 0x10, ///< Security Manager TK Value (LE Legacy Pairing)
+      SECURITY_MANAGER_FLAGS = 0x11, ///< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported (host), b2: Simultaneous LE & BR/EDR to same device capable (host), b3: address type (0 = public, 1 = random)
       APPEARANCE             = 0x19, ///< Appearance
       MAC                    = 0x1B, ///< Bluetooth Device Address
       LE_ROLE                = 0x1C, ///< LE Role
@@ -146,7 +154,8 @@ namespace espp {
     enum class BleRole : uint8_t {
       LE_ROLE_PERIPHERAL_ONLY      = 0x00, ///< Radio can only act as a peripheral
       LE_ROLE_CENTRAL_ONLY         = 0x01, ///< Radio can only act as a central
-      LE_ROLE_PERIPHERAL_CENTRAL   = 0x02, ///< Radio can act as both a peripheral and a central
+      LE_ROLE_PERIPHERAL_CENTRAL   = 0x02, ///< Radio can act as both a peripheral and a central, but prefers peripheral
+      LE_ROLE_CENTRAL_PERIPHERAL   = 0x03, ///< Radio can act as both a peripheral and a central, but prefers central
     };
 
     /**
@@ -213,8 +222,8 @@ namespace espp {
       // https://android.googlesource.com/platform/packages/apps/Nfc/+/master/src/com/android/nfc/handover/HandoverDataParser.java#61
 
       // fill the data
-      // 2 bytes of data length (e.g. 0x20, 0x00) including length field
-      data.resize(2); // 2 bytes that we'll fill in later with the length
+      data.resize(2); // first two bytes are length, bluetooth type
+      data[1] = (uint8_t)BtType::BREDR;
       // 6 bytes of BT device MAC address
       data.push_back(mac_addr & 0x0000FF0000000000 >> 40);
       data.push_back(mac_addr & 0x000000FF00000000 >> 32);
@@ -223,26 +232,12 @@ namespace espp {
       data.push_back(mac_addr & 0x000000000000FF00 >> 8);
       data.push_back(mac_addr & 0x00000000000000FF >> 0);
 
-      // TODO: add optional data
-      // OOB optional data as extended inquiry response (EIR) - no specific
-      //   order. Example below:
-      //   * local name field:
-      //    * 1 byte length
-      //    * 1 byte EIR data type (local name = 0x09)
-      //    * local name (length - 1 bytes)
-      //   * class of device field:
-      //    * 1 byte length
-      //    * 1 byte EIR data type (class of device = 0x0D, 24 bit class of device value)
-      //    * class of device (length - 1 bytes) (service class, major class, minor class)
-      //   * uuid field:
-      //    * 1 byte length
-      //    * 1 byte EIR data type (UUID = 0x03, 16bit service class uuids)
-      //    * groups of 2 byte fields (each is two bytes, total bytes is length - 1)
+      // TODO: add optional EIR data (no specific order required)
+      make_bt_eir(data, BtHandover::SHORT_LOCAL_NAME, name);
 
-      // now make sure the length is updated
+      // now make sure the length is updated (includes length field)
       int length = data.size();
-      data[0] = length & 0xFF00 >> 8;
-      data[1] = length & 0x00FF >> 0;
+      data[0] = length;
       auto sv_data = std::string_view{(const char*)data.data(), data.size()};
       return Ndef(TNF::MIME_MEDIA, "application/vnd.bluetooth.ep.oob", sv_data);
     }
@@ -262,9 +257,9 @@ namespace espp {
 
       // fill the data - NOTE: all BLE data is passed as EIR data with no additional data
 
-      // (mandatory 0x1B) LE device address
-      // NOTE: we use an additional byte here because there's an extra byte
-      // required after the MAC as part of this EIR payload...
+      // (mandatory 0x1B) LE device address NOTE: we use an additional byte here
+      // because there's an extra byte required after the MAC as part of this
+      // EIR payload to define if it's public (0) or random (1)
       uint8_t mac_addr_bytes[9];
       memset(mac_addr_bytes, 0, sizeof(mac_addr_bytes));
       // get all 8 bytes of the 64bit mac addr passed in
@@ -281,6 +276,7 @@ namespace espp {
       // (optional  0x08 or 0x09) Shortened or complete bluetooth local name, e.g. 'My BLE Device'
       // (optional  0x22) LE secure connections confirmation value
       // (optional  0x23) LE secure connections random value
+
       auto sv_data = std::string_view{(const char*)data.data(), data.size()};
       return Ndef(TNF::MIME_MEDIA, "application/vnd.bluetooth.le.oob", sv_data);
     }
@@ -402,11 +398,12 @@ namespace espp {
       default:
         break;
       }
-      data.push_back(num_eir_bytes);
+      data.push_back(num_eir_bytes + 1); // total size of EIR (including eir data type)
       data.push_back((uint8_t)eir_type);
       for (int i=0; i<num_eir_bytes; i++) {
         data.push_back(payload[i]);
       }
+      // return the total number of bytes written
       return 2 + num_eir_bytes;
     }
 

@@ -77,7 +77,7 @@ extern "C" void app_main(void) {
     auto ble_role = espp::Ndef::BleRole::LE_ROLE_PERIPHERAL_ONLY;
     std::string_view ble_radio_name = "BLE Radio";
     auto ble_oob_record = espp::Ndef::make_le_oob_pairing(radio_mac_addr, ble_role, ble_radio_name);
-    st25dv.set_record(launcher_record);
+    st25dv.set_record(bt_oob_record);
     fmt::print("text: {::#x}\n", text_record.serialize());
     fmt::print("uri:  {::#x}\n", uri_record.serialize());
     fmt::print("launcher:  {::#x}\n", launcher_record.serialize());
