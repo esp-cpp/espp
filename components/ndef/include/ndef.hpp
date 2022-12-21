@@ -61,7 +61,7 @@ namespace espp {
      * @brief Type Name Format (TNF) field is a 3-bit value that describes the
      *        record type.
      *
-     * Some Common record types:
+     * Some Common TNF::WELL_KNOWN record type strings:
      *   * Text (T)
      *   * URI  (U)
      *   * Smart Poster (Sp)
