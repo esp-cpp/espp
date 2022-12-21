@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NDEF - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'nfc/ndef';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ST25DV" href="st25dv.html" />
+    <link rel="prev" title="NFC APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">NFC APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">NDEF</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#unions">Unions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="st25dv.html">ST25DV</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">NFC APIs</a> &raquo;</li>
+      <li>NDEF</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/1c46033/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ndef">
+<h1>NDEF<a class="headerlink" href="#ndef" title="Permalink to this heading"></a></h1>
+<p>The <cite>NDEF</cite> component provides a utility class for dealing with NFC Data Exchange
+Format (NDEF) records, which are used by NFC Tags.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1c46033/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
+</ul>
+</section>
+<section id="unions">
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h3>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_ndef_1_1_flags_8____unnamed5____"></span><span class="sig-name descname"><span class="pre">espp::Ndef::Flags.__unnamed5__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToErrorUt1_7E">
+<span id="_CPPv3N19PhonyNameDueToErrorUt1_7E"></span><span class="target" id="unionespp_1_1_ndef_1_1_flags_8____unnamed5_____1a60e3c12db6ddaae1f88a6e0e8d5118e0"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Flags</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">[anonymous]</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">[anonymous]</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">[anonymous]</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToErrorUt1_7E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError3rawE">
+<span id="_CPPv3N19PhonyNameDueToError3rawE"></span><span id="_CPPv2N19PhonyNameDueToError3rawE"></span><span id="PhonyNameDueToError::raw__uint8_t"></span><span class="target" id="unionespp_1_1_ndef_1_1_flags_8____unnamed5_____1abdd166af3a63f7be696dd17a218a6ffb"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">raw</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToError3rawE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4NdefE">
+<span id="_CPPv3N4espp4NdefE"></span><span id="_CPPv2N4espp4NdefE"></span><span id="espp::Ndef"></span><span class="target" id="classespp_1_1_ndef"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ndef</span></span></span><a class="headerlink" href="#_CPPv4N4espp4NdefE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>implements serialization &amp; deserialization logic for NFC Data Exchange Format (NDEF) records which can be stored on and transmitted from NFC devices. </p>
+<p>NDEF records can be composed the following way: <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Bit 7     6       5       4       3       2       1       0
+------  ------  ------  ------  ------  ------  ------  ------
+[ MB ]  [ ME ]  [ CF ]  [ SR ]  [ IL ]  [        TNF         ]
+[                         TYPE LENGTH  (may be 0)            ]
+[                       PAYLOAD LENGTH (1B or 4B, see SR)    ]
+[                          ID LENGTH   (if IL)               ]
+[                         RECORD TYPE  (if TYPE LENGTH &gt; 0)  ]
+[                              ID      (if IL)               ]
+[                           PAYLOAD    (payload length bytes)]
+</pre></div>
+</div>
+</p>
+<p>The first byte (Flags) has these bits:<ul class="simple">
+<li><p>Bits 0-3: TNF - Type Name Format - describes record type (see TNF class)</p></li>
+<li><p>Bit 3: IL - ID Length - indicates if the ID Length Field is present or not</p></li>
+<li><p>Bit 4: SR - Short Record - set to 1 if the payload length field is 1 byte (8 bits / 0-255) or less, otherwise the payload length is 4 bytes</p></li>
+<li><p>Bit 5: CF - Chunk Flag - indicates if this is the first record chunk or a middle record chunk, set to 0 for the first record of the message and for subsequent records set to 1.</p></li>
+<li><p>Bit 6: ME - Message End - 1 indicates if this is the last record in the message</p></li>
+<li><p>Bit 7: MB - Message Begin - 1 indicates if this is the first record in the message</p></li>
+</ul>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some information about NDEF can be found:<ul class="simple">
+<li><p><a class="reference external" href="https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/">https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/</a></p></li>
+<li><p><a class="reference external" href="https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html">https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html</a></p></li>
+<li><p><a class="reference external" href="https://developer.android.com/reference/android/nfc/NdefMessage">https://developer.android.com/reference/android/nfc/NdefMessage</a></p></li>
+<li><p><a class="reference external" href="https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html">https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html</a> </p></li>
+</ul>
+</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNFE">
+<span id="_CPPv3N4espp4Ndef3TNFE"></span><span id="_CPPv2N4espp4Ndef3TNFE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TNF</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNFE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type Name Format (TNF) field is a 3-bit value that describes the record type. </p>
+<p>Some Common <a class="reference internal" href="#classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5a8ee291cc9f4250e12b6a43acd1ae71f1"><span class="std std-ref">TNF::WELL_KNOWN</span></a> record type strings:<ul class="simple">
+<li><p>Text (T)</p></li>
+<li><p>URI (U)</p></li>
+<li><p>Smart Poster (Sp)</p></li>
+<li><p>Alternative Carrier (ac)</p></li>
+<li><p>Handover Carrier (Hc)</p></li>
+<li><p>Handover Request (Hr)</p></li>
+<li><p>Handover Select (Hs) </p></li>
+</ul>
+</p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF5EMPTYE">
+<span id="_CPPv3N4espp4Ndef3TNF5EMPTYE"></span><span id="_CPPv2N4espp4Ndef3TNF5EMPTYE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5aba2b45bdc11e2a4a6e86aab2ac693cbb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EMPTY</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF5EMPTYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Record is empty. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF10WELL_KNOWNE">
+<span id="_CPPv3N4espp4Ndef3TNF10WELL_KNOWNE"></span><span id="_CPPv2N4espp4Ndef3TNF10WELL_KNOWNE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5a8ee291cc9f4250e12b6a43acd1ae71f1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WELL_KNOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF10WELL_KNOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type field contains a well-known RTD type name. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF10MIME_MEDIAE">
+<span id="_CPPv3N4espp4Ndef3TNF10MIME_MEDIAE"></span><span id="_CPPv2N4espp4Ndef3TNF10MIME_MEDIAE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5ac5cf5a39b1c647dbe1b07248cb193891"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MIME_MEDIA</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF10MIME_MEDIAE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type field contains a media type (RFC 2046) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF12ABSOLUTE_URIE">
+<span id="_CPPv3N4espp4Ndef3TNF12ABSOLUTE_URIE"></span><span id="_CPPv2N4espp4Ndef3TNF12ABSOLUTE_URIE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5ab293e9982448138c988cc9ff150745ce"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ABSOLUTE_URI</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF12ABSOLUTE_URIE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type field contains an absolute URI (RFC 3986) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF13EXTERNAL_TYPEE">
+<span id="_CPPv3N4espp4Ndef3TNF13EXTERNAL_TYPEE"></span><span id="_CPPv2N4espp4Ndef3TNF13EXTERNAL_TYPEE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5a1fc8068b9089dba0cce62a46f030edad"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXTERNAL_TYPE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF13EXTERNAL_TYPEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type field Contains an external type name. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF7UNKNOWNE">
+<span id="_CPPv3N4espp4Ndef3TNF7UNKNOWNE"></span><span id="_CPPv2N4espp4Ndef3TNF7UNKNOWNE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5a696b031073e74bf2cb98e5ef201d4aa3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNKNOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF7UNKNOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Payload type is unknown, type length must be 0. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF9UNCHANGEDE">
+<span id="_CPPv3N4espp4Ndef3TNF9UNCHANGEDE"></span><span id="_CPPv2N4espp4Ndef3TNF9UNCHANGEDE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5a46335765005ff44b1fe1e38e5d2ddfcc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNCHANGED</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF9UNCHANGEDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Indicates the payload is an intermediate or final chunk of a chunked NDEF record, type length must be 0. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3TNF8RESERVEDE">
+<span id="_CPPv3N4espp4Ndef3TNF8RESERVEDE"></span><span id="_CPPv2N4espp4Ndef3TNF8RESERVEDE"></span><span class="target" id="classespp_1_1_ndef_1a3bba1f80fdab091bae84963ede3003e5a83c7f2aa8c3ac10ed8beb75cad162827"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RESERVED</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3TNF8RESERVEDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reserved by the NFC forum for future use. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3UicE">
+<span id="_CPPv3N4espp4Ndef3UicE"></span><span id="_CPPv2N4espp4Ndef3UicE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Uic</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3UicE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>URI Identifier Codes (UIC), See Table A-3 at <a class="reference external" href="https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html">https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html</a> </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4NONEE">
+<span id="_CPPv3N4espp4Ndef3Uic4NONEE"></span><span id="_CPPv2N4espp4Ndef3Uic4NONEE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17ab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Exactly as written. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic8HTTP_WWWE">
+<span id="_CPPv3N4espp4Ndef3Uic8HTTP_WWWE"></span><span id="_CPPv2N4espp4Ndef3Uic8HTTP_WWWE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a610eb6d830ec73ea0cbb0db7e0dd21bb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HTTP_WWW</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic8HTTP_WWWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="http://www">http://www</a>. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic9HTTPS_WWWE">
+<span id="_CPPv3N4espp4Ndef3Uic9HTTPS_WWWE"></span><span id="_CPPv2N4espp4Ndef3Uic9HTTPS_WWWE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17ab9522804eaa2e4afccb42a63de1c90a0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HTTPS_WWW</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic9HTTPS_WWWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="https://www">https://www</a>. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic4HTTPE">
+<span id="_CPPv3N4espp4Ndef3Uic4HTTPE"></span><span id="_CPPv2N4espp4Ndef3Uic4HTTPE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a293c9ea246ff9985dc6f62a650f78986"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HTTP</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic4HTTPE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="http://">http://</a> </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic5HTTPSE">
+<span id="_CPPv3N4espp4Ndef3Uic5HTTPSE"></span><span id="_CPPv2N4espp4Ndef3Uic5HTTPSE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a0e8433f9a404f1f3ba601c14b026d321"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HTTPS</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic5HTTPSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference external" href="https://">https://</a> </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic3TELE">
+<span id="_CPPv3N4espp4Ndef3Uic3TELE"></span><span id="_CPPv2N4espp4Ndef3Uic3TELE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a6154785551f14c097a9caf44e74b615e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TEL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic3TELE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>tel: </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef3Uic6MAILTOE">
+<span id="_CPPv3N4espp4Ndef3Uic6MAILTOE"></span><span id="_CPPv2N4espp4Ndef3Uic6MAILTOE"></span><span class="target" id="classespp_1_1_ndef_1a7d817b2e34e9db2201c6117d133a5a17a43b8b3d092408ddc2ae9af844fe50850"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAILTO</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef3Uic6MAILTOE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>mailto: </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef4NdefE3TNFNSt11string_viewENSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef4NdefE3TNFNSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef4NdefE3TNFNSt11string_viewENSt11string_viewE"></span><span id="espp::Ndef::Ndef__TNF.std::string_view.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1a9c86ddd5ec0748450e406de4fa88ede5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ndef</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp4Ndef3TNFE" title="espp::Ndef::TNF"><span class="n"><span class="pre">TNF</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tnf</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">payload</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef4NdefE3TNFNSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Makes an NDEF record with header and payload. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tnf</strong> – The TNF for this packet. </p></li>
+<li><p><strong>type</strong> – String view for the type of this packet </p></li>
+<li><p><strong>payload</strong> – The payload data for the packet </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef9serializeEv">
+<span id="_CPPv3N4espp4Ndef9serializeEv"></span><span id="_CPPv2N4espp4Ndef9serializeEv"></span><span id="espp::Ndef::serialize"></span><span class="target" id="classespp_1_1_ndef_1a5b3b059b101deb28f06c64b724e8d708"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef9serializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Serialize the NDEF record into a sequence of bytes. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The vector&lt;uint8_t&gt; of bytes representing the NDEF record. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ndef8get_sizeEv">
+<span id="_CPPv3NK4espp4Ndef8get_sizeEv"></span><span id="_CPPv2NK4espp4Ndef8get_sizeEv"></span><span id="espp::Ndef::get_sizeC"></span><span class="target" id="classespp_1_1_ndef_1ab2d88c1fcdf8df7dcb752d769a8972d2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ndef8get_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of bytes needed for the NDEF record. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Size of the NDEF record (bytes), for serialization. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef9make_textENSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef9make_textENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef9make_textENSt11string_viewE"></span><span id="espp::Ndef::make_text__std::string_view"></span><span class="target" id="classespp_1_1_ndef_1af4a15190e6bf904e5ac160be87d8655d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_text</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">text</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef9make_textENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for transmitting english text. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>text</strong> – The text that the NDEF record will hold. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef8make_uriENSt11string_viewE3Uic">
+<span id="_CPPv3N4espp4Ndef8make_uriENSt11string_viewE3Uic"></span><span id="_CPPv2N4espp4Ndef8make_uriENSt11string_viewE3Uic"></span><span id="espp::Ndef::make_uri__std::string_view.Uic"></span><span class="target" id="classespp_1_1_ndef_1a5c9a30c4caa882cf74c50103d67dca1c"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_uri</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uri</span></span>, <a class="reference internal" href="#_CPPv4N4espp4Ndef3UicE" title="espp::Ndef::Uic"><span class="n"><span class="pre">Uic</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">uic</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ndef3UicE" title="espp::Ndef::Uic"><span class="n"><span class="pre">Uic</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef3Uic4NONEE" title="espp::Ndef::Uic::NONE"><span class="n"><span class="pre">NONE</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef8make_uriENSt11string_viewE3Uic" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for loading a URI. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uri</strong> – URI for the record to point to. </p></li>
+<li><p><strong>uic</strong> – UIC for the uri - helps shorten the uri text / NDEF record. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef21make_android_launcherENSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef21make_android_launcherENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef21make_android_launcherENSt11string_viewE"></span><span id="espp::Ndef::make_android_launcher__std::string_view"></span><span class="target" id="classespp_1_1_ndef_1a064ede4447ab3cde15428ff9c758ad52"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_android_launcher</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">uri</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef21make_android_launcherENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for launching an Android App. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>uri</strong> – URI for the android package / app to launch. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE"></span><span id="espp::Ndef::make_oob_pairing__uint64_t.uint32_t.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1a40ce6bd6dd8019916ca17ea6120c61cc"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">device_class</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for BT classic OOB Pairing (Android). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mac_addr</strong> – 48 bit MAC Address of the BT radio </p></li>
+<li><p><strong>device_class</strong> – The bluetooth device class for this radio. </p></li>
+<li><p><strong>name</strong> – Name of the BT device. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t8uint32_tNSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef19make_le_oob_pairingE8uint64_t8uint32_tNSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef19make_le_oob_pairingE8uint64_t8uint32_tNSt11string_viewE"></span><span id="espp::Ndef::make_le_oob_pairing__uint64_t.uint32_t.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1a0cd8fb1c1ec735a7628ae2da26d5f7f3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_le_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">role</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t8uint32_tNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Static function to make an NDEF record for BLE OOB Pairing (Android). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mac_addr</strong> – 48 bit MAC Address of the BLE radio </p></li>
+<li><p><strong>role</strong> – The BLE role of the device (central / peripheral / dual) </p></li>
+<li><p><strong>name</strong> – Name of the BLE device. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_ndef_1_1_flags_8____unnamed5____"></span><span class="sig-name descname"><span class="pre">Flags.__unnamed5__</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_ndef_1_1_flags_8____unnamed5_____8____unnamed7____"></span><span class="sig-name descname"><span class="pre">Flags.__unnamed5__.__unnamed7__</span></span></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="NFC APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="st25dv.html" class="btn btn-neutral float-right" title="ST25DV" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2022, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
