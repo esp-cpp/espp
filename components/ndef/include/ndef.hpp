@@ -11,28 +11,8 @@ namespace espp {
    *        Exchange Format (NDEF) records which can be stored on and
    *        transmitted from NFC devices.
    *
-   * @note Some information about NDEF can be found
-   *       https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/
-   *
-   * @note Some other information about NDEF for BT OOB pairing can be found
-   *       https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html
-   *
-   * @note Some additional information can be found
-   *       https://developer.android.com/reference/android/nfc/NdefMessage
-   *
-   * @note Some further information can be found
-   *       https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html#:~:text=NDEF%20is%20a%20binary%20format,the%20content%20of%20the%20message.
-   *
-   * @note TNF01 (Well Known) could have a record type of "T" for text message,
-   *       "U" for URI message, "Sp" if the payload is a smart poster.
-   *
-   * @note There is also a well known type (WKT) for bluetooth handover which is
-   *       a MIME (multipurpose internet mail extensions) type.
-   *
-   * @note Will see TNF04 frequently since Android uses an External type called
-   *       an Android Application Record to trigger apps to open.
-   *
    * @details NDEF records can be composed the following way:
+   *   @code{.unparsed}
    *   Bit 7     6       5       4       3       2       1       0
    *   ------  ------  ------  ------  ------  ------  ------  ------
    *   [ MB ]  [ ME ]  [ CF ]  [ SR ]  [ IL ]  [        TNF         ]
@@ -41,19 +21,28 @@ namespace espp {
    *   [                          ID LENGTH   (if IL)               ]
    *   [                         RECORD TYPE  (if TYPE LENGTH > 0)  ]
    *   [                              ID      (if IL)               ]
-   *   [                           PAYLOAD                          ]
+   *   [                           PAYLOAD    (payload length bytes)]
+   *  @endcode
    *
-   * 0-2. TNF - Type Name Format - describes record type (see TNF class)
-   *   3. IL - ID Length - indicates if the ID Length Field is present or not
-   *   4. SR - Short Record - set to 1 if the payload length field is 1 byte (8
+   *  The first byte (Flags) has these bits:
+   *  * Bits 0-3: TNF - Type Name Format - describes record type (see TNF class)
+   *  * Bit 3: IL - ID Length - indicates if the ID Length Field is present or not
+   *  * Bit 4: SR - Short Record - set to 1 if the payload length field is 1 byte (8
    *      bits / 0-255) or less, otherwise the payload length is 4 bytes
-   *   5. CF - Chunk Flag - indicates if this is the first record chunk or a
+   *  * Bit 5: CF - Chunk Flag - indicates if this is the first record chunk or a
    *      middle record chunk, set to 0 for the first record of the message and
    *      for subsequent records set to 1.
-   *   6. ME - Message End - 1 indicates if this is the last record in the
+   *  * Bit 6: ME - Message End - 1 indicates if this is the last record in the
    *      message
-   *   7. MB - Message Begin - 1 indicates if this is the first record in the
+   *  * Bit 7: MB - Message Begin - 1 indicates if this is the first record in the
    *      message
+   *
+   * @note Some information about NDEF can be found:
+   *       * https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/
+   *       * https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html
+   *       * https://developer.android.com/reference/android/nfc/NdefMessage
+   *       * https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html
+   *
    */
   class Ndef {
   public:
