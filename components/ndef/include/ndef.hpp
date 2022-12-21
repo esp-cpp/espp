@@ -2,11 +2,12 @@
 
 #include <cstring>
 #include <vector>
+#include <string>
 #include <string_view>
 
 namespace espp {
   /**
-   * @brief implements serialization & deserialization logic for NRF Data
+   * @brief implements serialization & deserialization logic for NFC Data
    *        Exchange Format (NDEF) records which can be stored on and
    *        transmitted from NFC devices.
    *
@@ -59,6 +60,15 @@ namespace espp {
     /**
      * @brief Type Name Format (TNF) field is a 3-bit value that describes the
      *        record type.
+     *
+     * Some Common record types:
+     *   * Text (T)
+     *   * URI  (U)
+     *   * Smart Poster (Sp)
+     *   * Alternative Carrier (ac)
+     *   * Handover Carrier (Hc)
+     *   * Handover Request (Hr)
+     *   * Handover Select (Hs)
      */
     enum class TNF : uint8_t {
       EMPTY          = 0x00, ///< Record is empty
@@ -69,31 +79,6 @@ namespace espp {
       UNKNOWN        = 0x05, ///< Payload type is unknown, type length must be 0.
       UNCHANGED      = 0x06, ///< Indicates the payload is an intermediate or final chunk of a chunked NDEF record, type length must be 0.
       RESERVED       = 0x07, ///< Reserved by the NFC forum for future use
-    };
-
-    /**
-     * Common record types:
-     * * Text (T)
-     * * URI  (U)
-     * * Smart Poster (Sp)
-     * * Alternative Carrier (ac)
-     * * Handover Carrier (Hc)
-     * * Handover Request (Hr)
-     * * Handover Select (Hs)
-     */
-
-    struct Flags {
-      union {
-        struct {
-          uint8_t TNF : 3;
-          uint8_t IL : 1;
-          uint8_t SR : 1;
-          uint8_t CF : 1;
-          uint8_t ME : 1;
-          uint8_t MB : 1;
-        };
-        uint8_t raw;
-      };
     };
 
     /**
@@ -110,28 +95,64 @@ namespace espp {
       MAILTO      = 0x06, ///< mailto:
     };
 
-    static std::vector<uint8_t> make_text(std::string_view text) {
+    /**
+     * @brief Makes an NDEF record with header and payload.
+     * @param tnf The TNF for this packet.
+     * @param type String view for the type of this packet
+     * @param payload The payload data for the packet
+     */
+    Ndef(TNF tnf, std::string_view type, std::string_view payload)
+      : tnf_(tnf),
+        type_(type),
+        payload_(payload) {
+    }
+
+    /**
+     * @brief Static function to make an NDEF record for transmitting english
+     *        text.
+     * @param text The text that the NDEF record will hold.
+     * @return NDEF record object.
+     */
+    static Ndef make_text(std::string_view text) {
       // TODO: only supports english (en) text right now...
       // need to preprend start of text / language
       static const std::string start{0x02, 'e', 'n'};
       std::string full = start + std::string(text);
-      return make(TNF::WELL_KNOWN, "T", full);
+      return Ndef(TNF::WELL_KNOWN, "T", full);
     }
 
-    static std::vector<uint8_t> make_uri(std::string_view uri, Uic uic = Uic::NONE) {
+    /**
+     * @brief Static function to make an NDEF record for loading a URI.
+     * @param uri URI for the record to point to.
+     * @param uic UIC for the uri - helps shorten the uri text / NDEF record.
+     * @return NDEF record object.
+     */
+    static Ndef make_uri(std::string_view uri, Uic uic = Uic::NONE) {
       // prepend URI with identifier code
       std::vector<uint8_t> full;
       full.resize(1 + uri.size());
       full[0] = (uint8_t)uic;
       memcpy(&full[1], uri.data(), uri.size());
-      return make(TNF::WELL_KNOWN, "U", std::string_view{(const char*)full.data(), full.size()});
+      return Ndef(TNF::WELL_KNOWN, "U", std::string_view{(const char*)full.data(), full.size()});
     }
 
-    static std::vector<uint8_t> make_android_launcher(std::string_view uri) {
-      return make(TNF::EXTERNAL_TYPE, "android.com:pkg", uri);
+    /**
+     * @brief Static function to make an NDEF record for launching an Android App.
+     * @param uri URI for the android package / app to launch.
+     * @return NDEF record object.
+     */
+    static Ndef make_android_launcher(std::string_view uri) {
+      return Ndef(TNF::EXTERNAL_TYPE, "android.com:pkg", uri);
     }
 
-    static std::vector<uint8_t> make_oob_pairing(uint64_t mac_addr, uint32_t device_class, std::string_view name) {
+    /**
+     * @brief Static function to make an NDEF record for BT classic OOB Pairing (Android).
+     * @param mac_addr 48 bit MAC Address of the BT radio
+     * @param device_class The bluetooth device class for this radio.
+     * @param name Name of the BT device.
+     * @return NDEF record object.
+     */
+    static Ndef make_oob_pairing(uint64_t mac_addr, uint32_t device_class, std::string_view name) {
       std::vector<uint8_t> data;
       // NOTE: for the EIR data types see the BT_HANDOVER_TYPE_ codes here:
       // https://android.googlesource.com/platform/packages/apps/Nfc/+/master/src/com/android/nfc/handover/HandoverDataParser.java#61
@@ -155,10 +176,17 @@ namespace espp {
       //    * groups of 2 byte fields (each is two bytes, total bytes is length - 1)
       //
       auto sv_data = std::string_view{(const char*)data.data(), data.size()};
-      return make(TNF::MIME_MEDIA, "application/vnd.bluetooth.ep.oob", sv_data);
+      return Ndef(TNF::MIME_MEDIA, "application/vnd.bluetooth.ep.oob", sv_data);
     }
 
-    static std::vector<uint8_t> make_le_oob_pairing(uint64_t mac_addr, uint32_t device_class, std::string_view name) {
+    /**
+     * @brief Static function to make an NDEF record for BLE OOB Pairing (Android).
+     * @param mac_addr 48 bit MAC Address of the BLE radio
+     * @param role The BLE role of the device (central / peripheral / dual)
+     * @param name Name of the BLE device.
+     * @return NDEF record object.
+     */
+    static Ndef make_le_oob_pairing(uint64_t mac_addr, uint32_t role, std::string_view name) {
       std::vector<uint8_t> data;
       // NOTE: for the EIR data types see the BT_HANDOVER_TYPE_ codes here:
       // https://android.googlesource.com/platform/packages/apps/Nfc/+/master/src/com/android/nfc/handover/HandoverDataParser.java#61
@@ -169,51 +197,85 @@ namespace espp {
       // (optional  0x10) Security Manager TK value (LE legacy pairing)
       // (optional  0x19) 2 byte Appearance, e.g. 'Remote Control', 'Computer', or 'Heart Rate Sensor'
       // (optional  0x01) Flags
-      // (optional  0x08 or 0x09) Shortend or complete bluetooth local name, e.g. 'My BLE Device'
+      // (optional  0x08 or 0x09) Shortened or complete bluetooth local name, e.g. 'My BLE Device'
       // (optional  0x22) LE secure connections confirmation value
       // (optional  0x23) LE secure connections random value
       auto sv_data = std::string_view{(const char*)data.data(), data.size()};
-      return make(TNF::MIME_MEDIA, "application/vnd.bluetooth.le.oob", sv_data);
+      return Ndef(TNF::MIME_MEDIA, "application/vnd.bluetooth.le.oob", sv_data);
     }
 
     /**
-     * @brief Makes an NDEF packet with header and payload.
-     * @note This does not include ID functionality for the packet.
-     * @param tnf The TNF for this packet.
-     * @param type String view for the type of this packet
-     * @param payload The payload data for the packet
-     * @return Vector of bytes which contains the header and payload.
+     * @brief Serialize the NDEF record into a sequence of bytes.
+     * @return The vector<uint8_t> of bytes representing the NDEF record.
      */
-    static std::vector<uint8_t> make(TNF tnf, std::string_view type, std::string_view payload) {
+    std::vector<uint8_t> serialize() {
       std::vector<uint8_t> data;
-      int num_payload_bytes = payload.size();
-      int num_payload_length_bytes = 1;
-      if (num_payload_bytes > 255) {
-        num_payload_length_bytes = 4;
-      }
-      uint8_t type_length = type.size();
-      Flags flags;
-      flags.TNF = (uint8_t)tnf;
-      flags.IL = 0; // no id length / field
-      flags.SR = num_payload_length_bytes == 1 ? 1 : 0;
-      flags.CF = 0; // first record of a chunk
-      flags.ME = 1; // message end
-      flags.MB = 1; // message begin
-      int total_length = sizeof(flags.raw) + sizeof(type_length) + num_payload_length_bytes + type_length + num_payload_bytes;
-      data.resize(total_length);
-      data[0] = flags.raw;
-      data[1] = type_length;
-      if (flags.SR) {
-        data[2] = (uint8_t)num_payload_bytes;
-        memcpy(&data[3], type.data(), type_length);
-        memcpy(&data[3 + type_length], payload.data(), payload.size());
+      int size = get_size();
+      set_flags();
+      data.resize(size);
+      data[0] = flags_.raw;
+      data[1] = type_.size();
+      if (flags_.SR) {
+        data[2] = (uint8_t)payload_.size();
+        memcpy(&data[3], type_.data(), type_.size());
+        memcpy(&data[3 + type_.size()], payload_.data(), payload_.size());
       } else {
-        uint32_t _num_bytes = num_payload_bytes;
+        uint32_t _num_bytes = payload_.size();
         memcpy(&data[2], &_num_bytes, 4);
-        memcpy(&data[6], type.data(), type_length);
-        memcpy(&data[6 + type_length], payload.data(), payload.size());
+        memcpy(&data[6], type_.data(), type_.size());
+        memcpy(&data[6 + type_.size()], payload_.data(), payload_.size());
       }
       return data;
     }
+
+    /**
+     * @brief Get the number of bytes needed for the NDEF record.
+     * @return Size of the NDEF record (bytes), for serialization.
+     */
+    int get_size() const {
+      int num_payload_bytes = payload_.size();
+      uint8_t num_payload_length_bytes = 1;
+      if (num_payload_bytes > 255) {
+        num_payload_length_bytes = 4;
+      }
+      uint8_t type_length = type_.size();
+      int total_length =
+        sizeof(flags_.raw) +
+        sizeof(type_length) +
+        num_payload_length_bytes +
+        type_length +
+        num_payload_bytes;
+      return total_length;
+    }
+
+  protected:
+    struct Flags {
+      union {
+        struct {
+          uint8_t TNF : 3;
+          uint8_t IL : 1;
+          uint8_t SR : 1;
+          uint8_t CF : 1;
+          uint8_t ME : 1;
+          uint8_t MB : 1;
+        };
+        uint8_t raw;
+      };
+    };
+
+    void set_flags() {
+      flags_.TNF = (uint8_t)tnf_;
+      flags_.IL = 0; // no id length / field
+      // short record?
+      flags_.SR = payload_.size() < 256 ? 1 : 0;
+      flags_.CF = 0; // first record of a chunk
+      flags_.ME = 1; // message end
+      flags_.MB = 1; // message begin
+    }
+
+    TNF tnf_;
+    Flags flags_;
+    std::string type_{""};
+    std::string payload_{""};
   };
 }

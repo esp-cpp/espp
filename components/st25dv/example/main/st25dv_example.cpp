@@ -62,13 +62,18 @@ extern "C" void app_main(void) {
         .read = st25dv_read,
         .log_level = espp::Logger::Verbosity::DEBUG
       });
-    std::vector<uint8_t> text_record = espp::Ndef::make_text("hello! ");
-    std::vector<uint8_t> uri_record = espp::Ndef::make_uri("github.com/esp-cpp/espp", espp::Ndef::Uic::HTTPS);
-    st25dv.write(std::string_view{(const char*)text_record.data(), text_record.size()});
-    std::array<uint8_t, 100> programmed_data;
+
+    std::array<uint8_t, 50> programmed_data;
     st25dv.read(programmed_data.data(), programmed_data.size());
     fmt::print("Read: {}\n", programmed_data);
-    fmt::print("Ours: {}\n", text_record);
+
+    auto text_record = espp::Ndef::make_text("hello!");
+    auto uri_record = espp::Ndef::make_uri("github.com/esp-cpp/espp", espp::Ndef::Uic::HTTPS);
+    auto launcher_record = espp::Ndef::make_android_launcher("com.google.android.apps.photos");
+    st25dv.set_record(launcher_record);
+    fmt::print("text: {}\n", text_record.serialize());
+    fmt::print("uri:  {}\n", uri_record.serialize());
+    fmt::print("launcher:  {}\n", launcher_record.serialize());
     // and finally, make the task to periodically poll the st25dv and print the
     // state.
     auto task_fn = [&quit_test, &st25dv](std::mutex& m, std::condition_variable& cv) {

@@ -95,6 +95,30 @@ namespace espp {
       return it_sts;
     }
 
+    /**
+     * @brief Writes the provided record (along with CC header) to the EEPROM.
+     * @param record The new NDEF record to serialize to the NFC EEPROM.
+     */
+    void set_record(Ndef& record) {
+      // add in the T5T tag compatibility container header
+      std::vector<uint8_t> full_record;
+      auto payload = record.serialize();
+      full_record.resize(payload.size() + 6);
+      // capability container (T5T tag)
+      full_record[0] = 225; // magic number
+      full_record[1] = 64;  // version (1.0) and access condition (always, always) (version is b7b6.b5b4, read access is b3b2, write access is b1b0)
+      full_record[2] = 64;  // MLEN NDEF data size 512 bytes (0x40)
+      full_record[3] = 5;   // additional feature information (support multiple block read)
+      full_record[4] = 3;   // Not really sure what this does...
+      full_record[5] = payload.size();
+      memcpy(&full_record[6], payload.data(), payload.size());
+      write(std::string_view{(const char*)full_record.data(), full_record.size()});
+    }
+
+    /**
+     * @brief Write a raw sequence of bytes to the EEPROM.
+     * @param payload Sequence of bytes to write.
+     */
     void write(std::string_view payload) {
       uint8_t data[2 + payload.size()];
       data[0] = (uint8_t)(AREA_1_START_ADDR >> 8);
@@ -103,6 +127,13 @@ namespace espp {
       write_(DATA_ADDRESS, data, sizeof(data));
     }
 
+    /**
+     * @brief Read a sequence of bytes from the EEPROM.
+     * @note This may contain raw NDEF bytes as well as the CC header.
+     * @param *data Pointer to memory to be filled with bytes read.
+     * @param length Number of bytes to read.
+     * @param offset Optional offset to start reading from.
+     */
     void read(uint8_t *data, uint8_t length, uint16_t offset = 0) {
       read_(DATA_ADDRESS, AREA_1_START_ADDR + offset, data, length);
     }
