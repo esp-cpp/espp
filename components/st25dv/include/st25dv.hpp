@@ -102,21 +102,37 @@ namespace espp {
 
     /**
      * @brief Writes the provided record (along with CC header) to the EEPROM.
+     * @note Right now this only supports 4 B CC headers (for memory less than
+     *       16 Kbit).
      * @param record The new NDEF record to serialize to the NFC EEPROM.
      */
     void set_record(Ndef& record) {
-      // add in the T5T tag compatibility container header
+      // add in the T5T tag compatibility container (CC) header
       std::vector<uint8_t> full_record;
       auto payload = record.serialize();
       full_record.resize(payload.size() + 6);
+      /**
+       * @note CC indicates how the tag can be accessed. There are two different
+       *       types of CC used (depending on the size of the tag):
+       *         1. 4 B CC (for memory size < 16 Kbit)
+       *            | Byte0        | Byte1                       | Byte2       | Byte3          |
+       *            |:------------:|:---------------------------:|:-----------:|:--------------:|
+       *            | Magic Number | Version & Access Conditions | Memory Size | NFC Type 5 Tag |
+       *         2. 8 B CC (for memory size > 16 Kbit)
+       *            | Byte0        | Byte1                       | Byte2 | Byte3          |Byte4|Byte5| Byte6     | Byte7     |
+       *            |:------------:|:---------------------------:|:-----:|:--------------:|:---:|:---:|:---------:|:---------:|
+       *            | Magic Number | Version & Access Conditions | 0x00h | NFC Type 5 Tag | RFU | RFU |Memory Size|Memory Size|
+       */
       // capability container (T5T tag)
-      full_record[0] = 225; // magic number
-      full_record[1] = 64;  // version (1.0) and access condition (always, always) (version is b7b6.b5b4, read access is b3b2, write access is b1b0)
-      full_record[2] = 64;  // MLEN NDEF data size 512 bytes (0x40)
-      full_record[3] = 5;   // additional feature information (support multiple block read)
-      full_record[4] = 3;   // Not really sure what this does...
-      full_record[5] = payload.size();
-      memcpy(&full_record[6], payload.data(), payload.size());
+      full_record[0] = 0xE1; // magic number, should be 0xE1 or 0xE2 (for extended API)
+      full_record[1] = 0x40; // CC version (1.0) and access condition (always, always) (version is b7b6.b5b4, read access is b3b2, write access is b1b0)
+      full_record[2] = 0x40; // MLEN NDEF data size 512 bytes (0x40), expressed in blocks (set to 0 if tag is greater than 16 Kbit)
+      full_record[3] = 5;    // additional feature information (support multiple block read) (b0: support read multiple block, b1 & b2 : RFU, b3: supports lock block, b4: requires special frame format)
+      // The message is preceded by a type5 tag header:
+      Tlv tlv(Type5TagType::NDEF_MSG, payload.size());
+      int tlv_size = tlv.size();
+      memcpy(&full_record[4], tlv.raw, tlv_size);
+      memcpy(&full_record[4 + tlv_size], payload.data(), payload.size());
       write(std::string_view{(const char*)full_record.data(), full_record.size()});
     }
 
@@ -301,6 +317,55 @@ namespace espp {
       IT_STS   = 0x2005,  /**< Interruption status register. */
       MB_CTRL  = 0x2006,  /**< Fast transfer mode control & status register. */
       MB_LEN   = 0x2007,  /**< Length of fast transfer mode message. */
+    };
+
+    /**
+     * @brief Type5 Tag Type-Length-Value (TLV) Type values
+     */
+    enum class Type5TagType : uint8_t {
+      NDEF_MSG   = 0x03, ///< Type5 Tag NDEF Message (TLV-Type)
+      TERMINATOR = 0xFE, ///< Type5 Tag Terminator
+    };
+
+    /**
+     * @brief Type5 Tag Type-Length-Value (TLV) structure (defined by NFC
+     *        forum).
+     */
+    struct Tlv {
+      /**
+       * @brief Construct the TLV and set the length/length16 members accordingly.
+       * @param t The Type5TagType type of the message.
+       * @param len The length of the message, in bytes.
+       */
+      Tlv(Type5TagType t, int len) {
+        type = t;
+        if (len < 255) {
+          length = len;
+        } else {
+          length = 0xFF;
+          length16 = len;
+        }
+      }
+
+      union {
+        struct {
+          Type5TagType type;  ///< Message type
+          uint8_t length;     ///< Length if < 255 bytes
+          // NOTE: only written if Length >= 255 bytes
+          uint16_t length16;  ///< Length if >= 255 bytes
+        };
+        uint8_t raw[4];
+      };
+
+      /**
+       * @brief Get the number of bytes that the TLV will occupy, based on the
+       *        length.
+       * @return Number of bytes of raw that should be written to represent the
+       *         TLV.
+       */
+      int size() {
+        return length < 255 ? 2 : 4;
+      }
     };
 
     class GPO {

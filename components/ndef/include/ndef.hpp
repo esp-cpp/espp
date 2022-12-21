@@ -115,6 +115,41 @@ namespace espp {
     };
 
     /**
+     * @brief Handover codes for data types in BT and BLE out of band (OOB)
+     *        pairing NDEF records.
+     */
+    enum class BtHandover {
+      UUIDS_16_BIT_PARTIAL   = 0x02, ///< Incomplete list of 16 bit service class UUIDs
+      UUIDS_16_BIT_COMPLETE  = 0x03, ///< Complete list of 16 bit service class UUIDs
+      UUIDS_32_BIT_PARTIAL   = 0x04, ///< Incomplete list of 32 bit service class UUIDs
+      UUIDS_32_BIT_COMPLETE  = 0x05, ///< Complete list of 32 bit service class UUIDs
+      UUIDS_128_BIT_PARTIAL  = 0x06, ///< Incomplete list of 128 bit service class UUIDs
+      UUIDS_128_BIT_COMPLETE = 0x07, ///< Complete list of 128 bit service class UUIDs
+      SHORT_LOCAL_NAME       = 0x08, ///< Shortened Bluetooth Local Name
+      LONG_LOCAL_NAME        = 0x09, ///< Complete Bluetooth Local Name
+      CLASS_OF_DEVICE        = 0x0D, ///< Class of Device
+      SP_HASH_C192           = 0x0E, ///< Simple Pairing Hash C-192
+      SP_RANDOM_R192         = 0x0F, ///< Simple Pairing Randomizer R-192
+      SECURITY_MANAGER_TK    = 0x10, ///< Security Manager TK Value (LE Legacy Pairing)
+      APPEARANCE             = 0x19, ///< Appearance
+      MAC                    = 0x1B, ///< Bluetooth Device Address
+      LE_ROLE                = 0x1C, ///< LE Role
+      SP_HASH_C256           = 0x1D, ///< Simple Pairing Hash C-256
+      SP_HASH_R256           = 0x1E, ///< Simple Pairing Randomizer R-256
+      LE_SC_CONFIRMATION     = 0x22, ///< LE Secure Connections Confirmation Value
+      LE_SC_RANDOM           = 0x23, ///< LE Secure Connections Random Value
+    };
+
+    /**
+     * @brief Possible roles for BLE records to indicate support for.
+     */
+    enum class BleRole : uint8_t {
+      LE_ROLE_PERIPHERAL_ONLY      = 0x00, ///< Radio can only act as a peripheral
+      LE_ROLE_CENTRAL_ONLY         = 0x01, ///< Radio can only act as a central
+      LE_ROLE_PERIPHERAL_CENTRAL   = 0x02, ///< Radio can act as both a peripheral and a central
+    };
+
+    /**
      * @brief Makes an NDEF record with header and payload.
      * @param tnf The TNF for this packet.
      * @param type String view for the type of this packet
@@ -173,12 +208,22 @@ namespace espp {
      */
     static Ndef make_oob_pairing(uint64_t mac_addr, uint32_t device_class, std::string_view name) {
       std::vector<uint8_t> data;
-      // NOTE: for the EIR data types see the BT_HANDOVER_TYPE_ codes here:
+      // NOTE: for the extended inquiry response (EIR) data types see the
+      // BT_HANDOVER_TYPE_ codes here:
       // https://android.googlesource.com/platform/packages/apps/Nfc/+/master/src/com/android/nfc/handover/HandoverDataParser.java#61
 
-      // TODO: fill the data
+      // fill the data
       // 2 bytes of data length (e.g. 0x20, 0x00) including length field
+      data.resize(2); // 2 bytes that we'll fill in later with the length
       // 6 bytes of BT device MAC address
+      data.push_back(mac_addr & 0x0000FF0000000000 >> 40);
+      data.push_back(mac_addr & 0x000000FF00000000 >> 32);
+      data.push_back(mac_addr & 0x00000000FF000000 >> 24);
+      data.push_back(mac_addr & 0x0000000000FF0000 >> 16);
+      data.push_back(mac_addr & 0x000000000000FF00 >> 8);
+      data.push_back(mac_addr & 0x00000000000000FF >> 0);
+
+      // TODO: add optional data
       // OOB optional data as extended inquiry response (EIR) - no specific
       //   order. Example below:
       //   * local name field:
@@ -193,7 +238,11 @@ namespace espp {
       //    * 1 byte length
       //    * 1 byte EIR data type (UUID = 0x03, 16bit service class uuids)
       //    * groups of 2 byte fields (each is two bytes, total bytes is length - 1)
-      //
+
+      // now make sure the length is updated
+      int length = data.size();
+      data[0] = length & 0xFF00 >> 8;
+      data[1] = length & 0x00FF >> 0;
       auto sv_data = std::string_view{(const char*)data.data(), data.size()};
       return Ndef(TNF::MIME_MEDIA, "application/vnd.bluetooth.ep.oob", sv_data);
     }
@@ -205,14 +254,27 @@ namespace espp {
      * @param name Name of the BLE device.
      * @return NDEF record object.
      */
-    static Ndef make_le_oob_pairing(uint64_t mac_addr, uint32_t role, std::string_view name) {
+    static Ndef make_le_oob_pairing(uint64_t mac_addr, BleRole role, std::string_view name) {
       std::vector<uint8_t> data;
-      // NOTE: for the EIR data types see the BT_HANDOVER_TYPE_ codes here:
+      // NOTE: for the extended inquiry response (EIR) data types see the
+      // BT_HANDOVER_TYPE_ codes here:
       // https://android.googlesource.com/platform/packages/apps/Nfc/+/master/src/com/android/nfc/handover/HandoverDataParser.java#61
 
-      // TODO: fill the data - NOTE: all BLE data is passed as EIR data with no additional data
+      // fill the data - NOTE: all BLE data is passed as EIR data with no additional data
+
       // (mandatory 0x1B) LE device address
+      // NOTE: we use an additional byte here because there's an extra byte
+      // required after the MAC as part of this EIR payload...
+      uint8_t mac_addr_bytes[9];
+      memset(mac_addr_bytes, 0, sizeof(mac_addr_bytes));
+      // get all 8 bytes of the 64bit mac addr passed in
+      memcpy(mac_addr_bytes, &mac_addr, 8);
+      make_bt_eir(data, BtHandover::MAC, std::string_view{(const char*)&mac_addr_bytes[2], 7});
+
       // (mandatory 0x1C) LE role
+      make_bt_eir(data, BtHandover::LE_ROLE, std::string_view{(const char*)&role, 1});
+
+      // TODO: provide optional parameters
       // (optional  0x10) Security Manager TK value (LE legacy pairing)
       // (optional  0x19) 2 byte Appearance, e.g. 'Remote Control', 'Computer', or 'Heart Rate Sensor'
       // (optional  0x01) Flags
@@ -290,6 +352,62 @@ namespace espp {
       flags_.CF = 0; // first record of a chunk
       flags_.ME = 1; // message end
       flags_.MB = 1; // message begin
+    }
+
+    static int make_bt_eir(std::vector<uint8_t>& data, BtHandover eir_type, std::string_view payload) {
+      uint8_t num_eir_bytes = 0;
+      switch (eir_type) {
+      case BtHandover::UUIDS_16_BIT_PARTIAL:
+        num_eir_bytes = payload.size();
+        break;
+      case BtHandover::UUIDS_16_BIT_COMPLETE:
+        num_eir_bytes = payload.size();
+        break;
+      case BtHandover::UUIDS_32_BIT_PARTIAL:
+        num_eir_bytes = payload.size();
+        break;
+      case BtHandover::UUIDS_32_BIT_COMPLETE:
+        num_eir_bytes = payload.size();
+        break;
+      case BtHandover::UUIDS_128_BIT_PARTIAL:
+        num_eir_bytes = payload.size();
+        break;
+      case BtHandover::UUIDS_128_BIT_COMPLETE:
+        num_eir_bytes = payload.size();
+        break;
+      case BtHandover::SHORT_LOCAL_NAME:
+        num_eir_bytes = payload.size();
+        break;
+      case BtHandover::LONG_LOCAL_NAME:
+        num_eir_bytes = payload.size();
+        break;
+      case BtHandover::CLASS_OF_DEVICE:
+        num_eir_bytes = 3; // 24 bit class of device structure
+        break;
+      case BtHandover::SECURITY_MANAGER_TK:
+        break;
+      case BtHandover::APPEARANCE:
+        num_eir_bytes = 2; // 2 byte appearance type
+        break;
+      case BtHandover::MAC:
+        num_eir_bytes = 7; // 6 for mac addr + 1 for mac addr type
+        break;
+      case BtHandover::LE_ROLE:
+        num_eir_bytes = 1;
+        break;
+      case BtHandover::LE_SC_CONFIRMATION:
+        break;
+      case BtHandover::LE_SC_RANDOM:
+        break;
+      default:
+        break;
+      }
+      data.push_back(num_eir_bytes);
+      data.push_back((uint8_t)eir_type);
+      for (int i=0; i<num_eir_bytes; i++) {
+        data.push_back(payload[i]);
+      }
+      return 2 + num_eir_bytes;
     }
 
     TNF tnf_;
