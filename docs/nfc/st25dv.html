@@ -93,6 +93,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ST25DV</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#unions">Unions</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
 </li>
@@ -123,7 +124,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>ST25DV</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/a0f6938/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f0e6ea2/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -144,8 +145,29 @@ maintains) followed by serialized NDEF records.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a0f6938/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0e6ea2/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
 </ul>
+</section>
+<section id="unions">
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h3>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed9____"></span><span class="sig-name descname"><span class="pre">espp::St25dv::Tlv.__unnamed9__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToErrorUt2_11E">
+<span id="_CPPv3N19PhonyNameDueToErrorUt2_11E"></span><span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed9_____1a4f465ceb1b510107884ceaee7abcd0f4"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6St25dvE" title="espp::St25dv"><span class="n"><span class="pre">St25dv</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Tlv</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">[anonymous]</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">[anonymous]</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">[anonymous]</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToErrorUt2_11E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError3rawE">
+<span id="_CPPv3N19PhonyNameDueToError3rawE"></span><span id="_CPPv2N19PhonyNameDueToError3rawE"></span><span id="PhonyNameDueToError::raw__uint8_tA"></span><span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed9_____1a47dbc742874a0cf505ba12473a003549"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">raw</span></span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
@@ -205,10 +227,19 @@ maintains) followed by serialized NDEF records.</p>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">text_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_text</span><span class="p">(</span><span class="s">&quot;hello!&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">uri_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_uri</span><span class="p">(</span><span class="s">&quot;github.com/esp-cpp/espp&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">Uic</span><span class="o">::</span><span class="n">HTTPS</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">launcher_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_android_launcher</span><span class="p">(</span><span class="s">&quot;com.google.android.apps.photos&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xFEDCBA100908</span><span class="p">;</span><span class="w"> </span><span class="c1">// 48b</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">bt_device_class</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x000000</span><span class="p">;</span><span class="w"> </span><span class="c1">// 24b</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">bt_radio_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BT Radio&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">bt_oob_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">bt_device_class</span><span class="p">,</span><span class="w"> </span><span class="n">bt_radio_name</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_role</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BleRole</span><span class="o">::</span><span class="n">LE_ROLE_PERIPHERAL_ONLY</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BLE Radio&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_oob_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_le_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">ble_role</span><span class="p">,</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="n">st25dv</span><span class="p">.</span><span class="n">set_record</span><span class="p">(</span><span class="n">launcher_record</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;text: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">text_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;uri:  {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">uri_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;launcher:  {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">launcher_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;text: {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">text_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;uri:  {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">uri_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;launcher:  {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">launcher_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;bt oob:   {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bt_oob_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;ble oob:  {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ble_oob_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the st25dv and print the</span>
 <span class="w">    </span><span class="c1">// state.</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">quit_test</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st25dv</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -311,6 +342,10 @@ maintains) followed by serialized NDEF records.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv10set_recordER4Ndef">
 <span id="_CPPv3N4espp6St25dv10set_recordER4Ndef"></span><span id="_CPPv2N4espp6St25dv10set_recordER4Ndef"></span><span id="espp::St25dv::set_record__NdefR"></span><span class="target" id="classespp_1_1_st25dv_1a711cb6715d2168384ce70b2c3897b6a5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_record</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="ndef.html#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">record</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv10set_recordER4Ndef" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Writes the provided record (along with CC header) to the EEPROM. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Right now this only supports 4 B CC headers (for memory less than 16 Kbit). </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>record</strong> – The new NDEF record to serialize to the NFC EEPROM. </p>
@@ -511,6 +546,37 @@ maintains) followed by serialized NDEF records.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS8RF_WRITEE">
 <span id="_CPPv3N4espp6St25dv6IT_STS8RF_WRITEE"></span><span id="_CPPv2N4espp6St25dv6IT_STS8RF_WRITEE"></span><span id="espp::St25dv::IT_STS::RF_WRITE__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1ae73b551eb58569fb328ab84997ed17e7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_WRITE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b10000000</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS8RF_WRITEE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Write in eeprom. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed9____"></span><span class="sig-name descname"><span class="pre">Tlv.__unnamed9__</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed9_____8____unnamed11____"></span><span class="sig-name descname"><span class="pre">Tlv.__unnamed9__.__unnamed11__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError4typeE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError4typeE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError4typeE"></span><span id="espp::St25dv::PhonyNameDueToError::type__Type5TagType"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed9_____8____unnamed11_____1a599dcce2998a6b40b1e38e8c6006cb0a"></span><span class="n"><span class="pre">Type5TagType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError4typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Message type. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError6lengthE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError6lengthE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError6lengthE"></span><span id="espp::St25dv::PhonyNameDueToError::length__uint8_t"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed9_____8____unnamed11_____1a2fa47f7c65fec19cc163b195725e3844"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">length</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError6lengthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Length if &lt; 255 bytes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError8length16E">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError8length16E"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError8length16E"></span><span id="espp::St25dv::PhonyNameDueToError::length16__uint16_t"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed9_____8____unnamed11_____1ac4f599693f1cfe63915fd0455e4a5fa5"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">length16</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError8length16E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Length if &gt;= 255 bytes. </p>
 </dd></dl>
 
 </div>

@@ -124,7 +124,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>NDEF</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/a0f6938/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f0e6ea2/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -141,7 +141,7 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a0f6938/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f0e6ea2/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
 </ul>
 </section>
 <section id="unions">
@@ -492,6 +492,152 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 
 </dd></dl>
 
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandoverE">
+<span id="_CPPv3N4espp4Ndef10BtHandoverE"></span><span id="_CPPv2N4espp4Ndef10BtHandoverE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aec"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BtHandover</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandoverE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Handover codes for data types in BT and BLE out of band (OOB) pairing NDEF records. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover20UUIDS_16_BIT_PARTIALE">
+<span id="_CPPv3N4espp4Ndef10BtHandover20UUIDS_16_BIT_PARTIALE"></span><span id="_CPPv2N4espp4Ndef10BtHandover20UUIDS_16_BIT_PARTIALE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca654d46a608759b8400d20786979f79eb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_16_BIT_PARTIAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover20UUIDS_16_BIT_PARTIALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Incomplete list of 16 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover21UUIDS_16_BIT_COMPLETEE">
+<span id="_CPPv3N4espp4Ndef10BtHandover21UUIDS_16_BIT_COMPLETEE"></span><span id="_CPPv2N4espp4Ndef10BtHandover21UUIDS_16_BIT_COMPLETEE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca01856ed58a05f33240ddd06519880119"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_16_BIT_COMPLETE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover21UUIDS_16_BIT_COMPLETEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete list of 16 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover20UUIDS_32_BIT_PARTIALE">
+<span id="_CPPv3N4espp4Ndef10BtHandover20UUIDS_32_BIT_PARTIALE"></span><span id="_CPPv2N4espp4Ndef10BtHandover20UUIDS_32_BIT_PARTIALE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca6ed417238d5370bc86cd9469e960e206"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_32_BIT_PARTIAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover20UUIDS_32_BIT_PARTIALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Incomplete list of 32 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover21UUIDS_32_BIT_COMPLETEE">
+<span id="_CPPv3N4espp4Ndef10BtHandover21UUIDS_32_BIT_COMPLETEE"></span><span id="_CPPv2N4espp4Ndef10BtHandover21UUIDS_32_BIT_COMPLETEE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca75783736660a6bc8f2e7b2ded73fbe0e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_32_BIT_COMPLETE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover21UUIDS_32_BIT_COMPLETEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete list of 32 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover21UUIDS_128_BIT_PARTIALE">
+<span id="_CPPv3N4espp4Ndef10BtHandover21UUIDS_128_BIT_PARTIALE"></span><span id="_CPPv2N4espp4Ndef10BtHandover21UUIDS_128_BIT_PARTIALE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aecaaa5b86f0162b7f0a4c09c617dd60b482"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_128_BIT_PARTIAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover21UUIDS_128_BIT_PARTIALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Incomplete list of 128 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover22UUIDS_128_BIT_COMPLETEE">
+<span id="_CPPv3N4espp4Ndef10BtHandover22UUIDS_128_BIT_COMPLETEE"></span><span id="_CPPv2N4espp4Ndef10BtHandover22UUIDS_128_BIT_COMPLETEE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aecaffd0d092114cd3e2a546fa6747435f4f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UUIDS_128_BIT_COMPLETE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover22UUIDS_128_BIT_COMPLETEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete list of 128 bit service class UUIDs. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover16SHORT_LOCAL_NAMEE">
+<span id="_CPPv3N4espp4Ndef10BtHandover16SHORT_LOCAL_NAMEE"></span><span id="_CPPv2N4espp4Ndef10BtHandover16SHORT_LOCAL_NAMEE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aecaa0f83ac4b67b87b0ebcdc824ddd07635"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SHORT_LOCAL_NAME</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover16SHORT_LOCAL_NAMEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shortened Bluetooth Local Name. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover15LONG_LOCAL_NAMEE">
+<span id="_CPPv3N4espp4Ndef10BtHandover15LONG_LOCAL_NAMEE"></span><span id="_CPPv2N4espp4Ndef10BtHandover15LONG_LOCAL_NAMEE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca0b7c80e6a1112cc8cfdf7bfa536c83cc"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LONG_LOCAL_NAME</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover15LONG_LOCAL_NAMEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Complete Bluetooth Local Name. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover15CLASS_OF_DEVICEE">
+<span id="_CPPv3N4espp4Ndef10BtHandover15CLASS_OF_DEVICEE"></span><span id="_CPPv2N4espp4Ndef10BtHandover15CLASS_OF_DEVICEE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca5e1d6708ca41e5ad55de5bece7cd28e4"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CLASS_OF_DEVICE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover15CLASS_OF_DEVICEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class of Device. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover12SP_HASH_C192E">
+<span id="_CPPv3N4espp4Ndef10BtHandover12SP_HASH_C192E"></span><span id="_CPPv2N4espp4Ndef10BtHandover12SP_HASH_C192E"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca3756b49ea37fc214a5bd69c4257dc86d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SP_HASH_C192</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover12SP_HASH_C192E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Simple Pairing Hash C-192. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover14SP_RANDOM_R192E">
+<span id="_CPPv3N4espp4Ndef10BtHandover14SP_RANDOM_R192E"></span><span id="_CPPv2N4espp4Ndef10BtHandover14SP_RANDOM_R192E"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca8f424aaa97a505b9e784b61efc18ff68"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SP_RANDOM_R192</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover14SP_RANDOM_R192E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Simple Pairing Randomizer R-192. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover19SECURITY_MANAGER_TKE">
+<span id="_CPPv3N4espp4Ndef10BtHandover19SECURITY_MANAGER_TKE"></span><span id="_CPPv2N4espp4Ndef10BtHandover19SECURITY_MANAGER_TKE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca3254ddc742e6b4632a503cc4e89ab185"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SECURITY_MANAGER_TK</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover19SECURITY_MANAGER_TKE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Security Manager TK Value (LE Legacy Pairing) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover10APPEARANCEE">
+<span id="_CPPv3N4espp4Ndef10BtHandover10APPEARANCEE"></span><span id="_CPPv2N4espp4Ndef10BtHandover10APPEARANCEE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca3d67defbb7eda50f100abd0ca9f3ec1d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">APPEARANCE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover10APPEARANCEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Appearance. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover3MACE">
+<span id="_CPPv3N4espp4Ndef10BtHandover3MACE"></span><span id="_CPPv2N4espp4Ndef10BtHandover3MACE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca2e25c285356cbb0ed8785a1377027d79"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAC</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover3MACE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Bluetooth Device Address. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover7LE_ROLEE">
+<span id="_CPPv3N4espp4Ndef10BtHandover7LE_ROLEE"></span><span id="_CPPv2N4espp4Ndef10BtHandover7LE_ROLEE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca092499ef66ac9dfe33d2871e211119ba"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_ROLE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover7LE_ROLEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LE Role. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover12SP_HASH_C256E">
+<span id="_CPPv3N4espp4Ndef10BtHandover12SP_HASH_C256E"></span><span id="_CPPv2N4espp4Ndef10BtHandover12SP_HASH_C256E"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca7da00a1c495b8d63b4757ed8e10c1797"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SP_HASH_C256</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover12SP_HASH_C256E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Simple Pairing Hash C-256. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover12SP_HASH_R256E">
+<span id="_CPPv3N4espp4Ndef10BtHandover12SP_HASH_R256E"></span><span id="_CPPv2N4espp4Ndef10BtHandover12SP_HASH_R256E"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aecaa5b9c7502d30ae3a0cb19e854ef88aa8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SP_HASH_R256</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover12SP_HASH_R256E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Simple Pairing Randomizer R-256. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover18LE_SC_CONFIRMATIONE">
+<span id="_CPPv3N4espp4Ndef10BtHandover18LE_SC_CONFIRMATIONE"></span><span id="_CPPv2N4espp4Ndef10BtHandover18LE_SC_CONFIRMATIONE"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aeca7fb8d9bf37cfe778bfd16e50fce474c5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_SC_CONFIRMATION</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover18LE_SC_CONFIRMATIONE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LE Secure Connections Confirmation Value. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef10BtHandover12LE_SC_RANDOME">
+<span id="_CPPv3N4espp4Ndef10BtHandover12LE_SC_RANDOME"></span><span id="_CPPv2N4espp4Ndef10BtHandover12LE_SC_RANDOME"></span><span class="target" id="classespp_1_1_ndef_1aa3312ffb0af86d566d27e73d1dbc2aecadc6fbaf6ae35c482a57d7efc95ad1191"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_SC_RANDOM</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef10BtHandover12LE_SC_RANDOME" title="Permalink to this definition"></a><br /></dt>
+<dd><p>LE Secure Connections Random Value. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRoleE">
+<span id="_CPPv3N4espp4Ndef7BleRoleE"></span><span id="_CPPv2N4espp4Ndef7BleRoleE"></span><span class="target" id="classespp_1_1_ndef_1a04a518893a6326bf9a66b95390962f4c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BleRole</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRoleE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible roles for BLE records to indicate support for. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRole23LE_ROLE_PERIPHERAL_ONLYE">
+<span id="_CPPv3N4espp4Ndef7BleRole23LE_ROLE_PERIPHERAL_ONLYE"></span><span id="_CPPv2N4espp4Ndef7BleRole23LE_ROLE_PERIPHERAL_ONLYE"></span><span class="target" id="classespp_1_1_ndef_1a04a518893a6326bf9a66b95390962f4ca0aeb6d9c9449fd79ba88add2d8fc95ab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_ROLE_PERIPHERAL_ONLY</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRole23LE_ROLE_PERIPHERAL_ONLYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Radio can only act as a peripheral. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRole20LE_ROLE_CENTRAL_ONLYE">
+<span id="_CPPv3N4espp4Ndef7BleRole20LE_ROLE_CENTRAL_ONLYE"></span><span id="_CPPv2N4espp4Ndef7BleRole20LE_ROLE_CENTRAL_ONLYE"></span><span class="target" id="classespp_1_1_ndef_1a04a518893a6326bf9a66b95390962f4cac5fb1dd3efd4e367c5c0ed8bc03b4023"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_ROLE_CENTRAL_ONLY</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRole20LE_ROLE_CENTRAL_ONLYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Radio can only act as a central. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef7BleRole26LE_ROLE_PERIPHERAL_CENTRALE">
+<span id="_CPPv3N4espp4Ndef7BleRole26LE_ROLE_PERIPHERAL_CENTRALE"></span><span id="_CPPv2N4espp4Ndef7BleRole26LE_ROLE_PERIPHERAL_CENTRALE"></span><span class="target" id="classespp_1_1_ndef_1a04a518893a6326bf9a66b95390962f4ca35fa54f2ece528afe49c07f5c33adfe3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LE_ROLE_PERIPHERAL_CENTRAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef7BleRole26LE_ROLE_PERIPHERAL_CENTRALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Radio can act as both a peripheral and a central. </p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
@@ -599,8 +745,8 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t8uint32_tNSt11string_viewE">
-<span id="_CPPv3N4espp4Ndef19make_le_oob_pairingE8uint64_t8uint32_tNSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef19make_le_oob_pairingE8uint64_t8uint32_tNSt11string_viewE"></span><span id="espp::Ndef::make_le_oob_pairing__uint64_t.uint32_t.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1a0cd8fb1c1ec735a7628ae2da26d5f7f3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_le_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">role</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t8uint32_tNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE">
+<span id="_CPPv3N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE"></span><span id="espp::Ndef::make_le_oob_pairing__uint64_t.BleRole.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1a81954945fb4b30237320ca148a2797be"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_le_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <a class="reference internal" href="#_CPPv4N4espp4Ndef7BleRoleE" title="espp::Ndef::BleRole"><span class="n"><span class="pre">BleRole</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">role</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Static function to make an NDEF record for BLE OOB Pairing (Android). </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
