@@ -16,7 +16,9 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -99,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
@@ -122,7 +125,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display Drivers</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/display/display_drivers.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/62f9f12/docs/en/display/display_drivers.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -131,28 +134,28 @@
            <div itemprop="articleBody">
              
   <section id="display-drivers">
-<h1>Display Drivers<a class="headerlink" href="#display-drivers" title="Permalink to this headline"></a></h1>
+<h1>Display Drivers<a class="headerlink" href="#display-drivers" title="Permalink to this heading"></a></h1>
 <p>ESPP contains a few different display drivers in the <cite>display_drivers</cite>
 component, corresponding to common display drivers on espressif development
 boards.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/display_drivers/include/ili9341.hpp">components/display_drivers/include/ili9341.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/62f9f12/components/display_drivers/include/ili9341.hpp">components/display_drivers/include/ili9341.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ili9341E">
-<span id="_CPPv3N4espp7Ili9341E"></span><span id="_CPPv2N4espp7Ili9341E"></span><span id="espp::Ili9341"></span><span class="target" id="classespp_1_1_ili9341"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Ili9341</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ili9341E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Ili9341E"></span><span id="_CPPv2N4espp7Ili9341E"></span><span id="espp::Ili9341"></span><span class="target" id="classespp_1_1_ili9341"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ili9341</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ili9341E" title="Permalink to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="display.html#classespp_1_1_display"><span class="std std-ref">Display</span></a> driver for the ILI9341 display controller. </p>
 <p>This code is modified from <a class="reference external" href="https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/ili9341.c">https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/ili9341.c</a> and <a class="reference external" href="https://github.com/espressif/esp-dev-kits/blob/master/esp32-s2-hmi-devkit-1/components/screen/controller_driver/ili9341/ili9341.c">https://github.com/espressif/esp-dev-kits/blob/master/esp32-s2-hmi-devkit-1/components/screen/controller_driver/ili9341/ili9341.c</a></p>
 <p>See also: <a class="reference external" href="https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_ili9341/esp_lcd_ili9341.c">https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_ili9341/esp_lcd_ili9341.c</a></p>
 <section id="classespp_1_1_ili9341_1ili9341_wrover_cfg">
-<h4>WROVER-KIT ILI9341 Config<a class="headerlink" href="#classespp_1_1_ili9341_1ili9341_wrover_cfg" title="Permalink to this headline"></a></h4>
+<h4>WROVER-KIT ILI9341 Config<a class="headerlink" href="#classespp_1_1_ili9341_1ili9341_wrover_cfg" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_ili9341_1ili9341_wrover_cfg"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">dev_kit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ESP-WROVER-DevKit&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">clock_speed</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span><span class="o">*</span><span class="mi">1000</span><span class="o">*</span><span class="mi">1000</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">spi_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SPI2_HOST</span><span class="p">;</span><span class="w"></span>
@@ -173,7 +176,7 @@ boards.</p>
  </p>
 </section>
 <section id="classespp_1_1_ili9341_1ili9341_ex1">
-<h4>ili9341 Example<a class="headerlink" href="#classespp_1_1_ili9341_1ili9341_ex1" title="Permalink to this headline"></a></h4>
+<h4>ili9341 Example<a class="headerlink" href="#classespp_1_1_ili9341_1ili9341_ex1" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_ili9341_1ili9341_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create the spi host</span>
 <span class="w">    </span><span class="n">spi_bus_config_t</span><span class="w"> </span><span class="n">buscfg</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">buscfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">buscfg</span><span class="p">));</span><span class="w"></span>
@@ -420,21 +423,21 @@ boards.</p>
 
 </section>
 <section id="id1">
-<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/display_drivers/include/st7789.hpp">components/display_drivers/include/st7789.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/62f9f12/components/display_drivers/include/st7789.hpp">components/display_drivers/include/st7789.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
-<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6St7789E">
-<span id="_CPPv3N4espp6St7789E"></span><span id="_CPPv2N4espp6St7789E"></span><span id="espp::St7789"></span><span class="target" id="classespp_1_1_st7789"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">St7789</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St7789E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6St7789E"></span><span id="_CPPv2N4espp6St7789E"></span><span id="espp::St7789"></span><span class="target" id="classespp_1_1_st7789"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">St7789</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St7789E" title="Permalink to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="display.html#classespp_1_1_display"><span class="std std-ref">Display</span></a> driver for the ST7789 display controller. </p>
 <p>This code is modified from <a class="reference external" href="https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/st7789.c">https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/st7789.c</a> and <a class="reference external" href="https://github.com/Bodmer/TFT_eSPI/blob/master/TFT_Drivers/ST7789_Defines.h">https://github.com/Bodmer/TFT_eSPI/blob/master/TFT_Drivers/ST7789_Defines.h</a></p>
 <p>See also: <a class="reference external" href="https://github.com/espressif/esp-who/blob/master/components/screen/controller_driver/st7789/st7789.c">https://github.com/espressif/esp-who/blob/master/components/screen/controller_driver/st7789/st7789.c</a> or <a class="reference external" href="https://github.com/espressif/tflite-micro-esp-examples/blob/master/components/screen/controller_driver/st7789/st7789.c">https://github.com/espressif/tflite-micro-esp-examples/blob/master/components/screen/controller_driver/st7789/st7789.c</a> or <a class="reference external" href="https://esphome.io/api/st7789v_8h_source.html">https://esphome.io/api/st7789v_8h_source.html</a> or <a class="reference external" href="https://github.com/mireq/esp32-st7789-demo/blob/master/components/st7789/include/st7789.h">https://github.com/mireq/esp32-st7789-demo/blob/master/components/st7789/include/st7789.h</a> or <a class="reference external" href="https://github.com/mireq/esp32-st7789-demo/blob/master/components/st7789/st7789.c">https://github.com/mireq/esp32-st7789-demo/blob/master/components/st7789/st7789.c</a></p>
 <section id="classespp_1_1_st7789_1st7789_ttgo_cfg">
-<h4>TTGO St7789 Config<a class="headerlink" href="#classespp_1_1_st7789_1st7789_ttgo_cfg" title="Permalink to this headline"></a></h4>
+<h4>TTGO St7789 Config<a class="headerlink" href="#classespp_1_1_st7789_1st7789_ttgo_cfg" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_st7789_1st7789_ttgo_cfg"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">dev_kit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;TTGO T-Display&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">clock_speed</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="o">*</span><span class="mi">1000</span><span class="o">*</span><span class="mi">1000</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">spi_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SPI2_HOST</span><span class="p">;</span><span class="w"></span>
@@ -455,7 +458,7 @@ boards.</p>
  </p>
 </section>
 <section id="classespp_1_1_st7789_1st7789_box_cfg">
-<h4>ESP32-S3-BOX St7789 Config<a class="headerlink" href="#classespp_1_1_st7789_1st7789_box_cfg" title="Permalink to this headline"></a></h4>
+<h4>ESP32-S3-BOX St7789 Config<a class="headerlink" href="#classespp_1_1_st7789_1st7789_box_cfg" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_st7789_1st7789_box_cfg"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">dev_kit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ESP32-S3-BOX&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">clock_speed</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="o">*</span><span class="mi">1000</span><span class="o">*</span><span class="mi">1000</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">spi_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SPI2_HOST</span><span class="p">;</span><span class="w"></span>
@@ -476,7 +479,7 @@ boards.</p>
  </p>
 </section>
 <section id="classespp_1_1_st7789_1st7789_ex1">
-<h4>st7789 Example<a class="headerlink" href="#classespp_1_1_st7789_1st7789_ex1" title="Permalink to this headline"></a></h4>
+<h4>st7789 Example<a class="headerlink" href="#classespp_1_1_st7789_1st7789_ex1" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_st7789_1st7789_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create the spi host</span>
 <span class="w">    </span><span class="n">spi_bus_config_t</span><span class="w"> </span><span class="n">buscfg</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">buscfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">buscfg</span><span class="p">));</span><span class="w"></span>

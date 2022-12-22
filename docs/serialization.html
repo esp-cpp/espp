@@ -16,7 +16,9 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -86,6 +88,7 @@
 <li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Serialization APIs</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#alpaca">Alpaca</a></li>
@@ -118,7 +121,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Serialization APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/serialization.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/62f9f12/docs/en/serialization.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -127,13 +130,13 @@
            <div itemprop="articleBody">
              
   <section id="serialization-apis">
-<h1>Serialization APIs<a class="headerlink" href="#serialization-apis" title="Permalink to this headline"></a></h1>
+<h1>Serialization APIs<a class="headerlink" href="#serialization-apis" title="Permalink to this heading"></a></h1>
 <section id="alpaca">
-<span id="alpaca-section"></span><h2>Alpaca<a class="headerlink" href="#alpaca" title="Permalink to this headline"></a></h2>
+<span id="alpaca-section"></span><h2>Alpaca<a class="headerlink" href="#alpaca" title="Permalink to this heading"></a></h2>
 <p>The serialization library is a light wrapper around the third-party <a class="reference external" href="https://github.com/p-ranav/alpaca">alpaca</a> serialization library.</p>
 </section>
 <section id="serialization">
-<h2>Serialization<a class="headerlink" href="#serialization" title="Permalink to this headline"></a></h2>
+<h2>Serialization<a class="headerlink" href="#serialization" title="Permalink to this heading"></a></h2>
 <p>The <cite>Serialization</cite> component provides a simple wrapper with reasonable default
 options around the <a class="reference internal" href="#alpaca-section"><span class="std std-ref">Alpaca</span></a> libarary. The default
 serialization/deserialization options are configured such that messages / types
@@ -142,15 +145,15 @@ can be distinguished from each other.</p>
 example folder.</p>
 </section>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/serialization/include/serialization.hpp">components/serialization/include/serialization.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/62f9f12/components/serialization/include/serialization.hpp">components/serialization/include/serialization.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
-<h3>Macros<a class="headerlink" href="#macros" title="Permalink to this headline"></a></h3>
+<h3>Macros<a class="headerlink" href="#macros" title="Permalink to this heading"></a></h3>
 <dl class="cpp macro">
 <dt class="sig sig-object cpp" id="c.__gnu_linux__">
 <span class="target" id="serialization_8hpp_1a51b087854dc3c2f76946efb432745639"></span><span class="sig-name descname"><span class="n"><span class="pre">__gnu_linux__</span></span></span><a class="headerlink" href="#c.__gnu_linux__" title="Permalink to this definition"></a><br /></dt>
@@ -158,13 +161,13 @@ example folder.</p>
 
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp31__serialization_documentation__E">
 <span id="_CPPv3N4espp31__serialization_documentation__E"></span><span id="_CPPv2N4espp31__serialization_documentation__E"></span><span id="espp::__serialization_documentation__"></span><span class="target" id="classespp_1_1____serialization__documentation____"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">__serialization_documentation__</span></span></span><a class="headerlink" href="#_CPPv4N4espp31__serialization_documentation__E" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Serialization convenience wrapper for espp, providing methods for serializaing structures / classes into containers (such as c-sytle arrays, std::arrays, std::vectors, etc.). and for deserializing such containers into structures / classes. </p>
 <section id="namespaceespp_1serialization_ex1">
-<h4>(De-)Serialization Example<a class="headerlink" href="#namespaceespp_1serialization_ex1" title="Permalink to this headline"></a></h4>
+<h4>(De-)Serialization Example<a class="headerlink" href="#namespaceespp_1serialization_ex1" title="Permalink to this heading"></a></h4>
 <p id="namespaceespp_1serialization_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">MyStruct</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w"> </span><span class="c1">// NOTE: you cannot use int, you must use strongly sized types.</span>
 <span class="w">    </span><span class="p">};</span><span class="w"></span>
@@ -232,7 +235,7 @@ example folder.</p>
  </p>
 </section>
 <section id="namespaceespp_1serialization_ex2">
-<h4>Complex Structure (De-)Serialization Example<a class="headerlink" href="#namespaceespp_1serialization_ex2" title="Permalink to this headline"></a></h4>
+<h4>Complex Structure (De-)Serialization Example<a class="headerlink" href="#namespaceespp_1serialization_ex2" title="Permalink to this heading"></a></h4>
 <p id="namespaceespp_1serialization_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">MyStruct</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w"></span>
 <span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">data</span><span class="p">;</span><span class="w"></span>

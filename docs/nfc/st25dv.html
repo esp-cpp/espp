@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ST25DV - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'nfc/st25dv';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="PID APIs" href="../pid.html" />
+    <link rel="prev" title="NDEF" href="ndef.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">NFC APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ndef.html">NDEF</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ST25DV</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#unions">Unions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">NFC APIs</a> &raquo;</li>
+      <li>ST25DV</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/62f9f12/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="st25dv">
+<h1>ST25DV<a class="headerlink" href="#st25dv" title="Permalink to this heading"></a></h1>
+<p>The <cite>St25dv</cite> provides a utility class for NFC communications using the ST25DV
+Dynamic NFC / RFID tag. The tag includes 4Kb, 16Kb, or 64Kb EEPROM along with
+support for fast transfer mode - which enables bi-directional communications
+with other NFC/RFID enabled devices such as phones. This chip stores in its
+EEPROM NFC T5T tag records - which include a CC header (that this class
+maintains) followed by serialized NDEF records.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/62f9f12/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
+</ul>
+</section>
+<section id="unions">
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h3>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed9____"></span><span class="sig-name descname"><span class="pre">espp::St25dv::Tlv.__unnamed9__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToErrorUt2_11E">
+<span id="_CPPv3N19PhonyNameDueToErrorUt2_11E"></span><span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed9_____1a4f465ceb1b510107884ceaee7abcd0f4"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6St25dvE" title="espp::St25dv"><span class="n"><span class="pre">St25dv</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Tlv</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">[anonymous]</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">[anonymous]</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">[anonymous]</span></span></span><a class="headerlink" href="#_CPPv4N19PhonyNameDueToErrorUt2_11E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError3rawE">
+<span id="_CPPv3N19PhonyNameDueToError3rawE"></span><span id="_CPPv2N19PhonyNameDueToError3rawE"></span><span id="PhonyNameDueToError::raw__uint8_tA"></span><span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed9_____1a47dbc742874a0cf505ba12473a003549"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">raw</span></span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dvE">
+<span id="_CPPv3N4espp6St25dvE"></span><span id="_CPPv2N4espp6St25dvE"></span><span id="espp::St25dv"></span><span class="target" id="classespp_1_1_st25dv"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">St25dv</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dvE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for wireless communications using a ST25DV Dynamic NFC/RFID tag. The datasheet for the ST25DV can be found here: <a class="reference external" href="https://www.st.com/resource/en/datasheet/st25dv04k.pdf">https://www.st.com/resource/en/datasheet/st25dv04k.pdf</a>. </p>
+<section id="classespp_1_1_st25dv_1st25dv_ex1">
+<h4>St25dv Example<a class="headerlink" href="#classespp_1_1_st25dv_1st25dv_ex1" title="Permalink to this heading"></a></h4>
+<p id="classespp_1_1_st25dv_1st25dv_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">i2c_cfg</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SDA_IO</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SCL_IO</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">master</span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_FREQ_HZ</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_param_config</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;config i2c failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_driver_install</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;install i2c driver failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the st25dv</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">st25dv_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">length</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">addr</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">data</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">length</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">st25dv_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">length</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="p">(</span><span class="kt">uint8_t</span><span class="p">)(</span><span class="n">reg_addr</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">8</span><span class="p">),</span><span class="w"></span>
+<span class="w">        </span><span class="p">(</span><span class="kt">uint8_t</span><span class="p">)(</span><span class="n">reg_addr</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0xFF</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="p">};</span><span class="w"></span>
+<span class="w">      </span><span class="n">i2c_master_write_read_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">addr</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">reg</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="mi">2</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">data</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">length</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// now make the st25dv which decodes the data</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">St25dv</span><span class="w"> </span><span class="nf">st25dv</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">st25dv_write</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">st25dv_read</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="o">&gt;</span><span class="w"> </span><span class="n">programmed_data</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">st25dv</span><span class="p">.</span><span class="n">read</span><span class="p">(</span><span class="n">programmed_data</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">programmed_data</span><span class="p">.</span><span class="n">size</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Read: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">programmed_data</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">text_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_text</span><span class="p">(</span><span class="s">&quot;hello!&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">uri_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_uri</span><span class="p">(</span><span class="s">&quot;github.com/esp-cpp/espp&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">Uic</span><span class="o">::</span><span class="n">HTTPS</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">launcher_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_android_launcher</span><span class="p">(</span><span class="s">&quot;com.google.android.apps.photos&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x060504030201</span><span class="p">;</span><span class="w"> </span><span class="c1">// 48b</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">bt_device_class</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x000000</span><span class="p">;</span><span class="w"> </span><span class="c1">// 24b</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">bt_radio_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BT Radio&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">bt_oob_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">bt_device_class</span><span class="p">,</span><span class="w"> </span><span class="n">bt_radio_name</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_role</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BleRole</span><span class="o">::</span><span class="n">PERIPHERAL_ONLY</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BtAppearance</span><span class="o">::</span><span class="n">GAMEPAD</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BLE Radio&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_oob_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_le_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">ble_role</span><span class="p">,</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="p">,</span><span class="w"> </span><span class="n">ble_appearance</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">st25dv</span><span class="p">.</span><span class="n">set_record</span><span class="p">(</span><span class="n">ble_oob_record</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;text: {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">text_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;uri:  {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">uri_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;launcher: {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">launcher_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;bt oob:   {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bt_oob_record</span><span class="p">.</span><span class="n">payload</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;ble oob:  {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ble_oob_record</span><span class="p">.</span><span class="n">payload</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the st25dv and print the</span>
+<span class="w">    </span><span class="c1">// state.</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">quit_test</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st25dv</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="o">-</span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">it_sts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">st25dv</span><span class="p">.</span><span class="n">get_interrupt_status</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;IT STS: {:02x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">it_sts</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">quit_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it_sts</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">St25dv</span><span class="o">::</span><span class="n">IT_STS</span><span class="o">::</span><span class="n">FIELD_RISING</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;St25dv Task&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="o">*</span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See <a class="reference external" href="https://stackoverflow.com/questions/61622309/base-address-requirement-for-ndef-messages-on-type-5-tags">https://stackoverflow.com/questions/61622309/base-address-requirement-for-ndef-messages-on-type-5-tags</a> for some discussion about the Capability Container (CC) header that must be the first data in the EEPROM.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv8write_fnE">
+<span id="_CPPv3N4espp6St25dv8write_fnE"></span><span id="_CPPv2N4espp6St25dv8write_fnE"></span><span id="espp::St25dv::write_fn"></span><span class="target" id="classespp_1_1_st25dv_1a6fb80de5a9312e7b43415a2151f86724"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">length</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv8write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write bytes to <a class="reference internal" href="#classespp_1_1_st25dv"><span class="std std-ref">St25dv</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param addr</dt>
+<dd class="field-odd"><p>I2C address to write to </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>Data to be written. </p>
+</dd>
+<dt class="field-odd">Param length</dt>
+<dd class="field-odd"><p>Number of bytes to write. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv7read_fnE">
+<span id="_CPPv3N4espp6St25dv7read_fnE"></span><span id="_CPPv2N4espp6St25dv7read_fnE"></span><span id="espp::St25dv::read_fn"></span><span class="target" id="classespp_1_1_st25dv_1a7cbdfa81940de34f41836ea3fd302bc3"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">length</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv7read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read a sequence of bytes from <a class="reference internal" href="#classespp_1_1_st25dv"><span class="std std-ref">St25dv</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param addr</dt>
+<dd class="field-odd"><p>I2C address to read from </p>
+</dd>
+<dt class="field-even">Param reg_addr</dt>
+<dd class="field-even"><p>Start register address to read from. </p>
+</dd>
+<dt class="field-odd">Param data</dt>
+<dd class="field-odd"><p>Pointer to memory which will be filled with data read from <a class="reference internal" href="#classespp_1_1_st25dv"><span class="std std-ref">St25dv</span></a>. </p>
+</dd>
+<dt class="field-even">Param length</dt>
+<dd class="field-even"><p>Number of bytes to read </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6St25dvERK6Config">
+<span id="_CPPv3N4espp6St25dv6St25dvERK6Config"></span><span id="_CPPv2N4espp6St25dv6St25dvERK6Config"></span><span id="espp::St25dv::St25dv__ConfigCR"></span><span class="target" id="classespp_1_1_st25dv_1a0b80019df7264936050d3f0a6c491ca4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">St25dv</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6St25dv6ConfigE" title="espp::St25dv::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv6St25dvERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the <a class="reference internal" href="#classespp_1_1_st25dv"><span class="std std-ref">St25dv</span></a> and start the update task. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv20get_interrupt_statusEv">
+<span id="_CPPv3N4espp6St25dv20get_interrupt_statusEv"></span><span id="_CPPv2N4espp6St25dv20get_interrupt_statusEv"></span><span id="espp::St25dv::get_interrupt_status"></span><span class="target" id="classespp_1_1_st25dv_1aa31a405a05429053b03acad83cc94444"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_interrupt_status</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv20get_interrupt_statusEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the interrupt status register (dynamic IT_STS). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Reading the interrupt status register clears it. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The available states / flags in the register are available in <code class="docutils literal notranslate"><span class="pre">St25dv::IT_STS</span></code>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The raw interrupt status register value read from the chip. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv10set_recordER4Ndef">
+<span id="_CPPv3N4espp6St25dv10set_recordER4Ndef"></span><span id="_CPPv2N4espp6St25dv10set_recordER4Ndef"></span><span id="espp::St25dv::set_record__NdefR"></span><span class="target" id="classespp_1_1_st25dv_1a711cb6715d2168384ce70b2c3897b6a5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_record</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="ndef.html#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">record</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv10set_recordER4Ndef" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Writes the provided record (along with CC header) to the EEPROM. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Right now this only supports 4 B CC headers (for memory less than 16 Kbit). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>record</strong> – The new NDEF record to serialize to the NFC EEPROM. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv5writeENSt11string_viewE">
+<span id="_CPPv3N4espp6St25dv5writeENSt11string_viewE"></span><span id="_CPPv2N4espp6St25dv5writeENSt11string_viewE"></span><span id="espp::St25dv::write__std::string_view"></span><span class="target" id="classespp_1_1_st25dv_1a4d162f031cb70e5568ce45cdd5b21334"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">payload</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv5writeENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write a raw sequence of bytes to the EEPROM. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>payload</strong> – Sequence of bytes to write. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_t">
+<span id="_CPPv3N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_t"></span><span id="_CPPv2N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_t"></span><span id="espp::St25dv::read__uint8_tP.uint8_t.uint16_t"></span><span class="target" id="classespp_1_1_st25dv_1adc8f77d4618fc6737d79e09490574475"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">offset</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a sequence of bytes from the EEPROM. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This may contain raw NDEF bytes as well as the CC header. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*data</strong> – Pointer to memory to be filled with bytes read. </p></li>
+<li><p><strong>length</strong> – Number of bytes to read. </p></li>
+<li><p><strong>offset</strong> – Optional offset to start reading from. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv24start_fast_transfer_modeEv">
+<span id="_CPPv3N4espp6St25dv24start_fast_transfer_modeEv"></span><span id="_CPPv2N4espp6St25dv24start_fast_transfer_modeEv"></span><span id="espp::St25dv::start_fast_transfer_mode"></span><span class="target" id="classespp_1_1_st25dv_1a49355c0ca4ffb0081e4549a14ce66b56"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_fast_transfer_mode</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv24start_fast_transfer_modeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable fast transfer mode (using up to 255 bytes at a time) between RF and I2C. After calling this, you can call <a class="reference internal" href="#classespp_1_1_st25dv_1a990d036bee3bf8c1c3db0532051c2380"><span class="std std-ref">transfer()</span></a>, <a class="reference internal" href="#classespp_1_1_st25dv_1adbbe2087453798812834248a2a35778b"><span class="std std-ref">receive()</span></a>, and <a class="reference internal" href="#classespp_1_1_st25dv_1ac1981eeae4f9700aca88c68557279ae9"><span class="std std-ref">get_ftm_length()</span></a> for fast bi-directional communications between RF and I2C. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv23stop_fast_transfer_modeEv">
+<span id="_CPPv3N4espp6St25dv23stop_fast_transfer_modeEv"></span><span id="_CPPv2N4espp6St25dv23stop_fast_transfer_modeEv"></span><span id="espp::St25dv::stop_fast_transfer_mode"></span><span class="target" id="classespp_1_1_st25dv_1ae8ca75a83c71106656d6ef24423f2870"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_fast_transfer_mode</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv23stop_fast_transfer_modeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disable fast transfer mode (using up to 255 bytes at a time) between RF and I2C. After calling this, you cannot call <a class="reference internal" href="#classespp_1_1_st25dv_1a990d036bee3bf8c1c3db0532051c2380"><span class="std std-ref">transfer()</span></a> or <a class="reference internal" href="#classespp_1_1_st25dv_1adbbe2087453798812834248a2a35778b"><span class="std std-ref">receive()</span></a> without again calling <a class="reference internal" href="#classespp_1_1_st25dv_1a49355c0ca4ffb0081e4549a14ce66b56"><span class="std std-ref">start_fast_transfer_mode()</span></a> first. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv14get_ftm_lengthEv">
+<span id="_CPPv3N4espp6St25dv14get_ftm_lengthEv"></span><span id="_CPPv2N4espp6St25dv14get_ftm_lengthEv"></span><span id="espp::St25dv::get_ftm_length"></span><span class="target" id="classespp_1_1_st25dv_1ac1981eeae4f9700aca88c68557279ae9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_ftm_length</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv14get_ftm_lengthEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the available message length in the FTM message box. </p>
+<p>Will return non-zero if the RF received data into the FTM. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Number of bytes (up to 255) available in the FTM message box. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv8transferEP7uint8_t7uint8_t">
+<span id="_CPPv3N4espp6St25dv8transferEP7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6St25dv8transferEP7uint8_t7uint8_t"></span><span id="espp::St25dv::transfer__uint8_tP.uint8_t"></span><span class="target" id="classespp_1_1_st25dv_1a990d036bee3bf8c1c3db0532051c2380"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">transfer</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv8transferEP7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write data to the FTM message box to send. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Must call <a class="reference internal" href="#classespp_1_1_st25dv_1a49355c0ca4ffb0081e4549a14ce66b56"><span class="std std-ref">start_fast_transfer_mode()</span></a> prior to use. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Data to be written. </p></li>
+<li><p><strong>length</strong> – Number of bytes to write. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv7receiveEP7uint8_t7uint8_t">
+<span id="_CPPv3N4espp6St25dv7receiveEP7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6St25dv7receiveEP7uint8_t7uint8_t"></span><span id="espp::St25dv::receive__uint8_tP.uint8_t"></span><span class="target" id="classespp_1_1_st25dv_1adbbe2087453798812834248a2a35778b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">receive</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6St25dv7receiveEP7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read data from the FTM message box. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Must call <a class="reference internal" href="#classespp_1_1_st25dv_1a49355c0ca4ffb0081e4549a14ce66b56"><span class="std std-ref">start_fast_transfer_mode()</span></a> prior to use. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The length available to be read can be found by calling <a class="reference internal" href="#classespp_1_1_st25dv_1ac1981eeae4f9700aca88c68557279ae9"><span class="std std-ref">get_ftm_length()</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Pointer to memory to be filled with data. </p></li>
+<li><p><strong>length</strong> – Number of bytes to read. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv12DATA_ADDRESSE">
+<span id="_CPPv3N4espp6St25dv12DATA_ADDRESSE"></span><span id="_CPPv2N4espp6St25dv12DATA_ADDRESSE"></span><span id="espp::St25dv::DATA_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_st25dv_1ad4ee1298d7092a1c4a34a754a6009c81"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DATA_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0xA6</span></span><span class="w"> </span><span class="o"><span class="pre">&gt;&gt;</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv12DATA_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C Address for writing / reading data. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv12SYST_ADDRESSE">
+<span id="_CPPv3N4espp6St25dv12SYST_ADDRESSE"></span><span id="_CPPv2N4espp6St25dv12SYST_ADDRESSE"></span><span id="espp::St25dv::SYST_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_st25dv_1a9ae4a502428bac93420af107e9c55f53"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SYST_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0xAE</span></span><span class="w"> </span><span class="o"><span class="pre">&gt;&gt;</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv12SYST_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C Address for writing / reading system config. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6ConfigE">
+<span id="_CPPv3N4espp6St25dv6ConfigE"></span><span id="_CPPv2N4espp6St25dv6ConfigE"></span><span id="espp::St25dv::Config"></span><span class="target" id="structespp_1_1_st25dv_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration information for the <a class="reference internal" href="#classespp_1_1_st25dv"><span class="std std-ref">St25dv</span></a>. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6Config5writeE">
+<span id="_CPPv3N4espp6St25dv6Config5writeE"></span><span id="_CPPv2N4espp6St25dv6Config5writeE"></span><span id="espp::St25dv::Config::write__write_fn"></span><span class="target" id="structespp_1_1_st25dv_1_1_config_1a3da39ba7e0a9052ba2ec1587d5c1c93b"></span><a class="reference internal" href="#_CPPv4N4espp6St25dv8write_fnE" title="espp::St25dv::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6Config4readE">
+<span id="_CPPv3N4espp6St25dv6Config4readE"></span><span id="_CPPv2N4espp6St25dv6Config4readE"></span><span id="espp::St25dv::Config::read__read_fn"></span><span class="target" id="structespp_1_1_st25dv_1_1_config_1ad6e983d11e94d5826efb59af6142377c"></span><a class="reference internal" href="#_CPPv4N4espp6St25dv7read_fnE" title="espp::St25dv::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read from the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6Config9log_levelE">
+<span id="_CPPv3N4espp6St25dv6Config9log_levelE"></span><span id="_CPPv2N4espp6St25dv6Config9log_levelE"></span><span id="espp::St25dv::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1_st25dv_1_1_config_1a1b93b55b35f9e73909e79341070ba739"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity for the component. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STSE">
+<span id="_CPPv3N4espp6St25dv6IT_STSE"></span><span id="_CPPv2N4espp6St25dv6IT_STSE"></span><span id="espp::St25dv::IT_STS"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IT_STS</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Encapsulates the different flags / bit fields that the IT_STS dynamic register holds for the different states it represents. Reading this register clears it to 0x00. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>RF events are reported in the IT_STS register even if <a class="reference internal" href="#classespp_1_1_st25dv_1_1_g_p_o"><span class="std std-ref">GPO</span></a> output is disabled. </p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS7RF_USERE">
+<span id="_CPPv3N4espp6St25dv6IT_STS7RF_USERE"></span><span id="_CPPv2N4espp6St25dv6IT_STS7RF_USERE"></span><span id="espp::St25dv::IT_STS::RF_USER__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1a2de56ea0b68c8ff7b4baedf92b6b4b85"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_USER</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00000001</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS7RF_USERE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Manage <a class="reference internal" href="#classespp_1_1_st25dv_1_1_g_p_o"><span class="std std-ref">GPO</span></a> (set / reset <a class="reference internal" href="#classespp_1_1_st25dv_1_1_g_p_o"><span class="std std-ref">GPO</span></a>) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS11RF_ACTIVITYE">
+<span id="_CPPv3N4espp6St25dv6IT_STS11RF_ACTIVITYE"></span><span id="_CPPv2N4espp6St25dv6IT_STS11RF_ACTIVITYE"></span><span id="espp::St25dv::IT_STS::RF_ACTIVITY__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1a94fe9c6ab7de8b43d46526304d893a62"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_ACTIVITY</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00000010</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS11RF_ACTIVITYE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Indicates RF Access. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS12RF_INTTERUPTE">
+<span id="_CPPv3N4espp6St25dv6IT_STS12RF_INTTERUPTE"></span><span id="_CPPv2N4espp6St25dv6IT_STS12RF_INTTERUPTE"></span><span id="espp::St25dv::IT_STS::RF_INTTERUPT__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1ac295c4e26ebd0f50af1ba4cfe96a488d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_INTTERUPT</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00000100</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS12RF_INTTERUPTE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1_st25dv_1_1_g_p_o"><span class="std std-ref">GPO</span></a> Interrupt request. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS13FIELD_FALLINGE">
+<span id="_CPPv3N4espp6St25dv6IT_STS13FIELD_FALLINGE"></span><span id="_CPPv2N4espp6St25dv6IT_STS13FIELD_FALLINGE"></span><span id="espp::St25dv::IT_STS::FIELD_FALLING__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1afeef2024ec715280b74940405f29a9d2"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FIELD_FALLING</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00001000</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS13FIELD_FALLINGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>RF field is falling. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS12FIELD_RISINGE">
+<span id="_CPPv3N4espp6St25dv6IT_STS12FIELD_RISINGE"></span><span id="_CPPv2N4espp6St25dv6IT_STS12FIELD_RISINGE"></span><span id="espp::St25dv::IT_STS::FIELD_RISING__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1a44ccad4e05710f10312e4596c35b6cf7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FIELD_RISING</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00010000</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS12FIELD_RISINGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>RF field is rising. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS10RF_PUT_MSGE">
+<span id="_CPPv3N4espp6St25dv6IT_STS10RF_PUT_MSGE"></span><span id="_CPPv2N4espp6St25dv6IT_STS10RF_PUT_MSGE"></span><span id="espp::St25dv::IT_STS::RF_PUT_MSG__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1ab31248e22185c057207a77ea0376d2d4"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_PUT_MSG</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00100000</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS10RF_PUT_MSGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Message put by RF into FTM mailbox. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS10RF_GET_MSGE">
+<span id="_CPPv3N4espp6St25dv6IT_STS10RF_GET_MSGE"></span><span id="_CPPv2N4espp6St25dv6IT_STS10RF_GET_MSGE"></span><span id="espp::St25dv::IT_STS::RF_GET_MSG__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1a63925caaa2079bffe41acb1c55e5db29"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_GET_MSG</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b01000000</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS10RF_GET_MSGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Message read by RF from FTM mailbox, and end of message has been reached. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS8RF_WRITEE">
+<span id="_CPPv3N4espp6St25dv6IT_STS8RF_WRITEE"></span><span id="_CPPv2N4espp6St25dv6IT_STS8RF_WRITEE"></span><span id="espp::St25dv::IT_STS::RF_WRITE__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1ae73b551eb58569fb328ab84997ed17e7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_WRITE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b10000000</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS8RF_WRITEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write in eeprom. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed9____"></span><span class="sig-name descname"><span class="pre">Tlv.__unnamed9__</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed9_____8____unnamed11____"></span><span class="sig-name descname"><span class="pre">Tlv.__unnamed9__.__unnamed11__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError4typeE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError4typeE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError4typeE"></span><span id="espp::St25dv::PhonyNameDueToError::type__Type5TagType"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed9_____8____unnamed11_____1a599dcce2998a6b40b1e38e8c6006cb0a"></span><span class="n"><span class="pre">Type5TagType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError4typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Message type. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError6lengthE">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError6lengthE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError6lengthE"></span><span id="espp::St25dv::PhonyNameDueToError::length__uint8_t"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed9_____8____unnamed11_____1a2fa47f7c65fec19cc163b195725e3844"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">length</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError6lengthE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Length if &lt; 255 bytes. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError8length16E">
+<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError8length16E"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError8length16E"></span><span id="espp::St25dv::PhonyNameDueToError::length16__uint16_t"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed9_____8____unnamed11_____1ac4f599693f1cfe63915fd0455e4a5fa5"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">length16</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError8length16E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Length if &gt;= 255 bytes. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IT_STS</span></span></span><br /></dt>
+<dd><p>Encapsulates the different flags / bit fields that the IT_STS dynamic register holds for the different states it represents. Reading this register clears it to 0x00. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>RF events are reported in the IT_STS register even if <a class="reference internal" href="#classespp_1_1_st25dv_1_1_g_p_o"><span class="std std-ref">GPO</span></a> output is disabled. </p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1a2de56ea0b68c8ff7b4baedf92b6b4b85"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_USER</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00000001</span></span><br /></dt>
+<dd><p>Manage <a class="reference internal" href="#classespp_1_1_st25dv_1_1_g_p_o"><span class="std std-ref">GPO</span></a> (set / reset <a class="reference internal" href="#classespp_1_1_st25dv_1_1_g_p_o"><span class="std std-ref">GPO</span></a>) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1a94fe9c6ab7de8b43d46526304d893a62"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_ACTIVITY</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00000010</span></span><br /></dt>
+<dd><p>Indicates RF Access. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1ac295c4e26ebd0f50af1ba4cfe96a488d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_INTTERUPT</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00000100</span></span><br /></dt>
+<dd><p><a class="reference internal" href="#classespp_1_1_st25dv_1_1_g_p_o"><span class="std std-ref">GPO</span></a> Interrupt request. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1afeef2024ec715280b74940405f29a9d2"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FIELD_FALLING</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00001000</span></span><br /></dt>
+<dd><p>RF field is falling. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1a44ccad4e05710f10312e4596c35b6cf7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FIELD_RISING</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00010000</span></span><br /></dt>
+<dd><p>RF field is rising. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1ab31248e22185c057207a77ea0376d2d4"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_PUT_MSG</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b00100000</span></span><br /></dt>
+<dd><p>Message put by RF into FTM mailbox. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1a63925caaa2079bffe41acb1c55e5db29"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_GET_MSG</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b01000000</span></span><br /></dt>
+<dd><p>Message read by RF from FTM mailbox, and end of message has been reached. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1ae73b551eb58569fb328ab84997ed17e7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_WRITE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b10000000</span></span><br /></dt>
+<dd><p>Write in eeprom. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv3GPOE">
+<span id="_CPPv3N4espp6St25dv3GPOE"></span><span id="_CPPv2N4espp6St25dv3GPOE"></span><span id="espp::St25dv::GPO"></span><span class="target" id="classespp_1_1_st25dv_1_1_g_p_o"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GPO</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv3GPOE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv7EH_CTRLE">
+<span id="_CPPv3N4espp6St25dv7EH_CTRLE"></span><span id="_CPPv2N4espp6St25dv7EH_CTRLE"></span><span id="espp::St25dv::EH_CTRL"></span><span class="target" id="classespp_1_1_st25dv_1_1_e_h___c_t_r_l"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EH_CTRL</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv7EH_CTRLE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv7MB_CTRLE">
+<span id="_CPPv3N4espp6St25dv7MB_CTRLE"></span><span id="_CPPv2N4espp6St25dv7MB_CTRLE"></span><span id="espp::St25dv::MB_CTRL"></span><span class="target" id="classespp_1_1_st25dv_1_1_m_b___c_t_r_l"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MB_CTRL</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv7MB_CTRLE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ndef.html" class="btn btn-neutral float-left" title="NDEF" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../pid.html" class="btn btn-neutral float-right" title="PID APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2022, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

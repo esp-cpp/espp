@@ -15,7 +15,9 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -83,6 +85,7 @@
 <li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
@@ -105,7 +108,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/62f9f12/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -119,6 +122,7 @@
 <div class="genindex-jumpbox">
  <a href="#_"><strong>_</strong></a>
  | <a href="#E"><strong>E</strong></a>
+ | <a href="#P"><strong>P</strong></a>
  
 </div>
 <h2 id="_">_</h2>
@@ -586,8 +590,6 @@
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger9Verbosity5ERRORE">espp::Logger::Verbosity::ERROR (C++ enumerator)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="logger.html#_CPPv4N4espp6Logger9Verbosity4INFOE">espp::Logger::Verbosity::INFO (C++ enumerator)</a>
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE">espp::Logger::Verbosity::WARN (C++ enumerator)</a>
@@ -641,6 +643,212 @@
       <li><a href="encoder/mt6701.html#_CPPv4N4espp6Mt670118velocity_filter_fnE">espp::Mt6701::velocity_filter_fn (C++ type)</a>
 </li>
       <li><a href="encoder/mt6701.html#_CPPv4N4espp6Mt67018write_fnE">espp::Mt6701::write_fn (C++ type)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4NdefE">espp::Ndef (C++ class)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef7BleRoleE">espp::Ndef::BleRole (C++ enum)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef7BleRole12CENTRAL_ONLYE">espp::Ndef::BleRole::CENTRAL_ONLY (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef7BleRole18CENTRAL_PERIPHERALE">espp::Ndef::BleRole::CENTRAL_PERIPHERAL (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef7BleRole18PERIPHERAL_CENTRALE">espp::Ndef::BleRole::PERIPHERAL_CENTRAL (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef7BleRole15PERIPHERAL_ONLYE">espp::Ndef::BleRole::PERIPHERAL_ONLY (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearanceE">espp::Ndef::BtAppearance (C++ enum)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance5CLOCKE">espp::Ndef::BtAppearance::CLOCK (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance8COMPUTERE">espp::Ndef::BtAppearance::COMPUTER (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance7DISPLAYE">espp::Ndef::BtAppearance::DISPLAY (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance7GAMEPADE">espp::Ndef::BtAppearance::GAMEPAD (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance6GAMINGE">espp::Ndef::BtAppearance::GAMING (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance11GENERIC_HIDE">espp::Ndef::BtAppearance::GENERIC_HID (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance8JOYSTICKE">espp::Ndef::BtAppearance::JOYSTICK (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance8KEYBOARDE">espp::Ndef::BtAppearance::KEYBOARD (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance5MOUSEE">espp::Ndef::BtAppearance::MOUSE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance5PHONEE">espp::Ndef::BtAppearance::PHONE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance14REMOTE_CONTROLE">espp::Ndef::BtAppearance::REMOTE_CONTROL (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance8TOUCHPADE">espp::Ndef::BtAppearance::TOUCHPAD (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance7UNKNOWNE">espp::Ndef::BtAppearance::UNKNOWN (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef12BtAppearance5WATCHE">espp::Ndef::BtAppearance::WATCH (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEirE">espp::Ndef::BtEir (C++ enum)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir10APPEARANCEE">espp::Ndef::BtEir::APPEARANCE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir15CLASS_OF_DEVICEE">espp::Ndef::BtEir::CLASS_OF_DEVICE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir5FLAGSE">espp::Ndef::BtEir::FLAGS (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir7LE_ROLEE">espp::Ndef::BtEir::LE_ROLE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir18LE_SC_CONFIRMATIONE">espp::Ndef::BtEir::LE_SC_CONFIRMATION (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir12LE_SC_RANDOME">espp::Ndef::BtEir::LE_SC_RANDOM (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir15LONG_LOCAL_NAMEE">espp::Ndef::BtEir::LONG_LOCAL_NAME (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir3MACE">espp::Ndef::BtEir::MAC (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir22SECURITY_MANAGER_FLAGSE">espp::Ndef::BtEir::SECURITY_MANAGER_FLAGS (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir19SECURITY_MANAGER_TKE">espp::Ndef::BtEir::SECURITY_MANAGER_TK (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir16SHORT_LOCAL_NAMEE">espp::Ndef::BtEir::SHORT_LOCAL_NAME (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir12SP_HASH_C192E">espp::Ndef::BtEir::SP_HASH_C192 (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir12SP_HASH_C256E">espp::Ndef::BtEir::SP_HASH_C256 (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir12SP_HASH_R256E">espp::Ndef::BtEir::SP_HASH_R256 (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir14SP_RANDOM_R192E">espp::Ndef::BtEir::SP_RANDOM_R192 (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir14TX_POWER_LEVELE">espp::Ndef::BtEir::TX_POWER_LEVEL (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir22UUIDS_128_BIT_COMPLETEE">espp::Ndef::BtEir::UUIDS_128_BIT_COMPLETE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir21UUIDS_128_BIT_PARTIALE">espp::Ndef::BtEir::UUIDS_128_BIT_PARTIAL (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir21UUIDS_16_BIT_COMPLETEE">espp::Ndef::BtEir::UUIDS_16_BIT_COMPLETE (C++ enumerator)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir20UUIDS_16_BIT_PARTIALE">espp::Ndef::BtEir::UUIDS_16_BIT_PARTIAL (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir21UUIDS_32_BIT_COMPLETEE">espp::Ndef::BtEir::UUIDS_32_BIT_COMPLETE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef5BtEir20UUIDS_32_BIT_PARTIALE">espp::Ndef::BtEir::UUIDS_32_BIT_PARTIAL (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef6BtTypeE">espp::Ndef::BtType (C++ enum)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef6BtType3BLEE">espp::Ndef::BtType::BLE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef6BtType5BREDRE">espp::Ndef::BtType::BREDR (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4NK4espp4Ndef8get_sizeEv">espp::Ndef::get_size (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef21make_android_launcherENSt11string_viewE">espp::Ndef::make_android_launcher (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearance">espp::Ndef::make_le_oob_pairing (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE">espp::Ndef::make_oob_pairing (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef9make_textENSt11string_viewE">espp::Ndef::make_text (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef8make_uriENSt11string_viewE3Uic">espp::Ndef::make_uri (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef4NdefE3TNFNSt11string_viewENSt11string_viewE">espp::Ndef::Ndef (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef7payloadEv">espp::Ndef::payload (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef9serializeEv">espp::Ndef::serialize (C++ function)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNFE">espp::Ndef::TNF (C++ enum)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNF12ABSOLUTE_URIE">espp::Ndef::TNF::ABSOLUTE_URI (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNF5EMPTYE">espp::Ndef::TNF::EMPTY (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNF13EXTERNAL_TYPEE">espp::Ndef::TNF::EXTERNAL_TYPE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNF10MIME_MEDIAE">espp::Ndef::TNF::MIME_MEDIA (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNF8RESERVEDE">espp::Ndef::TNF::RESERVED (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNF9UNCHANGEDE">espp::Ndef::TNF::UNCHANGED (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNF7UNKNOWNE">espp::Ndef::TNF::UNKNOWN (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3TNF10WELL_KNOWNE">espp::Ndef::TNF::WELL_KNOWN (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3UicE">espp::Ndef::Uic (C++ enum)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic6BTGOEPE">espp::Ndef::Uic::BTGOEP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic7BTL2CAPE">espp::Ndef::Uic::BTL2CAP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic5BTSPPE">espp::Ndef::Uic::BTSPP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic3DAVE">espp::Ndef::Uic::DAV (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4FILEE">espp::Ndef::Uic::FILE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic3FTPE">espp::Ndef::Uic::FTP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic8FTP_ANONE">espp::Ndef::Uic::FTP_ANON (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic7FTP_FTPE">espp::Ndef::Uic::FTP_FTP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4FTPSE">espp::Ndef::Uic::FTPS (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4HTTPE">espp::Ndef::Uic::HTTP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic8HTTP_WWWE">espp::Ndef::Uic::HTTP_WWW (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic5HTTPSE">espp::Ndef::Uic::HTTPS (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic9HTTPS_WWWE">espp::Ndef::Uic::HTTPS_WWW (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4IMAPE">espp::Ndef::Uic::IMAP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic8IRDAOBEXE">espp::Ndef::Uic::IRDAOBEX (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic6MAILTOE">espp::Ndef::Uic::MAILTO (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4NEWSE">espp::Ndef::Uic::NEWS (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic3NFSE">espp::Ndef::Uic::NFS (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4NONEE">espp::Ndef::Uic::NONE (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic3POPE">espp::Ndef::Uic::POP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4RSTPE">espp::Ndef::Uic::RSTP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4SFTPE">espp::Ndef::Uic::SFTP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic3SIPE">espp::Ndef::Uic::SIP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4SIPSE">espp::Ndef::Uic::SIPS (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic3SMBE">espp::Ndef::Uic::SMB (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic7TCPOBEXE">espp::Ndef::Uic::TCPOBEX (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic3TELE">espp::Ndef::Uic::TEL (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic6TELNETE">espp::Ndef::Uic::TELNET (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic4TFTPE">espp::Ndef::Uic::TFTP (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic3URNE">espp::Ndef::Uic::URN (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic7URN_EPCE">espp::Ndef::Uic::URN_EPC (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic10URN_EPC_IDE">espp::Ndef::Uic::URN_EPC_ID (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic11URN_EPC_PATE">espp::Ndef::Uic::URN_EPC_PAT (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic11URN_EPC_RAWE">espp::Ndef::Uic::URN_EPC_RAW (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic11URN_EPC_TAGE">espp::Ndef::Uic::URN_EPC_TAG (C++ enumerator)</a>
+</li>
+      <li><a href="nfc/ndef.html#_CPPv4N4espp4Ndef3Uic7URN_NFCE">espp::Ndef::Uic::URN_NFC (C++ enumerator)</a>
 </li>
       <li><a href="adc/oneshot_adc.html#_CPPv4N4espp10OneshotAdcE">espp::OneshotAdc (C++ class)</a>
 </li>
@@ -745,6 +953,74 @@
       <li><a href="network/socket.html#_CPPv4N4espp6Socket6SocketE4TypeRKN6Logger6ConfigE">espp::Socket::Socket (C++ function)</a>
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6SocketD0Ev">espp::Socket::~Socket (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dvE">espp::St25dv (C++ class)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6ConfigE">espp::St25dv::Config (C++ struct)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6Config9log_levelE">espp::St25dv::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6Config4readE">espp::St25dv::Config::read (C++ member)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6Config5writeE">espp::St25dv::Config::write (C++ member)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv12DATA_ADDRESSE">espp::St25dv::DATA_ADDRESS (C++ member)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv7EH_CTRLE">espp::St25dv::EH_CTRL (C++ class)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv14get_ftm_lengthEv">espp::St25dv::get_ftm_length (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv20get_interrupt_statusEv">espp::St25dv::get_interrupt_status (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv3GPOE">espp::St25dv::GPO (C++ class)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STSE">espp::St25dv::IT_STS (C++ class)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STSE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS13FIELD_FALLINGE">espp::St25dv::IT_STS::FIELD_FALLING (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS13FIELD_FALLINGE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS12FIELD_RISINGE">espp::St25dv::IT_STS::FIELD_RISING (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS12FIELD_RISINGE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS11RF_ACTIVITYE">espp::St25dv::IT_STS::RF_ACTIVITY (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS11RF_ACTIVITYE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS10RF_GET_MSGE">espp::St25dv::IT_STS::RF_GET_MSG (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS10RF_GET_MSGE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS12RF_INTTERUPTE">espp::St25dv::IT_STS::RF_INTTERUPT (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS12RF_INTTERUPTE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS10RF_PUT_MSGE">espp::St25dv::IT_STS::RF_PUT_MSG (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS10RF_PUT_MSGE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS7RF_USERE">espp::St25dv::IT_STS::RF_USER (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS7RF_USERE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS8RF_WRITEE">espp::St25dv::IT_STS::RF_WRITE (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6IT_STS8RF_WRITEE">[1]</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv7MB_CTRLE">espp::St25dv::MB_CTRL (C++ class)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv19PhonyNameDueToError6lengthE">espp::St25dv::PhonyNameDueToError::length (C++ member)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv19PhonyNameDueToError8length16E">espp::St25dv::PhonyNameDueToError::length16 (C++ member)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv19PhonyNameDueToError4typeE">espp::St25dv::PhonyNameDueToError::type (C++ member)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv4readEP7uint8_t7uint8_t8uint16_t">espp::St25dv::read (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv7read_fnE">espp::St25dv::read_fn (C++ type)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv7receiveEP7uint8_t7uint8_t">espp::St25dv::receive (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv10set_recordER4Ndef">espp::St25dv::set_record (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv6St25dvERK6Config">espp::St25dv::St25dv (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv24start_fast_transfer_modeEv">espp::St25dv::start_fast_transfer_mode (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv23stop_fast_transfer_modeEv">espp::St25dv::stop_fast_transfer_mode (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv12SYST_ADDRESSE">espp::St25dv::SYST_ADDRESS (C++ member)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv8transferEP7uint8_t7uint8_t">espp::St25dv::transfer (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv5writeENSt11string_viewE">espp::St25dv::write (C++ function)</a>
+</li>
+      <li><a href="nfc/st25dv.html#_CPPv4N4espp6St25dv8write_fnE">espp::St25dv::write_fn (C++ type)</a>
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St7789E">espp::St7789 (C++ class)</a>
 </li>
@@ -1043,6 +1319,18 @@
       <li><a href="wifi/wifi_sta.html#_CPPv4N4espp7WifiSta7WifiStaERK6Config">espp::WifiSta::WifiSta (C++ function)</a>
 </li>
       <li><a href="wifi/wifi_sta.html#_CPPv4N4espp7WifiStaD0Ev">espp::WifiSta::~WifiSta (C++ function)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="nfc/ndef.html#_CPPv4N19PhonyNameDueToErrorUt1_7E">PhonyNameDueToError::[anonymous] (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N19PhonyNameDueToErrorUt2_11E">[1]</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="nfc/ndef.html#_CPPv4N19PhonyNameDueToError3rawE">PhonyNameDueToError::raw (C++ member)</a>, <a href="nfc/st25dv.html#_CPPv4N19PhonyNameDueToError3rawE">[1]</a>
 </li>
   </ul></td>
 </tr></table>

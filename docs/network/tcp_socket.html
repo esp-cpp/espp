@@ -16,7 +16,9 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -38,7 +40,7 @@
     <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="PID APIs" href="../pid.html" />
+    <link rel="next" title="NFC APIs" href="../nfc/index.html" />
     <link rel="prev" title="UDP Sockets" href="udp_socket.html" /> 
 </head>
 
@@ -98,6 +100,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
@@ -121,7 +124,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>TCP Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/62f9f12/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -130,27 +133,27 @@
            <div itemprop="articleBody">
              
   <section id="tcp-sockets">
-<h1>TCP Sockets<a class="headerlink" href="#tcp-sockets" title="Permalink to this headline"></a></h1>
+<h1>TCP Sockets<a class="headerlink" href="#tcp-sockets" title="Permalink to this heading"></a></h1>
 <p>TCP sockets provide reliable, ordered communication over IP network sockets and
 have built-in protocols for handling packet acknowledgement as well as
 transmission speed / bandwidth adjustment.</p>
 <p>TCP sockets cannot be used with multicast (many to one, one to many).</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/62f9f12/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TcpSocketE">
-<span id="_CPPv3N4espp9TcpSocketE"></span><span id="_CPPv2N4espp9TcpSocketE"></span><span id="espp::TcpSocket"></span><span class="target" id="classespp_1_1_tcp_socket"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TcpSocket</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="socket.html#_CPPv4N4espp6SocketE" title="espp::Socket"><span class="n"><span class="pre">Socket</span></span></a><a class="headerlink" href="#_CPPv4N4espp9TcpSocketE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp9TcpSocketE"></span><span id="_CPPv2N4espp9TcpSocketE"></span><span id="espp::TcpSocket"></span><span class="target" id="classespp_1_1_tcp_socket"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TcpSocket</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="socket.html#_CPPv4N4espp6SocketE" title="espp::Socket"><span class="n"><span class="pre">Socket</span></span></a><a class="headerlink" href="#_CPPv4N4espp9TcpSocketE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for managing sending and receiving data using TCP/IP. Can be used to create client or server sockets. </p>
 <section id="classespp_1_1_tcp_socket_1tcp_ex1">
-<h4>TCP Client Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex1" title="Permalink to this headline"></a></h4>
+<h4>TCP Client Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex1" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_tcp_socket_1tcp_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="nf">client_socket</span><span class="p">({});</span><span class="w"></span>
 <span class="w">    </span><span class="n">client_socket</span><span class="p">.</span><span class="n">connect</span><span class="p">({</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">ip_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">server_address</span><span class="p">,</span><span class="w"></span>
@@ -180,7 +183,7 @@ transmission speed / bandwidth adjustment.</p>
  </p>
 </section>
 <section id="classespp_1_1_tcp_socket_1tcp_ex2">
-<h4>TCP Server Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex2" title="Permalink to this headline"></a></h4>
+<h4>TCP Server Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex2" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_tcp_socket_1tcp_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="nf">server_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
@@ -205,7 +208,7 @@ transmission speed / bandwidth adjustment.</p>
 </p>
 </section>
 <section id="classespp_1_1_tcp_socket_1tcp_ex3">
-<h4>TCP Client Response Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex3" title="Permalink to this headline"></a></h4>
+<h4>TCP Client Response Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex3" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_tcp_socket_1tcp_ex3"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="nf">client_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
 <span class="w">    </span><span class="n">client_socket</span><span class="p">.</span><span class="n">connect</span><span class="p">({</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">ip_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">server_address</span><span class="p">,</span><span class="w"></span>
@@ -241,7 +244,7 @@ transmission speed / bandwidth adjustment.</p>
  </p>
 </section>
 <section id="classespp_1_1_tcp_socket_1tcp_ex4">
-<h4>TCP Server Response Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex4" title="Permalink to this headline"></a></h4>
+<h4>TCP Server Response Example<a class="headerlink" href="#classespp_1_1_tcp_socket_1tcp_ex4" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_tcp_socket_1tcp_ex4"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TcpSocket</span><span class="w"> </span><span class="nf">server_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
@@ -706,7 +709,7 @@ See <a class="reference external" href="https://en.wikipedia.org/wiki/Multicast_
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="udp_socket.html" class="btn btn-neutral float-left" title="UDP Sockets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../pid.html" class="btn btn-neutral float-right" title="PID APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../nfc/index.html" class="btn btn-neutral float-right" title="NFC APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

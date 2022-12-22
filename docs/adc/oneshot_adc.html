@@ -16,7 +16,9 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -98,6 +100,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
@@ -121,7 +124,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>Oneshot ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/be4edff/docs/en/adc/oneshot_adc.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/62f9f12/docs/en/adc/oneshot_adc.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -130,7 +133,7 @@
            <div itemprop="articleBody">
              
   <section id="oneshot-adc">
-<h1>Oneshot ADC<a class="headerlink" href="#oneshot-adc" title="Permalink to this headline"></a></h1>
+<h1>Oneshot ADC<a class="headerlink" href="#oneshot-adc" title="Permalink to this heading"></a></h1>
 <p>The <cite>OneshotAdc</cite> allows the user a simple, low-resource way to sporadically (and
 with moderate frequency needs) measure an analog voltage for multiple channels
 on a single ADC UNIT. It does not start or manage any tasks and does not perform
@@ -138,21 +141,21 @@ any filtering on the data. Each time the user calls <cite>read_raw(adc_channel_t
 <cite>read_mv(adc_channel_t)</cite>, it block and trigger an analog read for the associated
 channel (if it was configured to do so).</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/be4edff/components/adc/include/oneshot_adc.hpp">components/adc/include/oneshot_adc.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/62f9f12/components/adc/include/oneshot_adc.hpp">components/adc/include/oneshot_adc.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10OneshotAdcE">
-<span id="_CPPv3N4espp10OneshotAdcE"></span><span id="_CPPv2N4espp10OneshotAdcE"></span><span id="espp::OneshotAdc"></span><span class="target" id="classespp_1_1_oneshot_adc"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">OneshotAdc</span></span></span><a class="headerlink" href="#_CPPv4N4espp10OneshotAdcE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp10OneshotAdcE"></span><span id="_CPPv2N4espp10OneshotAdcE"></span><span id="espp::OneshotAdc"></span><span class="target" id="classespp_1_1_oneshot_adc"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OneshotAdc</span></span></span><a class="headerlink" href="#_CPPv4N4espp10OneshotAdcE" title="Permalink to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="#classespp_1_1_oneshot_adc"><span class="std std-ref">OneshotAdc</span></a> provides a wrapper around the ESP-IDF oneshot adc subsystem, enabling simple, direct (blocking / slow) measurements of analog values. The <code class="docutils literal notranslate"><a class="reference internal" href="#classespp_1_1_oneshot_adc_1a848d4c348744f72692783f9e7c073891"><span class="std std-ref"><span class="pre">read_mv()</span></span></a></code> function will always take a new measurement (therefore it is blocking). </p>
 <section id="classespp_1_1_oneshot_adc_1adc_oneshot_ex1">
-<h4>Oneshot ADC Example<a class="headerlink" href="#classespp_1_1_oneshot_adc_1adc_oneshot_ex1" title="Permalink to this headline"></a></h4>
+<h4>Oneshot ADC Example<a class="headerlink" href="#classespp_1_1_oneshot_adc_1adc_oneshot_ex1" title="Permalink to this heading"></a></h4>
 <p id="classespp_1_1_oneshot_adc_1adc_oneshot_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">AdcConfig</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_UNIT_2</span><span class="p">,</span><span class="w"></span>
