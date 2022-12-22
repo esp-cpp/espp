@@ -70,19 +70,20 @@ extern "C" void app_main(void) {
     auto text_record = espp::Ndef::make_text("hello!");
     auto uri_record = espp::Ndef::make_uri("github.com/esp-cpp/espp", espp::Ndef::Uic::HTTPS);
     auto launcher_record = espp::Ndef::make_android_launcher("com.google.android.apps.photos");
-    uint64_t radio_mac_addr = 0xFEDCBA100908; // 48b
+    uint64_t radio_mac_addr = 0x060504030201; // 48b
     uint32_t bt_device_class = 0x000000; // 24b
     std::string_view bt_radio_name = "BT Radio";
     auto bt_oob_record = espp::Ndef::make_oob_pairing(radio_mac_addr, bt_device_class, bt_radio_name);
-    auto ble_role = espp::Ndef::BleRole::LE_ROLE_PERIPHERAL_ONLY;
+    auto ble_role = espp::Ndef::BleRole::PERIPHERAL_ONLY;
+    auto ble_appearance = espp::Ndef::BtAppearance::GAMEPAD;
     std::string_view ble_radio_name = "BLE Radio";
-    auto ble_oob_record = espp::Ndef::make_le_oob_pairing(radio_mac_addr, ble_role, ble_radio_name);
-    st25dv.set_record(bt_oob_record);
+    auto ble_oob_record = espp::Ndef::make_le_oob_pairing(radio_mac_addr, ble_role, ble_radio_name, ble_appearance);
+    st25dv.set_record(ble_oob_record);
     fmt::print("text: {::#x}\n", text_record.serialize());
     fmt::print("uri:  {::#x}\n", uri_record.serialize());
-    fmt::print("launcher:  {::#x}\n", launcher_record.serialize());
-    fmt::print("bt oob:   {::#x}\n", bt_oob_record.serialize());
-    fmt::print("ble oob:  {::#x}\n", ble_oob_record.serialize());
+    fmt::print("launcher: {::#x}\n", launcher_record.serialize());
+    fmt::print("bt oob:   {::#x}\n", bt_oob_record.payload());
+    fmt::print("ble oob:  {::#x}\n", ble_oob_record.payload());
     // and finally, make the task to periodically poll the st25dv and print the
     // state.
     auto task_fn = [&quit_test, &st25dv](std::mutex& m, std::condition_variable& cv) {
