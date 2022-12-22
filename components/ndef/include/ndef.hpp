@@ -300,29 +300,32 @@ namespace espp {
 
       // (mandatory 0x1B) LE device address NOTE: we use an additional byte here
       // because there's an extra byte required after the MAC as part of this
-      // EIR payload to define if it's public (0) or random (1)
-      uint8_t mac_addr_bytes[7];
-      // get all 8 bytes of the 64bit mac addr passed in
-      memcpy(mac_addr_bytes, &mac_addr, 6);
-      std::swap(mac_addr_bytes[0], mac_addr_bytes[5]);
-      std::swap(mac_addr_bytes[1], mac_addr_bytes[4]);
-      std::swap(mac_addr_bytes[2], mac_addr_bytes[3]);
-      // set the last byte (7th byte) to be 0x01 (static)
-      mac_addr_bytes[6] = 0x01;
+      // EIR payload to define address type
+      uint8_t mac_addr_bytes[7] {
+        (uint8_t)(mac_addr >> 40 & 0xFF),
+        (uint8_t)(mac_addr >> 32 & 0xFF),
+        (uint8_t)(mac_addr >> 24 & 0xFF),
+        (uint8_t)(mac_addr >> 16 & 0xFF),
+        (uint8_t)(mac_addr >> 8 & 0xFF),
+        (uint8_t)(mac_addr >> 0 & 0xFF),
+        0x01, // static address
+      };
       make_bt_eir(data, BtEir::MAC, std::string_view{(const char*)&mac_addr_bytes[0], 7});
 
       // (mandatory 0x1C) LE role
       make_bt_eir(data, BtEir::LE_ROLE, std::string_view{(const char*)&role, 1});
 
+      // optional appearance
       uint8_t appearance_bytes[] = {
         (uint8_t)((uint16_t)appearance >> 8),
         (uint8_t)((uint16_t)appearance & 0xFF)
       };
       make_bt_eir(data, BtEir::APPEARANCE, std::string_view{(const char*)&appearance_bytes[0], 2});
 
+      // optional local name
       make_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
 
-      // TODO: provide optional parameters
+      // TODO: provide additional optional parameters
       // (optional  0x10) Security Manager TK value (LE legacy pairing)
       // (optional  0x01) Flags
       // (optional  0x22) LE secure connections confirmation value
