@@ -89,7 +89,7 @@ extern "C" void app_main(void) {
     auto ble_oob_record = espp::Ndef::make_le_oob_pairing(radio_mac_addr, ble_role, ble_radio_name, ble_appearance);
 
     // set one of the records we made to be the active tag
-    st25dv.set_record(ble_oob_record);
+    st25dv.set_record(wifi_record);
 
     // print out the NDEF records we created so we can check them against
     // documentation
