@@ -284,7 +284,11 @@ namespace espp {
       std::vector<uint8_t> payload;
       add_wifi_field(payload, WifiFieldId::SSID, config.ssid);
       add_wifi_field(payload, WifiFieldId::NETWORK_KEY, config.key);
-      auto sv_auth = std::string_view{(const char*)&config.authentication, 1};
+      uint8_t auth_bytes[] = {
+        (uint8_t)(0x00),
+        (uint8_t)(config.authentication),
+      };
+      auto sv_auth = std::string_view{(const char*)auth_bytes, 2};
       add_wifi_field(payload, WifiFieldId::AUTH_TYPE, sv_auth);
 
       // now encapsulate it into a wifi credential
