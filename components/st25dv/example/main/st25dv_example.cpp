@@ -71,6 +71,10 @@ extern "C" void app_main(void) {
     auto text_record = espp::Ndef::make_text("hello!");
     auto uri_record = espp::Ndef::make_uri("github.com/esp-cpp/espp", espp::Ndef::Uic::HTTPS);
     auto launcher_record = espp::Ndef::make_android_launcher("com.google.android.apps.photos");
+    auto wifi_record = espp::Ndef::make_wifi_config({
+        .ssid = CONFIG_ESP_WIFI_SSID,
+        .key = CONFIG_ESP_WIFI_PASSWORD,
+      });
 
     // create BT OOB pairing record
     uint64_t radio_mac_addr = 0x060504030201; // 48b
@@ -85,12 +89,13 @@ extern "C" void app_main(void) {
     auto ble_oob_record = espp::Ndef::make_le_oob_pairing(radio_mac_addr, ble_role, ble_radio_name, ble_appearance);
 
     // set one of the records we made to be the active tag
-    st25dv.set_record(ble_oob_record);
+    st25dv.set_record(wifi_record);
 
     // print out the NDEF records we created so we can check them against
     // documentation
     fmt::print("text: {::#x}\n", text_record.serialize());
     fmt::print("uri:  {::#x}\n", uri_record.serialize());
+    fmt::print("wifi: {::#x}\n", wifi_record.serialize());
     fmt::print("launcher: {::#x}\n", launcher_record.serialize());
     fmt::print("bt oob:   {::#x}\n", bt_oob_record.payload());
     fmt::print("ble oob:  {::#x}\n", ble_oob_record.payload());

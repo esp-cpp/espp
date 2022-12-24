@@ -191,6 +191,29 @@ namespace espp {
     };
 
     /**
+     * @brief Types of configurable encryption for WiFi networks
+     */
+    enum class WifiEncryptionType {
+      NONE  = 0x01, ///< No encryption
+      WEP   = 0x02, ///< WEP
+      TKIP  = 0x04, ///< TKIP
+      AES   = 0x08, ///< AES
+    };
+
+    /**
+     * @brief WiFi network authentication
+     */
+    enum class WifiAuthenticationType {
+      OPEN             = 0x01, ///< Open / no security
+      WPA_PERSONAL     = 0x02, ///< WPA personal
+      SHARED           = 0x04, ///< Shared key
+      WPA_ENTERPRISE   = 0x08, ///< WPA enterprise
+      WPA2_ENTERPRISE  = 0x10, ///< WPA2 Enterprise
+      WPA2_PERSONAL    = 0x20, ///< WPA2 personal
+      WPA_WPA2_PERSONAL= 0x22, ///< Both WPA and WPA2 personal
+    };
+
+    /**
      * @brief Makes an NDEF record with header and payload.
      * @param tnf The TNF for this packet.
      * @param type String view for the type of this packet
@@ -241,6 +264,47 @@ namespace espp {
     }
 
     /**
+     * @brief Configuration structure for wifi configuration ndef structure.
+     */
+    struct WifiConfig {
+      std::string_view ssid; ///< SSID for the network
+      std::string_view key;  ///< Security key / password for the network
+      WifiAuthenticationType authentication = WifiAuthenticationType::WPA2_PERSONAL; ///< Authentication type the network uses.
+      WifiEncryptionType encryption = WifiEncryptionType::AES; ///< Encryption type the network uses.
+      uint64_t mac_address = 0xFFFFFFFFFFFF; ///< Broadcast MAC address FF:FF:FF:FF:FF:FF
+    };
+
+    /**
+     * @brief Create a WiFi credential tag.
+     * @param config WifiConfig describing the WiFi network.
+     * @return NDEF record object.
+     */
+    static Ndef make_wifi_config(const WifiConfig& config) {
+      // make the payload
+      std::vector<uint8_t> payload;
+      add_wifi_field(payload, WifiFieldId::SSID, config.ssid);
+      add_wifi_field(payload, WifiFieldId::NETWORK_KEY, config.key);
+      uint8_t auth_bytes[] = {
+        (uint8_t)(0x00),
+        (uint8_t)(config.authentication),
+      };
+      auto sv_auth = std::string_view{(const char*)auth_bytes, 2};
+      add_wifi_field(payload, WifiFieldId::AUTH_TYPE, sv_auth);
+
+      // now encapsulate it into a wifi credential
+      std::vector<uint8_t> data;
+      auto sv_payload = std::string_view{(const char*)payload.data(), payload.size()};
+      add_wifi_field(data, WifiFieldId::CREDENTIAL, sv_payload);
+
+      // TODO: add fields for the credential
+      // * Network Index (deprecated, always set to 1)
+      // * Encryption type
+      // * MAC address (enrollee's or broadcast address)
+      auto sv_data = std::string_view{(const char*)data.data(), data.size()};
+      return Ndef(TNF::MIME_MEDIA, "application/vnd.wfa.wsc", sv_data);
+    }
+
+    /**
      * @brief Static function to make an NDEF record for BT classic OOB Pairing (Android).
      * @param mac_addr 48 bit MAC Address of the BT radio
      * @param device_class The bluetooth device class for this radio.
@@ -270,7 +334,7 @@ namespace espp {
       data[7] = (mac_addr >> 0) & 0xFF;
 
       // add optional EIR data (no specific order required)
-      make_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
+      add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
 
       // now make sure the length is updated (includes length field)
       int length = data.size();
@@ -310,20 +374,20 @@ namespace espp {
         (uint8_t)(mac_addr >> 0 & 0xFF),
         0x01, // static address
       };
-      make_bt_eir(data, BtEir::MAC, std::string_view{(const char*)&mac_addr_bytes[0], 7});
+      add_bt_eir(data, BtEir::MAC, std::string_view{(const char*)&mac_addr_bytes[0], 7});
 
       // (mandatory 0x1C) LE role
-      make_bt_eir(data, BtEir::LE_ROLE, std::string_view{(const char*)&role, 1});
+      add_bt_eir(data, BtEir::LE_ROLE, std::string_view{(const char*)&role, 1});
 
       // optional appearance
       uint8_t appearance_bytes[] = {
         (uint8_t)((uint16_t)appearance >> 8),
         (uint8_t)((uint16_t)appearance & 0xFF)
       };
-      make_bt_eir(data, BtEir::APPEARANCE, std::string_view{(const char*)&appearance_bytes[0], 2});
+      add_bt_eir(data, BtEir::APPEARANCE, std::string_view{(const char*)&appearance_bytes[0], 2});
 
       // optional local name
-      make_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
+      add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
 
       // TODO: provide additional optional parameters
       // (optional  0x10) Security Manager TK value (LE legacy pairing)
@@ -405,6 +469,13 @@ namespace espp {
       };
     };
 
+    enum class WifiFieldId : uint16_t {
+      CREDENTIAL  = 0x100E,
+      SSID        = 0x1045,
+      NETWORK_KEY = 0x1027,
+      AUTH_TYPE   = 0x1003,
+    };
+
     void set_flags() {
       flags_.TNF = (uint8_t)tnf_;
       flags_.IL = 0; // no id length / field
@@ -415,7 +486,35 @@ namespace espp {
       flags_.MB = 1; // message begin
     }
 
-    static int make_bt_eir(std::vector<uint8_t>& data, BtEir eir_type, std::string_view payload) {
+    static int add_wifi_field(std::vector<uint8_t>& data, WifiFieldId field, std::string_view payload) {
+      // field ID = short
+      // field size = short
+      // payload
+
+      // add 2 byte field id
+      uint8_t field_bytes[] = {
+        (uint8_t)((uint16_t)field >> 8 & 0xFF),
+        (uint8_t)((uint16_t)field >> 0 & 0xFF),
+      };
+      data.push_back(field_bytes[0]);
+      data.push_back(field_bytes[1]);
+      // add 2 byte size
+      int size = payload.size();
+      uint8_t size_bytes[] = {
+        (uint8_t)(size >> 8 & 0xFF),
+        (uint8_t)(size >> 0 & 0xFF),
+      };
+      data.push_back(size_bytes[0]);
+      data.push_back(size_bytes[1]);
+      // add payload
+      for (auto p : payload) {
+        data.push_back(p);
+      }
+      // return how many bytes this field is
+      return 4 + payload.size();
+    }
+
+    static int add_bt_eir(std::vector<uint8_t>& data, BtEir eir_type, std::string_view payload) {
       uint8_t num_eir_bytes = 0;
       switch (eir_type) {
       case BtEir::UUIDS_16_BIT_PARTIAL:
