@@ -170,6 +170,8 @@ extern "C" void app_main(void) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_until(lk, start + delay);
       }
+      // don't want to stop the task
+      return false;
     };
     auto motor_task = espp::Task({
         .name = "Motor Task",
@@ -227,6 +229,8 @@ extern "C" void app_main(void) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_until(lk, start + delay);
       }
+      // don't want to stop the task
+      return false;
     };
     auto target_task = espp::Task({
         .name = "Target Task",
@@ -260,6 +264,8 @@ extern "C" void app_main(void) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 10ms);
       }
+      // don't want to stop the task
+      return false;
     };
     auto task = espp::Task({
         .name = "Logging Task",

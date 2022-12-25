@@ -52,6 +52,8 @@ extern "C" void app_main(void) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_until(lk, now + std::chrono::duration<float>(1.0f/sample_freq_hz));
       }
+      // don't want to stop the task
+      return false;
     };
     auto task = espp::Task({
         .name = "Lowpass Filter",

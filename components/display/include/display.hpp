@@ -263,6 +263,8 @@ namespace espp {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, update_period_);
       }
+      // don't want to stop the task
+      return false;
     }
 
     std::atomic<bool> paused_{false};

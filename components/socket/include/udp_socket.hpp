@@ -279,17 +279,17 @@ namespace espp {
         using namespace std::chrono_literals;
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 1ms);
-        return;
+        return false;
       }
       if (!server_receive_callback_) {
         logger_.error("Server receive callback is invalid");
-        return;
+        return false;
       }
       // callback
       auto maybe_response = server_receive_callback_(received_data, sender_info);
       // send if callback returned data
       if (!maybe_response.has_value()) {
-        return;
+        return false;
       }
       auto response = maybe_response.value();
       // sendto
@@ -301,6 +301,8 @@ namespace espp {
         logger_.error("Error occurred responding: {} - '{}'", errno, strerror(errno));
       }
       logger_.info("Server responded with {} bytes", num_bytes_sent);
+      // don't want to stop the task
+      return false;
     }
 
     std::unique_ptr<Task> task_;

@@ -392,6 +392,8 @@ namespace espp {
         using namespace std::chrono_literals;
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 1ms);
+        // don't want to stop the task
+        return false;
       }
       auto client_socket = get_accepted_socket();
       while (true) {
@@ -424,6 +426,8 @@ namespace espp {
       // if we've gotten here, we are no longer receiving data from the client,
       // so close the accepted socket and accept other connections.
       close_accepted_socket();
+      // don't want to stop the task
+      return false;
     }
 
     Socket::Info connected_client_info_;

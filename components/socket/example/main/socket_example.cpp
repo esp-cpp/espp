@@ -81,6 +81,8 @@ extern "C" void app_main(void) {
       client_socket.send(data, send_config);
       iterations++;
       std::this_thread::sleep_for(1s);
+      // don't want to stop the task
+      return false;
     };
     auto client_task = espp::Task::make_unique({
         .name = "Client Task",
@@ -146,6 +148,8 @@ extern "C" void app_main(void) {
       client_socket.send(data, send_config);
       iterations++;
       std::this_thread::sleep_for(1s);
+      // don't want to stop the task
+      return false;
     };
     auto client_task = espp::Task::make_unique({
         .name = "Client Task",
@@ -214,6 +218,8 @@ extern "C" void app_main(void) {
       client_socket.send(data, send_config);
       iterations++;
       std::this_thread::sleep_for(1s);
+      // don't want to stop the task
+      return false;
     };
     auto client_task = espp::Task::make_unique({
         .name = "Client Task",
@@ -282,6 +288,8 @@ extern "C" void app_main(void) {
     //! [TCP Client example]
     // now sleep for a while to let the monitor do its thing
     std::this_thread::sleep_for(test_duration);
+    // don't want to stop the task
+    return false;
   }
 
   fmt::print(fg(fmt::terminal_color::green) | fmt::emphasis::bold, "Basic TCP test finished.\n");
@@ -339,6 +347,8 @@ extern "C" void app_main(void) {
       client_socket.transmit(data, transmit_config);
       iterations++;
       std::this_thread::sleep_for(1s);
+      // don't want to stop the task
+      return false;
     };
     auto client_task = espp::Task::make_unique({
         .name = "Client Task",
