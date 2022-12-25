@@ -64,7 +64,7 @@ protected:
     lv_obj_add_style(meter_, &style_indic, LV_PART_INDICATOR);
   }
 
-  void update(std::mutex& m, std::condition_variable& cv) {
+  bool update(std::mutex& m, std::condition_variable& cv) {
     {
       std::scoped_lock<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
@@ -74,6 +74,8 @@ protected:
       std::unique_lock<std::mutex> lk(m);
       cv.wait_for(lk, 16ms);
     }
+    // don't want to stop the task
+    return false;
   }
 
   // LVLG gui objects

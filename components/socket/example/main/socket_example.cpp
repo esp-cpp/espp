@@ -290,8 +290,6 @@ extern "C" void app_main(void) {
     //! [TCP Client example]
     // now sleep for a while to let the monitor do its thing
     std::this_thread::sleep_for(test_duration);
-    // don't want to stop the task
-    return false;
   }
 
   fmt::print(fg(fmt::terminal_color::green) | fmt::emphasis::bold, "Basic TCP test finished.\n");
