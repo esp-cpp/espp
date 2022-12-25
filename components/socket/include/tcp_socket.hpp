@@ -384,8 +384,9 @@ namespace espp {
      *          condition_variable (cv)
      * @param cv std::condition_variable from the task for allowing
      *           interruptible wait / delay.
+     * @return Return true if the task should stop; false if it should continue.
      */
-    void server_task_function(size_t buffer_size, std::mutex& m, std::condition_variable& cv) {
+    bool server_task_function(size_t buffer_size, std::mutex& m, std::condition_variable& cv) {
       if (!accept()) {
         // if we failed to accept that means there are no connections available
         // so we should delay a little bit

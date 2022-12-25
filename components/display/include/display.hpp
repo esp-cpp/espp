@@ -247,7 +247,7 @@ namespace espp {
      *   than the task running lv_task_handler(). For more info, see
      *   https://docs.lvgl.io/latest/en/html/porting/tick.html
      */
-    void update(std::mutex& m, std::condition_variable& cv) {
+    bool update(std::mutex& m, std::condition_variable& cv) {
       static auto prev = std::chrono::high_resolution_clock::now();
       if (!paused_){
         auto now = std::chrono::high_resolution_clock::now();

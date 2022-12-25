@@ -269,8 +269,9 @@ namespace espp {
      *          condition_variable (cv)
      * @param cv std::condition_variable from the task for allowing
      *           interruptible wait / delay.
+     * @return Return true if the task should stop; false if it should continue.
      */
-    void server_task_function(size_t buffer_size, std::mutex& m, std::condition_variable& cv) {
+    bool server_task_function(size_t buffer_size, std::mutex& m, std::condition_variable& cv) {
       // receive data
       std::vector<uint8_t> received_data;
       Socket::Info sender_info;

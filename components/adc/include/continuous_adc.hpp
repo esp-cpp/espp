@@ -112,7 +112,7 @@ namespace espp {
 
   protected:
 
-    void update_task(std::mutex& task_m, std::condition_variable& task_cv) {
+    bool update_task(std::mutex& task_m, std::condition_variable& task_cv) {
       task_handle_ = xTaskGetCurrentTaskHandle();
       static auto previous_timestamp = std::chrono::high_resolution_clock::now();
       // wait until conversion is ready (will be notified by the registered
@@ -127,12 +127,12 @@ namespace espp {
       ret = adc_continuous_read(handle_, result_data_, window_size_bytes_, &ret_num, 0);
       if (ret == ESP_ERR_TIMEOUT) {
         // this is ok, we read faster than the hardware could give us data
-        return;
+        return false;
       }
       // we are ok with ERR_INVALID_STATE since we actually have good data lol...
       if (ret != ESP_OK && ret != ESP_ERR_INVALID_STATE){
         logger_.error("Could not read adc data: {} - '{}'", ret, esp_err_to_name(ret));
-        return;
+        return false;
       }
       for (int i = 0; i < ret_num; i += SOC_ADC_DIGI_RESULT_BYTES) {
         adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t *>(&result_data_[i]);
@@ -184,6 +184,9 @@ namespace espp {
       }
       // TODO: if the elapsed_seconds is too small, we may want to delay to
       //       prevent task starvation...
+
+      // don't want to stop the task
+      return false;
     }
 
 #if !CONFIG_IDF_TARGET_ESP32

@@ -207,8 +207,9 @@ namespace espp {
     void thread_function() {
       while (started_) {
         if (callback_) {
-          if (!callback_(cv_m_, cv_)) {
-            // callback returned false, so stop running the thread function
+          bool should_stop = callback_(cv_m_, cv_);
+          if (should_stop) {
+            // callback returned true, so stop running the thread function
             logger_.info("Callback requested stop, thread_function existing");
             started_ = false;
             break;

@@ -278,6 +278,8 @@ extern "C" void app_main(void) {
       client_socket.transmit(data, tx_config);
       iterations++;
       std::this_thread::sleep_for(1s);
+      // don't want to stop the task
+      return false;
     };
     auto client_task = espp::Task::make_unique({
         .name = "Client Task",
