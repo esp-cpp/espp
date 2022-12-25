@@ -208,13 +208,15 @@ namespace espp {
       }
     }
 
-    void update_task(std::mutex &m, std::condition_variable &cv) {
+    bool update_task(std::mutex &m, std::condition_variable &cv) {
       auto start = std::chrono::high_resolution_clock::now();
       update();
       {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_until(lk, start + update_period_);
       }
+      // don't want to stop the task
+      return false;
     }
 
     void init() {

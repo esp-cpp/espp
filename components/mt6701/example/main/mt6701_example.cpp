@@ -97,6 +97,8 @@ extern "C" void app_main(void) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 50ms);
       }
+      // don't want to stop the task
+      return false;
     };
     auto task = espp::Task({
         .name = "Mt6701 Task",

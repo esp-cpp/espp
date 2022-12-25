@@ -154,7 +154,7 @@ namespace espp {
     }
 
   protected:
-    void task_callback(std::mutex& m, std::condition_variable& cv) {
+    bool task_callback(std::mutex& m, std::condition_variable& cv) {
       auto start = std::chrono::high_resolution_clock::now();
       // print out the monitor information
       fmt::print("[TM]{}\n", get_latest_info());
@@ -163,6 +163,8 @@ namespace espp {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_until(lk, start + period_);
       }
+      // don't want the task to stop
+      return false;
     }
 
     std::chrono::duration<float> period_;

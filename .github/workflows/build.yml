@@ -1,0 +1,56 @@
+name: Build
+
+on: [pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    strategy:
+      matrix:
+        test:
+        - path: 'components/adc/example'
+          target: esp32
+        - path: 'components/as5600/example'
+          target: esp32s3
+        - path: 'components/bldc_motor/example'
+          target: esp32s3
+        - path: 'components/display_drivers/example'
+          target: esp32
+        - path: 'components/encoder/example'
+          target: esp32
+        - path: 'components/joystick/example'
+          target: esp32
+        - path: 'components/logger/example'
+          target: esp32
+        - path: 'components/monitor/example'
+          target: esp32
+        - path: 'components/mt6701/example'
+          target: esp32s3
+        - path: 'components/pid/example'
+          target: esp32
+        - path: 'components/serialization/example'
+          target: esp32
+        - path: 'components/socket/example'
+          target: esp32
+        - path: 'components/st25dv/example'
+          target: esp32s3
+        - path: 'components/task/example'
+          target: esp32
+        - path: 'components/wifi/example'
+          target: esp32
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Build Examples
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: release-v5.0
+        target: ${{ matrix.test.target }}
+        path: ${{ matrix.test.path }}

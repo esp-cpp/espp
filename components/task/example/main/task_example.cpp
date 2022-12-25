@@ -61,6 +61,8 @@ extern "C" void app_main(void) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 500ms);
       }
+      // we don't want to stop, so return false
+      return false;
     };
     auto task = espp::Task({
         .name = "Task 1",
@@ -101,6 +103,8 @@ extern "C" void app_main(void) {
           std::unique_lock<std::mutex> lk(m);
           cv.wait_for(lk, 1s);
         }
+        // we don't want to stop, so return false
+        return false;
       };
       std::string task_name = fmt::format("Task {}", i);
       auto task = espp::Task::make_unique({
@@ -139,6 +143,8 @@ extern "C" void app_main(void) {
         // NOTE: sleeping in this way PREVENTS the sleep / task from early
         // exiting when the task is being stopped / destroyed.
         std::this_thread::sleep_for(1s);
+        // we don't want to stop, so return false
+        return false;
       };
       std::string task_name = fmt::format("Task {}", i);
       auto task = espp::Task::make_unique({
@@ -185,12 +191,14 @@ extern "C" void app_main(void) {
             std::this_thread::sleep_for(10ms);
             // now that we've (fake) cleaned-up our work, return from the task
             // function so the task can fully destruct.
-            return;
+            return true;
           }
         }
       }
       fmt::print("Task processing iteration {} complete\n", task_iterations);
       task_iterations++;
+      // we don't want to stop, so return false
+      return false;
     };
     auto task = espp::Task({
         .name = "Complex Task",
@@ -226,6 +234,8 @@ extern "C" void app_main(void) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 500ms);
       }
+      // we don't want to stop, so return false
+      return false;
     };
     auto task = espp::Task({
         .name = "DynamicTask",
@@ -238,6 +248,58 @@ extern "C" void app_main(void) {
     while (elapsed < num_seconds_to_run) {
       fmt::print("{}\n", espp::Task::get_info(task));
       std::this_thread::sleep_for(200ms);
+      now = std::chrono::high_resolution_clock::now();
+      elapsed = std::chrono::duration<float>(now - test_start).count();
+    }
+    //! [Task Info example]
+  }
+  test_end = std::chrono::high_resolution_clock::now();
+  test_duration = std::chrono::duration<float>(test_end - test_start).count();
+  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+
+  /**
+   *   Show an example of the task auto-stopping itself from within the task
+   *   callback function.
+   */
+  test_start = std::chrono::high_resolution_clock::now();
+  {
+    fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
+    //! [Task Info example]
+    auto task_fn = [&num_seconds_to_run](std::mutex& m, std::condition_variable& cv) {
+      static size_t task_iterations{0};
+      static auto begin = std::chrono::high_resolution_clock::now();
+      auto now = std::chrono::high_resolution_clock::now();
+      auto elapsed = std::chrono::duration<float>(now-begin).count();
+      if (elapsed > num_seconds_to_run) {
+        // we've gone long enough, time to stop our task!
+        return true;
+      }
+      task_iterations++;
+      // allocate stack
+      char buffer[1024];
+      // do something with the bufer (which also uses stack)
+      snprintf(buffer, 1024, "%.06f\n", (float)task_iterations);
+      fmt::print("{}\n", espp::Task::get_info());
+      // NOTE: sleeping in this way allows the sleep to exit early when the
+      // task is being stopped / destroyed
+      {
+        std::unique_lock<std::mutex> lk(m);
+        cv.wait_for(lk, 500ms);
+      }
+      // we don't want to stop yet, so return false
+      return false;
+    };
+    auto task = espp::Task({
+        .name = "DynamicTask",
+        .callback = task_fn,
+        .log_level = espp::Logger::Verbosity::DEBUG
+      });
+    task.start();
+    auto now = std::chrono::high_resolution_clock::now();
+    auto elapsed = std::chrono::duration<float>(now - test_start).count();
+    while (task.is_started()) {
+      fmt::print("{}\n", espp::Task::get_info(task));
+      std::this_thread::sleep_for(1000ms);
       now = std::chrono::high_resolution_clock::now();
       elapsed = std::chrono::duration<float>(now - test_start).count();
     }

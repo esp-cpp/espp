@@ -51,8 +51,11 @@ namespace espp {
      *
      * @param cv condition variable the callback can use to perform an
      *           interruptible wait.
+     *
+     * @return True if the callback's thread should keep running, false if the
+     *         callback's thread should stop and the thread should be destroyed.
      */
-    typedef std::function<void(std::mutex& m, std::condition_variable& cv)> callback_fn;
+    typedef std::function<bool(std::mutex& m, std::condition_variable& cv)> callback_fn;
 
     struct Config {
       std::string_view name; /**< Name of the task */
@@ -204,7 +207,13 @@ namespace espp {
     void thread_function() {
       while (started_) {
         if (callback_) {
-          callback_(cv_m_, cv_);
+          bool should_stop = callback_(cv_m_, cv_);
+          if (should_stop) {
+            // callback returned true, so stop running the thread function
+            logger_.info("Callback requested stop, thread_function existing");
+            started_ = false;
+            break;
+          }
         } else {
           break;
         }

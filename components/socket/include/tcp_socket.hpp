@@ -384,14 +384,17 @@ namespace espp {
      *          condition_variable (cv)
      * @param cv std::condition_variable from the task for allowing
      *           interruptible wait / delay.
+     * @return Return true if the task should stop; false if it should continue.
      */
-    void server_task_function(size_t buffer_size, std::mutex& m, std::condition_variable& cv) {
+    bool server_task_function(size_t buffer_size, std::mutex& m, std::condition_variable& cv) {
       if (!accept()) {
         // if we failed to accept that means there are no connections available
         // so we should delay a little bit
         using namespace std::chrono_literals;
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 1ms);
+        // don't want to stop the task
+        return false;
       }
       auto client_socket = get_accepted_socket();
       while (true) {
@@ -424,6 +427,8 @@ namespace espp {
       // if we've gotten here, we are no longer receiving data from the client,
       // so close the accepted socket and accept other connections.
       close_accepted_socket();
+      // don't want to stop the task
+      return false;
     }
 
     Socket::Info connected_client_info_;

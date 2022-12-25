@@ -27,6 +27,8 @@ extern "C" void app_main(void) {
       fmt::print("[Task {}]: {:.03}\n", task_id, x);
       // sleep
       std::this_thread::sleep_for(100ms);
+      // don't want to stop the task
+      return false;
     };
     std::vector<std::unique_ptr<espp::Task>> tasks;
     size_t num_tasks = 10;
@@ -58,6 +60,8 @@ extern "C" void app_main(void) {
       fmt::print("[Task {}]: {:.03}\n", task_id, x);
       // sleep
       std::this_thread::sleep_for(100ms);
+      // don't want to stop the task
+      return false;
     };
     std::vector<std::unique_ptr<espp::Task>> tasks;
     size_t num_tasks = 10;
