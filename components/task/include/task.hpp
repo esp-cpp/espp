@@ -56,8 +56,8 @@ namespace espp {
      * @param cv condition variable the callback can use to perform an
      *           interruptible wait.
      *
-     * @return True if the callback's thread should keep running, false if the
-     *         callback's thread should stop and the thread should be destroyed.
+     * @return Whether or not the callback's thread / task should stop - True to
+     *         stop, false to continue running.
      */
     typedef std::function<bool(std::mutex& m, std::condition_variable& cv)> callback_fn;
 
