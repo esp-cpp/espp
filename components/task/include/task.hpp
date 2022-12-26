@@ -27,6 +27,10 @@ namespace espp {
    * \snippet task_example.cpp ManyTask example
    * \section task_ex3 Long Running Task Example
    * \snippet task_example.cpp LongRunningTask example
+   * \section task_ex4 Task Info Example
+   * \snippet task_example.cpp Task Info example
+   * \section task_ex5 Task Request Stop Example
+   * \snippet task_example.cpp Task Request Stop example
    */
   class Task {
   public:
@@ -89,6 +93,10 @@ namespace espp {
       // stop the task if it was started
       if (started_) {
         stop();
+      }
+      // ensure we stop the thread if it's still around
+      if (thread_.joinable()) {
+        thread_.join();
       }
       logger_.debug("Task destroyed");
     }
@@ -210,7 +218,7 @@ namespace espp {
           bool should_stop = callback_(cv_m_, cv_);
           if (should_stop) {
             // callback returned true, so stop running the thread function
-            logger_.info("Callback requested stop, thread_function existing");
+            logger_.debug("Callback requested stop, thread_function exiting");
             started_ = false;
             break;
           }
