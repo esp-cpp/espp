@@ -124,7 +124,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>TCP Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/c03cbfc/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/509ec0d/docs/en/network/tcp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -143,7 +143,7 @@ transmission speed / bandwidth adjustment.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c03cbfc/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/509ec0d/components/socket/include/tcp_socket.hpp">components/socket/include/tcp_socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -171,6 +171,8 @@ transmission speed / bandwidth adjustment.</p>
 <span class="w">      </span><span class="n">client_socket</span><span class="p">.</span><span class="n">transmit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">tx_config</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="n">iterations</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
 <span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// don&#39;t want to stop the task</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="p">};</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">client_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">make_unique</span><span class="p">({</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Client Task&quot;</span><span class="p">,</span><span class="w"></span>
