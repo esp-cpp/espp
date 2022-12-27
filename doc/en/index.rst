@@ -15,6 +15,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    display/index
    encoder/index
    input/index
+   io_expander/index
    joystick
    led
    logger
