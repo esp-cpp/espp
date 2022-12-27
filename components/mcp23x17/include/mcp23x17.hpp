@@ -8,6 +8,9 @@ namespace espp {
   /**
    * Class for communicating with and controlling a MCP23X17 (23017, 23S17) GPIO
    * expander including interrupt configuration.
+   *
+   * \section mcp23x17_ex1 MCP23x17 Example
+   * \snippet mcp23x17_example.cpp mcp23x17 example
    */
   class Mcp23x17 {
   public:
