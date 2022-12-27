@@ -17,7 +17,7 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   {
     std::atomic<bool> quit_test = false;
-    fmt::print("Starting mcp23x17 example, rotate to -720 degrees to quit!\n");
+    fmt::print("Starting mcp23x17 example, press button on B7 quit!\n");
     //! [mcp23x17 example]
     // make the I2C that we'll use to communicate
     i2c_config_t i2c_cfg;
@@ -56,10 +56,17 @@ extern "C" void app_main(void) {
     };
     // now make the mcp23x17 which handles GPIO
     espp::Mcp23x17 mcp23x17({
+        .port_a_direction_mask = (1 << 0),   // input on A0
+        .port_a_interrupt_mask = (1 << 0),   // interrupt on A0
+        .port_b_direction_mask = (1 << 7),   // input on B7
+        .port_b_interrupt_mask = (1 << 7),   // interrupt on B7
         .write = mcp23x17_write,
         .read = mcp23x17_read,
         .log_level = espp::Logger::Verbosity::WARN
       });
+    // set pull up on the input pins
+    mcp23x17.set_pull_up(espp::Mcp23x17::Port::A, (1<<0));
+    mcp23x17.set_pull_up(espp::Mcp23x17::Port::B, (1<<7));
     // and finally, make the task to periodically poll the mcp23x17 and print
     // the state. NOTE: the Mcp23x17 does not internally manage its own state
     // update, so whatever rate we use here is the rate at which the state will
@@ -70,12 +77,18 @@ extern "C" void app_main(void) {
       auto seconds = std::chrono::duration<float>(now-start).count();
       auto a_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::A);
       auto b_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::B);
-      fmt::print("{:.3f}, {}, {}\n",
+      bool on = !(a_pins & (1 << 0));
+      if (on) {
+        mcp23x17.set_pins(espp::Mcp23x17::Port::B, (1 << 3));
+      } else {
+        mcp23x17.set_pins(espp::Mcp23x17::Port::B, 0x00);
+      }
+      fmt::print("{:.3f}, {:#x}, {:#x}\n",
                  seconds,
                  a_pins,
                  b_pins
                  );
-      quit_test = (a_pins & 0x01);
+      quit_test = !(b_pins & (1<<7));
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {

@@ -27,8 +27,12 @@ namespace espp {
      */
     typedef std::function<uint8_t(uint8_t reg_addr)> read_fn;
 
+    /**
+     * The two GPIO ports the MCP23x17 has.
+     */
     enum class Port {
-      A, B
+      A, ///< Port A
+      B  ///< Port B
     };
 
     /**
@@ -140,6 +144,57 @@ namespace espp {
       write_((uint8_t)addr, mask);
     }
 
+    /**
+     * @brief Set the internal pull up (100 Kohm) for the port's pins.
+     * @param port The port associated with the provided pull up mask.
+     * @param mask Mask indicating which pins should be pulled up (1).
+     */
+    void set_pull_up(Port port, uint8_t mask) {
+      logger_.debug("Setting pull-up for {} to {}", (uint8_t)port, mask);
+      auto addr = port == Port::A ? Registers::GPPUA : Registers::GPPUB;
+      write_((uint8_t)addr, mask);
+    }
+
+    /**
+     * @brief Configure the interrupt mirroring for the MCP23x17.
+     * @param mirror True if the interrupt pins should be internally connected,
+     *        false otherwise.
+     */
+    void set_interrupt_mirror(bool mirror) {
+      logger_.debug("Setting interrupt mirror: {}", mirror);
+      auto addr = (uint8_t)Registers::IOCON;
+      auto config = read_(addr);
+      logger_.debug("Read config: {}", config);
+      if (mirror) {
+        config &= (1 << (int)ConfigBit::MIRROR);
+      } else {
+        config ^= (1 << (int)ConfigBit::MIRROR);
+      }
+      // now write it back
+      logger_.debug("Writing new config: {}", config);
+      write_(addr, config);
+    }
+
+    /**
+     * @brief Set the polarity of the interrupt pins.
+     * @param active_high True if it should be active-high, false for
+     *        active-low (default).
+     */
+    void set_interrupt_polarity(bool active_high) {
+      logger_.debug("Setting interrupt polarity: {}", active_high);
+      auto addr = (uint8_t)Registers::IOCON;
+      auto config = read_(addr);
+      logger_.debug("Read config: {}", config);
+      if (active_high) {
+        config &= (1 << (int)ConfigBit::INTPOL);
+      } else {
+        config ^= (1 << (int)ConfigBit::INTPOL);
+      }
+      // now write it back
+      logger_.debug("Writing new config: {}", config);
+      write_(addr, config);
+    }
+
   protected:
     /**
      * @brief Register map for the MT23X17
@@ -167,6 +222,16 @@ namespace espp {
       GPIOB    = 0x13, ///< GPIO register (port B) - value of the port
       OLATA    = 0x14, ///< Output latch register (port A)
       OLATB    = 0x15, ///< Output latch register (port B)
+    };
+
+    enum class ConfigBit : int {
+      INTPOL = 1, ///< Polarity of the input pin (0 (default) = active low, 1 = active high)
+      ODR    = 2, ///< Configures INT pin as open-drain output (1 = open drain, 0 = active driver)
+      HAEN   = 3, ///< Hardware address enable (MCP23S17 only) (1 = enabled)
+      DISSLW = 4, ///< Slew rate control for SDA output (1 = disabled)
+      SEQOP  = 5, ///< 0 (default) = address pointer increments
+      MIRROR = 6, ///< 0 (default) = INT pins are not connected; 1 = INT pins are internally connected.
+      BANK   = 7, ///< 0 (default) = registers are in same bank / sequential addresses; 1 = registers associated with each port are separated into different banks
     };
 
     void init(const Config& config) {
