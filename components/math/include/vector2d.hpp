@@ -233,9 +233,7 @@ namespace espp {
 
     /**
      * @brief Rotate the vector by \p radians.
-     *        NOTE: this function is only available if T is a floating point
-     *        value.
-     *
+     * @note This function is only available if T is a floating point value.
      * @param radians Amount of rotation (in radians) to rotate the vector by.
      * @return Rotated vector.
      */
@@ -268,13 +266,20 @@ namespace espp {
     };
   };
 
-  typedef Vector2d<float> Vector2f;
-  typedef Vector2d<double> Vector2f64;
-  typedef Vector2d<int> Vector2i;
-  typedef Vector2d<uint8_t> Vector2u8;
+  typedef Vector2d<float> Vector2f; ///< Typedef for 32 bit floating point 2D vectors.
+  typedef Vector2d<double> Vector2f64; ///< Typedef for 64 bit floating point 2D vectors.
+  typedef Vector2d<int> Vector2i; ///< Typedef for integer 2D vectors.
+  typedef Vector2d<uint8_t> Vector2u8; ///< Typedef for 8 bit integer 2D vectors.
+
+  /**
+   * @brief Operator overload for scaling a vector v by a floating point value f.
+   * @param f Scaling factor.
+   * @param v Vector to be scaled.
+   * @return Scaled vector (v*f).
+   */
+  Vector2f operator*(float f, const Vector2f& v) {
+    return espp::Vector2f(v.x() * f, v.y() * f);
+  }
 
 }
 
-espp::Vector2f operator*(float f, const espp::Vector2f& v) {
-  return espp::Vector2f(v.x() * f, v.y() * f);
-}
