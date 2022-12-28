@@ -184,6 +184,33 @@ namespace espp {
     }
 
     /**
+     * @brief Return a scaled version of the vector, divided by the provided
+     *        vector value. Scales x and y independently.
+     * @param v Vector values the vector should be divided by.
+     * @return Resultant scaled vector.
+     */
+    Vector2d operator/ (const Vector2d& v) const {
+      auto x = v.x_ != T(0) ? (x_ / v.x_) : x_;
+      auto y = v.y_ != T(0) ? (y_ / v.y_) : y_;
+      return Vector2d(x, y);
+    }
+
+    /**
+     * @brief Return the vector divided by the provided vector values.
+     * @param v Vector of values the vector should be divided by.
+     * @return Resultant scaled vector.
+     */
+    Vector2d& operator/= (const Vector2d& v) {
+      if (v.x_ != T(0)) {
+        x_ /= v.x_;
+      }
+      if (v.y_ != T(0)) {
+        y_ /= v.y_;
+      }
+      return *this;
+    }
+
+    /**
      * @brief Dot product of this vector with another vector.
      * @param other The second vector
      * @return The dot product (x1*x2 + y1*y2)
@@ -206,9 +233,7 @@ namespace espp {
 
     /**
      * @brief Rotate the vector by \p radians.
-     *        NOTE: this function is only available if T is a floating point
-     *        value.
-     *
+     * @note This function is only available if T is a floating point value.
      * @param radians Amount of rotation (in radians) to rotate the vector by.
      * @return Rotated vector.
      */
@@ -241,8 +266,20 @@ namespace espp {
     };
   };
 
-  typedef Vector2d<float> Vector2f;
-  typedef Vector2d<double> Vector2f64;
-  typedef Vector2d<int> Vector2i;
-  typedef Vector2d<uint8_t> Vector2u8;
+  typedef Vector2d<float> Vector2f; ///< Typedef for 32 bit floating point 2D vectors.
+  typedef Vector2d<double> Vector2f64; ///< Typedef for 64 bit floating point 2D vectors.
+  typedef Vector2d<int> Vector2i; ///< Typedef for integer 2D vectors.
+  typedef Vector2d<uint8_t> Vector2u8; ///< Typedef for 8 bit integer 2D vectors.
+
+  /**
+   * @brief Operator overload for scaling a vector v by a floating point value f.
+   * @param f Scaling factor.
+   * @param v Vector to be scaled.
+   * @return Scaled vector (v*f).
+   */
+  Vector2f operator*(float f, const Vector2f& v) {
+    return espp::Vector2f(v.x() * f, v.y() * f);
+  }
+
 }
+

@@ -25,6 +25,8 @@ jobs:
           target: esp32
         - path: 'components/logger/example'
           target: esp32
+        - path: 'components/math/example'
+          target: esp32s3
         - path: 'components/monitor/example'
           target: esp32
         - path: 'components/mcp23x17/example'
