@@ -2,8 +2,27 @@
 
 #include <cstdlib>
 #include <cmath>
+#include <cstring>
 
 namespace espp {
+  /**
+   * @brief Simple square of the input.
+   * @param f Value to square.
+   * @return The square of f (f*f).
+   */
+  float square(float f) {
+    return f * f;
+  }
+
+  /**
+   * @brief Simple cube of the input.
+   * @param f Value to cube.
+   * @return The cube of f (f*f*f).
+   */
+  float cube(float f) {
+    return f * f * f;
+  }
+
   /**
    * @brief Fast square root approximation.
    * @note Using https://reprap.org/forum/read.php?147,219210 and
