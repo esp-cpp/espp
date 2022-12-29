@@ -64,6 +64,7 @@ INPUT += $(PROJECT_PATH)/components/logger/include/logger.hpp
 INPUT += $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp
 INPUT += $(PROJECT_PATH)/components/math/include/bezier.hpp
 INPUT += $(PROJECT_PATH)/components/math/include/fast_math.hpp
+INPUT += $(PROJECT_PATH)/components/math/include/gaussian.hpp
 INPUT += $(PROJECT_PATH)/components/math/include/range_mapper.hpp
 INPUT += $(PROJECT_PATH)/components/math/include/vector2d.hpp
 INPUT += $(PROJECT_PATH)/components/ndef/include/ndef.hpp

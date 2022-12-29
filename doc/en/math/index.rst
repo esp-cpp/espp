@@ -6,5 +6,6 @@ Math APIs
 
     bezier
     fast_math
+    gaussian
     range_mapper
     vector2d
