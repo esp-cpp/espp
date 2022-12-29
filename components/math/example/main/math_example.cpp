@@ -5,6 +5,7 @@
 #include "bezier.hpp"
 #include "fast_math.hpp"
 #include "format.hpp"
+#include "gaussian.hpp"
 #include "range_mapper.hpp"
 #include "vector2d.hpp"
 
@@ -87,6 +88,44 @@ extern "C" void app_main(void) {
     fmt::print("cos({}) = {} (slow), {} (fast), diff = {}\n",
                x, slow, fast, diff);
     //! [fast_cos example]
+  }
+
+  fmt::print("Gaussian:\n");
+  {
+    //! [gaussian example]
+    std::array<float, 4> gammas = {
+      0.10f,
+      0.15f,
+      0.20f,
+      0.25f,
+    };
+    espp::Gaussian gaussian({
+        .gamma = gammas[0],
+        .alpha = 1.0f, // default
+        .beta = 0.5f,  // default
+      });
+    float t = 0;
+    fmt::print("% t");
+    for (auto g : gammas) {
+      fmt::print(", gaussian({})", g);
+    }
+    fmt::print("\n");
+    float increment = 0.05f;
+    int num_increments = 1.0f / increment;
+    for (int i=0; i<=num_increments; i++) {
+      fmt::print("{}", t);
+      for (auto g : gammas) {
+        // update the gamma
+        gaussian.gamma(g);
+        // evaluate it
+        float v = gaussian(t);
+        // print it
+        fmt::print(", {}", v);
+      }
+      fmt::print("\n");
+      t += increment;
+    }
+    //! [gaussian example]
   }
 
   fmt::print("RangeMapper:\n");
