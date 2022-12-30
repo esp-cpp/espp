@@ -348,6 +348,7 @@ namespace espp {
      * @param mac_addr 48 bit MAC Address of the BLE radio
      * @param role The BLE role of the device (central / peripheral / dual)
      * @param name Name of the BLE device.
+     * @param appearance BtAppearance of the device.
      * @return NDEF record object.
      */
     static Ndef make_le_oob_pairing(uint64_t mac_addr, BleRole role, std::string_view name, BtAppearance appearance = BtAppearance::UNKNOWN) {
