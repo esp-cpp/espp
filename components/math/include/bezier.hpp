@@ -2,8 +2,6 @@
 
 #include <array>
 
-#include "fast_math.hpp"
-
 namespace espp {
   /**
    * @brief Implements rational / weighted and unweighted cubic bezier curves
@@ -24,7 +22,7 @@ namespace espp {
     };
 
     /**
-     * @brief Weigthed cubic bezier configuration for 4 control points with
+     * @brief Weighted cubic bezier configuration for 4 control points with
      *        individual weights.
      */
     struct WeightedConfig {
