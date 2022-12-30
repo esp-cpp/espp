@@ -91,6 +91,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Bezier</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
 </li>
 </ul>
@@ -126,7 +127,7 @@
           <li><a href="index.html">Math APIs</a> &raquo;</li>
       <li>Bezier</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/0a0ca88/docs/en/math/bezier.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/c64d77b/docs/en/math/bezier.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -144,8 +145,118 @@ on raw floating point values or on the associated Vector2d class.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/0a0ca88/components/math/include/bezier.hpp">components/math/include/bezier.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c64d77b/components/math/include/bezier.hpp">components/math/include/bezier.hpp</a></p></li>
 </ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp6BezierE">
+<span id="_CPPv3I0EN4espp6BezierE"></span><span id="_CPPv2I0EN4espp6BezierE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_bezier"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Bezier</span></span></span><a class="headerlink" href="#_CPPv4I0EN4espp6BezierE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Implements rational / weighted and unweighted cubic bezier curves between control points. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See <a class="reference external" href="https://pomax.github.io/bezierinfo/">https://pomax.github.io/bezierinfo/</a> for information on bezier curves. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Template class which can be used individually on floating point values directly or on containers such as <a class="reference internal" href="vector2d.html#classespp_1_1_vector2d"><span class="std std-ref">Vector2d&lt;float&gt;</span></a>. </p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bezier6BezierERK6Config">
+<span id="_CPPv3N4espp6Bezier6BezierERK6Config"></span><span id="_CPPv2N4espp6Bezier6BezierERK6Config"></span><span id="espp::Bezier::Bezier__ConfigCR"></span><span class="target" id="classespp_1_1_bezier_1a247b1b63453080397f3ca6b014fb6397"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Bezier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Bezier6ConfigE" title="espp::Bezier::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bezier6BezierERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct an unweighted cubic bezier curve for evaluation. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – Unweighted <a class="reference internal" href="#structespp_1_1_bezier_1_1_config"><span class="std std-ref">Config</span></a> structure containing the control points. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bezier6BezierERK14WeightedConfig">
+<span id="_CPPv3N4espp6Bezier6BezierERK14WeightedConfig"></span><span id="_CPPv2N4espp6Bezier6BezierERK14WeightedConfig"></span><span id="espp::Bezier::Bezier__WeightedConfigCR"></span><span class="target" id="classespp_1_1_bezier_1a9ef490754671668b81e6fe0286ab9e4f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Bezier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Bezier14WeightedConfigE" title="espp::Bezier::WeightedConfig"><span class="n"><span class="pre">WeightedConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Bezier6BezierERK14WeightedConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a rational / weighted cubic bezier curve for evaluation. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – Rational / weighted <a class="reference internal" href="#structespp_1_1_bezier_1_1_weighted_config"><span class="std std-ref">WeightedConfig</span></a> structure containing the control points and their weights. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Bezier2atEf">
+<span id="_CPPv3NK4espp6Bezier2atEf"></span><span id="_CPPv2NK4espp6Bezier2atEf"></span><span id="espp::Bezier::at__floatC"></span><span class="target" id="classespp_1_1_bezier_1a405b95da3242162324d243c635811976"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp6BezierE" title="espp::Bezier::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">at</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">t</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Bezier2atEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Evaluate the bezier at <code class="docutils literal notranslate"><span class="pre">t</span></code>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>t</strong> – The evaluation parameter, [0, 1]. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The bezier evaluated at <code class="docutils literal notranslate"><span class="pre">t</span></code>. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6BezierclEf">
+<span id="_CPPv3NK4espp6BezierclEf"></span><span id="_CPPv2NK4espp6BezierclEf"></span><span id="espp::Bezier::call-operator__floatC"></span><span class="target" id="classespp_1_1_bezier_1a30c08db1089db932e318756305b94ef7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp6BezierE" title="espp::Bezier::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">()</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">t</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6BezierclEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Evaluate the bezier at <code class="docutils literal notranslate"><span class="pre">t</span></code>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Convienience wrapper around the <a class="reference internal" href="#classespp_1_1_bezier_1a405b95da3242162324d243c635811976"><span class="std std-ref">at()</span></a> method. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>t</strong> – The evaluation parameter, [0, 1]. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The bezier evaluated at <code class="docutils literal notranslate"><span class="pre">t</span></code>. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bezier6ConfigE">
+<span id="_CPPv3N4espp6Bezier6ConfigE"></span><span id="_CPPv2N4espp6Bezier6ConfigE"></span><span id="espp::Bezier::Config"></span><span class="target" id="structespp_1_1_bezier_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Bezier6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Unweighted cubic bezier configuration for 4 control points. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bezier6Config14control_pointsE">
+<span id="_CPPv3N4espp6Bezier6Config14control_pointsE"></span><span id="_CPPv2N4espp6Bezier6Config14control_pointsE"></span><span id="espp::Bezier::Config::control_points__std::array:T.4:"></span><span class="target" id="structespp_1_1_bezier_1_1_config_1a48c3ad10ab4b8746003f9ba7c44d0e56"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4espp6BezierE" title="espp::Bezier::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">control_points</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Bezier6Config14control_pointsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Array of 4 control points. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bezier14WeightedConfigE">
+<span id="_CPPv3N4espp6Bezier14WeightedConfigE"></span><span id="_CPPv2N4espp6Bezier14WeightedConfigE"></span><span id="espp::Bezier::WeightedConfig"></span><span class="target" id="structespp_1_1_bezier_1_1_weighted_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WeightedConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Bezier14WeightedConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Weigthed cubic bezier configuration for 4 control points with individual weights. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bezier14WeightedConfig14control_pointsE">
+<span id="_CPPv3N4espp6Bezier14WeightedConfig14control_pointsE"></span><span id="_CPPv2N4espp6Bezier14WeightedConfig14control_pointsE"></span><span id="espp::Bezier::WeightedConfig::control_points__std::array:T.4:"></span><span class="target" id="structespp_1_1_bezier_1_1_weighted_config_1acf6f120ac49243ead1bda3f2d178d4e0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN4espp6BezierE" title="espp::Bezier::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">control_points</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Bezier14WeightedConfig14control_pointsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Array of 4 control points. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Bezier14WeightedConfig7weightsE">
+<span id="_CPPv3N4espp6Bezier14WeightedConfig7weightsE"></span><span id="_CPPv2N4espp6Bezier14WeightedConfig7weightsE"></span><span id="espp::Bezier::WeightedConfig::weights__std::array:float.4:"></span><span class="target" id="structespp_1_1_bezier_1_1_weighted_config_1a427ac5dd605d45b0ca905b21cc4d8c0e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">weights</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">1.0f</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1.0f</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1.0f</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1.0f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Bezier14WeightedConfig7weightsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Array of 4 weights, default is array of 1.0f. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 </section>
 </section>

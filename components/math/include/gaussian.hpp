@@ -50,7 +50,7 @@ namespace espp {
 
     /**
      * @brief Set / Update the alpha (scaling) value.
-     * @param g New alpha (scaler) to use.
+     * @param a New alpha (scaler) to use.
      */
     void alpha(float a) { alpha_ = a; }
 
@@ -62,7 +62,7 @@ namespace espp {
 
     /**
      * @brief Set / Update the beta (shifting) value.
-     * @param g New beta (shifter) to use.
+     * @param b New beta (shifter) to use.
      */
     void beta(float b) { beta_ = b; }
 

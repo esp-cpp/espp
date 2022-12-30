@@ -14,38 +14,34 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   fmt::print("bezier:\n");
   {
-    //! [bezier unweighted example]
-    espp::Vector2f p0(6, 220);
-    espp::Vector2f p1(62, 115);
-    espp::Vector2f p2(176, 151);
-    espp::Vector2f p3(217, 50);
-    fmt::print("% x, y\n");
+    //! [bezier example]
+    using Bezier = espp::Bezier<espp::Vector2f>;
+    std::array<espp::Vector2f, 4> control_points = {
+      espp::Vector2f(6, 220),
+      espp::Vector2f(62, 115),
+      espp::Vector2f(176, 151),
+      espp::Vector2f(217, 50)
+    };
+    Bezier bezier(Bezier::Config{
+        .control_points = control_points
+      });
+    std::array<float, 4> weights = {
+      0.5f, 2.0f, 0.5f, 2.0f
+    };
+    Bezier rational_bezier(Bezier::WeightedConfig{
+        .control_points = control_points,
+        .weights = weights
+      });
+    // NOTE: this is the built-in log format for pyqtgraph
+    fmt::print("\"bezier_x\",\"bezier_y\",\"rational bezier_x\",\"rational bezier_y\"\n");
     float t = 0;
     while (t < 1.0f) {
-      auto p = espp::bezier(t, p0, p1, p2, p3);
-      fmt::print("{},{}\n", p.x(), p.y());
+      auto p0 = bezier(t);
+      auto p1 = rational_bezier(t);
+      fmt::print("{},{},{},{}\n", p0.x(), p0.y(), p1.x(), p1.y());
       t += 0.05f;
     }
-    //! [bezier unweighted example]
-  }
-  {
-    //! [bezier weighted example]
-    espp::Vector2f p0(6, 220);
-    espp::Vector2f p1(62, 115);
-    espp::Vector2f p2(176, 151);
-    espp::Vector2f p3(217, 50);
-    float w0 = 1.0f;
-    float w1 = 1.0f;
-    float w2 = 1.0f;
-    float w3 = 1.0f;
-    fmt::print("% x, y\n");
-    float t = 0;
-    while (t < 1.0f) {
-      auto p = espp::bezier(t, p0, p1, p2, p3, w0, w1, w2, w3);
-      fmt::print("{},{}\n", p.x(), p.y());
-      t += 0.05f;
-    }
-    //! [bezier weighted example]
+    //! [bezier example]
   }
 
   fmt::print("fast_math:\n");
