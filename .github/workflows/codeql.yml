@@ -34,8 +34,11 @@ jobs:
         build_target: [esp32s3]
 
     steps:
+
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
