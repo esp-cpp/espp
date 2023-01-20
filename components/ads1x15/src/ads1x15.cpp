@@ -1,6 +1,7 @@
 #include "ads1x15.hpp"
 
 using namespace espp;
+using namespace std::chrono_literals;
 
 static constexpr uint16_t REG_CONFIG_OS_SINGLE =
   (0x8000);
@@ -83,7 +84,7 @@ int16_t Ads1x15::sample_raw(int channel) {
   // wait for conversion complete
   logger_.debug("waiting for conversion complete...");
   while (!conversion_complete()) {
-    vTaskDelay(1);
+    std::this_thread::sleep_for(1us);
   }
   logger_.debug("reading conversion result for channel {}", channel);
   uint16_t val = read_((uint8_t)Register::POINTER_CONVERT) >> bit_shift_;
