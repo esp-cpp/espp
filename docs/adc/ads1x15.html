@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADS1x15 I2C ADC - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'adc/ads1x15';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Oneshot ADC" href="oneshot_adc.html" />
+    <link rel="prev" title="ADC APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">ADC APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ADS1x15 I2C ADC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="oneshot_adc.html">Oneshot ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="continuous_adc.html">Continuous ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adc_types.html">ADC Types</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">ADC APIs</a> &raquo;</li>
+      <li>ADS1x15 I2C ADC</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/4522eea/docs/en/adc/ads1x15.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ads1x15-i2c-adc">
+<h1>ADS1x15 I2C ADC<a class="headerlink" href="#ads1x15-i2c-adc" title="Permalink to this heading"></a></h1>
+<p>The <cite>ADS1x15</cite> provides a class for communicating with the ADS1x15 (ADS1015 and
+ADS1115) family of I2C ADC chips with configurable gain and sampling rate.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/4522eea/components/ads1x15/include/ads1x15.hpp">components/ads1x15/include/ads1x15.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x15E">
+<span id="_CPPv3N4espp7Ads1x15E"></span><span id="_CPPv2N4espp7Ads1x15E"></span><span id="espp::Ads1x15"></span><span class="target" id="classespp_1_1_ads1x15"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads1x15</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x15E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for reading values from the ADS1x15 family of ADC chips. </p>
+<section id="classespp_1_1_ads1x15_1ads1x15_ex1">
+<h4>ADS1X15 Example<a class="headerlink" href="#classespp_1_1_ads1x15_1ads1x15_ex1" title="Permalink to this heading"></a></h4>
+<p id="classespp_1_1_ads1x15_1ads1x15_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">i2c_cfg</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SDA_IO</span><span class="p">;</span><span class="w"> </span><span class="c1">// pin 3 on the joybonnet</span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SCL_IO</span><span class="p">;</span><span class="w"> </span><span class="c1">// pin 5 on the joybonnet</span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">master</span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_FREQ_HZ</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_param_config</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;config i2c failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_driver_install</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;install i2c driver failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the i2c adc</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">write_buf</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="p">)(</span><span class="n">value</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">8</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="p">)(</span><span class="n">value</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0xFF</span><span class="p">)};</span><span class="w"></span>
+<span class="w">      </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads1x15</span><span class="o">::</span><span class="n">ADDRESS</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">write_buf</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="mi">3</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                 </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">read_data</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span><span class="w"></span>
+<span class="w">      </span><span class="n">i2c_master_write_read_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads1x15</span><span class="o">::</span><span class="n">ADDRESS</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="o">&amp;</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="c1">// size of addr</span>
+<span class="w">                                   </span><span class="n">read_data</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="mi">2</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                   </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">read_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">8</span><span class="p">)</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">read_data</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make the actual ads class</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads1x15</span><span class="w"> </span><span class="nf">ads</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads1x15</span><span class="o">::</span><span class="n">Ads1015Config</span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads_write</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads_read</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make the task which will get the raw data from the I2C ADC</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_read_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">ads</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">sample_mv</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span><span class="w"> </span><span class="c1">// channel 1</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">sample_mv</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="c1">// channel 0</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;X: {:.3f}, Y: {:.3f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">x_mv</span><span class="p">,</span><span class="w"> </span><span class="n">y_mv</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">chrono_literals</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// we don&#39;t want to stop, so return false</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">make_unique</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ADS&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads_read_task_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="p">{</span><span class="mi">4</span><span class="o">*</span><span class="mi">1024</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">ads_task</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x154GainE">
+<span id="_CPPv3N4espp7Ads1x154GainE"></span><span id="_CPPv2N4espp7Ads1x154GainE"></span><span class="target" id="classespp_1_1_ads1x15_1a489720ed8106137103bce1dc1721d135"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Gain</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x154GainE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gain values for the ADC conversion. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x154Gain9TWOTHIRDSE">
+<span id="_CPPv3N4espp7Ads1x154Gain9TWOTHIRDSE"></span><span id="_CPPv2N4espp7Ads1x154Gain9TWOTHIRDSE"></span><span class="target" id="classespp_1_1_ads1x15_1a489720ed8106137103bce1dc1721d135a69dec47550874139cd42e14914f653dd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TWOTHIRDS</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x154Gain9TWOTHIRDSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>+/-6.144V range = Gain 2/3 </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x154Gain3ONEE">
+<span id="_CPPv3N4espp7Ads1x154Gain3ONEE"></span><span id="_CPPv2N4espp7Ads1x154Gain3ONEE"></span><span class="target" id="classespp_1_1_ads1x15_1a489720ed8106137103bce1dc1721d135abc21e6484530fc9d0313cb816b733396"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x154Gain3ONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>+/-4.096V range = Gain 1 </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x154Gain3TWOE">
+<span id="_CPPv3N4espp7Ads1x154Gain3TWOE"></span><span id="_CPPv2N4espp7Ads1x154Gain3TWOE"></span><span class="target" id="classespp_1_1_ads1x15_1a489720ed8106137103bce1dc1721d135a0f82d86afa0f5dc965c5c15aca58dcfb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TWO</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x154Gain3TWOE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>+/-2.048V range = Gain 2 (default) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x154Gain4FOURE">
+<span id="_CPPv3N4espp7Ads1x154Gain4FOURE"></span><span id="_CPPv2N4espp7Ads1x154Gain4FOURE"></span><span class="target" id="classespp_1_1_ads1x15_1a489720ed8106137103bce1dc1721d135a341fee9692a2ed8f09906d40d23fb1f9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FOUR</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x154Gain4FOURE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>+/-1.024V range = Gain 4 </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x154Gain5EIGHTE">
+<span id="_CPPv3N4espp7Ads1x154Gain5EIGHTE"></span><span id="_CPPv2N4espp7Ads1x154Gain5EIGHTE"></span><span class="target" id="classespp_1_1_ads1x15_1a489720ed8106137103bce1dc1721d135a960df6d77e65cd185ca4f3501db634eb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EIGHT</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x154Gain5EIGHTE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>+/-0.512V range = Gain 8 </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x154Gain7SIXTEENE">
+<span id="_CPPv3N4espp7Ads1x154Gain7SIXTEENE"></span><span id="_CPPv2N4espp7Ads1x154Gain7SIXTEENE"></span><span class="target" id="classespp_1_1_ads1x15_1a489720ed8106137103bce1dc1721d135a193d1b71197814d03e23cc841decdf33"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SIXTEEN</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x154Gain7SIXTEENE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>+/-0.256V range = Gain 16 </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1015RateE">
+<span id="_CPPv3N4espp7Ads1x1511Ads1015RateE"></span><span id="_CPPv2N4espp7Ads1x1511Ads1015RateE"></span><span class="target" id="classespp_1_1_ads1x15_1abc0d79687abf778ee8f8895ed162b3a1"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads1015Rate</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1015RateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sampling rates for the ADS1015 chips. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1015Rate6SPS128E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1015Rate6SPS128E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1015Rate6SPS128E"></span><span class="target" id="classespp_1_1_ads1x15_1abc0d79687abf778ee8f8895ed162b3a1af58e0eb34813fa9008aed87ad30b8a17"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS128</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1015Rate6SPS128E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>128 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1015Rate6SPS250E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1015Rate6SPS250E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1015Rate6SPS250E"></span><span class="target" id="classespp_1_1_ads1x15_1abc0d79687abf778ee8f8895ed162b3a1affee29ff101ea45be15be1782882f75d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS250</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1015Rate6SPS250E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>250 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1015Rate6SPS490E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1015Rate6SPS490E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1015Rate6SPS490E"></span><span class="target" id="classespp_1_1_ads1x15_1abc0d79687abf778ee8f8895ed162b3a1ac47d29a7c04b300b987a4db8abea021c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS490</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1015Rate6SPS490E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>490 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1015Rate6SPS920E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1015Rate6SPS920E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1015Rate6SPS920E"></span><span class="target" id="classespp_1_1_ads1x15_1abc0d79687abf778ee8f8895ed162b3a1aacd511a0276d9f56aedbe6ab68ade26c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS920</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1015Rate6SPS920E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>920 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1015Rate7SPS1600E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1015Rate7SPS1600E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1015Rate7SPS1600E"></span><span class="target" id="classespp_1_1_ads1x15_1abc0d79687abf778ee8f8895ed162b3a1a5bff0946e93ffe622af51d3e5717d993"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS1600</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1015Rate7SPS1600E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>1600 samples per second (default) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1015Rate7SPS2400E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1015Rate7SPS2400E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1015Rate7SPS2400E"></span><span class="target" id="classespp_1_1_ads1x15_1abc0d79687abf778ee8f8895ed162b3a1a9a88ce068fe8ff085b6a46bea8500d58"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS2400</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1015Rate7SPS2400E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>2400 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1015Rate7SPS3300E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1015Rate7SPS3300E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1015Rate7SPS3300E"></span><span class="target" id="classespp_1_1_ads1x15_1abc0d79687abf778ee8f8895ed162b3a1af57b75637ff65c40e6ba9622c085d374"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS3300</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1015Rate7SPS3300E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>3300 samples per second </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115RateE">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115RateE"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115RateE"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads1115Rate</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115RateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sampling rates for the ADS1115 chips. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115Rate4SPS8E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115Rate4SPS8E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115Rate4SPS8E"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4a0cea2297412837a6e055df1faef1cf01"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS8</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate4SPS8E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>8 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115Rate5SPS16E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115Rate5SPS16E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115Rate5SPS16E"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4a20b916b625fe8b5682341268071b4478"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS16</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate5SPS16E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>16 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115Rate5SPS32E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115Rate5SPS32E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115Rate5SPS32E"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4a0192eb7587538997825dfad9d397dc18"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS32</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate5SPS32E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>32 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115Rate5SPS64E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115Rate5SPS64E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115Rate5SPS64E"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4a3e2691fca5093c8cf8b9a99ee55ab448"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS64</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate5SPS64E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>64 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS128E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115Rate6SPS128E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115Rate6SPS128E"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4af58e0eb34813fa9008aed87ad30b8a17"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS128</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS128E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>128 samples per second (default) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS250E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115Rate6SPS250E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115Rate6SPS250E"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4affee29ff101ea45be15be1782882f75d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS250</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS250E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>250 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS475E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115Rate6SPS475E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115Rate6SPS475E"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4adc5a2ac0c20a8e4aa6955891550d9285"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS475</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS475E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>475 samples per second </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS860E">
+<span id="_CPPv3N4espp7Ads1x1511Ads1115Rate6SPS860E"></span><span id="_CPPv2N4espp7Ads1x1511Ads1115Rate6SPS860E"></span><span class="target" id="classespp_1_1_ads1x15_1abd5fade37f5574e323b360a704b12fa4a7aad3495dec2191b97a1b79138e8058e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SPS860</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS860E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>860 samples per second </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x158write_fnE">
+<span id="_CPPv3N4espp7Ads1x158write_fnE"></span><span id="_CPPv2N4espp7Ads1x158write_fnE"></span><span id="espp::Ads1x15::write_fn"></span><span class="target" id="classespp_1_1_ads1x15_1a53f5ae806b9fbaa65dd77fd7b00d4ecf"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x158write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>function to write a 16b value to a register of the ADC. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param uint8_t</dt>
+<dd class="field-odd"><p>register address </p>
+</dd>
+<dt class="field-even">Param uint16_t</dt>
+<dd class="field-even"><p>data to write </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x157read_fnE">
+<span id="_CPPv3N4espp7Ads1x157read_fnE"></span><span id="_CPPv2N4espp7Ads1x157read_fnE"></span><span id="espp::Ads1x15::read_fn"></span><span class="target" id="classespp_1_1_ads1x15_1a03a0b8d826c49eddc99ea894f8b65f5f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint16_t</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x157read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>function to read a 16b value from a register of the ADC. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param uint8_t</dt>
+<dd class="field-odd"><p>register address </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>uint16_t data read from the register </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x157Ads1x15ERK13Ads1015Config">
+<span id="_CPPv3N4espp7Ads1x157Ads1x15ERK13Ads1015Config"></span><span id="_CPPv2N4espp7Ads1x157Ads1x15ERK13Ads1015Config"></span><span id="espp::Ads1x15::Ads1x15__Ads1015ConfigCR"></span><span class="target" id="classespp_1_1_ads1x15_1abfb22de79954d240f5472cdf5f2da18e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads1x15</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Ads1x1513Ads1015ConfigE" title="espp::Ads1x15::Ads1015Config"><span class="n"><span class="pre">Ads1015Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads1x157Ads1x15ERK13Ads1015Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct <a class="reference internal" href="#classespp_1_1_ads1x15"><span class="std std-ref">Ads1x15</span></a> specficially for ADS1015. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration structure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x157Ads1x15ERK13Ads1115Config">
+<span id="_CPPv3N4espp7Ads1x157Ads1x15ERK13Ads1115Config"></span><span id="_CPPv2N4espp7Ads1x157Ads1x15ERK13Ads1115Config"></span><span id="espp::Ads1x15::Ads1x15__Ads1115ConfigCR"></span><span class="target" id="classespp_1_1_ads1x15_1ae7479644feada67c74bcb0f24cf80ca4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads1x15</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Ads1x1513Ads1115ConfigE" title="espp::Ads1x15::Ads1115Config"><span class="n"><span class="pre">Ads1115Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads1x157Ads1x15ERK13Ads1115Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct <a class="reference internal" href="#classespp_1_1_ads1x15"><span class="std std-ref">Ads1x15</span></a> specficially for ADS1115. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration structure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x159sample_mvEi">
+<span id="_CPPv3N4espp7Ads1x159sample_mvEi"></span><span id="_CPPv2N4espp7Ads1x159sample_mvEi"></span><span id="espp::Ads1x15::sample_mv__i"></span><span class="target" id="classespp_1_1_ads1x15_1a225f9ac0bcb5b0516dec7914ae1b01d0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_mv</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads1x159sample_mvEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Communicate with the ADC to sample the channel and return the sampled value. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channel</strong> – Which channel of the ADC to sample </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The voltage (in mV) sampled on the channel. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x157ADDRESSE">
+<span id="_CPPv3N4espp7Ads1x157ADDRESSE"></span><span id="_CPPv2N4espp7Ads1x157ADDRESSE"></span><span id="espp::Ads1x15::ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_ads1x15_1af369a1a020cabd6529f2f368b0c119b0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0x48</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x157ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the ADS1x15 chips. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1015ConfigE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1015ConfigE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1015ConfigE"></span><span id="espp::Ads1x15::Ads1015Config"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1015_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads1015Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1015ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for ADS1015 ADC. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1015Config5writeE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1015Config5writeE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1015Config5writeE"></span><span id="espp::Ads1x15::Ads1015Config::write__write_fn"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1015_config_1a2cd81edadf396ffe893e64a6d4358135"></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x158write_fnE" title="espp::Ads1x15::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1015Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1015Config4readE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1015Config4readE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1015Config4readE"></span><span id="espp::Ads1x15::Ads1015Config::read__read_fn"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1015_config_1af9682568e0ddcf8e11067d5f2dadd09a"></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x157read_fnE" title="espp::Ads1x15::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1015Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read from the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1015Config4gainE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1015Config4gainE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1015Config4gainE"></span><span id="espp::Ads1x15::Ads1015Config::gain__Gain"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1015_config_1a982fbd26b697b1b4764762f745b38440"></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x154GainE" title="espp::Ads1x15::Gain"><span class="n"><span class="pre">Gain</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gain</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x154GainE" title="espp::Ads1x15::Gain"><span class="n"><span class="pre">Gain</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x154Gain9TWOTHIRDSE" title="espp::Ads1x15::Gain::TWOTHIRDS"><span class="n"><span class="pre">TWOTHIRDS</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1015Config4gainE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gain for the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1015Config11sample_rateE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1015Config11sample_rateE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1015Config11sample_rateE"></span><span id="espp::Ads1x15::Ads1015Config::sample_rate__Ads1015Rate"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1015_config_1a66c6994a6d963b5ee9655a550fcec5a8"></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x1511Ads1015RateE" title="espp::Ads1x15::Ads1015Rate"><span class="n"><span class="pre">Ads1015Rate</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_rate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x1511Ads1015RateE" title="espp::Ads1x15::Ads1015Rate"><span class="n"><span class="pre">Ads1015Rate</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x1511Ads1015Rate7SPS1600E" title="espp::Ads1x15::Ads1015Rate::SPS1600"><span class="n"><span class="pre">SPS1600</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1015Config11sample_rateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sample rate for the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1015Config9log_levelE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1015Config9log_levelE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1015Config9log_levelE"></span><span id="espp::Ads1x15::Ads1015Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1015_config_1abfccd394b6623bdd784200dae9cb152b"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1015Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity for the logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1115ConfigE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1115ConfigE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1115ConfigE"></span><span id="espp::Ads1x15::Ads1115Config"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1115_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads1115Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1115ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for ADS1115 ADC. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1115Config5writeE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1115Config5writeE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1115Config5writeE"></span><span id="espp::Ads1x15::Ads1115Config::write__write_fn"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1115_config_1adc0b1ea6b53b030b84ed665eac0c33c9"></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x158write_fnE" title="espp::Ads1x15::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1115Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1115Config4readE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1115Config4readE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1115Config4readE"></span><span id="espp::Ads1x15::Ads1115Config::read__read_fn"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1115_config_1a6b0447d43babeb233fb28ea0bce3ae35"></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x157read_fnE" title="espp::Ads1x15::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1115Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read from the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1115Config4gainE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1115Config4gainE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1115Config4gainE"></span><span id="espp::Ads1x15::Ads1115Config::gain__Gain"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1115_config_1a3818ebc4b0b341a0aaf8877cae6ab8aa"></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x154GainE" title="espp::Ads1x15::Gain"><span class="n"><span class="pre">Gain</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gain</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x154GainE" title="espp::Ads1x15::Gain"><span class="n"><span class="pre">Gain</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x154Gain9TWOTHIRDSE" title="espp::Ads1x15::Gain::TWOTHIRDS"><span class="n"><span class="pre">TWOTHIRDS</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1115Config4gainE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Gain for the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1115Config11sample_rateE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1115Config11sample_rateE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1115Config11sample_rateE"></span><span id="espp::Ads1x15::Ads1115Config::sample_rate__Ads1115Rate"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1115_config_1a329a06484c2132eb9ccc5a052e95c437"></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x1511Ads1115RateE" title="espp::Ads1x15::Ads1115Rate"><span class="n"><span class="pre">Ads1115Rate</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_rate</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x1511Ads1115RateE" title="espp::Ads1x15::Ads1115Rate"><span class="n"><span class="pre">Ads1115Rate</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads1x1511Ads1115Rate6SPS128E" title="espp::Ads1x15::Ads1115Rate::SPS128"><span class="n"><span class="pre">SPS128</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1115Config11sample_rateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sample rate for the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x1513Ads1115Config9log_levelE">
+<span id="_CPPv3N4espp7Ads1x1513Ads1115Config9log_levelE"></span><span id="_CPPv2N4espp7Ads1x1513Ads1115Config9log_levelE"></span><span id="espp::Ads1x15::Ads1115Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1_ads1x15_1_1_ads1115_config_1ac6d43cf3014d04f6f61b80a224f2f9d2"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x1513Ads1115Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity for the logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="ADC APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="oneshot_adc.html" class="btn btn-neutral float-right" title="Oneshot ADC" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
