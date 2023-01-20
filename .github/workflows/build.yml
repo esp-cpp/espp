@@ -13,9 +13,13 @@ jobs:
         test:
         - path: 'components/adc/example'
           target: esp32
+        - path: 'components/ads1x15/example'
+          target: esp32s3
         - path: 'components/as5600/example'
           target: esp32s3
         - path: 'components/bldc_motor/example'
+          target: esp32s3
+        - path: 'components/controller/example'
           target: esp32s3
         - path: 'components/display_drivers/example'
           target: esp32
