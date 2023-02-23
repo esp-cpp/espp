@@ -15,20 +15,24 @@ namespace espp {
    */
   class Ads1x15 {
   public:
-    static constexpr uint8_t ADDRESS = (0x48); ///< I2C address of the ADS1x15 chips.
+    static constexpr uint8_t DEFAULT_ADDRESS = (0x48); ///< I2C address of the ADS1x15 chips.
 
     /**
-     * @brief function to write a 16b value to a register of the ADC.
-     * @param uint8_t register address
-     * @param uint16_t data to write
+     * @brief Function to write bytes to the device.
+     * @param dev_addr Address of the device to write to.
+     * @param data Pointer to array of bytes to write.
+     * @param data_len Number of data bytes to write.
      */
-    typedef std::function<void(uint8_t, uint16_t)> write_fn;
+    typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
+
     /**
-     * @brief function to read a 16b value from a register of the ADC.
-     * @param uint8_t register address
-     * @return uint16_t data read from the register
+     * @brief Function to read bytes from the device.
+     * @param dev_addr Address of the device to write to.
+     * @param reg_addr Register address to read from.
+     * @param data Pointer to array of bytes to read into.
+     * @param data_len Number of data bytes to read.
      */
-    typedef std::function<uint16_t(uint8_t)> read_fn;
+    typedef std::function<void(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)> read_fn;
 
     /**
      *  @brief Gain values for the ADC conversion.
@@ -73,6 +77,7 @@ namespace espp {
      * @brief Configuration for ADS1015 ADC.
      */
     struct Ads1015Config {
+      uint8_t device_address; ///< I2C address of the device.
       write_fn write; ///< Function to write to the ADC
       read_fn read; ///< Function to read from the ADC
       Gain gain{Gain::TWOTHIRDS}; ///< Gain for the ADC
@@ -84,6 +89,7 @@ namespace espp {
      * @brief Configuration for ADS1115 ADC.
      */
     struct Ads1115Config {
+      uint8_t device_address; ///< I2C address of the device.
       write_fn write; ///< Function to write to the ADC
       read_fn read; ///< Function to read from the ADC
       Gain gain{Gain::TWOTHIRDS}; ///< Gain for the ADC
@@ -98,7 +104,9 @@ namespace espp {
     Ads1x15(const Ads1015Config& config)
       : gain_(config.gain),
         ads1015rate_(config.sample_rate),
-        bit_shift_(4), write_(config.write), read_(config.read),
+        bit_shift_(4),
+        address_(config.device_address),
+        write_(config.write), read_(config.read),
         logger_({.tag="Ads1015", .level = config.log_level}){
     }
 
@@ -109,7 +117,9 @@ namespace espp {
     Ads1x15(const Ads1115Config& config)
       : gain_(config.gain),
         ads1115rate_(config.sample_rate),
-        bit_shift_(0), write_(config.write), read_(config.read),
+        bit_shift_(0),
+        address_(config.device_address),
+        write_(config.write), read_(config.read),
         logger_({.tag="Ads1115", .level = config.log_level}){
     }
 
@@ -156,6 +166,22 @@ namespace espp {
       return raw * (fsRange / (32768 >> bit_shift_));
     }
 
+    uint16_t read_two_(uint8_t reg_addr) {
+      uint8_t data[2];
+      read_(address_, reg_addr, data, 2);
+      return (data[0] << 8) | data[1];
+    }
+
+    void write_two_(uint8_t reg_addr, uint16_t value) {
+      uint8_t total_len = 3;
+      uint8_t data[total_len] = {
+        reg_addr,
+        (uint8_t)(value >> 8),
+        (uint8_t)(value & 0xFF)
+      };
+      write_(address_, data, total_len);
+    }
+
     enum class Register : uint8_t {
       POINTER_CONVERT = 0x00,   ///< Conversion
       POINTER_CONFIG = 0x01,    ///< Configuration
@@ -170,6 +196,7 @@ namespace espp {
       uint16_t rate_;
     };
     int bit_shift_;
+    uint8_t address_;
     write_fn write_;
     read_fn read_;
     espp::Logger logger_;

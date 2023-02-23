@@ -14,21 +14,24 @@ namespace espp {
    */
   class Mcp23x17 {
   public:
-    static constexpr uint8_t ADDRESS = 0b0100000; ///< Lower 3 bits are A2, A2, A0 pins on the chip.
+    static constexpr uint8_t DEFAULT_ADDRESS = 0b0100000; ///< Lower 3 bits are A2, A2, A0 pins on the chip.
 
     /**
-     * @brief Function to write a byte to a register for Mcp23x17.
-     * @param reg_addr Register address to write to.
-     * @param data Data to be written.
+     * @brief Function to write bytes to the device
+     * @param dev_addr Address of the device to write to.
+     * @param data Pointer to array of bytes to write.
+     * @param data_len Number of data bytes to write.
      */
-    typedef std::function<void(uint8_t reg_addr, uint8_t data)> write_fn;
+    typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
 
     /**
-     * @brief Function to read a byte from a register for Mcp23x17.
+     * @brief Function to read bytes from the device.
+     * @param dev_addr Address of the device to write to.
      * @param reg_addr Register address to read from.
-     * @return Byte read from register.
+     * @param data Pointer to array of bytes to read into.
+     * @param data_len Number of data bytes to read.
      */
-    typedef std::function<uint8_t(uint8_t reg_addr)> read_fn;
+    typedef std::function<void(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)> read_fn;
 
     /**
      * The two GPIO ports the MCP23x17 has.
@@ -42,6 +45,7 @@ namespace espp {
      * @brief Configuration information for the Mcp23x17.
      */
     struct Config {
+      uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of this device.
       uint8_t port_a_direction_mask = 0x00; ///< Direction mask (1 = input) for port a.
       uint8_t port_a_interrupt_mask = 0x00; ///< Interrupt mask (1 = interrupt) for port a.
       uint8_t port_b_direction_mask = 0x00; ///< Direction mask (1 = input) for port b.
@@ -57,7 +61,8 @@ namespace espp {
      */
     Mcp23x17(const Config& config)
 
-      : write_(config.write),
+      : address_(config.device_address),
+        write_(config.write),
         read_(config.read),
         logger_({.tag = "Mcp23x17", .level = config.log_level}) {
       init(config);
@@ -70,7 +75,7 @@ namespace espp {
      */
     uint8_t get_pins(Port port) {
       auto addr = port == Port::A ? Registers::GPIOA : Registers::GPIOB;
-      return read_((uint8_t)addr);
+      return read_one_((uint8_t)addr);
     }
 
     /**
@@ -80,7 +85,7 @@ namespace espp {
      */
     void set_pins(Port port, uint8_t output) {
       auto addr = port == Port::A ? Registers::GPIOA : Registers::GPIOB;
-      write_((uint8_t)addr, output);
+      write_one_((uint8_t)addr, output);
     }
 
     /**
@@ -90,7 +95,7 @@ namespace espp {
      */
     uint8_t get_interrupt_capture(Port port) {
       auto addr = port == Port::A ? Registers::INTCAPA : Registers::INTCAPB;
-      return read_((uint8_t)addr);
+      return read_one_((uint8_t)addr);
     }
 
     /**
@@ -101,7 +106,7 @@ namespace espp {
     void set_interrupt_on_change(Port port, uint8_t mask) {
       logger_.debug("Setting interrupt on change for {} pins {}", (uint8_t)port, mask);
       auto addr = port == Port::A ? Registers::GPINTENA : Registers::GPINTENB;
-      write_((uint8_t)addr, mask);
+      write_one_((uint8_t)addr, mask);
     }
 
     /**
@@ -114,15 +119,15 @@ namespace espp {
       logger_.debug("Setting interrupt on value for {} pins {} to {}", (uint8_t)port, pin_mask, val_mask);
       // set the pin to enable interrupt
       auto addr = port == Port::A ? Registers::GPINTENA : Registers::GPINTENB;
-      write_((uint8_t)addr, pin_mask);
+      write_one_((uint8_t)addr, pin_mask);
 
       // set the pin to interrupt on comparison to defval register
       addr = port == Port::A ? Registers::INTCONA : Registers::INTCONB;
-      write_((uint8_t)addr, pin_mask);
+      write_one_((uint8_t)addr, pin_mask);
 
       // set the defval register to be the value to compare against
       addr = port == Port::A ? Registers::DEFVALA : Registers::DEFVALB;
-      write_((uint8_t)addr, val_mask);
+      write_one_((uint8_t)addr, val_mask);
     }
 
     /**
@@ -133,7 +138,7 @@ namespace espp {
     void set_direction(Port port, uint8_t mask) {
       logger_.debug("Setting direction for {} to {}", (uint8_t)port, mask);
       auto addr = port == Port::A ? Registers::IODIRA : Registers::IODIRB;
-      write_((uint8_t)addr, mask);
+      write_one_((uint8_t)addr, mask);
     }
 
     /**
@@ -144,7 +149,7 @@ namespace espp {
     void set_input_polarity(Port port, uint8_t mask) {
       logger_.debug("Setting input polarity for {} to {}", (uint8_t)port, mask);
       auto addr = port == Port::A ? Registers::IOPOLA : Registers::IOPOLB;
-      write_((uint8_t)addr, mask);
+      write_one_((uint8_t)addr, mask);
     }
 
     /**
@@ -155,7 +160,7 @@ namespace espp {
     void set_pull_up(Port port, uint8_t mask) {
       logger_.debug("Setting pull-up for {} to {}", (uint8_t)port, mask);
       auto addr = port == Port::A ? Registers::GPPUA : Registers::GPPUB;
-      write_((uint8_t)addr, mask);
+      write_one_((uint8_t)addr, mask);
     }
 
     /**
@@ -166,7 +171,7 @@ namespace espp {
     void set_interrupt_mirror(bool mirror) {
       logger_.debug("Setting interrupt mirror: {}", mirror);
       auto addr = (uint8_t)Registers::IOCON;
-      auto config = read_(addr);
+      auto config = read_one_(addr);
       logger_.debug("Read config: {}", config);
       if (mirror) {
         config &= (1 << (int)ConfigBit::MIRROR);
@@ -175,7 +180,7 @@ namespace espp {
       }
       // now write it back
       logger_.debug("Writing new config: {}", config);
-      write_(addr, config);
+      write_one_(addr, config);
     }
 
     /**
@@ -186,7 +191,7 @@ namespace espp {
     void set_interrupt_polarity(bool active_high) {
       logger_.debug("Setting interrupt polarity: {}", active_high);
       auto addr = (uint8_t)Registers::IOCON;
-      auto config = read_(addr);
+      auto config = read_one_(addr);
       logger_.debug("Read config: {}", config);
       if (active_high) {
         config &= (1 << (int)ConfigBit::INTPOL);
@@ -195,7 +200,7 @@ namespace espp {
       }
       // now write it back
       logger_.debug("Writing new config: {}", config);
-      write_(addr, config);
+      write_one_(addr, config);
     }
 
   protected:
@@ -244,6 +249,18 @@ namespace espp {
       set_interrupt_on_change(Port::B, config.port_b_interrupt_mask);
     }
 
+    void write_one_(uint8_t reg_addr, uint8_t write_data) {
+      uint8_t data[2] = {reg_addr, write_data};
+      write_(address_, data, 2);
+    }
+
+    uint8_t read_one_(uint8_t reg_addr) {
+      uint8_t data;
+      read_(address_, reg_addr, &data, 1);
+      return data;
+    }
+
+    uint8_t address_;
     write_fn write_;
     read_fn read_;
     Logger logger_;

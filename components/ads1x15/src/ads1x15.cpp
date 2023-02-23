@@ -78,16 +78,16 @@ int16_t Ads1x15::sample_raw(int channel) {
   config |= REG_CONFIG_OS_SINGLE;
   // configure to read from mux 0
   logger_.debug("configuring conversion for channel {}", channel);
-  write_((uint8_t)Register::POINTER_CONFIG, config);
-  write_((uint8_t)Register::POINTER_HITHRESH, 0x8000);
-  write_((uint8_t)Register::POINTER_LOWTHRESH, 0x0000);
+  write_two_((uint8_t)Register::POINTER_CONFIG, config);
+  write_two_((uint8_t)Register::POINTER_HITHRESH, 0x8000);
+  write_two_((uint8_t)Register::POINTER_LOWTHRESH, 0x0000);
   // wait for conversion complete
   logger_.debug("waiting for conversion complete...");
   while (!conversion_complete()) {
     std::this_thread::sleep_for(1us);
   }
   logger_.debug("reading conversion result for channel {}", channel);
-  uint16_t val = read_((uint8_t)Register::POINTER_CONVERT) >> bit_shift_;
+  uint16_t val = read_two_((uint8_t)Register::POINTER_CONVERT) >> bit_shift_;
   if (bit_shift_ > 0) {
     if (val > 0x07FF) {
       // negative number - extend the sign to the 16th bit
@@ -98,5 +98,5 @@ int16_t Ads1x15::sample_raw(int channel) {
 }
 
 bool Ads1x15::conversion_complete() {
-  return (read_((uint8_t)Register::POINTER_CONFIG) & 0x8000) != 0;
+  return (read_two_((uint8_t)Register::POINTER_CONFIG) & 0x8000) != 0;
 }

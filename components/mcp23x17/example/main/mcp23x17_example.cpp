@@ -34,25 +34,22 @@ extern "C" void app_main(void) {
     err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER,  0, 0, 0);
     if (err != ESP_OK) printf("install i2c driver failed\n");
     // make some lambda functions we'll use to read/write to the mcp23x17
-    auto mcp23x17_write = [](uint8_t reg_addr, uint8_t value) {
-      uint8_t data[] = {reg_addr, value};
+    auto mcp23x17_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
       i2c_master_write_to_device(I2C_NUM,
-                                 espp::Mcp23x17::ADDRESS,
+                                 dev_addr,
                                  data,
-                                 2,
+                                 data_len,
                                  I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
     };
 
-    auto mcp23x17_read = [](uint8_t reg_addr) -> uint8_t{
-      uint8_t data;
+    auto mcp23x17_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t* data, size_t data_len) {
       i2c_master_write_read_device(I2C_NUM,
-                                   espp::Mcp23x17::ADDRESS,
+                                   dev_addr,
                                    &reg_addr,
                                    1,
-                                   &data,
-                                   1,
+                                   data,
+                                   data_len,
                                    I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return data;
     };
     // now make the mcp23x17 which handles GPIO
     espp::Mcp23x17 mcp23x17({

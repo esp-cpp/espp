@@ -35,25 +35,22 @@ extern "C" void app_main(void) {
     err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER,  0, 0, 0);
     if (err != ESP_OK) printf("install i2c driver failed\n");
     // make some lambda functions we'll use to read/write to the mt6701
-    auto mt6701_write = [](uint8_t reg_addr, uint8_t value) {
-      uint8_t data[] = {reg_addr, value};
+    auto mt6701_write = [](uint8_t dev_addr, uint8_t* data, size_t data_len) {
       i2c_master_write_to_device(I2C_NUM,
-                                 espp::Mt6701::ADDRESS,
+                                 dev_addr,
                                  data,
-                                 2,
+                                 data_len,
                                  I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
     };
 
-    auto mt6701_read = [](uint8_t reg_addr) -> uint8_t{
-      uint8_t data;
+    auto mt6701_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t* data, size_t data_len) {
       i2c_master_write_read_device(I2C_NUM,
-                                   espp::Mt6701::ADDRESS,
+                                   dev_addr,
                                    &reg_addr,
                                    1,
-                                   &data,
-                                   1,
+                                   data,
+                                   data_len,
                                    I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return data;
     };
     // make the velocity filter
     static constexpr float filter_cutoff_hz = 4.0f;

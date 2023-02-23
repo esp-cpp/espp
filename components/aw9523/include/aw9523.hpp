@@ -19,16 +19,16 @@ namespace espp {
     static constexpr uint8_t DEFAULT_ADDRESS = 0x58; ///< Lower 2 bits are AD1, AD0 pins on the chip.
 
     /**
-     * @brief Function to write a byte to a register for Aw9523.
-     * @param dev_addr Address of the AW9523B device to write to.
+     * @brief Function to write bytes to the device.
+     * @param dev_addr Address of the device to write to.
      * @param data Pointer to array of bytes to write.
      * @param data_len Number of data bytes to write.
      */
     typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
 
     /**
-     * @brief Function to read a byte from a register for Aw9523.
-     * @param dev_addr Address of the AW9523B device to write to.
+     * @brief Function to read bytes from the device.
+     * @param dev_addr Address of the device to write to.
      * @param reg_addr Register address to read from.
      * @param data Pointer to array of bytes to read into.
      * @param data_len Number of data bytes to read.
