@@ -125,7 +125,7 @@
           <li><a href="index.html">IO Expander APIs</a> &raquo;</li>
       <li>AW9523 I/O Expander</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/196f3f6/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/e7f6728/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -144,7 +144,7 @@ are configured into a special LED mode.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/196f3f6/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e7f6728/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -312,10 +312,10 @@ are configured into a special LED mode.</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238write_fnE">
 <span id="_CPPv3N4espp6Aw95238write_fnE"></span><span id="_CPPv2N4espp6Aw95238write_fnE"></span><span id="espp::Aw9523::write_fn"></span><span class="target" id="classespp_1_1_aw9523_1a65bdc1790fe46d050ace92558e2901ec"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95238write_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Function to write a byte to a register for <a class="reference internal" href="#classespp_1_1_aw9523"><span class="std std-ref">Aw9523</span></a>. </p>
+<dd><p>Function to write bytes to the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
-<dd class="field-odd"><p>Address of the AW9523B device to write to. </p>
+<dd class="field-odd"><p>Address of the device to write to. </p>
 </dd>
 <dt class="field-even">Param data</dt>
 <dd class="field-even"><p>Pointer to array of bytes to write. </p>
@@ -329,10 +329,10 @@ are configured into a special LED mode.</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95237read_fnE">
 <span id="_CPPv3N4espp6Aw95237read_fnE"></span><span id="_CPPv2N4espp6Aw95237read_fnE"></span><span id="espp::Aw9523::read_fn"></span><span class="target" id="classespp_1_1_aw9523_1aff59f100514d940d463c0a4433acd79f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95237read_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Function to read a byte from a register for <a class="reference internal" href="#classespp_1_1_aw9523"><span class="std std-ref">Aw9523</span></a>. </p>
+<dd><p>Function to read bytes from the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
-<dd class="field-odd"><p>Address of the AW9523B device to write to. </p>
+<dd class="field-odd"><p>Address of the device to write to. </p>
 </dd>
 <dt class="field-even">Param reg_addr</dt>
 <dd class="field-even"><p>Register address to read from. </p>
