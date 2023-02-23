@@ -28,21 +28,24 @@ namespace espp {
    */
   class Mt6701 {
   public:
-    static constexpr uint8_t ADDRESS = (0b0000110); ///< I2C address of the MT6701
+    static constexpr uint8_t DEFAULT_ADDRESS = (0b0000110); ///< I2C address of the MT6701
 
     /**
-     * @brief Function to write a byte to a register for Mt6701.
-     * @param reg_addr Register address to write to.
-     * @param data Data to be written.
+     * @brief Function to write bytes to the device.
+     * @param dev_addr Address of the device to write to.
+     * @param data Pointer to array of bytes to write.
+     * @param data_len Number of data bytes to write.
      */
-    typedef std::function<void(uint8_t reg_addr, uint8_t data)> write_fn;
+    typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
 
     /**
-     * @brief Function to read a byte from a register for Mt6701.
+     * @brief Function to read bytes from the device.
+     * @param dev_addr Address of the device to write to.
      * @param reg_addr Register address to read from.
-     * @return Byte read from register.
+     * @param data Pointer to array of bytes to read into.
+     * @param data_len Number of data bytes to read.
      */
-    typedef std::function<uint8_t(uint8_t reg_addr)> read_fn;
+    typedef std::function<void(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)> read_fn;
 
     /**
      * @brief Filter the input raw velocity and return it.
@@ -61,6 +64,7 @@ namespace espp {
      * @brief Configuration information for the Mt6701.
      */
     struct Config {
+      uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the device.
       write_fn write; ///< Function to write to the device.
       read_fn read; ///< Function to read from the device.
       velocity_filter_fn velocity_filter{nullptr}; ///< Function to filter the veolcity. @note Will be called once every update_period seconds.
@@ -72,7 +76,8 @@ namespace espp {
      * @brief Construct the Mt6701 and start the update task.
      */
     Mt6701(const Config& config)
-      : write_(config.write),
+      : address_(config.device_address),
+        write_(config.write),
         read_(config.read),
         velocity_filter_(config.velocity_filter),
         update_period_(config.update_period),
@@ -167,8 +172,8 @@ namespace espp {
     int read_count() {
       logger_.info("read_count");
       // read the angle count registers
-      uint8_t angle_h = read_((uint8_t)Registers::ANGLE_H);
-      uint8_t angle_l = read_((uint8_t)Registers::ANGLE_L) >> 2;
+      uint8_t angle_h = read_one_((uint8_t)Registers::ANGLE_H);
+      uint8_t angle_l = read_one_((uint8_t)Registers::ANGLE_L) >> 2;
       return (int)((angle_h << 6) | angle_l);
     }
 
@@ -231,6 +236,12 @@ namespace espp {
       task_->start();
     }
 
+    uint8_t read_one_(uint8_t reg_addr) {
+      uint8_t data;
+      read_(address_, reg_addr, &data, 1);
+      return data;
+    }
+
     /**
      * @brief Register map for the MT6701.
      *
@@ -260,6 +271,7 @@ namespace espp {
       A_STOP_LOW  = 0x40, ///< A_STOP[7:0]
     };
 
+    uint8_t address_;
     write_fn write_;
     read_fn read_;
     velocity_filter_fn velocity_filter_{nullptr};
