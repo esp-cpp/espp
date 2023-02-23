@@ -4,6 +4,7 @@ IO Expander APIs
 .. toctree::
     :maxdepth: 1
 
+    aw9523
     mcp23x17
 
 There are several different types of I/O expanders provided which are standalone
