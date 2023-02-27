@@ -144,8 +144,8 @@ extern "C" void app_main(void) {
         .output_center = 512,
         .output_range = 512
       });
-    auto vals = std::array<float, 11>{
-      -10, 0, 10, 50, 100, 127, 150, 200, 250, 255, 275
+    auto vals = std::array<float, 13>{
+      -10, 0, 10, 50, 100, 120, 127, 135, 150, 200, 250, 255, 275
     };
     fmt::print("Mapping [0,255] -> [-1, 1]\n");
     for (const auto& v : vals) {
