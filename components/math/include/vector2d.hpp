@@ -281,5 +281,17 @@ namespace espp {
     return espp::Vector2f(v.x() * f, v.y() * f);
   }
 
+  /**
+   * @brief Compare if two vectors are equal.
+   * @param lhs Left hand side vector
+   * @param rhs Right hand side vector
+   * @return True if their x and y are equal, false otherwise.
+   */
+  bool operator ==(const Vector2f& lhs, const Vector2f& rhs) {
+    return
+      lhs.x() == rhs.x() &&
+      lhs.y() == rhs.y();
+  }
+
 }
 

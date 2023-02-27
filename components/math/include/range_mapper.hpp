@@ -19,6 +19,8 @@ namespace espp {
       T deadband;/**< Deadband amount around (+-) the center for which output will be 0. */
       T minimum; /**< Minimum value for the input range. */
       T maximum; /**< Maximum value for the input range. */
+      T output_center{T(0)}; /**< The center for the output. */
+      T output_range{T(1)}; /**< The range +/- from the center for the output. */
     };
 
     /**
@@ -38,8 +40,10 @@ namespace espp {
       deadband_ = config.deadband;
       minimum_ = config.minimum;
       maximum_ = config.maximum;
-      pos_range_ = maximum_ - center_;
-      neg_range_ = std::abs(minimum_ - center_);
+      output_center_ = config.output_center;
+      output_range_ = config.output_range;
+      pos_range_ = (maximum_ - center_) / output_range_;
+      neg_range_ = std::abs(minimum_ - center_) / output_range_;
     }
 
     /**
@@ -49,12 +53,12 @@ namespace espp {
      * @return Value within range [-1,1]
      */
     T map(const T& v) {
-      T calibrated = v - center_;
+      T calibrated = std::clamp(v, minimum_, maximum_) - center_;
       if (std::abs(calibrated) < deadband_) {
-        return T(0);
+        return output_center_;
       }
       return (calibrated > T(0)) ?
-        calibrated / pos_range_ : calibrated / neg_range_;
+        calibrated / pos_range_ + output_center_ : calibrated / neg_range_ + output_center_;
     }
 
   protected:
@@ -64,6 +68,8 @@ namespace espp {
     T maximum_;
     T pos_range_;
     T neg_range_;
+    T output_center_;
+    T output_range_;
   };
 
   /**
