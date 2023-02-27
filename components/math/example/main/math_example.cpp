@@ -127,17 +127,33 @@ extern "C" void app_main(void) {
   fmt::print("RangeMapper:\n");
   {
     //! [range_mapper example]
+    // Default will have output range [-1, 1]
     espp::RangeMapper<float> rm({
         .center = 127,
         .deadband = 12,
         .minimum = 0,
         .maximum = 255
       });
-    auto vals = std::array<float, 9>{
-      0, 10, 50, 100, 127, 150, 200, 250, 255
+    // You can explicitly set output center/range. In this case the output will
+    // be in the range [0, 1024]
+    espp::RangeMapper<float> rm2({
+        .center = 127,
+        .deadband = 12,
+        .minimum = 0,
+        .maximum = 255,
+        .output_center = 512,
+        .output_range = 512
+      });
+    auto vals = std::array<float, 13>{
+      -10, 0, 10, 50, 100, 120, 127, 135, 150, 200, 250, 255, 275
     };
-    for (auto v : vals) {
+    fmt::print("Mapping [0,255] -> [-1, 1]\n");
+    for (const auto& v : vals) {
       fmt::print("{} -> {}\n", v, rm.map(v));
+    }
+    fmt::print("Mapping [0,255] -> [0, 1024]\n");
+    for (const auto& v : vals) {
+      fmt::print("{} -> {}\n", v, rm2.map(v));
     }
     //! [range_mapper example]
   }
