@@ -128,7 +128,7 @@
           <li><a href="index.html">Math APIs</a> &raquo;</li>
       <li>Range Mapper</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/e7f6728/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -145,7 +145,7 @@ input range to a standardized output range of [-1,1].</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e7f6728/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -153,7 +153,7 @@ input range to a standardized output range of [-1,1].</p>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN4espp11RangeMapperE">
 <span id="_CPPv3I0EN4espp11RangeMapperE"></span><span id="_CPPv2I0EN4espp11RangeMapperE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_range_mapper"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RangeMapper</span></span></span><a class="headerlink" href="#_CPPv4I0EN4espp11RangeMapperE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Template class for converting a value from an uncentered [minimum, maximum] range into a centered [-1,1] range. If provided a non-zero deadband, it will convert all values within [center-deadband, center+deadband] to be 0. </p>
+<dd><p>Template class for converting a value from an uncentered [minimum, maximum] range into a centered output range (default [-1,1]). If provided a non-zero deadband, it will convert all values within [center-deadband, center+deadband] to be the configured output_center (default 0). </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -170,10 +170,10 @@ input range to a standardized output range of [-1,1].</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper9configureERK6Config">
 <span id="_CPPv3N4espp11RangeMapper9configureERK6Config"></span><span id="_CPPv2N4espp11RangeMapper9configureERK6Config"></span><span id="espp::RangeMapper::configure__ConfigCR"></span><span class="target" id="classespp_1_1_range_mapper_1a657df92a602ae9c22fd6b79ac38f5ab5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11RangeMapper6ConfigE" title="espp::RangeMapper::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper9configureERK6Config" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Update the input distribution with the new configuration. </p>
+<dd><p>Update the input / output distribution with the new configuration. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>config</strong> – New input distribution configuration to use. </p>
+<dd class="field-odd"><p><strong>config</strong> – New configuration to use. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -181,13 +181,13 @@ input range to a standardized output range of [-1,1].</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper3mapERK1T">
 <span id="_CPPv3N4espp11RangeMapper3mapERK1T"></span><span id="_CPPv2N4espp11RangeMapper3mapERK1T"></span><span id="espp::RangeMapper::map__TCR"></span><span class="target" id="classespp_1_1_range_mapper_1abbdd196672edea16fedeec2d5ca9e742"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper3mapERK1T" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Map a value <code class="docutils literal notranslate"><span class="pre">v</span></code> from the input distribution into the range [-1,1]. </p>
+<dd><p>Map a value <code class="docutils literal notranslate"><span class="pre">v</span></code> from the input distribution into the configured output range (centered, default [-1,1]). </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>v</strong> – Value from the input distribution </p>
+<dd class="field-odd"><p><strong>v</strong> – Value from the (possibly uncentered) input distribution </p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Value within range [-1,1] </p>
+<dd class="field-even"><p>Value within the centered output distribution. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -196,7 +196,7 @@ input range to a standardized output range of [-1,1].</p>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6ConfigE">
 <span id="_CPPv3N4espp11RangeMapper6ConfigE"></span><span id="_CPPv2N4espp11RangeMapper6ConfigE"></span><span id="espp::RangeMapper::Config"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6ConfigE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Configuration for the input uncentered range. </p>
+<dd><p>Configuration for the input uncentered range with optional values for the centered output range, default values of 0 output center and 1 output range provide a default output range between [-1, 1]. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
@@ -221,6 +221,18 @@ input range to a standardized output range of [-1,1].</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6Config7maximumE">
 <span id="_CPPv3N4espp11RangeMapper6Config7maximumE"></span><span id="_CPPv2N4espp11RangeMapper6Config7maximumE"></span><span id="espp::RangeMapper::Config::maximum__T"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config_1a85e34790eb2f696359d3cb3e74f50e93"></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">maximum</span></span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6Config7maximumE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Maximum value for the input range. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6Config13output_centerE">
+<span id="_CPPv3N4espp11RangeMapper6Config13output_centerE"></span><span id="_CPPv2N4espp11RangeMapper6Config13output_centerE"></span><span id="espp::RangeMapper::Config::output_center__T"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config_1ae367c5dfd029e8dcb69ac81e6e04b5b8"></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output_center</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6Config13output_centerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The center for the output. Default 0. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6Config12output_rangeE">
+<span id="_CPPv3N4espp11RangeMapper6Config12output_rangeE"></span><span id="_CPPv2N4espp11RangeMapper6Config12output_rangeE"></span><span id="espp::RangeMapper::Config::output_range__T"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config_1a21da85fc5be4ef111df0165ca04a7d8d"></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output_range</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6Config12output_rangeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The range +/- from the center for the output. Default +/- 1. </p>
 </dd></dl>
 
 </div>
