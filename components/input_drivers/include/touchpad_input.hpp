@@ -29,8 +29,7 @@ namespace espp {
 
     /**
      *  @brief Configuration structure, containing the read function for the
-     *         touchpad itself, as well as the optional read function for the
-     *         home button (if the touchpad has one.)
+     *         touchpad itself.
      */
     struct Config {
       touchpad_read_fn touchpad_read; /**< Input function for the touchpad itself. */
@@ -120,14 +119,14 @@ namespace espp {
       indev_drv_tp_.read_cb = &TouchpadInput::touchpad_read;
       indev_drv_tp_.user_data = (void*)this;
       indev_touchpad_ = lv_indev_drv_register(&indev_drv_tp_);
-      if (home_button_read != nullptr) {
-        logger_.info("Add HOME button input to LVGL");
-        lv_indev_drv_init(&indev_drv_btn_);
-        indev_drv_btn_.type = LV_INDEV_TYPE_BUTTON;
-        indev_drv_btn_.read_cb = &TouchpadInput::home_button_read;
-        indev_drv_btn_.user_data = (void*)this;
-        indev_button_ = lv_indev_drv_register(&indev_drv_btn_);
-      }
+
+      logger_.info("Add HOME button input to LVGL");
+      lv_indev_drv_init(&indev_drv_btn_);
+      indev_drv_btn_.type = LV_INDEV_TYPE_BUTTON;
+      indev_drv_btn_.read_cb = &TouchpadInput::home_button_read;
+      indev_drv_btn_.user_data = (void*)this;
+      indev_button_ = lv_indev_drv_register(&indev_drv_btn_);
+
       auto disp = lv_disp_get_default();
       screen_size_x_ = (uint16_t)lv_disp_get_hor_res(disp);
       screen_size_y_ = (uint16_t)lv_disp_get_ver_res(disp);
