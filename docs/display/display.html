@@ -16,9 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -125,7 +123,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -134,23 +132,23 @@
            <div itemprop="articleBody">
              
   <section id="display">
-<h1>Display<a class="headerlink" href="#display" title="Permalink to this heading"></a></h1>
+<h1>Display<a class="headerlink" href="#display" title="Permalink to this headline"></a></h1>
 <p>The <cite>display</cite> component is responsible for managing the memory associated the
 display buffer / video RAM (vram) and is also responsible for managing the
 high-priority lvgl update task which sends data to the display.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7DisplayE">
-<span id="_CPPv3N4espp7DisplayE"></span><span id="_CPPv2N4espp7DisplayE"></span><span id="espp::Display"></span><span class="target" id="classespp_1_1_display"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><a class="headerlink" href="#_CPPv4N4espp7DisplayE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7DisplayE"></span><span id="_CPPv2N4espp7DisplayE"></span><span id="espp::Display"></span><span class="target" id="classespp_1_1_display"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Display</span></span></span><a class="headerlink" href="#_CPPv4N4espp7DisplayE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Wrapper class around LVGL display buffer and display driver. </p>
 <p>Optionally allocates and owns the memory associated with the pixel display buffers. Initializes the LVGL subsystem then starts and maintains a task which runs the high priority lv_tick_inc() function every update period (default = 10 ms).</p>
 <p>For more information, see <a class="reference external" href="https://docs.lvgl.io/8.3/porting/display.html#display-interface">https://docs.lvgl.io/8.3/porting/display.html#display-interface</a> </p>

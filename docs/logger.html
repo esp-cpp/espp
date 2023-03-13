@@ -16,9 +16,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -122,7 +120,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Logging APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/logger.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/logger.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -131,35 +129,35 @@
            <div itemprop="articleBody">
              
   <section id="logging-apis">
-<h1>Logging APIs<a class="headerlink" href="#logging-apis" title="Permalink to this heading"></a></h1>
+<h1>Logging APIs<a class="headerlink" href="#logging-apis" title="Permalink to this headline"></a></h1>
 <section id="format">
-<h2>Format<a class="headerlink" href="#format" title="Permalink to this heading"></a></h2>
+<h2>Format<a class="headerlink" href="#format" title="Permalink to this headline"></a></h2>
 <p>Format is a simple component which exposes <cite>libfmt</cite> for use within esp-idf as a
 single include.</p>
 </section>
 <section id="logger">
-<h2>Logger<a class="headerlink" href="#logger" title="Permalink to this heading"></a></h2>
+<h2>Logger<a class="headerlink" href="#logger" title="Permalink to this headline"></a></h2>
 <p>The logger provides a cross-platform wrapper around <cite>libfmt</cite> for providing
 configurable log output with different levels that can be turned on / off at
 runtime.</p>
 <p>Code examples for the logging API are provided in the <cite>logger</cite> example folder.</p>
 </section>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/logger/include/logger.hpp">components/logger/include/logger.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/logger/include/logger.hpp">components/logger/include/logger.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6LoggerE">
-<span id="_CPPv3N4espp6LoggerE"></span><span id="_CPPv2N4espp6LoggerE"></span><span id="espp::Logger"></span><span class="target" id="classespp_1_1_logger"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Logger</span></span></span><a class="headerlink" href="#_CPPv4N4espp6LoggerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6LoggerE"></span><span id="_CPPv2N4espp6LoggerE"></span><span id="espp::Logger"></span><span class="target" id="classespp_1_1_logger"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Logger</span></span></span><a class="headerlink" href="#_CPPv4N4espp6LoggerE" title="Permalink to this definition"></a><br /></dt>
 <dd><p><a class="reference internal" href="#classespp_1_1_logger"><span class="std std-ref">Logger</span></a> provides a wrapper around nicer / more robust formatting than standard ESP_LOG* macros with the ability to change the log level at run-time. <a class="reference internal" href="#classespp_1_1_logger"><span class="std std-ref">Logger</span></a> currently is a light wrapper around libfmt (future std::format). </p>
 <section id="classespp_1_1_logger_1logger_ex1">
-<h4>Basic Example<a class="headerlink" href="#classespp_1_1_logger_1logger_ex1" title="Permalink to this heading"></a></h4>
+<h4>Basic Example<a class="headerlink" href="#classespp_1_1_logger_1logger_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_logger_1logger_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">num_seconds_to_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">10.0f</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// create loggers</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">({</span><span class="w"></span>
@@ -186,7 +184,7 @@ runtime.</p>
  </p>
 </section>
 <section id="classespp_1_1_logger_1logger_ex2">
-<h4>Threaded Logging and Verbosity Example<a class="headerlink" href="#classespp_1_1_logger_1logger_ex2" title="Permalink to this heading"></a></h4>
+<h4>Threaded Logging and Verbosity Example<a class="headerlink" href="#classespp_1_1_logger_1logger_ex2" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_logger_1logger_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create loggers</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">({</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Thread 1&quot;</span><span class="p">,</span><span class="w"></span>

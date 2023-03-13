@@ -16,9 +16,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
     <script src="_static/js/theme.js"></script>
@@ -120,7 +118,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Controller APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/controller.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/controller.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -129,7 +127,7 @@
            <div itemprop="articleBody">
              
   <section id="controller-apis">
-<h1>Controller APIs<a class="headerlink" href="#controller-apis" title="Permalink to this heading"></a></h1>
+<h1>Controller APIs<a class="headerlink" href="#controller-apis" title="Permalink to this headline"></a></h1>
 <p>The <cite>Controller</cite> class provides a convenience for reading multiple GPIOs at once
 and mapping their state to common controller buttons. It can optionally be
 configured to support joystick select, as well as to convert analog joystick
@@ -137,24 +135,24 @@ values into digital directional values (up/down/left/right). It can also be used
 for just a subset of the buttons, should you wish to do so, by providing the
 GPIO configuration for the unused buttons to be -1.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/controller/include/controller.hpp">components/controller/include/controller.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/controller/include/controller.hpp">components/controller/include/controller.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10ControllerE">
-<span id="_CPPv3N4espp10ControllerE"></span><span id="_CPPv2N4espp10ControllerE"></span><span id="espp::Controller"></span><span class="target" id="classespp_1_1_controller"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Controller</span></span></span><a class="headerlink" href="#_CPPv4N4espp10ControllerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp10ControllerE"></span><span id="_CPPv2N4espp10ControllerE"></span><span id="espp::Controller"></span><span class="target" id="classespp_1_1_controller"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Controller</span></span></span><a class="headerlink" href="#_CPPv4N4espp10ControllerE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for managing controller input. </p>
 <p>The controller can be configured to either use a digital d-pad or an analog 2-axis joystick with select button.</p>
 <p>Digital configuration can support ABXY, start, select, and 4 digital directional inputs.</p>
 <p>Anaolg <a class="reference internal" href="joystick.html#classespp_1_1_joystick"><span class="std std-ref">Joystick</span></a> Configuration can support ABXY, start, select, two axis (analog) joystick, and joystick select button. It will also convert the joystick analog values into digital d-pad buttons.</p>
 <section id="classespp_1_1_controller_1controller_ex1">
-<h4>Digital Controller Example<a class="headerlink" href="#classespp_1_1_controller_1controller_ex1" title="Permalink to this heading"></a></h4>
+<h4>Digital Controller Example<a class="headerlink" href="#classespp_1_1_controller_1controller_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_controller_1controller_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the controller - NOTE: this was designed for connecting the Sparkfun</span>
 <span class="w">    </span><span class="c1">// Joystick Shield to the ESP32 S3 BOX</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Controller</span><span class="w"> </span><span class="nf">controller</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Controller</span><span class="o">::</span><span class="n">DigitalConfig</span><span class="p">{</span><span class="w"></span>
@@ -207,7 +205,7 @@ GPIO configuration for the unused buttons to be -1.</p>
  </p>
 </section>
 <section id="classespp_1_1_controller_1controller_ex2">
-<h4>Analog Controller Example<a class="headerlink" href="#classespp_1_1_controller_1controller_ex2" title="Permalink to this heading"></a></h4>
+<h4>Analog Controller Example<a class="headerlink" href="#classespp_1_1_controller_1controller_ex2" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_controller_1controller_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the adc we&#39;ll be reading from</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">AdcConfig</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="p">{</span><span class="w"></span>
@@ -312,7 +310,7 @@ GPIO configuration for the unused buttons to be -1.</p>
  </p>
 </section>
 <section id="classespp_1_1_controller_1controller_ex3">
-<h4>I2C Analog Controller Example<a class="headerlink" href="#classespp_1_1_controller_1controller_ex3" title="Permalink to this heading"></a></h4>
+<h4>I2C Analog Controller Example<a class="headerlink" href="#classespp_1_1_controller_1controller_ex3" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_controller_1controller_ex3"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
 <span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>

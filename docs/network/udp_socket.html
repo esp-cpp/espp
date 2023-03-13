@@ -16,9 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -126,7 +124,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>UDP Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/network/udp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/network/udp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -135,27 +133,27 @@
            <div itemprop="articleBody">
              
   <section id="udp-sockets">
-<h1>UDP Sockets<a class="headerlink" href="#udp-sockets" title="Permalink to this heading"></a></h1>
+<h1>UDP Sockets<a class="headerlink" href="#udp-sockets" title="Permalink to this headline"></a></h1>
 <p>UDP sockets provide unreliable, unordered communication over IP network sockets.</p>
 <p>UDP sockets can be used in unicast (point to point), multicast (one to many and
 many to one), and broadcast (one to all).</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/socket/include/udp_socket.hpp">components/socket/include/udp_socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/socket/include/udp_socket.hpp">components/socket/include/udp_socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9UdpSocketE">
-<span id="_CPPv3N4espp9UdpSocketE"></span><span id="_CPPv2N4espp9UdpSocketE"></span><span id="espp::UdpSocket"></span><span class="target" id="classespp_1_1_udp_socket"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UdpSocket</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="socket.html#_CPPv4N4espp6SocketE" title="espp::Socket"><span class="n"><span class="pre">Socket</span></span></a><a class="headerlink" href="#_CPPv4N4espp9UdpSocketE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp9UdpSocketE"></span><span id="_CPPv2N4espp9UdpSocketE"></span><span id="espp::UdpSocket"></span><span class="target" id="classespp_1_1_udp_socket"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">UdpSocket</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="socket.html#_CPPv4N4espp6SocketE" title="espp::Socket"><span class="n"><span class="pre">Socket</span></span></a><a class="headerlink" href="#_CPPv4N4espp9UdpSocketE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for managing sending and receiving data using UDP/IP. Can be used to create client or server sockets. </p>
 <p>See <a class="reference external" href="https://github.com/espressif/esp-idf/tree/master/examples/protocols/sockets/udp_multicast">https://github.com/espressif/esp-idf/tree/master/examples/protocols/sockets/udp_multicast</a> for more information on udp multicast sockets.</p>
 <section id="classespp_1_1_udp_socket_1udp_ex1">
-<h4>UDP Client Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex1" title="Permalink to this heading"></a></h4>
+<h4>UDP Client Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_udp_socket_1udp_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">client_socket</span><span class="p">({});</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// create thread for sending data using the socket</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">client_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">server_address</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">client_socket</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">port</span><span class="p">](</span><span class="k">auto</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -185,7 +183,7 @@ many to one), and broadcast (one to all).</p>
  </p>
 </section>
 <section id="classespp_1_1_udp_socket_1udp_ex2">
-<h4>UDP Server Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex2" title="Permalink to this heading"></a></h4>
+<h4>UDP Server Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex2" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_udp_socket_1udp_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">server_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
@@ -210,7 +208,7 @@ many to one), and broadcast (one to all).</p>
 </p>
 </section>
 <section id="classespp_1_1_udp_socket_1udp_ex3">
-<h4>UDP Client Response Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex3" title="Permalink to this heading"></a></h4>
+<h4>UDP Client Response Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex3" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_udp_socket_1udp_ex3"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">client_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// create threads</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">client_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">server_address</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">client_socket</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">port</span><span class="p">](</span><span class="k">auto</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -246,7 +244,7 @@ many to one), and broadcast (one to all).</p>
  </p>
 </section>
 <section id="classespp_1_1_udp_socket_1udp_ex4">
-<h4>UDP Server Response Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex4" title="Permalink to this heading"></a></h4>
+<h4>UDP Server Response Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex4" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_udp_socket_1udp_ex4"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">server_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
@@ -274,7 +272,7 @@ many to one), and broadcast (one to all).</p>
 </p>
 </section>
 <section id="classespp_1_1_udp_socket_1udp_ex5">
-<h4>UDP Multicast Client Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex5" title="Permalink to this heading"></a></h4>
+<h4>UDP Multicast Client Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex5" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_udp_socket_1udp_ex5"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">client_socket</span><span class="p">({});</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// create threads</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">client_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">client_socket</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">port</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">multicast_group</span><span class="p">](</span><span class="k">auto</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -311,7 +309,7 @@ many to one), and broadcast (one to all).</p>
  </p>
 </section>
 <section id="classespp_1_1_udp_socket_1udp_ex6">
-<h4>UDP Multicast Server Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex6" title="Permalink to this heading"></a></h4>
+<h4>UDP Multicast Server Example<a class="headerlink" href="#classespp_1_1_udp_socket_1udp_ex6" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_udp_socket_1udp_ex6"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">multicast_group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;239.1.1.1&quot;</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">UdpSocket</span><span class="w"> </span><span class="nf">server_socket</span><span class="p">({.</span><span class="n">log_level</span><span class="o">=</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
