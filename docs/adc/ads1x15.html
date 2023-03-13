@@ -16,9 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -127,7 +125,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>ADS1x15 I2C ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/adc/ads1x15.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/adc/ads1x15.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -136,25 +134,25 @@
            <div itemprop="articleBody">
              
   <section id="ads1x15-i2c-adc">
-<h1>ADS1x15 I2C ADC<a class="headerlink" href="#ads1x15-i2c-adc" title="Permalink to this heading"></a></h1>
+<h1>ADS1x15 I2C ADC<a class="headerlink" href="#ads1x15-i2c-adc" title="Permalink to this headline"></a></h1>
 <p>The <cite>ADS1x15</cite> provides a class for communicating with the ADS1x15 (ADS1015 and
 ADS1115) family of I2C ADC chips with configurable gain and sampling rate.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/ads1x15/include/ads1x15.hpp">components/ads1x15/include/ads1x15.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/ads1x15/include/ads1x15.hpp">components/ads1x15/include/ads1x15.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads1x15E">
-<span id="_CPPv3N4espp7Ads1x15E"></span><span id="_CPPv2N4espp7Ads1x15E"></span><span id="espp::Ads1x15"></span><span class="target" id="classespp_1_1_ads1x15"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads1x15</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x15E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Ads1x15E"></span><span id="_CPPv2N4espp7Ads1x15E"></span><span id="espp::Ads1x15"></span><span class="target" id="classespp_1_1_ads1x15"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Ads1x15</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads1x15E" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for reading values from the ADS1x15 family of ADC chips. </p>
 <section id="classespp_1_1_ads1x15_1ads1x15_ex1">
-<h4>ADS1X15 Example<a class="headerlink" href="#classespp_1_1_ads1x15_1ads1x15_ex1" title="Permalink to this heading"></a></h4>
+<h4>ADS1X15 Example<a class="headerlink" href="#classespp_1_1_ads1x15_1ads1x15_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_ads1x15_1ads1x15_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
 <span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>

@@ -16,9 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -125,7 +123,7 @@
           <li><a href="index.html">BLDC APIs</a> &raquo;</li>
       <li>BLDC Motor</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/bldc/bldc_motor.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/bldc/bldc_motor.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -134,7 +132,7 @@
            <div itemprop="articleBody">
              
   <section id="bldc-motor">
-<h1>BLDC Motor<a class="headerlink" href="#bldc-motor" title="Permalink to this heading"></a></h1>
+<h1>BLDC Motor<a class="headerlink" href="#bldc-motor" title="Permalink to this headline"></a></h1>
 <p>The <cite>BldcMotor</cite> implements the Field-Oriented Control (FOC) algorithm with
 support for multiple transforms to drive voltage (such as Sinusoidal and Space
 Vector). It supports the following motion control configurations (which can be
@@ -152,18 +150,18 @@ development of.</p>
 (for angle &amp; speed of the motor), and optional <cite>CurrentSensor</cite> (for measuring
 the phase currents of the motor and providing torque control).</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/bldc_motor/include/bldc_motor.hpp">components/bldc_motor/include/bldc_motor.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/bldc_motor/include/bldc_motor.hpp">components/bldc_motor/include/bldc_motor.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE">
-<span id="_CPPv3I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE"></span><span id="_CPPv2I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">DriverConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">D</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">SensorConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">S</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">CurrentSensorConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DummyCurrentSense</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_bldc_motor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BldcMotor</span></span></span><a class="headerlink" href="#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE"></span><span id="_CPPv2I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">DriverConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">D</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">SensorConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">S</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">CurrentSensorConcept</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DummyCurrentSense</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_bldc_motor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">BldcMotor</span></span></span><a class="headerlink" href="#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Motor control class for a Brushless DC (BLDC) motor, implementing the field-oriented control (FOC) algorithm. Must be provided a driver object / type, and optionally a position/velocity sensor object/type and optionally a current sensor object / type. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>

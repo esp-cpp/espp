@@ -16,9 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -126,7 +124,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>NDEF</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -135,19 +133,19 @@
            <div itemprop="articleBody">
              
   <section id="ndef">
-<h1>NDEF<a class="headerlink" href="#ndef" title="Permalink to this heading"></a></h1>
+<h1>NDEF<a class="headerlink" href="#ndef" title="Permalink to this headline"></a></h1>
 <p>The <cite>NDEF</cite> component provides a utility class for dealing with NFC Data Exchange
 Format (NDEF) records, which are used by NFC Tags.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
 </ul>
 </section>
 <section id="unions">
-<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h3>
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h3>
 <dl class="cpp union">
 <dt class="sig sig-object cpp">
 <span class="target" id="unionespp_1_1_ndef_1_1_flags_8____unnamed7____"></span><span class="sig-name descname"><span class="pre">espp::Ndef::Flags.__unnamed7__</span></span></dt>
@@ -168,12 +166,12 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4NdefE">
-<span id="_CPPv3N4espp4NdefE"></span><span id="_CPPv2N4espp4NdefE"></span><span id="espp::Ndef"></span><span class="target" id="classespp_1_1_ndef"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ndef</span></span></span><a class="headerlink" href="#_CPPv4N4espp4NdefE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp4NdefE"></span><span id="_CPPv2N4espp4NdefE"></span><span id="espp::Ndef"></span><span class="target" id="classespp_1_1_ndef"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Ndef</span></span></span><a class="headerlink" href="#_CPPv4N4espp4NdefE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>implements serialization &amp; deserialization logic for NFC Data Exchange Format (NDEF) records which can be stored on and transmitted from NFC devices. </p>
-<p>NDEF records can be composed the following way: <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Bit 7     6       5       4       3       2       1       0
+<p>NDEF records can be composed the following way: <div class="highlight-unparsed notranslate"><div class="highlight"><pre><span></span>Bit 7     6       5       4       3       2       1       0
 ------  ------  ------  ------  ------  ------  ------  ------
 [ MB ]  [ ME ]  [ CF ]  [ SR ]  [ IL ]  [        TNF         ]
 [                         TYPE LENGTH  (may be 0)            ]

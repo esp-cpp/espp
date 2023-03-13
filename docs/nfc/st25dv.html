@@ -16,9 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -126,7 +124,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>ST25DV</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -135,7 +133,7 @@
            <div itemprop="articleBody">
              
   <section id="st25dv">
-<h1>ST25DV<a class="headerlink" href="#st25dv" title="Permalink to this heading"></a></h1>
+<h1>ST25DV<a class="headerlink" href="#st25dv" title="Permalink to this headline"></a></h1>
 <p>The <cite>St25dv</cite> provides a utility class for NFC communications using the ST25DV
 Dynamic NFC / RFID tag. The tag includes 4Kb, 16Kb, or 64Kb EEPROM along with
 support for fast transfer mode - which enables bi-directional communications
@@ -143,15 +141,15 @@ with other NFC/RFID enabled devices such as phones. This chip stores in its
 EEPROM NFC T5T tag records - which include a CC header (that this class
 maintains) followed by serialized NDEF records.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
 </ul>
 </section>
 <section id="unions">
-<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this heading"></a></h3>
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h3>
 <dl class="cpp union">
 <dt class="sig sig-object cpp">
 <span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed11____"></span><span class="sig-name descname"><span class="pre">espp::St25dv::Tlv.__unnamed11__</span></span></dt>
@@ -172,13 +170,13 @@ maintains) followed by serialized NDEF records.</p>
 
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dvE">
-<span id="_CPPv3N4espp6St25dvE"></span><span id="_CPPv2N4espp6St25dvE"></span><span id="espp::St25dv"></span><span class="target" id="classespp_1_1_st25dv"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">St25dv</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dvE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6St25dvE"></span><span id="_CPPv2N4espp6St25dvE"></span><span id="espp::St25dv"></span><span class="target" id="classespp_1_1_st25dv"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">St25dv</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dvE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for wireless communications using a ST25DV Dynamic NFC/RFID tag. The datasheet for the ST25DV can be found here: <a class="reference external" href="https://www.st.com/resource/en/datasheet/st25dv04k.pdf">https://www.st.com/resource/en/datasheet/st25dv04k.pdf</a>. </p>
 <section id="classespp_1_1_st25dv_1st25dv_ex1">
-<h4>St25dv Example<a class="headerlink" href="#classespp_1_1_st25dv_1st25dv_ex1" title="Permalink to this heading"></a></h4>
+<h4>St25dv Example<a class="headerlink" href="#classespp_1_1_st25dv_1st25dv_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_st25dv_1st25dv_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
 <span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
@@ -607,7 +605,7 @@ maintains) followed by serialized NDEF records.</p>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp">
-<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IT_STS</span></span></span><br /></dt>
+<span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6St25dvE" title="espp::St25dv"><span class="n"><span class="pre">St25dv</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">IT_STS</span></span></span><br /></dt>
 <dd><p>Encapsulates the different flags / bit fields that the IT_STS dynamic register holds for the different states it represents. Reading this register clears it to 0x00. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>

@@ -16,9 +16,7 @@
         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
-        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
     <script src="../_static/js/theme.js"></script>
@@ -127,7 +125,7 @@
           <li><a href="index.html">Encoder APIs</a> &raquo;</li>
       <li>AS5600 Magnetic Encoder</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/29162f2/docs/en/encoder/as5600.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/6590917/docs/en/encoder/as5600.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -136,7 +134,7 @@
            <div itemprop="articleBody">
              
   <section id="as5600-magnetic-encoder">
-<h1>AS5600 Magnetic Encoder<a class="headerlink" href="#as5600-magnetic-encoder" title="Permalink to this heading"></a></h1>
+<h1>AS5600 Magnetic Encoder<a class="headerlink" href="#as5600-magnetic-encoder" title="Permalink to this headline"></a></h1>
 <p>The <cite>AS5600</cite> magnetic encoder component provides the user a convenient way to
 measure</p>
 <ul class="simple">
@@ -156,21 +154,21 @@ creation.</p>
 <p>The encoder is designed to fulfill the needs of the <cite>BldcMotor</cite> API, to provide
 closed-loop motor control.</p>
 <section id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h2>
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
-<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this heading"></a></h3>
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29162f2/components/as5600/include/as5600.hpp">components/as5600/include/as5600.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/6590917/components/as5600/include/as5600.hpp">components/as5600/include/as5600.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this heading"></a></h3>
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6As5600E">
-<span id="_CPPv3N4espp6As5600E"></span><span id="_CPPv2N4espp6As5600E"></span><span id="espp::As5600"></span><span class="target" id="classespp_1_1_as5600"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">As5600</span></span></span><a class="headerlink" href="#_CPPv4N4espp6As5600E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6As5600E"></span><span id="_CPPv2N4espp6As5600E"></span><span id="espp::As5600"></span><span class="target" id="classespp_1_1_as5600"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">As5600</span></span></span><a class="headerlink" href="#_CPPv4N4espp6As5600E" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for position and velocity measurement using a AS5600 magnetic encoder. This class starts its own measurement task at the specified frequency which reads the current angle, updates the accumulator, and filters / updates the velocity measurement. The datasheet for the AS5600 can be found here: <a class="reference external" href="https://ams.com/documents/20143/36005/AS5600_DS000365_5-00.pdf/649ee61c-8f9a-20df-9e10-43173a3eb323">https://ams.com/documents/20143/36005/AS5600_DS000365_5-00.pdf/649ee61c-8f9a-20df-9e10-43173a3eb323</a>. </p>
 <section id="classespp_1_1_as5600_1as5600_ex1">
-<h4>As5600 Example<a class="headerlink" href="#classespp_1_1_as5600_1as5600_ex1" title="Permalink to this heading"></a></h4>
+<h4>As5600 Example<a class="headerlink" href="#classespp_1_1_as5600_1as5600_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_as5600_1as5600_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
 <span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>

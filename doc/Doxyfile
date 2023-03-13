@@ -92,6 +92,10 @@ USE_MDFILE_AS_MAINPAGE = ../README.md
 ##
 WARN_NO_PARAMDOC = YES
 
+## Ignore duplicate c++ declaration documentation and other spurious warnings?
+##
+WARN_IF_DOC_ERROR = NO
+
 ## Enable preprocessing and remove __attribute__(...) expressions from the INPUT files
 ##
 ENABLE_PREPROCESSING   = YES
