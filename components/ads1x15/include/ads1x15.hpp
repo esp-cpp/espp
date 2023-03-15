@@ -77,7 +77,7 @@ namespace espp {
      * @brief Configuration for ADS1015 ADC.
      */
     struct Ads1015Config {
-      uint8_t device_address; ///< I2C address of the device.
+      uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the device.
       write_fn write; ///< Function to write to the ADC
       read_fn read; ///< Function to read from the ADC
       Gain gain{Gain::TWOTHIRDS}; ///< Gain for the ADC
@@ -89,7 +89,7 @@ namespace espp {
      * @brief Configuration for ADS1115 ADC.
      */
     struct Ads1115Config {
-      uint8_t device_address; ///< I2C address of the device.
+      uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the device.
       write_fn write; ///< Function to write to the ADC
       read_fn read; ///< Function to read from the ADC
       Gain gain{Gain::TWOTHIRDS}; ///< Gain for the ADC

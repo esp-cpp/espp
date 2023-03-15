@@ -14,7 +14,7 @@ jobs:
         - path: 'components/adc/example'
           target: esp32
         - path: 'components/ads1x15/example'
-          target: esp32s3
+          target: esp32
         - path: 'components/as5600/example'
           target: esp32s3
         - path: 'components/aw9523/example'
