@@ -5,24 +5,28 @@
 
 #include "ads1x15.hpp"
 #include "task.hpp"
+#include "logger.hpp"
 
 using namespace std::chrono_literals;
 
 #define I2C_NUM         (I2C_NUM_1)
-#define I2C_SCL_IO      (GPIO_NUM_40)
-#define I2C_SDA_IO      (GPIO_NUM_41)
+#define I2C_SCL_IO      (GPIO_NUM_19)
+#define I2C_SDA_IO      (GPIO_NUM_22)
 #define I2C_FREQ_HZ     (400 * 1000)
 #define I2C_TIMEOUT_MS  (10)
 
 extern "C" void app_main(void) {
-  float num_seconds_to_run = 5.0f;
+  static espp::Logger logger({
+      .tag = "ads1015 example",
+      .level = espp::Logger::Verbosity::INFO
+    });
   // This example shows using the i2c adc (ads1x15)
   {
-    fmt::print("Running i2c adc example for {} seconds!\n", num_seconds_to_run);
+    logger.info("Running i2c adc example!");
     //! [ads1x15 example]
     // make the I2C that we'll use to communicate
     i2c_config_t i2c_cfg;
-    fmt::print("initializing i2c driver...\n");
+    logger.info("initializing i2c driver...");
     memset(&i2c_cfg, 0, sizeof(i2c_cfg));
     i2c_cfg.sda_io_num = I2C_SDA_IO; // pin 3 on the joybonnet
     i2c_cfg.scl_io_num = I2C_SCL_IO; // pin 5 on the joybonnet
@@ -31,36 +35,46 @@ extern "C" void app_main(void) {
     i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
     i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
     auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-    if (err != ESP_OK) printf("config i2c failed\n");
+    if (err != ESP_OK) logger.error("config i2c failed");
     err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER,  0, 0, 0);
-    if (err != ESP_OK) printf("install i2c driver failed\n");
+    if (err != ESP_OK) logger.error("install i2c driver failed");
     // make some lambda functions we'll use to read/write to the i2c adc
     auto ads_write = [](uint8_t dev_addr, uint8_t* data, size_t data_len) {
-      i2c_master_write_to_device(I2C_NUM,
-                                 dev_addr,
-                                 data,
-                                 data_len,
-                                 I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      auto err = i2c_master_write_to_device(I2C_NUM,
+                                            dev_addr,
+                                            data,
+                                            data_len,
+                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      if (err != ESP_OK) {
+        logger.error("I2C WRITE ERROR: '{}'", esp_err_to_name(err));
+      }
     };
     auto ads_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t* data, size_t data_len) {
-      i2c_master_write_read_device(I2C_NUM,
-                                   dev_addr,
-                                   &reg_addr,
-                                   1, // size of addr
-                                   data,
-                                   data_len,
-                                   I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      auto err = i2c_master_write_read_device(I2C_NUM,
+                                              dev_addr,
+                                              &reg_addr,
+                                              1, // size of addr
+                                              data,
+                                              data_len,
+                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      if (err != ESP_OK) {
+        logger.error("I2C READ ERROR: '{}'", esp_err_to_name(err));
+      }
     };
     // make the actual ads class
     espp::Ads1x15 ads(espp::Ads1x15::Ads1015Config{
+        .device_address = espp::Ads1x15::DEFAULT_ADDRESS,
         .write = ads_write,
         .read = ads_read
       });
     // make the task which will get the raw data from the I2C ADC
     auto ads_read_task_fn = [&ads](std::mutex& m, std::condition_variable& cv) {
+      static auto start = std::chrono::high_resolution_clock::now();
+      auto now = std::chrono::high_resolution_clock::now();
+      auto elapsed = std::chrono::duration<float>(now-start).count();
       auto x_mv = ads.sample_mv(1); // channel 1
       auto y_mv = ads.sample_mv(0); // channel 0
-      fmt::print("X: {:.3f}, Y: {:.3f}\n", x_mv, y_mv);
+      logger.info("{:.3f}, {:.3f}, {:.3f}", elapsed, x_mv, y_mv);
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
@@ -79,20 +93,16 @@ extern "C" void app_main(void) {
       });
     ads_task->start();
     //! [ads1x15 example]
-    auto start = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    auto elapsed = std::chrono::duration<float>(now-start).count();
-    while (elapsed < num_seconds_to_run) {
+    logger.info("%time (s), x, y");
+    while (true) {
       std::this_thread::sleep_for(100ms);
-      now = std::chrono::high_resolution_clock::now();
-      elapsed = std::chrono::duration<float>(now-start).count();
     }
   }
   // now clean up the i2c driver (by now the task will have stopped, because we
   // left its scope.
   i2c_driver_delete(I2C_NUM);
 
-  fmt::print("ADS1x15 example complete!\n");
+  logger.info("ADS1x15 example complete!");
 
   while (true) {
     std::this_thread::sleep_for(1s);
