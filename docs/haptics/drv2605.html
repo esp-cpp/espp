@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DRV2605 Haptic Motor Driver - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'haptics/drv2605';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Input APIs" href="../input/index.html" />
+    <link rel="prev" title="Haptics APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Haptics APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">DRV2605 Haptic Motor Driver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Haptics APIs</a> &raquo;</li>
+      <li>DRV2605 Haptic Motor Driver</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/04cd3c8/docs/en/haptics/drv2605.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="drv2605-haptic-motor-driver">
+<h1>DRV2605 Haptic Motor Driver<a class="headerlink" href="#drv2605-haptic-motor-driver" title="Permalink to this headline"></a></h1>
+<p>The <cite>DRV2605</cite> haptic motor driver component allows the user to configure and
+play custom or preconfigured haptic feedback sequences via a serial interface
+such as I2C. It supports directly driving ECM (eccentric rotating mass) and LRA
+(linear resonant actuator) type haptic motors. It also supports fully custom
+waveforms (e.g. via using the audio, pwm / analog functions) as well as a preset
+library of 123 different haptic waveforms which can be played in sequences of up
+to 8 waveforms.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/04cd3c8/components/drv2605/include/drv2605.hpp">components/drv2605/include/drv2605.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv2605E">
+<span id="_CPPv3N4espp7Drv2605E"></span><span id="_CPPv2N4espp7Drv2605E"></span><span id="espp::Drv2605"></span><span class="target" id="classespp_1_1_drv2605"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Drv2605</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv2605E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for controlling the Texas Instruments DRV2605 Haptic Motor Driver. Drives ECM (eccentric rotating mass) and LRA (linear resonant actuator) types of haptic motors. The datasheet for the DRV2605 can be found here: <a class="reference external" href="https://www.ti.com/lit/ds/symlink/drv2605.pdf?ts=1678892742599">https://www.ti.com/lit/ds/symlink/drv2605.pdf?ts=1678892742599</a>. </p>
+<section id="classespp_1_1_drv2605_1drv2605_ex1">
+<h4>DRV2605 Example<a class="headerlink" href="#classespp_1_1_drv2605_1drv2605_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_drv2605_1drv2605_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">i2c_cfg</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SDA_IO</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SCL_IO</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">master</span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_FREQ_HZ</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_param_config</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;config i2c failed&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_driver_install</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">,</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;install i2c driver failed&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the i2c adc</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">i2c_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                            </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                            </span><span class="n">data</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                            </span><span class="n">data_len</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                            </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;I2C WRITE ERROR: &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">i2c_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_read_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                              </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                              </span><span class="o">&amp;</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                              </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="c1">// size of addr</span>
+<span class="w">                                              </span><span class="n">data</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                              </span><span class="n">data_len</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                              </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;I2C READ ERROR: &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make the actual drv2605 class</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Drv2605</span><span class="w"> </span><span class="nf">drv2605</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Drv2605</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Drv2605</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_write</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_read</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">motor_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Drv2605</span><span class="o">::</span><span class="n">MotorType</span><span class="o">::</span><span class="n">LRA</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// we&#39;re using an ERM motor, so select an ERM library (1-5).</span>
+<span class="w">    </span><span class="c1">// drv2605.select_library(1);</span>
+<span class="w">    </span><span class="c1">// we&#39;re using an LRA motor, so select an LRA library (6).</span>
+<span class="w">    </span><span class="n">drv2605</span><span class="p">.</span><span class="n">select_library</span><span class="p">(</span><span class="mi">6</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// make the task which will cycle through all the waveforms</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">drv2605</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="o">-</span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">waveform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">drv2605</span><span class="p">.</span><span class="n">set_waveform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Drv2605</span><span class="o">::</span><span class="n">Waveform</span><span class="p">)</span><span class="n">waveform</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">drv2605</span><span class="p">.</span><span class="n">set_waveform</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Drv2605</span><span class="o">::</span><span class="n">Waveform</span><span class="o">::</span><span class="n">END</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">drv2605</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="n">waveform</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">waveform</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="p">)</span><span class="n">espp</span><span class="o">::</span><span class="n">Drv2605</span><span class="o">::</span><span class="n">Waveform</span><span class="o">::</span><span class="n">MAX</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">waveform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;{:.3f}, {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"> </span><span class="n">waveform</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">chrono_literals</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// we don&#39;t want to stop, so return false</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">make_unique</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;example&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="p">{</span><span class="mi">4</span><span class="o">*</span><span class="mi">1024</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">task</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054ModeE">
+<span id="_CPPv3N4espp7Drv26054ModeE"></span><span id="_CPPv2N4espp7Drv26054ModeE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054ModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The mode of the vibration. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054Mode7INTTRIGE">
+<span id="_CPPv3N4espp7Drv26054Mode7INTTRIGE"></span><span id="_CPPv2N4espp7Drv26054Mode7INTTRIGE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8a4f9af80d9d88a46eff39ea3118195421"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INTTRIG</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054Mode7INTTRIGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Internal Trigger (call star() to start playback) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054Mode11EXTTRIGEDGEE">
+<span id="_CPPv3N4espp7Drv26054Mode11EXTTRIGEDGEE"></span><span id="_CPPv2N4espp7Drv26054Mode11EXTTRIGEDGEE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8a3319783a49ed965212a3976f70360f1f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXTTRIGEDGE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054Mode11EXTTRIGEDGEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>External edge trigger (rising edge on IN pin starts playback) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054Mode10EXTTRIGLVLE">
+<span id="_CPPv3N4espp7Drv26054Mode10EXTTRIGLVLE"></span><span id="_CPPv2N4espp7Drv26054Mode10EXTTRIGLVLE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8afe16e01fb131bd2fd29ffacbc93fba56"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EXTTRIGLVL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054Mode10EXTTRIGLVLE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>External level trigger (playback follows state of IN pin) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054Mode9PWMANALOGE">
+<span id="_CPPv3N4espp7Drv26054Mode9PWMANALOGE"></span><span id="_CPPv2N4espp7Drv26054Mode9PWMANALOGE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8a0c7dc5fe2bf1c35a671ffe462d2afb1d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PWMANALOG</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054Mode9PWMANALOGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>PWM/Analog input. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054Mode9AUDIOVIBEE">
+<span id="_CPPv3N4espp7Drv26054Mode9AUDIOVIBEE"></span><span id="_CPPv2N4espp7Drv26054Mode9AUDIOVIBEE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8a4895fd90ce449fae03527322d7a3bcab"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AUDIOVIBE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054Mode9AUDIOVIBEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Audio-to-vibe mode. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054Mode8REALTIMEE">
+<span id="_CPPv3N4espp7Drv26054Mode8REALTIMEE"></span><span id="_CPPv2N4espp7Drv26054Mode8REALTIMEE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8a4abfc22ad3c3ef567d80c65263fd7754"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REALTIME</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054Mode8REALTIMEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Real-time playback (RTP) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054Mode7DIAGNOSE">
+<span id="_CPPv3N4espp7Drv26054Mode7DIAGNOSE"></span><span id="_CPPv2N4espp7Drv26054Mode7DIAGNOSE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8a6aae0c761bff3fe27b3f24b46d54a2d9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DIAGNOS</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054Mode7DIAGNOSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Diagnostics. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054Mode7AUTOCALE">
+<span id="_CPPv3N4espp7Drv26054Mode7AUTOCALE"></span><span id="_CPPv2N4espp7Drv26054Mode7AUTOCALE"></span><span class="target" id="classespp_1_1_drv2605_1a647b91e9b657904eb324dc38be6098a8accf3c87be9a97737e1c0a7bc5df20dd9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AUTOCAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26054Mode7AUTOCALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Auto-calibration. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058WaveformE">
+<span id="_CPPv3N4espp7Drv26058WaveformE"></span><span id="_CPPv2N4espp7Drv26058WaveformE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423f"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Waveform</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058WaveformE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The waveforms supported by the DRV2605. It has 123 different waveforms, with waveform ID 0 being a special <em>END</em> identifier used when playing multiple waveforms in sequence. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All of the waveform names have not been enumerated here. For a complete list, please see <a class="reference external" href="https://learn.adafruit.com/assets/72593">https://learn.adafruit.com/assets/72593</a> </p>
+</div>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform3ENDE">
+<span id="_CPPv3N4espp7Drv26058Waveform3ENDE"></span><span id="_CPPv2N4espp7Drv26058Waveform3ENDE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fab1a326c06d88bf042f73d70f50197905"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">END</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform3ENDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Signals this is the end of the waveforms to play. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform12STRONG_CLICKE">
+<span id="_CPPv3N4espp7Drv26058Waveform12STRONG_CLICKE"></span><span id="_CPPv2N4espp7Drv26058Waveform12STRONG_CLICKE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fad4cabd967c96b57f825fce97c2d4cecf"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">STRONG_CLICK</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform12STRONG_CLICKE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform11SHARP_CLICKE">
+<span id="_CPPv3N4espp7Drv26058Waveform11SHARP_CLICKE"></span><span id="_CPPv2N4espp7Drv26058Waveform11SHARP_CLICKE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa12f73ce58f5cc4e2ea02ae90d374ff85"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SHARP_CLICK</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform11SHARP_CLICKE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform9SOFT_BUMPE">
+<span id="_CPPv3N4espp7Drv26058Waveform9SOFT_BUMPE"></span><span id="_CPPv2N4espp7Drv26058Waveform9SOFT_BUMPE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa4b0ee4114f701247c64844fb8783463b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SOFT_BUMP</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform9SOFT_BUMPE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform12DOUBLE_CLICKE">
+<span id="_CPPv3N4espp7Drv26058Waveform12DOUBLE_CLICKE"></span><span id="_CPPv2N4espp7Drv26058Waveform12DOUBLE_CLICKE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa43236a8437f1089d1b5bd1576fc7b6b5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DOUBLE_CLICK</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform12DOUBLE_CLICKE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform12TRIPLE_CLICKE">
+<span id="_CPPv3N4espp7Drv26058Waveform12TRIPLE_CLICKE"></span><span id="_CPPv2N4espp7Drv26058Waveform12TRIPLE_CLICKE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa93b9d7210711c37d563a8712e3b5f724"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TRIPLE_CLICK</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform12TRIPLE_CLICKE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform9SOFT_FUZZE">
+<span id="_CPPv3N4espp7Drv26058Waveform9SOFT_FUZZE"></span><span id="_CPPv2N4espp7Drv26058Waveform9SOFT_FUZZE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423faf194d39aca7a1df0e95ae789a5f0dbd9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SOFT_FUZZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform9SOFT_FUZZE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform11STRONG_BUZZE">
+<span id="_CPPv3N4espp7Drv26058Waveform11STRONG_BUZZE"></span><span id="_CPPv2N4espp7Drv26058Waveform11STRONG_BUZZE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa9ef456ea6a5fa0a136379df8c6b5731d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">STRONG_BUZZ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform11STRONG_BUZZE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform11ALERT_750MSE">
+<span id="_CPPv3N4espp7Drv26058Waveform11ALERT_750MSE"></span><span id="_CPPv2N4espp7Drv26058Waveform11ALERT_750MSE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa519441ee9aec8cd13df3ec1a9e71edc1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ALERT_750MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform11ALERT_750MSE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform12ALERT_1000MSE">
+<span id="_CPPv3N4espp7Drv26058Waveform12ALERT_1000MSE"></span><span id="_CPPv2N4espp7Drv26058Waveform12ALERT_1000MSE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa3da7418e881738369447cd37a1b1707f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ALERT_1000MS</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform12ALERT_1000MSE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform5BUZZ1E">
+<span id="_CPPv3N4espp7Drv26058Waveform5BUZZ1E"></span><span id="_CPPv2N4espp7Drv26058Waveform5BUZZ1E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa36c70d43ef642c78d85d2fd19e41c799"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BUZZ1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform5BUZZ1E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform5BUZZ2E">
+<span id="_CPPv3N4espp7Drv26058Waveform5BUZZ2E"></span><span id="_CPPv2N4espp7Drv26058Waveform5BUZZ2E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa762ec0eb00128e7e890d338419b50ac0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BUZZ2</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform5BUZZ2E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform5BUZZ3E">
+<span id="_CPPv3N4espp7Drv26058Waveform5BUZZ3E"></span><span id="_CPPv2N4espp7Drv26058Waveform5BUZZ3E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fad9b789b8c920aa69207e31ff31f86823"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BUZZ3</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform5BUZZ3E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform5BUZZ4E">
+<span id="_CPPv3N4espp7Drv26058Waveform5BUZZ4E"></span><span id="_CPPv2N4espp7Drv26058Waveform5BUZZ4E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fac67b11ecb96e5f5c48aa709dc3174c46"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BUZZ4</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform5BUZZ4E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform5BUZZ5E">
+<span id="_CPPv3N4espp7Drv26058Waveform5BUZZ5E"></span><span id="_CPPv2N4espp7Drv26058Waveform5BUZZ5E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fae83a33aa3eab61ad1b1663d7f266d148"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BUZZ5</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform5BUZZ5E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform16PULSING_STRONG_1E">
+<span id="_CPPv3N4espp7Drv26058Waveform16PULSING_STRONG_1E"></span><span id="_CPPv2N4espp7Drv26058Waveform16PULSING_STRONG_1E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fac0e794296bb7319dda1ef56a41cfc631"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PULSING_STRONG_1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform16PULSING_STRONG_1E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform16PULSING_STRONG_2E">
+<span id="_CPPv3N4espp7Drv26058Waveform16PULSING_STRONG_2E"></span><span id="_CPPv2N4espp7Drv26058Waveform16PULSING_STRONG_2E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423faca466ba4f6108445665bfba15518c837"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PULSING_STRONG_2</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform16PULSING_STRONG_2E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform18TRANSITION_CLICK_1E">
+<span id="_CPPv3N4espp7Drv26058Waveform18TRANSITION_CLICK_1E"></span><span id="_CPPv2N4espp7Drv26058Waveform18TRANSITION_CLICK_1E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fabf37ca5c54638e2c450b7e907b377a70"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TRANSITION_CLICK_1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform18TRANSITION_CLICK_1E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform16TRANSITION_HUM_1E">
+<span id="_CPPv3N4espp7Drv26058Waveform16TRANSITION_HUM_1E"></span><span id="_CPPv2N4espp7Drv26058Waveform16TRANSITION_HUM_1E"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa8dc3732330f7ad59d49f5498fd873e66"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TRANSITION_HUM_1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform16TRANSITION_HUM_1E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058Waveform3MAXE">
+<span id="_CPPv3N4espp7Drv26058Waveform3MAXE"></span><span id="_CPPv2N4espp7Drv26058Waveform3MAXE"></span><span class="target" id="classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fa26a4b44a837bf97b972628509912b4a5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MAX</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058Waveform3MAXE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Values &gt;= to this do not correspond to valid waveforms. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26059MotorTypeE">
+<span id="_CPPv3N4espp7Drv26059MotorTypeE"></span><span id="_CPPv2N4espp7Drv26059MotorTypeE"></span><span class="target" id="classespp_1_1_drv2605_1a5df68e1997a5b45de407b8aeaeac5bab"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MotorType</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26059MotorTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type of vibration motor connected to the <a class="reference internal" href="#classespp_1_1_drv2605"><span class="std std-ref">Drv2605</span></a>. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26059MotorType3ERME">
+<span id="_CPPv3N4espp7Drv26059MotorType3ERME"></span><span id="_CPPv2N4espp7Drv26059MotorType3ERME"></span><span class="target" id="classespp_1_1_drv2605_1a5df68e1997a5b45de407b8aeaeac5babae38b875e8396053bb806a75470e48da7"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERM</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26059MotorType3ERME" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Eccentric Rotating Mass (more common, therefore default) </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26059MotorType3LRAE">
+<span id="_CPPv3N4espp7Drv26059MotorType3LRAE"></span><span id="_CPPv2N4espp7Drv26059MotorType3LRAE"></span><span class="target" id="classespp_1_1_drv2605_1a5df68e1997a5b45de407b8aeaeac5babab5f4b80d8f0f9d59fe750be25a7604eb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LRA</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26059MotorType3LRAE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Linear Resonant Actuator. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058write_fnE">
+<span id="_CPPv3N4espp7Drv26058write_fnE"></span><span id="_CPPv2N4espp7Drv26058write_fnE"></span><span id="espp::Drv2605::write_fn"></span><span class="target" id="classespp_1_1_drv2605_1ad0d28a5a3cd0707903b716977da2e900"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write bytes to the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param dev_addr</dt>
+<dd class="field-odd"><p>Address of the device to write to. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>Pointer to array of bytes to write. </p>
+</dd>
+<dt class="field-odd">Param data_len</dt>
+<dd class="field-odd"><p>Number of data bytes to write. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057read_fnE">
+<span id="_CPPv3N4espp7Drv26057read_fnE"></span><span id="_CPPv2N4espp7Drv26057read_fnE"></span><span id="espp::Drv2605::read_fn"></span><span class="target" id="classespp_1_1_drv2605_1a4d82774d27a1453cd6a798e73ee26fe0"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read bytes from the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param dev_addr</dt>
+<dd class="field-odd"><p>Address of the device to write to. </p>
+</dd>
+<dt class="field-even">Param reg_addr</dt>
+<dd class="field-even"><p>Register address to read from. </p>
+</dd>
+<dt class="field-odd">Param data</dt>
+<dd class="field-odd"><p>Pointer to array of bytes to read into. </p>
+</dd>
+<dt class="field-even">Param data_len</dt>
+<dd class="field-even"><p>Number of data bytes to read. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057Drv2605ERK6Config">
+<span id="_CPPv3N4espp7Drv26057Drv2605ERK6Config"></span><span id="_CPPv2N4espp7Drv26057Drv2605ERK6Config"></span><span id="espp::Drv2605::Drv2605__ConfigCR"></span><span class="target" id="classespp_1_1_drv2605_1ae24121971c9341e7755e61c77d6a28f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Drv2605</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Drv26056ConfigE" title="espp::Drv2605::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Drv26057Drv2605ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct and initialize the DRV2605. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26055startEv">
+<span id="_CPPv3N4espp7Drv26055startEv"></span><span id="_CPPv2N4espp7Drv26055startEv"></span><span id="espp::Drv2605::start"></span><span class="target" id="classespp_1_1_drv2605_1a0c9f010ca3d5ef43893500cd672b32fb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Drv26055startEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start playing the configured waveform / sequence. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26054stopEv">
+<span id="_CPPv3N4espp7Drv26054stopEv"></span><span id="_CPPv2N4espp7Drv26054stopEv"></span><span id="espp::Drv2605::stop"></span><span class="target" id="classespp_1_1_drv2605_1a32b1b879ab6c6bab31d28c13ed77029b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Drv26054stopEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop playing the waveform / sequence. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058set_modeE4Mode">
+<span id="_CPPv3N4espp7Drv26058set_modeE4Mode"></span><span id="_CPPv2N4espp7Drv26058set_modeE4Mode"></span><span id="espp::Drv2605::set_mode__Mode"></span><span class="target" id="classespp_1_1_drv2605_1a3814dbcfeaa77f819b39ef283af63b8c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Drv26054ModeE" title="espp::Drv2605::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Drv26058set_modeE4Mode" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the mode of the vibration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mode</strong> – Mode to set to. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv260512set_waveformE7uint8_t8Waveform">
+<span id="_CPPv3N4espp7Drv260512set_waveformE7uint8_t8Waveform"></span><span id="_CPPv2N4espp7Drv260512set_waveformE7uint8_t8Waveform"></span><span id="espp::Drv2605::set_waveform__uint8_t.Waveform"></span><span class="target" id="classespp_1_1_drv2605_1a1652456131415ef3971dce30674f4171"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_waveform</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">slot</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Drv26058WaveformE" title="espp::Drv2605::Waveform"><span class="n"><span class="pre">Waveform</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">w</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Drv260512set_waveformE7uint8_t8Waveform" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the waveform slot at <code class="docutils literal notranslate"><span class="pre">slot</span></code> to \w. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When calling <a class="reference internal" href="#classespp_1_1_drv2605_1a0c9f010ca3d5ef43893500cd672b32fb"><span class="std std-ref">start()</span></a> to play the configured waveform slots, the driver will always start playing from slot 0 and will continue until it reaches a slot that has been configured with the <a class="reference internal" href="#classespp_1_1_drv2605_1a5fbd336814aff0f650ddfef538fd423fab1a326c06d88bf042f73d70f50197905"><span class="std std-ref">Waveform::END</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>slot</strong> – The slot (0-8) to set. </p></li>
+<li><p><strong>w</strong> – The Waveform to play in slot <code class="docutils literal notranslate"><span class="pre">slot</span></code>. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv260514select_libraryE7uint8_t">
+<span id="_CPPv3N4espp7Drv260514select_libraryE7uint8_t"></span><span id="_CPPv2N4espp7Drv260514select_libraryE7uint8_t"></span><span id="espp::Drv2605::select_library__uint8_t"></span><span class="target" id="classespp_1_1_drv2605_1ad0f1d63c93af32361371f99911d23a16"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">select_library</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lib</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Drv260514select_libraryE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Select the waveform library to use. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>lib</strong> – Library to use, 0=Empty, 1-5 are ERM, 6 is LRA </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26056ConfigE">
+<span id="_CPPv3N4espp7Drv26056ConfigE"></span><span id="_CPPv2N4espp7Drv26056ConfigE"></span><span id="espp::Drv2605::Config"></span><span class="target" id="structespp_1_1_drv2605_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26056ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration structure for the DRV2605. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26056Config14device_addressE">
+<span id="_CPPv3N4espp7Drv26056Config14device_addressE"></span><span id="_CPPv2N4espp7Drv26056Config14device_addressE"></span><span id="espp::Drv2605::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1_drv2605_1_1_config_1ad8cc954d54d834a72b8518cefa94120f"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26056Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26056Config5writeE">
+<span id="_CPPv3N4espp7Drv26056Config5writeE"></span><span id="_CPPv2N4espp7Drv26056Config5writeE"></span><span id="espp::Drv2605::Config::write__write_fn"></span><span class="target" id="structespp_1_1_drv2605_1_1_config_1aa997cebd8db984afac608d520452817a"></span><a class="reference internal" href="#_CPPv4N4espp7Drv26058write_fnE" title="espp::Drv2605::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26056Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function for writing a byte to a register on the <a class="reference internal" href="#classespp_1_1_drv2605"><span class="std std-ref">Drv2605</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26056Config4readE">
+<span id="_CPPv3N4espp7Drv26056Config4readE"></span><span id="_CPPv2N4espp7Drv26056Config4readE"></span><span id="espp::Drv2605::Config::read__read_fn"></span><span class="target" id="structespp_1_1_drv2605_1_1_config_1a20b0d85e253263b29a91b75536e533d9"></span><a class="reference internal" href="#_CPPv4N4espp7Drv26057read_fnE" title="espp::Drv2605::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26056Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function for reading a byte from a register on the <a class="reference internal" href="#classespp_1_1_drv2605"><span class="std std-ref">Drv2605</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26056Config10motor_typeE">
+<span id="_CPPv3N4espp7Drv26056Config10motor_typeE"></span><span id="_CPPv2N4espp7Drv26056Config10motor_typeE"></span><span id="espp::Drv2605::Config::motor_type__MotorType"></span><span class="target" id="structespp_1_1_drv2605_1_1_config_1a60560a2ccb4dad2cc1b95fc3567fd058"></span><a class="reference internal" href="#_CPPv4N4espp7Drv26059MotorTypeE" title="espp::Drv2605::MotorType"><span class="n"><span class="pre">MotorType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">motor_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp7Drv26059MotorTypeE" title="espp::Drv2605::MotorType"><span class="n"><span class="pre">MotorType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Drv26059MotorType3ERME" title="espp::Drv2605::MotorType::ERM"><span class="n"><span class="pre">ERM</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26056Config10motor_typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>MotorType that this driver is driving. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26056Config9log_levelE">
+<span id="_CPPv3N4espp7Drv26056Config9log_levelE"></span><span id="_CPPv2N4espp7Drv26056Config9log_levelE"></span><span id="espp::Drv2605::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1_drv2605_1_1_config_1a7cba60eb5e87b61c6c8fe8197e94486d"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26056Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity for the <a class="reference internal" href="#classespp_1_1_drv2605"><span class="std std-ref">Drv2605</span></a>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Haptics APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../input/index.html" class="btn btn-neutral float-right" title="Input APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
