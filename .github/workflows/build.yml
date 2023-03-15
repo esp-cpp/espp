@@ -18,7 +18,7 @@ jobs:
         - path: 'components/as5600/example'
           target: esp32s3
         - path: 'components/aw9523/example'
-          target: esp32s3
+          target: esp32
         - path: 'components/bldc_motor/example'
           target: esp32s3
         - path: 'components/controller/example'

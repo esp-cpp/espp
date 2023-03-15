@@ -104,7 +104,10 @@ namespace espp {
      * @return The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb).
      */
     uint16_t get_pins() {
-      return read_two_((uint8_t)Registers::INPORT0);
+      return (read_one_((uint8_t)Registers::INPORT1) << 8) | read_one_((uint8_t)Registers::INPORT0);
+      // TODO: this should work as well, but doesn't seem to (only the first
+      //       byte read seems to be correct...)
+      // return read_two_((uint8_t)Registers::INPORT0);
     }
 
     /**
@@ -191,6 +194,20 @@ namespace espp {
      * @param p1 The mask for Port 1 indicating LED function (1 = GPIO, 0 = LED)
      */
     void configure_led(uint8_t p0, uint8_t p1) {
+      logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
+      auto addr = Registers::LEDMODE0;
+      uint8_t data[] = {p0, p1};
+      write_many_((uint8_t)addr, data, 2);
+    }
+
+    /**
+     * @brief Enable/disable the LED function on the associated port pins.
+     * @param mask The bit mask for Port 0 and Port 1 [(Port 1 << 8) | (Port 0)]
+     *        indicating LED function (1 = GPIO, 0 = LED)
+     */
+    void configure_led(uint16_t mask) {
+      uint8_t p0 = mask & 0xFF;
+      uint8_t p1 = (mask >> 8) & 0xFF;
       logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
       auto addr = Registers::LEDMODE0;
       uint8_t data[] = {p0, p1};
@@ -336,7 +353,7 @@ namespace espp {
     uint16_t read_two_(uint8_t reg_addr) {
       uint8_t data[2];
       read_(address_, reg_addr, data, 2);
-      return (data[0] << 8) | data[1];
+      return (data[1] << 8) | data[0];
     }
 
     void write_one_(uint8_t reg_addr, uint8_t data) {
