@@ -127,7 +127,7 @@
           <li><a href="index.html">Math APIs</a> &raquo;</li>
       <li>Range Mapper</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/96f2a94/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/a472511/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -144,7 +144,7 @@ input range to a standardized output range of [-1,1].</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/96f2a94/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a472511/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -154,9 +154,11 @@ input range to a standardized output range of [-1,1].</p>
 <span id="_CPPv3I0EN4espp11RangeMapperE"></span><span id="_CPPv2I0EN4espp11RangeMapperE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_range_mapper"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">RangeMapper</span></span></span><a class="headerlink" href="#_CPPv4I0EN4espp11RangeMapperE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Template class for converting a value from an uncentered [minimum, maximum] range into a centered output range (default [-1,1]). If provided a non-zero deadband, it will convert all values within [center-deadband, center+deadband] to be the configured output_center (default 0). </p>
 <p>The <a class="reference internal" href="#classespp_1_1_range_mapper"><span class="std std-ref">RangeMapper</span></a> can be optionally configured to invert the input, so that it will compute the input w.r.t. the configured min/max of the input range when mapping to the output range - this will mean that a values within the ranges [minimum, minimum+deadband] and [maximum-deadband, maximum] will all map to the output_center and the input center will map to both output_max and output_min depending on the sign of the input.</p>
+<p>
+The <a class="reference internal" href="#classespp_1_1_range_mapper"><span class="std std-ref">RangeMapper</span></a> can be optionally configured to invert the output, so that after converting from the input range to the output range, it will flip the sign on the output. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>When inverting the input range, you are introducing a discontinuity between the input distribution and the output distribution at the input center. Noise around the input’s center value will create oscillations in the output which will jump between output maximum and output minimum. Therefore it is advised to use <code class="docutils literal notranslate"><span class="pre">invert_input</span></code> sparignly, and to set the values robustly. </p>
+<p>When inverting the input range, you are introducing a discontinuity between the input distribution and the output distribution at the input center. Noise around the input’s center value will create oscillations in the output which will jump between output maximum and output minimum. Therefore it is advised to use <code class="docutils literal notranslate"><span class="pre">invert_input</span></code> sparignly, and to set the values robustly.</p>
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
@@ -298,6 +300,16 @@ input range to a standardized output range of [-1,1].</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Will be passed through std::abs() to ensure it is positive. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper6Config13invert_outputE">
+<span id="_CPPv3N4espp11RangeMapper6Config13invert_outputE"></span><span id="_CPPv2N4espp11RangeMapper6Config13invert_outputE"></span><span id="espp::RangeMapper::Config::invert_output__b"></span><span class="target" id="structespp_1_1_range_mapper_1_1_config_1a69bcc06e25706a1cae163309b54eb5a9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">invert_output</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper6Config13invert_outputE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to invert the output (default false). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If true will flip the sign of the output after converting from the input distribution. </p>
 </div>
 </dd></dl>
 
