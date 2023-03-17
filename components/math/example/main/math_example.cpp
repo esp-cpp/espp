@@ -145,7 +145,8 @@ extern "C" void app_main(void) {
         .output_range = 512
       });
     // You can also invert the input distribution, such that input values are
-    // compared against the input min/max instead of input center
+    // compared against the input min/max instead of input center. NOTE: this
+    // also showcases the use of a non-centered input distribution.
     espp::FloatRangeMapper rm3({
         .center = 0,
         .deadband = 12,
@@ -154,6 +155,14 @@ extern "C" void app_main(void) {
         .invert_input = true,
         .output_center = 0,
         .output_range = 1024
+      });
+    // You can even invert the ouput distribution
+    espp::FloatRangeMapper rm4({
+        .center = 127,
+        .deadband = 12,
+        .minimum = 0,
+        .maximum = 255,
+        .invert_output = true,
       });
     auto vals = std::array<float, 13>{
       -10, 0, 10, 50, 100, 120, 127, 135, 150, 200, 250, 255, 275
@@ -166,9 +175,13 @@ extern "C" void app_main(void) {
     for (const auto& v : vals) {
       fmt::print("{} -> {}\n", v, rm2.map(v));
     }
-    fmt::print("Inverted Mapping [0, 255] -> [1024, 0]\n");
+    fmt::print("Mapping Inverted [0, 255] -> [1024, 0]\n");
     for (const auto& v : vals) {
       fmt::print("{} -> {}\n", v, rm3.map(v));
+    }
+    fmt::print("Mapping [0, 255] -> Inverted [1, -1]\n");
+    for (const auto& v : vals) {
+      fmt::print("{} -> {}\n", v, rm4.map(v));
     }
     //! [range_mapper example]
   }

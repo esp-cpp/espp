@@ -25,6 +25,10 @@ namespace espp {
     *       oscillations in the output which will jump between output maximum
     *       and output minimum. Therefore it is advised to use \p invert_input
     *       sparignly, and to set the values robustly.
+    *
+    *        The RangeMapper can be optionally configured to invert the output,
+    *        so that after converting from the input range to the output range,
+    *        it will flip the sign on the output.
     */
   template<typename T> class RangeMapper {
   public:
@@ -41,6 +45,7 @@ namespace espp {
       bool invert_input{false}; /**< Whether to invert the input distribution (default false). @note If true will compute the input relative to min/max instead of to center. */
       T output_center{T(0)}; /**< The center for the output. Default 0. */
       T output_range{T(1)}; /**< The range (+/-) from the center for the output. Default 1. @note Will be passed through std::abs() to ensure it is positive. */
+      bool invert_output{false}; /**< Whether to invert the output (default false). @note If true will flip the sign of the output after converting from the input distribution. */
     };
 
     /**
@@ -68,6 +73,7 @@ namespace espp {
       output_max_ = output_center_ + output_range_;
       pos_range_ = (maximum_ - center_) / output_range_;
       neg_range_ = std::abs(minimum_ - center_) / output_range_;
+      invert_output_ = config.invert_output;
     }
 
     /**
@@ -107,7 +113,8 @@ namespace espp {
       T calibrated{0};
       if (invert_input_) {
         // if we invert the input, then we are comparing against the min/max
-        calibrated = clamped >= T(0) ?
+        calibrated =
+          clamped >= T(0) ?
           maximum_ - clamped
           :
           minimum_ - clamped;
@@ -118,8 +125,15 @@ namespace espp {
       if (std::abs(calibrated) < deadband_) {
         return output_center_;
       }
-      return (calibrated >= T(0)) ?
-        calibrated / pos_range_ + output_center_ : calibrated / neg_range_ + output_center_;
+      T output =
+        calibrated >= T(0) ?
+        calibrated / pos_range_ + output_center_
+        :
+        calibrated / neg_range_ + output_center_;
+      if (invert_output_) {
+        output = -output;
+      }
+      return output;
     }
 
   protected:
@@ -134,6 +148,7 @@ namespace espp {
     T output_range_;
     T output_min_;
     T output_max_;
+    bool invert_output_;
   };
 
   /**
