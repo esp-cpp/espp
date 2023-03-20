@@ -16,8 +16,18 @@ namespace espp {
   class Joystick {
   public:
     /**
-     * @brief function for gettin x/y values for the joystick. Values should be
-     *        in the range [-1,1].
+     * @brief Types of deadzones the joystick can have.
+     * @note When using a Deadzone::CIRCULAR deadzone, it's recommended to set
+     *       the individual x/y deadzones to be 0 and to only use the
+     *       deadzone_radius field to set the deadzone.
+     */
+    enum class Deadzone {
+      RECTANGULAR, ///< Independent deadzones for the x and y axes utilizing a RangeMapper for each axis.
+      CIRCULAR, ///< Coupled deadzone for both x and y axes. Still uses the rangemappers for each axis (to convert raw values from input range to be [-1,1]) but applies a circularization & circular deadzone after the conversion. @note With this configuration, it is recommended to set the deadzones for each axis to be 0.
+    };
+
+    /**
+     * @brief function for gettin x/y values for the joystick.
      * @param x Pointer to the x value. Function should fill this variable
      *          with the latest reading.
      * @param y Pointer to the y value. Function should fill this variable
@@ -32,6 +42,8 @@ namespace espp {
     struct Config {
       FloatRangeMapper::Config x_calibration; /**< Configuration for the x axis. */
       FloatRangeMapper::Config y_calibration; /**< Configuration for the y axis. */
+      Deadzone deadzone{Deadzone::RECTANGULAR}; /**< The type of deadzone the joystick should use. See Deadzone structure for more information. */
+      float deadzone_radius{0}; /**< The radius of the unit circle's deadzone [0, 1.0f], only used when the joystick is configured with Deadzone::CIRCULAR. */
       get_values_fn get_values; /**< Function to retrieve the latest unmapped joystick values (range [-1,1]). */
       Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity for the Joystick logger_. */
     };
@@ -43,8 +55,26 @@ namespace espp {
     Joystick(const Config& config)
       : x_mapper_(config.x_calibration),
         y_mapper_(config.y_calibration),
+        deadzone_(config.deadzone),
+        deadzone_radius_(config.deadzone_radius),
         get_values_(config.get_values),
         logger_({.tag = "Joystick", .level = config.log_level}) {
+    }
+
+    /**
+     * @brief Sets the deadzone type and radius.
+     * @note Radius is only applied when \p deadzone is Deadzone::CIRCULAR.
+     * @note Radius <= 0 means no additional deadzone is applied regardless of
+     *       deadzone type.
+     * @param deadzone The Deadzone type to use with this joystick.
+     * @param radius Optional radius parameter used when \p deadzone is
+     *        Deadzone::CIRCULAR. When the magnitude of the joystick's mapped
+     *        position vector is less than this value, the vector is set to
+     *        (0,0).
+     */
+    void set_deadzone(Deadzone deadzone, float radius=0) {
+      deadzone_ = deadzone;
+      deadzone_radius_ = radius;
     }
 
     /**
@@ -78,6 +108,15 @@ namespace espp {
       raw_.y(y);
       position_.x(x_mapper_.map(x));
       position_.y(y_mapper_.map(y));
+      // if we're configured to use a circular deadzone, then we apply a
+      // circular deadzone on the vector.
+      if (deadzone_ == Deadzone::CIRCULAR) {
+        if (position_.magnitude() < deadzone_radius_) {
+          // if it's within the deadzone radius, then set both axes to 0.
+          position_.x(0);
+          position_.y(0);
+        }
+      }
     }
 
     /**
@@ -123,6 +162,8 @@ namespace espp {
     Vector2f position_;
     FloatRangeMapper x_mapper_;
     FloatRangeMapper y_mapper_;
+    Deadzone deadzone_;
+    float deadzone_radius_;
     get_values_fn get_values_;
     Logger logger_;
   };
