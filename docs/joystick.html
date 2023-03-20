@@ -120,7 +120,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Joystick APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/a472511/docs/en/joystick.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/8a313be/docs/en/joystick.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -143,7 +143,7 @@ axis according to the configuration provided.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a472511/components/joystick/include/joystick.hpp">components/joystick/include/joystick.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/8a313be/components/joystick/include/joystick.hpp">components/joystick/include/joystick.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -157,12 +157,12 @@ axis according to the configuration provided.</p>
 <p id="classespp_1_1_joystick_1joystick_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">AdcConfig</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_UNIT_2</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_CHANNEL_1</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_CHANNEL_9</span><span class="p">,</span><span class="w">  </span><span class="c1">// Qt Py ESP32 PICO A0</span>
 <span class="w">        </span><span class="p">.</span><span class="n">attenuation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_ATTEN_DB_11</span><span class="w"></span>
 <span class="w">      </span><span class="p">},</span><span class="w"></span>
 <span class="w">      </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">unit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_UNIT_2</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_CHANNEL_2</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_CHANNEL_8</span><span class="p">,</span><span class="w">  </span><span class="c1">// Qt Py ESP32 PICO A1</span>
 <span class="w">        </span><span class="p">.</span><span class="n">attenuation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_ATTEN_DB_11</span><span class="w"></span>
 <span class="w">      </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="p">};</span><span class="w"></span>
@@ -177,21 +177,32 @@ axis according to the configuration provided.</p>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">maybe_x_mv</span><span class="p">.</span><span class="n">has_value</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">maybe_y_mv</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">maybe_x_mv</span><span class="p">.</span><span class="n">value</span><span class="p">();</span><span class="w"></span>
 <span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">maybe_y_mv</span><span class="p">.</span><span class="n">value</span><span class="p">();</span><span class="w"></span>
-<span class="w">        </span><span class="c1">// convert [0, 3300]mV to approximately [-1.0f, 1.0f]</span>
-<span class="w">        </span><span class="o">*</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)(</span><span class="n">x_mv</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1700.0f</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">;</span><span class="w"></span>
-<span class="w">        </span><span class="o">*</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)(</span><span class="n">y_mv</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1700.0f</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="o">*</span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)(</span><span class="n">x_mv</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="o">*</span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="p">)(</span><span class="n">y_mv</span><span class="p">);</span><span class="w"></span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"></span>
 <span class="w">      </span><span class="p">}</span><span class="w"></span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="p">};</span><span class="w"></span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Joystick</span><span class="w"> </span><span class="nf">joystick</span><span class="p">({</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">x_calibration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">center</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">deadband</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.2f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">minimum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-1.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">maximum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">},</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">y_calibration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">center</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">deadband</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.2f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">minimum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-1.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">maximum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">},</span><span class="w"></span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Joystick</span><span class="w"> </span><span class="nf">js1</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// convert [0, 3300]mV to approximately [-1.0f, 1.0f]</span>
+<span class="w">        </span><span class="p">.</span><span class="n">x_calibration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">center</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1700.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">deadband</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">minimum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">maximum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3300.0f</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">y_calibration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">center</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1700.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">deadband</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">100.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">minimum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">maximum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3300.0f</span><span class="p">},</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">get_values</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">read_joystick</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">});</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">joystick</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">joystick</span><span class="p">.</span><span class="n">update</span><span class="p">();</span><span class="w"></span>
-<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Joystick values: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">joystick</span><span class="p">.</span><span class="n">position</span><span class="p">().</span><span class="n">to_string</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Joystick</span><span class="w"> </span><span class="nf">js2</span><span class="p">({</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// convert [0, 3300]mV to approximately [-1.0f, 1.0f]</span>
+<span class="w">        </span><span class="p">.</span><span class="n">x_calibration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">center</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1700.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">deadband</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">minimum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">maximum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3300.0f</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">y_calibration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">center</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1700.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">deadband</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">minimum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">maximum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3300.0f</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">deadzone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Joystick</span><span class="o">::</span><span class="n">Deadzone</span><span class="o">::</span><span class="n">CIRCULAR</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">deadzone_radius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">get_values</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">read_joystick</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">js1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">js2</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&amp;</span><span class="w"> </span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">js1</span><span class="p">.</span><span class="n">update</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="n">js2</span><span class="p">.</span><span class="n">update</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.2f},{:.2f},{:.2f},{:.2f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">js1</span><span class="p">.</span><span class="n">x</span><span class="p">(),</span><span class="w"> </span><span class="n">js1</span><span class="p">.</span><span class="n">y</span><span class="p">(),</span><span class="w"></span>
+<span class="w">                 </span><span class="n">js2</span><span class="p">.</span><span class="n">x</span><span class="p">(),</span><span class="w"> </span><span class="n">js2</span><span class="p">.</span><span class="n">y</span><span class="p">());</span><span class="w"></span>
 <span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
 <span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
 <span class="w">      </span><span class="p">{</span><span class="w"></span>
@@ -206,6 +217,7 @@ axis according to the configuration provided.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="w"></span>
 <span class="w">      </span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;js1 x, js1 y, js2 x, js2 y</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
 </pre></div>
 </div>
@@ -213,10 +225,37 @@ axis according to the configuration provided.</p>
 </section>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick8DeadzoneE">
+<span id="_CPPv3N4espp8Joystick8DeadzoneE"></span><span id="_CPPv2N4espp8Joystick8DeadzoneE"></span><span class="target" id="classespp_1_1_joystick_1aea7f59eca009a0da4e21a5d880c5ae38"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Deadzone</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick8DeadzoneE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Types of deadzones the joystick can have. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using a <a class="reference internal" href="#classespp_1_1_joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Deadzone::CIRCULAR</span></a> deadzone, it’s recommended to set the individual x/y deadzones to be 0 and to only use the deadzone_radius field to set the deadzone. </p>
+</div>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick8Deadzone11RECTANGULARE">
+<span id="_CPPv3N4espp8Joystick8Deadzone11RECTANGULARE"></span><span id="_CPPv2N4espp8Joystick8Deadzone11RECTANGULARE"></span><span class="target" id="classespp_1_1_joystick_1aea7f59eca009a0da4e21a5d880c5ae38a47428d834e54119100c608d0d1448e51"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RECTANGULAR</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick8Deadzone11RECTANGULARE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Independent deadzones for the x and y axes utilizing a <a class="reference internal" href="math/range_mapper.html#classespp_1_1_range_mapper"><span class="std std-ref">RangeMapper</span></a> for each axis. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick8Deadzone8CIRCULARE">
+<span id="_CPPv3N4espp8Joystick8Deadzone8CIRCULARE"></span><span id="_CPPv2N4espp8Joystick8Deadzone8CIRCULARE"></span><span class="target" id="classespp_1_1_joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CIRCULAR</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick8Deadzone8CIRCULARE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Coupled deadzone for both x and y axes. Still uses the rangemappers for each axis (to convert raw values from input range to be [-1,1]) but applies a circularization &amp; circular deadzone after the conversion. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>With this configuration, it is recommended to set the deadzones for each axis to be 0. </p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick13get_values_fnE">
 <span id="_CPPv3N4espp8Joystick13get_values_fnE"></span><span id="_CPPv2N4espp8Joystick13get_values_fnE"></span><span id="espp::Joystick::get_values_fn"></span><span class="target" id="classespp_1_1_joystick_1abf390a38bf4faa319a03b2d8545bcd6e"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_values_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick13get_values_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>function for gettin x/y values for the joystick. Values should be in the range [-1,1]. </p>
+<dd><p>function for gettin x/y values for the joystick. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param x</dt>
 <dd class="field-odd"><p>Pointer to the x value. Function should fill this variable with the latest reading. </p>
@@ -240,6 +279,28 @@ axis according to the configuration provided.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1_joystick_1_1_config"><span class="std std-ref">Config</span></a> structure with initialization information. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick12set_deadzoneE8Deadzonef">
+<span id="_CPPv3N4espp8Joystick12set_deadzoneE8Deadzonef"></span><span id="_CPPv2N4espp8Joystick12set_deadzoneE8Deadzonef"></span><span id="espp::Joystick::set_deadzone__Deadzone.float"></span><span class="target" id="classespp_1_1_joystick_1aa534249c1c09fd95761b1cbde3b2e747"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_deadzone</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8Joystick8DeadzoneE" title="espp::Joystick::Deadzone"><span class="n"><span class="pre">Deadzone</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">deadzone</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">radius</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Joystick12set_deadzoneE8Deadzonef" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets the deadzone type and radius. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Radius is only applied when <code class="docutils literal notranslate"><span class="pre">deadzone</span></code> is <a class="reference internal" href="#classespp_1_1_joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Deadzone::CIRCULAR</span></a>. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Radius &lt;= 0 means no additional deadzone is applied regardless of deadzone type. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>deadzone</strong> – The Deadzone type to use with this joystick. </p></li>
+<li><p><strong>radius</strong> – Optional radius parameter used when <code class="docutils literal notranslate"><span class="pre">deadzone</span></code> is <a class="reference internal" href="#classespp_1_1_joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Deadzone::CIRCULAR</span></a>. When the magnitude of the joystick’s mapped position vector is less than this value, the vector is set to (0,0). </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -325,6 +386,18 @@ axis according to the configuration provided.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick6Config13y_calibrationE">
 <span id="_CPPv3N4espp8Joystick6Config13y_calibrationE"></span><span id="_CPPv2N4espp8Joystick6Config13y_calibrationE"></span><span id="espp::Joystick::Config::y_calibration__FloatRangeMapper::Config"></span><span class="target" id="structespp_1_1_joystick_1_1_config_1ab3c2d3c15a79ee6568a085b9187a42af"></span><span class="n"><span class="pre">FloatRangeMapper</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">y_calibration</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick6Config13y_calibrationE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configuration for the y axis. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick6Config8deadzoneE">
+<span id="_CPPv3N4espp8Joystick6Config8deadzoneE"></span><span id="_CPPv2N4espp8Joystick6Config8deadzoneE"></span><span id="espp::Joystick::Config::deadzone__Deadzone"></span><span class="target" id="structespp_1_1_joystick_1_1_config_1ad107ffd5be457dea76ab8739be4331a1"></span><a class="reference internal" href="#_CPPv4N4espp8Joystick8DeadzoneE" title="espp::Joystick::Deadzone"><span class="n"><span class="pre">Deadzone</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deadzone</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp8Joystick8DeadzoneE" title="espp::Joystick::Deadzone"><span class="n"><span class="pre">Deadzone</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp8Joystick8Deadzone11RECTANGULARE" title="espp::Joystick::Deadzone::RECTANGULAR"><span class="n"><span class="pre">RECTANGULAR</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick6Config8deadzoneE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type of deadzone the joystick should use. See Deadzone structure for more information. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick6Config15deadzone_radiusE">
+<span id="_CPPv3N4espp8Joystick6Config15deadzone_radiusE"></span><span id="_CPPv2N4espp8Joystick6Config15deadzone_radiusE"></span><span id="espp::Joystick::Config::deadzone_radius__float"></span><span class="target" id="structespp_1_1_joystick_1_1_config_1ae66c4cfc8c642432900e64fa24ae9ffe"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deadzone_radius</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick6Config15deadzone_radiusE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The radius of the unit circle’s deadzone [0, 1.0f], only used when the joystick is configured with <a class="reference internal" href="#classespp_1_1_joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Deadzone::CIRCULAR</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp var">
