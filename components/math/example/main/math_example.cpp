@@ -195,7 +195,9 @@ extern "C" void app_main(void) {
     v /= 2.0f;
     v += espp::Vector2f(0, 1);
     v -= espp::Vector2f(0, 1);
+    auto v2 = v;
     fmt::print("should be same: {}\n", v.to_string());
+    fmt::print("should be same: {}\n", v2.to_string());
     fmt::print("magnitude:      {}\n", v.magnitude());
     fmt::print("normalized:     {}\n", v.normalized().to_string());
     fmt::print("norm mag:       {}\n", v.normalized().magnitude());
