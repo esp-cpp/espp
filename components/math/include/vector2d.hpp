@@ -28,6 +28,17 @@ namespace espp {
     Vector2d(const Vector2d& other) : x_(other.x_), y_(other.y_) {}
 
     /**
+     * @brief Assignment operator
+     * @param other Vector to assign to this vector.
+     * @return This vector, updated to be a copy of \p other.
+     */
+    Vector2d& operator=(const Vector2d& other) {
+      x_ = other.x_;
+      y_ = other.y_;
+      return *this;
+    }
+
+    /**
      * @brief Returns vector magnitude: ||v||.
      * @return The magnitude.
      */
