@@ -13,3 +13,6 @@
 [submodule "components/esp-dsp"]
 	path = components/esp-dsp
 	url = git@github.com:espressif/esp-dsp
+[submodule "external/csv2"]
+	path = external/csv2
+	url = git@github.com:p-ranav/csv2
