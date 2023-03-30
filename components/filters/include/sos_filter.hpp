@@ -50,18 +50,31 @@ namespace espp {
       return update(input);
     }
 
-    /**
-     * @brief Format all the sections' coefficients to string and return it.
-     * @return std::string of formatted section coefficients, newline separated.
-     */
-    std::string to_string() {
-      std::string ret;
-      for (auto section : sections_)
-        ret += section.to_string() + "\n";
-      return ret;
-    }
+    friend struct fmt::formatter<SosFilter<N, SectionImpl>>;
 
   protected:
     std::array<SectionImpl, N> sections_;
   };
 }
+
+// for allowing easy serialization/printing of the
+// espp::SosFilter
+template<size_t N, class SectionImpl>
+struct fmt::formatter<espp::SosFilter<N,SectionImpl>>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::SosFilter<N,SectionImpl> const& f, FormatContext& ctx) {
+    auto&& out = ctx.out();
+    format_to(out, "SoS - [");
+    if constexpr(N > 0) {
+      format_to(out, "[{}]", f.sections_[0]);
+    }
+    for (int i=1; i<N; i++) {
+      format_to(out, ", [{}]", f.sections_[i]);
+    }
+    return format_to(out, "]");
+  }
+};

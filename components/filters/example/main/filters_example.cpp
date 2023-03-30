@@ -35,7 +35,7 @@ extern "C" void app_main(void) {
     espp::ButterworthFilter<ORDER, espp::BiquadFilterDf2> butterworth({
         .normalized_cutoff_frequency = normalized_cutoff_frequency
       });
-    fmt::print("butterworth filter:\n{}", butterworth.to_string());
+    fmt::print("{}", butterworth);
     static auto start = std::chrono::high_resolution_clock::now();
     auto task_fn = [&lpf, &butterworth](std::mutex& m, std::condition_variable& cv) {
       auto now = std::chrono::high_resolution_clock::now();

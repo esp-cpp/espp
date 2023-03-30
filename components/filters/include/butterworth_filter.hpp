@@ -33,6 +33,8 @@ namespace espp {
       : SosFilter<(ORDER+1)/2, Impl>(make_filter_config(config.normalized_cutoff_frequency)) {
     }
 
+    friend struct fmt::formatter<ButterworthFilter<ORDER, Impl>>;
+
   protected:
     template <size_t N = (ORDER+1)/2>
     static std::array<TransferFunction<3>, N> make_filter_config(float normalized_cutoff_frequency) {
@@ -71,3 +73,25 @@ namespace espp {
     }
   };
 }
+
+// for allowing easy serialization/printing of the
+// espp::ButterworthFilter
+template<size_t ORDER, class Impl>
+struct fmt::formatter<espp::ButterworthFilter<ORDER,Impl>>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::ButterworthFilter<ORDER, Impl> const& f, FormatContext& ctx) {
+    auto&& out = ctx.out();
+    format_to(out, "Butterworth - [");
+    if constexpr(ORDER > 0) {
+      format_to(out, "[{}]", f.sections_[0]);
+    }
+    for (int i=1; i<(ORDER+1)/2; i++) {
+      format_to(out, ", [{}]", f.sections_[i]);
+    }
+    return format_to(out, "]");
+  }
+};
