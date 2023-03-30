@@ -21,7 +21,6 @@ namespace espp {
     /**
      * @brief Initialize the lowpass filter coefficients based on the config.
      * @param config Configuration struct.
-
      */
     LowpassFilter(const Config& config) {
       init(config);

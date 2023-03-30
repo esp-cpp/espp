@@ -27,7 +27,7 @@ namespace espp {
 
     /**
      * @brief Construct the butterworth filter for the given config.
-     * @param config.normalized_cutoff_frequency) [description]
+     * @param config The configuration struct for the Butterworth Filter
      */
     ButterworthFilter(const Config& config)
       : SosFilter<(ORDER+1)/2, Impl>(make_filter_config(config.normalized_cutoff_frequency)) {
