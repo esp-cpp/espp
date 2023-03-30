@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include "format.hpp"
 
 namespace espp{
   /**
@@ -17,3 +18,21 @@ namespace espp{
     std::array<float, N> a = {}; /**< A coefficients. */
   };
 }
+
+// for allowing easy serialization/printing of the
+// espp::TransferFunction
+template<size_t N>
+struct fmt::formatter<espp::TransferFunction<N>>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::TransferFunction<N> const& tf, FormatContext& ctx) {
+    return fmt::format_to(ctx.out(),
+                          "TransferFunction({}) - B: {}, A: {}",
+                          N,
+                          tf.b,
+                          tf.a);
+  }
+};

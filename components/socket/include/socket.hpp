@@ -112,12 +112,6 @@ namespace espp {
         port = source_address.sin6_port;
         memcpy(&raw, &source_address, sizeof(source_address));
       }
-
-      /**
-       * @brief Format the address and port into a string "{address}:{port}".
-       * @return std::string contining the formatted info.
-       */
-      std::string to_string() const { return fmt::format("{}:{}", address, port); }
     };
 
     /**
@@ -338,3 +332,20 @@ namespace espp {
     Logger logger_;
   };
 }
+
+// for allowing easy serialization/printing of the
+// espp::Socket::Info
+template<>
+struct fmt::formatter<espp::Socket::Info>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::Socket::Info const& info, FormatContext& ctx) {
+    return fmt::format_to(ctx.out(),
+                          "{}:{}",
+                          info.address,
+                          info.port);
+  }
+};

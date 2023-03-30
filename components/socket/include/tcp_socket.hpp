@@ -90,7 +90,7 @@ namespace espp {
       Socket::Info server_info;
       server_info.init_ipv4(connect_config.ip_address, connect_config.port);
       auto server_address = server_info.ipv4_ptr();
-      logger_.info("Client connecting to {}", server_info.to_string());
+      logger_.info("Client connecting to {}", server_info);
       // connect
       int error = ::connect(socket_, (struct sockaddr *)server_address, sizeof(*server_address));
       if (error != 0) {
@@ -348,7 +348,7 @@ namespace espp {
         return false;
       }
       connected_client_info_.update();
-      logger_.info("Server accepted connection with {}", connected_client_info_.to_string());
+      logger_.info("Server accepted connection with {}", connected_client_info_);
       return true;
     }
 
@@ -416,7 +416,7 @@ namespace espp {
         }
         auto response = maybe_response.value();
         // write
-        logger_.info("Server responding to {} with message of length {}", connected_client_info_.to_string(), response.size());
+        logger_.info("Server responding to {} with message of length {}", connected_client_info_, response.size());
         int num_bytes_sent = write(client_socket, response.data(), response.size());
         if (num_bytes_sent < 0) {
           logger_.error("Error occurred responding: {} - '{}'", errno, strerror(errno));

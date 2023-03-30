@@ -3,8 +3,6 @@
 #include <array>
 #include <math.h>
 
-#include "format.hpp"
-
 namespace espp {
   /**
    * @brief Container representing a 2 dimensional vector.
@@ -259,14 +257,6 @@ namespace espp {
       return *this;
     }
 
-    /**
-     * @brief Print the vector to a string, formatted "({},{})".
-     * @return std::string holding the formatted vector.
-     */
-    std::string to_string() const {
-        return fmt::format("({},{})", x_, y_);
-    }
-
   protected:
     union {
       struct {
@@ -306,3 +296,18 @@ namespace espp {
 
 }
 
+#include "format.hpp"
+
+// for allowing easy serialization/printing of the
+// espp::Vector2d<type>
+template<typename Value>
+struct fmt::formatter<espp::Vector2d<Value>>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::Vector2d<Value> const& v, FormatContext& ctx) {
+    return fmt::format_to(ctx.out(), "({},{})", v.x(), v.y());
+  }
+};

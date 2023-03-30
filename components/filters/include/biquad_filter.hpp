@@ -66,13 +66,7 @@ namespace espp {
       return prev_y_[0];
     }
 
-    /**
-     * @brief Format the coefficients to string and return it.
-     * @return std::string of formatted B and A coefficients.
-     */
-    std::string to_string() {
-      return fmt::format("B: {}, A: {}", b_, a_);
-    }
+    friend struct fmt::formatter<BiquadFilterDf1>;
 
   protected:
     std::array<float, 2> prev_x_ = {0};
@@ -149,13 +143,7 @@ namespace espp {
       return result;
     }
 
-    /**
-     * @brief Format the coefficients to string and return it.
-     * @return std::string of formatted B and A coefficients.
-     */
-    std::string to_string() {
-      return fmt::format("B: {}, A: {}", b_, a_);
-    }
+    friend struct fmt::formatter<BiquadFilterDf2>;
 
   protected:
     float coeffs_[5];
@@ -165,3 +153,37 @@ namespace espp {
     std::array<float, 2> w_ = {{0}};
   };
 }
+
+// for allowing easy serialization/printing of the
+// espp::BiquadFilterDf1
+template<>
+struct fmt::formatter<espp::BiquadFilterDf1>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::BiquadFilterDf1 const& bqf, FormatContext& ctx) {
+    return fmt::format_to(ctx.out(),
+                          "DF1 - B: {}, A: {}",
+                          bqf.b_,
+                          bqf.a_);
+  }
+};
+
+// for allowing easy serialization/printing of the
+// espp::BiquadFilterDf2
+template<>
+struct fmt::formatter<espp::BiquadFilterDf2>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::BiquadFilterDf2 const& bqf, FormatContext& ctx) {
+    return fmt::format_to(ctx.out(),
+                          "DF2 - B: {}, A: {}",
+                          bqf.b_,
+                          bqf.a_);
+  }
+};

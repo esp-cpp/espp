@@ -190,18 +190,18 @@ extern "C" void app_main(void) {
   {
     //! [vector2d example]
     espp::Vector2f v(1,1);
-    fmt::print("original:       {}\n", v.to_string());
+    fmt::print("original:       {}\n", v);
     v = 2.0f * v;
     v /= 2.0f;
     v += espp::Vector2f(0, 1);
     v -= espp::Vector2f(0, 1);
     auto v2 = v;
-    fmt::print("should be same: {}\n", v.to_string());
-    fmt::print("should be same: {}\n", v2.to_string());
+    fmt::print("should be same: {}\n", v);
+    fmt::print("should be same: {}\n", v2);
     fmt::print("magnitude:      {}\n", v.magnitude());
-    fmt::print("normalized:     {}\n", v.normalized().to_string());
+    fmt::print("normalized:     {}\n", v.normalized());
     fmt::print("norm mag:       {}\n", v.normalized().magnitude());
-    fmt::print("rotated pi/2:   {}\n", v.rotated(M_PI_2).to_string());
+    fmt::print("rotated pi/2:   {}\n", v.rotated(M_PI_2));
     //! [vector2d example]
   }
 

@@ -21,7 +21,6 @@ namespace espp {
     /**
      * @brief Initialize the lowpass filter coefficients based on the config.
      * @param config Configuration struct.
-
      */
     LowpassFilter(const Config& config) {
       init(config);
@@ -61,6 +60,8 @@ namespace espp {
       return update(input);
     }
 
+    friend struct fmt::formatter<LowpassFilter>;
+
   protected:
     void init(const Config& config) {
       dsps_biquad_gen_lpf_f32(coeffs_, config.normalized_cutoff_frequency, config.q_factor);
@@ -70,3 +71,17 @@ namespace espp {
     float state_[2];
   };
 }
+
+// for allowing easy serialization/printing of the
+// espp::LowpassFilter
+template<>
+struct fmt::formatter<espp::LowpassFilter>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::LowpassFilter const& f, FormatContext& ctx) {
+    return format_to(ctx.out(), "Lowpass - {}", f.coeffs_);
+  }
+};
