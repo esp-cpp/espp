@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <algorithm>
 #include <mutex>
 
@@ -35,15 +36,9 @@ namespace espp {
      * @brief Create the PID controller.
      */
     Pid(const Config& config)
-      : kp_(config.kp),
-        ki_(config.ki),
-        kd_(config.kd),
-        integrator_min_(config.integrator_min),
-        integrator_max_(config.integrator_max),
-        output_min_(config.output_min),
-        output_max_(config.output_max),
-        prev_ts_(std::chrono::high_resolution_clock::now()),
+      : prev_ts_(std::chrono::high_resolution_clock::now()),
         logger_({.tag = "PID", .level = config.log_level}) {
+      change_gains(config);
     }
 
     /**
@@ -52,13 +47,8 @@ namespace espp {
      */
     void change_gains(const Config& config) {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
-      kp_ = config.kp;
-      ki_ = config.ki;
-      kd_ = config.kd;
-      integrator_min_ = config.integrator_min;
-      integrator_max_ = config.integrator_max;
-      output_min_ = config.output_min;
-      output_max_ = config.output_max;
+      logger_.info("Updated config: {}", config);
+      config_ = config;
       clear();
     }
 
@@ -94,25 +84,22 @@ namespace espp {
         t = 1e-3;
       }
       error_ = error;
-      float integrand = ki_ * error_ * t;
-      integrator_ = std::clamp(integrator_ + integrand, integrator_min_, integrator_max_);
-      float p = kp_ * error_;
+      float integrand = config_.ki * error_ * t;
+      integrator_ = std::clamp(integrator_ + integrand,
+                               config_.integrator_min,
+                               config_.integrator_max);
+      float p = config_.kp * error_;
       float i = integrator_;
-      float d = kd_ * (error_ - previous_error_) / t;
+      float d = config_.kd * (error_ - previous_error_) / t;
       float output = p + i + d;
       // update our state for next loop
-      previous_error_ = error_;
+      previous_error_.store(error_);
       // ensure we don't continue growing integrator (windup) if the output is saturated
-      if (output >= output_max_ || output <= output_min_) {
+      if (output >= config_.output_max || output <= config_.output_min) {
         integrator_ = integrator_ - integrand;
       }
       // clamp the output and return it
-      return std::clamp(output, output_min_, output_max_);
-    }
-
-    std::string to_string() {
-      std::lock_guard<std::recursive_mutex> lk(mutex_);
-      return fmt::format("{}, {}, {}", error_, previous_error_, integrator_);
+      return std::clamp(output, config_.output_min, config_.output_max);
     }
 
     /**
@@ -129,19 +116,78 @@ namespace espp {
       return update(error);
     }
 
+    /**
+     * @brief Get the current error (as of the last time update() or operator()
+     *        were called)
+     * @return Most recent error.
+     */
+    float get_error() const {
+      return error_;
+    }
+
+    /**
+     * @brief Get the current integrator (as of the last time update() or
+     *        operator() were called)
+     * @return Most recent integrator value.
+     */
+    float get_integrator() const {
+      return integrator_;
+    }
+
+    /**
+     * @brief Get the configuration for the PID (gains, etc.).
+     * @return Config structure containing gains, etc.
+     */
+    Config get_config() const {
+      return config_;
+    }
+
   protected:
-    float kp_;
-    float ki_;
-    float kd_;
-    float integrator_min_;
-    float integrator_max_;
-    float output_min_;
-    float output_max_;
-    float error_{0};
-    float previous_error_{0};
-    float integrator_{0};
+    Config config_;
+    std::atomic<float> error_{0};
+    std::atomic<float> previous_error_{0};
+    std::atomic<float> integrator_{0};
     std::chrono::time_point<std::chrono::high_resolution_clock> prev_ts_;
-    std::recursive_mutex mutex_;
+    std::recursive_mutex mutex_; ///< For protecting the config
     Logger logger_;
   };
 }
+
+// for allowing easy serialization/printing of the
+// espp::Pid
+template<>
+struct fmt::formatter<espp::Pid>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::Pid const& pid, FormatContext& ctx) {
+    return fmt::format_to(ctx.out(),
+                          "{}, {}",
+                          pid.get_error(),
+                          pid.get_integrator());
+  }
+};
+
+// for allowing easy serialization/printing of the
+// espp::Pid::Config
+template<>
+struct fmt::formatter<espp::Pid::Config>
+{
+  template<typename ParseContext>
+  constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+  template<typename FormatContext>
+  auto format(espp::Pid::Config const& cfg, FormatContext& ctx) {
+    return fmt::format_to(ctx.out(),
+                          "{}, {}, {}, {}, {}, {}, {}",
+                          cfg.kp,
+                          cfg.ki,
+                          cfg.kd,
+                          cfg.integrator_min,
+                          cfg.integrator_max,
+                          cfg.output_min,
+                          cfg.output_max);
+  }
+};
