@@ -200,7 +200,7 @@ namespace espp {
       // we received data, so call the callback function if one was provided.
       data.assign(receive_buffer.get(), receive_buffer.get() + num_bytes_received);
       remote_info.update();
-      logger_.debug("Received {} bytes from {}", num_bytes_received, remote_info.to_string());
+      logger_.debug("Received {} bytes from {}", num_bytes_received, remote_info);
       return true;
     }
 
@@ -294,7 +294,7 @@ namespace espp {
       }
       auto response = maybe_response.value();
       // sendto
-      logger_.info("Server responding to {} with message of length {}", sender_info.to_string(), response.size());
+      logger_.info("Server responding to {} with message of length {}", sender_info, response.size());
       auto sender_address = sender_info.ipv4_ptr();
       int num_bytes_sent = sendto(socket_, response.data(), response.size(), 0,
                                   (struct sockaddr*)sender_address, sizeof(*sender_address));
