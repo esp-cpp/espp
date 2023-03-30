@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSV APIs - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'csv';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Display APIs" href="display/index.html" />
+    <link rel="prev" title="Controller APIs" href="controller.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ESPP
+            <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CSV APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#macros">Macros</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>CSV APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/cf5808b/docs/en/csv.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="csv-apis">
+<h1>CSV APIs<a class="headerlink" href="#csv-apis" title="Permalink to this headline"></a></h1>
+<p>The <cite>csv.hpp</cite> header provides a convenience include / wrapper around
+<a href="#id1"><span class="problematic" id="id2">`p-ranav/csv2 &lt;https://github.com/p-pranav/csv2`_</span></a>. It also exposes <cite>csv2</cite>’s
+include folder, so including <cite>csv.hpp</cite> is completely equivalent to including
+both <cite>csv2/reader.hpp</cite> and <cite>csv2/writer.hpp</cite>. Please see the documentation for
+csv2 if you have any questions about usage beyond the examples provided here.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/cf5808b/components/csv/include/csv.hpp">components/csv/include/csv.hpp</a></p></li>
+</ul>
+</section>
+<section id="macros">
+<h3>Macros<a class="headerlink" href="#macros" title="Permalink to this headline"></a></h3>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.__gnu_linux__">
+<span class="target" id="csv_8hpp_1a51b087854dc3c2f76946efb432745639"></span><span class="sig-name descname"><span class="n"><span class="pre">__gnu_linux__</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp21__csv_documentation__E">
+<span id="_CPPv3N4espp21__csv_documentation__E"></span><span id="_CPPv2N4espp21__csv_documentation__E"></span><span id="espp::__csv_documentation__"></span><span class="target" id="classespp_1_1____csv__documentation____"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">__csv_documentation__</span></span></span><a class="headerlink" href="#_CPPv4N4espp21__csv_documentation__E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Comma Separated Value (CSV) reader/writer convenience wrapper around <a class="reference external" href="https://github.com/p-ranav/csv2">p-ranav/csv2</a> which exposes csv2::Reader and csv2::Writer classes for managing efficient (lazy-loaded) parsing and serizaliztion of human-readable CSV-formatted data. </p>
+<section id="namespaceespp_1csv_ex1">
+<h4>CSV Reader Example<a class="headerlink" href="#namespaceespp_1csv_ex1" title="Permalink to this headline"></a></h4>
+<p id="namespaceespp_1csv_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">csv_data</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;filename, boxart filename, display name</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;mario.nes, boxart/mario.jpg, Mario Bros.</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;super_mario_1.nes, boxart/super_mario_bros_1.jpg, Super Mario Bros.</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;super_mario_3.nes, boxart/super_mario_bros_3.jpg, Super Mario Bros. 3</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;zelda.nes, boxart/zelda1.jpg, The Legend of Zelda</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;zelda_2.nes, boxart/zelda2.jpg, The Legend of Zelda 2: the Adventure of Link</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;mega_man.nes, boxart/megaman1.jpg, MegaMan</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;metroid.nes, boxart/metroid1.jpg, Metroid</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;pokemon_blue.gb, boxart/pokemon_blue.jpg, Pokemon Blue</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;pokemon_red.gb, boxart/pokemon_red.jpg, Pokemon Red</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;pokemon_yellow.gbc, boxart/pokemon_yellow.jpg, Pokemon Yellow</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;links_awakening.gb, boxart/tloz_links_awakening.jpg, The Legend of Zelda: Link&#39;s Awakening</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
+<span class="w">      </span><span class="s">&quot;links_awakening.gbc, boxart/tloz_links_awakening_dx.jpg, The Legend of Zelda: Link&#39;s Awakening DX&quot;</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// create the csv reader object</span>
+<span class="w">    </span><span class="n">csv2</span><span class="o">::</span><span class="n">Reader</span><span class="o">&lt;</span><span class="n">csv2</span><span class="o">::</span><span class="n">delimiter</span><span class="o">&lt;</span><span class="sc">&#39;,&#39;</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">csv2</span><span class="o">::</span><span class="n">quote_character</span><span class="o">&lt;</span><span class="sc">&#39;&quot;&#39;</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">csv2</span><span class="o">::</span><span class="n">first_row_is_header</span><span class="o">&lt;</span><span class="nb">true</span><span class="o">&gt;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                 </span><span class="n">csv2</span><span class="o">::</span><span class="n">trim_policy</span><span class="o">::</span><span class="n">trim_whitespace</span><span class="o">&gt;</span><span class="w"> </span><span class="n">csv</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">csv</span><span class="p">.</span><span class="n">parse</span><span class="p">(</span><span class="n">csv_data</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// print the header</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">header</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">csv</span><span class="p">.</span><span class="n">header</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Header:</span><span class="se">\n\t</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">cell</span><span class="o">:</span><span class="w"> </span><span class="n">header</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="n">cell</span><span class="p">.</span><span class="n">read_value</span><span class="p">(</span><span class="n">value</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39;, &quot;</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// now print the items</span>
+<span class="w">      </span><span class="kt">size_t</span><span class="w"> </span><span class="n">row_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">row</span><span class="o">:</span><span class="w"> </span><span class="n">csv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Row {} values:</span><span class="se">\n\t</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">row_index</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">cell</span><span class="o">:</span><span class="w"> </span><span class="n">row</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">value</span><span class="p">;</span><span class="w"></span>
+<span class="w">          </span><span class="n">cell</span><span class="p">.</span><span class="n">read_value</span><span class="p">(</span><span class="n">value</span><span class="p">);</span><span class="w"></span>
+<span class="w">          </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39;, &quot;</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">row_index</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<section id="namespaceespp_1csv_ex2">
+<h4>Complex CSV Writer Example<a class="headerlink" href="#namespaceespp_1csv_ex2" title="Permalink to this headline"></a></h4>
+<p id="namespaceespp_1csv_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ostringstream</span><span class="w"> </span><span class="n">stream</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">csv2</span><span class="o">::</span><span class="n">Writer</span><span class="o">&lt;</span><span class="n">csv2</span><span class="o">::</span><span class="n">delimiter</span><span class="o">&lt;</span><span class="sc">&#39;,&#39;</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">ostringstream</span><span class="o">&gt;</span><span class="w"> </span><span class="n">writer</span><span class="p">(</span><span class="n">stream</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">rows</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="p">{</span><span class="s">&quot;a&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;b&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;c&quot;</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">{</span><span class="s">&quot;1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;3&quot;</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">{</span><span class="s">&quot;4&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;5&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;6&quot;</span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="p">};</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">writer</span><span class="p">.</span><span class="n">write_rows</span><span class="p">(</span><span class="n">rows</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Wrote:</span><span class="se">\n</span><span class="s">&#39;{}&#39;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">stream</span><span class="p">.</span><span class="n">str</span><span class="p">());</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class does not really exist or do anything, but it’s the only way I could figure out how to get this documentation built into the system :(</p>
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="controller.html" class="btn btn-neutral float-left" title="Controller APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="display/index.html" class="btn btn-neutral float-right" title="Display APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
