@@ -278,7 +278,7 @@ namespace espp {
    * @param v Vector to be scaled.
    * @return Scaled vector (v*f).
    */
-  Vector2f operator*(float f, const Vector2f& v) {
+  static Vector2f operator*(float f, const Vector2f& v) {
     return espp::Vector2f(v.x() * f, v.y() * f);
   }
 
@@ -288,7 +288,7 @@ namespace espp {
    * @param rhs Right hand side vector
    * @return True if their x and y are equal, false otherwise.
    */
-  bool operator ==(const Vector2f& lhs, const Vector2f& rhs) {
+  static bool operator==(const Vector2f& lhs, const Vector2f& rhs) {
     return
       lhs.x() == rhs.x() &&
       lhs.y() == rhs.y();
