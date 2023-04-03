@@ -57,9 +57,7 @@ extern "C" void app_main(void) {
     auto task_fn = [&js1, &js2](std::mutex& m, std::condition_variable& cv) {
       js1.update();
       js2.update();
-      fmt::print("{:.2f},{:.2f},{:.2f},{:.2f}\n",
-                 js1.x(), js1.y(),
-                 js2.x(), js2.y());
+      fmt::print("{}, {}\n", js1, js2);
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
