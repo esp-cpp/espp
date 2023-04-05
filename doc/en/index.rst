@@ -14,6 +14,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    bldc/index
    controller
    cli
+   color
    csv
    display/index
    encoder/index
