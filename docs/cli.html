@@ -123,7 +123,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Command Line Interface (CLI) APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/71b230c/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ed773e5/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -139,22 +139,25 @@ include folder, so including <cite>“cli.hpp”</cite> is completely equivalent
 <cite>&lt;cli/cli.h&gt;</cite> - but you can additionally include other files from
 <cite>&lt;cli/&gt;</cite>. It also 2 conveniences:</p>
 <ol class="arabic simple">
-<li><p>a <cite>cli_configure_stdin_stdout()</cite> function which sets up the esp UART to
-enable blocking <cite>std::cin</cite> read, which is needed for <cite>std::cin</cite> to work (and
-therefore - currently - for <cite>cli</cite> to work), and</p></li>
 <li><p>a <cite>espp::Cli</cite> class which inherits from <cite>cli::CliSession</cite> and has a
 near-identical implementation as <cite>cli</cite>’s <cite>CliFileSesson</cite>, with the exception
-that it explicitly reads character by character intead of line by line and
-prints out the characters as they are being input.</p></li>
+that it explicitly reads character by character instead of line by line and
+prints out the characters as they are being input, and</p></li>
+<li><p>a static <cite>espp::Cli::configure_stdin_stdout()</cite> function which sets up the esp
+UART to enable blocking <cite>std::cin</cite> read, which is needed for <cite>std::cin</cite> to
+work (and therefore - currently - for <cite>cli</cite> to work). This function is
+automatically called by the <cite>espp::Cli</cite> constructor, but it can also be
+called manually without needing to create a <cite>espp::Cli</cite> object if you wish to
+simply use the <cite>std::cin</cite> and related functions.</p></li>
 </ol>
-<p>Please see the documentation for <cite>cli</cite> if you have any questions about
-usage beyond the examples provided here.</p>
+<p>Please see the documentation for the <a class="reference external" href="https://github.com/daniele77/cli">cli submodule</a> if you have any questions about usage
+beyond the examples provided here.</p>
 <section id="api-reference">
 <h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/71b230c/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ed773e5/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
