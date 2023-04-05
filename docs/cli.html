@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command Line Interface (CLI) APIs - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'cli';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="CSV APIs" href="csv.html" />
+    <link rel="prev" title="Controller APIs" href="controller.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ESPP
+            <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command Line Interface (CLI) APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#macros">Macros</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Command Line Interface (CLI) APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/1cde9ad/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="command-line-interface-cli-apis">
+<h1>Command Line Interface (CLI) APIs<a class="headerlink" href="#command-line-interface-cli-apis" title="Permalink to this headline"></a></h1>
+<p>The <cite>cli.hpp</cite> header provides a convenience include / wrapper around
+<a class="reference external" href="https://github.com/daniele77/cli">daniele77/cli</a>. It also exposes <cite>cli</cite>’s
+include folder, so including <cite>“cli.hpp”</cite> is completely equivalent to including
+<cite>&lt;cli/cli.h&gt;</cite> - but you can additionally include other files from
+<cite>&lt;cli/&gt;</cite>. It also 2 conveniences:</p>
+<ol class="arabic simple">
+<li><p>a <cite>cli_configure_stdin_stdout()</cite> function which sets up the esp UART to
+enable blocking <cite>std::cin</cite> read, which is needed for <cite>std::cin</cite> to work (and
+therefore - currently - for <cite>cli</cite> to work), and</p></li>
+<li><p>a <cite>espp::Cli</cite> class which inherits from <cite>cli::CliSession</cite> and has a
+near-identical implementation as <cite>cli</cite>’s <cite>CliFileSesson</cite>, with the exception
+that it explicitly reads character by character intead of line by line and
+prints out the characters as they are being input.</p></li>
+</ol>
+<p>Please see the documentation for <cite>cli</cite> if you have any questions about
+usage beyond the examples provided here.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1cde9ad/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
+</ul>
+</section>
+<section id="macros">
+<h3>Macros<a class="headerlink" href="#macros" title="Permalink to this headline"></a></h3>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.__linux__">
+<span class="target" id="cli_8hpp_1a1b27e3508a4c1e97875297882a95f503"></span><span class="sig-name descname"><span class="n"><span class="pre">__linux__</span></span></span><a class="headerlink" href="#c.__linux__" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3CliE">
+<span id="_CPPv3N4espp3CliE"></span><span id="_CPPv2N4espp3CliE"></span><span id="espp::Cli"></span><span class="target" id="classespp_1_1_cli"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Cli</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">cli</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">CliSession</span></span><a class="headerlink" href="#_CPPv4N4espp3CliE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for implementing a basic <a class="reference internal" href="#classespp_1_1_cli"><span class="std std-ref">Cli</span></a> using the external cli library. Reads from the input stream and writes to the output stream. This version of the class explicitly uses a loop of std::istream::get() instead of std::getline() so that we can simultaneously read the stream and print it out. </p>
+<section id="classespp_1_1_cli_1cli_ex1">
+<h4>Oneshot CLI Example<a class="headerlink" href="#classespp_1_1_cli_1cli_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_cli_1cli_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// for std::cin to work (it must be blocking), we need to configure the uart</span>
+<span class="w">    </span><span class="c1">// driver to have it block. see</span>
+<span class="w">    </span><span class="c1">// https://github.com/espressif/esp-idf/issues/9692 for more info</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">cli_configure_stdin_stdout</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root_menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">cli</span><span class="o">::</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;cli&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">root_menu</span><span class="o">-&gt;</span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                      </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Hello world!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
+<span class="w">                      </span><span class="s">&quot;Print hello world&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">root_menu</span><span class="o">-&gt;</span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;hello_everysession&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                      </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">cli</span><span class="o">::</span><span class="n">Cli</span><span class="o">::</span><span class="n">cout</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Hello everybody&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
+<span class="w">                      </span><span class="s">&quot;Print hello everybody on all open sessions&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">root_menu</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;answer&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                       </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">){</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;The answer is: &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
+<span class="w">                       </span><span class="s">&quot;Print the answer to Life, the Universe and Everything &quot;</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">root_menu</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;color&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                       </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">){</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Colors ON</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="n">cli</span><span class="o">::</span><span class="n">SetColor</span><span class="p">();</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
+<span class="w">                       </span><span class="s">&quot;Enable colors in the cli&quot;</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">root_menu</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;nocolor&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                       </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">){</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Colors OFF</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="n">cli</span><span class="o">::</span><span class="n">SetNoColor</span><span class="p">();</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
+<span class="w">                       </span><span class="s">&quot;Disable colors in the cli&quot;</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">sub_menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="w"> </span><span class="n">cli</span><span class="o">::</span><span class="n">Menu</span><span class="w"> </span><span class="o">&gt;</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;sub&quot;</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">sub_menu</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                      </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">){</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Hello, submenu world</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
+<span class="w">                      </span><span class="s">&quot;Print hello world in the submenu&quot;</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">sub_menu</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;demo&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                      </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">){</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;This is a sample!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
+<span class="w">                      </span><span class="s">&quot;Print a demo string&quot;</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">sub_sub_menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="w"> </span><span class="n">cli</span><span class="o">::</span><span class="n">Menu</span><span class="w"> </span><span class="o">&gt;</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;subsub&quot;</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">sub_sub_menu</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                         </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">){</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Hello, subsubmenu world</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
+<span class="w">                         </span><span class="s">&quot;Print hello world in the sub-submenu&quot;</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">sub_menu</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Insert</span><span class="p">(</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">sub_sub_menu</span><span class="p">));</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">root_menu</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Insert</span><span class="p">(</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">sub_menu</span><span class="p">)</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">cli</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">cli</span><span class="p">(</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">root_menu</span><span class="p">)</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">cli</span><span class="p">.</span><span class="n">ExitAction</span><span class="p">(</span><span class="w"> </span><span class="p">[](</span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Goodbye and thanks for all the fish.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">input</span><span class="p">(</span><span class="n">cli</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">input</span><span class="p">.</span><span class="n">Start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Cli3CliERN3cli3CliERNSt7istreamERNSt7ostreamE">
+<span id="_CPPv3N4espp3Cli3CliERN3cli3CliERNSt7istreamERNSt7ostreamE"></span><span id="_CPPv2N4espp3Cli3CliERN3cli3CliERNSt7istreamERNSt7ostreamE"></span><span id="espp::Cli::Cli__cli::CliR.isR.osR"></span><span class="target" id="classespp_1_1_cli_1a781cf49f1392c7eb03354c2f7355242a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Cli</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">cli</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Cli</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">_cli</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">istream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">_in</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">cin</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">_out</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">cout</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Cli3CliERN3cli3CliERNSt7istreamERNSt7ostreamE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a <a class="reference internal" href="#classespp_1_1_cli"><span class="std std-ref">Cli</span></a> object,. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Throws</dt>
+<dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – if <code class="docutils literal notranslate"><span class="pre">_in</span></code> or <code class="docutils literal notranslate"><span class="pre">out</span></code> are invalid streams </p>
+</dd>
+<dt class="field-even">Parameters</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>_cli</strong> – the cli::Cli object containing the menus and functions to run. </p></li>
+<li><p><strong>_in</strong> – The input stream from which to read characters. </p></li>
+<li><p><strong>_out</strong> – The output stream to which to write characters. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Cli5StartEv">
+<span id="_CPPv3N4espp3Cli5StartEv"></span><span id="_CPPv2N4espp3Cli5StartEv"></span><span id="espp::Cli::Start"></span><span class="target" id="classespp_1_1_cli_1a869fcbee4936853496b71c23269357ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Cli5StartEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start the <a class="reference internal" href="#classespp_1_1_cli"><span class="std std-ref">Cli</span></a>, blocking until it exits. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="controller.html" class="btn btn-neutral float-left" title="Controller APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="csv.html" class="btn btn-neutral float-right" title="CSV APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
