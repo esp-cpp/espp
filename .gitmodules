@@ -16,3 +16,6 @@
 [submodule "external/csv2"]
 	path = external/csv2
 	url = git@github.com:p-ranav/csv2
+[submodule "external/cli"]
+	path = external/cli
+	url = git@github.com:daniele77/cli
