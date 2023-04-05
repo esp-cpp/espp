@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py driver vfs format cli"
+  "main esptool_py format cli"
   CACHE STRING
   "List of components to include"
   )
