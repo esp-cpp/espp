@@ -11,10 +11,6 @@ extern "C" void app_main(void) {
   {
     fmt::print("Starting cli example!\n");
     //! [cli example]
-    // for std::cin to work (it must be blocking), we need to configure the uart
-    // driver to have it block. see
-    // https://github.com/espressif/esp-idf/issues/9692 for more info
-    espp::cli_configure_stdin_stdout();
     auto root_menu = std::make_unique<cli::Menu>("cli");
     root_menu->Insert("hello",
                       [](std::ostream& out) { out << "Hello world!\n"; },

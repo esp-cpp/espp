@@ -123,7 +123,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Command Line Interface (CLI) APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/1cde9ad/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/71b230c/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -154,7 +154,7 @@ usage beyond the examples provided here.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1cde9ad/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/71b230c/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -173,11 +173,7 @@ usage beyond the examples provided here.</p>
 <dd><p>Class for implementing a basic <a class="reference internal" href="#classespp_1_1_cli"><span class="std std-ref">Cli</span></a> using the external cli library. Reads from the input stream and writes to the output stream. This version of the class explicitly uses a loop of std::istream::get() instead of std::getline() so that we can simultaneously read the stream and print it out. </p>
 <section id="classespp_1_1_cli_1cli_ex1">
 <h4>Oneshot CLI Example<a class="headerlink" href="#classespp_1_1_cli_1cli_ex1" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_cli_1cli_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// for std::cin to work (it must be blocking), we need to configure the uart</span>
-<span class="w">    </span><span class="c1">// driver to have it block. see</span>
-<span class="w">    </span><span class="c1">// https://github.com/espressif/esp-idf/issues/9692 for more info</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">cli_configure_stdin_stdout</span><span class="p">();</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root_menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">cli</span><span class="o">::</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;cli&quot;</span><span class="p">);</span><span class="w"></span>
+<p id="classespp_1_1_cli_1cli_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root_menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">cli</span><span class="o">::</span><span class="n">Menu</span><span class="o">&gt;</span><span class="p">(</span><span class="s">&quot;cli&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="n">root_menu</span><span class="o">-&gt;</span><span class="n">Insert</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">,</span><span class="w"></span>
 <span class="w">                      </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">ostream</span><span class="o">&amp;</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Hello world!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">},</span><span class="w"></span>
 <span class="w">                      </span><span class="s">&quot;Print hello world&quot;</span><span class="p">);</span><span class="w"></span>
@@ -224,7 +220,7 @@ usage beyond the examples provided here.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Cli3CliERN3cli3CliERNSt7istreamERNSt7ostreamE">
 <span id="_CPPv3N4espp3Cli3CliERN3cli3CliERNSt7istreamERNSt7ostreamE"></span><span id="_CPPv2N4espp3Cli3CliERN3cli3CliERNSt7istreamERNSt7ostreamE"></span><span id="espp::Cli::Cli__cli::CliR.isR.osR"></span><span class="target" id="classespp_1_1_cli_1a781cf49f1392c7eb03354c2f7355242a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Cli</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">cli</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Cli</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">_cli</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">istream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">_in</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">cin</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">_out</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">cout</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Cli3CliERN3cli3CliERNSt7istreamERNSt7ostreamE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Construct a <a class="reference internal" href="#classespp_1_1_cli"><span class="std std-ref">Cli</span></a> object,. </p>
+<dd><p>Construct a <a class="reference internal" href="#classespp_1_1_cli"><span class="std std-ref">Cli</span></a> object and call <a class="reference internal" href="#classespp_1_1_cli_1ad9432fdea7ae1783e429c6a2a7afc692"><span class="std std-ref">espp::Cli::configure_stdin_stdout()</span></a> to ensure that std::cin works as needed. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Throws</dt>
 <dd class="field-odd"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – if <code class="docutils literal notranslate"><span class="pre">_in</span></code> or <code class="docutils literal notranslate"><span class="pre">out</span></code> are invalid streams </p>
@@ -243,6 +239,16 @@ usage beyond the examples provided here.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Cli5StartEv">
 <span id="_CPPv3N4espp3Cli5StartEv"></span><span id="_CPPv2N4espp3Cli5StartEv"></span><span id="espp::Cli::Start"></span><span class="target" id="classespp_1_1_cli_1a869fcbee4936853496b71c23269357ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Cli5StartEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Start the <a class="reference internal" href="#classespp_1_1_cli"><span class="std std-ref">Cli</span></a>, blocking until it exits. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Cli22configure_stdin_stdoutEv">
+<span id="_CPPv3N4espp3Cli22configure_stdin_stdoutEv"></span><span id="_CPPv2N4espp3Cli22configure_stdin_stdoutEv"></span><span id="espp::Cli::configure_stdin_stdout__void"></span><span class="target" id="classespp_1_1_cli_1ad9432fdea7ae1783e429c6a2a7afc692"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_stdin_stdout</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Cli22configure_stdin_stdoutEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the UART driver to support blocking input read, so that std::cin (which assumes a blocking read) will function. This should be primarily used when you want to use the std::cin/std::getline and other std input functions or you want to use the cli library. </p>
+<p>This code was copied from <a class="reference external" href="https://github.com/espressif/esp-idf/blob/master/examples/common_components/protocol_examples_common/stdin_out.c">https://github.com/espressif/esp-idf/blob/master/examples/common_components/protocol_examples_common/stdin_out.c</a>, and there is some discussion here: <a class="reference external" href="https://github.com/espressif/esp-idf/issues/9692">https://github.com/espressif/esp-idf/issues/9692</a> and <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html">https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html</a>. </p>
 </dd></dl>
 
 </div>
