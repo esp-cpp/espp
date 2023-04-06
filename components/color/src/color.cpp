@@ -2,7 +2,16 @@
 
 namespace espp {
 
-  Rgb::Rgb(const float& _r, const float& _g, const float& _b) : r(_r), g(_g), b(_b) {}
+  Rgb::Rgb(const float& _r, const float& _g, const float& _b) : r(_r), g(_g), b(_b) {
+    if (r > 1.0 || g > 1.0 || b > 1.0) {
+      r /= 255.;
+      g /= 255.;
+      b /= 255.;
+    }
+    r = std::clamp(r, 0.0f, 1.0f);
+    g = std::clamp(g, 0.0f, 1.0f);
+    b = std::clamp(b, 0.0f, 1.0f);
+  }
 
   Rgb::Rgb(const Rgb& rgb) : r(rgb.r), g(rgb.g), b(rgb.b) {}
 
@@ -73,7 +82,11 @@ namespace espp {
     return HSV;
   }
 
-  Hsv::Hsv(const float& _h, const float& _s, const float & _v) : h(_h), s(_s), v(_v) {}
+  Hsv::Hsv(const float& _h, const float& _s, const float & _v) : h(_h), s(_s), v(_v) {
+    h = std::clamp(h, 0.0f, 360.0f);
+    s = std::clamp(s, 0.0f, 1.0f);
+    v = std::clamp(v, 0.0f, 1.0f);
+  }
 
   Hsv::Hsv(const Hsv& hsv) : h(hsv.h), s(hsv.s), v(hsv.v) {}
 
