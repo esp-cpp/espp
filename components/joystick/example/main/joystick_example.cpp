@@ -11,22 +11,16 @@ extern "C" void app_main(void) {
   {
     fmt::print("Running joystick example\n");
     //! [adc joystick example]
-    std::vector<espp::AdcConfig> channels{
-      {
-        .unit = ADC_UNIT_2,
-        .channel = ADC_CHANNEL_9,  // Qt Py ESP32 PICO A0
-        .attenuation = ADC_ATTEN_DB_11
-      },
-      {
-        .unit = ADC_UNIT_2,
-        .channel = ADC_CHANNEL_8,  // Qt Py ESP32 PICO A1
-        .attenuation = ADC_ATTEN_DB_11
-      }
-    };
+    std::vector<espp::AdcConfig> channels{{.unit = ADC_UNIT_2,
+                                           .channel = ADC_CHANNEL_9, // Qt Py ESP32 PICO A0
+                                           .attenuation = ADC_ATTEN_DB_11},
+                                          {.unit = ADC_UNIT_2,
+                                           .channel = ADC_CHANNEL_8, // Qt Py ESP32 PICO A1
+                                           .attenuation = ADC_ATTEN_DB_11}};
     espp::OneshotAdc adc({
         .unit = ADC_UNIT_2,
         .channels = channels,
-      });
+    });
     auto read_joystick = [&adc, &channels](float *x, float *y) -> bool {
       // this will be in mv
       auto maybe_x_mv = adc.read_mv(channels[0].channel);
@@ -42,10 +36,12 @@ extern "C" void app_main(void) {
     };
     espp::Joystick js1({
         // convert [0, 3300]mV to approximately [-1.0f, 1.0f]
-        .x_calibration = {.center = 1700.0f, .deadband = 100.0f, .minimum = 0.0f, .maximum = 3300.0f},
-        .y_calibration = {.center = 1700.0f, .deadband = 100.0f, .minimum = 0.0f, .maximum = 3300.0f},
+        .x_calibration =
+            {.center = 1700.0f, .deadband = 100.0f, .minimum = 0.0f, .maximum = 3300.0f},
+        .y_calibration =
+            {.center = 1700.0f, .deadband = 100.0f, .minimum = 0.0f, .maximum = 3300.0f},
         .get_values = read_joystick,
-      });
+    });
     espp::Joystick js2({
         // convert [0, 3300]mV to approximately [-1.0f, 1.0f]
         .x_calibration = {.center = 1700.0f, .deadband = 0.0f, .minimum = 0.0f, .maximum = 3300.0f},
@@ -53,8 +49,8 @@ extern "C" void app_main(void) {
         .deadzone = espp::Joystick::Deadzone::CIRCULAR,
         .deadzone_radius = 0.1f,
         .get_values = read_joystick,
-      });
-    auto task_fn = [&js1, &js2](std::mutex& m, std::condition_variable& cv) {
+    });
+    auto task_fn = [&js1, &js2](std::mutex &m, std::condition_variable &cv) {
       js1.update();
       js2.update();
       fmt::print("{}, {}\n", js1, js2);
@@ -67,11 +63,8 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task({
-        .name = "Joystick",
-        .callback = task_fn,
-        .log_level = espp::Logger::Verbosity::INFO
-      });
+    auto task = espp::Task(
+        {.name = "Joystick", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
     fmt::print("js1 x, js1 y, js2 x, js2 y\n");
     task.start();
     //! [adc joystick example]

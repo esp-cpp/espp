@@ -13,16 +13,13 @@ extern "C" void app_main(void) {
     //! [Logger example]
     float num_seconds_to_run = 10.0f;
     // create loggers
-    auto logger = espp::Logger({
-        .tag = "Cool Logger",
-        .level = espp::Logger::Verbosity::DEBUG
-      });
+    auto logger = espp::Logger({.tag = "Cool Logger", .level = espp::Logger::Verbosity::DEBUG});
     auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
-    float elapsed = std::chrono::duration<float>(now-start).count();
+    float elapsed = std::chrono::duration<float>(now - start).count();
     while (elapsed < num_seconds_to_run) {
       now = std::chrono::high_resolution_clock::now();
-      elapsed = std::chrono::duration<float>(now-start).count();
+      elapsed = std::chrono::duration<float>(now - start).count();
       auto remaining = num_seconds_to_run - elapsed;
       logger.debug("debug: {:%Y-%m-%d %H:%M:%S} - {:%Y-%m-%d %H:%M:%S} = {}", now, start, elapsed);
       logger.info("elapsed: {:.3f}s", elapsed);
@@ -37,14 +34,8 @@ extern "C" void app_main(void) {
   {
     //! [MultiLogger example]
     // create loggers
-    auto logger1 = espp::Logger({
-        .tag = "Thread 1",
-        .level = espp::Logger::Verbosity::INFO
-      });
-    auto logger2 = espp::Logger({
-        .tag = "Thread 2",
-        .level = espp::Logger::Verbosity::DEBUG
-      });
+    auto logger1 = espp::Logger({.tag = "Thread 1", .level = espp::Logger::Verbosity::INFO});
+    auto logger2 = espp::Logger({.tag = "Thread 2", .level = espp::Logger::Verbosity::DEBUG});
     // lambda for logging to those two loggers from multiple threads
     auto logger_fn = [](espp::Logger *logger) {
       size_t loop_iteration{0};

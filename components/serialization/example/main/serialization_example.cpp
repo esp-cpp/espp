@@ -1,6 +1,6 @@
 #include <chrono>
-#include <vector>
 #include <thread>
+#include <vector>
 
 #include "format.hpp"
 #include "serialization.hpp"
@@ -62,8 +62,7 @@ extern "C" void app_main(void) {
     }
     {
       std::array<uint8_t, 15> buffer;
-      constexpr auto OPTIONS =
-        alpaca::options::fixed_length_encoding;
+      constexpr auto OPTIONS = alpaca::options::fixed_length_encoding;
       auto bytes_written = espp::serialize<OPTIONS>(object, buffer);
       fmt::print("Serialized {}B to std::arary with custom options\n", bytes_written);
       auto new_object = espp::deserialize<OPTIONS, MyStruct>(buffer, ec);
@@ -85,11 +84,7 @@ extern "C" void app_main(void) {
       std::string name;
     };
     std::error_code ec;
-    MyStruct object{
-      42,
-      {1,3,3,7},
-      "the meaning of life"
-    };
+    MyStruct object{42, {1, 3, 3, 7}, "the meaning of life"};
     std::vector<uint8_t> buffer;
     auto bytes_written = espp::serialize(object, buffer);
     fmt::print("Serialized {}B to std::vector\n", bytes_written);
@@ -99,9 +94,7 @@ extern "C" void app_main(void) {
       fmt::print("\tvalue: {}\n"
                  "\tdata:  {}\n"
                  "\tname:  {}\n",
-                 new_object.value,
-                 new_object.data,
-                 new_object.name);
+                 new_object.value, new_object.data, new_object.name);
     } else {
       fmt::print("Deserialization failed: {}\n", ec.message());
     }

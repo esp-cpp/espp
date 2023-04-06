@@ -1,0 +1,16 @@
+repos:
+-   repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v14.0.6
+    hooks:
+    -   id: clang-format
+        exclude: |
+          (?x)(
+          ^components/esp-dsp/|
+          ^components/esp_littlefs/|
+          ^components/lvgl/|
+          ^external/alpaca/|
+          ^external/cli/|
+          ^external/csv2/|
+          ^external/fmt/
+          )
+        types_or: [c++, c]

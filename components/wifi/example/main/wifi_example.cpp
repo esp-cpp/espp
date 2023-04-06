@@ -6,9 +6,9 @@
 #endif
 
 #include "sdkconfig.h"
-#include "wifi_sta.hpp"
-#include "wifi_ap.hpp"
 #include "task.hpp"
+#include "wifi_ap.hpp"
+#include "wifi_sta.hpp"
 
 using namespace std::chrono_literals;
 
@@ -29,16 +29,14 @@ extern "C" void app_main(void) {
 
   {
     //! [wifi sta example]
-    espp::WifiSta wifi_sta({
-        .ssid = CONFIG_ESP_WIFI_SSID,
-        .password = CONFIG_ESP_WIFI_PASSWORD,
-        .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
-        .on_connected = nullptr,
-        .on_disconnected = nullptr,
-        .on_got_ip = [](ip_event_got_ip_t* eventdata) {
-          fmt::print("got IP: {}.{}.{}.{}\n", IP2STR(&eventdata->ip_info.ip));
-        }
-      });
+    espp::WifiSta wifi_sta({.ssid = CONFIG_ESP_WIFI_SSID,
+                            .password = CONFIG_ESP_WIFI_PASSWORD,
+                            .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
+                            .on_connected = nullptr,
+                            .on_disconnected = nullptr,
+                            .on_got_ip = [](ip_event_got_ip_t *eventdata) {
+                              fmt::print("got IP: {}.{}.{}.{}\n", IP2STR(&eventdata->ip_info.ip));
+                            }});
 
     while (!wifi_sta.is_connected()) {
       std::this_thread::sleep_for(100ms);
@@ -50,10 +48,7 @@ extern "C" void app_main(void) {
 
   {
     //! [wifi ap example]
-    espp::WifiAp wifi_ap({
-        .ssid = CONFIG_ESP_WIFI_SSID,
-        .password = CONFIG_ESP_WIFI_PASSWORD
-      });
+    espp::WifiAp wifi_ap({.ssid = CONFIG_ESP_WIFI_SSID, .password = CONFIG_ESP_WIFI_PASSWORD});
     //! [wifi ap example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);

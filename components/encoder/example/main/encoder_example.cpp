@@ -18,9 +18,9 @@ extern "C" void app_main(void) {
         .high_limit = 8192,
         .low_limit = -8192,
         .counts_per_revolution = 4096,
-      });
+    });
     encoder.start();
-    auto task_fn = [&encoder](std::mutex& m, std::condition_variable& cv) {
+    auto task_fn = [&encoder](std::mutex &m, std::condition_variable &cv) {
       auto count = encoder.get_count();
       auto radians = encoder.get_radians();
       auto degrees = encoder.get_degrees();
@@ -34,11 +34,8 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task({
-        .name = "Abi Encoder",
-        .callback = task_fn,
-        .log_level = espp::Logger::Verbosity::INFO
-      });
+    auto task = espp::Task(
+        {.name = "Abi Encoder", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
     task.start();
     //! [abi encoder rotational example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -52,9 +49,9 @@ extern "C" void app_main(void) {
         .b_gpio = 10,
         .high_limit = 8192,
         .low_limit = -8192,
-      });
+    });
     encoder.start();
-    auto task_fn = [&encoder](std::mutex& m, std::condition_variable& cv) {
+    auto task_fn = [&encoder](std::mutex &m, std::condition_variable &cv) {
       // EncoderType::LINEAR only supports get_count
       auto count = encoder.get_count();
       fmt::print("Count: {}\n", count);
@@ -67,11 +64,8 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task({
-        .name = "Abi Encoder",
-        .callback = task_fn,
-        .log_level = espp::Logger::Verbosity::INFO
-      });
+    auto task = espp::Task(
+        {.name = "Abi Encoder", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
     task.start();
     //! [abi encoder linear example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
