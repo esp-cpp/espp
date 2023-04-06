@@ -16,8 +16,37 @@ namespace espp {
     float b{0}; ///< Blue value ∈ [0, 1]
 
     Rgb() = default;
+
+    /**
+     * @brief Construct an Rgb object from the provided rgb values.
+     * @note If provided values outside the range [0,1], it will rescale them to
+     *       be within the range [0,1] by dividing by 255.
+     * @param r Floating point value for the red channel, should be in range [0,
+     *        1]
+     * @param g Floating point value for the green channel, should be in range
+     *        [0, 1]
+     * @param b Floating point value for the blue channel, should be in range
+     *        [0, 1]
+     */
     Rgb(const float& r, const float& g, const float& b);
+
+    /**
+     * @brief Copy-construct an Rgb object from the provided object.
+     * @note If provided values outside the range [0,1], it will rescale them to
+     *       be within the range [0,1] by dividing by 255.
+     * @param rgb Rgb struct containing the values to copy.
+     */
     Rgb(const Rgb& rgb);
+
+    /**
+     * @brief Construct an Rgb object from the provided Hsv object.
+     * @note This calls hsv.rgb() on the provided object, which means fthat
+     *       invalid HSV data (not in the ranges [0,360], [0,1], and [0,1])
+     *       could lead to bad RGB data. The Rgb constructor will automatically
+     *       convert the values to be in the proper range, but the perceived
+     *       color will be changed.
+     * @param hsv Hsv object to copy.
+     */
     Rgb(const Hsv& hsv);
 
     Rgb& operator=(const Rgb& other) = default;
@@ -52,8 +81,26 @@ namespace espp {
     float v{0}; ///< Value ∈ [0, 1]
 
     Hsv() = default;
+
+    /**
+     * @brief Construct a Hsv object from the provided values.
+     * @param h Hue - will be clamped to be in range [0, 360]
+     * @param s Saturation - will be clamped to be in range [0, 1]
+     * @param v Value - will be clamped to be in range [0, 1]
+     */
     Hsv(const float& h, const float& s, const float& v);
+
+    /**
+     * @brief Copy-construct the Hsv object
+     * @param hsv Object to copy from.
+     */
     Hsv(const Hsv& hsv);
+
+    /**
+     * @brief Construct Hsv object from Rgb object. Calls rgb.hsv() to perform
+     *        the conversion.
+     * @param rgb The Rgb object to convert and copy.
+     */
     Hsv(const Rgb& rgb);
 
     Hsv& operator=(const Hsv& other) = default;
