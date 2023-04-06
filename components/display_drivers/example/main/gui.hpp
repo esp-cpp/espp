@@ -4,8 +4,8 @@
 #include <mutex>
 
 #include "display.hpp"
-#include "task.hpp"
 #include "logger.hpp"
+#include "task.hpp"
 
 class Gui {
 public:
@@ -14,24 +14,23 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  Gui(const Config& config) : display_(config.display), logger_({.tag="Gui", .level=config.log_level}) {
+  Gui(const Config &config)
+      : display_(config.display), logger_({.tag = "Gui", .level = config.log_level}) {
     init_ui();
     // now start the gui updater task
     using namespace std::placeholders;
-    task_ = espp::Task::make_unique({
-        .name = "Gui Task",
-        .callback = std::bind(&Gui::update, this, _1, _2),
-        .stack_size_bytes = 6 * 1024
-      });
+    task_ = espp::Task::make_unique({.name = "Gui Task",
+                                     .callback = std::bind(&Gui::update, this, _1, _2),
+                                     .stack_size_bytes = 6 * 1024});
     task_->start();
   }
 
-  void set_label(const std::string_view& label) {
+  void set_label(const std::string_view &label) {
     std::scoped_lock<std::recursive_mutex> lk(mutex_);
     lv_label_set_text(label_, label.data());
   }
 
-  void set_meter(size_t value, bool animate=true) {
+  void set_meter(size_t value, bool animate = true) {
     std::scoped_lock<std::recursive_mutex> lk(mutex_);
     if (animate) {
       lv_bar_set_value(meter_, value, LV_ANIM_ON);
@@ -64,7 +63,7 @@ protected:
     lv_obj_add_style(meter_, &style_indic, LV_PART_INDICATOR);
   }
 
-  bool update(std::mutex& m, std::condition_variable& cv) {
+  bool update(std::mutex &m, std::condition_variable &cv) {
     {
       std::scoped_lock<std::recursive_mutex> lk(mutex_);
       lv_task_handler();

@@ -3,17 +3,17 @@
 
 #include "driver/i2c.h"
 
+#include "as5600.hpp"
 #include "butterworth_filter.hpp"
 #include "task.hpp"
-#include "as5600.hpp"
 
 using namespace std::chrono_literals;
 
-#define I2C_NUM         (I2C_NUM_1)
-#define I2C_SCL_IO      (GPIO_NUM_40)
-#define I2C_SDA_IO      (GPIO_NUM_41)
-#define I2C_FREQ_HZ     (400 * 1000)
-#define I2C_TIMEOUT_MS  (10)
+#define I2C_NUM (I2C_NUM_1)
+#define I2C_SCL_IO (GPIO_NUM_40)
+#define I2C_SDA_IO (GPIO_NUM_41)
+#define I2C_FREQ_HZ (400 * 1000)
+#define I2C_TIMEOUT_MS (10)
 
 extern "C" void app_main(void) {
   {
@@ -31,64 +31,47 @@ extern "C" void app_main(void) {
     i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
     i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
     auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-    if (err != ESP_OK) printf("config i2c failed\n");
-    err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER,  0, 0, 0);
-    if (err != ESP_OK) printf("install i2c driver failed\n");
+    if (err != ESP_OK)
+      printf("config i2c failed\n");
+    err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
+    if (err != ESP_OK)
+      printf("install i2c driver failed\n");
     // make some lambda functions we'll use to read/write to the as5600
-    auto as5600_write = [](uint8_t dev_addr, uint8_t* data, size_t data_len) {
-      i2c_master_write_to_device(I2C_NUM,
-                                 dev_addr,
-                                 data,
-                                 data_len,
+    auto as5600_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
+      i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
                                  I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
     };
 
-    auto as5600_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t* data, size_t data_len) {
-      i2c_master_write_read_device(I2C_NUM,
-                                   dev_addr,
-                                   &reg_addr,
-                                   1,
-                                   data,
-                                   data_len,
+    auto as5600_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len) {
+      i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, data_len,
                                    I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
     };
     // make the velocity filter
     static constexpr float filter_cutoff_hz = 4.0f;
     static constexpr float encoder_update_period = 0.01f; // seconds
-    espp::ButterworthFilter<2, espp::BiquadFilterDf2> filter({
-        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * encoder_update_period
-      });
+    espp::ButterworthFilter<2, espp::BiquadFilterDf2> filter(
+        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * encoder_update_period});
     // NOTE: we could just as easily disable filtering by simply returning the
     // raw value from this function
-    auto filter_fn = [&filter](float raw) -> float {
-      return filter.update(raw);
-    };
+    auto filter_fn = [&filter](float raw) -> float { return filter.update(raw); };
     // now make the as5600 which decodes the data
-    espp::As5600 as5600({
-        .write = as5600_write,
-        .read = as5600_read,
-        .velocity_filter = filter_fn,
-        .update_period = std::chrono::duration<float>(encoder_update_period),
-        .log_level = espp::Logger::Verbosity::WARN
-      });
+    espp::As5600 as5600({.write = as5600_write,
+                         .read = as5600_read,
+                         .velocity_filter = filter_fn,
+                         .update_period = std::chrono::duration<float>(encoder_update_period),
+                         .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the as5600 and print the
     // state. NOTE: the As5600 runs its own task to maintain state, so we're
     // just polling the current state.
-    auto task_fn = [&quit_test, &as5600](std::mutex& m, std::condition_variable& cv) {
+    auto task_fn = [&quit_test, &as5600](std::mutex &m, std::condition_variable &cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
-      auto seconds = std::chrono::duration<float>(now-start).count();
+      auto seconds = std::chrono::duration<float>(now - start).count();
       auto count = as5600.get_count();
       auto radians = as5600.get_radians();
       auto degrees = as5600.get_degrees();
       auto rpm = as5600.get_rpm();
-      fmt::print("{:.3f}, {}, {:.3f}, {:.3f}, {:.3f}\n",
-                 seconds,
-                 count,
-                 radians,
-                 degrees,
-                 rpm
-                 );
+      fmt::print("{:.3f}, {}, {:.3f}, {:.3f}, {:.3f}\n", seconds, count, radians, degrees, rpm);
       quit_test = degrees <= -720.0f;
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
@@ -99,12 +82,10 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task({
-        .name = "As5600 Task",
-        .callback = task_fn,
-        .stack_size_bytes = 5*1024,
-        .log_level = espp::Logger::Verbosity::WARN
-      });
+    auto task = espp::Task({.name = "As5600 Task",
+                            .callback = task_fn,
+                            .stack_size_bytes = 5 * 1024,
+                            .log_level = espp::Logger::Verbosity::WARN});
     fmt::print("%time(s), count, radians, degrees, rpm\n");
     task.start();
     //! [as5600 example]

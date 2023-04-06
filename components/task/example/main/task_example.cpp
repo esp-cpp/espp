@@ -51,7 +51,7 @@ extern "C" void app_main(void) {
   {
     fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
     //! [Task example]
-    auto task_fn = [](std::mutex& m, std::condition_variable& cv) {
+    auto task_fn = [](std::mutex &m, std::condition_variable &cv) {
       static size_t task_iterations{0};
       fmt::print("Task: #iterations = {}\n", task_iterations);
       task_iterations++;
@@ -64,11 +64,8 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task({
-        .name = "Task 1",
-        .callback = task_fn,
-        .log_level = espp::Logger::Verbosity::DEBUG
-      });
+    auto task = espp::Task(
+        {.name = "Task 1", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     //! [Task example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -91,10 +88,10 @@ extern "C" void app_main(void) {
     fmt::print("Spawning {} tasks!\n", num_tasks);
     tasks.resize(num_tasks);
     auto start = std::chrono::high_resolution_clock::now();
-    for (size_t i=0; i<num_tasks; i++) {
+    for (size_t i = 0; i < num_tasks; i++) {
       size_t iterations{0};
       // copy the loop variables and indicate that we intend to mutate them!
-      auto task_fn = [i, iterations](std::mutex& m, std::condition_variable& cv) mutable {
+      auto task_fn = [i, iterations](std::mutex &m, std::condition_variable &cv) mutable {
         fmt::print("Task {}: #iterations = {}\n", i, iterations);
         iterations++;
         // NOTE: sleeping in this way allows the sleep to exit early when the
@@ -107,10 +104,7 @@ extern "C" void app_main(void) {
         return false;
       };
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({
-          .name = task_name,
-          .callback = task_fn
-        });
+      auto task = espp::Task::make_unique({.name = task_name, .callback = task_fn});
       tasks[i] = std::move(task);
       tasks[i]->start();
     }
@@ -134,10 +128,10 @@ extern "C" void app_main(void) {
     fmt::print("Spawning {} tasks!\n", num_tasks);
     tasks.resize(num_tasks);
     auto start = std::chrono::high_resolution_clock::now();
-    for (size_t i=0; i<num_tasks; i++) {
+    for (size_t i = 0; i < num_tasks; i++) {
       size_t iterations{0};
       // copy the loop variables and indicate that we intend to mutate them!
-      auto task_fn = [i, iterations](std::mutex& m, std::condition_variable& cv) mutable {
+      auto task_fn = [i, iterations](std::mutex &m, std::condition_variable &cv) mutable {
         fmt::print("Task {}: #iterations = {}\n", i, iterations);
         iterations++;
         // NOTE: sleeping in this way PREVENTS the sleep / task from early
@@ -147,10 +141,7 @@ extern "C" void app_main(void) {
         return false;
       };
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({
-          .name = task_name,
-          .callback = task_fn
-        });
+      auto task = espp::Task::make_unique({.name = task_name, .callback = task_fn});
       tasks[i] = std::move(task);
       tasks[i]->start();
     }
@@ -169,11 +160,11 @@ extern "C" void app_main(void) {
   {
     fmt::print("Spawning complex task for {} seconds!\n", num_seconds_to_run);
     //! [LongRunningTask example]
-    auto task_fn = [](std::mutex& m, std::condition_variable& cv) {
+    auto task_fn = [](std::mutex &m, std::condition_variable &cv) {
       static size_t task_iterations{0};
       const size_t num_steps_per_iteration = 10;
       fmt::print("Task processing iteration {}...\n", task_iterations);
-      for (size_t i=0; i<num_steps_per_iteration; i++) {
+      for (size_t i = 0; i < num_steps_per_iteration; i++) {
         // NOTE: sleeping in this way allows the sleep to exit early when the
         // task is being stopped / destroyed
         {
@@ -185,7 +176,8 @@ extern "C" void app_main(void) {
           if (cv_retval == std::cv_status::no_timeout) {
             // if there was no timeout, then we were notified, therefore we need
             // to shut down.
-            fmt::print("Task stopping early (step {}/{}) on iteration {}\n", i, num_steps_per_iteration, task_iterations);
+            fmt::print("Task stopping early (step {}/{}) on iteration {}\n", i,
+                       num_steps_per_iteration, task_iterations);
             // NOTE: use this_thread::sleep_for() to fake cleaning up work that
             // we would do
             std::this_thread::sleep_for(10ms);
@@ -200,11 +192,8 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task({
-        .name = "Complex Task",
-        .callback = task_fn,
-        .log_level = espp::Logger::Verbosity::DEBUG
-      });
+    auto task = espp::Task(
+        {.name = "Complex Task", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     //! [LongRunningTask example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -220,7 +209,7 @@ extern "C" void app_main(void) {
   {
     fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
     //! [Task Info example]
-    auto task_fn = [](std::mutex& m, std::condition_variable& cv) {
+    auto task_fn = [](std::mutex &m, std::condition_variable &cv) {
       static size_t task_iterations{0};
       task_iterations++;
       // allocate stack
@@ -237,11 +226,8 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task({
-        .name = "DynamicTask",
-        .callback = task_fn,
-        .log_level = espp::Logger::Verbosity::DEBUG
-      });
+    auto task = espp::Task(
+        {.name = "DynamicTask", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     auto now = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration<float>(now - test_start).count();
@@ -265,10 +251,10 @@ extern "C" void app_main(void) {
   {
     fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
     //! [Task Request Stop example]
-    auto task_fn = [&num_seconds_to_run](std::mutex& m, std::condition_variable& cv) {
+    auto task_fn = [&num_seconds_to_run](std::mutex &m, std::condition_variable &cv) {
       static auto begin = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
-      auto elapsed = std::chrono::duration<float>(now-begin).count();
+      auto elapsed = std::chrono::duration<float>(now - begin).count();
       if (elapsed > num_seconds_to_run) {
         // we've gone long enough, time to stop our task!
         return true;
@@ -282,11 +268,9 @@ extern "C" void app_main(void) {
       // we don't want to stop yet, so return false
       return false;
     };
-    auto task = espp::Task({
-        .name = "AutoStop Task",
-        .callback = task_fn,
-        .log_level = espp::Logger::Verbosity::DEBUG
-      });
+    auto task = espp::Task({.name = "AutoStop Task",
+                            .callback = task_fn,
+                            .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     while (task.is_started()) {
       std::this_thread::sleep_for(10ms);
