@@ -13,19 +13,19 @@ using namespace std::chrono_literals;
 
 // NOTE: These constants & functions are only for the test bench example which
 //       allows the user to manually spawn events through a pseudo-cli
-const int numEvents        = 5;
-const int TickSelection    = numEvents + 1;
+const int numEvents = 5;
+const int TickSelection = numEvents + 1;
 const int RestartSelection = numEvents + 2;
-const int ExitSelection    = numEvents + 3;
+const int ExitSelection = numEvents + 3;
 void display_event_menu();
 int get_user_selection();
-void make_event(espp::state_machine::Complex::Root& root, int eventIndex);
+void make_event(espp::state_machine::Complex::Root &root, int eventIndex);
 
 extern "C" void app_main(void) {
   {
     fmt::print("Starting hfsm example!\n");
     //! [hfsm example]
-    espp::state_machine::Complex::GeneratedEventBase* e = nullptr;
+    espp::state_machine::Complex::GeneratedEventBase *e = nullptr;
     bool handled = false;
 
     // create the HFSM
@@ -51,7 +51,7 @@ extern "C" void app_main(void) {
       return complex_root.has_stopped();
     };
     auto task = espp::Task(
-                           {.name = "HFSM", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+        {.name = "HFSM", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
 
     // from other contexts you can spawn events into the HFSM. the functions are
@@ -80,7 +80,7 @@ extern "C" void app_main(void) {
     //       get_user_selection() function.
     espp::Cli::configure_stdin_stdout();
 
-    espp::state_machine::Complex::GeneratedEventBase* e = nullptr;
+    espp::state_machine::Complex::GeneratedEventBase *e = nullptr;
 
     // create the HFSM
     espp::state_machine::Complex::Root complex_root;
@@ -91,20 +91,17 @@ extern "C" void app_main(void) {
     // NOTE: this is just a copy of the HFSM code from the generated test bench,
     //       and is not intended to show how to actually run the HFSM in
     //       production.
-    while ( true ) {
+    while (true) {
       display_event_menu();
       int selection = get_user_selection();
       if (selection == ExitSelection) {
         break;
-      }
-      else if (selection == RestartSelection) {
+      } else if (selection == RestartSelection) {
         complex_root.restart();
-      }
-      else if (selection == TickSelection) {
+      } else if (selection == TickSelection) {
         complex_root.tick();
-      }
-      else {
-        make_event( complex_root, selection );
+      } else {
+        make_event(complex_root, selection);
       }
       complex_root.handle_all_events();
     }
@@ -119,17 +116,17 @@ extern "C" void app_main(void) {
 }
 
 void display_event_menu() {
-  std::cout << "\n-----\nSelect which event to spawn:" << std::endl <<
-    "\t0. ENDEVENT" << std::endl <<
-    "\t1. EVENT1" << std::endl <<
-    "\t2. EVENT2" << std::endl <<
-    "\t3. EVENT3" << std::endl <<
-    "\t4. EVENT4" << std::endl <<
-    "\t5. None" << std::endl <<
-    "\t" << TickSelection << ". HFSM Tick" << std::endl <<
-    "\t" << RestartSelection << ". Restart HFSM" << std::endl <<
-    "\t" << ExitSelection << ". Exit HFSM" << std::endl <<
-    "selection: ";
+  std::cout << "\n-----\nSelect which event to spawn:" << std::endl
+            << "\t0. ENDEVENT" << std::endl
+            << "\t1. EVENT1" << std::endl
+            << "\t2. EVENT2" << std::endl
+            << "\t3. EVENT3" << std::endl
+            << "\t4. EVENT4" << std::endl
+            << "\t5. None" << std::endl
+            << "\t" << TickSelection << ". HFSM Tick" << std::endl
+            << "\t" << RestartSelection << ". Restart HFSM" << std::endl
+            << "\t" << ExitSelection << ". Exit HFSM" << std::endl
+            << "selection: ";
 }
 
 int get_user_selection() {
@@ -138,36 +135,36 @@ int get_user_selection() {
   return s;
 }
 
-void make_event(espp::state_machine::Complex::Root& root, int eventIndex) {
-  if ( eventIndex < numEvents && eventIndex > -1 ) {
+void make_event(espp::state_machine::Complex::Root &root, int eventIndex) {
+  if (eventIndex < numEvents && eventIndex > -1) {
     switch (eventIndex) {
-      case 0: {
-        espp::state_machine::Complex::ENDEVENTEventData data{};
-        root.spawn_ENDEVENT_event(data);
-        break;
-      }
-      case 1: {
-        espp::state_machine::Complex::EVENT1EventData data{};
-        root.spawn_EVENT1_event(data);
-        break;
-      }
-      case 2: {
-        espp::state_machine::Complex::EVENT2EventData data{};
-        root.spawn_EVENT2_event(data);
-        break;
-      }
-      case 3: {
-        espp::state_machine::Complex::EVENT3EventData data{};
-        root.spawn_EVENT3_event(data);
-        break;
-      }
-      case 4: {
-        espp::state_machine::Complex::EVENT4EventData data{};
-        root.spawn_EVENT4_event(data);
-        break;
-      }
-      default:
-        break;
+    case 0: {
+      espp::state_machine::Complex::ENDEVENTEventData data{};
+      root.spawn_ENDEVENT_event(data);
+      break;
+    }
+    case 1: {
+      espp::state_machine::Complex::EVENT1EventData data{};
+      root.spawn_EVENT1_event(data);
+      break;
+    }
+    case 2: {
+      espp::state_machine::Complex::EVENT2EventData data{};
+      root.spawn_EVENT2_event(data);
+      break;
+    }
+    case 3: {
+      espp::state_machine::Complex::EVENT3EventData data{};
+      root.spawn_EVENT3_event(data);
+      break;
+    }
+    case 4: {
+      espp::state_machine::Complex::EVENT4EventData data{};
+      root.spawn_EVENT4_event(data);
+      break;
+    }
+    default:
+      break;
     }
   }
 }
