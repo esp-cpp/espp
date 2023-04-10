@@ -57,6 +57,8 @@ jobs:
           target: esp32
         - path: 'components/st25dv/example'
           target: esp32s3
+        - path: 'components/state_machine/example'
+          target: esp32
         - path: 'components/task/example'
           target: esp32
         - path: 'components/wifi/example'
