@@ -106,6 +106,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
 </ul>
@@ -127,7 +128,7 @@
           <li><a href="index.html">Input APIs</a> &raquo;</li>
       <li>Touchpad Input</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/579dc8f/docs/en/input/touchpad_input.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9fb257a/docs/en/input/touchpad_input.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -145,7 +146,7 @@ button (part of the touch panel).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/579dc8f/components/input_drivers/include/touchpad_input.hpp">components/input_drivers/include/touchpad_input.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/input_drivers/include/touchpad_input.hpp">components/input_drivers/include/touchpad_input.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -158,7 +159,7 @@ button (part of the touch panel).</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13TouchpadInput16touchpad_read_fnE">
-<span id="_CPPv3N4espp13TouchpadInput16touchpad_read_fnE"></span><span id="_CPPv2N4espp13TouchpadInput16touchpad_read_fnE"></span><span id="espp::TouchpadInput::touchpad_read_fn"></span><span class="target" id="classespp_1_1_touchpad_input_1a625368a24a5f0fef4f0a9e455495169c"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">num_touches</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp13TouchpadInput16touchpad_read_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp13TouchpadInput16touchpad_read_fnE"></span><span id="_CPPv2N4espp13TouchpadInput16touchpad_read_fnE"></span><span id="espp::TouchpadInput::touchpad_read_fn"></span><span class="target" id="classespp_1_1_touchpad_input_1a972e25a6d68502886b82d26b599176f0"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">num_touches</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">state</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">touchpad_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp13TouchpadInput16touchpad_read_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function prototype for getting the latest input data from the touchpad. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param num_touches</dt>
@@ -211,7 +212,7 @@ button (part of the touch panel).</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13TouchpadInput6Config7swap_xyE">
-<span id="_CPPv3N4espp13TouchpadInput6Config7swap_xyE"></span><span id="_CPPv2N4espp13TouchpadInput6Config7swap_xyE"></span><span id="espp::TouchpadInput::Config::swap_xy__b"></span><span class="target" id="structespp_1_1_touchpad_input_1_1_config_1a4e439afffa41933a41888a3ac73e3d2a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">swap_xy</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13TouchpadInput6Config7swap_xyE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp13TouchpadInput6Config7swap_xyE"></span><span id="_CPPv2N4espp13TouchpadInput6Config7swap_xyE"></span><span id="espp::TouchpadInput::Config::swap_xy__b"></span><span class="target" id="structespp_1_1_touchpad_input_1_1_config_1a4e439afffa41933a41888a3ac73e3d2a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">swap_xy</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">false</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13TouchpadInput6Config7swap_xyE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>If true, swap the x/y coordinates retrieved from the touchpad_read_fn. </p>
 </dd></dl>
 

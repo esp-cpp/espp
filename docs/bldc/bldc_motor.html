@@ -107,6 +107,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
 </ul>
@@ -128,7 +129,7 @@
           <li><a href="index.html">BLDC APIs</a> &raquo;</li>
       <li>BLDC Motor</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/579dc8f/docs/en/bldc/bldc_motor.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9fb257a/docs/en/bldc/bldc_motor.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -159,7 +160,7 @@ the phase currents of the motor and providing torque control).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/579dc8f/components/bldc_motor/include/bldc_motor.hpp">components/bldc_motor/include/bldc_motor.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/bldc_motor/include/bldc_motor.hpp">components/bldc_motor/include/bldc_motor.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -482,25 +483,25 @@ the phase currents of the motor and providing torque control).</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9BldcMotor6Config13current_senseE">
-<span id="_CPPv3N4espp9BldcMotor6Config13current_senseE"></span><span id="_CPPv2N4espp9BldcMotor6Config13current_senseE"></span><span id="espp::BldcMotor::Config::current_sense__std::shared_ptr:CS:"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a49fd80639ec11c7ce39291907eb89976"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="espp::BldcMotor::CS"><span class="n"><span class="pre">CS</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">current_sense</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config13current_senseE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp9BldcMotor6Config13current_senseE"></span><span id="_CPPv2N4espp9BldcMotor6Config13current_senseE"></span><span id="espp::BldcMotor::Config::current_sense__std::shared_ptr:CS:"></span><span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a49fd80639ec11c7ce39291907eb89976"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">shared_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_13DriverConcept_13SensorConcept_20CurrentSensorConceptEN4espp9BldcMotorE" title="espp::BldcMotor::CS"><span class="n"><span class="pre">CS</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">current_sense</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp9BldcMotor6Config13current_senseE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Sensor for measuring current through the motor. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp">
-<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a6620a6cb66e438757367977d7aee9615"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">current_pid_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.kp=0,</span> <span class="pre">.ki=0,</span> <span class="pre">.kd=0,</span> <span class="pre">.integrator_min=0,</span> <span class="pre">.integrator_max=0,</span>&#160; <span class="pre">.output_min=0,</span> <span class="pre">.output_max=0}</span></span></dt>
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1a6620a6cb66e438757367977d7aee9615"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">current_pid_config</span>&#160; <span class="pre">{.kp</span> <span class="pre">=</span> <span class="pre">0,.ki</span> <span class="pre">=</span> <span class="pre">0,.kd</span> <span class="pre">=</span> <span class="pre">0,.integrator_min</span> <span class="pre">=</span> <span class="pre">0,.integrator_max</span> <span class="pre">=</span> <span class="pre">0,.output_min</span> <span class="pre">=</span> <span class="pre">0,.output_max</span> <span class="pre">=</span> <span class="pre">0}</span></span></dt>
 <dd><p>PID configuration for current (amps) pid controller. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp">
-<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1aebff56fc6b1b5824019ac75ab5a7eebc"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">velocity_pid_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.kp=0,</span> <span class="pre">.ki=0,</span> <span class="pre">.kd=0,</span> <span class="pre">.integrator_min=0,</span> <span class="pre">.integrator_max=0,</span>&#160; <span class="pre">.output_min=0,</span> <span class="pre">.output_max=0}</span></span></dt>
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1aebff56fc6b1b5824019ac75ab5a7eebc"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">velocity_pid_config</span>&#160; <span class="pre">{.kp</span> <span class="pre">=</span> <span class="pre">0,.ki</span> <span class="pre">=</span> <span class="pre">0,.kd</span> <span class="pre">=</span> <span class="pre">0,.integrator_min</span> <span class="pre">=</span> <span class="pre">0,.integrator_max</span> <span class="pre">=</span> <span class="pre">0,.output_min</span> <span class="pre">=</span> <span class="pre">0,.output_max</span> <span class="pre">=0}</span></span></dt>
 <dd><p>PID configuration for velocity pid controller. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp">
-<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1ae4661004e59378432c706422d0b42976"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">angle_pid_config</span>&#160;&#160; <span class="pre">=</span> <span class="pre">{.kp=0,</span> <span class="pre">.ki=0,</span> <span class="pre">.kd=0,</span> <span class="pre">.integrator_min=0,</span> <span class="pre">.integrator_max=0,</span>&#160; <span class="pre">.output_min=0,</span> <span class="pre">.output_max=0}</span></span></dt>
+<span class="target" id="structespp_1_1_bldc_motor_1_1_config_1ae4661004e59378432c706422d0b42976"></span><span class="sig-name descname"><span class="pre">Pid::Config</span> <span class="pre">angle_pid_config</span>&#160; <span class="pre">{.kp</span> <span class="pre">=</span> <span class="pre">0,.ki</span> <span class="pre">=</span> <span class="pre">0,.kd</span> <span class="pre">=</span> <span class="pre">0,.integrator_min</span> <span class="pre">=</span> <span class="pre">0,.integrator_max</span> <span class="pre">=</span> <span class="pre">0,.output_min</span> <span class="pre">=</span> <span class="pre">0,.output_max</span> <span class="pre">=0}</span></span></dt>
 <dd><p>PID configuration for angle pid controller. </p>
 </dd></dl>
 

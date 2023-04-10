@@ -95,6 +95,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">WiFi APIs</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="wifi_sta.html">WiFi Station (STA)</a></li>
@@ -127,7 +128,7 @@
           <li><a href="index.html">WiFi APIs</a> &raquo;</li>
       <li>WiFi Access Point (AP)</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/579dc8f/docs/en/wifi/wifi_ap.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9fb257a/docs/en/wifi/wifi_ap.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -144,7 +145,7 @@ other devices can connect.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/579dc8f/components/wifi/include/wifi_ap.hpp">components/wifi/include/wifi_ap.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/wifi/include/wifi_ap.hpp">components/wifi/include/wifi_ap.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -156,10 +157,7 @@ other devices can connect.</p>
 <p>see <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-ap-general-scenario">https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-ap-general-scenario</a></p>
 <section id="classespp_1_1_wifi_ap_1wifiap_ex1">
 <h4>WiFi Access Point Example<a class="headerlink" href="#classespp_1_1_wifi_ap_1wifiap_ex1" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_wifi_ap_1wifiap_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiAp</span><span class="w"> </span><span class="nf">wifi_ap</span><span class="p">({</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_SSID</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_PASSWORD</span><span class="w"></span>
-<span class="w">      </span><span class="p">});</span><span class="w"></span>
+<p id="classespp_1_1_wifi_ap_1wifiap_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiAp</span><span class="w"> </span><span class="nf">wifi_ap</span><span class="p">({.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_SSID</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_PASSWORD</span><span class="p">});</span><span class="w"></span>
 </pre></div>
 </div>
  </p>
