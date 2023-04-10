@@ -8,6 +8,7 @@ repos:
           ^components/esp-dsp/|
           ^components/esp_littlefs/|
           ^components/lvgl/|
+          ^components/state_machine/include/magic_enum.hpp|
           ^external/alpaca/|
           ^external/cli/|
           ^external/csv2/|

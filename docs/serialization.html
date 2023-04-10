@@ -38,7 +38,7 @@
     <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Task APIs" href="task.html" />
+    <link rel="next" title="State Machine APIs" href="state_machine.html" />
     <link rel="prev" title="PID APIs" href="pid.html" /> 
 </head>
 
@@ -106,6 +106,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
 </ul>
@@ -126,7 +127,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Serialization APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/579dc8f/docs/en/serialization.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9fb257a/docs/en/serialization.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -154,7 +155,7 @@ example folder.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/579dc8f/components/serialization/include/serialization.hpp">components/serialization/include/serialization.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/serialization/include/serialization.hpp">components/serialization/include/serialization.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -224,8 +225,7 @@ example folder.</p>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="p">,</span><span class="w"> </span><span class="mi">15</span><span class="o">&gt;</span><span class="w"> </span><span class="n">buffer</span><span class="p">;</span><span class="w"></span>
-<span class="w">      </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">OPTIONS</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
-<span class="w">        </span><span class="n">alpaca</span><span class="o">::</span><span class="n">options</span><span class="o">::</span><span class="n">fixed_length_encoding</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">OPTIONS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">alpaca</span><span class="o">::</span><span class="n">options</span><span class="o">::</span><span class="n">fixed_length_encoding</span><span class="p">;</span><span class="w"></span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">bytes_written</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">serialize</span><span class="o">&lt;</span><span class="n">OPTIONS</span><span class="o">&gt;</span><span class="p">(</span><span class="n">object</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Serialized {}B to std::arary with custom options</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bytes_written</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">new_object</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deserialize</span><span class="o">&lt;</span><span class="n">OPTIONS</span><span class="p">,</span><span class="w"> </span><span class="n">MyStruct</span><span class="o">&gt;</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
@@ -247,11 +247,7 @@ example folder.</p>
 <span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="p">};</span><span class="w"></span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="n">MyStruct</span><span class="w"> </span><span class="n">object</span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="mi">42</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">7</span><span class="p">},</span><span class="w"></span>
-<span class="w">      </span><span class="s">&quot;the meaning of life&quot;</span><span class="w"></span>
-<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="n">MyStruct</span><span class="w"> </span><span class="n">object</span><span class="p">{</span><span class="mi">42</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">},</span><span class="w"> </span><span class="s">&quot;the meaning of life&quot;</span><span class="p">};</span><span class="w"></span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">buffer</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">bytes_written</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">serialize</span><span class="p">(</span><span class="n">object</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Serialized {}B to std::vector</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bytes_written</span><span class="p">);</span><span class="w"></span>
@@ -261,9 +257,7 @@ example folder.</p>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">value: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
 <span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">data:  {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
 <span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">name:  {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                 </span><span class="n">new_object</span><span class="p">.</span><span class="n">value</span><span class="p">,</span><span class="w"></span>
-<span class="w">                 </span><span class="n">new_object</span><span class="p">.</span><span class="n">data</span><span class="p">,</span><span class="w"></span>
-<span class="w">                 </span><span class="n">new_object</span><span class="p">.</span><span class="n">name</span><span class="p">);</span><span class="w"></span>
+<span class="w">                 </span><span class="n">new_object</span><span class="p">.</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="n">new_object</span><span class="p">.</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">new_object</span><span class="p">.</span><span class="n">name</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Deserialization failed: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
@@ -290,7 +284,7 @@ example folder.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="pid.html" class="btn btn-neutral float-left" title="PID APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="task.html" class="btn btn-neutral float-right" title="Task APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="state_machine.html" class="btn btn-neutral float-right" title="State Machine APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

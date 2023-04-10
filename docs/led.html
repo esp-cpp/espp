@@ -104,6 +104,7 @@
 <li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
 </ul>
@@ -124,7 +125,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>LED APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/579dc8f/docs/en/led.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9fb257a/docs/en/led.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -146,7 +147,7 @@ floating point percent [0,100]).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/579dc8f/components/led/include/led.hpp">components/led/include/led.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/led/include/led.hpp">components/led/include/led.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -266,13 +267,13 @@ floating point percent [0,100]).</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfig4dutyE">
-<span id="_CPPv3N4espp3Led13ChannelConfig4dutyE"></span><span id="_CPPv2N4espp3Led13ChannelConfig4dutyE"></span><span id="espp::Led::ChannelConfig::duty__float"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1a8ee9157bd68f3a3da61be77586076d11"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">duty</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig4dutyE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp3Led13ChannelConfig4dutyE"></span><span id="_CPPv2N4espp3Led13ChannelConfig4dutyE"></span><span id="espp::Led::ChannelConfig::duty__float"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1a8ee9157bd68f3a3da61be77586076d11"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">duty</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig4dutyE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The starting duty cycle (%) [0, 100] that you want the LED channel to have. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Led13ChannelConfig10speed_modeE">
-<span id="_CPPv3N4espp3Led13ChannelConfig10speed_modeE"></span><span id="_CPPv2N4espp3Led13ChannelConfig10speed_modeE"></span><span id="espp::Led::ChannelConfig::speed_mode__ledc_mode_t"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1a63ea3e43a4aa33609b5a7736a4029df8"></span><span class="n"><span class="pre">ledc_mode_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">speed_mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_HIGH_SPEED_MODE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig10speed_modeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp3Led13ChannelConfig10speed_modeE"></span><span id="_CPPv2N4espp3Led13ChannelConfig10speed_modeE"></span><span id="espp::Led::ChannelConfig::speed_mode__ledc_mode_t"></span><span class="target" id="structespp_1_1_led_1_1_channel_config_1a63ea3e43a4aa33609b5a7736a4029df8"></span><span class="n"><span class="pre">ledc_mode_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">speed_mode</span></span></span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_HIGH_SPEED_MODE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led13ChannelConfig10speed_modeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The LEDC speed mode you want for this LED channel. </p>
 </dd></dl>
 
@@ -315,7 +316,7 @@ floating point percent [0,100]).</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config15duty_resolutionE">
-<span id="_CPPv3N4espp3Led6Config15duty_resolutionE"></span><span id="_CPPv2N4espp3Led6Config15duty_resolutionE"></span><span id="espp::Led::Config::duty_resolution__ledc_timer_bit_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1a1d067b77e0362a3ba01cffc96815ab77"></span><span class="n"><span class="pre">ledc_timer_bit_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">duty_resolution</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_TIMER_13_BIT</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config15duty_resolutionE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp3Led6Config15duty_resolutionE"></span><span id="_CPPv2N4espp3Led6Config15duty_resolutionE"></span><span id="espp::Led::Config::duty_resolution__ledc_timer_bit_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1a1d067b77e0362a3ba01cffc96815ab77"></span><span class="n"><span class="pre">ledc_timer_bit_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">duty_resolution</span></span></span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_TIMER_13_BIT</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config15duty_resolutionE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The resolution of the duty cycle for these LEDs. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -325,7 +326,7 @@ floating point percent [0,100]).</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config10speed_modeE">
-<span id="_CPPv3N4espp3Led6Config10speed_modeE"></span><span id="_CPPv2N4espp3Led6Config10speed_modeE"></span><span id="espp::Led::Config::speed_mode__ledc_mode_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1aba839552af43f1e30ca277eddc71633e"></span><span class="n"><span class="pre">ledc_mode_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">speed_mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_HIGH_SPEED_MODE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config10speed_modeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp3Led6Config10speed_modeE"></span><span id="_CPPv2N4espp3Led6Config10speed_modeE"></span><span id="espp::Led::Config::speed_mode__ledc_mode_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1aba839552af43f1e30ca277eddc71633e"></span><span class="n"><span class="pre">ledc_mode_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">speed_mode</span></span></span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_HIGH_SPEED_MODE</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config10speed_modeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The LEDC speed mode you want for these LED channels. </p>
 </dd></dl>
 

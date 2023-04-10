@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>State Machine APIs - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'state_machine';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Task APIs" href="task.html" />
+    <link rel="prev" title="Serialization APIs" href="serialization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ESPP
+            <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">State Machine APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#macros">Macros</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>State Machine APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/9fb257a/docs/en/state_machine.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="state-machine-apis">
+<h1>State Machine APIs<a class="headerlink" href="#state-machine-apis" title="Permalink to this headline"></a></h1>
+<p>The <cite>state_machine</cite> component is a light wrapper around the <a class="reference external" href="https://github.com/finger563/webgme-hfsm">webgme-hfsm</a> static generated code. It is
+designed to be used as the component that one or more specific hfsms (manually written or
+generated from webgme-hfsm) can depend on.</p>
+<p>Code examples for the state_machine API are provided in the <cite>state_machine</cite>
+example folder.</p>
+<p>The example runs the generated code for the following example hsfm (which is
+provided and for which the code was generated from webgme-hfsm):</p>
+<img alt="&quot;Complex&quot; example HFSM showing the many of the UML formalisms supported." src="_images/complex-hfsm.png" />
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/state_machine/include/state_machine.hpp">components/state_machine/include/state_machine.hpp</a></p></li>
+</ul>
+</section>
+<section id="macros">
+<h3>Macros<a class="headerlink" href="#macros" title="Permalink to this headline"></a></h3>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.MAGIC_ENUM_NO_CHECK_SUPPORT">
+<span class="target" id="state__machine_8hpp_1ae79b2f3680ea459bec15bd89e726d9bb"></span><span class="sig-name descname"><span class="n"><span class="pre">MAGIC_ENUM_NO_CHECK_SUPPORT</span></span></span><a class="headerlink" href="#c.MAGIC_ENUM_NO_CHECK_SUPPORT" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp31__state_machine_documentation__E">
+<span id="_CPPv3N4espp31__state_machine_documentation__E"></span><span id="_CPPv2N4espp31__state_machine_documentation__E"></span><span id="espp::__state_machine_documentation__"></span><span class="target" id="classespp_1_1____state__machine__documentation____"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">__state_machine_documentation__</span></span></span><a class="headerlink" href="#_CPPv4N4espp31__state_machine_documentation__E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>State machine convenience wrapper for espp. Including <code class="docutils literal notranslate"><span class="pre">state_machine.hpp</span></code> provides access to all the base classes that the generated code relies on as well as what you would need to subclass yourself for a manually written hfsm. Please see <a class="reference external" href="https://github.com/finger563/webgme-hfsm">https://github.com/finger563/webgme-hfsm</a> for more information about modeling, generating, and developing HFSMs. </p>
+<section id="namespaceespp_1hfsm_ex1">
+<h4>State Machine / HFSM Example with the generated Complex example hfsm<a class="headerlink" href="#namespaceespp_1hfsm_ex1" title="Permalink to this headline"></a></h4>
+<p id="namespaceespp_1hfsm_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">GeneratedEventBase</span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">handled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// create the HFSM</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">Root</span><span class="w"> </span><span class="n">complex_root</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// initialize the HFSM</span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// start a task to run the hfsm</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">complex_root</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// execute the state machine</span>
+<span class="w">      </span><span class="n">complex_root</span><span class="p">.</span><span class="n">handle_all_events</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// get the active state period (the state may have changed from handling</span>
+<span class="w">      </span><span class="c1">// events, so we always need to get the active leaf)</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">current_hfsm_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">complex_root</span><span class="p">.</span><span class="n">getActiveLeaf</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">getTimerPeriod</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">current_hfsm_period</span><span class="p">));</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// stop the task if the hfsm has stopped (reached its end state)</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">complex_root</span><span class="p">.</span><span class="n">has_stopped</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">(</span><span class="w"></span>
+<span class="w">                           </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;HFSM&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// from other contexts you can spawn events into the HFSM. the functions are</span>
+<span class="w">    </span><span class="c1">// generated based on the event names from the model, and the data</span>
+<span class="w">    </span><span class="c1">// structures are generated into &lt;state machine name&gt;_event_data.hpp so that</span>
+<span class="w">    </span><span class="c1">// you can enforce that events must have certain data. The sequence below</span>
+<span class="w">    </span><span class="c1">// should transition the HFSM through a few states until it gets to a state</span>
+<span class="w">    </span><span class="c1">// where the ENDEVENT will cause the whole HFSM to terminate.</span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">spawn_EVENT4_event</span><span class="p">({});</span><span class="w"></span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">spawn_EVENT1_event</span><span class="p">({});</span><span class="w"></span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">spawn_EVENT2_event</span><span class="p">({});</span><span class="w"></span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">spawn_EVENT3_event</span><span class="p">({});</span><span class="w"></span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">spawn_EVENT1_event</span><span class="p">({});</span><span class="w"></span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">spawn_ENDEVENT_event</span><span class="p">({});</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// give the hfsm some time to handle the events before we fully exit</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<section id="namespaceespp_1hfsm_ex2">
+<h4>Running the HFSM Test Bench on a Real Device:<a class="headerlink" href="#namespaceespp_1hfsm_ex2" title="Permalink to this headline"></a></h4>
+<p id="namespaceespp_1hfsm_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// NOTE: we need to configure stdin/stdout to use std::cin for</span>
+<span class="w">    </span><span class="c1">//       get_user_selection() function.</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="o">::</span><span class="n">configure_stdin_stdout</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">GeneratedEventBase</span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// create the HFSM</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">Root</span><span class="w"> </span><span class="n">complex_root</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// initialize the HFSM</span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// NOTE: this is just a copy of the HFSM code from the generated test bench,</span>
+<span class="w">    </span><span class="c1">//       and is not intended to show how to actually run the HFSM in</span>
+<span class="w">    </span><span class="c1">//       production.</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">display_event_menu</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_user_selection</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ExitSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">RestartSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">complex_root</span><span class="p">.</span><span class="n">restart</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">TickSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">complex_root</span><span class="p">.</span><span class="n">tick</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">make_event</span><span class="p">(</span><span class="w"> </span><span class="n">complex_root</span><span class="p">,</span><span class="w"> </span><span class="n">selection</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="n">complex_root</span><span class="p">.</span><span class="n">handle_all_events</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class does not really exist or do anything, but it’s the only way I could figure out how to get this documentation built into the system :(</p>
+</div>
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/state_machine/include/state_base.hpp">components/state_machine/include/state_base.hpp</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9EventBaseE">
+<span id="_CPPv3N4espp13state_machine9EventBaseE"></span><span id="_CPPv2N4espp13state_machine9EventBaseE"></span><span id="espp::state_machine::EventBase"></span><span class="target" id="classespp_1_1state__machine_1_1_event_base"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EventBase</span></span></span><a class="headerlink" href="#_CPPv4N4espp13state_machine9EventBaseE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBaseE">
+<span id="_CPPv3N4espp13state_machine9StateBaseE"></span><span id="_CPPv2N4espp13state_machine9StateBaseE"></span><span id="espp::state_machine::StateBase"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">state_machine</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">StateBase</span></span></span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBaseE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>States contain other states and can consume generic <a class="reference internal" href="#classespp_1_1state__machine_1_1_event_base"><span class="std std-ref">state_machine::EventBase</span></a> objects if they have internal or external transitions on those events and if those transitions’ guards are satisfied. Only one transition can consume an event in a given state machine.</p>
+<p>There is also a different kind of Event, the tick event, which is not consumed, but instead executes from the top-level state all the way to the curently active leaf state.</p>
+<p>Entry and Exit actions also occur whenever a state is entered or exited, respectively. </p>
+<p>Subclassed by <a class="reference internal" href="#classespp_1_1state__machine_1_1_deep_history_state"><span class="std std-ref">espp::state_machine::DeepHistoryState</span></a>, <a class="reference internal" href="#classespp_1_1state__machine_1_1_shallow_history_state"><span class="std std-ref">espp::state_machine::ShallowHistoryState</span></a></p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase10initializeEv">
+<span id="_CPPv3N4espp13state_machine9StateBase10initializeEv"></span><span id="_CPPv2N4espp13state_machine9StateBase10initializeEv"></span><span id="espp::state_machine::StateBase::initialize__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a378c40cdeac184b94d80fc0c2749e8e2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase10initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to call entry() then handle any child initialization. Finally calls makeActive on the leaf. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase5entryEv">
+<span id="_CPPv3N4espp13state_machine9StateBase5entryEv"></span><span id="_CPPv2N4espp13state_machine9StateBase5entryEv"></span><span id="espp::state_machine::StateBase::entry__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a9e262a474a61a1bda3681496cf7b1fb9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entry</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase5entryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the entry() function defined in the model. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase4exitEv">
+<span id="_CPPv3N4espp13state_machine9StateBase4exitEv"></span><span id="_CPPv2N4espp13state_machine9StateBase4exitEv"></span><span id="espp::state_machine::StateBase::exit__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1ab5e805d15b33eea17a762f4ce709690f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exit</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase4exitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the exit() function defined in the model. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase11handleEventEP9EventBase">
+<span id="_CPPv3N4espp13state_machine9StateBase11handleEventEP9EventBase"></span><span id="_CPPv2N4espp13state_machine9StateBase11handleEventEP9EventBase"></span><span id="espp::state_machine::StateBase::handleEvent__EventBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1aa459d3959e143d0fdccb0b8035245ce1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handleEvent</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9EventBaseE" title="espp::state_machine::EventBase"><span class="n"><span class="pre">EventBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase11handleEventEP9EventBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calls handleEvent on the activeLeaf. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if event is consumed, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase4tickEv">
+<span id="_CPPv3N4espp13state_machine9StateBase4tickEv"></span><span id="_CPPv2N4espp13state_machine9StateBase4tickEv"></span><span id="espp::state_machine::StateBase::tick__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a161e43f03585a21813443259e67a39e4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tick</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase4tickEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the tick() function defined in the model and then call _activeState-&gt;tick(). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase10getInitialEv">
+<span id="_CPPv3N4espp13state_machine9StateBase10getInitialEv"></span><span id="_CPPv2N4espp13state_machine9StateBase10getInitialEv"></span><span id="espp::state_machine::StateBase::getInitial__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a86069a49f7bb5eec61cbd782f642f8ec"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getInitial</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase10getInitialEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be known from the model so will be generated in derived classes to immediately return the correct initial state pointer for quickly transitioning to the proper state during external transition handling. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to initial substate </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase12exitChildrenEv">
+<span id="_CPPv3N4espp13state_machine9StateBase12exitChildrenEv"></span><span id="_CPPv2N4espp13state_machine9StateBase12exitChildrenEv"></span><span id="espp::state_machine::StateBase::exitChildren__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a67dfc503033629f2e95351e6ec81b147"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exitChildren</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase12exitChildrenEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Recurses down to the leaf state and calls the exit actions as it unwinds. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14getActiveChildEv">
+<span id="_CPPv3N4espp13state_machine9StateBase14getActiveChildEv"></span><span id="_CPPv2N4espp13state_machine9StateBase14getActiveChildEv"></span><span id="espp::state_machine::StateBase::getActiveChild__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a042948df5aec6016f197045b94382416"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getActiveChild</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14getActiveChildEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return _activeState if it exists, otherwise will return nullptr. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to last active substate </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase13getActiveLeafEv">
+<span id="_CPPv3N4espp13state_machine9StateBase13getActiveLeafEv"></span><span id="_CPPv2N4espp13state_machine9StateBase13getActiveLeafEv"></span><span id="espp::state_machine::StateBase::getActiveLeaf__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a9f44d84a887b157f47e35ac76c906829"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getActiveLeaf</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase13getActiveLeafEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return the active leaf state, otherwise will return nullptr. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to last active leaf state. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase10makeActiveEv">
+<span id="_CPPv3N4espp13state_machine9StateBase10makeActiveEv"></span><span id="_CPPv2N4espp13state_machine9StateBase10makeActiveEv"></span><span id="espp::state_machine::StateBase::makeActive__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a33a10212b1061aab1497e3f454e82a47"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">makeActive</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase10makeActiveEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Make this state the active substate of its parent and then recurse up through the tree to the root. </p>
+<p><em>Should only be called on leaf nodes!</em> </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14setActiveChildEP9StateBase">
+<span id="_CPPv3N4espp13state_machine9StateBase14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine9StateBase14setActiveChildEP9StateBase"></span><span id="espp::state_machine::StateBase::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the active child state. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase17setShallowHistoryEv">
+<span id="_CPPv3N4espp13state_machine9StateBase17setShallowHistoryEv"></span><span id="_CPPv2N4espp13state_machine9StateBase17setShallowHistoryEv"></span><span id="espp::state_machine::StateBase::setShallowHistory__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a3fac37ef5ed4ccb1e043d4562a12575a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setShallowHistory</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase17setShallowHistoryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets the currentlyActive state to the last active state and re-initializes them. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14setDeepHistoryEv">
+<span id="_CPPv3N4espp13state_machine9StateBase14setDeepHistoryEv"></span><span id="_CPPv2N4espp13state_machine9StateBase14setDeepHistoryEv"></span><span id="espp::state_machine::StateBase::setDeepHistory__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a63e886b7730f384e19e2224fe78bc3ef"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setDeepHistory</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14setDeepHistoryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Go to the last active leaf of this state. If none exists, re-initialize. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14setParentStateEP9StateBase">
+<span id="_CPPv3N4espp13state_machine9StateBase14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine9StateBase14setParentStateEP9StateBase"></span><span id="espp::state_machine::StateBase::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will set the parent state. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14getParentStateEv">
+<span id="_CPPv3N4espp13state_machine9StateBase14getParentStateEv"></span><span id="_CPPv2N4espp13state_machine9StateBase14getParentStateEv"></span><span id="espp::state_machine::StateBase::getParentState__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1acab14599e06605d9c2c1f565a47675f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getParentState</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14getParentStateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return the parent state. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="id3">
+<h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/state_machine/include/shallow_history_state.hpp">components/state_machine/include/shallow_history_state.hpp</a></p></li>
+</ul>
+</section>
+<section id="id4">
+<h3>Classes<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryStateE">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryStateE"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryStateE"></span><span id="espp::state_machine::ShallowHistoryState"></span><span class="target" id="classespp_1_1state__machine_1_1_shallow_history_state"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">state_machine</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">ShallowHistoryState</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">state_machine</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryStateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shallow History Pseudostates exist purely to re-implement the <a class="reference internal" href="#classespp_1_1state__machine_1_1_shallow_history_state_1a17024e85c78db0aa5de982fb09aff0ff"><span class="std std-ref">makeActive()</span></a> function to actually call _parentState-&gt;setShallowHistory() </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState10makeActiveEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState10makeActiveEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState10makeActiveEv"></span><span id="espp::state_machine::ShallowHistoryState::makeActive"></span><span class="target" id="classespp_1_1state__machine_1_1_shallow_history_state_1a17024e85c78db0aa5de982fb09aff0ff"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">makeActive</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState10makeActiveEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calls _parentState-&gt;setShallowHistory(). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState10initializeEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState10initializeEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState10initializeEv"></span><span id="espp::state_machine::ShallowHistoryState::initialize__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a378c40cdeac184b94d80fc0c2749e8e2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState10initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to call entry() then handle any child initialization. Finally calls makeActive on the leaf. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState5entryEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState5entryEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState5entryEv"></span><span id="espp::state_machine::ShallowHistoryState::entry__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a9e262a474a61a1bda3681496cf7b1fb9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entry</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState5entryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the entry() function defined in the model. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState4exitEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState4exitEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState4exitEv"></span><span id="espp::state_machine::ShallowHistoryState::exit__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1ab5e805d15b33eea17a762f4ce709690f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exit</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState4exitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the exit() function defined in the model. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState11handleEventEP9EventBase">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState11handleEventEP9EventBase"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState11handleEventEP9EventBase"></span><span id="espp::state_machine::ShallowHistoryState::handleEvent__EventBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1aa459d3959e143d0fdccb0b8035245ce1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handleEvent</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9EventBaseE" title="espp::state_machine::EventBase"><span class="n"><span class="pre">EventBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState11handleEventEP9EventBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calls handleEvent on the activeLeaf. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if event is consumed, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState4tickEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState4tickEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState4tickEv"></span><span id="espp::state_machine::ShallowHistoryState::tick__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a161e43f03585a21813443259e67a39e4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tick</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState4tickEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the tick() function defined in the model and then call _activeState-&gt;tick(). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState10getInitialEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState10getInitialEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState10getInitialEv"></span><span id="espp::state_machine::ShallowHistoryState::getInitial__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a86069a49f7bb5eec61cbd782f642f8ec"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getInitial</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState10getInitialEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be known from the model so will be generated in derived classes to immediately return the correct initial state pointer for quickly transitioning to the proper state during external transition handling. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to initial substate </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState12exitChildrenEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState12exitChildrenEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState12exitChildrenEv"></span><span id="espp::state_machine::ShallowHistoryState::exitChildren__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a67dfc503033629f2e95351e6ec81b147"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exitChildren</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState12exitChildrenEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Recurses down to the leaf state and calls the exit actions as it unwinds. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14getActiveChildEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState14getActiveChildEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14getActiveChildEv"></span><span id="espp::state_machine::ShallowHistoryState::getActiveChild__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a042948df5aec6016f197045b94382416"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getActiveChild</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14getActiveChildEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return _activeState if it exists, otherwise will return nullptr. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to last active substate </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState13getActiveLeafEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState13getActiveLeafEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState13getActiveLeafEv"></span><span id="espp::state_machine::ShallowHistoryState::getActiveLeaf__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a9f44d84a887b157f47e35ac76c906829"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getActiveLeaf</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState13getActiveLeafEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return the active leaf state, otherwise will return nullptr. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to last active leaf state. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase"></span><span id="espp::state_machine::ShallowHistoryState::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the active child state. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState17setShallowHistoryEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState17setShallowHistoryEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState17setShallowHistoryEv"></span><span id="espp::state_machine::ShallowHistoryState::setShallowHistory__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a3fac37ef5ed4ccb1e043d4562a12575a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setShallowHistory</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState17setShallowHistoryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets the currentlyActive state to the last active state and re-initializes them. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14setDeepHistoryEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState14setDeepHistoryEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14setDeepHistoryEv"></span><span id="espp::state_machine::ShallowHistoryState::setDeepHistory__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a63e886b7730f384e19e2224fe78bc3ef"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setDeepHistory</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14setDeepHistoryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Go to the last active leaf of this state. If none exists, re-initialize. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase"></span><span id="espp::state_machine::ShallowHistoryState::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will set the parent state. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14getParentStateEv">
+<span id="_CPPv3N4espp13state_machine19ShallowHistoryState14getParentStateEv"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14getParentStateEv"></span><span id="espp::state_machine::ShallowHistoryState::getParentState__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1acab14599e06605d9c2c1f565a47675f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getParentState</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14getParentStateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return the parent state. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="id5">
+<h3>Header File<a class="headerlink" href="#id5" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/state_machine/include/deep_history_state.hpp">components/state_machine/include/deep_history_state.hpp</a></p></li>
+</ul>
+</section>
+<section id="id6">
+<h3>Classes<a class="headerlink" href="#id6" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryStateE">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryStateE"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryStateE"></span><span id="espp::state_machine::DeepHistoryState"></span><span class="target" id="classespp_1_1state__machine_1_1_deep_history_state"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">state_machine</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">DeepHistoryState</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">state_machine</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryStateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deep History Pseudostates exist purely to re-implement the <a class="reference internal" href="#classespp_1_1state__machine_1_1_deep_history_state_1a9429e7876a2f874063a04182acdb5fd2"><span class="std std-ref">makeActive()</span></a> function to actually call _parentState-&gt;setDeepHistory() </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState10makeActiveEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState10makeActiveEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState10makeActiveEv"></span><span id="espp::state_machine::DeepHistoryState::makeActive"></span><span class="target" id="classespp_1_1state__machine_1_1_deep_history_state_1a9429e7876a2f874063a04182acdb5fd2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">makeActive</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState10makeActiveEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calls _parentState-&gt;setDeepHistory() </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState10initializeEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState10initializeEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState10initializeEv"></span><span id="espp::state_machine::DeepHistoryState::initialize__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a378c40cdeac184b94d80fc0c2749e8e2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState10initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to call entry() then handle any child initialization. Finally calls makeActive on the leaf. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState5entryEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState5entryEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState5entryEv"></span><span id="espp::state_machine::DeepHistoryState::entry__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a9e262a474a61a1bda3681496cf7b1fb9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">entry</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState5entryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the entry() function defined in the model. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState4exitEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState4exitEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState4exitEv"></span><span id="espp::state_machine::DeepHistoryState::exit__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1ab5e805d15b33eea17a762f4ce709690f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exit</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState4exitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the exit() function defined in the model. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState11handleEventEP9EventBase">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState11handleEventEP9EventBase"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState11handleEventEP9EventBase"></span><span id="espp::state_machine::DeepHistoryState::handleEvent__EventBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1aa459d3959e143d0fdccb0b8035245ce1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">handleEvent</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9EventBaseE" title="espp::state_machine::EventBase"><span class="n"><span class="pre">EventBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState11handleEventEP9EventBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Calls handleEvent on the activeLeaf. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if event is consumed, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState4tickEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState4tickEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState4tickEv"></span><span id="espp::state_machine::DeepHistoryState::tick__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a161e43f03585a21813443259e67a39e4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tick</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState4tickEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be generated to run the tick() function defined in the model and then call _activeState-&gt;tick(). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState10getInitialEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState10getInitialEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState10getInitialEv"></span><span id="espp::state_machine::DeepHistoryState::getInitial__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a86069a49f7bb5eec61cbd782f642f8ec"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getInitial</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState10getInitialEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will be known from the model so will be generated in derived classes to immediately return the correct initial state pointer for quickly transitioning to the proper state during external transition handling. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to initial substate </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState12exitChildrenEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState12exitChildrenEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState12exitChildrenEv"></span><span id="espp::state_machine::DeepHistoryState::exitChildren__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a67dfc503033629f2e95351e6ec81b147"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exitChildren</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState12exitChildrenEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Recurses down to the leaf state and calls the exit actions as it unwinds. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14getActiveChildEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState14getActiveChildEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14getActiveChildEv"></span><span id="espp::state_machine::DeepHistoryState::getActiveChild__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a042948df5aec6016f197045b94382416"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getActiveChild</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14getActiveChildEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return _activeState if it exists, otherwise will return nullptr. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to last active substate </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState13getActiveLeafEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState13getActiveLeafEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState13getActiveLeafEv"></span><span id="espp::state_machine::DeepHistoryState::getActiveLeaf__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a9f44d84a887b157f47e35ac76c906829"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getActiveLeaf</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState13getActiveLeafEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return the active leaf state, otherwise will return nullptr. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>StateBase* Pointer to last active leaf state. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase"></span><span id="espp::state_machine::DeepHistoryState::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the active child state. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState17setShallowHistoryEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState17setShallowHistoryEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState17setShallowHistoryEv"></span><span id="espp::state_machine::DeepHistoryState::setShallowHistory__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a3fac37ef5ed4ccb1e043d4562a12575a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setShallowHistory</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState17setShallowHistoryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets the currentlyActive state to the last active state and re-initializes them. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14setDeepHistoryEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState14setDeepHistoryEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14setDeepHistoryEv"></span><span id="espp::state_machine::DeepHistoryState::setDeepHistory__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a63e886b7730f384e19e2224fe78bc3ef"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setDeepHistory</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14setDeepHistoryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Go to the last active leaf of this state. If none exists, re-initialize. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase"></span><span id="espp::state_machine::DeepHistoryState::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will set the parent state. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14getParentStateEv">
+<span id="_CPPv3N4espp13state_machine16DeepHistoryState14getParentStateEv"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14getParentStateEv"></span><span id="espp::state_machine::DeepHistoryState::getParentState__void"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1acab14599e06605d9c2c1f565a47675f7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getParentState</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14getParentStateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Will return the parent state. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="serialization.html" class="btn btn-neutral float-left" title="Serialization APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="task.html" class="btn btn-neutral float-right" title="Task APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

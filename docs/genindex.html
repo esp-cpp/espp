@@ -93,6 +93,7 @@
 <li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
 </ul>
@@ -113,7 +114,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/579dc8f/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9fb257a/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -127,6 +128,7 @@
 <div class="genindex-jumpbox">
  <a href="#_"><strong>_</strong></a>
  | <a href="#E"><strong>E</strong></a>
+ | <a href="#M"><strong>M</strong></a>
  | <a href="#P"><strong>P</strong></a>
  
 </div>
@@ -148,6 +150,8 @@
       <li><a href="csv.html#_CPPv4N4espp21__csv_documentation__E">espp::__csv_documentation__ (C++ class)</a>
 </li>
       <li><a href="serialization.html#_CPPv4N4espp31__serialization_documentation__E">espp::__serialization_documentation__ (C++ class)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp31__state_machine_documentation__E">espp::__state_machine_documentation__ (C++ class)</a>
 </li>
       <li><a href="adc/ads1x15.html#_CPPv4N4espp7Ads1x15E">espp::Ads1x15 (C++ class)</a>
 </li>
@@ -1037,8 +1041,6 @@
 </li>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger6formatENSt6stringENSt11string_viewEDpRR4Args">espp::Logger::format (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger4infoEvNSt11string_viewEDpRR4Args">espp::Logger::info (C++ function)</a>
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger13set_verbosityEK9Verbosity">espp::Logger::set_verbosity (C++ function)</a>
@@ -1087,6 +1089,8 @@
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x176Config4readE">espp::Mcp23x17::Config::read (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x176Config5writeE">espp::Mcp23x17::Config::write (C++ member)</a>
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1715DEFAULT_ADDRESSE">espp::Mcp23x17::DEFAULT_ADDRESS (C++ member)</a>
@@ -1653,6 +1657,104 @@
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp6St778910set_offsetEii">espp::St7789::set_offset (C++ function)</a>
 </li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryStateE">espp::state_machine::DeepHistoryState (C++ class)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState5entryEv">espp::state_machine::DeepHistoryState::entry (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState4exitEv">espp::state_machine::DeepHistoryState::exit (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState12exitChildrenEv">espp::state_machine::DeepHistoryState::exitChildren (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState14getActiveChildEv">espp::state_machine::DeepHistoryState::getActiveChild (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState13getActiveLeafEv">espp::state_machine::DeepHistoryState::getActiveLeaf (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState10getInitialEv">espp::state_machine::DeepHistoryState::getInitial (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState14getParentStateEv">espp::state_machine::DeepHistoryState::getParentState (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState11handleEventEP9EventBase">espp::state_machine::DeepHistoryState::handleEvent (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState10initializeEv">espp::state_machine::DeepHistoryState::initialize (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState10makeActiveEv">espp::state_machine::DeepHistoryState::makeActive (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase">espp::state_machine::DeepHistoryState::setActiveChild (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState14setDeepHistoryEv">espp::state_machine::DeepHistoryState::setDeepHistory (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase">espp::state_machine::DeepHistoryState::setParentState (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState17setShallowHistoryEv">espp::state_machine::DeepHistoryState::setShallowHistory (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine16DeepHistoryState4tickEv">espp::state_machine::DeepHistoryState::tick (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9EventBaseE">espp::state_machine::EventBase (C++ class)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryStateE">espp::state_machine::ShallowHistoryState (C++ class)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState5entryEv">espp::state_machine::ShallowHistoryState::entry (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState4exitEv">espp::state_machine::ShallowHistoryState::exit (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState12exitChildrenEv">espp::state_machine::ShallowHistoryState::exitChildren (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState14getActiveChildEv">espp::state_machine::ShallowHistoryState::getActiveChild (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState13getActiveLeafEv">espp::state_machine::ShallowHistoryState::getActiveLeaf (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState10getInitialEv">espp::state_machine::ShallowHistoryState::getInitial (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState14getParentStateEv">espp::state_machine::ShallowHistoryState::getParentState (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState11handleEventEP9EventBase">espp::state_machine::ShallowHistoryState::handleEvent (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState10initializeEv">espp::state_machine::ShallowHistoryState::initialize (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState10makeActiveEv">espp::state_machine::ShallowHistoryState::makeActive (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase">espp::state_machine::ShallowHistoryState::setActiveChild (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState14setDeepHistoryEv">espp::state_machine::ShallowHistoryState::setDeepHistory (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase">espp::state_machine::ShallowHistoryState::setParentState (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState17setShallowHistoryEv">espp::state_machine::ShallowHistoryState::setShallowHistory (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine19ShallowHistoryState4tickEv">espp::state_machine::ShallowHistoryState::tick (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBaseE">espp::state_machine::StateBase (C++ class)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase5entryEv">espp::state_machine::StateBase::entry (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase4exitEv">espp::state_machine::StateBase::exit (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase12exitChildrenEv">espp::state_machine::StateBase::exitChildren (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase14getActiveChildEv">espp::state_machine::StateBase::getActiveChild (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase13getActiveLeafEv">espp::state_machine::StateBase::getActiveLeaf (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase10getInitialEv">espp::state_machine::StateBase::getInitial (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase14getParentStateEv">espp::state_machine::StateBase::getParentState (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase11handleEventEP9EventBase">espp::state_machine::StateBase::handleEvent (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase10initializeEv">espp::state_machine::StateBase::initialize (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase10makeActiveEv">espp::state_machine::StateBase::makeActive (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase14setActiveChildEP9StateBase">espp::state_machine::StateBase::setActiveChild (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase14setDeepHistoryEv">espp::state_machine::StateBase::setDeepHistory (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase14setParentStateEP9StateBase">espp::state_machine::StateBase::setParentState (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase17setShallowHistoryEv">espp::state_machine::StateBase::setShallowHistory (C++ function)</a>
+</li>
+      <li><a href="state_machine.html#_CPPv4N4espp13state_machine9StateBase4tickEv">espp::state_machine::StateBase::tick (C++ function)</a>
+</li>
       <li><a href="task.html#_CPPv4N4espp4TaskE">espp::Task (C++ class)</a>
 </li>
       <li><a href="task.html#_CPPv4N4espp4Task11callback_fnE">espp::Task::callback_fn (C++ type)</a>
@@ -1930,6 +2032,14 @@
       <li><a href="wifi/wifi_sta.html#_CPPv4N4espp7WifiSta7WifiStaERK6Config">espp::WifiSta::WifiSta (C++ function)</a>
 </li>
       <li><a href="wifi/wifi_sta.html#_CPPv4N4espp7WifiStaD0Ev">espp::WifiSta::~WifiSta (C++ function)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="state_machine.html#c.MAGIC_ENUM_NO_CHECK_SUPPORT">MAGIC_ENUM_NO_CHECK_SUPPORT (C macro)</a>
 </li>
   </ul></td>
 </tr></table>

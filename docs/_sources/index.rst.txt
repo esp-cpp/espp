@@ -31,5 +31,6 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    nfc/index
    pid
    serialization
+   state_machine
    task
    wifi/index
