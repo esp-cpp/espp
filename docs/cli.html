@@ -127,7 +127,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Command Line Interface (CLI) APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/16161aa/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/e50ec1e/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -170,7 +170,7 @@ beyond the examples provided here.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/16161aa/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e50ec1e/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -235,6 +235,10 @@ beyond the examples provided here.</p>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">input</span><span class="p">(</span><span class="n">cli</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="n">input</span><span class="p">.</span><span class="n">SetInputHistorySize</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="n">input</span><span class="p">.</span><span class="n">Start</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// if we&#39;ve gotten here, the cli has finished it&#39;s session, let&#39;s print the</span>
+<span class="w">    </span><span class="c1">// commands that were run:</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Commands executed: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">.</span><span class="n">GetInputHistory</span><span class="p">());</span><span class="w"></span>
 </pre></div>
 </div>
  </p>
@@ -271,6 +275,28 @@ beyond the examples provided here.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Cli15SetInputHistoryERKN9LineInput7HistoryE">
+<span id="_CPPv3N4espp3Cli15SetInputHistoryERKN9LineInput7HistoryE"></span><span id="_CPPv2N4espp3Cli15SetInputHistoryERKN9LineInput7HistoryE"></span><span id="espp::Cli::SetInputHistory__LineInput::HistoryCR"></span><span class="target" id="classespp_1_1_cli_1ac6cd44e6ad5288d64036b18b6669654c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SetInputHistory</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9LineInputE" title="espp::LineInput"><span class="n"><span class="pre">LineInput</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp9LineInput7HistoryE" title="espp::LineInput::History"><span class="n"><span class="pre">History</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">history</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Cli15SetInputHistoryERKN9LineInput7HistoryE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the input history - replaces any existing history. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>history</strong> – new <a class="reference internal" href="#classespp_1_1_line_input_1aac073021316d6751d68e2a67974f20db"><span class="std std-ref">LineInput::History</span></a> to use. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp3Cli15GetInputHistoryEv">
+<span id="_CPPv3NK4espp3Cli15GetInputHistoryEv"></span><span id="_CPPv2NK4espp3Cli15GetInputHistoryEv"></span><span id="espp::Cli::GetInputHistoryC"></span><span class="target" id="classespp_1_1_cli_1a8feccc0588955beb10401bf4d9ceff3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9LineInputE" title="espp::LineInput"><span class="n"><span class="pre">LineInput</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp9LineInput7HistoryE" title="espp::LineInput::History"><span class="n"><span class="pre">History</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetInputHistory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Cli15GetInputHistoryEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the input history for this session. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The current input history for this session. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3Cli5StartEv">
 <span id="_CPPv3N4espp3Cli5StartEv"></span><span id="_CPPv2N4espp3Cli5StartEv"></span><span id="espp::Cli::Start"></span><span class="target" id="classespp_1_1_cli_1a869fcbee4936853496b71c23269357ee"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Cli5StartEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Start the <a class="reference internal" href="#classespp_1_1_cli"><span class="std std-ref">Cli</span></a>, blocking until it exits. </p>
@@ -293,7 +319,7 @@ beyond the examples provided here.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/16161aa/components/cli/include/line_input.hpp">components/cli/include/line_input.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e50ec1e/components/cli/include/line_input.hpp">components/cli/include/line_input.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -301,7 +327,7 @@ beyond the examples provided here.</p>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInputE">
 <span id="_CPPv3N4espp9LineInputE"></span><span id="_CPPv2N4espp9LineInputE"></span><span id="espp::LineInput"></span><span class="target" id="classespp_1_1_line_input"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">LineInput</span></span></span><a class="headerlink" href="#_CPPv4N4espp9LineInputE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Class for getting a line of input from the terminal using c++ istream while showing the input and allowing cursor navigation and backspace. Optionally allows for a prompt to be printed and command history to be stored. </p>
+<dd><p>Class for getting a line of input from the terminal using c++ istream while showing the input and allowing cursor navigation and backspace. Optionally allows for a prompt to be printed and command history to be stored. By default the history_size is 0, which is unlimited history. </p>
 <p>The class allows for line movement using:<ul class="simple">
 <li><p>ctrl+a (move to beginning of line)</p></li>
 <li><p>ctrl+e (move to end of line)</p></li>
@@ -316,6 +342,12 @@ beyond the examples provided here.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput9prompt_fnE">
 <span id="_CPPv3N4espp9LineInput9prompt_fnE"></span><span id="_CPPv2N4espp9LineInput9prompt_fnE"></span><span id="espp::LineInput::prompt_fn"></span><span class="target" id="classespp_1_1_line_input_1aee752778605aa51cc2f25c99a27c0bdc"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prompt_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9LineInput9prompt_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>function for printing the prompt if there is one </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput7HistoryE">
+<span id="_CPPv3N4espp9LineInput7HistoryE"></span><span id="_CPPv2N4espp9LineInput7HistoryE"></span><span id="espp::LineInput::History"></span><span class="target" id="classespp_1_1_line_input_1aac073021316d6751d68e2a67974f20db"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">deque</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">History</span></span></span><a class="headerlink" href="#_CPPv4N4espp9LineInput7HistoryE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Storage for the input history as a double-ended queue of strings. </p>
 </dd></dl>
 
 </div>
@@ -339,11 +371,41 @@ beyond the examples provided here.</p>
 <dd><p>Set the history size for the line input. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">new_size</span></code> is 0, then there will be no limit on the size of the input history. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>If the current history is larger, it will be resized, losing the oldest history. </p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>new_size</strong> – The new number of lines of history to store in memory. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9LineInput11get_historyEv">
+<span id="_CPPv3NK4espp9LineInput11get_historyEv"></span><span id="_CPPv2NK4espp9LineInput11get_historyEv"></span><span id="espp::LineInput::get_historyC"></span><span class="target" id="classespp_1_1_line_input_1ac7c5d413cebcfc4085f4bfa02b0fb12e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9LineInput7HistoryE" title="espp::LineInput::History"><span class="n"><span class="pre">History</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_history</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9LineInput11get_historyEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the input history. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The input that has been entered so far, as History. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput11set_historyERK7History">
+<span id="_CPPv3N4espp9LineInput11set_historyERK7History"></span><span id="_CPPv2N4espp9LineInput11set_historyERK7History"></span><span id="espp::LineInput::set_history__HistoryCR"></span><span class="target" id="classespp_1_1_line_input_1a4aa63508d13cc6c0684ee37faaa2ca03"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_history</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9LineInput7HistoryE" title="espp::LineInput::History"><span class="n"><span class="pre">History</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">history</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput11set_historyERK7History" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Replace any existing input history with <code class="docutils literal notranslate"><span class="pre">history</span></code>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">history</span></code> is longer than the current history_size, it will be truncated (oldest removed) to have size equal to history_size. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>history</strong> – New History to use. </p>
 </dd>
 </dl>
 </dd></dl>

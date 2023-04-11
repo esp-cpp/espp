@@ -57,6 +57,11 @@ extern "C" void app_main(void) {
     espp::Cli input(cli);
     input.SetInputHistorySize(10);
     input.Start();
+
+    // if we've gotten here, the cli has finished it's session, let's print the
+    // commands that were run:
+    fmt::print("Commands executed: {}\n", input.GetInputHistory());
+
     //! [cli example]
   }
 

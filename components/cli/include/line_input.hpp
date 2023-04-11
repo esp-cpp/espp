@@ -9,10 +9,10 @@
 
 namespace espp {
 /**
- * @brief Class for getting a line of input from the terminal using c++
- *        istream while showing the input and allowing cursor navigation and
- *        backspace. Optionally allows for a prompt to be printed and command
- *        history to be stored.
+ * @brief Class for getting a line of input from the terminal using c++ istream
+ *        while showing the input and allowing cursor navigation and backspace.
+ *        Optionally allows for a prompt to be printed and command history to be
+ *        stored. By default the history_size is 0, which is unlimited history.
  *
  *        The class allows for line movement using:
  *        *   ctrl+a (move to beginning of line)
@@ -26,6 +26,9 @@ public:
   /// function for printing the prompt if there is one
   typedef std::function<void(void)> prompt_fn;
 
+  /// Storage for the input history as a double-ended queue of strings
+  typedef std::deque<std::string> History;
+
   /// Constructor
   LineInput() {}
 
@@ -34,13 +37,33 @@ public:
 
   /**
    * @brief Set the history size for the line input.
+   * @note If \p new_size is 0, then there will be no limit on the size of
+   *       the input history.
    * @note If the current history is larger, it will be resized, losing the
    *       oldest history.
    * @param new_size The new number of lines of history to store in memory.
    */
   void set_history_size(size_t new_size) {
-    history_size_ = std::max(new_size, size_t(1));
-    if (input_history_.size() > history_size_)
+    history_size_ = new_size;
+    if (history_size_ > 0 && input_history_.size() > history_size_)
+      input_history_.resize(history_size_);
+  }
+
+  /**
+   * @brief Get the input history.
+   * @return The input that has been entered so far, as History.
+   */
+  History get_history() const { return input_history_; }
+
+  /**
+   * @brief Replace any existing input history with \p history.
+   * @note If \p history is longer than the current history_size, it will be
+   *       truncated (oldest removed) to have size equal to history_size.
+   * @param history New History to use.
+   */
+  void set_history(const History &history) {
+    input_history_ = history;
+    if (history_size_ > 0 && input_history_.size() > history_size_)
       input_history_.resize(history_size_);
   }
 
@@ -57,7 +80,7 @@ public:
     // add a new element to the front of the queue
     std::string &input = input_history_.emplace_front();
     // and remove the oldest input if we're over the allowed size
-    if (input_history_.size() > history_size_) {
+    if (history_size_ > 0 && input_history_.size() > history_size_) {
       input_history_.pop_back();
     }
 
@@ -154,7 +177,7 @@ protected:
     scanf("\033[%d;%dR", &y, &x);
   }
 
-  size_t history_size_ = 1;
-  std::deque<std::string> input_history_;
+  size_t history_size_ = 0;
+  History input_history_;
 };
 } // namespace espp
