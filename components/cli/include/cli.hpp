@@ -86,6 +86,18 @@ public:
   void SetInputHistorySize(size_t history_size) { line_input_.set_history_size(history_size); }
 
   /**
+   * @brief Set the input history - replaces any existing history.
+   * @param history new LineInput::History to use.
+   */
+  void SetInputHistory(const LineInput::History &history) { line_input_.set_history(history); }
+
+  /**
+   * @brief Get the input history for this session.
+   * @return The current input history for this session.
+   */
+  LineInput::History GetInputHistory() const { return line_input_.get_history(); }
+
+  /**
    * @brief Start the Cli, blocking until it exits.
    */
   void Start() {
