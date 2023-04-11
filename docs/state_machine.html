@@ -131,7 +131,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>State Machine APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/9fb257a/docs/en/state_machine.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/16161aa/docs/en/state_machine.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -154,7 +154,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/state_machine/include/state_machine.hpp">components/state_machine/include/state_machine.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/16161aa/components/state_machine/include/state_machine.hpp">components/state_machine/include/state_machine.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -173,7 +173,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dd><p>State machine convenience wrapper for espp. Including <code class="docutils literal notranslate"><span class="pre">state_machine.hpp</span></code> provides access to all the base classes that the generated code relies on as well as what you would need to subclass yourself for a manually written hfsm. Please see <a class="reference external" href="https://github.com/finger563/webgme-hfsm">https://github.com/finger563/webgme-hfsm</a> for more information about modeling, generating, and developing HFSMs. </p>
 <section id="namespaceespp_1hfsm_ex1">
 <h4>State Machine / HFSM Example with the generated Complex example hfsm<a class="headerlink" href="#namespaceespp_1hfsm_ex1" title="Permalink to this headline"></a></h4>
-<p id="namespaceespp_1hfsm_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">GeneratedEventBase</span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span><span class="w"></span>
+<p id="namespaceespp_1hfsm_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">GeneratedEventBase</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">handled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// create the HFSM</span>
@@ -199,7 +199,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">complex_root</span><span class="p">.</span><span class="n">has_stopped</span><span class="p">();</span><span class="w"></span>
 <span class="w">    </span><span class="p">};</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">(</span><span class="w"></span>
-<span class="w">                           </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;HFSM&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span><span class="w"></span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;HFSM&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span><span class="w"></span>
 <span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// from other contexts you can spawn events into the HFSM. the functions are</span>
@@ -227,7 +227,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <span class="w">    </span><span class="c1">//       get_user_selection() function.</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="o">::</span><span class="n">configure_stdin_stdout</span><span class="p">();</span><span class="w"></span>
 
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">GeneratedEventBase</span><span class="o">*</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">GeneratedEventBase</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// create the HFSM</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">Root</span><span class="w"> </span><span class="n">complex_root</span><span class="p">;</span><span class="w"></span>
@@ -238,20 +238,17 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <span class="w">    </span><span class="c1">// NOTE: this is just a copy of the HFSM code from the generated test bench,</span>
 <span class="w">    </span><span class="c1">//       and is not intended to show how to actually run the HFSM in</span>
 <span class="w">    </span><span class="c1">//       production.</span>
-<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="n">display_event_menu</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_user_selection</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ExitSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
-<span class="w">      </span><span class="p">}</span><span class="w"></span>
-<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">RestartSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">RestartSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="n">complex_root</span><span class="p">.</span><span class="n">restart</span><span class="p">();</span><span class="w"></span>
-<span class="w">      </span><span class="p">}</span><span class="w"></span>
-<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">TickSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">TickSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="n">complex_root</span><span class="p">.</span><span class="n">tick</span><span class="p">();</span><span class="w"></span>
-<span class="w">      </span><span class="p">}</span><span class="w"></span>
-<span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="n">make_event</span><span class="p">(</span><span class="w"> </span><span class="n">complex_root</span><span class="p">,</span><span class="w"> </span><span class="n">selection</span><span class="w"> </span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">make_event</span><span class="p">(</span><span class="n">complex_root</span><span class="p">,</span><span class="w"> </span><span class="n">selection</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="p">}</span><span class="w"></span>
 <span class="w">      </span><span class="n">complex_root</span><span class="p">.</span><span class="n">handle_all_events</span><span class="p">();</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
@@ -269,7 +266,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/state_machine/include/state_base.hpp">components/state_machine/include/state_base.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/16161aa/components/state_machine/include/state_base.hpp">components/state_machine/include/state_base.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -409,7 +406,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id3">
 <h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/state_machine/include/shallow_history_state.hpp">components/state_machine/include/shallow_history_state.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/16161aa/components/state_machine/include/shallow_history_state.hpp">components/state_machine/include/shallow_history_state.hpp</a></p></li>
 </ul>
 </section>
 <section id="id4">
@@ -540,7 +537,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id5">
 <h3>Header File<a class="headerlink" href="#id5" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9fb257a/components/state_machine/include/deep_history_state.hpp">components/state_machine/include/deep_history_state.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/16161aa/components/state_machine/include/deep_history_state.hpp">components/state_machine/include/deep_history_state.hpp</a></p></li>
 </ul>
 </section>
 <section id="id6">
