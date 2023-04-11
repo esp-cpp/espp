@@ -65,6 +65,7 @@ INPUT += $(PROJECT_PATH)/components/bldc_driver/include/bldc_driver.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_motor/include/bldc_motor.hpp
 INPUT += $(PROJECT_PATH)/components/controller/include/controller.hpp
 INPUT += $(PROJECT_PATH)/components/cli/include/cli.hpp
+INPUT += $(PROJECT_PATH)/components/cli/include/line_input.hpp
 INPUT += $(PROJECT_PATH)/components/color/include/color.hpp
 INPUT += $(PROJECT_PATH)/components/csv/include/csv.hpp
 INPUT += $(PROJECT_PATH)/components/display/include/display.hpp

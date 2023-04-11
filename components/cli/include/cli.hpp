@@ -8,6 +8,8 @@
 
 #include <cli/cli.h>
 
+#include "line_input.hpp"
+
 namespace espp {
 /**
  * @brief Class for implementing a basic Cli using the external cli library.
@@ -19,7 +21,7 @@ namespace espp {
  * \section cli_ex1 Oneshot CLI Example
  * \snippet cli_example.cpp cli example
  */
-class Cli : public cli::CliSession {
+class Cli : private cli::CliSession {
 public:
   /**
    * @brief Configure the UART driver to support blocking input read, so that
@@ -39,7 +41,10 @@ public:
       return;
     }
     // Initialize VFS & UART so we can use std::cout/cin
-    setvbuf(stdin, NULL, _IONBF, 0);
+    // _IOFBF = full buffering
+    // _IOLBF = line buffering
+    // _IONBF = no buffering
+    setvbuf(stdin, nullptr, _IONBF, 0);
     /* Install UART driver for interrupt-driven reads and writes */
     ESP_ERROR_CHECK(
         uart_driver_install((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM, 256, 0, 0, NULL, 0));
@@ -75,6 +80,12 @@ public:
   }
 
   /**
+   * @brief Set the input history size for this session.
+   * @param history_size new History size. Must be >= 1.
+   */
+  void SetInputHistorySize(size_t history_size) { line_input_.set_history_size(history_size); }
+
+  /**
    * @brief Start the Cli, blocking until it exits.
    */
   void Start() {
@@ -82,19 +93,9 @@ public:
 
     while (!exit) {
       Prompt();
-      std::string line;
       if (!in.good())
         Exit();
-      // NOTE: the original implementation (CliFileSession) uses the
-      //       std::getline(in, line) impl, but that (currently) does not
-      //       show the input as you are typing, which is annoying.
-      char c;
-      while (in.get(c)) {
-        line += c;
-        cli::Cli::cout() << c;
-        if (c == '\n')
-          break;
-      }
+      auto line = line_input_.get_user_input(in, [this]() { Prompt(); });
       if (in.eof()) {
         Exit();
       } else {
@@ -105,6 +106,7 @@ public:
 
 private:
   bool exit;
+  LineInput line_input_;
   std::istream &in;
 };
 } // namespace espp

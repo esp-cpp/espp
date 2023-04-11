@@ -55,6 +55,7 @@ extern "C" void app_main(void) {
     cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
 
     espp::Cli input(cli);
+    input.SetInputHistorySize(10);
     input.Start();
     //! [cli example]
   }
