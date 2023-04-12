@@ -1,0 +1,229 @@
+#include "event_manager.hpp"
+
+using namespace espp;
+
+bool EventManager::add_publisher(const std::string &topic, const std::string &component) {
+  logger_.info("Adding publisher '{}' to topic '{}'", component, topic);
+  std::lock_guard<std::recursive_mutex> lk(events_mutex_);
+  // add to `events_`
+  // NOTE: this will default construct this if it does not exist
+  auto &topic_publishers = events_.publishers[topic];
+  auto [exists, index] = detail::get_index_in_container(component, topic_publishers);
+  if (exists) {
+    // component is already registered as a publisher, so return false
+    return false;
+  }
+  topic_publishers.push_back(component);
+  return true;
+}
+
+bool EventManager::add_subscriber(const std::string &topic, const std::string &component,
+                                  const event_callback_fn &callback) {
+  logger_.info("Adding subscriber '{}' to topic '{}'", component, topic);
+  {
+    std::lock_guard<std::recursive_mutex> lk(events_mutex_);
+    // add to `events_`
+    // NOTE: this will default construct this if it does not exist
+    auto &topic_subscribers = events_.subscribers[topic];
+    auto [exists, index] = detail::get_index_in_container(component, topic_subscribers);
+    if (exists) {
+      // component is already registered as a subscriber, so return false
+      return false;
+    }
+    topic_subscribers.push_back(component);
+  }
+  // add to `subscriber_callbacks_`
+  {
+    std::lock_guard<std::recursive_mutex> lk(callbacks_mutex_);
+    auto &callbacks = subscriber_callbacks_[topic];
+    auto is_component = [&component](std::pair<std::string, event_callback_fn> &e) {
+      return std::get<0>(e) == component;
+    };
+    auto elem = std::find_if(std::begin(callbacks), std::end(callbacks), is_component);
+    if (elem != std::end(callbacks)) {
+      // callback for this component is already registered, so return false
+      return false;
+    }
+    callbacks.emplace_back(component, callback);
+  }
+  // if not in `subscriber_tasks_`
+  {
+    std::lock_guard<std::recursive_mutex> lk(tasks_mutex_);
+    if (!subscriber_tasks_.contains(topic)) {
+      // add to `subscriber_data_`
+      subscriber_data_[topic]; // insert default constructed data
+      // create new task (using bound subscriber_task_fn) and add to
+      // `subscriber_tasks_`
+      using namespace std::placeholders;
+      subscriber_tasks_[topic] = Task::make_unique(
+          {.name = topic + " subscriber",
+           .callback = std::bind(&EventManager::subscriber_task_fn, this, topic, _1, _2),
+           .stack_size_bytes{8 * 1024}});
+      // and start it
+      subscriber_tasks_[topic]->start();
+    }
+  }
+  return true;
+}
+
+bool EventManager::publish(const std::string &topic, const std::string &data) {
+  logger_.info("Publishing on topic '{}'", topic);
+  // find topic in `subscriber_data_`, push_back into the queue there and notify
+  // the cv.
+  // get the data queue
+  subscriber_data_t *sub_data;
+  {
+    std::lock_guard<std::recursive_mutex> lk(data_mutex_);
+    // find sub_data in `subscriber_data_`
+    if (!subscriber_data_.contains(topic)) {
+      return false;
+    }
+    sub_data = &subscriber_data_[topic];
+  }
+  auto &deq = std::get<DEQ_INDEX>(*sub_data);
+  auto &cv = std::get<CV_INDEX>(*sub_data);
+  // push the data into the queue
+  deq.push_back(data);
+  // notify the task that there is new data in the queue
+  cv.notify_all();
+  return true;
+}
+
+bool EventManager::remove_publisher(const std::string &topic, const std::string &component) {
+  logger_.info("Removing publisher '{}' on topic '{}'", component, topic);
+  // remove from `events_`
+  std::lock_guard<std::recursive_mutex> lk(events_mutex_);
+  if (!events_.publishers.contains(topic)) {
+    // there is no publisher for this topic
+    return false;
+  }
+  // We know the container contains a value for [topic]
+  auto &topic_publishers = events_.publishers[topic];
+  auto elem = std::find(std::begin(topic_publishers), std::end(topic_publishers), component);
+  bool exists = elem != std::end(topic_publishers);
+  if (!exists) {
+    // component is not registered as a publisher, so return false
+    return false;
+  }
+  // we found it, so remove it from the list
+  topic_publishers.erase(elem);
+  return true;
+}
+
+bool EventManager::remove_subscriber(const std::string &topic, const std::string &component) {
+  logger_.info("Removing subscriber '{}' on topic '{}'", component, topic);
+  bool was_last_subscriber{false};
+  // remove from `events_`
+  {
+    std::lock_guard<std::recursive_mutex> lk(events_mutex_);
+    if (!events_.subscribers.contains(topic)) {
+      // there is no publisher for this topic
+      return false;
+    }
+    // We know the container contains a value for [topic]
+    auto &topic_subscribers = events_.subscribers[topic];
+    auto elem = std::find(std::begin(topic_subscribers), std::end(topic_subscribers), component);
+    bool exists = elem != std::end(topic_subscribers);
+    if (!exists) {
+      // component is not registered as a subscriber, so return false
+      return false;
+    }
+    // we found it, so remove it from the list
+    topic_subscribers.erase(elem);
+    was_last_subscriber = topic_subscribers.size() == 0;
+  }
+  // remove from `subscriber_callbacks_`
+  {
+    std::lock_guard<std::recursive_mutex> lk(callbacks_mutex_);
+    auto callbacks = subscriber_callbacks_[topic];
+
+    auto is_component = [&component](std::pair<std::string, event_callback_fn> &e) {
+      return std::get<0>(e) == component;
+    };
+    auto elem = std::find_if(std::begin(callbacks), std::end(callbacks), is_component);
+    if (elem != std::end(callbacks)) {
+      callbacks.erase(elem);
+    }
+    if (was_last_subscriber) {
+      // remove the key from the map
+      subscriber_callbacks_.erase(topic);
+    }
+  }
+  // if this was the last subscriber
+  if (was_last_subscriber) {
+    logger_.info("It was the last subscriber for '{}', cleaning up tasks", topic);
+    // notify the data (so the subscriber task function can stop waiting on the data cv)
+    {
+      std::lock_guard<std::recursive_mutex> lk(data_mutex_);
+      auto &sub_data = subscriber_data_[topic];
+      auto &cv = std::get<CV_INDEX>(sub_data);
+      cv.notify_all();
+    }
+    {
+      std::lock_guard<std::recursive_mutex> lk(tasks_mutex_);
+      // stop the task
+      subscriber_tasks_[topic]->stop();
+      // remove from `subscriber_tasks_`
+      subscriber_tasks_.erase(topic);
+    }
+    {
+      std::lock_guard<std::recursive_mutex> lk(data_mutex_);
+      // remove from `subscriber_data_`
+      subscriber_data_.erase(topic);
+    }
+  }
+  return true;
+}
+
+bool EventManager::subscriber_task_fn(const std::string &topic, std::mutex &m,
+                                      std::condition_variable &cv) {
+  // get the data queue
+  subscriber_data_t *sub_data;
+  {
+    std::lock_guard<std::recursive_mutex> lk(data_mutex_);
+    // find sub_data in `subscriber_data_`
+    if (!subscriber_data_.contains(topic)) {
+      // stop the task, we don't have valid subscriber data
+      return true;
+    }
+    sub_data = &subscriber_data_[topic];
+  }
+  // get the data
+  logger_.debug("Waiting on data for topic '{}'", topic);
+  std::string data;
+  {
+    auto &[deq_m, deq_cv, deq] = *sub_data;
+    // wait on sub_data's mutex/cv
+    std::unique_lock<std::mutex> lk(deq_m);
+    deq_cv.wait(lk);
+    if (deq.empty()) {
+      // stop the task, we were notified, but there was no data available.
+      return true;
+    }
+    // set data to sub_data's deque front
+    data = deq.front();
+    // and pop the front data off
+    deq.pop_front();
+  }
+  // get all the callbacks
+  logger_.debug("Finding callbacks for topic '{}'", topic);
+  std::vector<std::pair<std::string, event_callback_fn>> *callbacks;
+  {
+    std::lock_guard<std::recursive_mutex> lk(callbacks_mutex_);
+    if (!subscriber_callbacks_.contains(topic)) {
+      // stop the task, we don't have any callbacks anymore.
+      return true;
+    }
+    // copy here so that we don't hold this lock the whole time we're calling
+    // callbacks
+    callbacks = &subscriber_callbacks_[topic];
+  }
+  // call all the callbacks
+  logger_.debug("Calling {} callbacks for topic '{}'", callbacks->size(), topic);
+  for (auto [comp, callback] : *callbacks) {
+    logger_.debug("Callback for '{}'", comp);
+    callback(data);
+  }
+  // we don't want to stop the task...
+  return false;
+}
