@@ -35,6 +35,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/encoder/example/main/encoder_example.
 EXAMPLE_PATH += $(PROJECT_PATH)/components/event_manager/example/main/event_manager_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/filters/example/main/filters_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/joystick/example/main/joystick_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/led/example/main/led_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/math/example/main/math_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp

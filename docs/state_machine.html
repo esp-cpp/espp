@@ -132,7 +132,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>State Machine APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/27bf4c4/docs/en/state_machine.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/186e8c0/docs/en/state_machine.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -155,7 +155,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/27bf4c4/components/state_machine/include/state_machine.hpp">components/state_machine/include/state_machine.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/186e8c0/components/state_machine/include/state_machine.hpp">components/state_machine/include/state_machine.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -267,7 +267,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/27bf4c4/components/state_machine/include/state_base.hpp">components/state_machine/include/state_base.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/186e8c0/components/state_machine/include/state_base.hpp">components/state_machine/include/state_base.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -310,7 +310,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dd><p>Calls handleEvent on the activeLeaf. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
+<dd class="field-odd"><p><strong>event</strong> – <strong>[in]</strong> EventBase* Event needing to be handled</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>true if event is consumed, false otherwise </p>
@@ -374,6 +374,11 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14setActiveChildEP9StateBase">
 <span id="_CPPv3N4espp13state_machine9StateBase14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine9StateBase14setActiveChildEP9StateBase"></span><span id="espp::state_machine::StateBase::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update the active child state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>childState</strong> – New child state to set to be active state. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -392,6 +397,11 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14setParentStateEP9StateBase">
 <span id="_CPPv3N4espp13state_machine9StateBase14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine9StateBase14setParentStateEP9StateBase"></span><span id="espp::state_machine::StateBase::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Will set the parent state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parent</strong> – Set the parent state of this state. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -407,7 +417,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id3">
 <h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/27bf4c4/components/state_machine/include/shallow_history_state.hpp">components/state_machine/include/shallow_history_state.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/186e8c0/components/state_machine/include/shallow_history_state.hpp">components/state_machine/include/shallow_history_state.hpp</a></p></li>
 </ul>
 </section>
 <section id="id4">
@@ -448,7 +458,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dd><p>Calls handleEvent on the activeLeaf. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
+<dd class="field-odd"><p><strong>event</strong> – <strong>[in]</strong> EventBase* Event needing to be handled</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>true if event is consumed, false otherwise </p>
@@ -505,6 +515,11 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase">
 <span id="_CPPv3N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase"></span><span id="espp::state_machine::ShallowHistoryState::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update the active child state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>childState</strong> – New child state to set to be active state. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -523,6 +538,11 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase">
 <span id="_CPPv3N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase"></span><span id="espp::state_machine::ShallowHistoryState::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Will set the parent state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parent</strong> – Set the parent state of this state. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -538,7 +558,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id5">
 <h3>Header File<a class="headerlink" href="#id5" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/27bf4c4/components/state_machine/include/deep_history_state.hpp">components/state_machine/include/deep_history_state.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/186e8c0/components/state_machine/include/deep_history_state.hpp">components/state_machine/include/deep_history_state.hpp</a></p></li>
 </ul>
 </section>
 <section id="id6">
@@ -579,7 +599,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dd><p>Calls handleEvent on the activeLeaf. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
+<dd class="field-odd"><p><strong>event</strong> – <strong>[in]</strong> EventBase* Event needing to be handled</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>true if event is consumed, false otherwise </p>
@@ -636,6 +656,11 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase">
 <span id="_CPPv3N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase"></span><span id="espp::state_machine::DeepHistoryState::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update the active child state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>childState</strong> – New child state to set to be active state. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -654,6 +679,11 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase">
 <span id="_CPPv3N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase"></span><span id="espp::state_machine::DeepHistoryState::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Will set the parent state. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parent</strong> – Set the parent state of this state. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">

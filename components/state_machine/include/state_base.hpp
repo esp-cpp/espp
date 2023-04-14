@@ -52,7 +52,7 @@ public:
   /**
    * @brief Calls handleEvent on the activeLeaf.
    *
-   * @param[in] EventBase* Event needing to be handled
+   * @param[in] event EventBase* Event needing to be handled
    *
    * @return true if event is consumed, false otherwise
    */
@@ -128,6 +128,7 @@ public:
 
   /**
    * @brief Update the active child state.
+   * @param childState New child state to set to be active state.
    */
   void setActiveChild(StateBase *childState) { _activeState = childState; }
 
@@ -159,6 +160,7 @@ public:
 
   /**
    * @brief Will set the parent state.
+   * @param parent Set the parent state of this state.
    */
   void setParentState(StateBase *parent) { _parentState = parent; }
 
