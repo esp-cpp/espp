@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <vector>
 
 #include "driver/ledc.h"
+#include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
 #include "logger.hpp"
@@ -13,6 +15,11 @@ namespace espp {
 /**
  *  Provides a wrapper around the LEDC peripheral in ESP-IDF which allows for
  *  thread-safe control over one or more channels of LEDs using a simpler API.
+ *
+ * \section led_ex1 Linear LED Example
+ * \snippet led_example.cpp linear led example
+ * \section led_ex2 Breathing LED Example
+ * \snippet led_example.cpp breathing led example
  */
 class Led {
 public:
@@ -104,8 +111,6 @@ public:
    * @brief Stop the LEDC subsystem and free memory.
    */
   ~Led() {
-    ledc_fade_func_uninstall();
-    // TODO: should we call ledc_stop(...) for the channels?
     // clean up the semaphores
     for (auto &sem : fade_semaphores_) {
       // take the semaphore (so that we don't delete it until no one is
@@ -114,6 +119,7 @@ public:
       // and delete it
       vSemaphoreDelete(sem);
     }
+    ledc_fade_func_uninstall();
   }
 
   /**
@@ -219,7 +225,7 @@ protected:
    * Use callback only if you are aware it is being called inside an ISR
    * Otherwise, you can use a semaphore to unblock tasks
    */
-  static bool cb_ledc_fade_end_event(const ledc_cb_param_t *param, void *user_arg) {
+  static bool IRAM_ATTR cb_ledc_fade_end_event(const ledc_cb_param_t *param, void *user_arg) {
     portBASE_TYPE taskAwoken = pdFALSE;
 
     if (param->event == LEDC_FADE_END_EVT) {
