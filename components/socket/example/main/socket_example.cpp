@@ -55,8 +55,8 @@ extern "C" void app_main(void) {
         .buffer_size = 1024,
         .on_receive_callback =
             [](auto &data, auto &source) -> auto{fmt::print("Server received: {}\n"
-                                                            "    from source: {}:{}\n",
-                                                            data, source.address, source.port);
+                                                            "    from source: {}\n",
+                                                            data, source);
     return std::nullopt;
   }
 };
@@ -105,8 +105,8 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
       .buffer_size = 1024,
       .on_receive_callback =
           [](auto &data, auto &source) -> auto{fmt::print("Server received: {}\n"
-                                                          "    from source: {}:{}\n",
-                                                          data, source.address, source.port);
+                                                          "    from source: {}\n",
+                                                          data, source);
   // reverse the data
   std::reverse(data.begin(), data.end());
   // and send it back
@@ -171,8 +171,8 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold, "Staring UDP m
       .multicast_group = multicast_group,
       .on_receive_callback =
           [](auto &data, auto &source) -> auto{fmt::print("Server received: {}\n"
-                                                          "    from source: {}:{}\n",
-                                                          data, source.address, source.port);
+                                                          "    from source: {}\n",
+                                                          data, source);
   // reverse the data
   std::reverse(data.begin(), data.end());
   // and send it back
