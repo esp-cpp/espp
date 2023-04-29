@@ -131,7 +131,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/186e8c0/docs/en/network/socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/038ea96/docs/en/network/socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -149,7 +149,7 @@ includes some initialization, cleanup, and conversion utilities.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/186e8c0/components/socket/include/socket.hpp">components/socket/include/socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/038ea96/components/socket/include/socket.hpp">components/socket/include/socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -193,8 +193,26 @@ includes some initialization, cleanup, and conversion utilities.</p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Socket6SocketEiRKN6Logger6ConfigE">
+<span id="_CPPv3N4espp6Socket6SocketEiRKN6Logger6ConfigE"></span><span id="_CPPv2N4espp6Socket6SocketEiRKN6Logger6ConfigE"></span><span id="espp::Socket::Socket__i.Logger::ConfigCR"></span><span class="target" id="classespp_1_1_socket_1a1d4203337a0e35f76f5e5e6b388b5ef7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Socket</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">socket_fd</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger6ConfigE" title="espp::Logger::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">logger_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Socket6SocketEiRKN6Logger6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct the socket, setting its internal socket file descriptor. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This constructor does not check the validity of the socket file descriptor. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>socket_fd</strong> – <a class="reference internal" href="#classespp_1_1_socket"><span class="std std-ref">Socket</span></a> file descriptor. </p></li>
+<li><p><strong>logger_config</strong> – configuration for the logger associated with the socket. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Socket6SocketE4TypeRKN6Logger6ConfigE">
-<span id="_CPPv3N4espp6Socket6SocketE4TypeRKN6Logger6ConfigE"></span><span id="_CPPv2N4espp6Socket6SocketE4TypeRKN6Logger6ConfigE"></span><span id="espp::Socket::Socket__Type.Logger::ConfigCR"></span><span class="target" id="classespp_1_1_socket_1a96bf959126e9765b0ea1d333629b460c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Socket</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">Type</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger6ConfigE" title="espp::Logger::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">logger_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Socket6SocketE4TypeRKN6Logger6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6Socket6SocketE4TypeRKN6Logger6ConfigE"></span><span id="_CPPv2N4espp6Socket6SocketE4TypeRKN6Logger6ConfigE"></span><span id="espp::Socket::Socket__Type.Logger::ConfigCR"></span><span class="target" id="classespp_1_1_socket_1a96bf959126e9765b0ea1d333629b460c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Socket</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">Type</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger6ConfigE" title="espp::Logger::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">logger_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Socket6SocketE4TypeRKN6Logger6ConfigE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize the socket (calling init()). </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -213,12 +231,24 @@ includes some initialization, cleanup, and conversion utilities.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Socket8is_validEv">
-<span id="_CPPv3N4espp6Socket8is_validEv"></span><span id="_CPPv2N4espp6Socket8is_validEv"></span><span id="espp::Socket::is_valid"></span><span class="target" id="classespp_1_1_socket_1a7de2424c97570dc62d2a79584eec89c6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Socket8is_validEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Socket8is_validEv">
+<span id="_CPPv3NK4espp6Socket8is_validEv"></span><span id="_CPPv2NK4espp6Socket8is_validEv"></span><span id="espp::Socket::is_validC"></span><span class="target" id="classespp_1_1_socket_1a152ec1368a41d39c2377567915628bca"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Socket8is_validEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Is the socket valid. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>true if the socket file descriptor is &gt;= 0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Socket13get_ipv4_infoEv">
+<span id="_CPPv3N4espp6Socket13get_ipv4_infoEv"></span><span id="_CPPv2N4espp6Socket13get_ipv4_infoEv"></span><span id="espp::Socket::get_ipv4_info"></span><span class="target" id="classespp_1_1_socket_1a738551ddc1766dfc20dccf07205c194c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp6Socket4InfoE" title="espp::Socket::Info"><span class="n"><span class="pre">Info</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_ipv4_info</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Socket13get_ipv4_infoEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the <a class="reference internal" href="#structespp_1_1_socket_1_1_info"><span class="std std-ref">Socket::Info</span></a> for the socket. </p>
+<p>This will call getsockname() on the socket to get the sockaddr_storage structure, and then fill out the <a class="reference internal" href="#structespp_1_1_socket_1_1_info"><span class="std std-ref">Socket::Info</span></a> structure. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#structespp_1_1_socket_1_1_info"><span class="std std-ref">Socket::Info</span></a> for the socket. </p>
 </dd>
 </dl>
 </dd></dl>
