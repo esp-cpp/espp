@@ -131,7 +131,7 @@
           <li><a href="index.html">Network APIs</a> &raquo;</li>
       <li>UDP Sockets</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/186e8c0/docs/en/network/udp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/8fa86e9/docs/en/network/udp_socket.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -149,7 +149,7 @@ many to one), and broadcast (one to all).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/186e8c0/components/socket/include/udp_socket.hpp">components/socket/include/udp_socket.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/8fa86e9/components/socket/include/udp_socket.hpp">components/socket/include/udp_socket.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -198,8 +198,8 @@ many to one), and broadcast (one to all).</p>
 <span class="w">        </span><span class="p">.</span><span class="n">buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
 <span class="w">            </span><span class="p">[](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">source</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">auto</span><span class="p">{</span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Server received: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
-<span class="w">                                                            </span><span class="s">&quot;    from source: {}:{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                                            </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">address</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">port</span><span class="p">);</span><span class="w"></span>
+<span class="w">                                                            </span><span class="s">&quot;    from source: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                                            </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="p">}</span><span class="w"></span>
 <span class="p">};</span><span class="w"></span>
@@ -251,8 +251,8 @@ many to one), and broadcast (one to all).</p>
 <span class="w">      </span><span class="p">.</span><span class="n">buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
 <span class="w">          </span><span class="p">[](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">source</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">auto</span><span class="p">{</span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Server received: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
-<span class="w">                                                          </span><span class="s">&quot;    from source: {}:{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                                          </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">address</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">port</span><span class="p">);</span><span class="w"></span>
+<span class="w">                                                          </span><span class="s">&quot;    from source: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                                          </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">);</span><span class="w"></span>
 <span class="w">  </span><span class="c1">// reverse the data</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">reverse</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">end</span><span class="p">());</span><span class="w"></span>
 <span class="w">  </span><span class="c1">// and send it back</span>
@@ -314,8 +314,8 @@ many to one), and broadcast (one to all).</p>
 <span class="w">      </span><span class="p">.</span><span class="n">multicast_group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">multicast_group</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">on_receive_callback</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
 <span class="w">          </span><span class="p">[](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">source</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">auto</span><span class="p">{</span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Server received: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"></span>
-<span class="w">                                                          </span><span class="s">&quot;    from source: {}:{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                                          </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">address</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">.</span><span class="n">port</span><span class="p">);</span><span class="w"></span>
+<span class="w">                                                          </span><span class="s">&quot;    from source: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                                          </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">);</span><span class="w"></span>
 <span class="w">  </span><span class="c1">// reverse the data</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">reverse</span><span class="p">(</span><span class="n">data</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">data</span><span class="p">.</span><span class="n">end</span><span class="p">());</span><span class="w"></span>
 <span class="w">  </span><span class="c1">// and send it back</span>
@@ -460,12 +460,24 @@ If response is requested, a callback can be provided in send_config which will b
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp9UdpSocket8is_validEv">
-<span id="_CPPv3N4espp9UdpSocket8is_validEv"></span><span id="_CPPv2N4espp9UdpSocket8is_validEv"></span><span id="espp::UdpSocket::is_valid"></span><span class="target" id="classespp_1_1_socket_1a7de2424c97570dc62d2a79584eec89c6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9UdpSocket8is_validEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp9UdpSocket8is_validEv">
+<span id="_CPPv3NK4espp9UdpSocket8is_validEv"></span><span id="_CPPv2NK4espp9UdpSocket8is_validEv"></span><span id="espp::UdpSocket::is_validC"></span><span class="target" id="classespp_1_1_socket_1a152ec1368a41d39c2377567915628bca"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_valid</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp9UdpSocket8is_validEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Is the socket valid. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>true if the socket file descriptor is &gt;= 0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9UdpSocket13get_ipv4_infoEv">
+<span id="_CPPv3N4espp9UdpSocket13get_ipv4_infoEv"></span><span id="_CPPv2N4espp9UdpSocket13get_ipv4_infoEv"></span><span id="espp::UdpSocket::get_ipv4_info"></span><span class="target" id="classespp_1_1_socket_1a738551ddc1766dfc20dccf07205c194c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">Info</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_ipv4_info</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9UdpSocket13get_ipv4_infoEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the <a class="reference internal" href="socket.html#structespp_1_1_socket_1_1_info"><span class="std std-ref">Socket::Info</span></a> for the socket. </p>
+<p>This will call getsockname() on the socket to get the sockaddr_storage structure, and then fill out the <a class="reference internal" href="socket.html#structespp_1_1_socket_1_1_info"><span class="std std-ref">Socket::Info</span></a> structure. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><a class="reference internal" href="socket.html#structespp_1_1_socket_1_1_info"><span class="std std-ref">Socket::Info</span></a> for the socket. </p>
 </dd>
 </dl>
 </dd></dl>

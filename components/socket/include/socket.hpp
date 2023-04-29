@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -132,12 +133,26 @@ public:
   typedef std::function<void(std::vector<uint8_t> &data)> response_callback_fn;
 
   /**
+   * @brief Construct the socket, setting its internal socket file descriptor.
+   * @note This constructor does not check the validity of the socket file
+   *       descriptor.
+   * @param socket_fd Socket file descriptor.
+   * @param logger_config configuration for the logger associated with the
+   *        socket.
+   */
+  explicit Socket(int socket_fd, const Logger::Config &logger_config) : logger_(logger_config) {
+    socket_ = socket_fd;
+  }
+
+  /**
    * @brief Initialize the socket (calling init()).
    * @param type The Socket::Type of the socket to make.
    * @param logger_config configuration for the logger associated with the
    *        socket.
    */
-  Socket(Type type, const Logger::Config &logger_config) : logger_(logger_config) { init(type); }
+  explicit Socket(Type type, const Logger::Config &logger_config) : logger_(logger_config) {
+    init(type);
+  }
 
   /**
    * @brief Tear down any resources associted with the socket.
@@ -148,7 +163,7 @@ public:
    * @brief Is the socket valid.
    * @return true if the socket file descriptor is >= 0.
    */
-  bool is_valid() { return socket_ >= 0; }
+  bool is_valid() const { return socket_ >= 0; }
 
   /**
    * @brief Is the socket valid.
@@ -156,6 +171,25 @@ public:
    * @return true if the socket file descriptor is >= 0.
    */
   static bool is_valid(int socket_fd) { return socket_fd >= 0; }
+
+  /**
+   * @brief Get the Socket::Info for the socket.
+   * @details This will call getsockname() on the socket to get the
+   *          sockaddr_storage structure, and then fill out the Socket::Info
+   *          structure.
+   * @return Socket::Info for the socket.
+   */
+  std::optional<Info> get_ipv4_info() {
+    struct sockaddr_storage addr;
+    socklen_t addr_len = sizeof(addr);
+    if (getsockname(socket_, (struct sockaddr *)&addr, &addr_len) < 0) {
+      logger_.error("getsockname() failed: {} - {}", errno, strerror(errno));
+      return {};
+    }
+    Info info;
+    info.from_sockaddr(addr);
+    return info;
+  }
 
   /**
    * @brief Set the receive timeout on the provided socket.
@@ -285,6 +319,42 @@ public:
     }
 
     return true;
+  }
+
+  int select(std::chrono::microseconds timeout) {
+    fd_set readfds;
+    fd_set writefds;
+    fd_set exceptfds;
+    FD_ZERO(&readfds);
+    FD_ZERO(&writefds);
+    FD_ZERO(&exceptfds);
+    FD_SET(socket_, &readfds);
+    FD_SET(socket_, &writefds);
+    FD_SET(socket_, &exceptfds);
+    int nfds = socket_ + 1;
+    // convert timeout to timeval
+    struct timeval tv;
+    tv.tv_sec = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
+    tv.tv_usec = std::chrono::duration_cast<std::chrono::microseconds>(timeout).count() % 1000000;
+    int retval = ::select(nfds, &readfds, &writefds, &exceptfds, &tv);
+    if (retval < 0) {
+      logger_.error("select failed: {} - '{}'", errno, strerror(errno));
+      return -1;
+    }
+    if (retval == 0) {
+      logger_.warn("select timed out");
+      return 0;
+    }
+    if (FD_ISSET(socket_, &readfds)) {
+      logger_.debug("select read");
+    }
+    if (FD_ISSET(socket_, &writefds)) {
+      logger_.debug("select write");
+    }
+    if (FD_ISSET(socket_, &exceptfds)) {
+      logger_.debug("select except");
+    }
+    return retval;
   }
 
 protected:
