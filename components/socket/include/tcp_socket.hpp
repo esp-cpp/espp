@@ -256,7 +256,7 @@ public:
    * @note The data pointed to by data must be at least max_num_bytes in size.
    * @param data Pointer to buffer to receive data.
    * @param max_num_bytes Maximum number of bytes to receive.
-   * @return true if successfully received, false otherwise.
+   * @return Number of bytes received.
    */
   size_t receive(uint8_t *data, size_t max_num_bytes) {
     if (!is_valid()) {
