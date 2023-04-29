@@ -224,49 +224,65 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold, "Staring Basic
   //! [TCP Server example]
   std::string server_address = "127.0.0.1";
   size_t port = 5000;
+  int max_connections = 1;
   espp::TcpSocket server_socket({.log_level = espp::Logger::Verbosity::WARN});
+  server_socket.bind(port);
+  server_socket.listen(max_connections);
+  auto server_task_fn = [&server_socket](auto &m, auto &cv) -> bool {
+    static std::unique_ptr<espp::TcpSocket> client_socket;
+    if (!client_socket) {
+      client_socket = server_socket.accept();
+      if (client_socket) {
+        auto info = client_socket->get_remote_info();
+        fmt::print("Server accepted connection from: {}\n", info);
+      }
+    }
+    if (client_socket) {
+      std::vector<uint8_t> data;
+      size_t max_receive_size = 1024;
+      if (client_socket->receive(data, max_receive_size)) {
+        fmt::print("Server received: {}\n", data);
+      }
+    }
+    {
+      std::unique_lock<std::mutex> lock(m);
+      cv.wait_for(lock, 10ms);
+    }
+    // don't want to stop the task
+    return false;
+  };
+
   auto server_task_config = espp::Task::Config{
       .name = "TcpServer",
-      .callback = nullptr,
+      .callback = server_task_fn,
       .stack_size_bytes = 6 * 1024,
   };
-  auto server_config = espp::TcpSocket::ReceiveConfig{
-      .port = port,
-      .buffer_size = 1024,
-      .on_receive_callback =
-          [](auto &data, auto &source) -> auto{fmt::print("Server received: {}\n"
-                                                          "    from source: {}:{}\n",
-                                                          data, source.address, source.port);
-  return std::nullopt;
-}
-}
-;
-server_socket.start_receiving(server_task_config, server_config);
-//! [TCP Server example]
+  auto server_task = espp::Task::make_unique(server_task_config);
+  server_task->start();
+  //! [TCP Server example]
 
-//! [TCP Client example]
-espp::TcpSocket client_socket({});
-client_socket.connect({.ip_address = server_address, .port = port});
-// create thread for sending data using the socket
-auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
-  static size_t iterations = 0;
-  std::vector<uint8_t> data{0, 1, 2, 3, 4};
-  for (auto &d : data) {
-    d += iterations;
-  }
-  auto tx_config = espp::TcpSocket::TransmitConfig{};
-  client_socket.transmit(data, tx_config);
-  iterations++;
-  std::this_thread::sleep_for(1s);
-  // don't want to stop the task
-  return false;
-};
-auto client_task = espp::Task::make_unique(
-    {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
-client_task->start();
-//! [TCP Client example]
-// now sleep for a while to let the monitor do its thing
-std::this_thread::sleep_for(test_duration);
+  //! [TCP Client example]
+  espp::TcpSocket client_socket({});
+  client_socket.connect({.ip_address = server_address, .port = port});
+  // create thread for sending data using the socket
+  auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
+    static size_t iterations = 0;
+    std::vector<uint8_t> data{0, 1, 2, 3, 4};
+    for (auto &d : data) {
+      d += iterations;
+    }
+    client_socket.transmit(data);
+    iterations++;
+    std::this_thread::sleep_for(1s);
+    // don't want to stop the task
+    return false;
+  };
+  auto client_task = espp::Task::make_unique(
+      {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
+  client_task->start();
+  //! [TCP Client example]
+  // now sleep for a while to let the monitor do its thing
+  std::this_thread::sleep_for(test_duration);
 }
 
 fmt::print(fg(fmt::terminal_color::green) | fmt::emphasis::bold, "Basic TCP test finished.\n");
@@ -279,57 +295,79 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
   //! [TCP Server Response example]
   std::string server_address = "127.0.0.1";
   size_t port = 5000;
+  int max_connections = 1;
   espp::TcpSocket server_socket({.log_level = espp::Logger::Verbosity::WARN});
-  auto server_task_config =
-      espp::Task::Config{.name = "TcpServer", .callback = nullptr, .stack_size_bytes = 6 * 1024};
-  auto server_config = espp::TcpSocket::ReceiveConfig{
-      .port = port,
-      .buffer_size = 1024,
-      .on_receive_callback =
-          [](auto &data, auto &source) -> auto{fmt::print("Server received: {}\n"
-                                                          "    from source: {}:{}\n",
-                                                          data, source.address, source.port);
-  // reverse the data
-  std::reverse(data.begin(), data.end());
-  // and send it back
-  return data;
-}
-}
-;
-server_socket.start_receiving(server_task_config, server_config);
-//! [TCP Server Response example]
-
-//! [TCP Client Response example]
-espp::TcpSocket client_socket({.log_level = espp::Logger::Verbosity::WARN});
-client_socket.connect({
-    .ip_address = server_address,
-    .port = port,
-});
-// create threads
-auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
-  static size_t iterations = 0;
-  std::vector<uint8_t> data{0, 1, 2, 3, 4};
-  for (auto &d : data) {
-    d += iterations;
-  }
-  auto transmit_config = espp::TcpSocket::TransmitConfig{
-      .wait_for_response = true,
-      .response_size = 128,
-      .on_response_callback = [](auto &response) { fmt::print("Client received: {}\n", response); },
+  server_socket.bind(port);
+  server_socket.listen(max_connections);
+  auto server_task_fn = [&server_socket](auto &m, auto &cv) -> bool {
+    static std::unique_ptr<espp::TcpSocket> client_socket;
+    if (!client_socket) {
+      client_socket = server_socket.accept();
+      if (client_socket) {
+        auto info = client_socket->get_remote_info();
+        fmt::print("Server accepted connection from: {}\n", info);
+      }
+    }
+    if (client_socket) {
+      std::vector<uint8_t> data;
+      size_t max_receive_size = 1024;
+      if (client_socket->receive(data, max_receive_size)) {
+        fmt::print("Server received: {}\n", data);
+        // reverse the data
+        std::reverse(data.begin(), data.end());
+        // and send it back
+        client_socket->transmit(data);
+      }
+    }
+    {
+      std::unique_lock<std::mutex> lock(m);
+      cv.wait_for(lock, 10ms);
+    }
+    // don't want to stop the task
+    return false;
   };
-  // NOTE: now this call blocks until the response is received
-  client_socket.transmit(data, transmit_config);
-  iterations++;
-  std::this_thread::sleep_for(1s);
-  // don't want to stop the task
-  return false;
-};
-auto client_task = espp::Task::make_unique(
-    {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
-client_task->start();
-//! [TCP Client Response example]
-// now sleep for a while to let the monitor do its thing
-std::this_thread::sleep_for(test_duration);
+
+  auto server_task_config = espp::Task::Config{
+      .name = "TcpServer",
+      .callback = server_task_fn,
+      .stack_size_bytes = 6 * 1024,
+  };
+  auto server_task = espp::Task::make_unique(server_task_config);
+  server_task->start();
+  //! [TCP Server Response example]
+
+  //! [TCP Client Response example]
+  espp::TcpSocket client_socket({.log_level = espp::Logger::Verbosity::WARN});
+  client_socket.connect({
+      .ip_address = server_address,
+      .port = port,
+  });
+  // create threads
+  auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
+    static size_t iterations = 0;
+    std::vector<uint8_t> data{0, 1, 2, 3, 4};
+    for (auto &d : data) {
+      d += iterations;
+    }
+    auto transmit_config = espp::detail::TcpTransmitConfig{
+        .wait_for_response = true,
+        .response_size = 128,
+        .on_response_callback =
+            [](auto &response) { fmt::print("Client received: {}\n", response); },
+    };
+    // NOTE: now this call blocks until the response is received
+    client_socket.transmit(data, transmit_config);
+    iterations++;
+    std::this_thread::sleep_for(1s);
+    // don't want to stop the task
+    return false;
+  };
+  auto client_task = espp::Task::make_unique(
+      {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
+  client_task->start();
+  //! [TCP Client Response example]
+  // now sleep for a while to let the monitor do its thing
+  std::this_thread::sleep_for(test_duration);
 }
 
 fmt::print(fg(fmt::terminal_color::green) | fmt::emphasis::bold,
