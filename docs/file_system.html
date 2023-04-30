@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File System APIs - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'file_system';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Filter APIs" href="filters/index.html" />
+    <link rel="prev" title="Event Manager APIs" href="event_manager.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ESPP
+            <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">File System APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>File System APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/7874f19/docs/en/file_system.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="file-system-apis">
+<h1>File System APIs<a class="headerlink" href="#file-system-apis" title="Permalink to this headline"></a></h1>
+<p>The <cite>FileSystem</cite> class provides a simple interface for interacting with the
+filesystem. It provides a singleton class which manages the filesystem and also
+includes the relevant POSIX, newlib, and C++ standard library headers providing
+access to the filesystem. It is a wrapper around the <cite>LittleFS</cite> library and
+can be configured using menuconfig to use a custom partition label.</p>
+<p>It also provides some utility functions for interacting with the filesystem
+and performing operations such as getting the total, used, and free space on
+the filesystem, and listing files in a directory.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7874f19/components/file_system/include/file_system.hpp">components/file_system/include/file_system.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystemE">
+<span id="_CPPv3N4espp10FileSystemE"></span><span id="_CPPv2N4espp10FileSystemE"></span><span id="espp::FileSystem"></span><span class="target" id="classespp_1_1_file_system"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">FileSystem</span></span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystemE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>File system class. </p>
+<p>This class is a singleton and should be accessed via the <a class="reference internal" href="#classespp_1_1_file_system_1a419c31661710992b7bcc6bb0dfb7ac1e"><span class="std std-ref">get()</span></a><p>method. The class is responsible for mounting the file system and providing access to the file system. It is configured via the menuconfig system and will use the partition with the label specified in the menuconfig. The partition must be formatted with the LittleFS file system. The file system is mounted at the root directory of the partition such that all files will be stored under the path “/&lt;partition_label&gt;/”.</p>
+<p>The class provides methods to get the amount of free, used and total space on the file system. It also provides a method to get a human readable string for a byte size.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1_file_system_1aa622a29477bd8e7020465ef4341fa273"><span class="std std-ref">get_partition_label()</span></a></p>
+</div>
+</p>
+<section id="classespp_1_1_file_system_1fs_ex1">
+<h4>File System Info Example<a class="headerlink" href="#classespp_1_1_file_system_1fs_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_file_system_1fs_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="c1">// NOTE: partition label is configured by menuconfig and should match the</span>
+<span class="w">  </span><span class="c1">//       partition label in the partition table (partitions.csv).</span>
+<span class="w">  </span><span class="c1">// returns a const char*</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">partition_label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_partition_label</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="c1">// returns a std::string</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">mount_point</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_mount_point</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="c1">// returns a std::filesystem::path</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">root_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_root_path</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Partition label: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">partition_label</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Mount point:     {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">mount_point</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Root path:       {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">root_path</span><span class="p">.</span><span class="n">string</span><span class="p">());</span><span class="w"></span>
+<span class="w">  </span><span class="c1">// human_readable returns a string with the size and unit, e.g. 1.2 MB</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">total_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_total_space</span><span class="p">());</span><span class="w"></span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">free_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_free_space</span><span class="p">());</span><span class="w"></span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">used_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_used_space</span><span class="p">());</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Total space: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">total_space</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Free space:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">free_space</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Used space:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">used_space</span><span class="p">);</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<section id="classespp_1_1_file_system_1fs_ex2">
+<h4>File System POSIX / NEWLIB Example<a class="headerlink" href="#classespp_1_1_file_system_1fs_ex2" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_file_system_1fs_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mount_point</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">get_mount_point</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">sandbox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">mount_point</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">test_dir</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">stat</span><span class="w"> </span><span class="n">st</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// check that it exists - IT SHOULDN&#39;T</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Directory {} exists: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">,</span><span class="w"></span>
+<span class="w">                </span><span class="n">stat</span><span class="p">(</span><span class="n">sandbox</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">S_ISDIR</span><span class="p">(</span><span class="n">st</span><span class="p">.</span><span class="n">st_mode</span><span class="p">));</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// make a directory</span>
+<span class="w">    </span><span class="n">mkdir</span><span class="p">(</span><span class="n">sandbox</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="mo">0755</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Created directory {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// check that it exists - IT SHOULD</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Directory {} exists: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">,</span><span class="w"></span>
+<span class="w">                </span><span class="n">stat</span><span class="p">(</span><span class="n">sandbox</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">S_ISDIR</span><span class="p">(</span><span class="n">st</span><span class="p">.</span><span class="n">st_mode</span><span class="p">));</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// write to a file</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sandbox</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">test_file</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="kt">FILE</span><span class="w"> </span><span class="o">*</span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">file</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="s">&quot;w&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">f</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="k">nullptr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Couldn&#39;t open {} for writing!&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">fwrite</span><span class="p">(</span><span class="n">file_contents</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">file_contents</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">f</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Wrote &#39;{}&#39; to {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file_contents</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// get the file size</span>
+<span class="w">    </span><span class="n">stat</span><span class="p">(</span><span class="n">file</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">file_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;File &#39;{}&#39; is {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">human_readable</span><span class="p">(</span><span class="n">file_size</span><span class="p">));</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// read from a file</span>
+<span class="w">    </span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fopen</span><span class="p">(</span><span class="n">file</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="s">&quot;r&quot;</span><span class="p">);</span><span class="w"> </span><span class="c1">// NOTE: could use rb for binary</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">f</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="k">nullptr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Couldn&#39;t open {} for reading!&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// // alternative way to get the file size if you&#39;ve already opened it</span>
+<span class="w">      </span><span class="c1">// fseek(f, 0, SEEK_END); // go to end</span>
+<span class="w">      </span><span class="c1">// size_t file_size = ftell(f); // another way to get the file size</span>
+<span class="w">      </span><span class="c1">// fseek(f, 0, SEEK_SET); // go back to beginning</span>
+
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;</span><span class="w"> </span><span class="n">bytes</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">bytes</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">file_size</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">fread</span><span class="p">(</span><span class="n">bytes</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">file_size</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">fclose</span><span class="p">(</span><span class="n">f</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Read bytes from file {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bytes</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// rename the file</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">file2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sandbox</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;/test2.csv&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// Check if destination file exists before renaming</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">stat</span><span class="p">(</span><span class="n">file2</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// Delete it if it exists</span>
+<span class="w">      </span><span class="n">unlink</span><span class="p">(</span><span class="n">file2</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// Rename original file</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rename</span><span class="p">(</span><span class="n">file</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="n">file2</span><span class="p">.</span><span class="n">c_str</span><span class="p">())</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not rename {} to {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="n">file2</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Renamed &#39;{}&#39; to &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="n">file2</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// list files in a directory</span>
+<span class="w">    </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">ListConfig</span><span class="w"> </span><span class="n">config</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">directory_listing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">list_directory</span><span class="p">(</span><span class="n">sandbox</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Directory listing for {}:</span><span class="se">\n</span><span class="s">{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">,</span><span class="w"> </span><span class="n">directory_listing</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// list all files recursively</span>
+<span class="w">    </span><span class="n">config</span><span class="p">.</span><span class="n">recursive</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_root_path</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">root_listing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">list_directory</span><span class="p">(</span><span class="n">root</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Recursive directory listing for {}:</span><span class="se">\n</span><span class="s">{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">root</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">root_listing</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// cleanup</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">items</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="n">file2</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">item</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">items</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// use stat to figure out if it exists</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stat</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">exists</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">exists</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Not removing &#39;{}&#39;, it doesn&#39;t exist!&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">item</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">continue</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// and if it is a directory</span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">is_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">S_ISDIR</span><span class="p">(</span><span class="n">st</span><span class="p">.</span><span class="n">st_mode</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">ec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">is_dir</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">rmdir</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">c_str</span><span class="p">())</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">unlink</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not remove {}, error code: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">item</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Cleaned up {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">item</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<section id="classespp_1_1_file_system_1fs_ex3">
+<h4>File System Info std::filesystem Example<a class="headerlink" href="#classespp_1_1_file_system_1fs_ex3" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_file_system_1fs_ex3"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// NOTE: use the overloads that take ec as parameter, else it will throw</span>
+<span class="w">    </span><span class="c1">//       exception on error.</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">namespace</span><span class="w"> </span><span class="nn">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">filesystem</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// NOTE: cannot use chdir on littlefs , so we need to always use absolute</span>
+<span class="w">    </span><span class="c1">//       paths.</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="w"> </span><span class="n">sandbox</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">get_root_path</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">{</span><span class="n">test_dir</span><span class="p">};</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// check that it exists - IT SHOULDN&#39;T</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Directory {} exists: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">exists</span><span class="p">(</span><span class="n">sandbox</span><span class="p">));</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// make a directory</span>
+<span class="w">    </span><span class="n">fs</span><span class="o">::</span><span class="n">create_directory</span><span class="p">(</span><span class="n">sandbox</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not create directory {} - {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Created directory {}: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">exists</span><span class="p">(</span><span class="n">sandbox</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// check that it exists - IT SHOULD</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Directory {} exists: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">exists</span><span class="p">(</span><span class="n">sandbox</span><span class="p">));</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="w"> </span><span class="n">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sandbox</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="p">{</span><span class="n">test_file</span><span class="p">};</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// write to a file</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ofstream</span><span class="w"> </span><span class="nf">ofs</span><span class="p">(</span><span class="n">file</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">ofs</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">file_contents</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">ofs</span><span class="p">.</span><span class="n">close</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="n">ofs</span><span class="p">.</span><span class="n">flush</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Wrote &#39;{}&#39; to {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file_contents</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">.</span><span class="n">string</span><span class="p">());</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// Get file size</span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">file_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">file_size</span><span class="p">(</span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not get file size of &#39;{}&#39; - {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;File &#39;{}&#39; has a file size of {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"></span>
+<span class="w">                  </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">human_readable</span><span class="p">(</span><span class="n">file_size</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// read from a file</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">ifstream</span><span class="w"> </span><span class="n">ifs</span><span class="p">(</span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">in</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">binary</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">ate</span><span class="p">);</span><span class="w"> </span><span class="c1">// at the end</span>
+<span class="w">    </span><span class="c1">// ifstream::pos_type file_size = ifs.tellg(); // an alternate way to get size</span>
+<span class="w">    </span><span class="n">ifs</span><span class="p">.</span><span class="n">seekg</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">ios</span><span class="o">::</span><span class="n">beg</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// read bytes</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;</span><span class="w"> </span><span class="n">file_bytes</span><span class="p">(</span><span class="n">file_size</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">ifs</span><span class="p">.</span><span class="n">read</span><span class="p">(</span><span class="n">file_bytes</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">file_size</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// convert bytes to string_view</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="nf">file_string</span><span class="p">(</span><span class="n">file_bytes</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">file_size</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Read bytes from file: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file_bytes</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Read string from file: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file_string</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">ifs</span><span class="p">.</span><span class="n">close</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// rename the file</span>
+<span class="w">    </span><span class="n">fs</span><span class="o">::</span><span class="n">path</span><span class="w"> </span><span class="n">file2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sandbox</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s">&quot;test2.csv&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">fs</span><span class="o">::</span><span class="n">rename</span><span class="p">(</span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="n">file2</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not rename {} to {} - {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">file2</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Renamed {} to {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">file2</span><span class="p">.</span><span class="n">string</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Directory iterator:&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// directory_iterator can be iterated using a range-for loop</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dir_entry</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">recursive_directory_iterator</span><span class="p">{</span><span class="n">sandbox</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">})</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\t</span><span class="s">{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dir_entry</span><span class="p">.</span><span class="n">path</span><span class="p">().</span><span class="n">string</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not iterate over directory &#39;{}&#39;: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// cleanup</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">items</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">file</span><span class="p">,</span><span class="w"> </span><span class="n">file2</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">item</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">items</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">fs</span><span class="o">::</span><span class="n">exists</span><span class="p">(</span><span class="n">item</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;Not removing &#39;{}&#39;, it doesn&#39;t exist!&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">item</span><span class="p">.</span><span class="n">string</span><span class="p">());</span><span class="w"></span>
+<span class="w">        </span><span class="k">continue</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// and if it is a directory</span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">is_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="o">::</span><span class="n">is_directory</span><span class="p">(</span><span class="n">item</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">is_dir</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">rmdir</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">string</span><span class="p">().</span><span class="n">c_str</span><span class="p">())</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">unlink</span><span class="p">(</span><span class="n">item</span><span class="p">.</span><span class="n">string</span><span class="p">().</span><span class="n">c_str</span><span class="p">());</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not remove {}, error code: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">item</span><span class="p">.</span><span class="n">string</span><span class="p">(),</span><span class="w"> </span><span class="n">err</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Cleaned up {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">item</span><span class="p">.</span><span class="n">string</span><span class="p">());</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// fs::remove(item, ec); // NOTE: cannot use fs::remove since it seems POSIX remove()</span>
+<span class="w">      </span><span class="c1">// doesn&#39;t work</span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem14get_free_spaceEv">
+<span id="_CPPv3N4espp10FileSystem14get_free_spaceEv"></span><span id="_CPPv2N4espp10FileSystem14get_free_spaceEv"></span><span id="espp::FileSystem::get_free_space"></span><span class="target" id="classespp_1_1_file_system_1a98613a53fdc3f906bbab432f4ecac3b3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_free_space</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem14get_free_spaceEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the amount of free space on the file system. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The amount of free space in bytes </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem15get_total_spaceEv">
+<span id="_CPPv3N4espp10FileSystem15get_total_spaceEv"></span><span id="_CPPv2N4espp10FileSystem15get_total_spaceEv"></span><span id="espp::FileSystem::get_total_space"></span><span class="target" id="classespp_1_1_file_system_1a3cae9bf66484683d774844495286f758"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_total_space</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem15get_total_spaceEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the total amount of space on the file system. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The total amount of space in bytes </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem14get_used_spaceEv">
+<span id="_CPPv3N4espp10FileSystem14get_used_spaceEv"></span><span id="_CPPv2N4espp10FileSystem14get_used_spaceEv"></span><span id="espp::FileSystem::get_used_space"></span><span class="target" id="classespp_1_1_file_system_1a663e573b5226497e278cee22461afe13"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_used_space</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem14get_used_spaceEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the amount of used space on the file system. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The amount of used space in bytes </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem14human_readableE6size_t">
+<span id="_CPPv3N4espp10FileSystem14human_readableE6size_t"></span><span id="_CPPv2N4espp10FileSystem14human_readableE6size_t"></span><span id="espp::FileSystem::human_readable__s"></span><span class="target" id="classespp_1_1_file_system_1a88392fa594a72a8514ebabcb64a28519"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">human_readable</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">bytes</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem14human_readableE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a human readable string for a byte size. </p>
+<p>This method returns a human readable string for a byte size. It is copied from the example on the page: <a class="reference external" href="https://en.cppreference.com/w/cpp/filesystem/file_size">https://en.cppreference.com/w/cpp/filesystem/file_size</a> </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>bytes</strong> – The byte size </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The human readable string </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem19get_partition_labelEv">
+<span id="_CPPv3N4espp10FileSystem19get_partition_labelEv"></span><span id="_CPPv2N4espp10FileSystem19get_partition_labelEv"></span><span id="espp::FileSystem::get_partition_label"></span><span class="target" id="classespp_1_1_file_system_1aa622a29477bd8e7020465ef4341fa273"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_partition_label</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem19get_partition_labelEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the partition label. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The partition label </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem15get_mount_pointEv">
+<span id="_CPPv3N4espp10FileSystem15get_mount_pointEv"></span><span id="_CPPv2N4espp10FileSystem15get_mount_pointEv"></span><span id="espp::FileSystem::get_mount_point"></span><span class="target" id="classespp_1_1_file_system_1afe27ab88ad156f0aaaaf043ad3d289ce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mount_point</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem15get_mount_pointEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the mount point. </p>
+<p>The mount point is the root directory of the file system. It is the root directory of the partition with the partition label. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1_file_system_1ab8df51145376b9fa28bf9c004815584a"><span class="std std-ref">get_root_path()</span></a> and <a class="reference internal" href="#classespp_1_1_file_system_1aa622a29477bd8e7020465ef4341fa273"><span class="std std-ref">get_partition_label()</span></a> </p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The mount point </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem13get_root_pathEv">
+<span id="_CPPv3N4espp10FileSystem13get_root_pathEv"></span><span id="_CPPv2N4espp10FileSystem13get_root_pathEv"></span><span id="espp::FileSystem::get_root_path"></span><span class="target" id="classespp_1_1_file_system_1ab8df51145376b9fa28bf9c004815584a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_root_path</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem13get_root_pathEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the root path. </p>
+<p>The root path is the root directory of the file system. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1_file_system_1afe27ab88ad156f0aaaaf043ad3d289ce"><span class="std std-ref">get_mount_point()</span></a> and <a class="reference internal" href="#classespp_1_1_file_system_1aa622a29477bd8e7020465ef4341fa273"><span class="std std-ref">get_partition_label()</span></a> </p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The root path </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem14list_directoryERKNSt10filesystem4pathERK10ListConfigRKNSt6stringE">
+<span id="_CPPv3N4espp10FileSystem14list_directoryERKNSt10filesystem4pathERK10ListConfigRKNSt6stringE"></span><span id="_CPPv2N4espp10FileSystem14list_directoryERKNSt10filesystem4pathERK10ListConfigRKNSt6stringE"></span><span id="espp::FileSystem::list_directory__std::filesystem::pathCR.ListConfigCR.ssCR"></span><span class="target" id="classespp_1_1_file_system_1a51c7b48b65ae011c345010a6f5127aff"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list_directory</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">filesystem</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">path</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10FileSystem10ListConfigE" title="espp::FileSystem::ListConfig"><span class="n"><span class="pre">ListConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">prefix</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem14list_directoryERKNSt10filesystem4pathERK10ListConfigRKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>List the contents of a directory. </p>
+<p>This method lists the contents of a directory. It returns a string containing the contents of the directory. The contents are formatted according to the config. The config is a struct with boolean values for each of the fields to include in the output. The fields are:<ul class="simple">
+<li><p>type: The type of the file (directory, file, etc.)</p></li>
+<li><p>permissions: The permissions of the file</p></li>
+<li><p>number_of_links: The number of links to the file</p></li>
+<li><p>owner: The owner of the file</p></li>
+<li><p>group: The group of the file</p></li>
+<li><p>size: The size of the file</p></li>
+<li><p>date_time: The date and time of the file</p></li>
+<li><p>recursive: Whether to list the contents of subdirectories </p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – The path to the directory </p></li>
+<li><p><strong>config</strong> – The config for the output </p></li>
+<li><p><strong>prefix</strong> – The prefix to use for the output </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The contents of the directory </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem14list_directoryERKNSt6stringERK10ListConfigRKNSt6stringE">
+<span id="_CPPv3N4espp10FileSystem14list_directoryERKNSt6stringERK10ListConfigRKNSt6stringE"></span><span id="_CPPv2N4espp10FileSystem14list_directoryERKNSt6stringERK10ListConfigRKNSt6stringE"></span><span id="espp::FileSystem::list_directory__ssCR.ListConfigCR.ssCR"></span><span class="target" id="classespp_1_1_file_system_1ab452e266c68bdb0e9743024cbd83a8ae"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">list_directory</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">path</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10FileSystem10ListConfigE" title="espp::FileSystem::ListConfig"><span class="n"><span class="pre">ListConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">prefix</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem14list_directoryERKNSt6stringERK10ListConfigRKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>List the contents of a directory. </p>
+<p>This method lists the contents of a directory. It returns a string containing the contents of the directory. The contents are formatted according to the config. The config is a struct with boolean values for each of the fields to include in the output. The fields are:<ul class="simple">
+<li><p>type: The type of the file (directory, file, etc.)</p></li>
+<li><p>permissions: The permissions of the file</p></li>
+<li><p>number_of_links: The number of links to the file</p></li>
+<li><p>owner: The owner of the file</p></li>
+<li><p>group: The group of the file</p></li>
+<li><p>size: The size of the file</p></li>
+<li><p>date_time: The date and time of the file</p></li>
+<li><p>recursive: Whether to list the contents of subdirectories </p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – The path to the directory </p></li>
+<li><p><strong>config</strong> – The config for the output </p></li>
+<li><p><strong>prefix</strong> – The prefix to use for the output </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The contents of the directory </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem3getEv">
+<span id="_CPPv3N4espp10FileSystem3getEv"></span><span id="_CPPv2N4espp10FileSystem3getEv"></span><span id="espp::FileSystem::get"></span><span class="target" id="classespp_1_1_file_system_1a419c31661710992b7bcc6bb0dfb7ac1e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp10FileSystemE" title="espp::FileSystem"><span class="n"><span class="pre">FileSystem</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10FileSystem3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Access the singleton instance of the file system. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Reference to the file system instance </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN4espp10FileSystem9to_time_tENSt6time_tE2TP">
+<span id="_CPPv3I0EN4espp10FileSystem9to_time_tE2TP"></span><span id="_CPPv2I0EN4espp10FileSystem9to_time_tE2TP"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TP</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_file_system_1ac6088e02676f99ebc601a684b7ba34c1"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">time_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">to_time_t</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN4espp10FileSystem9to_time_tENSt6time_tE2TP" title="espp::FileSystem::to_time_t::TP"><span class="n"><span class="pre">TP</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">tp</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN4espp10FileSystem9to_time_tENSt6time_tE2TP" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to convert a time_point to a time_t.</p>
+<p>This function converts a time_point to a time_t. This function is needed because the standard library does not provide a function to convert a time_point to a time_t (until c++20 but support seems lacking on esp32). This function is taken from <a class="reference external" href="https://stackoverflow.com/a/61067330">https://stackoverflow.com/a/61067330</a> </p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters</dt>
+<dd class="field-odd"><p><strong>TP</strong> – The type of the time_point. </p>
+</dd>
+<dt class="field-even">Parameters</dt>
+<dd class="field-even"><p><strong>tp</strong> – The time_point to convert. </p>
+</dd>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The time_t. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfigE">
+<span id="_CPPv3N4espp10FileSystem10ListConfigE"></span><span id="_CPPv2N4espp10FileSystem10ListConfigE"></span><span id="espp::FileSystem::ListConfig"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ListConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Config for listing the contents of a directory. </p>
+<p>This struct is used to configure the output of the <a class="reference internal" href="#classespp_1_1_file_system_1a51c7b48b65ae011c345010a6f5127aff"><span class="std std-ref">list_directory()</span></a> method. It contains boolean values for each of the fields to include in the output. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfig4typeE">
+<span id="_CPPv3N4espp10FileSystem10ListConfig4typeE"></span><span id="_CPPv2N4espp10FileSystem10ListConfig4typeE"></span><span id="espp::FileSystem::ListConfig::type__b"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config_1a2079ac38a62007fe13fa24add9ffda5c"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfig4typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type of the file (directory, file, etc.) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfig11permissionsE">
+<span id="_CPPv3N4espp10FileSystem10ListConfig11permissionsE"></span><span id="_CPPv2N4espp10FileSystem10ListConfig11permissionsE"></span><span id="espp::FileSystem::ListConfig::permissions__b"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config_1a06a81b6f92babd27bb40b98faae60bab"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">permissions</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfig11permissionsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The permissions of the file. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfig15number_of_linksE">
+<span id="_CPPv3N4espp10FileSystem10ListConfig15number_of_linksE"></span><span id="_CPPv2N4espp10FileSystem10ListConfig15number_of_linksE"></span><span id="espp::FileSystem::ListConfig::number_of_links__b"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config_1a3914629b7a32e69f86d22a14510e5326"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">number_of_links</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfig15number_of_linksE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The number of links to the file. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfig5ownerE">
+<span id="_CPPv3N4espp10FileSystem10ListConfig5ownerE"></span><span id="_CPPv2N4espp10FileSystem10ListConfig5ownerE"></span><span id="espp::FileSystem::ListConfig::owner__b"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config_1aa56902be28e7975081bd6bc0023b7098"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">owner</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfig5ownerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The owner of the file. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfig5groupE">
+<span id="_CPPv3N4espp10FileSystem10ListConfig5groupE"></span><span id="_CPPv2N4espp10FileSystem10ListConfig5groupE"></span><span id="espp::FileSystem::ListConfig::group__b"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config_1a50ae44cb8bab5564988466f25c356d7f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">group</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfig5groupE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The group of the file. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfig4sizeE">
+<span id="_CPPv3N4espp10FileSystem10ListConfig4sizeE"></span><span id="_CPPv2N4espp10FileSystem10ListConfig4sizeE"></span><span id="espp::FileSystem::ListConfig::size__b"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config_1a486eca3f01c98b717fc3764a97ddc150"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfig4sizeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The size of the file. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfig9date_timeE">
+<span id="_CPPv3N4espp10FileSystem10ListConfig9date_timeE"></span><span id="_CPPv2N4espp10FileSystem10ListConfig9date_timeE"></span><span id="espp::FileSystem::ListConfig::date_time__b"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config_1ab7aaf8f558e00fae5d741bcaafe575f3"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">date_time</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfig9date_timeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The date and time of the file. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10FileSystem10ListConfig9recursiveE">
+<span id="_CPPv3N4espp10FileSystem10ListConfig9recursiveE"></span><span id="_CPPv2N4espp10FileSystem10ListConfig9recursiveE"></span><span id="espp::FileSystem::ListConfig::recursive__b"></span><span class="target" id="structespp_1_1_file_system_1_1_list_config_1a6623792ff1b57db17efd4b64d78a27a0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">recursive</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp10FileSystem10ListConfig9recursiveE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to list the contents of subdirectories. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="event_manager.html" class="btn btn-neutral float-left" title="Event Manager APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="filters/index.html" class="btn btn-neutral float-right" title="Filter APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

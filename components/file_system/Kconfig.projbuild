@@ -1,0 +1,9 @@
+menu "ESPP File System Configuration"
+
+    config ESPP_FILE_SYSTEM_PARTITION_LABEL
+        string "Partition Label"
+        default "littlefs"
+        help
+            The partition label of the littlefs file system as configured in partitions.csv.
+
+endmenu
