@@ -14,6 +14,28 @@ extern "C" void app_main(void) {
   // This example shows using the file system to read/write files
   logger.info("Running file system example!");
 
+  //! [file_system info example]
+  auto &fs = espp::FileSystem::get();
+  // NOTE: partition label is configured by menuconfig and should match the
+  //       partition label in the partition table (partitions.csv).
+  // returns a const char*
+  auto partition_label = fs.get_partition_label();
+  // returns a std::string
+  auto mount_point = fs.get_mount_point();
+  // returns a std::filesystem::path
+  auto root_path = fs.get_root_path();
+  logger.info("Partition label: {}", partition_label);
+  logger.info("Mount point:     {}", mount_point);
+  logger.info("Root path:       {}", root_path.string());
+  // human_readable returns a string with the size and unit, e.g. 1.2 MB
+  auto total_space = fs.human_readable(fs.get_total_space());
+  auto free_space = fs.human_readable(fs.get_free_space());
+  auto used_space = fs.human_readable(fs.get_used_space());
+  logger.info("Total space: {}", total_space);
+  logger.info("Free space:  {}", free_space);
+  logger.info("Used space:  {}", used_space);
+  //! [file_system info example]
+
   const std::string_view test_dir = "sandbox";
   const std::string_view test_file = "test.csv";
   const std::string_view file_contents = "Hello World!";
@@ -83,6 +105,18 @@ extern "C" void app_main(void) {
     } else {
       logger.info("Renamed '{}' to '{}'", file, file2);
     }
+
+    // list files in a directory
+    auto &fs = espp::FileSystem::get();
+    espp::FileSystem::ListConfig config;
+    std::string directory_listing = fs.list_directory(sandbox, config);
+    logger.info("Directory listing for {}:\n{}", sandbox, directory_listing);
+
+    // list all files recursively
+    config.recursive = true;
+    auto root = fs.get_root_path();
+    std::string root_listing = fs.list_directory(root, config);
+    logger.info("Recursive directory listing for {}:\n{}", root.string(), root_listing);
 
     // cleanup
     auto items = {file, file2, sandbox};
