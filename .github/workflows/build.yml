@@ -37,6 +37,8 @@ jobs:
           target: esp32
         - path: 'components/event_manager/example'
           target: esp32
+        - path: 'components/file_system/example'
+          target: esp32
         - path: 'components/filters/example'
           target: esp32
         - path: 'components/joystick/example'
