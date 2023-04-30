@@ -41,6 +41,8 @@ jobs:
           target: esp32
         - path: 'components/filters/example'
           target: esp32
+        - path: 'components/ftp/example'
+          target: esp32
         - path: 'components/joystick/example'
           target: esp32
         - path: 'components/led/example'

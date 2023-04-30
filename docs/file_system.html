@@ -93,6 +93,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
@@ -126,7 +127,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>File System APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7874f19/docs/en/file_system.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/b49c851/docs/en/file_system.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -149,7 +150,7 @@ the filesystem, and listing files in a directory.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7874f19/components/file_system/include/file_system.hpp">components/file_system/include/file_system.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b49c851/components/file_system/include/file_system.hpp">components/file_system/include/file_system.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -167,7 +168,7 @@ the filesystem, and listing files in a directory.</p>
 </p>
 <section id="classespp_1_1_file_system_1fs_ex1">
 <h4>File System Info Example<a class="headerlink" href="#classespp_1_1_file_system_1fs_ex1" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_file_system_1fs_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">();</span><span class="w"></span>
+<p id="classespp_1_1_file_system_1fs_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">();</span><span class="w"></span>
 <span class="w">  </span><span class="c1">// NOTE: partition label is configured by menuconfig and should match the</span>
 <span class="w">  </span><span class="c1">//       partition label in the partition table (partitions.csv).</span>
 <span class="w">  </span><span class="c1">// returns a const char*</span>
@@ -255,7 +256,7 @@ the filesystem, and listing files in a directory.</p>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// list files in a directory</span>
-<span class="w">    </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">();</span><span class="w"></span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">ListConfig</span><span class="w"> </span><span class="n">config</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">directory_listing</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">list_directory</span><span class="p">(</span><span class="n">sandbox</span><span class="p">,</span><span class="w"> </span><span class="n">config</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Directory listing for {}:</span><span class="se">\n</span><span class="s">{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sandbox</span><span class="p">,</span><span class="w"> </span><span class="n">directory_listing</span><span class="p">);</span><span class="w"></span>
