@@ -536,12 +536,17 @@ protected:
       return false;
     }
     password_ = arguments.substr(0, password_end);
+
+    /*
     // TODO: check the username and password
     if (username_ == "anonymous" && password_ == "anonymous") {
       return send_response(230, "User logged in, proceed.");
     } else {
       return send_response(530, "Incorrect credentials.");
     }
+    */
+
+    return send_response(230, "User logged in, proceed.");
   }
 
   /// \brief Handle the SYST command.
