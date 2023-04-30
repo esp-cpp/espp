@@ -19,6 +19,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    display/index
    encoder/index
    event_manager
+   file_system
    filters/index
    haptics/index
    input/index
