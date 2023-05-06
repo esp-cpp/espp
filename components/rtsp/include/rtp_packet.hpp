@@ -18,9 +18,9 @@ namespace espp {
     }
 
     /// Construct an RtpPacket with a payload of size payload_size.
-    RtpPacket(size_t payload_size) : version_(2), padding_(false), extension_(false), csrc_count_(0),
-                                     marker_(false), payload_type_(0), sequence_number_(0), timestamp_(0),
-                                     ssrc_(0), payload_size_(payload_size) {
+    explicit RtpPacket(size_t payload_size) : version_(2), padding_(false), extension_(false), csrc_count_(0),
+                                              marker_(false), payload_type_(0), sequence_number_(0), timestamp_(0),
+                                              ssrc_(0), payload_size_(payload_size) {
       // ensure that the packet_ vector is at least RTP_HEADER_SIZE + payload_size bytes long
       packet_.resize(RTP_HEADER_SIZE + payload_size);
     }
@@ -30,6 +30,7 @@ namespace espp {
     /// @param data The string_view to parse.
     explicit RtpPacket(std::string_view data) {
       packet_.assign(data.begin(), data.end());
+      payload_size_ = packet_.size() - RTP_HEADER_SIZE;
       if (packet_.size() >= RTP_HEADER_SIZE)
         parse_rtp_header();
     }
@@ -121,7 +122,6 @@ namespace espp {
       sequence_number_ = (packet_[2] << 8) | packet_[3];
       timestamp_ = (packet_[4] << 24) | (packet_[5] << 16) | (packet_[6] << 8) | packet_[7];
       ssrc_ = (packet_[8] << 24) | (packet_[9] << 16) | (packet_[10] << 8) | packet_[11];
-      payload_size_ = packet_.size() - RTP_HEADER_SIZE;
     }
 
     void serialize_rtp_header() {

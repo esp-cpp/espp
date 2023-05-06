@@ -86,7 +86,7 @@ namespace espp {
       request += "Accept: application/sdp\r\n";
       request += "\r\n";
       std::string response;
-      auto transmit_config = espp::TcpSocket::TransmitConfig{
+      auto transmit_config = espp::detail::TcpTransmitConfig{
         .wait_for_response = true,
         .response_size = 1024,
         .on_response_callback = [&response](auto &response_vector) { response.assign(response_vector.begin(), response_vector.end()); },
@@ -335,11 +335,11 @@ namespace espp {
       auto rtp_task_config = espp::Task::Config{
         .name = "Rtp",
         .callback = nullptr,
-        .stack_size_bytes = 12 * 1024,
+        .stack_size_bytes = 16 * 1024,
       };
       auto rtp_config = espp::UdpSocket::ReceiveConfig{
         .port = rtp_port,
-        .buffer_size = 6 * 1024,
+        .buffer_size = 2 * 1024,
         .on_receive_callback = std::bind(&RtspClient::handle_rtp_packet, this, std::placeholders::_1, std::placeholders::_2),
       };
       if (!rtp_socket_.start_receiving(rtp_task_config, rtp_config)) {
@@ -362,11 +362,11 @@ namespace espp {
       auto rtcp_task_config = espp::Task::Config{
         .name = "Rtcp",
         .callback = nullptr,
-        .stack_size_bytes = 12 * 1024,
+        .stack_size_bytes = 6 * 1024,
       };
       auto rtcp_config = espp::UdpSocket::ReceiveConfig{
         .port = rtcp_port,
-        .buffer_size = 6 * 1024,
+        .buffer_size = 1 * 1024,
         .on_receive_callback = std::bind(&RtspClient::handle_rtcp_packet, this, std::placeholders::_1, std::placeholders::_2),
       };
       if (!rtcp_socket_.start_receiving(rtcp_task_config, rtcp_config)) {
@@ -386,6 +386,8 @@ namespace espp {
     std::optional<std::vector<uint8_t>> handle_rtp_packet(std::vector<uint8_t> &data, const espp::Socket::Info &sender_info) {
       // jpeg frame that we are building
       static std::unique_ptr<JpegFrame> jpeg_frame;
+
+      logger_.debug("Got RTP packet of size: {}", data.size());
 
       std::string_view packet(reinterpret_cast<char*>(data.data()), data.size());
       // parse the rtp packet
