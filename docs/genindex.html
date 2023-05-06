@@ -95,6 +95,7 @@
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
@@ -117,7 +118,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/b49c851/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/0b7573d/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -1074,6 +1075,38 @@
 </li>
       <li><a href="joystick.html#_CPPv4NK4espp8Joystick1yEv">espp::Joystick::y (C++ function)</a>
 </li>
+      <li><a href="rtsp.html#_CPPv4N4espp9JpegFrameE">espp::JpegFrame (C++ class)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9JpegFrame8add_scanERK13RtpJpegPacket">espp::JpegFrame::add_scan (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9JpegFrame6appendERK13RtpJpegPacket">espp::JpegFrame::append (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9JpegFrame8get_dataEv">espp::JpegFrame::get_data (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9JpegFrame10get_headerEv">espp::JpegFrame::get_header (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9JpegFrame10get_heightEv">espp::JpegFrame::get_height (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9JpegFrame13get_scan_dataEv">espp::JpegFrame::get_scan_data (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9JpegFrame9get_widthEv">espp::JpegFrame::get_width (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9JpegFrame11is_completeEv">espp::JpegFrame::is_complete (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9JpegFrame9JpegFrameEPKc6size_t">espp::JpegFrame::JpegFrame (C++ function)</a>, <a href="rtsp.html#_CPPv4N4espp9JpegFrame9JpegFrameERK13RtpJpegPacket">[1]</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10JpegHeaderE">espp::JpegHeader (C++ class)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp10JpegHeader8get_dataEv">espp::JpegHeader::get_data (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp10JpegHeader10get_heightEv">espp::JpegHeader::get_height (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp10JpegHeader22get_quantization_tableEi">espp::JpegHeader::get_quantization_table (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp10JpegHeader9get_widthEv">espp::JpegHeader::get_width (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10JpegHeader10JpegHeaderENSt11string_viewE">espp::JpegHeader::JpegHeader (C++ function)</a>, <a href="rtsp.html#_CPPv4N4espp10JpegHeader10JpegHeaderEiiNSt11string_viewENSt11string_viewE">[1]</a>
+</li>
       <li><a href="led.html#_CPPv4N4espp3LedE">espp::Led (C++ class)</a>
 </li>
       <li><a href="led.html#_CPPv4N4espp3Led10can_changeE14ledc_channel_t">espp::Led::can_change (C++ function)</a>
@@ -1136,8 +1169,6 @@
 </li>
       <li><a href="logger.html#_CPPv4N4espp6LoggerE">espp::Logger (C++ class)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="logger.html#_CPPv4N4espp6Logger6ConfigE">espp::Logger::Config (C++ struct)</a>
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger6Config5levelE">espp::Logger::Config::level (C++ member)</a>
@@ -1200,6 +1231,8 @@
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x176Config5writeE">espp::Mcp23x17::Config::write (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1715DEFAULT_ADDRESSE">espp::Mcp23x17::DEFAULT_ADDRESS (C++ member)</a>
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1721get_interrupt_captureE4Port">espp::Mcp23x17::get_interrupt_capture (C++ function)</a>
@@ -1631,6 +1664,164 @@
       <li><a href="color.html#_CPPv4N4espp3Rgb1rE">espp::Rgb::r (C++ member)</a>
 </li>
       <li><a href="color.html#_CPPv4N4espp3Rgb3RgbERK3Hsv">espp::Rgb::Rgb (C++ function)</a>, <a href="color.html#_CPPv4N4espp3Rgb3RgbERK3Rgb">[1]</a>, <a href="color.html#_CPPv4N4espp3Rgb3RgbERKfRKfRKf">[2]</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtcpPacketE">espp::RtcpPacket (C++ class)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp13RtpJpegPacketE">espp::RtpJpegPacket (C++ class)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket8get_dataEv">espp::RtpJpegPacket::get_data (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket10get_heightEv">espp::RtpJpegPacket::get_height (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket13get_jpeg_dataEv">espp::RtpJpegPacket::get_jpeg_data (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp13RtpJpegPacket16get_mjpeg_headerEv">espp::RtpJpegPacket::get_mjpeg_header (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket16get_num_q_tablesEv">espp::RtpJpegPacket::get_num_q_tables (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket10get_offsetEv">espp::RtpJpegPacket::get_offset (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp13RtpJpegPacket10get_packetEv">espp::RtpJpegPacket::get_packet (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket11get_payloadEv">espp::RtpJpegPacket::get_payload (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket5get_qEv">espp::RtpJpegPacket::get_q (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket11get_q_tableEi">espp::RtpJpegPacket::get_q_table (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket14get_rpt_headerEv">espp::RtpJpegPacket::get_rpt_header (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket19get_rtp_header_sizeEv">espp::RtpJpegPacket::get_rtp_header_size (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket17get_type_specificEv">espp::RtpJpegPacket::get_type_specific (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket11get_versionEv">espp::RtpJpegPacket::get_version (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket9get_widthEv">espp::RtpJpegPacket::get_width (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp13RtpJpegPacket12has_q_tablesEv">espp::RtpJpegPacket::has_q_tables (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp13RtpJpegPacket13RtpJpegPacketEKiKiKiKiKiKiNSt11string_viewE">espp::RtpJpegPacket::RtpJpegPacket (C++ function)</a>, <a href="rtsp.html#_CPPv4N4espp13RtpJpegPacket13RtpJpegPacketEKiKiKiKiKiNSt11string_viewENSt11string_viewENSt11string_viewE">[1]</a>, <a href="rtsp.html#_CPPv4N4espp13RtpJpegPacket13RtpJpegPacketENSt11string_viewE">[2]</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp13RtpJpegPacket9serializeEv">espp::RtpJpegPacket::serialize (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp13RtpJpegPacket11set_payloadENSt11string_viewE">espp::RtpJpegPacket::set_payload (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp13RtpJpegPacket11set_versionEi">espp::RtpJpegPacket::set_version (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9RtpPacketE">espp::RtpPacket (C++ class)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9RtpPacket8get_dataEv">espp::RtpPacket::get_data (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9RtpPacket10get_packetEv">espp::RtpPacket::get_packet (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9RtpPacket11get_payloadEv">espp::RtpPacket::get_payload (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9RtpPacket14get_rpt_headerEv">espp::RtpPacket::get_rpt_header (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9RtpPacket19get_rtp_header_sizeEv">espp::RtpPacket::get_rtp_header_size (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp9RtpPacket11get_versionEv">espp::RtpPacket::get_version (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9RtpPacket9RtpPacketE6size_t">espp::RtpPacket::RtpPacket (C++ function)</a>, <a href="rtsp.html#_CPPv4N4espp9RtpPacket9RtpPacketENSt11string_viewE">[1]</a>, <a href="rtsp.html#_CPPv4N4espp9RtpPacket9RtpPacketEv">[2]</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9RtpPacket9serializeEv">espp::RtpPacket::serialize (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9RtpPacket11set_payloadENSt11string_viewE">espp::RtpPacket::set_payload (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp9RtpPacket11set_versionEi">espp::RtpPacket::set_version (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClientE">espp::RtspClient (C++ class)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient6ConfigE">espp::RtspClient::Config (C++ struct)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient6Config9log_levelE">espp::RtspClient::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient6Config13on_jpeg_frameE">espp::RtspClient::Config::on_jpeg_frame (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient6Config4pathE">espp::RtspClient::Config::path (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient6Config9rtsp_portE">espp::RtspClient::Config::rtsp_port (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient6Config14server_addressE">espp::RtspClient::Config::server_address (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient7connectERNSt10error_codeE">espp::RtspClient::connect (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient8describeERNSt10error_codeE">espp::RtspClient::describe (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient10disconnectERNSt10error_codeE">espp::RtspClient::disconnect (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient21jpeg_frame_callback_tE">espp::RtspClient::jpeg_frame_callback_t (C++ type)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient5pauseERNSt10error_codeE">espp::RtspClient::pause (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient4playERNSt10error_codeE">espp::RtspClient::play (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient10RtspClientERK6Config">espp::RtspClient::RtspClient (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient12send_requestERKNSt6stringERKNSt6stringERKNSt13unordered_mapINSt6stringENSt6stringEEERNSt10error_codeE">espp::RtspClient::send_request (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient5setupE6size_t6size_tRNSt10error_codeE">espp::RtspClient::setup (C++ function)</a>, <a href="rtsp.html#_CPPv4N4espp10RtspClient5setupERNSt10error_codeE">[1]</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClient8teardownERNSt10error_codeE">espp::RtspClient::teardown (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspClientD0Ev">espp::RtspClient::~RtspClient (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServerE">espp::RtspServer (C++ class)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer6ConfigE">espp::RtspServer::Config (C++ struct)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer6Config9log_levelE">espp::RtspServer::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer6Config13max_data_sizeE">espp::RtspServer::Config::max_data_size (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer6Config4pathE">espp::RtspServer::Config::path (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer6Config4portE">espp::RtspServer::Config::port (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer6Config14server_addressE">espp::RtspServer::Config::server_address (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer10RtspServerERK6Config">espp::RtspServer::RtspServer (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer10send_frameERK9JpegFrame">espp::RtspServer::send_frame (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer21set_session_log_levelEN6Logger9VerbosityE">espp::RtspServer::set_session_log_level (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer5startEv">espp::RtspServer::start (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServer4stopEv">espp::RtspServer::stop (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp10RtspServerD0Ev">espp::RtspServer::~RtspServer (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSessionE">espp::RtspSession (C++ class)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession6ConfigE">espp::RtspSession::Config (C++ struct)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession6Config9log_levelE">espp::RtspSession::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession6Config9rtsp_pathE">espp::RtspSession::Config::rtsp_path (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession6Config14server_addressE">espp::RtspSession::Config::server_address (C++ member)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp11RtspSession14get_session_idEv">espp::RtspSession::get_session_id (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp11RtspSession9is_activeEv">espp::RtspSession::is_active (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp11RtspSession9is_closedEv">espp::RtspSession::is_closed (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4NK4espp11RtspSession12is_connectedEv">espp::RtspSession::is_connected (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession5pauseEv">espp::RtspSession::pause (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession4playEv">espp::RtspSession::play (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession11RtspSessionENSt10unique_ptrI9TcpSocketEERK6Config">espp::RtspSession::RtspSession (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession16send_rtcp_packetERK10RtcpPacket">espp::RtspSession::send_rtcp_packet (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession15send_rtp_packetERK9RtpPacket">espp::RtspSession::send_rtp_packet (C++ function)</a>
+</li>
+      <li><a href="rtsp.html#_CPPv4N4espp11RtspSession8teardownEv">espp::RtspSession::teardown (C++ function)</a>
 </li>
       <li><a href="network/socket.html#_CPPv4N4espp6SocketE">espp::Socket (C++ class)</a>
 </li>
