@@ -214,9 +214,9 @@ namespace espp {
       offset += Q_TABLE_SIZE;
     }
 
-    int type_specific_;
-    int offset_;
-    int frag_type_;
+    int type_specific_{0};
+    int offset_{0};
+    int frag_type_{0};
     int q_{0};
     int width_{0};
     int height_{0};

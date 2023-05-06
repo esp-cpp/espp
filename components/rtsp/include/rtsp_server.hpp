@@ -35,6 +35,7 @@ namespace espp {
       std::string server_address; ///< The ip address of the server
       int port; ///< The port to listen on
       std::string path; ///< The path to the RTSP stream
+      size_t max_data_size = 1000; ///< The maximum size of RTP packet data for the MJPEG stream. Frames will be broken up into multiple packets if they are larger than this. It seems that 1500 works well for sending, but is too large for the esp32 (camera-display) to receive properly.
       Logger::Verbosity log_level = Logger::Verbosity::WARN; ///< The log level for the RTSP server
     };
 
@@ -45,6 +46,7 @@ namespace espp {
       , port_(config.port)
       , path_(config.path)
       , rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN})
+      , max_data_size_(config.max_data_size)
       , logger_({.tag = "RTSP Server", .level = config.log_level}) {
       // generate a random ssrc
       ssrc_ = esp_random();
@@ -133,7 +135,7 @@ namespace espp {
 
       // if the frame data is larger than the MTU, then we need to break it up
       // into multiple RTP packets
-      size_t num_packets = frame_data.size() / 1500 + 1;
+      size_t num_packets = frame_data.size() / max_data_size_ + 1;
       logger_.debug("Frame data is {} bytes, breaking into {} packets", frame_data.size(), num_packets);
 
       // create num_packets RtpJpegPackets
@@ -143,12 +145,12 @@ namespace espp {
       packets.reserve(num_packets);
       for (size_t i = 0; i < num_packets; i++) {
         // get the start and end indices for the current packet
-        size_t start_index = i * 1500;
-        size_t end_index = std::min(start_index + 1500, frame_data.size());
+        size_t start_index = i * max_data_size_;
+        size_t end_index = std::min(start_index + max_data_size_, frame_data.size());
 
         static const int type_specific = 0;
         static const int fragment_type = 0;
-        int offset = i * 1500;
+        int offset = i * max_data_size_;
 
         std::unique_ptr<RtpJpegPacket> packet;
         // if this is the first packet, it has the quantization tables
@@ -281,11 +283,7 @@ namespace espp {
           if (!session_ptr->is_active() || session_ptr->is_closed()) {
             break;
           }
-          // if we failed to send a packet, doesn't make sense to send the rest,
-          // so stop sending to this client
-          if (!session_ptr->send_rtp_packet(*packet)) {
-            break;
-          }
+          session_ptr->send_rtp_packet(*packet);
         }
       }
       // loop over the sessions and erase ones which are closed
@@ -311,6 +309,8 @@ namespace espp {
     std::string path_; ///< the path of the RTSP server, e.g. rtsp:://<ip>:<port>/<path>
 
     TcpSocket rtsp_socket_;
+
+    size_t max_data_size_;
 
     std::mutex rtp_packets_mutex_;
     std::vector<std::unique_ptr<RtpJpegPacket>> rtp_packets_;
