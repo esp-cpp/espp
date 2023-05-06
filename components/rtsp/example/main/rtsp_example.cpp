@@ -15,6 +15,7 @@
 #include "wifi_sta.hpp"
 
 #include "rtsp_server.hpp"
+#include "rtsp_client.hpp"
 
 #include "jpeg_image.hpp"
 
@@ -70,11 +71,52 @@ extern "C" void app_main(void) {
 
   logger.info("Parsed JPEG image, num bytes: {}", jpeg_frame.get_data().size());
   logger.info("Created frame of size {}x{}", jpeg_frame.get_width(), jpeg_frame.get_height());
+  rtsp_server.send_frame(jpeg_frame);
+  //! [rtsp_server_example]
 
-  // send frames forever
+  //! [rtsp_client_example]
+  espp::RtspClient rtsp_client({
+      .server_address = ip_address, // string of the form {}.{}.{}.{}
+        .rtsp_port = CONFIG_RTSP_SERVER_PORT,
+        .path = "/mjpeg/1",
+        .on_jpeg_frame = [](std::unique_ptr<espp::JpegFrame> jpeg_frame) {
+          fmt::print("Got JPEG frame of size {}x{}\n", jpeg_frame->get_width(), jpeg_frame->get_height());
+        },
+        .log_level = espp::Logger::Verbosity::ERROR,
+        });
+
+  std::error_code ec;
+
+  do {
+    // clear the error code
+    ec.clear();
+    rtsp_client.connect(ec);
+    if (ec) {
+      logger.error("Error connecting to server: {}", ec.message());
+      logger.info("Retrying in 1s...");
+      std::this_thread::sleep_for(1s);
+    }
+  } while (ec);
+
+  rtsp_client.describe(ec);
+  if (ec) {
+    logger.error("Error describing server: {}", ec.message());
+  }
+
+  rtsp_client.setup(ec);
+  if (ec) {
+    logger.error("Error setting up server: {}", ec.message());
+  }
+
+  rtsp_client.play(ec);
+  if (ec) {
+    logger.error("Error playing server: {}", ec.message());
+  }
+  //! [rtsp_client_example]
+
+  // now that both client and server are up, send frames forever
   while (true) {
     rtsp_server.send_frame(jpeg_frame);
     std::this_thread::sleep_for(100ms);
   }
-  //! [rtsp_server_example]
 }

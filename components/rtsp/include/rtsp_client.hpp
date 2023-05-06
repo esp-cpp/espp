@@ -14,8 +14,20 @@
 namespace espp {
 
   /// A class for interacting with an RTSP server using RTP and RTCP over UDP
+  ///
+  /// This class is used to connect to an RTSP server and receive JPEG frames
+  /// over RTP. It uses the TCP socket to send RTSP requests and receive RTSP
+  /// responses. It uses the UDP socket to receive RTP and RTCP packets.
+  ///
+  /// The RTSP client is designed to be used with the RTSP server in the
+  /// [camera-streamer]https://github.com/esp-cpp/camera-streamer) project, but it
+  /// should work with any RTSP server that sends JPEG frames over RTP.
+  ///
+  /// \section RtspClient Example
+  /// \snippet rtsp_example.cpp rtsp_client_example
   class RtspClient {
   public:
+    /// Function type for the callback to call when a JPEG frame is received
     using jpeg_frame_callback_t = std::function<void(std::unique_ptr<JpegFrame> jpeg_frame)>;
 
     /// Configuration for the RTSP client
