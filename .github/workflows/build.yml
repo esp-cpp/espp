@@ -59,6 +59,8 @@ jobs:
           target: esp32s3
         - path: 'components/pid/example'
           target: esp32
+        - path: 'components/rmt/example'
+          target: esp32s3
         - path: 'components/rtsp/example'
           target: esp32
         - path: 'components/serialization/example'

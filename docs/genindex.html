@@ -95,6 +95,7 @@
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
@@ -118,7 +119,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/0b7573d/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/13e6595/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -1231,8 +1232,6 @@
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x176Config5writeE">espp::Mcp23x17::Config::write (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1715DEFAULT_ADDRESSE">espp::Mcp23x17::DEFAULT_ADDRESS (C++ member)</a>
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1721get_interrupt_captureE4Port">espp::Mcp23x17::get_interrupt_capture (C++ function)</a>
@@ -1259,6 +1258,8 @@
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1722set_interrupt_on_valueE4Port7uint8_t7uint8_t">espp::Mcp23x17::set_interrupt_on_value (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1722set_interrupt_polarityEb">espp::Mcp23x17::set_interrupt_polarity (C++ function)</a>
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x178set_pinsE4Port7uint8_t">espp::Mcp23x17::set_pins (C++ function)</a>
@@ -1581,7 +1582,7 @@
 </li>
       <li><a href="pid.html#_CPPv4N4espp3PidE">espp::Pid (C++ class)</a>
 </li>
-      <li><a href="pid.html#_CPPv4N4espp3Pid12change_gainsERK6Config">espp::Pid::change_gains (C++ function)</a>
+      <li><a href="pid.html#_CPPv4N4espp3Pid12change_gainsERK6Configb">espp::Pid::change_gains (C++ function)</a>
 </li>
       <li><a href="pid.html#_CPPv4N4espp3Pid5clearEv">espp::Pid::clear (C++ function)</a>
 </li>
@@ -1612,6 +1613,8 @@
       <li><a href="pid.html#_CPPv4N4espp3PidclEf">espp::Pid::operator() (C++ function)</a>
 </li>
       <li><a href="pid.html#_CPPv4N4espp3Pid3PidERK6Config">espp::Pid::Pid (C++ function)</a>
+</li>
+      <li><a href="pid.html#_CPPv4N4espp3Pid10set_configERK6Configb">espp::Pid::set_config (C++ function)</a>
 </li>
       <li><a href="pid.html#_CPPv4N4espp3Pid6updateEf">espp::Pid::update (C++ function)</a>
 </li>
@@ -1664,6 +1667,54 @@
       <li><a href="color.html#_CPPv4N4espp3Rgb1rE">espp::Rgb::r (C++ member)</a>
 </li>
       <li><a href="color.html#_CPPv4N4espp3Rgb3RgbERK3Hsv">espp::Rgb::Rgb (C++ function)</a>, <a href="color.html#_CPPv4N4espp3Rgb3RgbERK3Rgb">[1]</a>, <a href="color.html#_CPPv4N4espp3Rgb3RgbERKfRKfRKf">[2]</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3RmtE">espp::Rmt (C++ class)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt6ConfigE">espp::Rmt::Config (C++ struct)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt6Config10block_sizeE">espp::Rmt::Config::block_size (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt6Config9clock_srcE">espp::Rmt::Config::clock_src (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt6Config11dma_enabledE">espp::Rmt::Config::dma_enabled (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt6Config8gpio_numE">espp::Rmt::Config::gpio_num (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt6Config9log_levelE">espp::Rmt::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt6Config13resolution_hzE">espp::Rmt::Config::resolution_hz (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt6Config23transaction_queue_depthE">espp::Rmt::Config::transaction_queue_depth (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt3RmtERK6Config">espp::Rmt::Rmt (C++ function)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3Rmt8transmitEPK7uint8_t6size_t">espp::Rmt::transmit (C++ function)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp3RmtD0Ev">espp::Rmt::~Rmt (C++ function)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoderE">espp::RmtEncoder (C++ class)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder6ConfigE">espp::RmtEncoder::Config (C++ struct)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder6Config20bytes_encoder_configE">espp::RmtEncoder::Config::bytes_encoder_config (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder6Config3delE">espp::RmtEncoder::Config::del (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder6Config6encodeE">espp::RmtEncoder::Config::encode (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder6Config5resetE">espp::RmtEncoder::Config::reset (C++ member)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder9delete_fnE">espp::RmtEncoder::delete_fn (C++ type)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder9encode_fnE">espp::RmtEncoder::encode_fn (C++ type)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4NK4espp10RmtEncoder6handleEv">espp::RmtEncoder::handle (C++ function)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder8reset_fnE">espp::RmtEncoder::reset_fn (C++ type)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoder10RmtEncoderERK6Config">espp::RmtEncoder::RmtEncoder (C++ function)</a>
+</li>
+      <li><a href="rmt.html#_CPPv4N4espp10RmtEncoderD0Ev">espp::RmtEncoder::~RmtEncoder (C++ function)</a>
 </li>
       <li><a href="rtsp.html#_CPPv4N4espp10RtcpPacketE">espp::RtcpPacket (C++ class)</a>
 </li>

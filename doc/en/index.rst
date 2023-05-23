@@ -33,6 +33,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    network/index
    nfc/index
    pid
+   rmt
    rtsp
    serialization
    state_machine
