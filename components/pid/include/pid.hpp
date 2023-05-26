@@ -50,12 +50,23 @@ public:
   /**
    * @brief Change the gains and other configuration for the PID controller.
    * @param config Configuration struct with new gains and sampling time.
+   * @param reset_state Reset / clear the PID controller state.
    */
-  void change_gains(const Config &config) {
+  void change_gains(const Config &config, bool reset_state = true) {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     logger_.info("Updated config: {}", config);
     config_ = config;
-    clear();
+    if (reset_state)
+      clear(); // clear the state
+  }
+
+  /**
+   * @brief Change the gains and other configuration for the PID controller.
+   * @param config Configuration struct with new gains and sampling time.
+   * @param reset_state Reset / clear the PID controller state.
+   */
+  void set_config(const Config &config, bool reset_state = true) {
+    change_gains(config, reset_state);
   }
 
   /**
