@@ -24,16 +24,7 @@ struct DetentConfig {
       M_PI / 180.0f}; ///< Absolute maximum of the dead zone to use for the detent in radians
 };
 
-/*
-static const DetentConfig UNBOUNDED_NO_DETENTS;
-static const DetentConfig BOUNDED_NO_DETENTS;
-static const DetentConfig MULTI_REV_NO_DETENTS;
-static const DetentConfig COARSE_VALUES_STRONG_DETENTS;
-static const DetentConfig FINE_VALUES_NO_DETENTS;
-static const DetentConfig FINE_VALUES_WITH_DETENTS;
-static const DetentConfig MAGNETIC_DETENTS;
-static const DetentConfig RETURN_TO_CENTER_WITH_DETENTS;
-*/
+/// @brief Unbounded motion, no detents
 static const DetentConfig UNBOUNDED_NO_DETENTS = {
     .position_width = 10.0 * M_PI / 180.0,
     .min_position = 0,
@@ -44,6 +35,7 @@ static const DetentConfig UNBOUNDED_NO_DETENTS = {
     .snap_point_bias = 0,
 };
 
+/// @brief Bounded motion, no detents
 static const DetentConfig BOUNDED_NO_DETENTS = {
     .position_width = 10.0 * M_PI / 180.0,
     .min_position = 0,
@@ -54,6 +46,7 @@ static const DetentConfig BOUNDED_NO_DETENTS = {
     .snap_point_bias = 0,
 };
 
+/// @brief Bounded motion with multiple revolutions, no detents, with end stops
 static const DetentConfig MULTI_REV_NO_DETENTS = {
     .position_width = 10.0 * M_PI / 180.0,
     .min_position = 0,
@@ -64,6 +57,8 @@ static const DetentConfig MULTI_REV_NO_DETENTS = {
     .snap_point_bias = 0,
 };
 
+/// @brief Bounded motion with strong position detents spaced 9 degrees apart
+/// (coarse), with end stops
 static const DetentConfig COARSE_VALUES_STRONG_DETENTS = {
     .position_width = 8.225f * M_PI / 180.0,
     .min_position = 0,
@@ -74,6 +69,8 @@ static const DetentConfig COARSE_VALUES_STRONG_DETENTS = {
     .snap_point_bias = 0,
 };
 
+/// @brief Bounded motion with no detents spaced 1 degree apart (fine), with end
+/// stops
 static const DetentConfig FINE_VALUES_NO_DETENTS = {
     .position_width = 1.0f * M_PI / 180.0,
     .min_position = 0,
@@ -84,6 +81,8 @@ static const DetentConfig FINE_VALUES_NO_DETENTS = {
     .snap_point_bias = 0,
 };
 
+/// @brief Bounded motion with position detents spaced 1 degree apart (fine),
+/// with end stops
 static const DetentConfig FINE_VALUES_WITH_DETENTS = {
     .position_width = 1.0f * M_PI / 180.0,
     .min_position = 0,
@@ -94,6 +93,8 @@ static const DetentConfig FINE_VALUES_WITH_DETENTS = {
     .snap_point_bias = 0,
 };
 
+/// @brief Bounded motion with position detents, end stops, and explicit
+/// magnetic detents.
 static const DetentConfig MAGNETIC_DETENTS = {
     .position_width = 7.0 * M_PI / 180.0,
     .min_position = 0,
@@ -105,6 +106,7 @@ static const DetentConfig MAGNETIC_DETENTS = {
     .snap_point_bias = 0,
 };
 
+/// @brief Bounded motion for a return to center rotary encoder with positions
 static const DetentConfig RETURN_TO_CENTER_WITH_DETENTS = {
     .position_width = 0,
     .min_position = -6,

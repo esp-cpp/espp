@@ -59,6 +59,8 @@ struct DummyCurrentSense {
  *        object/type and optionally a current sensor object / type.
  * @note This is a port (with some modifications) of the excellent work by
  *       SimpleFOC - https://simplefoc.com
+ * @section bldc_motor_usage Example Usage
+ * @snippet bldc_motor_example.cpp bldc_motor example
  */
 template <DriverConcept D, SensorConcept S, CurrentSensorConcept CS = DummyCurrentSense>
 class BldcMotor {

@@ -10,15 +10,18 @@
 #include "task.hpp"
 
 namespace espp {
+/// @brief Concept for a motor that can be used for haptics
 template <class FOO>
 concept MotorConcept = requires {
-  static_cast<void (FOO::*)(void)>(&FOO::enable);
-  static_cast<void (FOO::*)(void)>(&FOO::disable);
-  static_cast<void (FOO::*)(float)>(&FOO::move);
-  static_cast<void (FOO::*)(void)>(&FOO::loop_foc);
-  static_cast<float (FOO::*)(void)>(&FOO::get_shaft_angle);
-  static_cast<float (FOO::*)(void)>(&FOO::get_shaft_velocity);
-  static_cast<float (FOO::*)(void)>(&FOO::get_electrical_angle);
+  static_cast<void (FOO::*)(void)>(&FOO::enable);  ///< Enable the motor
+  static_cast<void (FOO::*)(void)>(&FOO::disable); ///< Disable the motor
+  static_cast<void (FOO::*)(float)>(
+      &FOO::move); ///< Move the motor to a new target (position, velocity, or torque depending on
+                   ///< the motor control type)
+  static_cast<void (FOO::*)(void)>(&FOO::loop_foc);              ///< Run the FOC loop
+  static_cast<float (FOO::*)(void)>(&FOO::get_shaft_angle);      ///< Get the shaft angle
+  static_cast<float (FOO::*)(void)>(&FOO::get_shaft_velocity);   ///< Get the shaft velocity
+  static_cast<float (FOO::*)(void)>(&FOO::get_electrical_angle); ///< Get the electrical angle
 };
 
 /// @brief Class which creates haptic feedback for the user by vibrating the
@@ -55,11 +58,17 @@ concept MotorConcept = requires {
 ///   the snap point bias (percentage of the way through the detent to bias the
 ///   snap point).
 ///
-/// Some example configurations are provided as static constexpr members of this
-/// class. They are:
+/// Some example configurations are provided as static constexpr in
+/// espp::detail. They are:
 /// - UNBOUNDED_NO_DETENTS: No detents, no end stops, no snap point, no bounds
 /// - BOUNDED_NO_DETENTS: No detents, no end stops, no snap point, bounded
 ///   within a single revolution
+/// - MULTI_REV_NO_DETENTS: No detents, no end stops, no snap point, bounded
+///   within multiple revolutions
+/// - COARSE_VALUES_STRONG_DETENTS: detents, end stops, snap point, bounded
+///   within a single revolution
+/// - FINE_VALUES_NO_DETENTS: No detents, end stops, snap point, bounded
+/// - FINE_VALUES_WITH_DETENTS: detents, end stops, snap point, bounded
 /// - RETURN_TO_CENTER_WITH_DETENTS: 3 detents, end stops, snap point, bounded
 ///   within a single revolution
 /// - RETURN_TO_CENTER_WITH_DETENTS_AND_MULTIPLE_REVOLUTIONS: 3 detents, end
@@ -76,6 +85,9 @@ concept MotorConcept = requires {
 /// - Fine values with detents
 /// - Coarse values with strong detents
 /// - Coarse values with weak detents
+///
+/// \section bldc_haptics_ex1 Example 1: Bounded with magnetic detents
+/// \snippet bldc_haptics_example.cpp bldc_haptics_example_1
 template <MotorConcept M> class BldcHaptics {
 public:
   /// @brief Configuration for the haptic motor
@@ -215,7 +227,7 @@ protected:
       float motor_angle = motor_.get().get_shaft_angle();
       float angle_to_detent_center = motor_angle - current_detent_center_;
 
-      // apply motor torque based on angle to the nearest detent (strength is
+      // apply motor torque based on angle to the nearest position (strength is
       // handled by the PID parameters)
 
       // The snap point determines the position at which we snap to the next
@@ -228,16 +240,6 @@ protected:
       // from the detent center. If the detent center is at 0 degrees, then the
       // snap point is at 11 degrees. If the detent center is at 5 degrees, then
       // the snap point is at 16 degrees.
-
-      /*
-        config.position = 0
-        config.min_position = 0
-        config.max_position = 5
-        config.position_width_radians = math.radians(10)
-        config.detent_strength_unit = 1
-        config.endstop_strength_unit = 1
-        config.snap_point = 1.1
-      */
 
       // Handle the snap point - if we're close enough to the snap point, snap
       // to the snap point

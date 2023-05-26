@@ -137,6 +137,7 @@ extern "C" void app_main(void) {
             },
         .log_level = espp::Logger::Verbosity::INFO});
 
+    //! [bldc_haptics_example_1]
     // set the motion control type to velocity openloop for the haptics
     static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY_OPENLOOP;
     motor.set_motion_control_type(motion_control_type);
@@ -152,8 +153,10 @@ extern "C" void app_main(void) {
     logger.info("Playing haptic buzz for 1 second");
     haptic_motor.play_haptic(espp::detail::HapticConfig{
         .strength = 5.0f,
-        .duration = 1s // NOTE: duration is unused for now
+        .frequency = 200.0f, // Hz, NOTE: frequency is unused for now
+        .duration = 1s       // NOTE: duration is unused for now
     });
+    //! [bldc_haptics_example_1]
 
     static auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
