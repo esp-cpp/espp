@@ -25,11 +25,11 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "BLDC Motor example", .level = espp::Logger::Verbosity::DEBUG});
   constexpr int num_seconds_to_run = 120;
   {
-    fmt::print("Running BLDC Motor (FOC) example for {} seconds!", num_seconds_to_run);
+    logger.info("Running BLDC Motor (FOC) example for {} seconds!", num_seconds_to_run);
 
     // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
     i2c_config_t i2c_cfg;
-    fmt::print("initializing i2c driver...");
+    logger.info("initializing i2c driver...");
     memset(&i2c_cfg, 0, sizeof(i2c_cfg));
     i2c_cfg.sda_io_num = I2C_SDA_IO;
     i2c_cfg.scl_io_num = I2C_SCL_IO;
