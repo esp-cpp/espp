@@ -94,6 +94,7 @@ extern "C" void app_main(void) {
             .gpio_c_h = 5,
             .gpio_c_l = 21,
             .gpio_enable = 34, // connected to the VIO/~Stdby pin of TMC6300-BOB
+            .gpio_fault = 36,  // connected to the nFAULT pin of TMC6300-BOB
             .power_supply_voltage = 5.0f,
             .limit_voltage = 5.0f,
             .log_level = espp::Logger::Verbosity::WARN});
@@ -108,7 +109,7 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 0.1f,              // Amps
+        .current_limit = 0.5f,              // Amps
         .zero_electric_offset = 1.1784807f, // gotten from previously running without providing this
                                             // and it will be logged.
         .sensor_direction = BldcMotor::Direction::CLOCKWISE,
@@ -165,6 +166,10 @@ extern "C" void app_main(void) {
       now = std::chrono::high_resolution_clock::now();
       seconds = std::chrono::duration<float>(now - start).count();
       std::this_thread::sleep_for(500ms);
+      if (driver->is_faulted()) {
+        logger.error("Driver is faulted, cannot continue haptics");
+        break;
+      }
     }
   }
   // now clean up the i2c driver
