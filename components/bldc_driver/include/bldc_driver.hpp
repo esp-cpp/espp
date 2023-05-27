@@ -255,8 +255,8 @@ protected:
     memset(&drv_fault_config, 0, sizeof(drv_fault_config));
     drv_fault_config.pin_bit_mask = 1ULL << gpio_fault_;
     drv_fault_config.mode = GPIO_MODE_INPUT;
-    drv_fault_config.pull_up_en = GPIO_PULLUP_ENABLE;
-    drv_fault_config.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    drv_fault_config.pull_up_en = GPIO_PULLUP_DISABLE;
+    drv_fault_config.pull_down_en = GPIO_PULLDOWN_ENABLE;
     ESP_ERROR_CHECK(gpio_config(&drv_fault_config));
   }
 

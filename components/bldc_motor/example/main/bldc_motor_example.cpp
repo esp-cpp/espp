@@ -6,6 +6,7 @@
 #include "bldc_driver.hpp"
 #include "bldc_motor.hpp"
 #include "butterworth_filter.hpp"
+#include "logger.hpp"
 #include "lowpass_filter.hpp"
 #include "mt6701.hpp"
 #include "task.hpp"
@@ -13,20 +14,22 @@
 
 using namespace std::chrono_literals;
 
-#define I2C_NUM (I2C_NUM_1)
-#define I2C_SCL_IO (GPIO_NUM_40)
-#define I2C_SDA_IO (GPIO_NUM_41)
-#define I2C_FREQ_HZ (400 * 1000)
-#define I2C_TIMEOUT_MS (10)
+// pins for the bldc motor test stand with the TinyS3
+static constexpr auto I2C_NUM = (I2C_NUM_1);
+static constexpr auto I2C_SCL_IO = (GPIO_NUM_9);
+static constexpr auto I2C_SDA_IO = (GPIO_NUM_8);
+static constexpr int I2C_FREQ_HZ = (400 * 1000);
+static constexpr int I2C_TIMEOUT_MS = (10);
 
 extern "C" void app_main(void) {
+  espp::Logger logger({.tag = "BLDC Motor example", .level = espp::Logger::Verbosity::DEBUG});
   constexpr int num_seconds_to_run = 120;
   {
-    fmt::print("Running BLDC Motor (FOC) example for {} seconds!\n", num_seconds_to_run);
+    fmt::print("Running BLDC Motor (FOC) example for {} seconds!", num_seconds_to_run);
 
     // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
     i2c_config_t i2c_cfg;
-    fmt::print("initializing i2c driver...\n");
+    fmt::print("initializing i2c driver...");
     memset(&i2c_cfg, 0, sizeof(i2c_cfg));
     i2c_cfg.sda_io_num = I2C_SDA_IO;
     i2c_cfg.scl_io_num = I2C_SCL_IO;
@@ -36,10 +39,10 @@ extern "C" void app_main(void) {
     i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
     auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
     if (err != ESP_OK)
-      printf("config i2c failed\n");
+      logger.error("config i2c failed");
     err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
     if (err != ESP_OK)
-      printf("install i2c driver failed\n");
+      logger.error("install i2c driver failed");
     // make some lambda functions we'll use to read/write to the mt6701
     auto mt6701_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
       i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
@@ -85,13 +88,16 @@ extern "C" void app_main(void) {
     // now make the bldc driver
     std::shared_ptr<espp::BldcDriver> driver =
         std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
-            .gpio_a_h = 9,
-            .gpio_a_l = 43,
-            .gpio_b_h = 44,
-            .gpio_b_l = 14,
-            .gpio_c_h = 38,
-            .gpio_c_l = 39,
-            .gpio_enable = 42, // connected to the VIO/~Stdby pin of TMC6300-BOB
+            // this pinout is configured for the TinyS3 connected to the
+            // TMC6300-BOB in the BLDC Motor Test Stand
+            .gpio_a_h = 1,
+            .gpio_a_l = 2,
+            .gpio_b_h = 3,
+            .gpio_b_l = 4,
+            .gpio_c_h = 5,
+            .gpio_c_l = 21,
+            .gpio_enable = 34, // connected to the VIO/~Stdby pin of TMC6300-BOB
+            .gpio_fault = 36,  // connected to the nFAULT pin of TMC6300-BOB
             .power_supply_voltage = 5.0f,
             .limit_voltage = 3.5f,
             .log_level = espp::Logger::Verbosity::WARN});
@@ -106,7 +112,7 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 1.0f,              // Amps
+        .current_limit = 0.5f,              // Amps
         .zero_electric_offset = 1.1784807f, // gotten from previously running without providing this
                                             // and it will be logged.
         .sensor_direction = BldcMotor::Direction::CLOCKWISE,
@@ -135,10 +141,10 @@ extern "C" void app_main(void) {
             },
         .log_level = espp::Logger::Verbosity::INFO});
 
-    // static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY;
-    static constexpr auto motion_control_type = BldcMotor::MotionControlType::ANGLE;
-    // static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY_OPENLOOP;
-    // static auto motion_control_type = BldcMotor::MotionControlType::ANGLE_OPENLOOP;
+    // static const auto motion_control_type = BldcMotor::MotionControlType::VELOCITY;
+    static const auto motion_control_type = BldcMotor::MotionControlType::ANGLE;
+    // static const auto motion_control_type = BldcMotor::MotionControlType::VELOCITY_OPENLOOP;
+    // static const auto motion_control_type = BldcMotor::MotionControlType::ANGLE_OPENLOOP;
 
     // Set the motion control type and create a target for the motor (will be
     // updated in the target update task below)
@@ -178,11 +184,11 @@ extern "C" void app_main(void) {
     // Configure the target
     enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
     static IncrementDirection increment_direction = IncrementDirection::UP;
-    static constexpr bool is_angle =
+    static const bool is_angle =
         motion_control_type == BldcMotor::MotionControlType::ANGLE ||
         motion_control_type == BldcMotor::MotionControlType::ANGLE_OPENLOOP;
-    static constexpr float max_target = is_angle ? (2.0f * M_PI) : 200.0f;
-    static constexpr float target_delta = is_angle ? (M_PI / 4.0f) : (50.0f * core_update_period);
+    static const float max_target = is_angle ? (2.0f * M_PI) : 200.0f;
+    static const float target_delta = is_angle ? (M_PI / 4.0f) : (50.0f * core_update_period);
     switch (motion_control_type) {
     case BldcMotor::MotionControlType::VELOCITY:
     case BldcMotor::MotionControlType::VELOCITY_OPENLOOP:
@@ -270,16 +276,19 @@ extern "C" void app_main(void) {
     auto now = std::chrono::high_resolution_clock::now();
     auto seconds = std::chrono::duration<float>(now - start).count();
     while (seconds < num_seconds_to_run) {
+      if (driver->is_faulted()) {
+        logger.error("Driver faulted!");
+        break;
+      }
       now = std::chrono::high_resolution_clock::now();
       seconds = std::chrono::duration<float>(now - start).count();
-      fmt::print("[TM]{}\n", espp::TaskMonitor::get_latest_info());
       std::this_thread::sleep_for(500ms);
     }
   }
   // now clean up the i2c driver
   i2c_driver_delete(I2C_NUM);
 
-  fmt::print("BLDC Motor (FOC) example complete!\n");
+  logger.info("BLDC Motor (FOC) example complete!");
 
   while (true) {
     std::this_thread::sleep_for(1s);
