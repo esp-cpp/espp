@@ -93,7 +93,16 @@ public:
   /// @brief Configuration for the haptic motor
   struct Config {
     std::reference_wrapper<M> motor; ///< Pointer to the motor to use for haptics
-    Logger::Verbosity log_level;     ///< Log level to use for the haptics
+    float kp_factor{4}; ///< Factor to multiply the detent strength by to get kp (default 4). Used
+                        ///< for both detents and end stops. \note Depending on the motor, this may
+                        ///< need to be adjusted to get the desired behavior.
+    float kd_factor_min{0.02}; ///< Min Factor to multiply the detent strength by to get kd (default
+                               ///< 0.02). \note Depending on the motor, this may need to be
+                               ///< adjusted to get the desired behavior.
+    float kd_factor_max{0.08}; ///< Max Factor to multiply the detent strength by to get kd (default
+                               ///< 0.08). \note Depending on the motor, this may need to be
+                               ///< adjusted to get the desired behavior.
+    Logger::Verbosity log_level; ///< Log level to use for the haptics
   };
 
   /// @brief Constructor for the haptic motor
@@ -151,8 +160,8 @@ public:
     // hardcoded haptic "click" (e.g. a quick burst of torque in each
     // direction) whenever the position changes when the detent width is too
     // small for the P factor to work well.
-    const float derivative_lower_strength = config.detent_strength * 0.08;
-    const float derivative_upper_strength = config.detent_strength * 0.02;
+    const float derivative_lower_strength = config.detent_strength * kd_factor_min_;
+    const float derivative_upper_strength = config.detent_strength * kd_factor_max_;
     const float derivative_position_width_lower = 3.0f * M_PI / 180.0f; // radians(3);
     const float derivative_position_width_upper = 8.0f * M_PI / 180.0f; // radians(8);
     const float raw = derivative_lower_strength +
@@ -183,7 +192,11 @@ public:
   /// @param config Configuration for the haptic feedback
   void play_haptic(const detail::HapticConfig &config) {
     std::unique_lock<std::mutex> lk(motor_mutex_);
+    // TODO: use the config frequency
     // TODO: use the config duration
+    // TODO: convert this to a non-blocking call (put data into a queue and perform the actions in
+    // the task)
+    // TODO: Use the PID controller to control the haptics
     // Play a hardcoded haptic "click"
     float strength = config.strength; // 5 or 1.5 were used in SmartKnob
     motor_.get().move(strength);
@@ -288,10 +301,11 @@ protected:
       auto pid_config = detent_pid_.get_config();
       pid_config.output_max = 10;  // out_of_bounds ? 10 : 3;
       pid_config.output_min = -10; // out_of_bounds ? 10 : 3;
-      pid_config.kp = out_of_bounds ? detent_config.end_strength *
-                                          4 // if we're out of bounds, then we apply end stop force
-                                    : detent_config.detent_strength *
-                                          4; // if we're in bounds, then we apply detent force
+      pid_config.kp = out_of_bounds
+                          ? detent_config.end_strength *
+                                kp_factor_ // if we're out of bounds, then we apply end stop force
+                          : detent_config.detent_strength *
+                                kp_factor_; // if we're in bounds, then we apply detent force
       // we don't want to clear the PID state when we change the config, so we pass false
       detent_pid_.set_config(pid_config, false);
 
@@ -340,6 +354,9 @@ protected:
   }
 
   Pid detent_pid_;                              ///< PID controller for the detents
+  float kp_factor_{0};                          ///< kp factor for the PID controller
+  float kd_factor_min_{0};                      ///< Minimum kd factor for the PID controller
+  float kd_factor_max_{0};                      ///< Maximum kd factor for the PID controller
   std::atomic<int> current_position_{0};        ///< Current position of the motor
   std::atomic<float> current_detent_center_{0}; ///< Current center of the detent
   std::mutex detent_mutex_;                     ///< Mutex for accessing the detents
