@@ -57,6 +57,18 @@ static const DetentConfig MULTI_REV_NO_DETENTS = {
     .snap_point_bias = 0,
 };
 
+/// @brief On-off with strong detents
+static const DetentConfig ON_OFF_STRONG_DETENTS = {
+    .position_width = 60.0 * M_PI / 180.0,
+    .min_position = 0,
+    .max_position = 1,
+    .detent_strength = 1,
+    .end_strength = 1,
+    .snap_point = 0.55, // Note the snap point is slightly past the midpoint (0.5); compare to
+                        // normal detents which use a snap point *past* the next value (i.e. > 1)
+    .snap_point_bias = 0,
+};
+
 /// @brief Bounded motion with strong position detents spaced 9 degrees apart
 /// (coarse), with end stops
 static const DetentConfig COARSE_VALUES_STRONG_DETENTS = {
@@ -108,7 +120,7 @@ static const DetentConfig MAGNETIC_DETENTS = {
 
 /// @brief Bounded motion for a return to center rotary encoder with positions
 static const DetentConfig RETURN_TO_CENTER_WITH_DETENTS = {
-    .position_width = 0,
+    .position_width = 60.0 * M_PI / 180.0,
     .min_position = -6,
     .max_position = 6,
     .detent_strength = 1,

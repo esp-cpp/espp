@@ -18,6 +18,8 @@ concept MotorConcept = requires {
   static_cast<void (FOO::*)(float)>(
       &FOO::move); ///< Move the motor to a new target (position, velocity, or torque depending on
                    ///< the motor control type)
+  static_cast<void (FOO::*)(detail::MotionControlType)>(
+      &FOO::set_motion_control_type);                            ///< Set the motion control type
   static_cast<void (FOO::*)(void)>(&FOO::loop_foc);              ///< Run the FOC loop
   static_cast<float (FOO::*)(void)>(&FOO::get_shaft_angle);      ///< Get the shaft angle
   static_cast<float (FOO::*)(void)>(&FOO::get_shaft_velocity);   ///< Get the shaft velocity
@@ -108,14 +110,17 @@ public:
   /// @brief Constructor for the haptic motor
   /// @param config Configuration for the haptic motor
   BldcHaptics(const Config &config)
-      : detent_pid_({.kp = 0,
-                     .ki = 0,
-                     .kd = 0,
-                     .integrator_min = 0,
-                     .integrator_max = 0,
-                     .output_min = 0,
-                     .output_max = 0}),
-        motor_(config.motor), logger_({.tag = "BldcHaptics", .level = config.log_level}) {
+      : detent_pid_({.kp = 0,              // will be set later (motor_task)
+                     .ki = 0.2,            // not configurable for now
+                     .kd = 0,              // will be set later (update_detent_config)
+                     .integrator_min = -1, // not configurable for now
+                     .integrator_max = 1,  // not configurable for now
+                     .output_min = -1,     // go ahead and set some bounds
+                     .output_max = 1})     // go ahead and set some bounds
+        ,
+        kp_factor_(config.kp_factor), kd_factor_min_(config.kd_factor_min),
+        kd_factor_max_(config.kd_factor_max), motor_(config.motor),
+        logger_({.tag = "BldcHaptics", .level = config.log_level}) {
     // create the motor task
     motor_task_ =
         Task::make_unique({.name = "haptic_motor",
@@ -127,7 +132,7 @@ public:
 
   /// @brief Start the haptic motor
   void start() {
-    motor_.get().set_motion_control_type(M::MotionControlType::VELOCITY_OPENLOOP);
+    motor_.get().set_motion_control_type(detail::MotionControlType::TORQUE);
     motor_task_->start();
   }
 
@@ -181,6 +186,7 @@ public:
     pid_config.kd = new_kd;
     // we don't want to clear the PID state when we change the config, so we
     // pass false
+    logger_.debug("Updating detent PID config: {}", pid_config);
     detent_pid_.set_config(pid_config, false);
   }
 
@@ -297,16 +303,20 @@ protected:
           ((angle_to_detent_center > 0 && current_position_ == detent_config.min_position) ||
            (angle_to_detent_center < 0 && current_position_ == detent_config.max_position));
 
+      logger_.debug("Current position: {}, current detent center: {}, motor angle: {}, "
+                    "angle_to_detent_center: {}, dead_zone_adjustment: {}, out_of_bounds: {}",
+                    current_position_, current_detent_center_, motor_angle, angle_to_detent_center,
+                    dead_zone_adjustment, out_of_bounds);
+
       // update the PID parameters based on our position
-      auto pid_config = detent_pid_.get_config();
-      pid_config.output_max = 10;  // out_of_bounds ? 10 : 3;
-      pid_config.output_min = -10; // out_of_bounds ? 10 : 3;
+      Pid::Config pid_config = detent_pid_.get_config();
       pid_config.kp = out_of_bounds
                           ? detent_config.end_strength *
                                 kp_factor_ // if we're out of bounds, then we apply end stop force
                           : detent_config.detent_strength *
                                 kp_factor_; // if we're in bounds, then we apply detent force
       // we don't want to clear the PID state when we change the config, so we pass false
+      logger_.debug("setting detent PID config: {}", pid_config);
       detent_pid_.set_config(pid_config, false);
 
       // Apply motor torque based on our angle to the nearest detent (detent
@@ -314,6 +324,7 @@ protected:
       if (std::abs(motor_.get().get_shaft_velocity()) > 60) {
         // Don't apply torque if velocity is too high (helps avoid positive
         // feedback loop/runaway)
+        logger_.debug("velocity too high, not applying torque");
         motor_.get().move(0);
       } else {
         // apply torque based on our angle to the nearest detent
@@ -337,8 +348,9 @@ protected:
         }
         // get the torque from the PID controller
         float torque = detent_pid_.update(input);
+        logger_.debug("{:0.2f} -> {:0.2f}", input, torque);
         // apply the torque to the motor
-        motor_.get().move(torque);
+        motor_.get().move(-torque);
       } // end if std::abs(motor_.get().get_shaft_velocity()) > 60
     }   // end motor_mutex_
 

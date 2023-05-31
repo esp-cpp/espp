@@ -22,7 +22,7 @@ static constexpr int I2C_TIMEOUT_MS = (10);
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "BLDC Haptics Example", .level = espp::Logger::Verbosity::DEBUG});
-  constexpr int num_seconds_to_run = 120;
+  constexpr int num_seconds_to_run = 30;
   {
     logger.info("Running BLDC Haptics example for {} seconds!", num_seconds_to_run);
 
@@ -109,11 +109,11 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 0.5f,              // Amps
+        .current_limit = 0.75f,             // Amps
         .zero_electric_offset = 1.1784807f, // gotten from previously running without providing this
                                             // and it will be logged.
-        .sensor_direction = BldcMotor::Direction::CLOCKWISE,
-        .foc_type = BldcMotor::FocType::SPACE_VECTOR_PWM,
+        .sensor_direction = espp::detail::SensorDirection::CLOCKWISE,
+        .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
         .driver = driver,
         .sensor = mt6701,
         .velocity_pid_config =
@@ -139,24 +139,30 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::INFO});
 
     //! [bldc_haptics_example_1]
-    // set the motion control type to velocity openloop for the haptics
-    static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY_OPENLOOP;
-    motor.set_motion_control_type(motion_control_type);
-
     using BldcHaptics = espp::BldcHaptics<BldcMotor>;
 
-    auto haptic_motor = BldcHaptics({.motor = motor, .log_level = espp::Logger::Verbosity::INFO});
-    logger.info("Setting detent config to MAGNETIC_DETENTS");
-    haptic_motor.update_detent_config(espp::detail::MAGNETIC_DETENTS);
+    auto haptic_motor = BldcHaptics({.motor = motor,
+                                     .kp_factor = 1,
+                                     .kd_factor_min = 0.001,
+                                     .kd_factor_max = 0.005,
+                                     .log_level = espp::Logger::Verbosity::INFO});
+    // haptic_motor.update_detent_config(espp::detail::BOUNDED_NO_DETENTS);
+    // haptic_motor.update_detent_config(espp::detail::MULTI_REV_NO_DETENTS);
+    // haptic_motor.update_detent_config(espp::detail::COARSE_VALUES_STRONG_DETENTS);
+    // haptic_motor.update_detent_config(espp::detail::MAGNETIC_DETENTS);
+    haptic_motor.update_detent_config(espp::detail::RETURN_TO_CENTER_WITH_DETENTS);
+    logger.info("Setting detent config to RETURN_TO_CENTER_WITH_DETENTS");
     haptic_motor.start();
 
     // TODO: test the haptic buzz / click
-    logger.info("Playing haptic buzz for 1 second");
-    haptic_motor.play_haptic(espp::detail::HapticConfig{
-        .strength = 5.0f,
-        .frequency = 200.0f, // Hz, NOTE: frequency is unused for now
-        .duration = 1s       // NOTE: duration is unused for now
-    });
+    if (0) {
+      logger.info("Playing haptic buzz for 1 second");
+      haptic_motor.play_haptic(espp::detail::HapticConfig{
+          .strength = 5.0f,
+          .frequency = 200.0f, // Hz, NOTE: frequency is unused for now
+          .duration = 1s       // NOTE: duration is unused for now
+      });
+    }
     //! [bldc_haptics_example_1]
 
     static auto start = std::chrono::high_resolution_clock::now();
@@ -171,6 +177,7 @@ extern "C" void app_main(void) {
         break;
       }
     }
+    driver->disable();
   }
   // now clean up the i2c driver
   i2c_driver_delete(I2C_NUM);
