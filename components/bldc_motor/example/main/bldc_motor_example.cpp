@@ -115,8 +115,8 @@ extern "C" void app_main(void) {
         .current_limit = 0.5f,              // Amps
         .zero_electric_offset = 1.1784807f, // gotten from previously running without providing this
                                             // and it will be logged.
-        .sensor_direction = BldcMotor::Direction::CLOCKWISE,
-        .foc_type = BldcMotor::FocType::SPACE_VECTOR_PWM,
+        .sensor_direction = espp::detail::SensorDirection::CLOCKWISE,
+        .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
         .driver = driver,
         .sensor = mt6701,
         .velocity_pid_config =
@@ -141,10 +141,10 @@ extern "C" void app_main(void) {
             },
         .log_level = espp::Logger::Verbosity::INFO});
 
-    // static const auto motion_control_type = BldcMotor::MotionControlType::VELOCITY;
-    static const auto motion_control_type = BldcMotor::MotionControlType::ANGLE;
-    // static const auto motion_control_type = BldcMotor::MotionControlType::VELOCITY_OPENLOOP;
-    // static const auto motion_control_type = BldcMotor::MotionControlType::ANGLE_OPENLOOP;
+    // static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
+    static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
+    // static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY_OPENLOOP;
+    // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE_OPENLOOP;
 
     // Set the motion control type and create a target for the motor (will be
     // updated in the target update task below)
@@ -156,8 +156,8 @@ extern "C" void app_main(void) {
       auto start = std::chrono::high_resolution_clock::now();
       // command the motor
       motor.loop_foc();
-      if (motion_control_type == BldcMotor::MotionControlType::VELOCITY ||
-          motion_control_type == BldcMotor::MotionControlType::VELOCITY_OPENLOOP) {
+      if (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
+          motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
         // if it's a velocity setpoint, convert it from RPM to rad/s
         motor.move(target * espp::RPM_TO_RADS);
       } else {
@@ -185,17 +185,17 @@ extern "C" void app_main(void) {
     enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
     static IncrementDirection increment_direction = IncrementDirection::UP;
     static const bool is_angle =
-        motion_control_type == BldcMotor::MotionControlType::ANGLE ||
-        motion_control_type == BldcMotor::MotionControlType::ANGLE_OPENLOOP;
+        motion_control_type == espp::detail::MotionControlType::ANGLE ||
+        motion_control_type == espp::detail::MotionControlType::ANGLE_OPENLOOP;
     static const float max_target = is_angle ? (2.0f * M_PI) : 200.0f;
     static const float target_delta = is_angle ? (M_PI / 4.0f) : (50.0f * core_update_period);
     switch (motion_control_type) {
-    case BldcMotor::MotionControlType::VELOCITY:
-    case BldcMotor::MotionControlType::VELOCITY_OPENLOOP:
+    case espp::detail::MotionControlType::VELOCITY:
+    case espp::detail::MotionControlType::VELOCITY_OPENLOOP:
       target = 50.0f;
       break;
-    case BldcMotor::MotionControlType::ANGLE:
-    case BldcMotor::MotionControlType::ANGLE_OPENLOOP:
+    case espp::detail::MotionControlType::ANGLE:
+    case espp::detail::MotionControlType::ANGLE_OPENLOOP:
       target = M_PI; // 180 degrees (whereever that is...)
       break;
     default:
@@ -262,8 +262,8 @@ extern "C" void app_main(void) {
                             .callback = task_fn,
                             .stack_size_bytes = 5 * 1024,
                             .log_level = espp::Logger::Verbosity::WARN});
-    if (motion_control_type == BldcMotor::MotionControlType::VELOCITY ||
-        motion_control_type == BldcMotor::MotionControlType::VELOCITY_OPENLOOP) {
+    if (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
+        motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
       // if it's a velocity setpoint then target is RPM
       fmt::print("%time(s), count, radians, degrees, target velocity (rpm), actual speed (rpm)\n");
     } else {
