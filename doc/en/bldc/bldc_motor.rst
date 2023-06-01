@@ -25,3 +25,5 @@ API Reference
 -------------
 
 .. include-build-file:: inc/bldc_motor.inc
+.. include-build-file:: inc/bldc_types.inc
+.. include-build-file:: inc/sensor_direction.inc

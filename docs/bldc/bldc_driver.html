@@ -134,7 +134,7 @@
           <li><a href="index.html">BLDC APIs</a> &raquo;</li>
       <li>BLDC Driver</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/1c18925/docs/en/bldc/bldc_driver.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/671d80f/docs/en/bldc/bldc_driver.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -151,7 +151,7 @@ to provide full 6 PWM control over a 3 phase brushless dc motor.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1c18925/components/bldc_driver/include/bldc_driver.hpp">components/bldc_driver/include/bldc_driver.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/671d80f/components/bldc_driver/include/bldc_driver.hpp">components/bldc_driver/include/bldc_driver.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -193,6 +193,32 @@ to provide full 6 PWM control over a 3 phase brushless dc motor.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver7disableEv">
 <span id="_CPPv3N4espp10BldcDriver7disableEv"></span><span id="_CPPv2N4espp10BldcDriver7disableEv"></span><span id="espp::BldcDriver::disable"></span><span class="target" id="classespp_1_1_bldc_driver_1ada3742500b7ecc487708cbbaf7c2cf16"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disable</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver7disableEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Disable the driver, set the enable pin low (if we were provided an enable pin), add a force level to each pin to force the gates all low. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp10BldcDriver10is_enabledEv">
+<span id="_CPPv3NK4espp10BldcDriver10is_enabledEv"></span><span id="_CPPv2NK4espp10BldcDriver10is_enabledEv"></span><span id="espp::BldcDriver::is_enabledC"></span><span class="target" id="classespp_1_1_bldc_driver_1acfc35658144e69367cf99b4e6887b501"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_enabled</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp10BldcDriver10is_enabledEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the driver is enabled. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the driver is enabled, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver10is_faultedEv">
+<span id="_CPPv3N4espp10BldcDriver10is_faultedEv"></span><span id="_CPPv2N4espp10BldcDriver10is_faultedEv"></span><span id="espp::BldcDriver::is_faulted"></span><span class="target" id="classespp_1_1_bldc_driver_1a51ce3b913dded9086b519b848248189e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_faulted</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver10is_faultedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the driver is faulted. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If no fault pin was provided, this will always return false. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the driver is faulted, false otherwise. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -331,6 +357,12 @@ to provide full 6 PWM control over a 3 phase brushless dc motor.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config11gpio_enableE">
 <span id="_CPPv3N4espp10BldcDriver6Config11gpio_enableE"></span><span id="_CPPv2N4espp10BldcDriver6Config11gpio_enableE"></span><span id="espp::BldcDriver::Config::gpio_enable__i"></span><span class="target" id="structespp_1_1_bldc_driver_1_1_config_1a79b407e441367ea16b1b19809c872080"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_enable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config11gpio_enableE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Enable pin for the BLDC driver (if any). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10BldcDriver6Config10gpio_faultE">
+<span id="_CPPv3N4espp10BldcDriver6Config10gpio_faultE"></span><span id="_CPPv2N4espp10BldcDriver6Config10gpio_faultE"></span><span id="espp::BldcDriver::Config::gpio_fault__i"></span><span class="target" id="structespp_1_1_bldc_driver_1_1_config_1ad40125ac7ca81b79980e22833ecb237c"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_fault</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp10BldcDriver6Config10gpio_faultE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Fault pin for the BLDC driver (if any). </p>
 </dd></dl>
 
 <dl class="cpp var">

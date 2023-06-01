@@ -6,6 +6,8 @@ extensions += ['sphinx_copybutton',
                'esp_docs.esp_extensions.run_doxygen',
                ]
 
+exclude_paterns = ['build', '_build']
+
 # link roles config
 github_repo = 'esp-cpp/espp'
 
