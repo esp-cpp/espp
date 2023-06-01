@@ -110,13 +110,13 @@ public:
   /// @brief Constructor for the haptic motor
   /// @param config Configuration for the haptic motor
   BldcHaptics(const Config &config)
-      : detent_pid_({.kp = 0,              // will be set later (motor_task)
-                     .ki = 0.2,            // not configurable for now
-                     .kd = 0,              // will be set later (update_detent_config)
-                     .integrator_min = -1, // not configurable for now
-                     .integrator_max = 1,  // not configurable for now
-                     .output_min = -1,     // go ahead and set some bounds
-                     .output_max = 1})     // go ahead and set some bounds
+      : detent_pid_({.kp = 0,               // will be set later (motor_task)
+                     .ki = .00,             // not configurable for now
+                     .kd = 0,               // will be set later (update_detent_config)
+                     .integrator_min = -20, // not configurable for now
+                     .integrator_max = 20,  // not configurable for now
+                     .output_min = -20,     // go ahead and set some bounds
+                     .output_max = 20})     // go ahead and set some bounds
         ,
         kp_factor_(config.kp_factor), kd_factor_min_(config.kd_factor_min),
         kd_factor_max_(config.kd_factor_max), motor_(config.motor),

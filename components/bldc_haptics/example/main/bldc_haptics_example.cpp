@@ -22,7 +22,7 @@ static constexpr int I2C_TIMEOUT_MS = (10);
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "BLDC Haptics Example", .level = espp::Logger::Verbosity::DEBUG});
-  constexpr int num_seconds_to_run = 30;
+  constexpr int num_seconds_to_run = 120;
   {
     logger.info("Running BLDC Haptics example for {} seconds!", num_seconds_to_run);
 
@@ -143,15 +143,33 @@ extern "C" void app_main(void) {
 
     auto haptic_motor = BldcHaptics({.motor = motor,
                                      .kp_factor = 1,
-                                     .kd_factor_min = 0.001,
-                                     .kd_factor_max = 0.005,
+                                     .kd_factor_min = 0.1,
+                                     .kd_factor_max = 0.5,
                                      .log_level = espp::Logger::Verbosity::INFO});
-    // haptic_motor.update_detent_config(espp::detail::BOUNDED_NO_DETENTS);
-    // haptic_motor.update_detent_config(espp::detail::MULTI_REV_NO_DETENTS);
-    // haptic_motor.update_detent_config(espp::detail::COARSE_VALUES_STRONG_DETENTS);
-    // haptic_motor.update_detent_config(espp::detail::MAGNETIC_DETENTS);
-    haptic_motor.update_detent_config(espp::detail::RETURN_TO_CENTER_WITH_DETENTS);
-    logger.info("Setting detent config to RETURN_TO_CENTER_WITH_DETENTS");
+    // auto detent_config = espp::detail::BOUNDED_NO_DETENTS;
+    // auto detent_config = espp::detail::MULTI_REV_NO_DETENTS;
+    // auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;
+    auto detent_config = espp::detail::MAGNETIC_DETENTS;
+    // auto detent_config = espp::detail::RETURN_TO_CENTER_WITH_DETENTS;
+
+    if (detent_config == espp::detail::BOUNDED_NO_DETENTS) {
+      logger.info("Setting detent config to BOUNDED_NO_DETENTS");
+    }
+    if (detent_config == espp::detail::MULTI_REV_NO_DETENTS) {
+      logger.info("Setting detent config to MULTI_REV_NO_DETENTS");
+    }
+    if (detent_config == espp::detail::COARSE_VALUES_STRONG_DETENTS) {
+      logger.info("Setting detent config to COARSE_VALUES_STRONG_DETENTS");
+    }
+    if (detent_config == espp::detail::MAGNETIC_DETENTS) {
+      logger.info("Setting detent config to MAGNETIC_DETENTS");
+    }
+    if (detent_config == espp::detail::RETURN_TO_CENTER_WITH_DETENTS) {
+      logger.info("Setting detent config to RETURN_TO_CENTER_WITH_DETENTS");
+    }
+    logger.info("{}", detent_config);
+
+    haptic_motor.update_detent_config(detent_config);
     haptic_motor.start();
 
     // TODO: test the haptic buzz / click

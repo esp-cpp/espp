@@ -1,5 +1,6 @@
 #pragma once
 
+#include "format.hpp"
 #include <vector>
 
 namespace espp::detail {
@@ -130,3 +131,40 @@ static const DetentConfig RETURN_TO_CENTER_WITH_DETENTS = {
 };
 
 } // namespace espp::detail
+
+bool operator==(const espp::detail::DetentConfig &lhs, const espp::detail::DetentConfig &rhs) {
+  bool vectors_equal = lhs.detent_positions.size() == rhs.detent_positions.size() &&
+                       std::equal(lhs.detent_positions.begin(), lhs.detent_positions.end(),
+                                  rhs.detent_positions.begin());
+  return lhs.position_width == rhs.position_width && lhs.min_position == rhs.min_position &&
+         lhs.max_position == rhs.max_position && vectors_equal &&
+         lhs.detent_strength == rhs.detent_strength && lhs.end_strength == rhs.end_strength &&
+         lhs.snap_point == rhs.snap_point && lhs.snap_point_bias == rhs.snap_point_bias;
+}
+
+// for allowing easy serialization/printing of the
+// DetentConfig
+template <> struct fmt::formatter<espp::detail::DetentConfig> {
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(espp::detail::DetentConfig const &detent_config, FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(),
+        "DetentConfig:\n"
+        "\tposition_width: {}\n"
+        "\tmin_position: {}\n"
+        "\tmax_position: {}\n"
+        "\trange of motion: {:.2f} to {:.2f} degrees\n"
+        "\tdetent_positions: {}\n"
+        "\tdetent_strength: {}\n"
+        "\tend_strength: {}\n"
+        "\tsnap_point: {}\n"
+        "\tsnap_point_bias: {}",
+        detent_config.position_width, detent_config.min_position, detent_config.max_position,
+        detent_config.min_position * detent_config.position_width * 180.0 / M_PI,
+        detent_config.max_position * detent_config.position_width * 180.0 / M_PI,
+        detent_config.detent_positions, detent_config.detent_strength, detent_config.end_strength,
+        detent_config.snap_point, detent_config.snap_point_bias);
+  }
+};
