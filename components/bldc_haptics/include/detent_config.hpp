@@ -132,6 +132,10 @@ static const DetentConfig RETURN_TO_CENTER_WITH_DETENTS = {
 
 } // namespace espp::detail
 
+/// @brief Equality operator for DetentConfig
+/// @param lhs Left hand side of the equality
+/// @param rhs Right hand side of the equality
+/// @return True if the two DetentConfigs are equal
 bool operator==(const espp::detail::DetentConfig &lhs, const espp::detail::DetentConfig &rhs) {
   bool vectors_equal = lhs.detent_positions.size() == rhs.detent_positions.size() &&
                        std::equal(lhs.detent_positions.begin(), lhs.detent_positions.end(),
