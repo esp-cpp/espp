@@ -146,6 +146,7 @@ extern "C" void app_main(void) {
                                      .kd_factor_min = 0.1,
                                      .kd_factor_max = 0.5,
                                      .log_level = espp::Logger::Verbosity::INFO});
+
     // auto detent_config = espp::detail::BOUNDED_NO_DETENTS;
     // auto detent_config = espp::detail::MULTI_REV_NO_DETENTS;
     // auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;
@@ -170,6 +171,9 @@ extern "C" void app_main(void) {
     logger.info("{}", detent_config);
 
     haptic_motor.update_detent_config(detent_config);
+    // this will start the haptic motor thread which will run in the background.
+    // If we want to change the detent config we can call update_detent_config()
+    // and it will update the detent config in the background thread.
     haptic_motor.start();
 
     // TODO: test the haptic buzz / click

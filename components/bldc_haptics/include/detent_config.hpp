@@ -1,3 +1,5 @@
+/// @file Defines the detent configuration
+
 #pragma once
 
 #include "format.hpp"
@@ -24,6 +26,20 @@ struct DetentConfig {
   float dead_zone_abs_max_radians{
       M_PI / 180.0f}; ///< Absolute maximum of the dead zone to use for the detent in radians
 };
+
+/// @brief Equality operator for DetentConfig
+/// @param lhs Left hand side of the equality
+/// @param rhs Right hand side of the equality
+/// @return True if the two DetentConfigs are equal
+bool operator==(const DetentConfig &lhs, const DetentConfig &rhs) {
+  bool vectors_equal = lhs.detent_positions.size() == rhs.detent_positions.size() &&
+                       std::equal(lhs.detent_positions.begin(), lhs.detent_positions.end(),
+                                  rhs.detent_positions.begin());
+  return lhs.position_width == rhs.position_width && lhs.min_position == rhs.min_position &&
+         lhs.max_position == rhs.max_position && vectors_equal &&
+         lhs.detent_strength == rhs.detent_strength && lhs.end_strength == rhs.end_strength &&
+         lhs.snap_point == rhs.snap_point && lhs.snap_point_bias == rhs.snap_point_bias;
+}
 
 /// @brief Unbounded motion, no detents
 static const DetentConfig UNBOUNDED_NO_DETENTS = {
@@ -131,20 +147,6 @@ static const DetentConfig RETURN_TO_CENTER_WITH_DETENTS = {
 };
 
 } // namespace espp::detail
-
-/// @brief Equality operator for DetentConfig
-/// @param lhs Left hand side of the equality
-/// @param rhs Right hand side of the equality
-/// @return True if the two DetentConfigs are equal
-bool operator==(const espp::detail::DetentConfig &lhs, const espp::detail::DetentConfig &rhs) {
-  bool vectors_equal = lhs.detent_positions.size() == rhs.detent_positions.size() &&
-                       std::equal(lhs.detent_positions.begin(), lhs.detent_positions.end(),
-                                  rhs.detent_positions.begin());
-  return lhs.position_width == rhs.position_width && lhs.min_position == rhs.min_position &&
-         lhs.max_position == rhs.max_position && vectors_equal &&
-         lhs.detent_strength == rhs.detent_strength && lhs.end_strength == rhs.end_strength &&
-         lhs.snap_point == rhs.snap_point && lhs.snap_point_bias == rhs.snap_point_bias;
-}
 
 // for allowing easy serialization/printing of the
 // DetentConfig
