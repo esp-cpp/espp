@@ -541,8 +541,7 @@ public:
     shaft_velocity_ = get_shaft_velocity();
 
     // set internal target variable
-    if (new_target)
-      target_ = new_target;
+    target_ = new_target;
 
     // calculate the back-emf voltage if KV_rating available U_bemf = vel*(1/KV)
     if (kv_rating_)
