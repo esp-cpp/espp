@@ -34,8 +34,10 @@ extern "C" void app_main(void) {
   {
     //! [MultiLogger example]
     // create loggers
-    auto logger1 = espp::Logger({.tag = "Thread 1", .level = espp::Logger::Verbosity::INFO});
-    auto logger2 = espp::Logger({.tag = "Thread 2", .level = espp::Logger::Verbosity::DEBUG});
+    auto logger1 = espp::Logger(
+        {.tag = "Thread 1", .rate_limit = 500ms, .level = espp::Logger::Verbosity::INFO});
+    auto logger2 = espp::Logger(
+        {.tag = "Thread 2", .rate_limit = 1s, .level = espp::Logger::Verbosity::DEBUG});
     // lambda for logging to those two loggers from multiple threads
     auto logger_fn = [](espp::Logger *logger) {
       size_t loop_iteration{0};
@@ -45,6 +47,7 @@ extern "C" void app_main(void) {
         logger->info("some info: {}", loop_iteration);
         logger->warn("some warning: {}", loop_iteration);
         logger->error("some error: {}", loop_iteration);
+        logger->info_rate_limited("some rate limited info: {}", loop_iteration);
         // update loop variables
         loop_iteration++;
         // sleep
@@ -59,7 +62,7 @@ extern "C" void app_main(void) {
     while (true) {
       // update the loggers' verbosity
       level++;
-      if (level > static_cast<uint8_t>(espp::Logger::Verbosity::ERROR)) {
+      if (level > static_cast<uint8_t>(espp::Logger::Verbosity::NONE)) {
         level = static_cast<uint8_t>(espp::Logger::Verbosity::DEBUG);
       }
       espp::Logger::Verbosity verbosity = static_cast<espp::Logger::Verbosity>(level);

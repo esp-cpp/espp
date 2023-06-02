@@ -131,7 +131,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Logging APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/13e6595/docs/en/logger.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/5f0ef54/docs/en/logger.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -158,7 +158,7 @@ runtime.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/13e6595/components/logger/include/logger.hpp">components/logger/include/logger.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/5f0ef54/components/logger/include/logger.hpp">components/logger/include/logger.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -194,8 +194,8 @@ runtime.</p>
 <section id="classespp_1_1_logger_1logger_ex2">
 <h4>Threaded Logging and Verbosity Example<a class="headerlink" href="#classespp_1_1_logger_1logger_ex2" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_logger_1logger_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create loggers</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Thread 1&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Thread 2&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Thread 1&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">rate_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Thread 2&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">rate_limit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// lambda for logging to those two loggers from multiple threads</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">logger_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="w"> </span><span class="o">*</span><span class="n">logger</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="kt">size_t</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span><span class="w"></span>
@@ -205,6 +205,7 @@ runtime.</p>
 <span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;some info: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span><span class="w"></span>
 <span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;some warning: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span><span class="w"></span>
 <span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;some error: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="o">-&gt;</span><span class="n">info_rate_limited</span><span class="p">(</span><span class="s">&quot;some rate limited info: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">loop_iteration</span><span class="p">);</span><span class="w"></span>
 <span class="w">        </span><span class="c1">// update loop variables</span>
 <span class="w">        </span><span class="n">loop_iteration</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
 <span class="w">        </span><span class="c1">// sleep</span>
@@ -219,7 +220,7 @@ runtime.</p>
 <span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="c1">// update the loggers&#39; verbosity</span>
 <span class="w">      </span><span class="n">level</span><span class="o">++</span><span class="p">;</span><span class="w"></span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">level</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">ERROR</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">level</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">NONE</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="p">}</span><span class="w"></span>
 <span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="w"> </span><span class="n">verbosity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">&gt;</span><span class="p">(</span><span class="n">level</span><span class="p">);</span><span class="w"></span>
@@ -242,28 +243,49 @@ runtime.</p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity5DEBUGE">
 <span id="_CPPv3N4espp6Logger9Verbosity5DEBUGE"></span><span id="_CPPv2N4espp6Logger9Verbosity5DEBUGE"></span><span class="target" id="classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cbadc30ec20708ef7b0f641ef78b7880a15"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEBUG</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity5DEBUGE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Debug level verbosity. </p>
+</dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity4INFOE">
 <span id="_CPPv3N4espp6Logger9Verbosity4INFOE"></span><span id="_CPPv2N4espp6Logger9Verbosity4INFOE"></span><span class="target" id="classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cba551b723eafd6a31d444fcb2f5920fbd3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INFO</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity4INFOE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Info level verbosity. </p>
+</dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity4WARNE">
 <span id="_CPPv3N4espp6Logger9Verbosity4WARNE"></span><span id="_CPPv2N4espp6Logger9Verbosity4WARNE"></span><span class="target" id="classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cba32bd8a1db2275458673903bdb84cb277"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">WARN</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity4WARNE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Warn level verbosity. </p>
+</dd></dl>
 
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity5ERRORE">
 <span id="_CPPv3N4espp6Logger9Verbosity5ERRORE"></span><span id="_CPPv2N4espp6Logger9Verbosity5ERRORE"></span><span class="target" id="classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cbabb1ca97ec761fc37101737ba0aa2e7c5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERROR</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity5ERRORE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Error level verbosity. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger9Verbosity4NONEE">
+<span id="_CPPv3N4espp6Logger9Verbosity4NONEE"></span><span id="_CPPv2N4espp6Logger9Verbosity4NONEE"></span><span class="target" id="classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cbab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger9Verbosity4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No verbosity - logger will not print anything. </p>
+</dd></dl>
 
 </dd></dl>
 
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6LoggerERK6Config">
+<span id="_CPPv3N4espp6Logger6LoggerERK6Config"></span><span id="_CPPv2N4espp6Logger6LoggerERK6Config"></span><span id="espp::Logger::Logger__ConfigCR"></span><span class="target" id="classespp_1_1_logger_1a4a6af2d85117fbfd9c166d7d9f951592"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Logger</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Logger6ConfigE" title="espp::Logger::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger6LoggerERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1_logger"><span class="std std-ref">Logger</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – configuration for the logger. </p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger13set_verbosityEK9Verbosity">
 <span id="_CPPv3N4espp6Logger13set_verbosityEK9Verbosity"></span><span id="_CPPv2N4espp6Logger13set_verbosityEK9Verbosity"></span><span id="espp::Logger::set_verbosity__VerbosityC"></span><span class="target" id="classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_verbosity</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger13set_verbosityEK9Verbosity" title="Permalink to this definition"></a><br /></dt>
@@ -353,16 +375,83 @@ runtime.</p>
 </dl>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN4espp6Logger18debug_rate_limitedEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpEN4espp6Logger18debug_rate_limitedENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpEN4espp6Logger18debug_rate_limitedENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_logger_1ac4d622c88eb714405b4ec0289e4a4db9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">debug_rate_limited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpEN4espp6Logger18debug_rate_limitedEvNSt11string_viewEDpRR4Args" title="espp::Logger::debug_rate_limited::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN4espp6Logger18debug_rate_limitedEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in GRAY if level is <a class="reference internal" href="#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cbadc30ec20708ef7b0f641ef78b7880a15"><span class="std std-ref">Verbosity::DEBUG</span></a> or greater. This function is rate limited by the rate specified in the constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN4espp6Logger17info_rate_limitedEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpEN4espp6Logger17info_rate_limitedENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpEN4espp6Logger17info_rate_limitedENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_logger_1afd737fecf92eb68b85722e00cca0c67b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">info_rate_limited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpEN4espp6Logger17info_rate_limitedEvNSt11string_viewEDpRR4Args" title="espp::Logger::info_rate_limited::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN4espp6Logger17info_rate_limitedEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in GREEN if level is <a class="reference internal" href="#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cba551b723eafd6a31d444fcb2f5920fbd3"><span class="std std-ref">Verbosity::INFO</span></a> or greater This function is rate limited by the rate specified in the constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN4espp6Logger17warn_rate_limitedEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpEN4espp6Logger17warn_rate_limitedENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpEN4espp6Logger17warn_rate_limitedENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_logger_1a8fc13cfd969a31cb0329b5e276a55977"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">warn_rate_limited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpEN4espp6Logger17warn_rate_limitedEvNSt11string_viewEDpRR4Args" title="espp::Logger::warn_rate_limited::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN4espp6Logger17warn_rate_limitedEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in YELLOW if level is <a class="reference internal" href="#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cba32bd8a1db2275458673903bdb84cb277"><span class="std std-ref">Verbosity::WARN</span></a> or greater This function is rate limited by the rate specified in the constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN4espp6Logger18error_rate_limitedEvNSt11string_viewEDpRR4Args">
+<span id="_CPPv3IDpEN4espp6Logger18error_rate_limitedENSt11string_viewEDpRR4Args"></span><span id="_CPPv2IDpEN4espp6Logger18error_rate_limitedENSt11string_viewEDpRR4Args"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_logger_1a786ec1ac5e918351e29bcb96f5826893"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">error_rate_limited</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rt_fmt_str</span></span>, <a class="reference internal" href="#_CPPv4IDpEN4espp6Logger18error_rate_limitedEvNSt11string_viewEDpRR4Args" title="espp::Logger::error_rate_limited::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN4espp6Logger18error_rate_limitedEvNSt11string_viewEDpRR4Args" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Print log in RED if level is <a class="reference internal" href="#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cbabb1ca97ec761fc37101737ba0aa2e7c5"><span class="std std-ref">Verbosity::ERROR</span></a> or greater This function is rate limited by the rate specified in the constructor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rt_fmt_str</strong> – format string </p></li>
+<li><p><strong>args</strong> – optional arguments passed to be formatted. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6ConfigE">
 <span id="_CPPv3N4espp6Logger6ConfigE"></span><span id="_CPPv2N4espp6Logger6ConfigE"></span><span id="espp::Logger::Config"></span><span class="target" id="structespp_1_1_logger_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger6ConfigE" title="Permalink to this definition"></a><br /></dt>
-<dd><div class="breathe-sectiondef docutils container">
+<dd><p>Configuration struct for the logger. </p>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6Config3tagE">
 <span id="_CPPv3N4espp6Logger6Config3tagE"></span><span id="_CPPv2N4espp6Logger6Config3tagE"></span><span id="espp::Logger::Config::tag__std::string_view"></span><span class="target" id="structespp_1_1_logger_1_1_config_1a5ea367f04582d61ffef5c55dac18d962"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tag</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Logger6Config3tagE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The TAG that will be prepended to all logs. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger6Config10rate_limitE">
+<span id="_CPPv3N4espp6Logger6Config10rate_limitE"></span><span id="_CPPv2N4espp6Logger6Config10rate_limitE"></span><span id="espp::Logger::Config::rate_limit__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1_logger_1_1_config_1a6159198004f218ed915dcaf48b93acc0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">rate_limit</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Logger6Config10rate_limitE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The rate limit for the logger. Optional, if &lt;= 0 no rate limit. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls that have _rate_limited suffixed will be rate limited. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
