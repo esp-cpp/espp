@@ -119,7 +119,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/671d80f/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/114392e/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -495,6 +495,8 @@
       <li><a href="haptics/bldc_haptics.html#_CPPv4N4espp11BldcHaptics6Config9log_levelE">espp::BldcHaptics::Config::log_level (C++ member)</a>
 </li>
       <li><a href="haptics/bldc_haptics.html#_CPPv4N4espp11BldcHaptics6Config5motorE">espp::BldcHaptics::Config::motor (C++ member)</a>
+</li>
+      <li><a href="haptics/bldc_haptics.html#_CPPv4NK4espp11BldcHaptics12get_positionEv">espp::BldcHaptics::get_position (C++ function)</a>
 </li>
       <li><a href="haptics/bldc_haptics.html#_CPPv4N4espp11BldcHaptics11play_hapticERKN6detail12HapticConfigE">espp::BldcHaptics::play_haptic (C++ function)</a>
 </li>
@@ -1204,15 +1206,25 @@
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger6Config5levelE">espp::Logger::Config::level (C++ member)</a>
 </li>
+      <li><a href="logger.html#_CPPv4N4espp6Logger6Config10rate_limitE">espp::Logger::Config::rate_limit (C++ member)</a>
+</li>
       <li><a href="logger.html#_CPPv4N4espp6Logger6Config3tagE">espp::Logger::Config::tag (C++ member)</a>
 </li>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger5debugEvNSt11string_viewEDpRR4Args">espp::Logger::debug (C++ function)</a>
 </li>
+      <li><a href="logger.html#_CPPv4IDpEN4espp6Logger18debug_rate_limitedEvNSt11string_viewEDpRR4Args">espp::Logger::debug_rate_limited (C++ function)</a>
+</li>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger5errorEvNSt11string_viewEDpRR4Args">espp::Logger::error (C++ function)</a>
+</li>
+      <li><a href="logger.html#_CPPv4IDpEN4espp6Logger18error_rate_limitedEvNSt11string_viewEDpRR4Args">espp::Logger::error_rate_limited (C++ function)</a>
 </li>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger6formatENSt6stringENSt11string_viewEDpRR4Args">espp::Logger::format (C++ function)</a>
 </li>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger4infoEvNSt11string_viewEDpRR4Args">espp::Logger::info (C++ function)</a>
+</li>
+      <li><a href="logger.html#_CPPv4IDpEN4espp6Logger17info_rate_limitedEvNSt11string_viewEDpRR4Args">espp::Logger::info_rate_limited (C++ function)</a>
+</li>
+      <li><a href="logger.html#_CPPv4N4espp6Logger6LoggerERK6Config">espp::Logger::Logger (C++ function)</a>
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger13set_verbosityEK9Verbosity">espp::Logger::set_verbosity (C++ function)</a>
 </li>
@@ -1224,9 +1236,13 @@
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger9Verbosity4INFOE">espp::Logger::Verbosity::INFO (C++ enumerator)</a>
 </li>
+      <li><a href="logger.html#_CPPv4N4espp6Logger9Verbosity4NONEE">espp::Logger::Verbosity::NONE (C++ enumerator)</a>
+</li>
       <li><a href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE">espp::Logger::Verbosity::WARN (C++ enumerator)</a>
 </li>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger4warnEvNSt11string_viewEDpRR4Args">espp::Logger::warn (C++ function)</a>
+</li>
+      <li><a href="logger.html#_CPPv4IDpEN4espp6Logger17warn_rate_limitedEvNSt11string_viewEDpRR4Args">espp::Logger::warn_rate_limited (C++ function)</a>
 </li>
       <li><a href="filters/lowpass.html#_CPPv4N4espp13LowpassFilterE">espp::LowpassFilter (C++ class)</a>
 </li>
@@ -1264,6 +1280,8 @@
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1715DEFAULT_ADDRESSE">espp::Mcp23x17::DEFAULT_ADDRESS (C++ member)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x1721get_interrupt_captureE4Port">espp::Mcp23x17::get_interrupt_capture (C++ function)</a>
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x178get_pinsE4Port">espp::Mcp23x17::get_pins (C++ function)</a>
@@ -1272,8 +1290,6 @@
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x174PortE">espp::Mcp23x17::Port (C++ enum)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x174Port1AE">espp::Mcp23x17::Port::A (C++ enumerator)</a>
 </li>
       <li><a href="io_expander/mcp23x17.html#_CPPv4N4espp8Mcp23x174Port1BE">espp::Mcp23x17::Port::B (C++ enumerator)</a>
