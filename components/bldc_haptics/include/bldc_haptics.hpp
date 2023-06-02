@@ -88,8 +88,10 @@ concept MotorConcept = requires {
 /// - Coarse values with strong detents
 /// - Coarse values with weak detents
 ///
-/// \section bldc_haptics_ex1 Example 1: Bounded with magnetic detents
+/// \section bldc_haptics_ex1 Example 1: Basic usage
 /// \snippet bldc_haptics_example.cpp bldc_haptics_example_1
+/// \section bldc_haptics_ex2 Example 2: Playing a haptic click / buzz
+/// \snippet bldc_haptics_example.cpp bldc_haptics_example_2
 template <MotorConcept M> class BldcHaptics {
 public:
   /// @brief Configuration for the haptic motor
@@ -110,17 +112,19 @@ public:
   /// @brief Constructor for the haptic motor
   /// @param config Configuration for the haptic motor
   BldcHaptics(const Config &config)
-      : detent_pid_({.kp = 0,               // will be set later (motor_task)
-                     .ki = .00,             // not configurable for now
-                     .kd = 0,               // will be set later (update_detent_config)
-                     .integrator_min = -20, // not configurable for now
-                     .integrator_max = 20,  // not configurable for now
-                     .output_min = -20,     // go ahead and set some bounds
-                     .output_max = 20})     // go ahead and set some bounds
+      : detent_pid_({.kp = 0,             // will be set later (motor_task)
+                     .ki = 0,             // not configurable for now
+                     .kd = 0,             // will be set later (update_detent_config)
+                     .integrator_min = 0, // not configurable for now
+                     .integrator_max = 0, // not configurable for now
+                     .output_min = -20,   // go ahead and set some bounds
+                     .output_max = 20})   // go ahead and set some bounds
         ,
         kp_factor_(config.kp_factor), kd_factor_min_(config.kd_factor_min),
         kd_factor_max_(config.kd_factor_max), motor_(config.motor),
         logger_({.tag = "BldcHaptics", .level = config.log_level}) {
+    // set the motion control type to torque
+    motor_.get().set_motion_control_type(detail::MotionControlType::TORQUE);
     // create the motor task
     motor_task_ =
         Task::make_unique({.name = "haptic_motor",
@@ -131,13 +135,14 @@ public:
   }
 
   /// @brief Start the haptic motor
-  void start() {
-    motor_.get().set_motion_control_type(detail::MotionControlType::TORQUE);
-    motor_task_->start();
-  }
+  void start() { motor_task_->start(); }
 
   /// @brief Stop the haptic motor
   void stop() { motor_task_->stop(); }
+
+  /// @brief Get the current position of the haptic motor
+  /// @return Current position of the haptic motor
+  float get_position() const { return current_position_; }
 
   /// @brief Configure the detents for the haptic motor
   void update_detent_config(const detail::DetentConfig &config) {
@@ -241,11 +246,6 @@ protected:
       std::unique_lock<std::mutex> lk(motor_mutex_);
       motor_.get().loop_foc();
       // manage the haptics (detents, positions, etc.)
-      // check our position vs the nearest detent, and update our position if we're
-      // close enough to snap to another detent
-      float motor_angle = motor_.get().get_shaft_angle();
-      float angle_to_detent_center = motor_angle - current_detent_center_;
-
       // apply motor torque based on angle to the nearest position (strength is
       // handled by the PID parameters)
 
@@ -259,6 +259,11 @@ protected:
       // from the detent center. If the detent center is at 0 degrees, then the
       // snap point is at 11 degrees. If the detent center is at 5 degrees, then
       // the snap point is at 16 degrees.
+
+      // check our position vs the nearest detent, and update our position if we're
+      // close enough to snap to another detent
+      float motor_angle = motor_.get().get_shaft_angle();
+      float angle_to_detent_center = motor_angle - current_detent_center_;
 
       // Handle the snap point - if we're close enough to the snap point, snap
       // to the snap point
