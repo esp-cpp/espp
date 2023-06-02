@@ -130,7 +130,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>PID APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/13e6595/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/5f0ef54/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -152,7 +152,7 @@ have its gains change dynamically.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/13e6595/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/5f0ef54/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -160,7 +160,7 @@ have its gains change dynamically.</p>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3PidE">
 <span id="_CPPv3N4espp3PidE"></span><span id="_CPPv2N4espp3PidE"></span><span id="espp::Pid"></span><span class="target" id="classespp_1_1_pid"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Pid</span></span></span><a class="headerlink" href="#_CPPv4N4espp3PidE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Simple PID (proportional, integral, derivative) controller class with integrator clamping, output clamping, and prevention of integrator windup during output saturation. This class is thread-safe, so you can <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a>, <a class="reference internal" href="#classespp_1_1_pid_1af0a2c66aa72fa8c7a1300b5856a05a39"><span class="std std-ref">clear()</span></a>, and <a class="reference internal" href="#classespp_1_1_pid_1a929a99fb790c2aee3666e6d92e6e9c9f"><span class="std std-ref">change_gains()</span></a> from multiple threads if needed. </p>
+<dd><p>Simple PID (proportional, integral, derivative) controller class with integrator clamping, output clamping, and prevention of integrator windup during output saturation. This class is thread-safe, so you can <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a>, <a class="reference internal" href="#classespp_1_1_pid_1af0a2c66aa72fa8c7a1300b5856a05a39"><span class="std std-ref">clear()</span></a>, and <a class="reference internal" href="#classespp_1_1_pid_1a8ff421776a0c842e0329f3edd59acd73"><span class="std std-ref">change_gains()</span></a> from multiple threads if needed. </p>
 <section id="classespp_1_1_pid_1pid_ex1">
 <h4>Basic PID Example<a class="headerlink" href="#classespp_1_1_pid_1pid_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_pid_1pid_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Pid</span><span class="w"> </span><span class="nf">pid</span><span class="p">({.</span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"></span>
@@ -229,29 +229,12 @@ have its gains change dynamically.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid12change_gainsERK6Configb">
-<span id="_CPPv3N4espp3Pid12change_gainsERK6Configb"></span><span id="_CPPv2N4espp3Pid12change_gainsERK6Configb"></span><span id="espp::Pid::change_gains__ConfigCR.b"></span><span class="target" id="classespp_1_1_pid_1a929a99fb790c2aee3666e6d92e6e9c9f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">change_gains</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp3Pid6ConfigE" title="espp::Pid::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reset_state</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Pid12change_gainsERK6Configb" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid12change_gainsERK6Config">
+<span id="_CPPv3N4espp3Pid12change_gainsERK6Config"></span><span id="_CPPv2N4espp3Pid12change_gainsERK6Config"></span><span id="espp::Pid::change_gains__ConfigCR"></span><span class="target" id="classespp_1_1_pid_1a8ff421776a0c842e0329f3edd59acd73"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">change_gains</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp3Pid6ConfigE" title="espp::Pid::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Pid12change_gainsERK6Config" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Change the gains and other configuration for the PID controller. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>config</strong> – Configuration struct with new gains and sampling time. </p></li>
-<li><p><strong>reset_state</strong> – Reset / clear the PID controller state. </p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp3Pid10set_configERK6Configb">
-<span id="_CPPv3N4espp3Pid10set_configERK6Configb"></span><span id="_CPPv2N4espp3Pid10set_configERK6Configb"></span><span id="espp::Pid::set_config__ConfigCR.b"></span><span class="target" id="classespp_1_1_pid_1ac8074de947e5cfe5bff5c63780142fb0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp3Pid6ConfigE" title="espp::Pid::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reset_state</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Pid10set_configERK6Configb" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Change the gains and other configuration for the PID controller. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>config</strong> – Configuration struct with new gains and sampling time. </p></li>
-<li><p><strong>reset_state</strong> – Reset / clear the PID controller state. </p></li>
-</ul>
+<dd class="field-odd"><p><strong>config</strong> – Configuration struct with new gains and sampling time. </p>
 </dd>
 </dl>
 </dd></dl>
