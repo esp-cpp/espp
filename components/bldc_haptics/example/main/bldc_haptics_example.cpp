@@ -22,7 +22,7 @@ static constexpr int I2C_TIMEOUT_MS = (10);
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "BLDC Haptics Example", .level = espp::Logger::Verbosity::DEBUG});
-  constexpr int num_seconds_to_run = 120;
+  constexpr int num_seconds_to_run = 20;
   {
     logger.info("Running BLDC Haptics example for {} seconds!", num_seconds_to_run);
 
@@ -143,8 +143,8 @@ extern "C" void app_main(void) {
 
     auto haptic_motor = BldcHaptics({.motor = motor,
                                      .kp_factor = 1,
-                                     .kd_factor_min = 0.1,
-                                     .kd_factor_max = 0.5,
+                                     .kd_factor_min = 0.02,
+                                     .kd_factor_max = 0.08,
                                      .log_level = espp::Logger::Verbosity::INFO});
 
     // auto detent_config = espp::detail::BOUNDED_NO_DETENTS;
@@ -175,16 +175,6 @@ extern "C" void app_main(void) {
     // If we want to change the detent config we can call update_detent_config()
     // and it will update the detent config in the background thread.
     haptic_motor.start();
-
-    // TODO: test the haptic buzz / click
-    if (0) {
-      logger.info("Playing haptic buzz for 1 second");
-      haptic_motor.play_haptic(espp::detail::HapticConfig{
-          .strength = 5.0f,
-          .frequency = 200.0f, // Hz, NOTE: frequency is unused for now
-          .duration = 1s       // NOTE: duration is unused for now
-      });
-    }
     //! [bldc_haptics_example_1]
 
     static auto start = std::chrono::high_resolution_clock::now();
@@ -199,6 +189,19 @@ extern "C" void app_main(void) {
         break;
       }
     }
+
+    // test the haptic buzz / click
+    if (!driver->is_faulted()) {
+      logger.info("Playing haptic buzz for 1 second");
+      //! [bldc_haptics_example_2]
+      haptic_motor.play_haptic(espp::detail::HapticConfig{
+          .strength = 5.0f,
+          .frequency = 200.0f, // Hz, NOTE: frequency is unused for now
+          .duration = 1s       // NOTE: duration is unused for now
+      });
+      //! [bldc_haptics_example_2]
+    }
+
     driver->disable();
   }
   // now clean up the i2c driver
