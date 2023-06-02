@@ -246,7 +246,6 @@ protected:
 
     {
       std::unique_lock<std::mutex> lk(motor_mutex_);
-      motor_.get().loop_foc();
       // manage the haptics (detents, positions, etc.)
       // apply motor torque based on angle to the nearest position (strength is
       // handled by the PID parameters)
@@ -359,12 +358,13 @@ protected:
         }
         // get the torque from the PID controller
         float torque = detent_pid_.update(input);
-        logger_.info_rate_limited("angle: {:0.2f}, input: {:0.2f}, torque: {:0.2f}", motor_angle,
+        logger_.info_rate_limited("angle: {:0.3f}, input: {:0.3f}, torque: {:0.3f}", motor_angle,
                                   input, torque);
         // apply the torque to the motor
         motor_.get().move(-torque);
       } // end if std::abs(motor_.get().get_shaft_velocity()) > 60
-    }   // end motor_mutex_
+      motor_.get().loop_foc();
+    } // end motor_mutex_
 
     // now sleep
     {
