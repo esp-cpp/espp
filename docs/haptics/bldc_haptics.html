@@ -136,7 +136,7 @@
           <li><a href="index.html">Haptics APIs</a> &raquo;</li>
       <li>BLDC Haptics</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/b71ab12/docs/en/haptics/bldc_haptics.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/886d5e3/docs/en/haptics/bldc_haptics.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -177,19 +177,19 @@ haptic feedback loop with configuration of:</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b71ab12/components/bldc_haptics/include/detent_config.hpp">components/bldc_haptics/include/detent_config.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/886d5e3/components/bldc_haptics/include/detent_config.hpp">components/bldc_haptics/include/detent_config.hpp</a></p></li>
 </ul>
 </section>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b71ab12/components/bldc_haptics/include/haptic_config.hpp">components/bldc_haptics/include/haptic_config.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/886d5e3/components/bldc_haptics/include/haptic_config.hpp">components/bldc_haptics/include/haptic_config.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
 <h3>Header File<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b71ab12/components/bldc_haptics/include/bldc_haptics.hpp">components/bldc_haptics/include/bldc_haptics.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/886d5e3/components/bldc_haptics/include/bldc_haptics.hpp">components/bldc_haptics/include/bldc_haptics.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -244,7 +244,7 @@ The haptics provided by this class enable configuration of:<ul class="simple">
 <p id="classespp_1_1_bldc_haptics_1bldc_haptics_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">BldcHaptics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">BldcHaptics</span><span class="o">&lt;</span><span class="n">BldcMotor</span><span class="o">&gt;</span><span class="p">;</span><span class="w"></span>
 
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">haptic_motor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BldcHaptics</span><span class="p">({.</span><span class="n">motor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motor</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                     </span><span class="p">.</span><span class="n">kp_factor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                     </span><span class="p">.</span><span class="n">kp_factor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"></span>
 <span class="w">                                     </span><span class="p">.</span><span class="n">kd_factor_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span><span class="w"></span>
 <span class="w">                                     </span><span class="p">.</span><span class="n">kd_factor_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.04</span><span class="p">,</span><span class="w"></span>
 <span class="w">                                     </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span><span class="w"></span>
@@ -253,10 +253,10 @@ The haptics provided by this class enable configuration of:<ul class="simple">
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::BOUNDED_NO_DETENTS;</span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::MULTI_REV_NO_DETENTS;</span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::ON_OFF_STRONG_DETENTS;</span>
-<span class="w">    </span><span class="c1">// auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">detent_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">COARSE_VALUES_STRONG_DETENTS</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::FINE_VALUES_NO_DETENTS;</span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::FINE_VALUES_WITH_DETENTS;</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">detent_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MAGNETIC_DETENTS</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// auto detent_config = espp::detail::MAGNETIC_DETENTS;</span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::RETURN_TO_CENTER_WITH_DETENTS;</span>
 
 <span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">detent_config</span><span class="p">);</span><span class="w"></span>
@@ -361,8 +361,8 @@ The haptics provided by this class enable configuration of:<ul class="simple">
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11BldcHaptics6Config9kp_factorE">
-<span id="_CPPv3N4espp11BldcHaptics6Config9kp_factorE"></span><span id="_CPPv2N4espp11BldcHaptics6Config9kp_factorE"></span><span id="espp::BldcHaptics::Config::kp_factor__float"></span><span class="target" id="structespp_1_1_bldc_haptics_1_1_config_1ac174d02e686d87a9a610d20a057c9538"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kp_factor</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11BldcHaptics6Config9kp_factorE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Factor to multiply the detent strength by to get kp (default 4). Used for both detents and end stops. </p>
+<span id="_CPPv3N4espp11BldcHaptics6Config9kp_factorE"></span><span id="_CPPv2N4espp11BldcHaptics6Config9kp_factorE"></span><span id="espp::BldcHaptics::Config::kp_factor__float"></span><span class="target" id="structespp_1_1_bldc_haptics_1_1_config_1ac174d02e686d87a9a610d20a057c9538"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kp_factor</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11BldcHaptics6Config9kp_factorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Factor to multiply the detent strength by to get kp (default 2). Used for both detents and end stops. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Depending on the motor, this may need to be adjusted to get the desired behavior. </p>
@@ -371,8 +371,8 @@ The haptics provided by this class enable configuration of:<ul class="simple">
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11BldcHaptics6Config13kd_factor_minE">
-<span id="_CPPv3N4espp11BldcHaptics6Config13kd_factor_minE"></span><span id="_CPPv2N4espp11BldcHaptics6Config13kd_factor_minE"></span><span id="espp::BldcHaptics::Config::kd_factor_min__float"></span><span class="target" id="structespp_1_1_bldc_haptics_1_1_config_1a41219d38082e2a4beaf876c36046a2f6"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kd_factor_min</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.02</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11BldcHaptics6Config13kd_factor_minE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Min Factor to multiply the detent strength by to get kd (default 0.02). </p>
+<span id="_CPPv3N4espp11BldcHaptics6Config13kd_factor_minE"></span><span id="_CPPv2N4espp11BldcHaptics6Config13kd_factor_minE"></span><span id="espp::BldcHaptics::Config::kd_factor_min__float"></span><span class="target" id="structespp_1_1_bldc_haptics_1_1_config_1a41219d38082e2a4beaf876c36046a2f6"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kd_factor_min</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.01</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11BldcHaptics6Config13kd_factor_minE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Min Factor to multiply the detent strength by to get kd (default 0.01). </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Depending on the motor, this may need to be adjusted to get the desired behavior. </p>
@@ -381,8 +381,8 @@ The haptics provided by this class enable configuration of:<ul class="simple">
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11BldcHaptics6Config13kd_factor_maxE">
-<span id="_CPPv3N4espp11BldcHaptics6Config13kd_factor_maxE"></span><span id="_CPPv2N4espp11BldcHaptics6Config13kd_factor_maxE"></span><span id="espp::BldcHaptics::Config::kd_factor_max__float"></span><span class="target" id="structespp_1_1_bldc_haptics_1_1_config_1ad78fa3e69b2f5de17f48ab5dfbf321fb"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kd_factor_max</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.08</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11BldcHaptics6Config13kd_factor_maxE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Max Factor to multiply the detent strength by to get kd (default 0.08). </p>
+<span id="_CPPv3N4espp11BldcHaptics6Config13kd_factor_maxE"></span><span id="_CPPv2N4espp11BldcHaptics6Config13kd_factor_maxE"></span><span id="espp::BldcHaptics::Config::kd_factor_max__float"></span><span class="target" id="structespp_1_1_bldc_haptics_1_1_config_1ad78fa3e69b2f5de17f48ab5dfbf321fb"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kd_factor_max</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.04</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11BldcHaptics6Config13kd_factor_maxE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Max Factor to multiply the detent strength by to get kd (default 0.04). </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Depending on the motor, this may need to be adjusted to get the desired behavior. </p>
