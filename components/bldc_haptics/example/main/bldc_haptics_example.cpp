@@ -109,10 +109,10 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 0.75f,             // Amps
-        .zero_electric_offset = 1.1784807f, // gotten from previously running without providing this
-                                            // and it will be logged.
-        .sensor_direction = espp::detail::SensorDirection::CLOCKWISE,
+        .current_limit = 1.0f,             // Amps
+        .zero_electric_offset = 2.3914752, // gotten from previously running without providing this
+                                           // and it will be logged.
+        .sensor_direction = espp::detail::SensorDirection::COUNTER_CLOCKWISE,
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
         .driver = driver,
         .sensor = mt6701,
@@ -138,36 +138,55 @@ extern "C" void app_main(void) {
             },
         .log_level = espp::Logger::Verbosity::INFO});
 
+    auto print_detent_config = [&logger](const auto &detent_config) {
+      if (detent_config == espp::detail::UNBOUNDED_NO_DETENTS) {
+        logger.info("Setting detent config to UNBOUNDED_NO_DETENTS");
+      }
+      if (detent_config == espp::detail::BOUNDED_NO_DETENTS) {
+        logger.info("Setting detent config to BOUNDED_NO_DETENTS");
+      }
+      if (detent_config == espp::detail::MULTI_REV_NO_DETENTS) {
+        logger.info("Setting detent config to MULTI_REV_NO_DETENTS");
+      }
+      if (detent_config == espp::detail::ON_OFF_STRONG_DETENTS) {
+        logger.info("Setting detent config to ON_OFF_STRONG_DETENTS");
+      }
+      if (detent_config == espp::detail::COARSE_VALUES_STRONG_DETENTS) {
+        logger.info("Setting detent config to COARSE_VALUES_STRONG_DETENTS");
+      }
+      if (detent_config == espp::detail::FINE_VALUES_NO_DETENTS) {
+        logger.info("Setting detent config to FINE_VALUES_NO_DETENTS");
+      }
+      if (detent_config == espp::detail::FINE_VALUES_WITH_DETENTS) {
+        logger.info("Setting detent config to FINE_VALUES_WITH_DETENTS");
+      }
+      if (detent_config == espp::detail::MAGNETIC_DETENTS) {
+        logger.info("Setting detent config to MAGNETIC_DETENTS");
+      }
+      if (detent_config == espp::detail::RETURN_TO_CENTER_WITH_DETENTS) {
+        logger.info("Setting detent config to RETURN_TO_CENTER_WITH_DETENTS");
+      }
+    };
+
     //! [bldc_haptics_example_1]
     using BldcHaptics = espp::BldcHaptics<BldcMotor>;
 
     auto haptic_motor = BldcHaptics({.motor = motor,
                                      .kp_factor = 1,
-                                     .kd_factor_min = 0.02,
-                                     .kd_factor_max = 0.08,
+                                     .kd_factor_min = 0.01,
+                                     .kd_factor_max = 0.04,
                                      .log_level = espp::Logger::Verbosity::INFO});
 
+    // auto detent_config = espp::detail::UNBOUNDED_NO_DETENTS;
     // auto detent_config = espp::detail::BOUNDED_NO_DETENTS;
     // auto detent_config = espp::detail::MULTI_REV_NO_DETENTS;
+    // auto detent_config = espp::detail::ON_OFF_STRONG_DETENTS;
     // auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;
+    // auto detent_config = espp::detail::FINE_VALUES_NO_DETENTS;
+    // auto detent_config = espp::detail::FINE_VALUES_WITH_DETENTS;
     auto detent_config = espp::detail::MAGNETIC_DETENTS;
     // auto detent_config = espp::detail::RETURN_TO_CENTER_WITH_DETENTS;
 
-    if (detent_config == espp::detail::BOUNDED_NO_DETENTS) {
-      logger.info("Setting detent config to BOUNDED_NO_DETENTS");
-    }
-    if (detent_config == espp::detail::MULTI_REV_NO_DETENTS) {
-      logger.info("Setting detent config to MULTI_REV_NO_DETENTS");
-    }
-    if (detent_config == espp::detail::COARSE_VALUES_STRONG_DETENTS) {
-      logger.info("Setting detent config to COARSE_VALUES_STRONG_DETENTS");
-    }
-    if (detent_config == espp::detail::MAGNETIC_DETENTS) {
-      logger.info("Setting detent config to MAGNETIC_DETENTS");
-    }
-    if (detent_config == espp::detail::RETURN_TO_CENTER_WITH_DETENTS) {
-      logger.info("Setting detent config to RETURN_TO_CENTER_WITH_DETENTS");
-    }
     logger.info("{}", detent_config);
 
     haptic_motor.update_detent_config(detent_config);
@@ -176,6 +195,7 @@ extern "C" void app_main(void) {
     // and it will update the detent config in the background thread.
     haptic_motor.start();
     //! [bldc_haptics_example_1]
+    print_detent_config(detent_config);
 
     static auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();

@@ -155,22 +155,23 @@ template <> struct fmt::formatter<espp::detail::DetentConfig> {
 
   template <typename FormatContext>
   auto format(espp::detail::DetentConfig const &detent_config, FormatContext &ctx) {
-    return fmt::format_to(
-        ctx.out(),
-        "DetentConfig:\n"
-        "\tposition_width: {}\n"
-        "\tmin_position: {}\n"
-        "\tmax_position: {}\n"
-        "\trange of motion: {:.2f} to {:.2f} degrees\n"
-        "\tdetent_positions: {}\n"
-        "\tdetent_strength: {}\n"
-        "\tend_strength: {}\n"
-        "\tsnap_point: {}\n"
-        "\tsnap_point_bias: {}",
-        detent_config.position_width, detent_config.min_position, detent_config.max_position,
-        detent_config.min_position * detent_config.position_width * 180.0 / M_PI,
-        detent_config.max_position * detent_config.position_width * 180.0 / M_PI,
-        detent_config.detent_positions, detent_config.detent_strength, detent_config.end_strength,
-        detent_config.snap_point, detent_config.snap_point_bias);
+    return fmt::format_to(ctx.out(),
+                          "DetentConfig:\n"
+                          "\tposition_width: {} radians ({} degrees)\n"
+                          "\tmin_position: {}\n"
+                          "\tmax_position: {}\n"
+                          "\trange of motion: {:.2f} to {:.2f} degrees\n"
+                          "\tdetent_positions: {}\n"
+                          "\tdetent_strength: {}\n"
+                          "\tend_strength: {}\n"
+                          "\tsnap_point: {}\n"
+                          "\tsnap_point_bias: {}",
+                          detent_config.position_width, detent_config.position_width * 180.0 / M_PI,
+                          detent_config.min_position, detent_config.max_position,
+                          detent_config.min_position * detent_config.position_width * 180.0 / M_PI,
+                          detent_config.max_position * detent_config.position_width * 180.0 / M_PI,
+                          detent_config.detent_positions, detent_config.detent_strength,
+                          detent_config.end_strength, detent_config.snap_point,
+                          detent_config.snap_point_bias);
   }
 };

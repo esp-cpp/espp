@@ -117,14 +117,19 @@ public:
                      .kd = 0,             // will be set later (update_detent_config)
                      .integrator_min = 0, // not configurable for now
                      .integrator_max = 0, // not configurable for now
-                     .output_min = -20,   // go ahead and set some bounds
-                     .output_max = 20})   // go ahead and set some bounds
+                     .output_min = -1,    // go ahead and set some bounds (operates on current)
+                     .output_max = 1})    // go ahead and set some bounds (operates on current)
         ,
         kp_factor_(config.kp_factor), kd_factor_min_(config.kd_factor_min),
         kd_factor_max_(config.kd_factor_max), motor_(config.motor),
         logger_({.tag = "BldcHaptics",
                  .rate_limit = std::chrono::milliseconds(100),
                  .level = config.log_level}) {
+    logger_.info("Initializing haptic motor\n"
+                 "\tkp_factor: {}\n"
+                 "\tkd_factor_min: {}\n"
+                 "\tkd_factor_max: {}",
+                 kp_factor_, kd_factor_min_, kd_factor_max_);
     // set the motion control type to torque
     motor_.get().set_motion_control_type(detail::MotionControlType::TORQUE);
     // create the motor task
@@ -149,12 +154,19 @@ public:
   /// @brief Configure the detents for the haptic motor
   void update_detent_config(const detail::DetentConfig &config) {
     std::unique_lock<std::mutex> lk(detent_mutex_);
-    // update the detent center if the position or width changed
-    if (config.detent_positions.size() != 0 &&
-        config.position_width != detent_config_.position_width) {
-      // update the detent center
-      current_detent_center_ = motor_.get().get_shaft_angle();
+    // update the detent center
+    current_detent_center_ = motor_.get().get_shaft_angle();
+
+    if (current_position_ < config.min_position) {
+      // if the current position is less than the min position, set the current
+      // position to the min position
+      current_position_ = config.min_position;
+    } else if (current_position_ > config.max_position) {
+      // if the current position is greater than the max position, set the
+      // current position to the max position
+      current_position_ = config.max_position;
     }
+
     // update the detent config
     detent_config_ = config;
 
@@ -172,8 +184,8 @@ public:
     // hardcoded haptic "click" (e.g. a quick burst of torque in each
     // direction) whenever the position changes when the detent width is too
     // small for the P factor to work well.
-    const float derivative_lower_strength = config.detent_strength * kd_factor_min_;
-    const float derivative_upper_strength = config.detent_strength * kd_factor_max_;
+    const float derivative_lower_strength = config.detent_strength * kd_factor_max_;
+    const float derivative_upper_strength = config.detent_strength * kd_factor_min_;
     const float derivative_position_width_lower = 3.0f * M_PI / 180.0f; // radians(3);
     const float derivative_position_width_upper = 8.0f * M_PI / 180.0f; // radians(8);
     const float raw = derivative_lower_strength +
@@ -193,7 +205,7 @@ public:
     pid_config.kd = new_kd;
     // we don't want to clear the PID state when we change the config, so we
     // pass false
-    logger_.debug("Updating detent PID config: {}", pid_config);
+    logger_.info("Updating detent PID config: {}", pid_config);
     detent_pid_.set_config(pid_config, false);
   }
 
@@ -289,12 +301,14 @@ protected:
         current_detent_center_ += detent_config.position_width;
         angle_to_detent_center -= detent_config.position_width;
         current_position_--;
+        logger_.info("Position: {}", current_position_);
       } else if (angle_to_detent_center < snap_point_radians_increase &&
                  (num_positions <= 0 || current_position_ < detent_config.max_position)) {
         // we're past the snap point, so snap to the next detent
         current_detent_center_ -= detent_config.position_width;
         angle_to_detent_center += detent_config.position_width;
         current_position_++;
+        logger_.info("Position: {}", current_position_);
       }
 
       float dead_zone_adjustment =
@@ -358,10 +372,10 @@ protected:
         }
         // get the torque from the PID controller
         float torque = detent_pid_.update(input);
-        logger_.info_rate_limited("angle: {:0.3f}, input: {:0.3f}, torque: {:0.3f}", motor_angle,
-                                  input, torque);
+        logger_.debug_rate_limited("angle: {:0.3f}, input: {:0.3f}, torque: {:0.3f}", motor_angle,
+                                   input, torque);
         // apply the torque to the motor
-        motor_.get().move(-torque);
+        motor_.get().move(torque);
       } // end if std::abs(motor_.get().get_shaft_velocity()) > 60
       motor_.get().loop_foc();
     } // end motor_mutex_
