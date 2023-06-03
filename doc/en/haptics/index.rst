@@ -4,6 +4,7 @@ Haptics APIs
 .. toctree::
     :maxdepth: 1
 
+    bldc_haptics
     drv2605
 
 There are multiple components which provide haptic feedback functionality,

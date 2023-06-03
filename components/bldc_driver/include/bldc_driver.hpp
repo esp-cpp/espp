@@ -33,6 +33,7 @@ public:
     int gpio_c_h;               /**< Phase C high side gpio. */
     int gpio_c_l;               /**< Phase C low side gpio. */
     int gpio_enable{-1};        /**< Enable pin for the BLDC driver (if any). */
+    int gpio_fault{-1};         /**< Fault pin for the BLDC driver (if any). */
     float power_supply_voltage; /**< Voltage of the power supply. */
     float limit_voltage{-1}; /**< What voltage the motor should be limited to. Less than 0 means no
                                 limit. Will be clamped to power supply voltage. */
@@ -50,7 +51,7 @@ public:
       : gpio_ah_((gpio_num_t)config.gpio_a_h), gpio_al_((gpio_num_t)config.gpio_a_l),
         gpio_bh_((gpio_num_t)config.gpio_b_h), gpio_bl_((gpio_num_t)config.gpio_b_l),
         gpio_ch_((gpio_num_t)config.gpio_c_h), gpio_cl_((gpio_num_t)config.gpio_c_l),
-        gpio_en_(config.gpio_enable), dead_zone_(config.dead_zone),
+        gpio_en_(config.gpio_enable), gpio_fault_(config.gpio_fault), dead_zone_(config.dead_zone),
         logger_({.tag = "BLDC Driver", .level = config.log_level}) {
     configure_power(config.power_supply_voltage, config.limit_voltage);
     init(config);
@@ -87,8 +88,30 @@ public:
       // set force level to 0 (gate off), and hold it
       mcpwm_generator_set_force_level(g, 0, true);
     }
-    gpio_set_level((gpio_num_t)gpio_en_, 0);
     enabled_ = false;
+    std::lock_guard<std::mutex> lock(en_mutex_);
+    if (gpio_en_ >= 0) {
+      gpio_set_level((gpio_num_t)gpio_en_, 0);
+    }
+  }
+
+  /**
+   * @brief Check if the driver is enabled.
+   * @return True if the driver is enabled, false otherwise.
+   */
+  bool is_enabled() const { return enabled_; }
+
+  /**
+   * @brief Check if the driver is faulted.
+   * @note If no fault pin was provided, this will always return false.
+   * @return True if the driver is faulted, false otherwise.
+   */
+  bool is_faulted() {
+    std::lock_guard<std::mutex> lock(fault_mutex_);
+    if (gpio_fault_ < 0) {
+      return false;
+    }
+    return gpio_get_level((gpio_num_t)gpio_fault_) == 1;
   }
 
   /**
@@ -195,6 +218,7 @@ public:
 protected:
   void init(const Config &config) {
     configure_enable_gpio();
+    configure_fault_gpio();
     configure_timer();
     configure_operators();
     configure_comparators();
@@ -208,6 +232,7 @@ protected:
   }
 
   void configure_enable_gpio() {
+    std::lock_guard<std::mutex> lock(en_mutex_);
     if (gpio_en_ < 0) {
       return;
     }
@@ -218,6 +243,21 @@ protected:
     drv_en_config.mode = GPIO_MODE_OUTPUT;
     ESP_ERROR_CHECK(gpio_config(&drv_en_config));
     gpio_set_level((gpio_num_t)gpio_en_, 0);
+  }
+
+  void configure_fault_gpio() {
+    std::lock_guard<std::mutex> lock(fault_mutex_);
+    if (gpio_fault_ < 0) {
+      return;
+    }
+    logger_.info("Configure fault pin");
+    gpio_config_t drv_fault_config;
+    memset(&drv_fault_config, 0, sizeof(drv_fault_config));
+    drv_fault_config.pin_bit_mask = 1ULL << gpio_fault_;
+    drv_fault_config.mode = GPIO_MODE_INPUT;
+    drv_fault_config.pull_up_en = GPIO_PULLUP_DISABLE;
+    drv_fault_config.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    ESP_ERROR_CHECK(gpio_config(&drv_fault_config));
   }
 
   void configure_timer() {
@@ -307,7 +347,10 @@ protected:
   gpio_num_t gpio_bl_;
   gpio_num_t gpio_ch_;
   gpio_num_t gpio_cl_;
+  std::mutex en_mutex_;
   int gpio_en_;
+  std::mutex fault_mutex_;
+  int gpio_fault_;
   std::atomic<float> power_supply_voltage_;
   std::atomic<float> limit_voltage_;
   float dead_zone_;

@@ -6,6 +6,7 @@
 #include "bldc_driver.hpp"
 #include "bldc_motor.hpp"
 #include "butterworth_filter.hpp"
+#include "logger.hpp"
 #include "lowpass_filter.hpp"
 #include "mt6701.hpp"
 #include "task.hpp"
@@ -13,20 +14,22 @@
 
 using namespace std::chrono_literals;
 
-#define I2C_NUM (I2C_NUM_1)
-#define I2C_SCL_IO (GPIO_NUM_40)
-#define I2C_SDA_IO (GPIO_NUM_41)
-#define I2C_FREQ_HZ (400 * 1000)
-#define I2C_TIMEOUT_MS (10)
+// pins for the bldc motor test stand with the TinyS3
+static constexpr auto I2C_NUM = (I2C_NUM_1);
+static constexpr auto I2C_SCL_IO = (GPIO_NUM_9);
+static constexpr auto I2C_SDA_IO = (GPIO_NUM_8);
+static constexpr int I2C_FREQ_HZ = (400 * 1000);
+static constexpr int I2C_TIMEOUT_MS = (10);
 
 extern "C" void app_main(void) {
+  espp::Logger logger({.tag = "BLDC Motor example", .level = espp::Logger::Verbosity::DEBUG});
   constexpr int num_seconds_to_run = 120;
   {
-    fmt::print("Running BLDC Motor (FOC) example for {} seconds!\n", num_seconds_to_run);
+    logger.info("Running BLDC Motor (FOC) example for {} seconds!", num_seconds_to_run);
 
     // make the I2C that we'll use to communicate with the mt6701 (magnetic encoder)
     i2c_config_t i2c_cfg;
-    fmt::print("initializing i2c driver...\n");
+    logger.info("initializing i2c driver...");
     memset(&i2c_cfg, 0, sizeof(i2c_cfg));
     i2c_cfg.sda_io_num = I2C_SDA_IO;
     i2c_cfg.scl_io_num = I2C_SCL_IO;
@@ -36,10 +39,10 @@ extern "C" void app_main(void) {
     i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
     auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
     if (err != ESP_OK)
-      printf("config i2c failed\n");
+      logger.error("config i2c failed");
     err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
     if (err != ESP_OK)
-      printf("install i2c driver failed\n");
+      logger.error("install i2c driver failed");
     // make some lambda functions we'll use to read/write to the mt6701
     auto mt6701_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
       i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
@@ -54,11 +57,10 @@ extern "C" void app_main(void) {
     // make the velocity filter
     static constexpr float core_update_period = 0.001f; // seconds
     static constexpr float filter_cutoff_hz = 4.0f;
-    espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter({
-        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01 // core_update_period
-    });
+    espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter(
+        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period});
     espp::LowpassFilter lpfilter(
-        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01, // core_update_period,
+        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period,
          .q_factor = 1.0f});
     auto filter_fn = [&bwfilter, &lpfilter](float raw) -> float {
       // return bwfilter.update(raw);
@@ -85,15 +87,18 @@ extern "C" void app_main(void) {
     // now make the bldc driver
     std::shared_ptr<espp::BldcDriver> driver =
         std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
-            .gpio_a_h = 9,
-            .gpio_a_l = 43,
-            .gpio_b_h = 44,
-            .gpio_b_l = 14,
-            .gpio_c_h = 38,
-            .gpio_c_l = 39,
-            .gpio_enable = 42, // connected to the VIO/~Stdby pin of TMC6300-BOB
+            // this pinout is configured for the TinyS3 connected to the
+            // TMC6300-BOB in the BLDC Motor Test Stand
+            .gpio_a_h = 1,
+            .gpio_a_l = 2,
+            .gpio_b_h = 3,
+            .gpio_b_l = 4,
+            .gpio_c_h = 5,
+            .gpio_c_l = 21,
+            .gpio_enable = 34, // connected to the VIO/~Stdby pin of TMC6300-BOB
+            .gpio_fault = 36,  // connected to the nFAULT pin of TMC6300-BOB
             .power_supply_voltage = 5.0f,
-            .limit_voltage = 3.5f,
+            .limit_voltage = 5.0f,
             .log_level = espp::Logger::Verbosity::WARN});
 
     // now make the bldc motor
@@ -106,11 +111,11 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 1.0f,              // Amps
-        .zero_electric_offset = 1.1784807f, // gotten from previously running without providing this
-                                            // and it will be logged.
-        .sensor_direction = BldcMotor::Direction::CLOCKWISE,
-        .foc_type = BldcMotor::FocType::SPACE_VECTOR_PWM,
+        .current_limit = 1.0f,             // Amps
+        .zero_electric_offset = 2.3914752, // gotten from previously running without providing this
+                                           // and it will be logged.
+        .sensor_direction = espp::detail::SensorDirection::COUNTER_CLOCKWISE,
+        .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
         .driver = driver,
         .sensor = mt6701,
         .velocity_pid_config =
@@ -135,10 +140,10 @@ extern "C" void app_main(void) {
             },
         .log_level = espp::Logger::Verbosity::INFO});
 
-    // static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY;
-    static constexpr auto motion_control_type = BldcMotor::MotionControlType::ANGLE;
-    // static auto motion_control_type = BldcMotor::MotionControlType::VELOCITY_OPENLOOP;
-    // static auto motion_control_type = BldcMotor::MotionControlType::ANGLE_OPENLOOP;
+    static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
+    // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
+    // static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY_OPENLOOP;
+    // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE_OPENLOOP;
 
     // Set the motion control type and create a target for the motor (will be
     // updated in the target update task below)
@@ -148,15 +153,15 @@ extern "C" void app_main(void) {
     auto motor_task_fn = [&motor, &target](std::mutex &m, std::condition_variable &cv) {
       static auto delay = std::chrono::duration<float>(core_update_period);
       auto start = std::chrono::high_resolution_clock::now();
-      // command the motor
-      motor.loop_foc();
-      if (motion_control_type == BldcMotor::MotionControlType::VELOCITY ||
-          motion_control_type == BldcMotor::MotionControlType::VELOCITY_OPENLOOP) {
+      if (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
+          motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
         // if it's a velocity setpoint, convert it from RPM to rad/s
         motor.move(target * espp::RPM_TO_RADS);
       } else {
         motor.move(target);
       }
+      // command the motor
+      motor.loop_foc();
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
@@ -178,18 +183,18 @@ extern "C" void app_main(void) {
     // Configure the target
     enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
     static IncrementDirection increment_direction = IncrementDirection::UP;
-    static constexpr bool is_angle =
-        motion_control_type == BldcMotor::MotionControlType::ANGLE ||
-        motion_control_type == BldcMotor::MotionControlType::ANGLE_OPENLOOP;
-    static constexpr float max_target = is_angle ? (2.0f * M_PI) : 200.0f;
-    static constexpr float target_delta = is_angle ? (M_PI / 4.0f) : (50.0f * core_update_period);
+    static const bool is_angle =
+        motion_control_type == espp::detail::MotionControlType::ANGLE ||
+        motion_control_type == espp::detail::MotionControlType::ANGLE_OPENLOOP;
+    static const float max_target = is_angle ? (2.0f * M_PI) : 200.0f;
+    static const float target_delta = is_angle ? (M_PI / 4.0f) : (50.0f * core_update_period);
     switch (motion_control_type) {
-    case BldcMotor::MotionControlType::VELOCITY:
-    case BldcMotor::MotionControlType::VELOCITY_OPENLOOP:
+    case espp::detail::MotionControlType::VELOCITY:
+    case espp::detail::MotionControlType::VELOCITY_OPENLOOP:
       target = 50.0f;
       break;
-    case BldcMotor::MotionControlType::ANGLE:
-    case BldcMotor::MotionControlType::ANGLE_OPENLOOP:
+    case espp::detail::MotionControlType::ANGLE:
+    case espp::detail::MotionControlType::ANGLE_OPENLOOP:
       target = M_PI; // 180 degrees (whereever that is...)
       break;
     default:
@@ -232,17 +237,16 @@ extern "C" void app_main(void) {
     // and finally, make the task to periodically poll the mt6701 and print the
     // state. NOTE: the Mt6701 runs its own task to maintain state, so we're
     // just polling the current state.
-    auto task_fn = [&mt6701, &target, &lpfilter](std::mutex &m, std::condition_variable &cv) {
+    auto task_fn = [&motor, &target](std::mutex &m, std::condition_variable &cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds = std::chrono::duration<float>(now - start).count();
-      auto count = mt6701->get_count();
-      auto radians = mt6701->get_radians();
-      auto degrees = mt6701->get_degrees();
-      auto rpm = mt6701->get_rpm();
+      auto radians = motor.get_shaft_angle();
+      auto degrees = radians * 180.0f / M_PI;
+      auto rpm = motor.get_shaft_velocity() * espp::RADS_TO_RPM;
       auto _target = target.load();
-      fmt::print("{:.3f}, {}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, count, radians, degrees,
-                 _target, lpfilter(rpm));
+      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, radians, degrees, _target,
+                 rpm);
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
@@ -256,30 +260,36 @@ extern "C" void app_main(void) {
                             .callback = task_fn,
                             .stack_size_bytes = 5 * 1024,
                             .log_level = espp::Logger::Verbosity::WARN});
-    if (motion_control_type == BldcMotor::MotionControlType::VELOCITY ||
-        motion_control_type == BldcMotor::MotionControlType::VELOCITY_OPENLOOP) {
+    if (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
+        motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
       // if it's a velocity setpoint then target is RPM
-      fmt::print("%time(s), count, radians, degrees, target velocity (rpm), actual speed (rpm)\n");
+      fmt::print("%time(s), radians, degrees, target velocity (rpm), actual speed (rpm)\n");
     } else {
       // if it's an angle setpoint then target is angle (radians)
-      fmt::print("%time(s), count, radians, degrees, target angle (radians), actual speed (rpm)\n");
+      fmt::print("%time(s), radians, degrees, target angle (radians), actual speed (rpm)\n");
     }
     task.start();
 
     static auto start = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    auto seconds = std::chrono::duration<float>(now - start).count();
-    while (seconds < num_seconds_to_run) {
-      now = std::chrono::high_resolution_clock::now();
-      seconds = std::chrono::duration<float>(now - start).count();
-      fmt::print("[TM]{}\n", espp::TaskMonitor::get_latest_info());
+    while (true) {
+      // check if the driver is faulted
+      if (driver->is_faulted()) {
+        logger.error("Driver faulted!");
+        break;
+      }
+      auto now = std::chrono::high_resolution_clock::now();
+      auto seconds = std::chrono::duration<float>(now - start).count();
+      if (seconds > num_seconds_to_run) {
+        logger.info("Test time passed, stopping...");
+        break;
+      }
       std::this_thread::sleep_for(500ms);
     }
   }
   // now clean up the i2c driver
   i2c_driver_delete(I2C_NUM);
 
-  fmt::print("BLDC Motor (FOC) example complete!\n");
+  logger.info("BLDC Motor (FOC) example complete!");
 
   while (true) {
     std::this_thread::sleep_for(1s);

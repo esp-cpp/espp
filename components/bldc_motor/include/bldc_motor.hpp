@@ -7,12 +7,14 @@
 #include "pid.hpp"
 #include "task.hpp"
 
+#include "bldc_types.hpp"
 #include "foc_utils.hpp"
+#include "sensor_direction.hpp"
 
 namespace espp {
 
 /**
- * @brief Concept defining the required interfaces for the Driver.
+ * @brief Concept defining the required interfaces for the Driver for a BLDC Motor.
  */
 template <class FOO>
 concept DriverConcept = requires {
@@ -24,7 +26,7 @@ concept DriverConcept = requires {
 };
 
 /**
- * @brief Concept defining the required interfacese for the Sensor.
+ * @brief Concept defining the required interfaces for a Sensor on a BLDC Motor.
  */
 template <class FOO>
 concept SensorConcept = requires {
@@ -35,7 +37,7 @@ concept SensorConcept = requires {
 };
 
 /**
- * @brief Concept defining the required interfacese for the Current Sensor.
+ * @brief Concept defining the required interfaces for a Current Sensor on a BLDC Motor.
  */
 template <class FOO>
 concept CurrentSensorConcept = requires {
@@ -59,54 +61,12 @@ struct DummyCurrentSense {
  *        object/type and optionally a current sensor object / type.
  * @note This is a port (with some modifications) of the excellent work by
  *       SimpleFOC - https://simplefoc.com
+ * @section bldc_motor_usage Example Usage
+ * @snippet bldc_motor_example.cpp bldc_motor example
  */
 template <DriverConcept D, SensorConcept S, CurrentSensorConcept CS = DummyCurrentSense>
 class BldcMotor {
 public:
-  /**
-   *  @brief Sensor Direction Configuration
-   */
-  enum class Direction {
-    CLOCKWISE = 1, /**< The sensor is mounted clockwise (so the positive phase direction leads to
-                      positive angle increase). */
-    COUNTER_CLOCKWISE = -1, /**< The sensor is mounted counter-clockwise (so the positive phase
-                               direction leads to negative angle increase). */
-    UNKNOWN = 0             /**< The direction is unknown. */
-  };
-
-  /**
-   * @brief The type of control loop the motor runs.
-   */
-  enum class MotionControlType {
-    TORQUE,            /**< Torque-control (providing constant torque with current feedback). */
-    VELOCITY,          /**< Velocity closed-loop control, using speed feedback from the sensor. */
-    ANGLE,             /**< Angle closed-loop control, using angle feedback from the sensor. */
-    VELOCITY_OPENLOOP, /**< Velocity open-loop control, without feedback. */
-    ANGLE_OPENLOOP     /**< Angle open-loop control, without feedback. */
-  };
-
-  /**
-   * @brief The type of torque control to provide.
-   * @note VOLTAGE is the only one supported right now, since the other two
-   *       require current sense.
-   */
-  enum class TorqueControlType {
-    VOLTAGE,    /**< Torque control using voltage */
-    DC_CURRENT, /**< Torque control using DC current (one current magnitude) */
-    FOC_CURRENT /**< Torque control using DQ currents */
-  };
-
-  /**
-   *  @brief How the voltages / pwms are calculated based on the magnitude and
-   *         phase of the drive vector.
-   */
-  enum class FocType {
-    SINE_PWM,         /**< Sinusoidal PWM modulation */
-    SPACE_VECTOR_PWM, /**< Space Vector modulation */
-    TRAPEZOID_120,
-    TRAPEZOID_150
-  };
-
   /**
    * @brief Filter the raw input sample and return it.
    * @param raw Most recent raw sample measured.
@@ -121,15 +81,17 @@ public:
     size_t num_pole_pairs;         /**< Number of pole pairs in the motor. */
     float phase_resistance;        /**< Motor phase resistance (ohms). */
     float kv_rating;               /**< Motor KV rating (1/K_bemf) - rpm/V */
+    float phase_inductance{0};     /**< Motor phase inductance (Henries). */
     float current_limit{1.0f};     /**< Current limit (Amps) for the controller. */
     float velocity_limit{1000.0f}; /**< Velocity limit (RPM) for the controller. */
     float zero_electric_offset{0.0f};
-    Direction sensor_direction{Direction::CLOCKWISE};
-    FocType foc_type{
-        FocType::SPACE_VECTOR_PWM}; /**< How the voltage for the phases should be calculated. */
-    TorqueControlType torque_controller{TorqueControlType::VOLTAGE}; /**< Torque controller type. */
-    std::shared_ptr<D> driver; /**< Driver for low-level setting of phase PWMs. */
-    std::shared_ptr<S> sensor; /**< Sensor for measuring position / speed. */
+    detail::SensorDirection sensor_direction{detail::SensorDirection::CLOCKWISE};
+    detail::FocType foc_type{detail::FocType::SPACE_VECTOR_PWM}; /**< How the voltage for the phases
+                                                                    should be calculated. */
+    detail::TorqueControlType torque_controller{
+        detail::TorqueControlType::VOLTAGE}; /**< Torque controller type. */
+    std::shared_ptr<D> driver;               /**< Driver for low-level setting of phase PWMs. */
+    std::shared_ptr<S> sensor;               /**< Sensor for measuring position / speed. */
     std::shared_ptr<CS> current_sense{
         nullptr}; /**< Sensor for measuring current through the motor. */
     Pid::Config current_pid_config{
@@ -169,10 +131,11 @@ public:
    */
   BldcMotor(const Config &config)
       : num_pole_pairs_(config.num_pole_pairs), phase_resistance_(config.phase_resistance),
-        kv_rating_(config.kv_rating), current_limit_(config.current_limit),
-        velocity_limit_(config.velocity_limit), sensor_direction_(config.sensor_direction),
-        foc_type_(config.foc_type), torque_control_type_(config.torque_controller),
-        driver_(config.driver), sensor_(config.sensor), current_sense_(config.current_sense),
+        phase_inductance_(config.phase_inductance), kv_rating_(config.kv_rating * _SQRT2),
+        current_limit_(config.current_limit), velocity_limit_(config.velocity_limit),
+        sensor_direction_(config.sensor_direction), foc_type_(config.foc_type),
+        torque_control_type_(config.torque_controller), driver_(config.driver),
+        sensor_(config.sensor), current_sense_(config.current_sense),
         pid_current_q_(config.current_pid_config), pid_current_d_(config.current_pid_config),
         pid_velocity_(config.current_pid_config), pid_angle_(config.current_pid_config),
         q_current_filter_(config.q_current_filter), d_current_filter_(config.d_current_filter),
@@ -190,7 +153,7 @@ public:
     pid_current_d_.change_gains(current_pid_config);
 
     auto velocity_pid_config = config.velocity_pid_config;
-    if (phase_resistance_ > 0 || torque_control_type_ != TorqueControlType::VOLTAGE) {
+    if (phase_resistance_ > 0 || torque_control_type_ != detail::TorqueControlType::VOLTAGE) {
       velocity_pid_config.output_min = -current_limit_;
       velocity_pid_config.output_max = current_limit_;
     } else {
@@ -236,7 +199,7 @@ public:
    * @brief Update the motoion control scheme the motor control loop uses.
    * @param motion_control_type New motion control to use.
    */
-  void set_motion_control_type(MotionControlType motion_control_type) {
+  void set_motion_control_type(detail::MotionControlType motion_control_type) {
     motion_control_type_ = motion_control_type;
   }
 
@@ -253,7 +216,7 @@ public:
     float _ca, _sa;
 
     switch (foc_type_) {
-    case FocType::TRAPEZOID_120:
+    case detail::FocType::TRAPEZOID_120:
       // see https://www.youtube.com/watch?v=InzXA7mWBWE Slide 5
       static int trap_120_map[6][3] = {
           {_HIGH_IMPEDANCE, 1, -1},
@@ -290,7 +253,7 @@ public:
       }
       break;
 
-    case FocType::TRAPEZOID_150:
+    case detail::FocType::TRAPEZOID_150:
       // see https://www.youtube.com/watch?v=InzXA7mWBWE Slide 8
       static int trap_150_map[12][3] = {
           {_HIGH_IMPEDANCE, 1, -1},
@@ -333,7 +296,7 @@ public:
       }
       break;
 
-    case FocType::SINE_PWM:
+    case detail::FocType::SINE_PWM:
       // Sinusoidal PWM modulation
       // Inverse Park + Clarke transformation
 
@@ -362,7 +325,7 @@ public:
 
       break;
 
-    case FocType::SPACE_VECTOR_PWM:
+    case detail::FocType::SPACE_VECTOR_PWM:
       // Nice video explaining the SpaceVectorModulation (SVPWM) algorithm
       // https://www.youtube.com/watch?v=QMSWUMEAejg
 
@@ -492,8 +455,8 @@ public:
 
   /**
    * @brief Main FOC loop for implementing the torque control, based on the
-   *        configured TorqueControlType.
-   * @note Only TorqueControlType::VOLTAGE is supported right now, because the
+   *        configured detail::TorqueControlType.
+   * @note Only detail::TorqueControlType::VOLTAGE is supported right now, because the
    *       other types require current sense.
    */
   void loop_foc() {
@@ -502,8 +465,8 @@ public:
     }
 
     // if open-loop do nothing
-    if (motion_control_type_ == MotionControlType::ANGLE_OPENLOOP ||
-        motion_control_type_ == MotionControlType::VELOCITY_OPENLOOP) {
+    if (motion_control_type_ == detail::MotionControlType::ANGLE_OPENLOOP ||
+        motion_control_type_ == detail::MotionControlType::VELOCITY_OPENLOOP) {
       return;
     }
 
@@ -511,10 +474,10 @@ public:
     // which is in range 0-2PI
     electrical_angle_ = get_electrical_angle();
     switch (torque_control_type_) {
-    case TorqueControlType::VOLTAGE:
+    case detail::TorqueControlType::VOLTAGE:
       // no need to do anything really
       break;
-    case TorqueControlType::DC_CURRENT:
+    case detail::TorqueControlType::DC_CURRENT:
       if (!current_sense_)
         return;
       // read overall current magnitude
@@ -525,7 +488,7 @@ public:
       voltage_.q = pid_current_q_(target_current_ - current_.q);
       voltage_.d = 0;
       break;
-    case TorqueControlType::FOC_CURRENT:
+    case detail::TorqueControlType::FOC_CURRENT:
       if (!current_sense_)
         return;
       // read dq currents
@@ -548,12 +511,12 @@ public:
   /**
    * @brief Main motion control loop implementing the closed-loop and
    *        open-loop angle & velocity control.
-   * @param new_target The new target for the configured MotionControlType.
-   * @note Units are based on the MotionControlType; radians if it's
-   *       MotionControlType::ANGLE or MotionControlType::ANGLE_OPENLOOP,
-   *       radians/second if it's MotionControlType::VELOCITY or
-   *       MotionControlType::VELOCITY_OPENLOOP, Nm if it's
-   *       MotionControlType::TORQUE.
+   * @param new_target The new target for the configured detail::MotionControlType.
+   * @note Units are based on the detail::MotionControlType; radians if it's
+   *       detail::MotionControlType::ANGLE or detail::MotionControlType::ANGLE_OPENLOOP,
+   *       radians/second if it's detail::MotionControlType::VELOCITY or
+   *       detail::MotionControlType::VELOCITY_OPENLOOP, Nm if it's
+   *       detail::MotionControlType::TORQUE.
    */
   void move(float new_target) {
     // if disabled do nothing
@@ -569,8 +532,8 @@ public:
     //                        angle is a precision issue, and the angle-LPF is a
     //                        problem when switching to a 2-component
     //                        representation.
-    if (motion_control_type_ != MotionControlType::ANGLE_OPENLOOP &&
-        motion_control_type_ != MotionControlType::VELOCITY_OPENLOOP) {
+    if (motion_control_type_ != detail::MotionControlType::ANGLE_OPENLOOP &&
+        motion_control_type_ != detail::MotionControlType::VELOCITY_OPENLOOP) {
       shaft_angle_ = get_shaft_angle();
     }
 
@@ -580,8 +543,7 @@ public:
     shaft_velocity_ = get_shaft_velocity();
 
     // set internal target variable
-    if (new_target)
-      target_ = new_target;
+    target_ = new_target;
 
     // calculate the back-emf voltage if KV_rating available U_bemf = vel*(1/KV)
     if (kv_rating_)
@@ -592,8 +554,8 @@ public:
 
     // upgrade the current based voltage limit
     switch (motion_control_type_) {
-    case MotionControlType::TORQUE:
-      if (torque_control_type_ == TorqueControlType::VOLTAGE) { // if voltage torque control
+    case detail::MotionControlType::TORQUE:
+      if (torque_control_type_ == detail::TorqueControlType::VOLTAGE) { // if voltage torque control
         if (!phase_resistance_)
           voltage_.q = target_;
         else
@@ -604,7 +566,7 @@ public:
         target_current_ = target_; // if current/foc_current torque control
       }
       break;
-    case MotionControlType::ANGLE:
+    case detail::MotionControlType::ANGLE:
       // TODO sensor precision: this calculation is not numerically precise. The
       //                        target value cannot express precise positions
       //                        when the angles are large. This results in not
@@ -621,41 +583,51 @@ public:
       target_current_ =
           pid_velocity_(target_shaft_velocity_ - shaft_velocity_); // if voltage torque control
       // if torque controlled through voltage
-      if (torque_control_type_ == TorqueControlType::VOLTAGE) {
+      if (torque_control_type_ == detail::TorqueControlType::VOLTAGE) {
         // use voltage if phase-resistance not provided
         if (!phase_resistance_)
           voltage_.q = target_current_;
         else
           voltage_.q = std::clamp(target_current_ * phase_resistance_ + bemf_voltage_,
                                   -voltage_limit_, voltage_limit_);
-        voltage_.d = 0;
+        if (!phase_inductance_)
+          voltage_.d = 0;
+        else
+          voltage_.d =
+              std::clamp(-target_current_ * num_pole_pairs_ * phase_inductance_ * shaft_velocity_,
+                         -voltage_limit_, voltage_limit_);
       }
       break;
-    case MotionControlType::VELOCITY:
+    case detail::MotionControlType::VELOCITY:
       // velocity set point - sensor precision: this calculation is numerically precise.
       target_shaft_velocity_ = target_;
       // calculate the torque command
       target_current_ = pid_velocity_(target_shaft_velocity_ -
                                       shaft_velocity_); // if current/foc_current torque control
       // if torque controlled through voltage control
-      if (torque_control_type_ == TorqueControlType::VOLTAGE) {
+      if (torque_control_type_ == detail::TorqueControlType::VOLTAGE) {
         // use voltage if phase-resistance not provided
         if (!phase_resistance_)
           voltage_.q = target_current_;
         else
           voltage_.q = std::clamp(target_current_ * phase_resistance_ + bemf_voltage_,
                                   -voltage_limit_, voltage_limit_);
-        voltage_.d = 0;
+        if (!phase_inductance_)
+          voltage_.d = 0;
+        else
+          voltage_.d =
+              std::clamp(-target_current_ * num_pole_pairs_ * phase_inductance_ * shaft_velocity_,
+                         -voltage_limit_, voltage_limit_);
       }
       break;
-    case MotionControlType::VELOCITY_OPENLOOP:
+    case detail::MotionControlType::VELOCITY_OPENLOOP:
       // velocity control in open loop - sensor precision: this calculation is numerically precise.
       target_shaft_velocity_ = target_;
       voltage_.q =
           velocity_openloop(target_shaft_velocity_); // returns the voltage that is set to the motor
       voltage_.d = 0;
       break;
-    case MotionControlType::ANGLE_OPENLOOP:
+    case detail::MotionControlType::ANGLE_OPENLOOP:
       // angle control in open loop -
       // TODO sensor precision: this calculation NOT numerically precise, and
       //                        subject to the same problems in small set-point
@@ -676,7 +648,8 @@ protected:
     status_ = Status::UNCALIBRATED;
   }
 
-  void init_foc(float zero_electric_offset = 0, Direction sensor_direction = Direction::CLOCKWISE) {
+  void init_foc(float zero_electric_offset = 0,
+                detail::SensorDirection sensor_direction = detail::SensorDirection::CLOCKWISE) {
     logger_.info("Init FOC");
     status_ = Status::CALIBRATING;
     // align motor with sensor - necessary for encoders
@@ -711,7 +684,7 @@ protected:
       return exit_flag;
 
     // if unknown natural direction
-    if (sensor_direction_ == Direction::UNKNOWN) {
+    if (sensor_direction_ == detail::SensorDirection::UNKNOWN) {
 
       // find natural direction
       // move one electrical revolution forward
@@ -737,10 +710,10 @@ protected:
         return 0; // failed calibration
       } else if (mid_angle < end_angle) {
         logger_.debug("sensor_direction==CCW");
-        sensor_direction_ = Direction::COUNTER_CLOCKWISE;
+        sensor_direction_ = detail::SensorDirection::COUNTER_CLOCKWISE;
       } else {
         logger_.debug("sensor_direction==CW");
-        sensor_direction_ = Direction::CLOCKWISE;
+        sensor_direction_ = detail::SensorDirection::CLOCKWISE;
       }
       // check pole pair number
       float moved = std::abs(mid_angle - end_angle);
@@ -826,7 +799,7 @@ protected:
     auto now = std::chrono::high_resolution_clock::now();
     // calculate the sample time from last call
     float Ts = std::chrono::duration<float>(now - openloop_timestamp).count();
-    // quick fix for strange cases (micros overflow + timestamp not defined)
+    // ensure that the sample time is not too small or too big
     if (Ts <= 0 || Ts > 0.5f)
       Ts = 1e-3f;
     // save timestamp for next call
@@ -868,10 +841,9 @@ protected:
 
     // calculate the necessary angle to move from current position towards target angle
     // with maximal velocity (velocity_limit_)
-    // TODO sensor precision: this calculation is not numerically precise. The angle can grow to the
-    // point
-    //                        where small position changes are no longer captured by the precision
-    //                        of floats when the total position is large.
+    // TODO sensor precision: this calculation is not numerically precise. The
+    // angle can grow to the point where small position changes are no longer
+    // captured by the precision of floats when the total position is large.
     if (abs(target_shaft_angle_ - shaft_angle_) > abs(velocity_limit_ * Ts)) {
       shaft_angle_ += sgn(target_shaft_angle_ - shaft_angle_) * abs(velocity_limit_) * Ts;
       shaft_velocity_ = velocity_limit_;
@@ -926,6 +898,7 @@ protected:
   // motor physical parameters
   int num_pole_pairs_;
   float phase_resistance_;
+  float phase_inductance_;
   float kv_rating_;
 
   // limiting variables
@@ -936,11 +909,11 @@ protected:
   // sensor related variables
   float sensor_offset_{0};
   float zero_electrical_angle_{0};
-  Direction sensor_direction_{Direction::CLOCKWISE};
+  detail::SensorDirection sensor_direction_{detail::SensorDirection::CLOCKWISE};
 
-  FocType foc_type_{FocType::SPACE_VECTOR_PWM};
-  MotionControlType motion_control_type_{MotionControlType::VELOCITY_OPENLOOP};
-  TorqueControlType torque_control_type_{TorqueControlType::VOLTAGE};
+  detail::FocType foc_type_{detail::FocType::SPACE_VECTOR_PWM};
+  detail::MotionControlType motion_control_type_{detail::MotionControlType::VELOCITY_OPENLOOP};
+  detail::TorqueControlType torque_control_type_{detail::TorqueControlType::VOLTAGE};
 
   bool modulation_centered_{
       true}; //!< true: centered modulation around driver limit /2; false: pulled to 0

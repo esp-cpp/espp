@@ -70,7 +70,7 @@ float fast_ln(float x) {
   // bx = * reinterpret_cast<uint32_t *> (&x);
   uint32_t ex = bx >> 23;
   signed int t = (signed int)ex - (signed int)127;
-  uint32_t s = (t < 0) ? (-t) : t;
+  [[maybe_unused]] uint32_t s = (t < 0) ? (-t) : t;
   bx = 1065353216 | (bx & 8388607);
   // x = * reinterpret_cast<float *>(&bx);
   memcpy(&x, &bx, sizeof(x));

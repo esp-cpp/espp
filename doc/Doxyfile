@@ -25,6 +25,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/ads1x15/example/main/ads1x15_example.
 EXAMPLE_PATH += $(PROJECT_PATH)/components/as5600/example/main/as5600_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/aw9523/example/main/aw9523_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/bldc_motor/example/main/bldc_motor_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/bldc_haptics/example/main/bldc_haptics_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/controller/example/main/controller_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/cli/example/main/cli_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/color/example/main/color_example.cpp
@@ -60,7 +61,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp
 
 EXTRACT_ALL = YES
 
-INPUT =
+INPUT = $(PROJECT_PATH)/README.md
 INPUT += $(PROJECT_PATH)/components/adc/include/adc_types.hpp
 INPUT += $(PROJECT_PATH)/components/adc/include/oneshot_adc.hpp
 INPUT += $(PROJECT_PATH)/components/adc/include/continuous_adc.hpp
@@ -68,7 +69,12 @@ INPUT += $(PROJECT_PATH)/components/ads1x15/include/ads1x15.hpp
 INPUT += $(PROJECT_PATH)/components/as5600/include/as5600.hpp
 INPUT += $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_driver/include/bldc_driver.hpp
+INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/bldc_haptics.hpp
+INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/detent_config.hpp
+INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/haptic_config.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_motor/include/bldc_motor.hpp
+INPUT += $(PROJECT_PATH)/components/bldc_motor/include/bldc_types.hpp
+INPUT += $(PROJECT_PATH)/components/bldc_motor/include/sensor_direction.hpp
 INPUT += $(PROJECT_PATH)/components/controller/include/controller.hpp
 INPUT += $(PROJECT_PATH)/components/cli/include/cli.hpp
 INPUT += $(PROJECT_PATH)/components/cli/include/line_input.hpp
@@ -78,6 +84,7 @@ INPUT += $(PROJECT_PATH)/components/display/include/display.hpp
 INPUT += $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp
 INPUT += $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp
 INPUT += $(PROJECT_PATH)/components/drv2605/include/drv2605.hpp
+INPUT += $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp
 INPUT += $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp
 INPUT += $(PROJECT_PATH)/components/event_manager/include/event_manager.hpp
 INPUT += $(PROJECT_PATH)/components/file_system/include/file_system.hpp
@@ -125,7 +132,7 @@ INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp
 
-USE_MDFILE_AS_MAINPAGE = ../README.md
+USE_MDFILE_AS_MAINPAGE = $(PROJECT_PATH)/README.md
 
 ## Get warnings for functions that have no documentation for their parameters or return value
 ##
@@ -143,10 +150,6 @@ EXPAND_ONLY_PREDEF     = YES
 PREDEFINED             = \
     $(ENV_DOXYGEN_DEFINES)
 
-## Do not complain about not having dot
-##
-HAVE_DOT = NO
-
 ## Generate XML that is required for Breathe
 ##
 GENERATE_XML    = YES
@@ -154,7 +157,7 @@ XML_OUTPUT      = xml
 
 GENERATE_HTML   = NO
 HAVE_DOT        = NO
-GENERATE_LATEX  = NO
+GENERATE_LATEX  = YES
 GENERATE_MAN    = YES
 GENERATE_RTF    = NO
 
@@ -200,3 +203,6 @@ EXTRACT_ALL            = YES
 EXTRACT_STATIC         = YES
 SHOW_NAMESPACES        = YES
 SHOW_FILES             = YES
+BUILTIN_STL_SUPPORT    = YES
+HIDE_SCOPE_NAMES       = NO
+MARKDOWN_SUPPORT       = YES

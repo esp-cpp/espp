@@ -212,8 +212,7 @@ protected:
   /// \details This function sends data to the client. This function uses the
   ///     data socket and not the control socket, and handles both active and
   ///     passive mode.
-  /// \param buffer The buffer containing the data to send.
-  /// \param size The size of the buffer.
+  /// \param data The data to send.
   /// \return True if the data was sent successfully, false otherwise.
   bool send_data(std::string_view data) {
     if (is_passive_data_connection_) {
@@ -588,7 +587,7 @@ protected:
     message += " RNTO\r\n";
     message += " NOOP\r\n";
     message += " QUIT\r\n";
-    bool success = send_response(211, message);
+    bool success = send_response(211, message, true);
     return success && send_response(211, "End");
   }
 
