@@ -136,7 +136,7 @@
           <li><a href="index.html">Haptics APIs</a> &raquo;</li>
       <li>BLDC Haptics</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/114392e/docs/en/haptics/bldc_haptics.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/b71ab12/docs/en/haptics/bldc_haptics.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -177,19 +177,19 @@ haptic feedback loop with configuration of:</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/114392e/components/bldc_haptics/include/detent_config.hpp">components/bldc_haptics/include/detent_config.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b71ab12/components/bldc_haptics/include/detent_config.hpp">components/bldc_haptics/include/detent_config.hpp</a></p></li>
 </ul>
 </section>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/114392e/components/bldc_haptics/include/haptic_config.hpp">components/bldc_haptics/include/haptic_config.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b71ab12/components/bldc_haptics/include/haptic_config.hpp">components/bldc_haptics/include/haptic_config.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
 <h3>Header File<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/114392e/components/bldc_haptics/include/bldc_haptics.hpp">components/bldc_haptics/include/bldc_haptics.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b71ab12/components/bldc_haptics/include/bldc_haptics.hpp">components/bldc_haptics/include/bldc_haptics.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -245,31 +245,20 @@ The haptics provided by this class enable configuration of:<ul class="simple">
 
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">haptic_motor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BldcHaptics</span><span class="p">({.</span><span class="n">motor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">motor</span><span class="p">,</span><span class="w"></span>
 <span class="w">                                     </span><span class="p">.</span><span class="n">kp_factor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                     </span><span class="p">.</span><span class="n">kd_factor_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.02</span><span class="p">,</span><span class="w"></span>
-<span class="w">                                     </span><span class="p">.</span><span class="n">kd_factor_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.08</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                     </span><span class="p">.</span><span class="n">kd_factor_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.01</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                     </span><span class="p">.</span><span class="n">kd_factor_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.04</span><span class="p">,</span><span class="w"></span>
 <span class="w">                                     </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span><span class="w"></span>
 
+<span class="w">    </span><span class="c1">// auto detent_config = espp::detail::UNBOUNDED_NO_DETENTS;</span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::BOUNDED_NO_DETENTS;</span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::MULTI_REV_NO_DETENTS;</span>
+<span class="w">    </span><span class="c1">// auto detent_config = espp::detail::ON_OFF_STRONG_DETENTS;</span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;</span>
+<span class="w">    </span><span class="c1">// auto detent_config = espp::detail::FINE_VALUES_NO_DETENTS;</span>
+<span class="w">    </span><span class="c1">// auto detent_config = espp::detail::FINE_VALUES_WITH_DETENTS;</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">detent_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MAGNETIC_DETENTS</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="c1">// auto detent_config = espp::detail::RETURN_TO_CENTER_WITH_DETENTS;</span>
 
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">detent_config</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">BOUNDED_NO_DETENTS</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting detent config to BOUNDED_NO_DETENTS&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">detent_config</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MULTI_REV_NO_DETENTS</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting detent config to MULTI_REV_NO_DETENTS&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">detent_config</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">COARSE_VALUES_STRONG_DETENTS</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting detent config to COARSE_VALUES_STRONG_DETENTS&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">detent_config</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">MAGNETIC_DETENTS</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting detent config to MAGNETIC_DETENTS&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">detent_config</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">detail</span><span class="o">::</span><span class="n">RETURN_TO_CENTER_WITH_DETENTS</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Setting detent config to RETURN_TO_CENTER_WITH_DETENTS&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">detent_config</span><span class="p">);</span><span class="w"></span>
 
 <span class="w">    </span><span class="n">haptic_motor</span><span class="p">.</span><span class="n">update_detent_config</span><span class="p">(</span><span class="n">detent_config</span><span class="p">);</span><span class="w"></span>
