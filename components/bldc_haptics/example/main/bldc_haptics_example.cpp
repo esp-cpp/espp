@@ -172,7 +172,7 @@ extern "C" void app_main(void) {
     using BldcHaptics = espp::BldcHaptics<BldcMotor>;
 
     auto haptic_motor = BldcHaptics({.motor = motor,
-                                     .kp_factor = 1,
+                                     .kp_factor = 2,
                                      .kd_factor_min = 0.01,
                                      .kd_factor_max = 0.04,
                                      .log_level = espp::Logger::Verbosity::INFO});
@@ -181,10 +181,10 @@ extern "C" void app_main(void) {
     // auto detent_config = espp::detail::BOUNDED_NO_DETENTS;
     // auto detent_config = espp::detail::MULTI_REV_NO_DETENTS;
     // auto detent_config = espp::detail::ON_OFF_STRONG_DETENTS;
-    // auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;
+    auto detent_config = espp::detail::COARSE_VALUES_STRONG_DETENTS;
     // auto detent_config = espp::detail::FINE_VALUES_NO_DETENTS;
     // auto detent_config = espp::detail::FINE_VALUES_WITH_DETENTS;
-    auto detent_config = espp::detail::MAGNETIC_DETENTS;
+    // auto detent_config = espp::detail::MAGNETIC_DETENTS;
     // auto detent_config = espp::detail::RETURN_TO_CENTER_WITH_DETENTS;
 
     logger.info("{}", detent_config);
@@ -212,7 +212,7 @@ extern "C" void app_main(void) {
 
     // test the haptic buzz / click
     if (!driver->is_faulted()) {
-      logger.info("Playing haptic buzz for 1 second");
+      logger.info("Playing haptic click!");
       //! [bldc_haptics_example_2]
       haptic_motor.play_haptic(espp::detail::HapticConfig{
           .strength = 5.0f,

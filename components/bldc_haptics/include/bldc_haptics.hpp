@@ -97,14 +97,14 @@ public:
   /// @brief Configuration for the haptic motor
   struct Config {
     std::reference_wrapper<M> motor; ///< Pointer to the motor to use for haptics
-    float kp_factor{4}; ///< Factor to multiply the detent strength by to get kp (default 4). Used
+    float kp_factor{2}; ///< Factor to multiply the detent strength by to get kp (default 2). Used
                         ///< for both detents and end stops. \note Depending on the motor, this may
                         ///< need to be adjusted to get the desired behavior.
-    float kd_factor_min{0.02}; ///< Min Factor to multiply the detent strength by to get kd (default
-                               ///< 0.02). \note Depending on the motor, this may need to be
+    float kd_factor_min{0.01}; ///< Min Factor to multiply the detent strength by to get kd (default
+                               ///< 0.01). \note Depending on the motor, this may need to be
                                ///< adjusted to get the desired behavior.
-    float kd_factor_max{0.08}; ///< Max Factor to multiply the detent strength by to get kd (default
-                               ///< 0.08). \note Depending on the motor, this may need to be
+    float kd_factor_max{0.04}; ///< Max Factor to multiply the detent strength by to get kd (default
+                               ///< 0.04). \note Depending on the motor, this may need to be
                                ///< adjusted to get the desired behavior.
     Logger::Verbosity log_level; ///< Log level to use for the haptics
   };
