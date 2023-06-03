@@ -57,11 +57,10 @@ extern "C" void app_main(void) {
     // make the velocity filter
     static constexpr float core_update_period = 0.001f; // seconds
     static constexpr float filter_cutoff_hz = 4.0f;
-    espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter({
-        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01 // core_update_period
-    });
+    espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter(
+        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period});
     espp::LowpassFilter lpfilter(
-        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01, // core_update_period,
+        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period,
          .q_factor = 1.0f});
     auto filter_fn = [&bwfilter, &lpfilter](float raw) -> float {
       // return bwfilter.update(raw);
@@ -99,7 +98,7 @@ extern "C" void app_main(void) {
             .gpio_enable = 34, // connected to the VIO/~Stdby pin of TMC6300-BOB
             .gpio_fault = 36,  // connected to the nFAULT pin of TMC6300-BOB
             .power_supply_voltage = 5.0f,
-            .limit_voltage = 3.5f,
+            .limit_voltage = 5.0f,
             .log_level = espp::Logger::Verbosity::WARN});
 
     // now make the bldc motor
@@ -112,10 +111,10 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 0.5f,              // Amps
-        .zero_electric_offset = 1.1784807f, // gotten from previously running without providing this
-                                            // and it will be logged.
-        .sensor_direction = espp::detail::SensorDirection::CLOCKWISE,
+        .current_limit = 1.0f,             // Amps
+        .zero_electric_offset = 2.3914752, // gotten from previously running without providing this
+                                           // and it will be logged.
+        .sensor_direction = espp::detail::SensorDirection::COUNTER_CLOCKWISE,
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
         .driver = driver,
         .sensor = mt6701,
@@ -141,8 +140,8 @@ extern "C" void app_main(void) {
             },
         .log_level = espp::Logger::Verbosity::INFO});
 
-    // static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
-    static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
+    static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
+    // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
     // static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY_OPENLOOP;
     // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE_OPENLOOP;
 
@@ -154,8 +153,6 @@ extern "C" void app_main(void) {
     auto motor_task_fn = [&motor, &target](std::mutex &m, std::condition_variable &cv) {
       static auto delay = std::chrono::duration<float>(core_update_period);
       auto start = std::chrono::high_resolution_clock::now();
-      // command the motor
-      motor.loop_foc();
       if (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
           motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
         // if it's a velocity setpoint, convert it from RPM to rad/s
@@ -163,6 +160,8 @@ extern "C" void app_main(void) {
       } else {
         motor.move(target);
       }
+      // command the motor
+      motor.loop_foc();
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
@@ -238,17 +237,16 @@ extern "C" void app_main(void) {
     // and finally, make the task to periodically poll the mt6701 and print the
     // state. NOTE: the Mt6701 runs its own task to maintain state, so we're
     // just polling the current state.
-    auto task_fn = [&mt6701, &target, &lpfilter](std::mutex &m, std::condition_variable &cv) {
+    auto task_fn = [&motor, &target](std::mutex &m, std::condition_variable &cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds = std::chrono::duration<float>(now - start).count();
-      auto count = mt6701->get_count();
-      auto radians = mt6701->get_radians();
-      auto degrees = mt6701->get_degrees();
-      auto rpm = mt6701->get_rpm();
+      auto radians = motor.get_shaft_angle();
+      auto degrees = radians * 180.0f / M_PI;
+      auto rpm = motor.get_shaft_velocity() * espp::RADS_TO_RPM;
       auto _target = target.load();
-      fmt::print("{:.3f}, {}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, count, radians, degrees,
-                 _target, lpfilter(rpm));
+      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, radians, degrees, _target,
+                 rpm);
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
@@ -265,23 +263,26 @@ extern "C" void app_main(void) {
     if (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
         motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
       // if it's a velocity setpoint then target is RPM
-      fmt::print("%time(s), count, radians, degrees, target velocity (rpm), actual speed (rpm)\n");
+      fmt::print("%time(s), radians, degrees, target velocity (rpm), actual speed (rpm)\n");
     } else {
       // if it's an angle setpoint then target is angle (radians)
-      fmt::print("%time(s), count, radians, degrees, target angle (radians), actual speed (rpm)\n");
+      fmt::print("%time(s), radians, degrees, target angle (radians), actual speed (rpm)\n");
     }
     task.start();
 
     static auto start = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    auto seconds = std::chrono::duration<float>(now - start).count();
-    while (seconds < num_seconds_to_run) {
+    while (true) {
+      // check if the driver is faulted
       if (driver->is_faulted()) {
         logger.error("Driver faulted!");
         break;
       }
-      now = std::chrono::high_resolution_clock::now();
-      seconds = std::chrono::duration<float>(now - start).count();
+      auto now = std::chrono::high_resolution_clock::now();
+      auto seconds = std::chrono::duration<float>(now - start).count();
+      if (seconds > num_seconds_to_run) {
+        logger.info("Test time passed, stopping...");
+        break;
+      }
       std::this_thread::sleep_for(500ms);
     }
   }

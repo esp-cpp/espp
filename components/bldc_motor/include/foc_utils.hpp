@@ -8,6 +8,11 @@ namespace espp {
  */
 static constexpr float RPM_TO_RADS = (2.0f * M_PI) / 60.0f;
 
+/**
+ * @brief Conversion factor to go from radians/second to rotations/minute.
+ */
+static constexpr float RADS_TO_RPM = 60.0f / (2.0f * M_PI);
+
 static constexpr float _2_SQRT3 = 1.15470053838f;
 static constexpr float _SQRT3 = 1.73205080757f;
 static constexpr float _1_SQRT3 = 0.57735026919f;

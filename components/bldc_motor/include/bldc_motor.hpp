@@ -81,6 +81,7 @@ public:
     size_t num_pole_pairs;         /**< Number of pole pairs in the motor. */
     float phase_resistance;        /**< Motor phase resistance (ohms). */
     float kv_rating;               /**< Motor KV rating (1/K_bemf) - rpm/V */
+    float phase_inductance{0};     /**< Motor phase inductance (Henries). */
     float current_limit{1.0f};     /**< Current limit (Amps) for the controller. */
     float velocity_limit{1000.0f}; /**< Velocity limit (RPM) for the controller. */
     float zero_electric_offset{0.0f};
@@ -130,10 +131,11 @@ public:
    */
   BldcMotor(const Config &config)
       : num_pole_pairs_(config.num_pole_pairs), phase_resistance_(config.phase_resistance),
-        kv_rating_(config.kv_rating), current_limit_(config.current_limit),
-        velocity_limit_(config.velocity_limit), sensor_direction_(config.sensor_direction),
-        foc_type_(config.foc_type), torque_control_type_(config.torque_controller),
-        driver_(config.driver), sensor_(config.sensor), current_sense_(config.current_sense),
+        phase_inductance_(config.phase_inductance), kv_rating_(config.kv_rating * _SQRT2),
+        current_limit_(config.current_limit), velocity_limit_(config.velocity_limit),
+        sensor_direction_(config.sensor_direction), foc_type_(config.foc_type),
+        torque_control_type_(config.torque_controller), driver_(config.driver),
+        sensor_(config.sensor), current_sense_(config.current_sense),
         pid_current_q_(config.current_pid_config), pid_current_d_(config.current_pid_config),
         pid_velocity_(config.current_pid_config), pid_angle_(config.current_pid_config),
         q_current_filter_(config.q_current_filter), d_current_filter_(config.d_current_filter),
@@ -588,7 +590,12 @@ public:
         else
           voltage_.q = std::clamp(target_current_ * phase_resistance_ + bemf_voltage_,
                                   -voltage_limit_, voltage_limit_);
-        voltage_.d = 0;
+        if (!phase_inductance_)
+          voltage_.d = 0;
+        else
+          voltage_.d =
+              std::clamp(-target_current_ * num_pole_pairs_ * phase_inductance_ * shaft_velocity_,
+                         -voltage_limit_, voltage_limit_);
       }
       break;
     case detail::MotionControlType::VELOCITY:
@@ -605,7 +612,12 @@ public:
         else
           voltage_.q = std::clamp(target_current_ * phase_resistance_ + bemf_voltage_,
                                   -voltage_limit_, voltage_limit_);
-        voltage_.d = 0;
+        if (!phase_inductance_)
+          voltage_.d = 0;
+        else
+          voltage_.d =
+              std::clamp(-target_current_ * num_pole_pairs_ * phase_inductance_ * shaft_velocity_,
+                         -voltage_limit_, voltage_limit_);
       }
       break;
     case detail::MotionControlType::VELOCITY_OPENLOOP:
@@ -787,7 +799,7 @@ protected:
     auto now = std::chrono::high_resolution_clock::now();
     // calculate the sample time from last call
     float Ts = std::chrono::duration<float>(now - openloop_timestamp).count();
-    // quick fix for strange cases (micros overflow + timestamp not defined)
+    // ensure that the sample time is not too small or too big
     if (Ts <= 0 || Ts > 0.5f)
       Ts = 1e-3f;
     // save timestamp for next call
@@ -829,10 +841,9 @@ protected:
 
     // calculate the necessary angle to move from current position towards target angle
     // with maximal velocity (velocity_limit_)
-    // TODO sensor precision: this calculation is not numerically precise. The angle can grow to the
-    // point
-    //                        where small position changes are no longer captured by the precision
-    //                        of floats when the total position is large.
+    // TODO sensor precision: this calculation is not numerically precise. The
+    // angle can grow to the point where small position changes are no longer
+    // captured by the precision of floats when the total position is large.
     if (abs(target_shaft_angle_ - shaft_angle_) > abs(velocity_limit_ * Ts)) {
       shaft_angle_ += sgn(target_shaft_angle_ - shaft_angle_) * abs(velocity_limit_) * Ts;
       shaft_velocity_ = velocity_limit_;
@@ -887,6 +898,7 @@ protected:
   // motor physical parameters
   int num_pole_pairs_;
   float phase_resistance_;
+  float phase_inductance_;
   float kv_rating_;
 
   // limiting variables
