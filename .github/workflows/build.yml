@@ -49,6 +49,8 @@ jobs:
           target: esp32
         - path: 'components/led/example'
           target: esp32
+        - path: 'components/led_strip/example'
+          target: esp32
         - path: 'components/logger/example'
           target: esp32
         - path: 'components/math/example'
