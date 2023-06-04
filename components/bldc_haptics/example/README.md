@@ -1,36 +1,26 @@
-_Note that this is a template for an ESP-IDF example README.md file. When using this template, replace all these emphasised placeholders with example-specific content._
+# BLDC Haptics Example
 
-| Supported Targets | _Supported target, e.g. ESP32_ | _Another supported target, e.g. ESP32-S3_ |
-| ----------------- | ------------------------------ | ----------------------------------------- |
-
-_If the example supports all targets supported by ESP-IDF then the table can be omitted_
-# _Example Title_
-
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
-
-_What is this example? What does it do?_
-
-_What features of ESP-IDF does it use?_
-
-_What could someone create based on this example? ie applications/use cases/etc_
-
-_If there are any acronyms or Espressif-only words used here, explain them or mention where in the datasheet/TRM this information can be found._
+This example shows the use of the `BldcHaptics` component to drive a BLDC motor
+(such as a tiny gimbal motor) as a user input / output device that provides
+haptic feedback (such as might be used as a rotary encoder input).
 
 ## How to use example
 
 ### Hardware Required
 
-_If possible, example should be able to run on any commonly available ESP32 development board. Otherwise, describe what specific hardware should be used._
+This example requires a lot of hardware such as:
+* Magnetic encoder chip (this example uses `Mt6701`)
+* BLDC Motor Driver chip (this example was tested with the `TMC6300 BOB` dev board)
+* Some mounting hardware to mount the motor, magnet, encoder, etc.
 
-_If any other items (server, BLE device, app, second chip, whatever) are needed, mention them here. Include links if applicable. Explain how to set them up._
+:warning:
+> NOTE: you MUST make sure that you run the example with the
+> `zero_electrical_offset` value set to 0 (or not provided) at least once
+> otherwise the sample will not work and could potentially damage your motor.
 
-### Configure the project
-
-```
-idf.py menuconfig
-```
-
-* _If there is any project configuration that the user must set for this example, mention this here._
+Currently, this is designed to be run on a `TinyS3` connected to the motor
+driver and encoder via breadboard with the motor powered via a benchtop power
+supply at 5V.
 
 ### Build and Flash
 
@@ -48,20 +38,55 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-_Include an example of the console output from the running example, here:_
+This example can be re-run (by modifying the code to change the selected
+`DetentConfig` from one of the predefined configurations or by making your own)
+to produce various behaviors. Additionally, at the end of each demo, it will
+play a haptic buzz / click using the motor.
 
-```
-Use this style for pasting the log.
-```
+For more information, see the documentation or the original PR:
+https://github.com/esp-cpp/espp/pull/60
 
-_If the user is supposed to interact with the example at this point (read/write GATT attribute, send HTTP request, press button, etc. then mention it here)_
+Some examples:
 
-_For examples where ESP32 is connected  with some other hardware, include a table or schematics with connection details._
+### coarse values strong detents (best with sound)
+
+https://github.com/esp-cpp/espp/assets/213467/a256b401-6e45-4284-89c7-2dec9a49daa7
+
+### magnetic detents (best with sound)
+
+https://github.com/esp-cpp/espp/assets/213467/ab1ace5c-f967-4cfc-b304-7736fdb35bcb
+
+### On / Off Strong Detents (best with sound)
+
+https://github.com/esp-cpp/espp/assets/213467/038d79b1-7cd9-4af9-b7e8-1b4daf6a363a
+
+### Multi-rev no detents
+
+https://github.com/esp-cpp/espp/assets/213467/2af81edb-67b8-488b-ae7a-3549be36b8cc
 
 ## Troubleshooting
 
-_If there are any likely problems or errors which many users might encounter, mention them here. Remove this section for very simple examples where nothing is likely to go wrong._
+Make sure to run the example once with `zero_electrical_offset` set to 0 so that
+the motor will go through a calibration / zero offset routine. At the end of
+this startup routine it will print the measured zero electrical offset that you
+can then provide within the code, at which point it will not need to run the
+calibration routine.
+
+You must run this calibration any time you change your hardware configuration
+(such as by remounting your motor, magnet, encoder chip).
 
 ## Example Breakdown
 
-_If the example source code is lengthy, complex, or cannot be easily understood, use this section to break down and explain the source code. This can be done by breaking down the execution path step by step, or explaining what each major function/task/source file does. Add sub titles if necessary. Remove this section for very simple examples where the source code is self explanatory._
+This example is relatively complex, but builds complex haptic behavior using the
+following components:
+
+* `espp::Mt6701`
+* `espp::BldcDriver`
+* `espp::BldcMotor`
+* `espp::BldcHaptics`
+* ESP-IDF's `i2c` peripheral driver
+
+You combine the `Mt6701` and `BldcDriver` together when creating the `BldcMotor`
+and then simply pass the `BldcMotor` to the `BldcHaptics` component. At that
+point, you only have to interface to the `BldcHaptics` to read the input
+position or reconfigure the haptics.

@@ -1,28 +1,20 @@
-_Note that this is a template for an ESP-IDF example README.md file. When using this template, replace all these emphasised placeholders with example-specific content._
+# RTSP Example
 
-| Supported Targets | _Supported target, e.g. ESP32_ | _Another supported target, e.g. ESP32-S3_ |
-| ----------------- | ------------------------------ | ----------------------------------------- |
+This example shows the use of the `espp::RtspServer` and `espp::RtspClient`
+classes provided by the `rtsp` component for performing streaming of JPEG images
+(`espp::JpegFrame`) using the `MJPEG` format over the Real Time Streaming
+Protocol (RTSP) / Real Time Protocol (RTP) packets.
 
-_If the example supports all targets supported by ESP-IDF then the table can be omitted_
-# _Example Title_
-
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
-
-_What is this example? What does it do?_
-
-_What features of ESP-IDF does it use?_
-
-_What could someone create based on this example? ie applications/use cases/etc_
-
-_If there are any acronyms or Espressif-only words used here, explain them or mention where in the datasheet/TRM this information can be found._
+For more complete example use, see the
+[camera-streamer](https://github.com/esp-cpp/camera-streamer) and
+[camera-display](https://github.com/esp-cpp/camera-display) repositories.
 
 ## How to use example
 
 ### Hardware Required
 
-_If possible, example should be able to run on any commonly available ESP32 development board. Otherwise, describe what specific hardware should be used._
-
-_If any other items (server, BLE device, app, second chip, whatever) are needed, mention them here. Include links if applicable. Explain how to set them up._
+This example is designed to be run on an M5Stack ESP32 Timer Cam module (server) or a
+ESP32-S3-Box (client).
 
 ### Configure the project
 
@@ -30,9 +22,13 @@ _If any other items (server, BLE device, app, second chip, whatever) are needed,
 idf.py menuconfig
 ```
 
-* _If there is any project configuration that the user must set for this example, mention this here._
+You need to configure the `WiFi` network in the `RTSP Example Configuration`
+menuconfig and you can optionally configure the `RTSP Server Port` (default
+8554).
 
 ### Build and Flash
+
+NOTE: this example is designed to be modified into client only or server-only operation depending on the hardware it is deployed to.
 
 Build the project and flash it to the board, then run monitor tool to view serial output:
 
@@ -48,20 +44,15 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-_Include an example of the console output from the running example, here:_
+Example showing the server (camera), the client (handheld display), and the python client, with both clients connected simultaneously:
 
-```
-Use this style for pasting the log.
-```
+https://user-images.githubusercontent.com/213467/236601258-c334e1ba-5e18-4452-b48d-e792ec2ed4fb.mp4
 
-_If the user is supposed to interact with the example at this point (read/write GATT attribute, send HTTP request, press button, etc. then mention it here)_
+Screenshot showing the server running for a very long time (all day, see timestamp in log > 33,000 seconds):
+![all_day_test](https://user-images.githubusercontent.com/213467/236601320-0d9139d7-0333-4c63-b26f-da4078e141b7.png)
 
-_For examples where ESP32 is connected  with some other hardware, include a table or schematics with connection details._
+Screenshot showing the received framerate on the camera-display:
+<img width="638" alt="CleanShot 2023-05-06 at 10 27 21@2x" src="https://user-images.githubusercontent.com/213467/236633241-a2aba704-e10f-4855-b07b-766a8f8d8658.png">
 
-## Troubleshooting
-
-_If there are any likely problems or errors which many users might encounter, mention them here. Remove this section for very simple examples where nothing is likely to go wrong._
-
-## Example Breakdown
-
-_If the example source code is lengthy, complex, or cannot be easily understood, use this section to break down and explain the source code. This can be done by breaking down the execution path step by step, or explaining what each major function/task/source file does. Add sub titles if necessary. Remove this section for very simple examples where the source code is self explanatory._
+Screenshot of main code for camera-streamer output:
+<img width="799" alt="CleanShot 2023-05-06 at 10 29 31@2x" src="https://user-images.githubusercontent.com/213467/236633321-abdd2551-0a53-4be2-b90e-a693dfa89c12.png">
