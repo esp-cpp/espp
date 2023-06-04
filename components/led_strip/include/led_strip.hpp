@@ -143,6 +143,12 @@ public:
       // set the brightness byte (encoded as 0b111nnnnn where nnnnn is the
       // brightness value), this means the brightness value is 0-31
       data_[offset++] = 0b11100000 | brightness;
+    } else {
+      // we multiply the brightness by the color value to get the correct
+      // brightness
+      r = (r * brightness) >> 5;
+      g = (g * brightness) >> 5;
+      b = (b * brightness) >> 5;
     }
     // ensure the byte order is correct
     switch (byte_order_) {
@@ -201,7 +207,7 @@ public:
   /// \sa set_pixel
   /// \sa set_all
   void show() {
-    logger_.debug("writing data");
+    logger_.debug("writing data {::02x}", data_);
     write_(&data_[0], data_.size());
   }
 

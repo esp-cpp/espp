@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py driver logger task led_strip"
+  "main esptool_py driver logger task rmt led_strip"
   CACHE STRING
   "List of components to include"
   )

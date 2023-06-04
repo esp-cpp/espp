@@ -33,7 +33,7 @@ public:
             ///< without DMA is >= 64, with DMA is >= 1024.
     size_t resolution_hz = 10000000; ///< Resolution of the RMT peripheral
     int transaction_queue_depth =
-        4; ///< Depth of the RMT transaction queue (number of transactions that can be queued)
+        1; ///< Depth of the RMT transaction queue (number of transactions that can be queued)
     Logger::Verbosity log_level = Logger::Verbosity::WARN; ///< Log level for this class
   };
 
@@ -93,6 +93,7 @@ protected:
     memset(&tx_channel_config, 0, sizeof(tx_channel_config));
     tx_channel_config.clk_src = config.clock_src;
     tx_channel_config.gpio_num = static_cast<gpio_num_t>(config.gpio_num);
+    tx_channel_config.flags.invert_out = false;
     tx_channel_config.flags.with_dma = config.dma_enabled;
     tx_channel_config.mem_block_symbols = config.block_size;
     tx_channel_config.resolution_hz = config.resolution_hz;
