@@ -43,13 +43,18 @@ extern "C" void app_main(void) {
     // This code is copied from the led_stip example in the esp-idf
     // (https://github.com/espressif/esp-idf/tree/master/examples/peripherals/rmt/led_strip/main)
     int led_encoder_state = 0;
+    static constexpr int WS2812_FREQ_HZ = 10000000;
+    static constexpr int MICROS_PER_SEC = 1000000;
     auto led_encoder = std::make_unique<espp::RmtEncoder>(espp::RmtEncoder::Config{
-        .bytes_encoder_config = espp::RmtEncoder::ws2812_bytes_encoder_config,
+        // NOTE: since we're using the 10MHz RMT clock, we can use the pre-defined
+        //       ws2812_10mhz_bytes_encoder_config
+        .bytes_encoder_config = espp::RmtEncoder::ws2812_10mhz_bytes_encoder_config,
         .encode = [&led_encoder_state](auto channel, auto *copy_encoder, auto *bytes_encoder,
                                        const void *data, size_t data_size,
                                        rmt_encode_state_t *ret_state) -> size_t {
+          // divide by 2 since we have both duration0 and duration1 in the reset code
           static uint16_t reset_ticks =
-              10000000 / 1000000 * 50 / 2; // reset code duration defaults to 50us
+              WS2812_FREQ_HZ / MICROS_PER_SEC * 50 / 2; // reset code duration defaults to 50us
           static rmt_symbol_word_t led_reset_code = (rmt_symbol_word_t){
               .duration0 = reset_ticks,
               .level0 = 0,
@@ -103,6 +108,7 @@ extern "C" void app_main(void) {
     // create the rmt object
     espp::Rmt rmt(espp::Rmt::Config{
         .gpio_num = 18, // WS2812B data pin on the TinyS3
+        .resolution_hz = WS2812_FREQ_HZ,
         .log_level = espp::Logger::Verbosity::INFO,
     });
 

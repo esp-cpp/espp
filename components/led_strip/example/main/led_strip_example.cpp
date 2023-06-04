@@ -1,96 +1,157 @@
 #include <chrono>
 #include <vector>
 
-#include "driver/gpio.h"
-#include "driver/spi_master.h"
+#include <driver/gpio.h>
 
 #include "led_strip.hpp"
 #include "logger.hpp"
+#include "rmt.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
 
-static constexpr auto BUS_NUM = (SPI2_HOST);
-static constexpr auto CLOCK_IO = (GPIO_NUM_12); // TinyPICO: APA102 CLK
-static constexpr auto DATA_IO = (GPIO_NUM_2);   // TinyPICO: APA102 DATA
-static constexpr auto POWER_IO = (GPIO_NUM_13); // TinyPICO: APA102 PWR
+// The Neopixel BFF has an array of 5x5 SK6805-2427 LEDs which are compatible with
+// WS2812 LEDs. The data line is connected to GPIO8.
+static constexpr auto NEO_BFF_IO = (GPIO_NUM_8); // QtPy ESP32s3 A3
+static constexpr int NEO_BFF_NUM_LEDS = 5 * 5;
+static constexpr int SK6805_FREQ_HZ = 10000000; // 10MHz
+static constexpr int MICROSECONDS_PER_SECOND = 1000000;
+static constexpr int SK6805_RESET_US = 80;
 
 extern "C" void app_main(void) {
-  esp_err_t err;
   // create a logger
   espp::Logger logger({.tag = "Led Strip example", .level = espp::Logger::Verbosity::INFO});
   {
-    // configure the power pin
-    gpio_config_t power_pin_config = {
-        .pin_bit_mask = (1ULL << POWER_IO),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&power_pin_config);
-    // turn on the power (active low on TinyPICO to save power)
-    gpio_set_level(POWER_IO, 0);
-
-    // configure the spi bus
-    spi_bus_config_t bus_config;
-    memset(&bus_config, 0, sizeof(bus_config));
-    bus_config.miso_io_num = -1;
-    bus_config.mosi_io_num = DATA_IO;
-    bus_config.sclk_io_num = CLOCK_IO;
-    bus_config.quadwp_io_num = -1;
-    bus_config.quadhd_io_num = -1;
-    bus_config.max_transfer_sz = 100; // NOTE: should make this num_leds * 4
-    // initialize the bus
-    err = spi_bus_initialize(BUS_NUM, &bus_config, 1);
-    if (err != ESP_OK) {
-      logger.error("Could not initialize SPI bus: {} - {}", err, esp_err_to_name(err));
-    }
-    // add the leds to the bus
-    spi_device_interface_config_t devcfg;
-    memset(&devcfg, 0, sizeof(devcfg));
-    devcfg.mode = 0; // SPI mode 0
-    devcfg.address_bits = 0;
-    devcfg.command_bits = 0;
-    devcfg.dummy_bits = 0;
-    devcfg.clock_speed_hz = 1 * 1000 * 1000; // Clock out at 1 MHz
-    devcfg.input_delay_ns = 0;
-    devcfg.spics_io_num = -1;
-    devcfg.queue_size = 1;
-    // devcfg.flags = SPI_DEVICE_NO_DUMMY;
-    spi_device_handle_t spi;
-    err = spi_bus_add_device(BUS_NUM, &devcfg, &spi);
-    if (err != ESP_OK) {
-      logger.error("Could not add SPI device: {} - {}", err, esp_err_to_name(err));
-    }
+    int led_encoder_state = 0;
+    auto led_encoder =
+        std::make_unique<espp::RmtEncoder>(espp::RmtEncoder::Config{
+            // NOTE: we're using the 10MHz clock so we could use the pre-defined
+            //      SK6805 encoder config but we're using a custom encoder here to
+            //      demonstrate how to use the RmtEncoder interface. The values we
+            //      use here are based on the SK6805 encoder, which gets its values
+            //      from the datasheet for the SK6805
+            //      (https://cdn-shop.adafruit.com/product-files/3484/3484_Datasheet.pdf)
+            .bytes_encoder_config = {.bit0 =
+                                         {
+                                             .duration0 = static_cast<uint16_t>(
+                                                 SK6805_FREQ_HZ / MICROSECONDS_PER_SECOND * 0.3),
+                                             .level0 = 1,
+                                             .duration1 = static_cast<uint16_t>(
+                                                 SK6805_FREQ_HZ / MICROSECONDS_PER_SECOND * 0.9),
+                                             .level1 = 0,
+                                         },
+                                     .bit1 =
+                                         {
+                                             .duration0 = static_cast<uint16_t>(
+                                                 SK6805_FREQ_HZ / MICROSECONDS_PER_SECOND * 0.6),
+                                             .level0 = 1,
+                                             .duration1 =
+                                                 static_cast<uint16_t>(
+                                                     SK6805_FREQ_HZ / MICROSECONDS_PER_SECOND *
+                                                     0.6),
+                                             .level1 = 0,
+                                         },
+                                     .flags =
+                                         {
+                                             .msb_first = 1, // SK6805 transfer bit order: G7 G6 ...
+                                                             // G0 R7 R6 ... R0 B7 B6 ... B0
+                                         }},
+            .encode = [&led_encoder_state](auto channel, auto *copy_encoder, auto *bytes_encoder,
+                                           const void *data, size_t data_size,
+                                           rmt_encode_state_t *ret_state) -> size_t {
+              // divide the transmit resolution (10MHz) by 1,000,000 to get the
+              // number of ticks per microsecond
+              // we divide by two since we have both duration0 and duration1 in the
+              // reset code
+              static uint16_t reset_ticks =
+                  SK6805_FREQ_HZ / MICROSECONDS_PER_SECOND * SK6805_RESET_US / 2;
+              static rmt_symbol_word_t led_reset_code = (rmt_symbol_word_t){
+                  .duration0 = reset_ticks,
+                  .level0 = 0,
+                  .duration1 = reset_ticks,
+                  .level1 = 0,
+              };
+              rmt_encode_state_t session_state = RMT_ENCODING_RESET;
+              int state = RMT_ENCODING_RESET;
+              size_t encoded_symbols = 0;
+              switch (led_encoder_state) {
+              case 0: // send RGB data
+                encoded_symbols +=
+                    bytes_encoder->encode(bytes_encoder, channel, data, data_size, &session_state);
+                if (session_state & RMT_ENCODING_COMPLETE) {
+                  led_encoder_state =
+                      1; // switch to next state when current encoding session finished
+                }
+                if (session_state & RMT_ENCODING_MEM_FULL) {
+                  state |= RMT_ENCODING_MEM_FULL;
+                  goto out; // yield if there's no free space for encoding artifacts
+                }
+                // fall-through
+              case 1: // send reset code
+                encoded_symbols += copy_encoder->encode(copy_encoder, channel, &led_reset_code,
+                                                        sizeof(led_reset_code), &session_state);
+                if (session_state & RMT_ENCODING_COMPLETE) {
+                  led_encoder_state = RMT_ENCODING_RESET; // back to the initial encoding session
+                  state |= RMT_ENCODING_COMPLETE;
+                }
+                if (session_state & RMT_ENCODING_MEM_FULL) {
+                  state |= RMT_ENCODING_MEM_FULL;
+                  goto out; // yield if there's no free space for encoding artifacts
+                }
+              }
+            out:
+              *ret_state = static_cast<rmt_encode_state_t>(state);
+              return encoded_symbols;
+            },
+            .del = [](auto *base_encoder) -> esp_err_t {
+              // we don't have any extra resources to free, so just return ESP_OK
+              return ESP_OK;
+            },
+            .reset = [&led_encoder_state](auto *base_encoder) -> esp_err_t {
+              // all we have is some extra state to reset
+              led_encoder_state = 0;
+              return ESP_OK;
+            },
+        });
 
     //! [led strip ex1]
+    // create the rmt object
+    espp::Rmt rmt(espp::Rmt::Config{
+        .gpio_num = NEO_BFF_IO,
+        .resolution_hz = SK6805_FREQ_HZ,
+        .log_level = espp::Logger::Verbosity::INFO,
+    });
+
+    // tell the RMT object to use the led_encoder (espp::RmtEncoder) that's
+    // defined above
+    rmt.set_encoder(std::move(led_encoder));
+
     // create the write function we'll use
-    auto apa102_write = [&spi](const uint8_t *data, size_t len) {
+    auto neopixel_write = [&rmt](const uint8_t *data, size_t len) {
       if (len == 0) {
         return;
       }
-      static spi_transaction_t t;
-      memset(&t, 0, sizeof(t));
-      t.length = len * 8;
-      t.tx_buffer = data;
-      spi_device_polling_transmit(spi, &t);
+      // send the data to the RMT object
+      rmt.transmit(data, len);
     };
 
     // now create the LedStrip object
     espp::LedStrip led_strip(espp::LedStrip::Config{
-        .num_leds = 1,
-        .write = apa102_write,
-        .send_brightness = true,
-        .byte_order = espp::LedStrip::ByteOrder::BGR,
-        .start_frame = espp::LedStrip::APA102_START_FRAME,
+        .num_leds = NEO_BFF_NUM_LEDS,
+        .write = neopixel_write,
+        .send_brightness = false,
+        .byte_order = espp::LedStrip::ByteOrder::GRB,
+        .start_frame = {},
+        .end_frame = {},
         .log_level = espp::Logger::Verbosity::INFO,
     });
 
-    // Set first pixel using RGB
-    led_strip.set_pixel(0, espp::Rgb(0, 255, 255));
+    // Set all pixels
+    led_strip.set_all(espp::Rgb(0, 0, 0));
     // And show it
     led_strip.show();
+
+    std::this_thread::sleep_for(1s);
 
     // Use a task to rotate the LED through the rainbow using HSV
     auto task_fn = [&led_strip](std::mutex &m, std::condition_variable &cv) {
@@ -99,10 +160,14 @@ extern "C" void app_main(void) {
       float t = std::chrono::duration<float>(now - start).count();
       // rotate through rainbow colors in hsv based on time, hue is 0-360
       float hue = (cos(t) * 0.5f + 0.5f) * 360.0f;
-      espp::Hsv hsv(hue, 1.0f, 1.0f);
-      fmt::print("hsv: {}\n", hsv);
-      // full brightness (1.0, default) is _really_ bright, so tone it down
-      led_strip.set_pixel(0, hsv, 0.05f);
+      // set each LED in sequence and shift the hue by 10 degrees for each LED
+      for (int i = 0; i < NEO_BFF_NUM_LEDS; i++) {
+        espp::Hsv hsv(hue, 1.0f, 1.0f);
+        // full brightness (1.0, default) is _really_ bright, so tone it down
+        led_strip.set_pixel(i, hsv, 0.05f);
+        hue = std::fmod(hue + 10.0f, 360.0f);
+      }
+      // show the new colors
       led_strip.show();
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed

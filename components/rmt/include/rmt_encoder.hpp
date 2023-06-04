@@ -15,12 +15,43 @@ namespace espp {
 ///  \snippet rmt_example.cpp rmt encoder example
 class RmtEncoder {
 public:
+  /// \brief Configuration for the byte encoding for SK6805 LEDs
+  /// \details This configuration is used to encode bytes for SK6085 LEDs.
+  /// \note This configuration can be provided to the configuration for this
+  /// class. These values are based on the timing values provided in the
+  /// SK6805 datasheet (https://cdn-shop.adafruit.com/product-files/3484/3484_Datasheet.pdf)
+  /// \sa Config
+  static constexpr rmt_bytes_encoder_config_t sk6805_10mhz_bytes_encoder_config = {
+      .bit0 =
+          {
+              // divide the rmt transmit resolution (10 MHz) by 1,000,000
+              .duration0 = static_cast<uint16_t>(0.3 * 10000000 / 1000000), // T0H=0.3us
+              .level0 = 1,
+              // divide the rmt transmit resolution (10 MHz) by 1,000,000
+              .duration1 = static_cast<uint16_t>(0.9 * 10000000 / 1000000), // T0L=0.9us
+              .level1 = 0,
+          },
+      .bit1 =
+          {
+              // divide the rmt transmit resolution (10 MHz) by 1,000,000
+              .duration0 = static_cast<uint16_t>(0.6 * 10000000 / 1000000), // T1H=0.6us
+              .level0 = 1,
+              // divide the rmt transmit resolution (10 MHz) by 1,000,000
+              .duration1 = static_cast<uint16_t>(0.6 * 10000000 / 1000000), // T1L=0.6us
+              .level1 = 0,
+          },
+      .flags =
+          {
+              .msb_first = 1 // SK6805 transfer bit order: G7...G0R7...R0B7...B0
+          },
+  };
+
   /// \brief Configuration for the byte encoding for WS2812 LEDs
   /// \details This configuration is used to encode bytes for WS2812 LEDs.
   /// \note This configuration can be provided to the configuration for this
   /// class.
   /// \sa Config
-  static constexpr rmt_bytes_encoder_config_t ws2812_bytes_encoder_config = {
+  static constexpr rmt_bytes_encoder_config_t ws2812_10mhz_bytes_encoder_config = {
       .bit0 =
           {
               // divide the rmt transmit resolution (10 MHz) by 1,000,000
