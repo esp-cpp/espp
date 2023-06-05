@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <functional>
 #include <optional>
@@ -86,6 +87,7 @@ public:
     std::copy(config.end_frame.begin(), config.end_frame.end(),
               data_.end() - config.end_frame.size());
     start_offset_ = config.start_frame.size();
+    end_offset_ = config.end_frame.size();
   }
 
   /// \brief Get the number of LEDs in the strip
@@ -95,6 +97,38 @@ public:
   /// \brief Get the byte order for the LEDs
   /// \return Byte order for the LEDs
   ByteOrder byte_order() const { return byte_order_; }
+
+  /// \brief Shift the LEDs to the left
+  /// \param shift_by Number of LEDs to shift by
+  /// \note A negative value for shift_by will shift the LEDs to the right
+  void shift_left(int shift_by = 1) {
+    if (shift_by = 0)
+      return;
+    if (shift_by >= num_leds_) {
+      logger_.error("Shift by {} is greater than the number of LEDs ({})", shift_by, num_leds_);
+      return;
+    }
+    if (shift_by < 0)
+      shift_by += num_leds_;
+    std::rotate(data_.begin() + start_offset_,
+                data_.begin() + start_offset_ + pixel_size_ * shift_by, data_.end() + end_offset_);
+  }
+
+  /// \brief Shift the LEDs to the right
+  /// \param shift_by Number of LEDs to shift by
+  /// \note A negative value for shift_by will shift the LEDs to the left
+  void shift_right(int shift_by = 1) {
+    if (shift_by == 0)
+      return;
+    if (shift_by >= num_leds_) {
+      logger_.error("Shift by {} is greater than the number of LEDs ({})", shift_by, num_leds_);
+      return;
+    }
+    if (shift_by < 0)
+      shift_by += num_leds_;
+    std::rotate(data_.rbegin() + end_offset_, data_.rbegin() + end_offset_ + pixel_size_ * shift_by,
+                data_.rend() + start_offset_);
+  }
 
   /// \brief Set the color of a single LED
   /// \param index Index of the LED to set
@@ -217,6 +251,7 @@ protected:
   ByteOrder byte_order_{ByteOrder::RGB};
   size_t pixel_size_{3};
   size_t start_offset_{0};
+  size_t end_offset_{0};
   std::vector<uint8_t> data_;
   write_fn write_;
   Logger logger_;
