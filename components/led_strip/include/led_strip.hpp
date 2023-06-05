@@ -99,14 +99,34 @@ public:
   ByteOrder byte_order() const { return byte_order_; }
 
   /// \brief Shift the LEDs to the left
-  void shift_left() {
-    std::rotate(data_.begin() + start_offset_, data_.begin() + start_offset_ + pixel_size_,
-                data_.end() + end_offset_);
+  /// \param shift_by Number of LEDs to shift by
+  /// \note A negative value for shift_by will shift the LEDs to the right
+  void shift_left(int shift_by = 1) {
+    if (shift_by = 0)
+      return;
+    if (shift_by >= num_leds_) {
+      logger_.error("Shift by {} is greater than the number of LEDs ({})", shift_by, num_leds_);
+      return;
+    }
+    if (shift_by < 0)
+      shift_by += num_leds_;
+    std::rotate(data_.begin() + start_offset_,
+                data_.begin() + start_offset_ + pixel_size_ * shift_by, data_.end() + end_offset_);
   }
 
   /// \brief Shift the LEDs to the right
-  void shift_right() {
-    std::rotate(data_.rbegin() + end_offset_, data_.rbegin() + end_offset_ + pixel_size_,
+  /// \param shift_by Number of LEDs to shift by
+  /// \note A negative value for shift_by will shift the LEDs to the left
+  void shift_right(int shift_by = 1) {
+    if (shift_by == 0)
+      return;
+    if (shift_by >= num_leds_) {
+      logger_.error("Shift by {} is greater than the number of LEDs ({})", shift_by, num_leds_);
+      return;
+    }
+    if (shift_by < 0)
+      shift_by += num_leds_;
+    std::rotate(data_.rbegin() + end_offset_, data_.rbegin() + end_offset_ + pixel_size_ * shift_by,
                 data_.rend() + start_offset_);
   }
 
