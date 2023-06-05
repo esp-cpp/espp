@@ -16,6 +16,6 @@ set(
   "List of components to include"
   )
 
-project(bldc_motor_example)
+project(bldc_haptics_example)
 
 set(CMAKE_CXX_STANDARD 20)

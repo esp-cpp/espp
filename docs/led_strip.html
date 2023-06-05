@@ -130,7 +130,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>LED Strip APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7acebeb/docs/en/led_strip.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/de01b1f/docs/en/led_strip.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -150,7 +150,7 @@ WS2811, WS2813, SK6812, etc. LED strips.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7acebeb/components/led_strip/include/led_strip.hpp">components/led_strip/include/led_strip.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/de01b1f/components/led_strip/include/led_strip.hpp">components/led_strip/include/led_strip.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -211,15 +211,13 @@ WS2811, WS2813, SK6812, etc. LED strips.</p>
 <span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// shift the LEDs right one</span>
+<span class="w">      </span><span class="n">led_strip</span><span class="p">.</span><span class="n">shift_right</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="c1">// rotate through rainbow colors in hsv based on time, hue is 0-360</span>
 <span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">hue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">cos</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">0.5f</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.5f</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">360.0f</span><span class="p">;</span><span class="w"></span>
-<span class="w">      </span><span class="c1">// set each LED in sequence and shift the hue by 10 degrees for each LED</span>
-<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NEO_BFF_NUM_LEDS</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Hsv</span><span class="w"> </span><span class="nf">hsv</span><span class="p">(</span><span class="n">hue</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span><span class="w"></span>
-<span class="w">        </span><span class="c1">// full brightness (1.0, default) is _really_ bright, so tone it down</span>
-<span class="w">        </span><span class="n">led_strip</span><span class="p">.</span><span class="n">set_pixel</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">hsv</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05f</span><span class="p">);</span><span class="w"></span>
-<span class="w">        </span><span class="n">hue</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">fmod</span><span class="p">(</span><span class="n">hue</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">10.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">360.0f</span><span class="p">);</span><span class="w"></span>
-<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">Hsv</span><span class="w"> </span><span class="nf">hsv</span><span class="p">(</span><span class="n">hue</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// full brightness (1.0, default) is _really_ bright, so tone it down</span>
+<span class="w">      </span><span class="n">led_strip</span><span class="p">.</span><span class="n">set_pixel</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">hsv</span><span class="p">,</span><span class="w"> </span><span class="mf">0.05f</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="c1">// show the new colors</span>
 <span class="w">      </span><span class="n">led_strip</span><span class="p">.</span><span class="n">show</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
@@ -345,6 +343,18 @@ WS2811, WS2813, SK6812, etc. LED strips.</p>
 <dd class="field-odd"><p>Byte order for the LEDs </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8LedStrip10shift_leftEv">
+<span id="_CPPv3N4espp8LedStrip10shift_leftEv"></span><span id="_CPPv2N4espp8LedStrip10shift_leftEv"></span><span id="espp::LedStrip::shift_left"></span><span class="target" id="classespp_1_1_led_strip_1acefe70c5715a0c4b5a069cb5d603338f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shift_left</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8LedStrip10shift_leftEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shift the LEDs to the left. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8LedStrip11shift_rightEv">
+<span id="_CPPv3N4espp8LedStrip11shift_rightEv"></span><span id="_CPPv2N4espp8LedStrip11shift_rightEv"></span><span id="espp::LedStrip::shift_right"></span><span class="target" id="classespp_1_1_led_strip_1a8bb85fc57ba49d1137d9732a8d46bc71"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">shift_right</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8LedStrip11shift_rightEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Shift the LEDs to the right. </p>
 </dd></dl>
 
 <dl class="cpp function">

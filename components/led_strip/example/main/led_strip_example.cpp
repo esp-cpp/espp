@@ -158,15 +158,13 @@ extern "C" void app_main(void) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
       float t = std::chrono::duration<float>(now - start).count();
+      // shift the LEDs right one
+      led_strip.shift_right();
       // rotate through rainbow colors in hsv based on time, hue is 0-360
       float hue = (cos(t) * 0.5f + 0.5f) * 360.0f;
-      // set each LED in sequence and shift the hue by 10 degrees for each LED
-      for (int i = 0; i < NEO_BFF_NUM_LEDS; i++) {
-        espp::Hsv hsv(hue, 1.0f, 1.0f);
-        // full brightness (1.0, default) is _really_ bright, so tone it down
-        led_strip.set_pixel(i, hsv, 0.05f);
-        hue = std::fmod(hue + 10.0f, 360.0f);
-      }
+      espp::Hsv hsv(hue, 1.0f, 1.0f);
+      // full brightness (1.0, default) is _really_ bright, so tone it down
+      led_strip.set_pixel(0, hsv, 0.05f);
       // show the new colors
       led_strip.show();
       // NOTE: sleeping in this way allows the sleep to exit early when the
