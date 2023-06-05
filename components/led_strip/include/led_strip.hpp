@@ -102,7 +102,7 @@ public:
   /// \param shift_by Number of LEDs to shift by
   /// \note A negative value for shift_by will shift the LEDs to the right
   void shift_left(int shift_by = 1) {
-    if (shift_by = 0)
+    if (shift_by == 0)
       return;
     if (shift_by >= num_leds_) {
       logger_.error("Shift by {} is greater than the number of LEDs ({})", shift_by, num_leds_);
