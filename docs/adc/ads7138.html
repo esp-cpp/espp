@@ -138,7 +138,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>ADS7138 I2C ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7969b13/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/b899457/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -160,7 +160,7 @@ continuous basis.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7969b13/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b899457/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -230,22 +230,47 @@ continuous basis.</p>
 <span class="w">    </span><span class="c1">// set the digital output to 1 (turn off the LED)</span>
 <span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
 
+<span class="w">    </span><span class="c1">// set an alert on the digital input (Sel) so that we can get notified when the button is</span>
+<span class="w">    </span><span class="c1">// pressed (goes low)</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">select_bit_mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_alert</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">DigitalEvent</span><span class="o">::</span><span class="n">LOW</span><span class="p">);</span><span class="w"></span>
+
 <span class="w">    </span><span class="c1">// make the task which will get the raw data from the I2C ADC</span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;%time (s), x (mV), y (mV), select pressed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_read_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">ads</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">      </span><span class="c1">// get the analog input data</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">all_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">get_all_mv</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><span class="w"> </span><span class="c1">// the first channel is channel 1 (X axis)</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span><span class="w"> </span><span class="c1">// the second channel is channel 3 (Y axis)</span>
+
+<span class="w">      </span><span class="c1">// get the event data to see if there was an alert (since we don&#39;t have</span>
+<span class="w">      </span><span class="c1">// the ALERT pin connected)</span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_high_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_low_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">ads</span><span class="p">.</span><span class="n">get_event_data</span><span class="p">(</span><span class="o">&amp;</span><span class="n">event_flags</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event_high_flags</span><span class="p">,</span><span class="w"></span>
+<span class="w">                         </span><span class="o">&amp;</span><span class="n">event_low_flags</span><span class="p">);</span><span class="w"> </span><span class="c1">// NOTE: this clears the event flags</span>
+
 <span class="w">      </span><span class="c1">// NOTE: we could get all digital inputs as a bitmask using</span>
 <span class="w">      </span><span class="c1">// get_digital_input_values(), but we&#39;ll just get the one we want.</span>
 <span class="w">      </span><span class="c1">// If we wanted to get all of them, we could do:</span>
 <span class="w">      </span><span class="c1">// auto input_values = ads.get_digital_input_values();</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
 <span class="w">          </span><span class="n">ads</span><span class="p">.</span><span class="n">get_digital_input_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">);</span><span class="w"> </span><span class="c1">// the button is on channel 5</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">select</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                            </span><span class="c1">// joystick button is active low</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                      </span><span class="c1">// joystick button is active low</span>
+
+<span class="w">      </span><span class="c1">// See if there was an alert on the digital input (Sel, channel 5)</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">event_flags</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">select_bit_mask</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// See if there was actually a low event on the digital input (Sel, channel 5)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">event_low_flags</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">select_bit_mask</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;ALERT: Select pressed!&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+
 <span class="w">      </span><span class="c1">// use fmt to print so it doesn&#39;t have the prefix and can be used more</span>
 <span class="w">      </span><span class="c1">// easily as CSV (for plotting using uart_serial_plotter)</span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {:.3f}, {:.3f}, {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"> </span><span class="n">x_mv</span><span class="p">,</span><span class="w"> </span><span class="n">y_mv</span><span class="p">,</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
@@ -773,6 +798,28 @@ continuous basis.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713821clear_event_high_flagE7uint8_t">
+<span id="_CPPv3N4espp7Ads713821clear_event_high_flagE7uint8_t"></span><span id="_CPPv2N4espp7Ads713821clear_event_high_flagE7uint8_t"></span><span id="espp::Ads7138::clear_event_high_flag__uint8_t"></span><span class="target" id="classespp_1_1_ads7138_1a3aea247b3a57c1a4767be2630bcabb22"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_event_high_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713821clear_event_high_flagE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the event flag register. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>flags</strong> – Flags to clear </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713820clear_event_low_flagE7uint8_t">
+<span id="_CPPv3N4espp7Ads713820clear_event_low_flagE7uint8_t"></span><span id="_CPPv2N4espp7Ads713820clear_event_low_flagE7uint8_t"></span><span id="espp::Ads7138::clear_event_low_flag__uint8_t"></span><span class="target" id="classespp_1_1_ads7138_1a6ac184ac5608fc8531933f1aee31b2ce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_event_low_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713820clear_event_low_flagE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the event flag register. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>flags</strong> – Flags to clear </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode">
 <span id="_CPPv3N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode"></span><span id="_CPPv2N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode"></span><span id="espp::Ads7138::set_digital_output_mode__Channel.OutputMode"></span><span class="target" id="classespp_1_1_ads7138_1ae181b04f73845beecd2ddaa28858f06a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713810OutputModeE" title="espp::Ads7138::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the digital output mode for the given channel. </p>
@@ -843,6 +890,16 @@ continuous basis.</p>
 <dd class="field-odd"><p>The values of the digital inputs. </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71385resetEv">
+<span id="_CPPv3N4espp7Ads71385resetEv"></span><span id="_CPPv2N4espp7Ads71385resetEv"></span><span id="espp::Ads7138::reset"></span><span class="target" id="classespp_1_1_ads7138_1a317b60f95f02aa2180e1ab2e536fce06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71385resetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Perform a software reset of the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will reset all registers to their default values (converting all channels to analog inputs and disabling all events). </p>
+</div>
 </dd></dl>
 
 </div>
