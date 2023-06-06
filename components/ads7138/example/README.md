@@ -88,5 +88,8 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 ![CleanShot 2023-06-06 at 13 46 56](https://github.com/esp-cpp/espp/assets/213467/cf68a4d9-4f71-4751-b00e-1ebdadcd3e88)
 ![CleanShot 2023-06-06 at 13 51 55](https://github.com/esp-cpp/espp/assets/213467/e1149279-00c2-42d3-a530-f6005c35e69c)
 
-### Example video
+### Example videos
+
 https://github.com/esp-cpp/espp/assets/213467/f1c5e0df-35ca-4c15-b8cb-d1455f7dbd67
+
+https://github.com/esp-cpp/espp/assets/213467/6c56c2cf-8789-4452-beca-ffdaf68f13cb
