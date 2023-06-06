@@ -122,7 +122,7 @@ extern "C" void app_main(void) {
     ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 1);
 
     // make the task which will get the raw data from the I2C ADC
-    fmt::print("%time (s), x (mV), y (mV), digital values, select\n");
+    fmt::print("%time (s), x (mV), y (mV), select pressed\n");
     auto ads_read_task_fn = [&ads](std::mutex &m, std::condition_variable &cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
@@ -138,8 +138,7 @@ extern "C" void app_main(void) {
       // easily as CSV also pad the binary value with 0s so it's easier to read
       // (and make sure it's fixed with a chararacter width of 10 - 8 bits + 2
       // for the 0b prefix)
-      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:#010b}, {}\n", elapsed, x_mv, y_mv, input_values,
-                 select_pressed);
+      fmt::print("{:.3f}, {:.3f}, {:.3f}, {}\n", elapsed, x_mv, y_mv, select_pressed ? 1 : 0);
       if (select_pressed) {
         ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 0); // turn on the LED
       } else {
@@ -150,7 +149,7 @@ extern "C" void app_main(void) {
       {
         using namespace std::chrono_literals;
         std::unique_lock<std::mutex> lk(m);
-        cv.wait_until(lk, now + 50ms);
+        cv.wait_until(lk, now + 10ms);
       }
       // we don't want to stop, so return false
       return false;
