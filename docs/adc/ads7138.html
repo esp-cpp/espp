@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADS7138 I2C ADC - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'adc/ads7138';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Oneshot ADC" href="oneshot_adc.html" />
+    <link rel="prev" title="ADS1x15 I2C ADC" href="ads1x15.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">ADC APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ads1x15.html">ADS1x15 I2C ADC</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ADS7138 I2C ADC</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="oneshot_adc.html">Oneshot ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="continuous_adc.html">Continuous ADC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="adc_types.html">ADC Types</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">ADC APIs</a> &raquo;</li>
+      <li>ADS7138 I2C ADC</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/b899457/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ads7138-i2c-adc">
+<h1>ADS7138 I2C ADC<a class="headerlink" href="#ads7138-i2c-adc" title="Permalink to this headline"></a></h1>
+<p>The <cite>Ads7138</cite> class implements support for the Texas Instruments ADS7138 12-bit
+8-channel ADC. The ADS7138 is a 12-bit, 8-channel, low-power, successive
+approximation register (SAR) analog-to-digital converter (ADC) which can
+configure any of its 8 channels as single-ended analog inputs, digital inputs,
+or digital outputs. It has an operating mode that allows the user to configure
+the device for a single conversion, or to automatically convert on a
+continuous basis.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b899457/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads7138E">
+<span id="_CPPv3N4espp7Ads7138E"></span><span id="_CPPv2N4espp7Ads7138E"></span><span id="espp::Ads7138"></span><span class="target" id="classespp_1_1_ads7138"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Ads7138</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads7138E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for reading values from the ADS7138 family of ADC chips. </p>
+<p>The ADS7138 is a 16-bit, 8-channel ADC with 8 digital I/O pins. It supports a variety of sampling modes, including autonomous sampling, manual sampling, and auto sequence sampling. It also supports oversampling ratios of 2, 4, 8, 16, 32, 64, and 128. It additionally allows the user to configure the analog or digital inputs to trigger an alert when the value goes above or below a threshold (enter or leave a region of voltage). <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://www.ti.com/lit/ds/symlink/ads7138.pdf">https://www.ti.com/lit/ds/symlink/ads7138.pdf</a></p>
+</div>
+</p>
+<section id="classespp_1_1_ads7138_1ads7138_ex1">
+<h4>ADS7138 Example<a class="headerlink" href="#classespp_1_1_ads7138_1ads7138_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_ads7138_1ads7138_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">i2c_config_t</span><span class="w"> </span><span class="n">i2c_cfg</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">i2c_cfg</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SDA_IO</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_SCL_IO</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_DISABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_DISABLE</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="n">i2c_cfg</span><span class="p">.</span><span class="n">master</span><span class="p">.</span><span class="n">clk_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_FREQ_HZ</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_param_config</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c_cfg</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;config i2c failed&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_driver_install</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">I2C_MODE_MASTER</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;install i2c driver failed&quot;</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the i2c adc</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                            </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;I2C WRITE ERROR: to {:#04x} &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_read_from_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                             </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;I2C READ ERROR: to {:#04x} &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// make the actual ads class</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="w"> </span><span class="nf">ads</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Mode</span><span class="o">::</span><span class="n">AUTONOMOUS</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">analog_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH1</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH3</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">digital_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">},</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">digital_outputs</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">            </span><span class="p">{</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">},</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="n">On</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">BP</span><span class="o">-</span><span class="n">ADS7128</span><span class="p">,</span><span class="w"> </span><span class="n">CH7</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">LED</span><span class="w"> </span><span class="p">(</span><span class="n">active</span><span class="w"> </span><span class="n">low</span><span class="p">)</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// enable oversampling / averaging</span>
+<span class="w">        </span><span class="p">.</span><span class="n">oversampling_ratio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OversamplingRatio</span><span class="o">::</span><span class="n">OSR_32</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads_write</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads_read</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="p">});</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// set the digital output drive mode to open-drain</span>
+<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_mode</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OutputMode</span><span class="o">::</span><span class="n">OPEN_DRAIN</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// set the digital output to 1 (turn off the LED)</span>
+<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// set an alert on the digital input (Sel) so that we can get notified when the button is</span>
+<span class="w">    </span><span class="c1">// pressed (goes low)</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">select_bit_mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_alert</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">DigitalEvent</span><span class="o">::</span><span class="n">LOW</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// make the task which will get the raw data from the I2C ADC</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;%time (s), x (mV), y (mV), select pressed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_read_task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">ads</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">      </span><span class="c1">// get the analog input data</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">all_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">get_all_mv</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><span class="w"> </span><span class="c1">// the first channel is channel 1 (X axis)</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span><span class="w"> </span><span class="c1">// the second channel is channel 3 (Y axis)</span>
+
+<span class="w">      </span><span class="c1">// get the event data to see if there was an alert (since we don&#39;t have</span>
+<span class="w">      </span><span class="c1">// the ALERT pin connected)</span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_high_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_low_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">ads</span><span class="p">.</span><span class="n">get_event_data</span><span class="p">(</span><span class="o">&amp;</span><span class="n">event_flags</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event_high_flags</span><span class="p">,</span><span class="w"></span>
+<span class="w">                         </span><span class="o">&amp;</span><span class="n">event_low_flags</span><span class="p">);</span><span class="w"> </span><span class="c1">// NOTE: this clears the event flags</span>
+
+<span class="w">      </span><span class="c1">// NOTE: we could get all digital inputs as a bitmask using</span>
+<span class="w">      </span><span class="c1">// get_digital_input_values(), but we&#39;ll just get the one we want.</span>
+<span class="w">      </span><span class="c1">// If we wanted to get all of them, we could do:</span>
+<span class="w">      </span><span class="c1">// auto input_values = ads.get_digital_input_values();</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">          </span><span class="n">ads</span><span class="p">.</span><span class="n">get_digital_input_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">);</span><span class="w"> </span><span class="c1">// the button is on channel 5</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                      </span><span class="c1">// joystick button is active low</span>
+
+<span class="w">      </span><span class="c1">// See if there was an alert on the digital input (Sel, channel 5)</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">event_flags</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">select_bit_mask</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// See if there was actually a low event on the digital input (Sel, channel 5)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">event_low_flags</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">select_bit_mask</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;ALERT: Select pressed!&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+
+<span class="w">      </span><span class="c1">// use fmt to print so it doesn&#39;t have the prefix and can be used more</span>
+<span class="w">      </span><span class="c1">// easily as CSV (for plotting using uart_serial_plotter)</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {:.3f}, {:.3f}, {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"> </span><span class="n">x_mv</span><span class="p">,</span><span class="w"> </span><span class="n">y_mv</span><span class="p">,</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">select_pressed</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="c1">// turn on the LED</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"> </span><span class="c1">// turn off the LED</span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="o">::</span><span class="nn">chrono_literals</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_until</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// we don&#39;t want to stop, so return false</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">make_unique</span><span class="p">({.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ADS&quot;</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads_read_task_fn</span><span class="p">,</span><span class="w"></span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="p">{</span><span class="mi">8</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">},</span><span class="w"></span>
+<span class="w">                                             </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">ads_task</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatioE">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatioE"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatioE"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OversamplingRatio</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible oversampling ratios, see data sheet Table 15 (p. 34) </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatio4NONEE">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatio4NONEE"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatio4NONEE"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0ab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatio4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No oversampling. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatio5OSR_2E">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatio5OSR_2E"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatio5OSR_2E"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0aa1d08e16cb8529c05bd121849b11ab1e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_2</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatio5OSR_2E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>2x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatio5OSR_4E">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatio5OSR_4E"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatio5OSR_4E"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0a897e5ed5d2a90d915a94337b81b8500c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_4</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatio5OSR_4E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>4x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatio5OSR_8E">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatio5OSR_8E"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatio5OSR_8E"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0a002cc7e2c9ad0050830a1a61ebdffde9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_8</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatio5OSR_8E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>8x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatio6OSR_16E">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatio6OSR_16E"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatio6OSR_16E"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0ad8a2bc64e342df45a6c253398fea8bda"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_16</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatio6OSR_16E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>16x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatio6OSR_32E">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatio6OSR_32E"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatio6OSR_32E"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0acc0281f5b10ad72d659bc277907710de"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_32</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatio6OSR_32E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>32x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatio6OSR_64E">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatio6OSR_64E"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatio6OSR_64E"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0a683d580dc5991f59d48a98e4902d5af3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_64</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatio6OSR_64E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>64x oversampling </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817OversamplingRatio7OSR_128E">
+<span id="_CPPv3N4espp7Ads713817OversamplingRatio7OSR_128E"></span><span id="_CPPv2N4espp7Ads713817OversamplingRatio7OSR_128E"></span><span class="target" id="classespp_1_1_ads7138_1a90f6da88f23e0b29aa72dbe0721976b0a086763f27afcbc6218d3f1375b895d15"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OSR_128</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713817OversamplingRatio7OSR_128E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>128x oversampling </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387ChannelE">
+<span id="_CPPv3N4espp7Ads71387ChannelE"></span><span id="_CPPv2N4espp7Ads71387ChannelE"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90f"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Channel</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387ChannelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible channel numbers. </p>
+<p>The ADS7138 has 8 channels, see data sheet Table 1 (p. 4) </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel numbers are 0-indexed. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel may be configured as digital input, digital output, or analog input. </p>
+</div>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Channel3CH0E">
+<span id="_CPPv3N4espp7Ads71387Channel3CH0E"></span><span id="_CPPv2N4espp7Ads71387Channel3CH0E"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90fa2264c6e9d8288b49bfcf8018d64bc4ec"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH0</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Channel3CH0E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 0. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Channel3CH1E">
+<span id="_CPPv3N4espp7Ads71387Channel3CH1E"></span><span id="_CPPv2N4espp7Ads71387Channel3CH1E"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90fae36fe09eceee9fa8f63747109d31cac5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Channel3CH1E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 1. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Channel3CH2E">
+<span id="_CPPv3N4espp7Ads71387Channel3CH2E"></span><span id="_CPPv2N4espp7Ads71387Channel3CH2E"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90fa79a66be7a0427b4ce07a201d58f80d0c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH2</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Channel3CH2E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 2. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Channel3CH3E">
+<span id="_CPPv3N4espp7Ads71387Channel3CH3E"></span><span id="_CPPv2N4espp7Ads71387Channel3CH3E"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90fa6c88494b48501a9de03abd4b7056cd33"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH3</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Channel3CH3E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 3. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Channel3CH4E">
+<span id="_CPPv3N4espp7Ads71387Channel3CH4E"></span><span id="_CPPv2N4espp7Ads71387Channel3CH4E"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90faec9eb60d9c94f6b9ca2ecd6db52e158c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH4</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Channel3CH4E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 4. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Channel3CH5E">
+<span id="_CPPv3N4espp7Ads71387Channel3CH5E"></span><span id="_CPPv2N4espp7Ads71387Channel3CH5E"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90fa9906695eb33d2d71b9fcc9a693bc1c68"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH5</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Channel3CH5E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 5. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Channel3CH6E">
+<span id="_CPPv3N4espp7Ads71387Channel3CH6E"></span><span id="_CPPv2N4espp7Ads71387Channel3CH6E"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90fafb35b15b134c9f9ac4abc9d97d0ce305"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH6</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Channel3CH6E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 6. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Channel3CH7E">
+<span id="_CPPv3N4espp7Ads71387Channel3CH7E"></span><span id="_CPPv2N4espp7Ads71387Channel3CH7E"></span><span class="target" id="classespp_1_1_ads7138_1a92c6bb89e8609c8a46fdf13923a7a90fa3110a213c23d11de8010560aac1e9173"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CH7</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Channel3CH7E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Channel 7. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71384ModeE">
+<span id="_CPPv3N4espp7Ads71384ModeE"></span><span id="_CPPv2N4espp7Ads71384ModeE"></span><span class="target" id="classespp_1_1_ads7138_1a9fd9ca60cab530971f751c67896480b3"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71384ModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible modes for analog input conversion. </p>
+<p>The ADS7128 device has the following sampling modes:<ul class="simple">
+<li><p>Manual Mode: Allows the external host processor to directly request and control when the data are sampled. The host provides I2C frames to control conversions and the captured data are returned overthe I2C bus after each conversion.</p></li>
+<li><p>Auto-Sequence Mode: The host can configure the device to scan through the enabled analog input channels. The host must provide continuous clocks (SCL) to the device to scan through the channels and to read the data from the device. The mux automatically switches through the predetermined channel sequence, and the data conversion results are sent through the data bus.</p></li>
+<li><p>Autonomous Mode: After receiving the first start of conversion pulse from the host, the ADS7128 device then generates the subsequent start of conversion signals autonomously. The device features an internal oscillator to generate the start of ADC conversion pulses without the host controlling the conversions. Output data are not returned over the digital bus; only a signal on the ALERT is generated when an input signal crosses the programmable thresholds. </p></li>
+</ul>
+</p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71384Mode6MANUALE">
+<span id="_CPPv3N4espp7Ads71384Mode6MANUALE"></span><span id="_CPPv2N4espp7Ads71384Mode6MANUALE"></span><span class="target" id="classespp_1_1_ads7138_1a9fd9ca60cab530971f751c67896480b3aa60a6a471c0681e5a49c4f5d00f6bc5a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MANUAL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71384Mode6MANUALE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Manual mode (9th falling edge of SCL (ACK) triggers conversion) and the MUX is controlled by register write to MANUAL_CHID field of the CHANNEL_SEL register. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71384Mode8AUTO_SEQE">
+<span id="_CPPv3N4espp7Ads71384Mode8AUTO_SEQE"></span><span id="_CPPv2N4espp7Ads71384Mode8AUTO_SEQE"></span><span class="target" id="classespp_1_1_ads7138_1a9fd9ca60cab530971f751c67896480b3aa520138eef4dfce068a078832473c835"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AUTO_SEQ</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71384Mode8AUTO_SEQE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Auto sequence mode (9th falling edge of SCL (ACK) triggers conversion) and the MUX is incremented after each conversion. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71384Mode10AUTONOMOUSE">
+<span id="_CPPv3N4espp7Ads71384Mode10AUTONOMOUSE"></span><span id="_CPPv2N4espp7Ads71384Mode10AUTONOMOUSE"></span><span class="target" id="classespp_1_1_ads7138_1a9fd9ca60cab530971f751c67896480b3ade7d660fc991e08c2d3526fec8a46c4a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AUTONOMOUS</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71384Mode10AUTONOMOUSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Autonomous mode (conversion is controlled by the ADC internally) and the MUX is incremented after each conversion. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713811AnalogEventE">
+<span id="_CPPv3N4espp7Ads713811AnalogEventE"></span><span id="_CPPv2N4espp7Ads713811AnalogEventE"></span><span class="target" id="classespp_1_1_ads7138_1ae00ea67e12b9b19787c76b3e0ffc9071"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AnalogEvent</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713811AnalogEventE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Event for triggering alerts on analog inputs. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713811AnalogEvent7OUTSIDEE">
+<span id="_CPPv3N4espp7Ads713811AnalogEvent7OUTSIDEE"></span><span id="_CPPv2N4espp7Ads713811AnalogEvent7OUTSIDEE"></span><span class="target" id="classespp_1_1_ads7138_1ae00ea67e12b9b19787c76b3e0ffc9071a93da25bafef6761717afc6b25c17ea16"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OUTSIDE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713811AnalogEvent7OUTSIDEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Trigger when ADC value goes outside the low/high thresholds. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713811AnalogEvent6INSIDEE">
+<span id="_CPPv3N4espp7Ads713811AnalogEvent6INSIDEE"></span><span id="_CPPv2N4espp7Ads713811AnalogEvent6INSIDEE"></span><span class="target" id="classespp_1_1_ads7138_1ae00ea67e12b9b19787c76b3e0ffc9071a554a7418c4c0dafd902ebd377b87c80c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INSIDE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713811AnalogEvent6INSIDEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Trigger when ADC value goes inside the low/high thresholds. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713812DigitalEventE">
+<span id="_CPPv3N4espp7Ads713812DigitalEventE"></span><span id="_CPPv2N4espp7Ads713812DigitalEventE"></span><span class="target" id="classespp_1_1_ads7138_1a46bba239f0501db6a501993e8f1402fc"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DigitalEvent</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713812DigitalEventE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Event for triggering alerts on digital inputs. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713812DigitalEvent4HIGHE">
+<span id="_CPPv3N4espp7Ads713812DigitalEvent4HIGHE"></span><span id="_CPPv2N4espp7Ads713812DigitalEvent4HIGHE"></span><span class="target" id="classespp_1_1_ads7138_1a46bba239f0501db6a501993e8f1402fcab89de3b4b81c4facfac906edf29aec8c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HIGH</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713812DigitalEvent4HIGHE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Trigger on logic 1. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713812DigitalEvent3LOWE">
+<span id="_CPPv3N4espp7Ads713812DigitalEvent3LOWE"></span><span id="_CPPv2N4espp7Ads713812DigitalEvent3LOWE"></span><span class="target" id="classespp_1_1_ads7138_1a46bba239f0501db6a501993e8f1402fca41bc94cbd8eebea13ce0491b2ac11b88"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOW</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713812DigitalEvent3LOWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Trigger on logic 0. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810OutputModeE">
+<span id="_CPPv3N4espp7Ads713810OutputModeE"></span><span id="_CPPv2N4espp7Ads713810OutputModeE"></span><span class="target" id="classespp_1_1_ads7138_1a12887650d27af6e3e1438dc1baa072b1"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OutputMode</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810OutputModeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Output mode for digital output channels and ALERT pin. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810OutputMode10OPEN_DRAINE">
+<span id="_CPPv3N4espp7Ads713810OutputMode10OPEN_DRAINE"></span><span id="_CPPv2N4espp7Ads713810OutputMode10OPEN_DRAINE"></span><span class="target" id="classespp_1_1_ads7138_1a12887650d27af6e3e1438dc1baa072b1af8eab64275fc0fab3d946c89bb143865"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">OPEN_DRAIN</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810OutputMode10OPEN_DRAINE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Open drain output mode. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810OutputMode9PUSH_PULLE">
+<span id="_CPPv3N4espp7Ads713810OutputMode9PUSH_PULLE"></span><span id="_CPPv2N4espp7Ads713810OutputMode9PUSH_PULLE"></span><span class="target" id="classespp_1_1_ads7138_1a12887650d27af6e3e1438dc1baa072b1a4e6016b9110e871668e4a5fae6090b11"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PUSH_PULL</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810OutputMode9PUSH_PULLE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Push-pull output mode. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810DataFormatE">
+<span id="_CPPv3N4espp7Ads713810DataFormatE"></span><span id="_CPPv2N4espp7Ads713810DataFormatE"></span><span class="target" id="classespp_1_1_ads7138_1a0ae727e883d5b25cfc23d9af3c803451"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DataFormat</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810DataFormatE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enum for the data format that can be read from the ADC. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810DataFormat3RAWE">
+<span id="_CPPv3N4espp7Ads713810DataFormat3RAWE"></span><span id="_CPPv2N4espp7Ads713810DataFormat3RAWE"></span><span class="target" id="classespp_1_1_ads7138_1a0ae727e883d5b25cfc23d9af3c803451a633d6abff0a3fc22404347728d195059"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RAW</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810DataFormat3RAWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Raw data format, 12 bit ADC data. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810DataFormat8AVERAGEDE">
+<span id="_CPPv3N4espp7Ads713810DataFormat8AVERAGEDE"></span><span id="_CPPv2N4espp7Ads713810DataFormat8AVERAGEDE"></span><span class="target" id="classespp_1_1_ads7138_1a0ae727e883d5b25cfc23d9af3c803451a53767e20df87edd124f0bde6db2a26af"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AVERAGED</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810DataFormat8AVERAGEDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Averaged data format, 16 bit ADC data. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386AppendE">
+<span id="_CPPv3N4espp7Ads71386AppendE"></span><span id="_CPPv2N4espp7Ads71386AppendE"></span><span class="target" id="classespp_1_1_ads7138_1ab9360090b259472e9e3971fc31abeab6"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Append</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386AppendE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enum for the different configurations of bits that can be appended to the data when reading from the ADC. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Append4NONEE">
+<span id="_CPPv3N4espp7Ads71386Append4NONEE"></span><span id="_CPPv2N4espp7Ads71386Append4NONEE"></span><span class="target" id="classespp_1_1_ads7138_1ab9360090b259472e9e3971fc31abeab6ab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Append4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>No append. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Append10CHANNEL_IDE">
+<span id="_CPPv3N4espp7Ads71386Append10CHANNEL_IDE"></span><span id="_CPPv2N4espp7Ads71386Append10CHANNEL_IDE"></span><span class="target" id="classespp_1_1_ads7138_1ab9360090b259472e9e3971fc31abeab6af2f9f6189ea89474c712f93d7e688f4b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CHANNEL_ID</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Append10CHANNEL_IDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append Channel ID. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Append6STATUSE">
+<span id="_CPPv3N4espp7Ads71386Append6STATUSE"></span><span id="_CPPv2N4espp7Ads71386Append6STATUSE"></span><span class="target" id="classespp_1_1_ads7138_1ab9360090b259472e9e3971fc31abeab6a5f241c8c8f985b3c51e05d39cf030f4c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">STATUS</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Append6STATUSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Append status flags. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810AlertLogicE">
+<span id="_CPPv3N4espp7Ads713810AlertLogicE"></span><span id="_CPPv2N4espp7Ads713810AlertLogicE"></span><span class="target" id="classespp_1_1_ads7138_1af230892be9c7ee388646679c4a99e0cf"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AlertLogic</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810AlertLogicE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Alert logic for ALERT pin. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810AlertLogic10ACTIVE_LOWE">
+<span id="_CPPv3N4espp7Ads713810AlertLogic10ACTIVE_LOWE"></span><span id="_CPPv2N4espp7Ads713810AlertLogic10ACTIVE_LOWE"></span><span class="target" id="classespp_1_1_ads7138_1af230892be9c7ee388646679c4a99e0cfae434209643a0d01f383a46eece525679"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVE_LOW</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810AlertLogic10ACTIVE_LOWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ALERT pin is active low. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810AlertLogic11ACTIVE_HIGHE">
+<span id="_CPPv3N4espp7Ads713810AlertLogic11ACTIVE_HIGHE"></span><span id="_CPPv2N4espp7Ads713810AlertLogic11ACTIVE_HIGHE"></span><span class="target" id="classespp_1_1_ads7138_1af230892be9c7ee388646679c4a99e0cfab868e37f0edfdbea9838600657b6f4b3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVE_HIGH</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810AlertLogic11ACTIVE_HIGHE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ALERT pin is active high. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810AlertLogic10PULSED_LOWE">
+<span id="_CPPv3N4espp7Ads713810AlertLogic10PULSED_LOWE"></span><span id="_CPPv2N4espp7Ads713810AlertLogic10PULSED_LOWE"></span><span class="target" id="classespp_1_1_ads7138_1af230892be9c7ee388646679c4a99e0cfa783c29f70d7d4c2ec996fbd3ba486a25"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PULSED_LOW</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810AlertLogic10PULSED_LOWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ALERT pin is pulsed low per alert flag. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810AlertLogic11PULSED_HIGHE">
+<span id="_CPPv3N4espp7Ads713810AlertLogic11PULSED_HIGHE"></span><span id="_CPPv2N4espp7Ads713810AlertLogic11PULSED_HIGHE"></span><span class="target" id="classespp_1_1_ads7138_1af230892be9c7ee388646679c4a99e0cfae50c61f9b111881d30c9aa2ed6747b7e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">PULSED_HIGH</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713810AlertLogic11PULSED_HIGHE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>ALERT pin is pulsed high per alert flag. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71388write_fnE">
+<span id="_CPPv3N4espp7Ads71388write_fnE"></span><span id="_CPPv2N4espp7Ads71388write_fnE"></span><span id="espp::Ads7138::write_fn"></span><span class="target" id="classespp_1_1_ads7138_1a384e7797c662f0b09443c8ee893740b7"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71388write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write bytes to the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param dev_addr</dt>
+<dd class="field-odd"><p>Address of the device to write to. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>Pointer to array of bytes to write. </p>
+</dd>
+<dt class="field-odd">Param data_len</dt>
+<dd class="field-odd"><p>Number of data bytes to write. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387read_fnE">
+<span id="_CPPv3N4espp7Ads71387read_fnE"></span><span id="_CPPv2N4espp7Ads71387read_fnE"></span><span id="espp::Ads7138::read_fn"></span><span class="target" id="classespp_1_1_ads7138_1a535de8b88266b6f0b6e3d641d027d567"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read bytes from the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param dev_addr</dt>
+<dd class="field-odd"><p>Address of the device to write to. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>Pointer to array of bytes to read into. </p>
+</dd>
+<dt class="field-odd">Param data_len</dt>
+<dd class="field-odd"><p>Number of data bytes to read. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387Ads7138ERK6Config">
+<span id="_CPPv3N4espp7Ads71387Ads7138ERK6Config"></span><span id="_CPPv2N4espp7Ads71387Ads7138ERK6Config"></span><span id="espp::Ads7138::Ads7138__ConfigCR"></span><span class="target" id="classespp_1_1_ads7138_1a54cb8c20497f8e46fe50fb21266ce377"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ads7138</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Ads71386ConfigE" title="espp::Ads7138::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71387Ads7138ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct <a class="reference internal" href="#classespp_1_1_ads7138"><span class="std std-ref">Ads7138</span></a>. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration structure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386get_mvE7Channel">
+<span id="_CPPv3N4espp7Ads71386get_mvE7Channel"></span><span id="_CPPv2N4espp7Ads71386get_mvE7Channel"></span><span id="espp::Ads7138::get_mv__Channel"></span><span class="target" id="classespp_1_1_ads7138_1a4a8b217b4e0ff3ffa2ba8709670472b4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mv</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71386get_mvE7Channel" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Communicate with the ADC to get the analog value for the channel and return it. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as an analog input. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the ADC is in autonomous mode, this function will simply read the value from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the value from the ADC’s buffer (blocking until conversion is complete). </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will return 0 and log an error if the channel is not configured as an analog input. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channel</strong> – Which channel of the ADC to read </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The voltage (in mV) read from the channel. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810get_all_mvEv">
+<span id="_CPPv3N4espp7Ads713810get_all_mvEv"></span><span id="_CPPv2N4espp7Ads713810get_all_mvEv"></span><span id="espp::Ads7138::get_all_mv"></span><span class="target" id="classespp_1_1_ads7138_1ad3e8e0507f249a1aedd46ba961b965c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713810get_all_mvEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Communicate with the ADC to get the analog value for all channels and return them. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channels must have been configured as analog inputs. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The vector will be in the order of the channels configured in the constructor. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The vector will be the same length as the number of channels configured in the constructor. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the ADC is in autonomous mode, this function will simply read the values from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the values from the ADC’s buffer (blocking until conversion is complete). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A vector of the voltages (in mV) read from each channel. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713815configure_alertE10OutputMode10AlertLogic">
+<span id="_CPPv3N4espp7Ads713815configure_alertE10OutputMode10AlertLogic"></span><span id="_CPPv2N4espp7Ads713815configure_alertE10OutputMode10AlertLogic"></span><span id="espp::Ads7138::configure_alert__OutputMode.AlertLogic"></span><span class="target" id="classespp_1_1_ads7138_1a3695ee5177ef8b23c4427b9d9fc9332a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads713810OutputModeE" title="espp::Ads7138::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713810AlertLogicE" title="espp::Ads7138::AlertLogic"><span class="n"><span class="pre">AlertLogic</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">alert_logic</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713815configure_alertE10OutputMode10AlertLogic" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the ALERT pin. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_mode</strong> – Output mode ALERT pin </p></li>
+<li><p><strong>alert_logic</strong> – Alert logic for ALERT pin </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventi">
+<span id="_CPPv3N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventi"></span><span id="_CPPv2N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventi"></span><span id="espp::Ads7138::set_analog_alert__Channel.float.float.AnalogEvent.i"></span><span class="target" id="classespp_1_1_ads7138_1ab015a3862b18ba97707843bed4b7d51c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_analog_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">high_threshold_mv</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">low_threshold_mv</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713811AnalogEventE" title="espp::Ads7138::AnalogEvent"><span class="n"><span class="pre">AnalogEvent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">event</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">event_count</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the analog channel to generate an alert when the voltage crosses a low or high threshold. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as an analog input. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Analog channel to configure </p></li>
+<li><p><strong>high_threshold_mv</strong> – High threshold (in mV) to generate an alert </p></li>
+<li><p><strong>low_threshold_mv</strong> – Low threshold (in mV) to generate an alert </p></li>
+<li><p><strong>event</strong> – Event type which will generate an alert </p></li>
+<li><p><strong>event_count</strong> – Number of events to generate an alert (1-15). Checks n+1 consecutive samples above or below threshold before setting event flag. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817set_digital_alertE7Channel12DigitalEvent">
+<span id="_CPPv3N4espp7Ads713817set_digital_alertE7Channel12DigitalEvent"></span><span id="_CPPv2N4espp7Ads713817set_digital_alertE7Channel12DigitalEvent"></span><span id="espp::Ads7138::set_digital_alert__Channel.DigitalEvent"></span><span class="target" id="classespp_1_1_ads7138_1a3fce9df9eb77ac879b2d4d5d7ab05ed5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713812DigitalEventE" title="espp::Ads7138::DigitalEvent"><span class="n"><span class="pre">DigitalEvent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">event</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713817set_digital_alertE7Channel12DigitalEvent" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the digital input channel to generate an alert when the input goes high or low. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Digital input channel to configure </p></li>
+<li><p><strong>event</strong> – Event type which will generate an alert </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_t">
+<span id="_CPPv3N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_t"></span><span id="_CPPv2N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_t"></span><span id="espp::Ads7138::get_event_data__uint8_tP.uint8_tP.uint8_tP"></span><span class="target" id="classespp_1_1_ads7138_1a3b7fff92aad75291d136efe5a5edd178"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_flags</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_high_flags</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_low_flags</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get all the event data registers. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The event flags are cleared after reading. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event_flags</strong> – <strong>[inout]</strong> Event flag register </p></li>
+<li><p><strong>event_high_flags</strong> – <strong>[inout]</strong> Event high flag register </p></li>
+<li><p><strong>event_low_flags</strong> – <strong>[inout]</strong> Event low flag register </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713815get_event_flagsEv">
+<span id="_CPPv3N4espp7Ads713815get_event_flagsEv"></span><span id="_CPPv2N4espp7Ads713815get_event_flagsEv"></span><span id="espp::Ads7138::get_event_flags"></span><span class="target" id="classespp_1_1_ads7138_1ad253716280aff57d9e44e42154bac3f3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_flags</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713815get_event_flagsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the event flag register. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The event flags are NOT cleared after reading. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The event flag register </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713819get_event_high_flagEv">
+<span id="_CPPv3N4espp7Ads713819get_event_high_flagEv"></span><span id="_CPPv2N4espp7Ads713819get_event_high_flagEv"></span><span id="espp::Ads7138::get_event_high_flag"></span><span class="target" id="classespp_1_1_ads7138_1a6cfd22dc1af7c6b64e6e491c2a547019"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_high_flag</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713819get_event_high_flagEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the event high flag register. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The event high flags are NOT cleared after reading. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The event high flag register </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713818get_event_low_flagEv">
+<span id="_CPPv3N4espp7Ads713818get_event_low_flagEv"></span><span id="_CPPv2N4espp7Ads713818get_event_low_flagEv"></span><span id="espp::Ads7138::get_event_low_flag"></span><span class="target" id="classespp_1_1_ads7138_1a7cf119291b047fc882dc50c57988d4a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_low_flag</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713818get_event_low_flagEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the event low flag register. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The event low flags are NOT cleared after reading. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The event low flag register </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713821clear_event_high_flagE7uint8_t">
+<span id="_CPPv3N4espp7Ads713821clear_event_high_flagE7uint8_t"></span><span id="_CPPv2N4espp7Ads713821clear_event_high_flagE7uint8_t"></span><span id="espp::Ads7138::clear_event_high_flag__uint8_t"></span><span class="target" id="classespp_1_1_ads7138_1a3aea247b3a57c1a4767be2630bcabb22"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_event_high_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713821clear_event_high_flagE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the event flag register. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>flags</strong> – Flags to clear </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713820clear_event_low_flagE7uint8_t">
+<span id="_CPPv3N4espp7Ads713820clear_event_low_flagE7uint8_t"></span><span id="_CPPv2N4espp7Ads713820clear_event_low_flagE7uint8_t"></span><span id="espp::Ads7138::clear_event_low_flag__uint8_t"></span><span class="target" id="classespp_1_1_ads7138_1a6ac184ac5608fc8531933f1aee31b2ce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_event_low_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713820clear_event_low_flagE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the event flag register. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>flags</strong> – Flags to clear </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode">
+<span id="_CPPv3N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode"></span><span id="_CPPv2N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode"></span><span id="espp::Ads7138::set_digital_output_mode__Channel.OutputMode"></span><span class="target" id="classespp_1_1_ads7138_1ae181b04f73845beecd2ddaa28858f06a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713810OutputModeE" title="espp::Ads7138::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configure the digital output mode for the given channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as a digital output. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Channel to configure </p></li>
+<li><p><strong>output_mode</strong> – Output mode for the channel </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713824set_digital_output_valueE7Channelb">
+<span id="_CPPv3N4espp7Ads713824set_digital_output_valueE7Channelb"></span><span id="_CPPv2N4espp7Ads713824set_digital_output_valueE7Channelb"></span><span id="espp::Ads7138::set_digital_output_value__Channel.b"></span><span class="target" id="classespp_1_1_ads7138_1ac64f1de81f2ae2d985c510abdb132bd4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713824set_digital_output_valueE7Channelb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the digital output value for the given channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as a digital output. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Which channel to set the digital output value for. </p></li>
+<li><p><strong>value</strong> – The value to set the digital output to. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713823get_digital_input_valueE7Channel">
+<span id="_CPPv3N4espp7Ads713823get_digital_input_valueE7Channel"></span><span id="_CPPv2N4espp7Ads713823get_digital_input_valueE7Channel"></span><span id="espp::Ads7138::get_digital_input_value__Channel"></span><span class="target" id="classespp_1_1_ads7138_1a0abb1ba161fa17da37be2898a7266343"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713823get_digital_input_valueE7Channel" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the digital input value for the given channel. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The channel must have been configured as a digital input. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channel</strong> – Which channel to get the digital input value for. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The value of the digital input. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713824get_digital_input_valuesEv">
+<span id="_CPPv3N4espp7Ads713824get_digital_input_valuesEv"></span><span id="_CPPv2N4espp7Ads713824get_digital_input_valuesEv"></span><span id="espp::Ads7138::get_digital_input_values"></span><span class="target" id="classespp_1_1_ads7138_1acacea288bf185391c7ae7c1ac7c066c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_values</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713824get_digital_input_valuesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the digital input values for all channels. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The returned value is a bitfield, with each bit corresponding to a channel. The LSB corresponds to channel 0, the MSB to channel 7. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only channels configured as digital inputs are returned. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The values of the digital inputs. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71385resetEv">
+<span id="_CPPv3N4espp7Ads71385resetEv"></span><span id="_CPPv2N4espp7Ads71385resetEv"></span><span id="espp::Ads7138::reset"></span><span class="target" id="classespp_1_1_ads7138_1a317b60f95f02aa2180e1ab2e536fce06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71385resetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Perform a software reset of the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will reset all registers to their default values (converting all channels to analog inputs and disabling all events). </p>
+</div>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713815DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp7Ads713815DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp7Ads713815DEFAULT_ADDRESSE"></span><span id="espp::Ads7138::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_ads7138_1a4619c6da91847827c111548e39faa352"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0x10</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads713815DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default I2C address of the device (when both R1 and R2 are DNP) (see data sheet Table 2, p. 16) </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386ConfigE">
+<span id="_CPPv3N4espp7Ads71386ConfigE"></span><span id="_CPPv2N4espp7Ads71386ConfigE"></span><span id="espp::Ads7138::Config"></span><span class="target" id="structespp_1_1_ads7138_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration structure. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config14device_addressE">
+<span id="_CPPv3N4espp7Ads71386Config14device_addressE"></span><span id="_CPPv2N4espp7Ads71386Config14device_addressE"></span><span id="espp::Ads7138::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a5f06a4639a7028f0dbe26f231dee32f8"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Ads713815DEFAULT_ADDRESSE" title="espp::Ads7138::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>I2C address of the device. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config10avdd_voltsE">
+<span id="_CPPv3N4espp7Ads71386Config10avdd_voltsE"></span><span id="_CPPv2N4espp7Ads71386Config10avdd_voltsE"></span><span id="espp::Ads7138::Config::avdd_volts__float"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a81d2efadac63e96d3aa24fde9431eefd"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">avdd_volts</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">3.3f</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config10avdd_voltsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>AVDD voltage in Volts. Used for calculating analog input voltage. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config4modeE">
+<span id="_CPPv3N4espp7Ads71386Config4modeE"></span><span id="_CPPv2N4espp7Ads71386Config4modeE"></span><span id="espp::Ads7138::Config::mode__Mode"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a8ed25052eb27866b0ba5a2512d18591e"></span><a class="reference internal" href="#_CPPv4N4espp7Ads71384ModeE" title="espp::Ads7138::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Ads71384ModeE" title="espp::Ads7138::Mode"><span class="n"><span class="pre">Mode</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads71384Mode10AUTONOMOUSE" title="espp::Ads7138::Mode::AUTONOMOUS"><span class="n"><span class="pre">AUTONOMOUS</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config4modeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Mode for analog input conversion. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config13analog_inputsE">
+<span id="_CPPv3N4espp7Ads71386Config13analog_inputsE"></span><span id="_CPPv2N4espp7Ads71386Config13analog_inputsE"></span><span id="espp::Ads7138::Config::analog_inputs__std::vector:Channel:"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a443b5fc2337f24ce3f4fa139a0ae234c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">analog_inputs</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config13analog_inputsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>List of analog input channels to sample. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config14digital_inputsE">
+<span id="_CPPv3N4espp7Ads71386Config14digital_inputsE"></span><span id="_CPPv2N4espp7Ads71386Config14digital_inputsE"></span><span id="espp::Ads7138::Config::digital_inputs__std::vector:Channel:"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a36c69ae60b9749f6778d2b7e16ca74a4"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">digital_inputs</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config14digital_inputsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>List of digital input channels to sample. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config15digital_outputsE">
+<span id="_CPPv3N4espp7Ads71386Config15digital_outputsE"></span><span id="_CPPv2N4espp7Ads71386Config15digital_outputsE"></span><span id="espp::Ads7138::Config::digital_outputs__std::vector:Channel:"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a0a8daad23e49d0054ff5eb5317910dc8"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">digital_outputs</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config15digital_outputsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>List of digital output channels to sample. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config18oversampling_ratioE">
+<span id="_CPPv3N4espp7Ads71386Config18oversampling_ratioE"></span><span id="_CPPv2N4espp7Ads71386Config18oversampling_ratioE"></span><span id="espp::Ads7138::Config::oversampling_ratio__OversamplingRatio"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a146aac1a1383cfa629a3d5eeb76fcb13"></span><a class="reference internal" href="#_CPPv4N4espp7Ads713817OversamplingRatioE" title="espp::Ads7138::OversamplingRatio"><span class="n"><span class="pre">OversamplingRatio</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">oversampling_ratio</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Ads713817OversamplingRatioE" title="espp::Ads7138::OversamplingRatio"><span class="n"><span class="pre">OversamplingRatio</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads713817OversamplingRatio4NONEE" title="espp::Ads7138::OversamplingRatio::NONE"><span class="n"><span class="pre">NONE</span></span></a><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config18oversampling_ratioE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Oversampling ratio to use. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config18statistics_enabledE">
+<span id="_CPPv3N4espp7Ads71386Config18statistics_enabledE"></span><span id="_CPPv2N4espp7Ads71386Config18statistics_enabledE"></span><span id="espp::Ads7138::Config::statistics_enabled__b"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1af2063694dadc70f8b036a1715f73068a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">statistics_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config18statistics_enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Enable statistics collection (min, max, recent) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config5writeE">
+<span id="_CPPv3N4espp7Ads71386Config5writeE"></span><span id="_CPPv2N4espp7Ads71386Config5writeE"></span><span id="espp::Ads7138::Config::write__write_fn"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1ade872aaf299ae2ffc6a257eebfadc1de"></span><a class="reference internal" href="#_CPPv4N4espp7Ads71388write_fnE" title="espp::Ads7138::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write to the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config4readE">
+<span id="_CPPv3N4espp7Ads71386Config4readE"></span><span id="_CPPv2N4espp7Ads71386Config4readE"></span><span id="espp::Ads7138::Config::read__read_fn"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1afd972ada5fdef7425b1fa0be83a63a84"></span><a class="reference internal" href="#_CPPv4N4espp7Ads71387read_fnE" title="espp::Ads7138::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read from the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config9log_levelE">
+<span id="_CPPv3N4espp7Ads71386Config9log_levelE"></span><span id="_CPPv2N4espp7Ads71386Config9log_levelE"></span><span id="espp::Ads7138::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a0eaf1e965da1dde8c44e2601089ce84e"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Verbosity for the logger. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ads1x15.html" class="btn btn-neutral float-left" title="ADS1x15 I2C ADC" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="oneshot_adc.html" class="btn btn-neutral float-right" title="Oneshot ADC" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
