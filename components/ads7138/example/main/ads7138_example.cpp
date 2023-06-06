@@ -130,14 +130,15 @@ extern "C" void app_main(void) {
       auto all_mv = ads.get_all_mv();
       auto x_mv = all_mv[0]; // the first channel is channel 1 (X axis)
       auto y_mv = all_mv[1]; // the second channel is channel 3 (Y axis)
-      auto input_values = ads.get_digital_input_values();
+      // NOTE: we could get all digital inputs as a bitmask using
+      // get_digital_input_values(), but we'll just get the one we want.
+      // If we wanted to get all of them, we could do:
+      // auto input_values = ads.get_digital_input_values();
       auto select =
           ads.get_digital_input_value(espp::Ads7138::Channel::CH5); // the button is on channel 5
       auto select_pressed = select == 0;                            // joystick button is active low
       // use fmt to print so it doesn't have the prefix and can be used more
-      // easily as CSV also pad the binary value with 0s so it's easier to read
-      // (and make sure it's fixed with a chararacter width of 10 - 8 bits + 2
-      // for the 0b prefix)
+      // easily as CSV (for plotting using uart_serial_plotter)
       fmt::print("{:.3f}, {:.3f}, {:.3f}, {}\n", elapsed, x_mv, y_mv, select_pressed ? 1 : 0);
       if (select_pressed) {
         ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 0); // turn on the LED
