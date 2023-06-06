@@ -236,7 +236,10 @@ public:
     } else {
       clear_bits_(Register::ALERT_PIN_CFG, ALERT_DRIVE);
     }
+    clear_bits_(Register::ALERT_PIN_CFG, ALERT_LOGIC);
     set_bits_(Register::ALERT_PIN_CFG, static_cast<uint8_t>(alert_logic));
+    // ensure we have enabled threshold comparison
+    enable_threshold_comparison(true);
   }
 
   /// @brief Configure the analog channel to generate an alert when the
@@ -260,6 +263,8 @@ public:
     // set the event region and configure the event
     set_event_region(static_cast<uint8_t>(channel), event);
     configure_event(channel, high_threshold_mv, low_threshold_mv, event_count);
+    // ensure we have enabled threshold comparison
+    enable_threshold_comparison(true);
   }
 
   /// @brief Configure the digital input channel to generate an alert when the
@@ -276,6 +281,8 @@ public:
     set_bits_(Register::ALERT_CH_SEL, 1 << (int)channel);
     // set the event region
     set_event_region(static_cast<uint8_t>(channel), event);
+    // ensure we have enabled threshold comparison
+    enable_threshold_comparison(true);
   }
 
   /// @brief Get all the event data registers
@@ -284,14 +291,13 @@ public:
   /// @param[inout] event_low_flags Event low flag register
   /// @note The event flags are cleared after reading.
   void get_event_data(uint8_t *event_flags, uint8_t *event_high_flags, uint8_t *event_low_flags) {
-    uint8_t raw[3];
-    read_many_(Register::EVENT_FLAG, raw, 3);
-    *event_flags = raw[0];
-    *event_high_flags = raw[1];
-    *event_low_flags = raw[2];
-    // clearing the high/lows also clears the main event flag
-    clear_bits_(Register::EVENT_HIGH_FLAG, *event_high_flags);
-    clear_bits_(Register::EVENT_LOW_FLAG, *event_low_flags);
+    // read the event data registers
+    *event_flags = read_one_(Register::EVENT_FLAG);
+    *event_high_flags = read_one_(Register::EVENT_HIGH_FLAG);
+    *event_low_flags = read_one_(Register::EVENT_LOW_FLAG);
+    // now clear the data
+    clear_event_high_flag(*event_high_flags);
+    clear_event_low_flag(*event_low_flags);
   }
 
   /// @brief Get the event flag register
@@ -308,6 +314,14 @@ public:
   /// @return The event low flag register
   /// @note The event low flags are NOT cleared after reading.
   uint8_t get_event_low_flag() { return read_one_(Register::EVENT_LOW_FLAG); }
+
+  /// @brief Clear the event flag register
+  /// @param flags Flags to clear
+  void clear_event_high_flag(uint8_t flags = 0xFF) { set_bits_(Register::EVENT_HIGH_FLAG, flags); }
+
+  /// @brief Clear the event flag register
+  /// @param flags Flags to clear
+  void clear_event_low_flag(uint8_t flags = 0xFF) { set_bits_(Register::EVENT_LOW_FLAG, flags); }
 
   /// @brief Configure the digital output mode for the given channel.
   /// @param channel Channel to configure
@@ -367,6 +381,16 @@ public:
    * @note Only channels configured as digital inputs are returned.
    */
   uint8_t get_digital_input_values() { return read_one_(Register::GPI_VALUE); }
+
+  /// @brief Perform a software reset of the device
+  /// @note This will reset all registers to their default values (converting
+  ///       all channels to analog inputs and disabling all events).
+  void reset() {
+    // reset the device
+    write_one_(Register::GENERAL_CFG, SW_RST);
+    // wait for the reset to complete
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
 
 protected:
   /// Opcodes for the ADS7138, see data sheet Table 9 (p. 26)
@@ -656,10 +680,10 @@ protected:
   };
 
   enum class EventRegion {
-    OUTSIDE_OR_HIGH = 0b00, ///< Trigger when ADC value goes outside the low/high thresholds or
-                            ///< digital input is high
-    INSIDE_OR_LOW = 0b01, ///< Trigger when ADC value goes inside the low/high thresholds or digital
-                          ///< input is low
+    OUTSIDE_OR_HIGH = 0, ///< Trigger when ADC value goes outside the low/high thresholds or
+                         ///< digital input is high
+    INSIDE_OR_LOW = 1,   ///< Trigger when ADC value goes inside the low/high thresholds or digital
+                         ///< input is low
   };
 
   void init(const Config &config) {
@@ -1063,10 +1087,14 @@ protected:
     }
     logger_.info("Setting event region for channel {} to {}", channel,
                  static_cast<uint8_t>(region));
-    // clear the original event region
-    clear_bits_(Register::EVENT_RGN, 0b11 << channel);
-    // set the event region
-    set_bits_(Register::EVENT_RGN, static_cast<uint8_t>(region) << channel);
+    if (region == EventRegion::INSIDE_OR_LOW) {
+      set_bits_(Register::EVENT_RGN, 1 << channel);
+    } else if (region == EventRegion::OUTSIDE_OR_HIGH) {
+      clear_bits_(Register::EVENT_RGN, 1 << channel);
+    } else {
+      logger_.error("Invalid event region: {}", static_cast<uint8_t>(region));
+      return;
+    }
   }
 
   void set_event_region(int channel, AnalogEvent event) {

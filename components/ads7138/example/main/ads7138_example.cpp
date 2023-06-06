@@ -121,22 +121,47 @@ extern "C" void app_main(void) {
     // set the digital output to 1 (turn off the LED)
     ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 1);
 
+    // set an alert on the digital input (Sel) so that we can get notified when the button is
+    // pressed (goes low)
+    static int select_bit_mask = (1 << 5);
+    ads.set_digital_alert(espp::Ads7138::Channel::CH5, espp::Ads7138::DigitalEvent::LOW);
+
     // make the task which will get the raw data from the I2C ADC
     fmt::print("%time (s), x (mV), y (mV), select pressed\n");
     auto ads_read_task_fn = [&ads](std::mutex &m, std::condition_variable &cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
       auto elapsed = std::chrono::duration<float>(now - start).count();
+
+      // get the analog input data
       auto all_mv = ads.get_all_mv();
       auto x_mv = all_mv[0]; // the first channel is channel 1 (X axis)
       auto y_mv = all_mv[1]; // the second channel is channel 3 (Y axis)
+
+      // get the event data to see if there was an alert (since we don't have
+      // the ALERT pin connected)
+      uint8_t event_flags = 0;
+      uint8_t event_high_flags = 0;
+      uint8_t event_low_flags = 0;
+      ads.get_event_data(&event_flags, &event_high_flags,
+                         &event_low_flags); // NOTE: this clears the event flags
+
       // NOTE: we could get all digital inputs as a bitmask using
       // get_digital_input_values(), but we'll just get the one we want.
       // If we wanted to get all of them, we could do:
       // auto input_values = ads.get_digital_input_values();
-      auto select =
+      auto select_value =
           ads.get_digital_input_value(espp::Ads7138::Channel::CH5); // the button is on channel 5
-      auto select_pressed = select == 0;                            // joystick button is active low
+      auto select_pressed = select_value == 0;                      // joystick button is active low
+
+      // See if there was an alert on the digital input (Sel, channel 5)
+      if (event_flags & select_bit_mask) {
+        // See if there was actually a low event on the digital input (Sel, channel 5)
+        if (event_low_flags & select_bit_mask) {
+          logger.info("ALERT: Select pressed!");
+        }
+      }
+
       // use fmt to print so it doesn't have the prefix and can be used more
       // easily as CSV (for plotting using uart_serial_plotter)
       fmt::print("{:.3f}, {:.3f}, {:.3f}, {}\n", elapsed, x_mv, y_mv, select_pressed ? 1 : 0);
