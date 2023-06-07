@@ -1,6 +1,7 @@
 #include <chrono>
 #include <vector>
 
+#include "driver/gpio.h"
 #include "driver/i2c.h"
 
 #include "ads7138.hpp"
@@ -15,16 +16,19 @@ using namespace std::chrono_literals;
 // 1), SCL (pin 9), SDA (pin 10), and GND (pin 22). We also connect the 5V pin
 // on the QtPy header to the 5V pin on the BP-ADS7128 (pin 21 of J1). We then
 // run this example, and we should see the raw ADC values printed to the
-// console.
+// console. Finally, we connect the ALERT pin of the BP-ADS7128 (pin 13 of J3)
+// to GPIO 18 on the QtPy (A0). We should see the ALERT pin pulled low when the
+// joystick is pressed.
 //
 // Table of connections between QtPy and BP-ADS7128:
-// QtPy  | BP-ADS7128
-// -------------------
-// 3.3V  | 3.3V (pin 1)
-// GND   | GND (pin 22)
-// GPIO41| SDA (pin 10)
-// GPIO40| SCL (pin 9)
-// 5V    | 5V (pin 21)
+// QtPy               | BP-ADS7128
+// ---------------------------------------
+// 3.3V               | 3.3V (J1 pin 1)
+// GND                | GND (J1 pin 22)
+// Qwiic SDA (GPIO41) | SDA (J1 pin 10)
+// Qwiic SCL (GPIO40) | SCL (J1 pin 9)
+// 5V                 | 5V (J1 pin 21)
+// A0 (GPIO18)        | ALERT (J3 pin 13)
 //
 // Connected to the BP-ADS7128, we have a Adafruit Thumb Joystick. The X axis
 // of the joystick is connected to channel 1 of the BP-ADS7128, and the Y axis
@@ -43,6 +47,12 @@ using namespace std::chrono_literals;
 // CH5 (J5 pin 8)  | Button (Sel)
 // 3.3V (J1 pin 1) | VCC
 //
+// The ALERT pin of the BP-ADS7128 is exposed on J3 pin 13. We can connect this
+// pin to a GPIO on the QtPy, and use it to trigger an interrupt when the ALERT
+// pin is pulled low. This is useful if we want to use the ALERT pin to trigger
+// an interrupt when the ADC value exceeds a certain threshold. In this example,
+// we connect the ALERT pin to GPIO 13 on the QtPy.
+//
 // NOTE: The analog inputs on J5 of the BP-ADS7128 are connected via a 10k
 // resistor in series to the actual analog input of the ADS7128. This is to
 // protect the ADS7128 from overvoltage. Therefore you may want to add a pull-up
@@ -54,11 +64,19 @@ using namespace std::chrono_literals;
 // active low, so when we set the digital output to 1, the LED should turn off,
 // and when we set the digital output to 0, the LED should turn on. We can
 // change the digital output value by pressing the button on the joystick.
+static constexpr auto ALERT_PIN = (GPIO_NUM_18);
 static constexpr auto I2C_NUM = (I2C_NUM_1);
 static constexpr auto I2C_SCL_IO = (GPIO_NUM_40);
 static constexpr auto I2C_SDA_IO = (GPIO_NUM_41);
 static constexpr auto I2C_FREQ_HZ = (400 * 1000);
 static constexpr auto I2C_TIMEOUT_MS = (10);
+
+static QueueHandle_t gpio_evt_queue;
+
+static void gpio_isr_handler(void *arg) {
+  uint32_t gpio_num = (uint32_t)arg;
+  xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+}
 
 extern "C" void app_main(void) {
   static espp::Logger logger({.tag = "ads7138 example", .level = espp::Logger::Verbosity::INFO});
@@ -101,6 +119,7 @@ extern "C" void app_main(void) {
     };
 
     // make the actual ads class
+    static int select_bit_mask = (1 << 5);
     espp::Ads7138 ads(espp::Ads7138::Config{
         .device_address = espp::Ads7138::DEFAULT_ADDRESS,
         .mode = espp::Ads7138::Mode::AUTONOMOUS,
@@ -115,6 +134,54 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
+    // create the gpio event queue
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    // setup gpio interrupts for mute button
+    gpio_config_t io_conf;
+    memset(&io_conf, 0, sizeof(io_conf));
+    // interrupt on falling edge since the ALERT pin is pulled up
+    io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    io_conf.pin_bit_mask = (1 << static_cast<int>(ALERT_PIN));
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE; // it's pulled up on the BP-ADS7128 as well
+    gpio_config(&io_conf);
+
+    // install gpio isr service
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(ALERT_PIN, gpio_isr_handler, (void *)ALERT_PIN);
+
+    // start the gpio task
+    auto alert_task = espp::Task::make_unique(espp::Task::Config{
+        .name = "alert",
+        .callback = [&ads](auto &m, auto &cv) -> bool {
+          static uint32_t io_num;
+          // block until we get a message from the interrupt handler
+          if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+            // see if it's the mute button
+            if (io_num == (int)ALERT_PIN) {
+              // we got an interrupt from the ALERT pin, so read the event data
+              uint8_t event_flags = 0;
+              uint8_t event_high_flags = 0;
+              uint8_t event_low_flags = 0;
+              ads.get_event_data(&event_flags, &event_high_flags,
+                                 &event_low_flags); // NOTE: this clears the event flags / ALERT
+
+              // See if there was an alert on the digital input (Sel, channel 5)
+              if (event_flags & select_bit_mask) {
+                // See if there was actually a low event on the digital input (Sel, channel 5)
+                if (event_low_flags & select_bit_mask) {
+                  logger.info("ALERT: Select pressed!");
+                }
+              }
+            }
+          }
+          // don't want to stop the task
+          return false;
+        },
+        .stack_size_bytes = 4 * 1024,
+    });
+    alert_task->start();
+
     // set the digital output drive mode to open-drain
     ads.set_digital_output_mode(espp::Ads7138::Channel::CH7, espp::Ads7138::OutputMode::OPEN_DRAIN);
 
@@ -123,7 +190,6 @@ extern "C" void app_main(void) {
 
     // set an alert on the digital input (Sel) so that we can get notified when the button is
     // pressed (goes low)
-    static int select_bit_mask = (1 << 5);
     ads.set_digital_alert(espp::Ads7138::Channel::CH5, espp::Ads7138::DigitalEvent::LOW);
 
     // make the task which will get the raw data from the I2C ADC
@@ -138,14 +204,6 @@ extern "C" void app_main(void) {
       auto x_mv = all_mv[0]; // the first channel is channel 1 (X axis)
       auto y_mv = all_mv[1]; // the second channel is channel 3 (Y axis)
 
-      // get the event data to see if there was an alert (since we don't have
-      // the ALERT pin connected)
-      uint8_t event_flags = 0;
-      uint8_t event_high_flags = 0;
-      uint8_t event_low_flags = 0;
-      ads.get_event_data(&event_flags, &event_high_flags,
-                         &event_low_flags); // NOTE: this clears the event flags
-
       // NOTE: we could get all digital inputs as a bitmask using
       // get_digital_input_values(), but we'll just get the one we want.
       // If we wanted to get all of them, we could do:
@@ -153,14 +211,6 @@ extern "C" void app_main(void) {
       auto select_value =
           ads.get_digital_input_value(espp::Ads7138::Channel::CH5); // the button is on channel 5
       auto select_pressed = select_value == 0;                      // joystick button is active low
-
-      // See if there was an alert on the digital input (Sel, channel 5)
-      if (event_flags & select_bit_mask) {
-        // See if there was actually a low event on the digital input (Sel, channel 5)
-        if (event_low_flags & select_bit_mask) {
-          logger.info("ALERT: Select pressed!");
-        }
-      }
 
       // use fmt to print so it doesn't have the prefix and can be used more
       // easily as CSV (for plotting using uart_serial_plotter)

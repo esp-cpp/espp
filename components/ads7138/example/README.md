@@ -12,17 +12,22 @@ boosterpack plugged in. We connect the I2C pins on the QtPy Qwiic header (3.3V,
 GPIO41 SDA and GPIO40 SCL, and GND) to J1 of the BP-ADS7128: 3.3V (pin 1), SCL
 (pin 9), SDA (pin 10), and GND (pin 22). We also connect the 5V pin on the QtPy
 header to the 5V pin on the BP-ADS7128 (pin 21 of J1). We then run this example,
-and we should see the raw ADC values printed to the console.
+and we should see the raw ADC values printed to the console. Finally we connect
+a jumper wire between the ALERT pin of the BP-ADS7128 (pin 13 of J3) and the A0
+pin of the QtPy (GPIO18). We should see the ALERT pin go low when the joystick
+button is pressed. We use a GPIO interrupt handler + task to detect the falling
+edge of the ALERT pin, and print a message to the console.
 
 Table of connections between QtPy and BP-ADS7128:
 
-| QtPy            | BP-ADS7138      |
-|:----------------|:----------------|
-| 3.3V (Qwiic)    | 3.3V (J1 pin 1) |
-| GND (Qwiic)     | GND (J1 pin 22) |
-| I2C SDA (Qwiic) | SDA (J1 pin 10) |
-| I2C SCL (Qwiic) | SCL (J1 pin 9)  |
-| 5V              | 5V (J1 pin 21)  |
+| QtPy            | BP-ADS7138        |
+|:----------------|:------------------|
+| 3.3V (Qwiic)    | 3.3V (J1 pin 1)   |
+| GND (Qwiic)     | GND (J1 pin 22)   |
+| I2C SDA (Qwiic) | SDA (J1 pin 10)   |
+| I2C SCL (Qwiic) | SCL (J1 pin 9)    |
+| 5V              | 5V (J1 pin 21)    |
+| A0 (GPIO18)     | ALERT (J3 pin 13) |
 
 
 Connected to the BP-ADS7128, we have a Adafruit Thumb Joystick. The X axis
