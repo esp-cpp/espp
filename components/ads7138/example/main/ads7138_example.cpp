@@ -182,6 +182,10 @@ extern "C" void app_main(void) {
     });
     alert_task->start();
 
+    // configure the alert pin
+    ads.configure_alert(espp::Ads7138::OutputMode::PUSH_PULL,
+                        espp::Ads7138::AlertLogic::ACTIVE_LOW);
+
     // set the digital output drive mode to open-drain
     ads.set_digital_output_mode(espp::Ads7138::Channel::CH7, espp::Ads7138::OutputMode::OPEN_DRAIN);
 

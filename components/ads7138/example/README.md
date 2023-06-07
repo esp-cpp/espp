@@ -60,7 +60,7 @@ active low, so when we set the digital output to 1, the LED should turn off,
 and when we set the digital output to 0, the LED should turn on. We can
 change the digital output value by pressing the button on the joystick.
 
-![image](https://github.com/esp-cpp/espp/assets/213467/1a77d31f-086e-49b7-8c78-33ab750749f2)
+![image](https://github.com/esp-cpp/espp/assets/213467/844ceebf-81aa-4e8a-8fb4-4e4f6f7d12a8)
 
 ## How to use example
 
@@ -90,6 +90,7 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+![CleanShot 2023-06-07 at 11 54 43](https://github.com/esp-cpp/espp/assets/213467/49d3b569-e5cd-4575-be27-3f20e8031f3b)
 ![CleanShot 2023-06-06 at 13 46 56](https://github.com/esp-cpp/espp/assets/213467/cf68a4d9-4f71-4751-b00e-1ebdadcd3e88)
 ![CleanShot 2023-06-06 at 13 51 55](https://github.com/esp-cpp/espp/assets/213467/e1149279-00c2-42d3-a530-f6005c35e69c)
 
