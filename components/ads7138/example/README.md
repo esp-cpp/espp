@@ -12,17 +12,22 @@ boosterpack plugged in. We connect the I2C pins on the QtPy Qwiic header (3.3V,
 GPIO41 SDA and GPIO40 SCL, and GND) to J1 of the BP-ADS7128: 3.3V (pin 1), SCL
 (pin 9), SDA (pin 10), and GND (pin 22). We also connect the 5V pin on the QtPy
 header to the 5V pin on the BP-ADS7128 (pin 21 of J1). We then run this example,
-and we should see the raw ADC values printed to the console.
+and we should see the raw ADC values printed to the console. Finally we connect
+a jumper wire between the ALERT pin of the BP-ADS7128 (pin 13 of J3) and the A0
+pin of the QtPy (GPIO18). We should see the ALERT pin go low when the joystick
+button is pressed. We use a GPIO interrupt handler + task to detect the falling
+edge of the ALERT pin, and print a message to the console.
 
 Table of connections between QtPy and BP-ADS7128:
 
-| QtPy            | BP-ADS7138      |
-|:----------------|:----------------|
-| 3.3V (Qwiic)    | 3.3V (J1 pin 1) |
-| GND (Qwiic)     | GND (J1 pin 22) |
-| I2C SDA (Qwiic) | SDA (J1 pin 10) |
-| I2C SCL (Qwiic) | SCL (J1 pin 9)  |
-| 5V              | 5V (J1 pin 21)  |
+| QtPy            | BP-ADS7138        |
+|:----------------|:------------------|
+| 3.3V (Qwiic)    | 3.3V (J1 pin 1)   |
+| GND (Qwiic)     | GND (J1 pin 22)   |
+| I2C SDA (Qwiic) | SDA (J1 pin 10)   |
+| I2C SCL (Qwiic) | SCL (J1 pin 9)    |
+| 5V              | 5V (J1 pin 21)    |
+| A0 (GPIO18)     | ALERT (J3 pin 13) |
 
 
 Connected to the BP-ADS7128, we have a Adafruit Thumb Joystick. The X axis
@@ -55,7 +60,7 @@ active low, so when we set the digital output to 1, the LED should turn off,
 and when we set the digital output to 0, the LED should turn on. We can
 change the digital output value by pressing the button on the joystick.
 
-![image](https://github.com/esp-cpp/espp/assets/213467/1a77d31f-086e-49b7-8c78-33ab750749f2)
+![image](https://github.com/esp-cpp/espp/assets/213467/844ceebf-81aa-4e8a-8fb4-4e4f6f7d12a8)
 
 ## How to use example
 
@@ -85,6 +90,7 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+![CleanShot 2023-06-07 at 11 54 43](https://github.com/esp-cpp/espp/assets/213467/49d3b569-e5cd-4575-be27-3f20e8031f3b)
 ![CleanShot 2023-06-06 at 13 46 56](https://github.com/esp-cpp/espp/assets/213467/cf68a4d9-4f71-4751-b00e-1ebdadcd3e88)
 ![CleanShot 2023-06-06 at 13 51 55](https://github.com/esp-cpp/espp/assets/213467/e1149279-00c2-42d3-a530-f6005c35e69c)
 

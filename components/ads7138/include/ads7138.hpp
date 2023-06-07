@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <functional>
+#include <mutex>
 #include <thread>
 
 #include "logger.hpp"
@@ -189,6 +190,7 @@ public:
    *       configured as an analog input.
    */
   float get_mv(Channel channel) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (mode_ == Mode::MANUAL) {
       // If auto conversion is not enabled, we need to trigger a conversion
       // and wait for it to complete.
@@ -217,6 +219,7 @@ public:
    *       ADC's buffer (blocking until conversion is complete).
    */
   std::vector<float> get_all_mv() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::vector<float> values;
     // TODO: handle the non-autonomous case
     auto raw_values = read_recent_all();
@@ -230,6 +233,7 @@ public:
   /// @param output_mode Output mode ALERT pin
   /// @param alert_logic Alert logic for ALERT pin
   void configure_alert(OutputMode output_mode, AlertLogic alert_logic) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     // set the ALERT_PIN_CFG register
     if (output_mode == OutputMode::OPEN_DRAIN) {
       set_bits_(Register::ALERT_PIN_CFG, ALERT_DRIVE);
@@ -253,6 +257,7 @@ public:
   /// @note The channel must have been configured as an analog input.
   void set_analog_alert(Channel channel, float high_threshold_mv, float low_threshold_mv,
                         AnalogEvent event, int event_count = 1) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     // if it's a digital output channel, we can't set thresholds
     if (!is_analog_input(channel)) {
       logger_.error("Channel {} is configured as a digital output, cannot set alert", channel);
@@ -272,6 +277,7 @@ public:
   /// @param channel Digital input channel to configure
   /// @param event Event type which will generate an alert
   void set_digital_alert(Channel channel, DigitalEvent event) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     // if it's not a digital input channel we can't set a digital alert
     if (!is_digital_input(channel)) {
       logger_.error("Channel {} is not configured as a digital input, cannot set alert", channel);
@@ -291,6 +297,7 @@ public:
   /// @param[inout] event_low_flags Event low flag register
   /// @note The event flags are cleared after reading.
   void get_event_data(uint8_t *event_flags, uint8_t *event_high_flags, uint8_t *event_low_flags) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     // read the event data registers
     *event_flags = read_one_(Register::EVENT_FLAG);
     *event_high_flags = read_one_(Register::EVENT_HIGH_FLAG);
@@ -328,6 +335,7 @@ public:
   /// @param output_mode Output mode for the channel
   /// @note The channel must have been configured as a digital output.
   void set_digital_output_mode(Channel channel, OutputMode output_mode) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!is_digital_output(channel)) {
       logger_.error("Channel {} is not configured as a digital output", channel);
       return;
@@ -348,6 +356,7 @@ public:
    * @note The channel must have been configured as a digital output.
    */
   void set_digital_output_value(Channel channel, bool value) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!is_digital_output(channel)) {
       logger_.error("Channel {} is not configured as a digital output", channel);
       return;
@@ -366,6 +375,7 @@ public:
    * @note The channel must have been configured as a digital input.
    */
   bool get_digital_input_value(Channel channel) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!is_digital_input(channel)) {
       logger_.error("Channel {} is not configured as a digital input", channel);
       return false;
@@ -386,6 +396,7 @@ public:
   /// @note This will reset all registers to their default values (converting
   ///       all channels to analog inputs and disabling all events).
   void reset() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     // reset the device
     write_one_(Register::GENERAL_CFG, SW_RST);
     // wait for the reset to complete
@@ -1174,6 +1185,7 @@ protected:
   }
 
   uint8_t read_one_(Register reg) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t read_one_command[] = {OP_READ_ONE, (uint8_t)reg};
     write_(address_, read_one_command, sizeof(read_one_command));
     uint8_t data;
@@ -1191,22 +1203,26 @@ protected:
   }
 
   void read_many_(Register reg, uint8_t *data, uint8_t len) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t read_block_command[] = {OP_READ_BLOCK, (uint8_t)reg};
     write_(address_, read_block_command, sizeof(read_block_command));
     read_(address_, data, len);
   }
 
   void set_bits_(Register reg, uint8_t bit) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t data[] = {OP_SET_BITS, (uint8_t)reg, bit};
     write_(address_, data, sizeof(data));
   }
 
   void clear_bits_(Register reg, uint8_t bit) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t data[] = {OP_CLR_BITS, (uint8_t)reg, bit};
     write_(address_, data, sizeof(data));
   }
 
   void write_one_(Register reg, uint8_t value) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t data[] = {OP_WRITE_ONE, (uint8_t)reg, value};
     write_(address_, data, sizeof(data));
   }
@@ -1214,6 +1230,7 @@ protected:
   void write_two_(Register reg, uint16_t value) { write_many_(reg, (uint8_t *)&value, 2); }
 
   void write_many_(Register reg, uint8_t *data, uint8_t len) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t total_len = len + 2;
     uint8_t data_with_header[total_len];
     data_with_header[0] = OP_WRITE_BLOCK;
@@ -1235,6 +1252,7 @@ protected:
   uint8_t address_;
   write_fn write_;
   read_fn read_;
+  std::recursive_mutex mutex_; ///< mutex for thread safety
   espp::Logger logger_;
 };
 } // namespace espp
