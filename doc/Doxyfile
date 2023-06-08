@@ -54,6 +54,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/socket/example/main/socket_example.cp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
@@ -133,6 +134,7 @@ INPUT += $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.
 INPUT += $(PROJECT_PATH)/components/state_machine/include/state_base.hpp
 INPUT += $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp
 INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
+INPUT += $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp
 
