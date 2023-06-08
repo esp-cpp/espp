@@ -101,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
 </ul>
 
@@ -120,7 +121,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/80a1e0b/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f80f4d4/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -1381,8 +1382,6 @@
 </li>
       <li><a href="led_strip.html#_CPPv4N4espp8LedStrip4showEv">espp::LedStrip::show (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="led_strip.html#_CPPv4N4espp8LedStrip8write_fnE">espp::LedStrip::write_fn (C++ type)</a>
 </li>
       <li><a href="cli.html#_CPPv4N4espp9LineInputE">espp::LineInput (C++ class)</a>
@@ -1401,6 +1400,8 @@
 </li>
       <li><a href="cli.html#_CPPv4N4espp9LineInput16set_history_sizeE6size_t">espp::LineInput::set_history_size (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="cli.html#_CPPv4N4espp9LineInputD0Ev">espp::LineInput::~LineInput (C++ function)</a>
 </li>
       <li><a href="logger.html#_CPPv4N4espp6LoggerE">espp::Logger (C++ class)</a>
@@ -2442,6 +2443,40 @@
       <li><a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocket8transmitENSt11string_viewERKN6detail17TcpTransmitConfigE">espp::TcpSocket::transmit (C++ function)</a>, <a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocket8transmitERKNSt6vectorI7uint8_tEERKN6detail17TcpTransmitConfigE">[1]</a>, <a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocket8transmitERKNSt6vectorIcEERKN6detail17TcpTransmitConfigE">[2]</a>
 </li>
       <li><a href="network/tcp_socket.html#_CPPv4N4espp9TcpSocketD0Ev">espp::TcpSocket::~TcpSocket (C++ function)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10ThermistorE">espp::Thermistor (C++ class)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor6ConfigE">espp::Thermistor::Config (C++ struct)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor6Config4betaE">espp::Thermistor::Config::beta (C++ member)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor6Config14divider_configE">espp::Thermistor::Config::divider_config (C++ member)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor6Config21fixed_resistance_ohmsE">espp::Thermistor::Config::fixed_resistance_ohms (C++ member)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor6Config9log_levelE">espp::Thermistor::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor6Config23nominal_resistance_ohmsE">espp::Thermistor::Config::nominal_resistance_ohms (C++ member)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor6Config7read_mvE">espp::Thermistor::Config::read_mv (C++ member)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor6Config9supply_mvE">espp::Thermistor::Config::supply_mv (C++ member)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor11get_celsiusEv">espp::Thermistor::get_celsius (C++ function)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor14get_fahrenheitEv">espp::Thermistor::get_fahrenheit (C++ function)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor10get_kelvinEv">espp::Thermistor::get_kelvin (C++ function)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor10read_mv_fnE">espp::Thermistor::read_mv_fn (C++ type)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor21ResistorDividerConfigE">espp::Thermistor::ResistorDividerConfig (C++ enum)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor21ResistorDividerConfig5LOWERE">espp::Thermistor::ResistorDividerConfig::LOWER (C++ enumerator)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor21ResistorDividerConfig5UPPERE">espp::Thermistor::ResistorDividerConfig::UPPER (C++ enumerator)</a>
+</li>
+      <li><a href="thermistor.html#_CPPv4N4espp10Thermistor10ThermistorERK6Config">espp::Thermistor::Thermistor (C++ function)</a>
 </li>
       <li><a href="input/touchpad_input.html#_CPPv4N4espp13TouchpadInputE">espp::TouchpadInput (C++ class)</a>
 </li>

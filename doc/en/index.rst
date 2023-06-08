@@ -39,4 +39,5 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    serialization
    state_machine
    task
+   thermistor
    wifi/index
