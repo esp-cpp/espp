@@ -97,9 +97,10 @@ extern "C" void app_main(void) {
   // create a thermistor object (based on the datasheet from
   // https://product.tdk.com/system/files/dam/doc/product/sensor/ntc/chip-ntc-thermistor/catalog/tpd_commercial_ntc-thermistor_ntcg_en.pdf
   // From the table (page 7):
-  // Part Number.    | R25(Ω) | Tolerance | B25/50(Κ) | B25/75(Κ) | B25/85(Κ) | B25/100(K) | Current
-  // (mA) | Operating Temp Range NTCG103JF103FT1 | 10,000 |   +/–1%   | 3380      | 3422      | 3435
-  // | 3453 +/–1% | 0.31         | –40 to 152
+  // clang-format off
+  // Part Number.    | R25(Ω) | Tolerance | B25/50(Κ) | B25/75(Κ) | B25/85(Κ) | B25/100(K) | Current (mA) | Operating Temp Range
+  // NTCG103JF103FT1 | 10,000 |   +/–1%   | 3380      | 3422      | 3435      | 3453 +/–1% | 0.31         | –40 to 152
+  // clang-format on
   espp::Thermistor thermistor({.divider_config = espp::Thermistor::ResistorDividerConfig::UPPER,
                                .beta = 3380,
                                .nominal_resistance_ohms = 10000,
