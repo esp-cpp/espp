@@ -58,12 +58,11 @@ public:
     }
   }
 
-  /// @brief Get the temperature in Kelvin
-  /// @return Temperature in Kelvin
+  /// @brief Get resistance of the thermistor
+  /// @return Resistance of the thermistor in ohms
   /// @details
-  /// Reads the voltage from the thermistor and converts it to temperature
-  /// using the Steinhart-Hart equation.
-  float get_kelvin() {
+  /// Reads the voltage from the thermistor and converts it to resistance
+  float get_resistance() {
     if (read_mv_ == nullptr) {
       logger_.error("read_mv_ is null");
       return 0.0f;
@@ -88,10 +87,22 @@ public:
       r1 = r2_ * (1.0f / v_r - 1.0f);
     }
 
+    logger_.debug("mv: {:.3f}, v_r: {:.3f}, r1: {:.3f}", mv, v_r, r1);
+    return r1;
+  }
+
+  /// @brief Get the temperature in Kelvin
+  /// @return Temperature in Kelvin
+  /// @details
+  /// Reads the voltage from the thermistor and converts it to temperature
+  /// using the Steinhart-Hart equation.
+  float get_kelvin() {
+    float r1 = get_resistance();
+
     // compute temperature using the Steinhart-Hart equation
     float t = 1.0f / (T_25C_INV + fast_ln(r1 / r0_) * b_inv_);
 
-    logger_.debug("mv: {:.3f}, v_r: {:.3f}, r1: {:.3f}, t: {:.3f}", mv, v_r, r1, t);
+    logger_.debug("t: {:.3f}", t);
     return t;
   }
 

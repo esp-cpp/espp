@@ -63,8 +63,9 @@ extern "C" void app_main(void) {
       auto celsius = thermistor.get_celsius();
       // use kelvin for calculating error so we don't have to worry about division by zero
       auto error = std::abs(kelvin - actual_kelvin);
-      logger.info("calculated temp: {:.2f} C, actual: {:.2f} C; error: {:.2f} C", celsius,
-                  actual_celsius, error);
+      logger.info("measured voltage: {:.2f} mV, calculated resistance: {:.2f} Ohm, calculated "
+                  "temp: {:.2f} C, actual: {:.2f} C; error: {:.2f} C",
+                  get_voltage(), thermistor.get_resistance(), celsius, actual_celsius, error);
     }
     //! [thermistor validation example]
   }
