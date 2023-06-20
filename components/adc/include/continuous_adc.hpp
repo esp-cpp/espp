@@ -4,6 +4,8 @@
 #include <optional>
 #include <unordered_map>
 
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_continuous.h"
 
 #include "adc_types.hpp"
@@ -49,7 +51,9 @@ public:
   ContinuousAdc(const Config &config)
       : sample_rate_hz_(config.sample_rate_hz), window_size_bytes_(config.window_size_bytes),
         num_channels_(config.channels.size()), conv_mode_(config.convert_mode),
-        logger_({.tag = "Continuous Adc", .level = config.log_level}) {
+        logger_({.tag = "Continuous Adc",
+                 .rate_limit = std::chrono::milliseconds(100),
+                 .level = config.log_level}) {
     // initialize the adc continuous subsystem
     init(config.channels);
     // allocate memory for the task to store result data from DMA
@@ -76,6 +80,14 @@ public:
     delete[] result_data_;
     ESP_ERROR_CHECK(adc_continuous_stop(handle_));
     ESP_ERROR_CHECK(adc_continuous_deinit(handle_));
+    // clean up the calibration data
+    for (auto &channel : channels_) {
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
+      ESP_ERROR_CHECK(adc_cali_delete_scheme_curve_fitting(cali_handles_[channel]));
+#elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+      ESP_ERROR_CHECK(adc_cali_delete_scheme_line_fitting(cali_handles_[channel]));
+#endif
+    }
   }
 
   /**
@@ -171,19 +183,22 @@ protected:
     {
       std::lock_guard<std::mutex> lk(data_mutex_);
       for (auto &channel : channels_) {
-        logger_.debug("CH{} - {} , {}", (int)channel, sums_[channel], num_samples_[channel]);
         float num_samples = num_samples_[channel];
         if (num_samples > 0) {
           float sum = sums_[channel];
+          // note: the data collected above is uncalibrated (raw) values so we need to convert
+          // to millivolts
           // TODO: use ESP32 hardware-accelerated filter
           // simple filter
-          values_[channel] = sum / num_samples;
+          int millivolts = 0;
+          adc_cali_raw_to_voltage(cali_handles_[channel], sum / num_samples, &millivolts);
+          values_[channel] = float(millivolts);
           actual_rates_[channel] = num_samples / elapsed_seconds;
         }
+        logger_.debug_rate_limited("CH{} - {}, {}, {:.2f}, {:.2f}", (int)channel, sums_[channel],
+                                   num_samples_[channel], values_[channel], actual_rates_[channel]);
       }
     }
-    // TODO: if the elapsed_seconds is too small, we may want to delay to
-    //       prevent task starvation...
 
     // don't want to stop the task
     return false;
@@ -245,6 +260,12 @@ protected:
       logger_.info("adc_pattern[{}].channel is 0x{:02x}", i, (int)adc_pattern[i].channel);
       logger_.info("adc_pattern[{}].unit is 0x{:02x}", i, (int)adc_pattern[i].unit);
 
+      // create the calibration data
+      auto calibrated =
+          init_calibration(conf.unit, conf.attenuation, (adc_bitwidth_t)adc_pattern[i].bit_width,
+                           &cali_handles_[conf.channel]);
+      logger_.info("adc_pattern[{}].cali_handle is calibrated: {}", i, calibrated);
+
       // save the channel
       channels_.push_back(conf.channel);
       // update our dictionaries
@@ -261,6 +282,54 @@ protected:
     cbs.on_conv_done = s_conv_done_cb;
     ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle_, &cbs, &task_handle_));
     ESP_ERROR_CHECK(adc_continuous_start(handle_));
+  }
+
+  bool init_calibration(adc_unit_t unit, adc_atten_t atten, adc_bitwidth_t bitwidth,
+                        adc_cali_handle_t *out_handle) {
+    adc_cali_handle_t handle = NULL;
+    esp_err_t ret = ESP_FAIL;
+    bool calibrated = false;
+
+#if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
+    if (!calibrated) {
+      logger_.info("calibration scheme version is {}", "Curve Fitting");
+      adc_cali_curve_fitting_config_t cali_config = {
+          .unit_id = unit,
+          .atten = atten,
+          .bitwidth = bitwidth,
+      };
+      ret = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
+      if (ret == ESP_OK) {
+        calibrated = true;
+      }
+    }
+#endif
+
+#if ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    if (!calibrated) {
+      logger_.info("calibration scheme version is {}", "Line Fitting");
+      adc_cali_line_fitting_config_t cali_config = {
+          .unit_id = unit,
+          .atten = atten,
+          .bitwidth = bitwidth,
+      };
+      ret = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
+      if (ret == ESP_OK) {
+        calibrated = true;
+      }
+    }
+#endif
+
+    *out_handle = handle;
+    if (ret == ESP_OK) {
+      logger_.info("Calibration Success");
+    } else if (ret == ESP_ERR_NOT_SUPPORTED || !calibrated) {
+      logger_.warn("eFuse not burnt, skip software calibration");
+    } else {
+      logger_.error("Invalid arg or no memory");
+    }
+
+    return calibrated;
   }
 
   static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle,
@@ -286,6 +355,7 @@ protected:
   std::mutex data_mutex_;
   uint8_t *result_data_;
   std::vector<adc_channel_t> channels_;
+  std::unordered_map<adc_channel_t, adc_cali_handle_t> cali_handles_;
   std::unordered_map<adc_channel_t, size_t> sums_;
   std::unordered_map<adc_channel_t, size_t> num_samples_;
   std::unordered_map<adc_channel_t, float> values_;
