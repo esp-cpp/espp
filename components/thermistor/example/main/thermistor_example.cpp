@@ -73,9 +73,9 @@ extern "C" void app_main(void) {
   //! [thermistor adc example]
 
   // create a continuous ADC which will sample and filter the thermistor
-  // voltage on ADC1 channel 1
+  // voltage on ADC1 channel 7
   std::vector<espp::AdcConfig> channels{
-      {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_0, .attenuation = ADC_ATTEN_DB_11}};
+      {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_7, .attenuation = ADC_ATTEN_DB_11}};
   // this initailizes the DMA and filter task for the continuous adc
   espp::ContinuousAdc adc(
       {.sample_rate_hz = 20 * 1000,
@@ -95,9 +95,13 @@ extern "C" void app_main(void) {
   };
 
   // create a thermistor object (based on the datasheet from
-  // https://product.tdk.com/system/files/dam/doc/product/sensor/ntc/chip-ntc-thermistor/data_sheet/50/db/ntc/ntc_smd_standard_series_0402.pdf
+  // https://product.tdk.com/system/files/dam/doc/product/sensor/ntc/chip-ntc-thermistor/catalog/tpd_commercial_ntc-thermistor_ntcg_en.pdf
+  // From the table (page 7):
+  // Part Number.    | R25(Ω) | Tolerance | B25/50(Κ) | B25/75(Κ) | B25/85(Κ) | B25/100(K) | Current
+  // (mA) | Operating Temp Range NTCG103JF103FT1 | 10,000 |   +/–1%   | 3380      | 3422      | 3435
+  // | 3453 +/–1% | 0.31         | –40 to 152
   espp::Thermistor thermistor({.divider_config = espp::Thermistor::ResistorDividerConfig::UPPER,
-                               .beta = 3940, // 25/50C beta since we're not planning on hot temps
+                               .beta = 3380,
                                .nominal_resistance_ohms = 10000,
                                .fixed_resistance_ohms = 10000,
                                .supply_mv = 3300,
