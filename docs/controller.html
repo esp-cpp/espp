@@ -39,7 +39,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Command Line Interface (CLI) APIs" href="cli.html" />
-    <link rel="prev" title="BLDC Motor" href="bldc/bldc_motor.html" /> 
+    <link rel="prev" title="Button APIs" href="button.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -77,6 +77,7 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Controller APIs</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
@@ -131,7 +132,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Controller APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f98e57e/docs/en/controller.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e8869b/docs/en/controller.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -152,7 +153,7 @@ GPIO configuration for the unused buttons to be -1.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f98e57e/components/controller/include/controller.hpp">components/controller/include/controller.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e8869b/components/controller/include/controller.hpp">components/controller/include/controller.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -535,7 +536,7 @@ GPIO configuration for the unused buttons to be -1.</p>
 <dd><p>Return true if the <code class="docutils literal notranslate"><span class="pre">input</span></code> was pressed, false otherwise. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>input</strong> – The Button of interest. </p>
+<dd class="field-odd"><p><strong>input</strong> – The <a class="reference internal" href="button.html#classespp_1_1_button"><span class="std std-ref">Button</span></a> of interest. </p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>True if <code class="docutils literal notranslate"><span class="pre">input</span></code> was pressed last time <a class="reference internal" href="#classespp_1_1_controller_1a8680a7f018b4e13a9c8f5590e09d11c2"><span class="std std-ref">update()</span></a> was called. </p>
@@ -880,7 +881,7 @@ GPIO configuration for the unused buttons to be -1.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="bldc/bldc_motor.html" class="btn btn-neutral float-left" title="BLDC Motor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="button.html" class="btn btn-neutral float-left" title="Button APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="cli.html" class="btn btn-neutral float-right" title="Command Line Interface (CLI) APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

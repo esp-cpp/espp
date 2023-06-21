@@ -12,6 +12,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
 
    adc/index
    bldc/index
+   button
    controller
    cli
    color
