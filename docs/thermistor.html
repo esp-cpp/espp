@@ -132,7 +132,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Thermistor APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/5a07a6b/docs/en/thermistor.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f98e57e/docs/en/thermistor.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -172,7 +172,7 @@ voltage divider.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/5a07a6b/components/thermistor/include/thermistor.hpp">components/thermistor/include/thermistor.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f98e57e/components/thermistor/include/thermistor.hpp">components/thermistor/include/thermistor.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -255,10 +255,11 @@ voltage divider.</p>
 <span class="w">       </span><span class="p">.</span><span class="n">convert_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ADC_CONV_SINGLE_UNIT_1</span><span class="p">,</span><span class="w"> </span><span class="c1">// or BOTH_UNIT, ALTER_UNIT, SINGLE_UNIT_1</span>
 <span class="w">       </span><span class="p">.</span><span class="n">window_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"></span>
 <span class="w">       </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span><span class="w"></span>
+<span class="w">  </span><span class="n">adc</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
 
 <span class="w">  </span><span class="c1">// make a lambda function for getting the latest voltage from the adc</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">get_voltage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">adc</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">channels</span><span class="p">]()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">maybe_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">get_mv</span><span class="p">(</span><span class="n">channels</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">channel</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">maybe_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">get_mv</span><span class="p">(</span><span class="n">channels</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span><span class="w"></span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">maybe_mv</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">maybe_mv</span><span class="p">.</span><span class="n">value</span><span class="p">();</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -269,8 +270,10 @@ voltage divider.</p>
 <span class="w">  </span><span class="c1">// create a thermistor object (based on the datasheet from</span>
 <span class="w">  </span><span class="c1">// https://product.tdk.com/system/files/dam/doc/product/sensor/ntc/chip-ntc-thermistor/catalog/tpd_commercial_ntc-thermistor_ntcg_en.pdf</span>
 <span class="w">  </span><span class="c1">// From the table (page 7):</span>
+<span class="w">  </span><span class="c1">// clang-format off</span>
 <span class="w">  </span><span class="c1">// Part Number.    | R25(Ω) | Tolerance | B25/50(Κ) | B25/75(Κ) | B25/85(Κ) | B25/100(K) | Current (mA) | Operating Temp Range</span>
 <span class="w">  </span><span class="c1">// NTCG103JF103FT1 | 10,000 |   +/–1%   | 3380      | 3422      | 3435      | 3453 +/–1% | 0.31         | –40 to 152</span>
+<span class="w">  </span><span class="c1">// clang-format on</span>
 <span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Thermistor</span><span class="w"> </span><span class="nf">thermistor</span><span class="p">({.</span><span class="n">divider_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Thermistor</span><span class="o">::</span><span class="n">ResistorDividerConfig</span><span class="o">::</span><span class="n">UPPER</span><span class="p">,</span><span class="w"></span>
 <span class="w">                               </span><span class="p">.</span><span class="n">beta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3380</span><span class="p">,</span><span class="w"></span>
 <span class="w">                               </span><span class="p">.</span><span class="n">nominal_resistance_ohms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span><span class="w"></span>

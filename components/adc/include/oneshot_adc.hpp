@@ -44,7 +44,7 @@ public:
    * @param config Config used to initialize the reader.
    */
   OneshotAdc(const Config &config) : logger_({.tag = "Oneshot Adc", .level = config.log_level}) {
-    init(config.unit, config.channels);
+    init(config);
   }
 
   /**
@@ -65,37 +65,37 @@ public:
   }
 
   /**
-   * @brief Take a new ADC reading for the provided \p channel.
-   * @param channel The channel to take a reading from.
-   * @return std::optional<float> raw value for the provided channel (if it
-   *         was configured).
+   * @brief Take a new ADC reading for the provided \p config.
+   * @param config The channel configuration to take a reading from.
+   * @return std::optional<float> raw value for the provided channel config (if
+   *         it was configured).
    */
-  std::optional<int> read_raw(adc_channel_t channel) {
-    if (std::find(channels_.begin(), channels_.end(), channel) != channels_.end()) {
+  std::optional<int> read_raw(const AdcConfig &config) {
+    if (std::find(configs_.begin(), configs_.end(), config) != configs_.end()) {
       int raw;
-      auto err = adc_oneshot_read(adc_handle_, channel, &raw);
+      auto err = adc_oneshot_read(adc_handle_, config.channel, &raw);
       if (err == ESP_OK) {
         return raw;
       } else {
         logger_.error("Couldn't read oneshot: {} - '{}'", err, esp_err_to_name(err));
       }
     } else {
-      logger_.error("Channel {} not configured for oneshot use!", (int)channel);
+      logger_.error("{} not configured for oneshot use!", config);
     }
     return {};
   }
 
   /**
-   * @brief Take a new ADC reading for the provided \p channel and convert it
-   *        to voltage (mV) if the unit was properly calibrated. If it was
-   *        not properly calibrated, then it will return the same value as \c
+   * @brief Take a new ADC reading for the provided \p config and convert it to
+   *        voltage (mV) if the unit was properly calibrated. If it was not
+   *        properly calibrated, then it will return the same value as \c
    *        read_raw().
-   * @param channel The channel to take a reading from.
-   * @return std::optional<float> Voltage in mV for the provided channel (if
-   *         it was configured).
+   * @param config The channel configuration to take a reading from.
+   * @return std::optional<float> Voltage in mV for the provided channel config
+   *         (if it was configured).
    */
-  std::optional<int> read_mv(adc_channel_t channel) {
-    auto maybe_raw = read_raw(channel);
+  std::optional<int> read_mv(const AdcConfig &config) {
+    auto maybe_raw = read_raw(config);
     if (maybe_raw.has_value()) {
       return raw_to_mv(maybe_raw.value());
     }
@@ -116,27 +116,27 @@ protected:
     return mv;
   }
 
-  void init(const adc_unit_t unit, const std::vector<AdcConfig> &channels) {
+  void init(const Config &config) {
     adc_oneshot_unit_init_cfg_t init_config;
     memset(&init_config, 0, sizeof(init_config));
-    init_config.unit_id = unit;
+    init_config.unit_id = config.unit;
     ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle_));
-    for (auto &conf : channels) {
+    for (auto &conf : config.channels) {
       auto channel = conf.channel;
       auto attenuation = conf.attenuation;
       auto channel_unit = conf.unit;
-      if (unit != channel_unit) {
+      if (config.unit != channel_unit) {
         logger_.warn("Channel configuration invalid, main unit ({}) != channel unit ({})",
-                     (int)unit, (int)channel_unit);
+                     (int)config.unit, (int)channel_unit);
       }
-      adc_oneshot_chan_cfg_t config;
-      memset(&config, 0, sizeof(config));
-      config.bitwidth = ADC_BITWIDTH_DEFAULT;
-      config.atten = attenuation;
-      ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle_, channel, &config));
-      channels_.push_back(channel);
+      adc_oneshot_chan_cfg_t oneshot_config;
+      memset(&oneshot_config, 0, sizeof(oneshot_config));
+      oneshot_config.bitwidth = ADC_BITWIDTH_DEFAULT;
+      oneshot_config.atten = attenuation;
+      ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle_, channel, &oneshot_config));
+      configs_.push_back(conf);
     }
-    calibration_init(unit, channels[0].attenuation);
+    calibration_init(config.unit, configs_[0].attenuation);
   }
 
   void calibration_init(adc_unit_t unit, adc_atten_t attenuation) {
@@ -180,7 +180,7 @@ protected:
     }
   }
 
-  std::vector<adc_channel_t> channels_;
+  std::vector<AdcConfig> configs_;
   adc_oneshot_unit_handle_t adc_handle_;
   adc_cali_handle_t adc_cali_handle_;
   std::atomic<bool> calibrated_{false};

@@ -23,8 +23,8 @@ extern "C" void app_main(void) {
     });
     auto read_joystick = [&adc, &channels](float *x, float *y) -> bool {
       // this will be in mv
-      auto maybe_x_mv = adc.read_mv(channels[0].channel);
-      auto maybe_y_mv = adc.read_mv(channels[1].channel);
+      auto maybe_x_mv = adc.read_mv(channels[0]);
+      auto maybe_y_mv = adc.read_mv(channels[1]);
       if (maybe_x_mv.has_value() && maybe_y_mv.has_value()) {
         auto x_mv = maybe_x_mv.value();
         auto y_mv = maybe_y_mv.value();

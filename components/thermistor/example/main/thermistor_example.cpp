@@ -83,10 +83,11 @@ extern "C" void app_main(void) {
        .convert_mode = ADC_CONV_SINGLE_UNIT_1, // or BOTH_UNIT, ALTER_UNIT, SINGLE_UNIT_1
        .window_size_bytes = 1024,
        .log_level = espp::Logger::Verbosity::WARN});
+  adc.start();
 
   // make a lambda function for getting the latest voltage from the adc
   auto get_voltage = [&adc, &channels]() -> float {
-    auto maybe_mv = adc.get_mv(channels[0].channel);
+    auto maybe_mv = adc.get_mv(channels[0]);
     if (maybe_mv.has_value()) {
       return maybe_mv.value();
     } else {
