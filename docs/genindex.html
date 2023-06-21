@@ -74,6 +74,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
@@ -121,7 +122,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/f98e57e/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1e8869b/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -731,6 +732,56 @@
       <li><a href="filters/butterworth.html#_CPPv4N4espp17ButterworthFilterclEf">espp::ButterworthFilter::operator() (C++ function)</a>
 </li>
       <li><a href="filters/butterworth.html#_CPPv4N4espp17ButterworthFilter6updateEf">espp::ButterworthFilter::update (C++ function)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6ButtonE">espp::Button (C++ class)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button11ActiveLevelE">espp::Button::ActiveLevel (C++ enum)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button11ActiveLevel4HIGHE">espp::Button::ActiveLevel::HIGH (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button11ActiveLevel3LOWE">espp::Button::ActiveLevel::LOW (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6ButtonERK6Config">espp::Button::Button (C++ function)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6ConfigE">espp::Button::Config (C++ struct)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config12active_levelE">espp::Button::Config::active_level (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config14component_nameE">espp::Button::Config::component_name (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config8gpio_numE">espp::Button::Config::gpio_num (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config14interrupt_typeE">espp::Button::Config::interrupt_type (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config9log_levelE">espp::Button::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config16pulldown_enabledE">espp::Button::Config::pulldown_enabled (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config14pullup_enabledE">espp::Button::Config::pullup_enabled (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config5topicE">espp::Button::Config::topic (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button5EventE">espp::Button::Event (C++ struct)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button5Event8gpio_numE">espp::Button::Event::gpio_num (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button5Event7pressedE">espp::Button::Event::pressed (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button13InterruptTypeE">espp::Button::InterruptType (C++ enum)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType8ANY_EDGEE">espp::Button::InterruptType::ANY_EDGE (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType12FALLING_EDGEE">espp::Button::InterruptType::FALLING_EDGE (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType10HIGH_LEVELE">espp::Button::InterruptType::HIGH_LEVEL (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType9LOW_LEVELE">espp::Button::InterruptType::LOW_LEVEL (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType11RISING_EDGEE">espp::Button::InterruptType::RISING_EDGE (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4NK4espp6Button10is_pressedEv">espp::Button::is_pressed (C++ function)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6ButtonD0Ev">espp::Button::~Button (C++ function)</a>
 </li>
       <li><a href="cli.html#_CPPv4N4espp3CliE">espp::Cli (C++ class)</a>
 </li>
@@ -1378,6 +1429,8 @@
 </li>
       <li><a href="led_strip.html#_CPPv4N4espp8LedStrip7set_allE3Hsvf">espp::LedStrip::set_all (C++ function)</a>, <a href="led_strip.html#_CPPv4N4espp8LedStrip7set_allE3Rgbf">[1]</a>, <a href="led_strip.html#_CPPv4N4espp8LedStrip7set_allE7uint8_t7uint8_t7uint8_t7uint8_t">[2]</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="led_strip.html#_CPPv4N4espp8LedStrip9set_pixelEi3Hsvf">espp::LedStrip::set_pixel (C++ function)</a>, <a href="led_strip.html#_CPPv4N4espp8LedStrip9set_pixelEi3Rgbf">[1]</a>, <a href="led_strip.html#_CPPv4N4espp8LedStrip9set_pixelEi7uint8_t7uint8_t7uint8_t7uint8_t">[2]</a>
 </li>
       <li><a href="led_strip.html#_CPPv4N4espp8LedStrip10shift_leftEi">espp::LedStrip::shift_left (C++ function)</a>
@@ -1402,8 +1455,6 @@
 </li>
       <li><a href="cli.html#_CPPv4N4espp9LineInput11set_historyERK7History">espp::LineInput::set_history (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="cli.html#_CPPv4N4espp9LineInput16set_history_sizeE6size_t">espp::LineInput::set_history_size (C++ function)</a>
 </li>
       <li><a href="cli.html#_CPPv4N4espp9LineInputD0Ev">espp::LineInput::~LineInput (C++ function)</a>

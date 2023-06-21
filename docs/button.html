@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Button APIs - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'button';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Controller APIs" href="controller.html" />
+    <link rel="prev" title="BLDC Motor" href="bldc/bldc_motor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ESPP
+            <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Button APIs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Button APIs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/1e8869b/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="button-apis">
+<h1>Button APIs<a class="headerlink" href="#button-apis" title="Permalink to this headline"></a></h1>
+<p>The <cite>Button</cite> class provides a simple wrapper around the ESP-IDF gpio API to
+provide a simple interface for reading the state of a button. The class sets the
+GPIO pin to input mode and installs an ISR to detect button presses. The ISR sends
+data to the <cite>Button</cite>’s queue which is read by the <cite>Button</cite>’s task. The task
+periodically checks the queue for new data and updates the button state
+accordingly, additionally publishing a message to the <cite>Button</cite>’s topic when the
+button state changes via the <cite>EventManager</cite>.</p>
+<p>Note: the data published to the <cite>Button</cite>’s topic is a <cite>espp::Button::Event</cite>
+object which contains the button’s state and the gpio associated with the
+button. It is serialized using the <cite>espp::serialization</cite> component, which is a
+wrapper around the <cite>alpaca</cite> serialization library. See the example code for
+deserializing the event data.</p>
+<p>Additionally, users can check the state of the button by calling the <cite>is_pressed</cite>
+method.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e8869b/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6ButtonE">
+<span id="_CPPv3N4espp6ButtonE"></span><span id="_CPPv2N4espp6ButtonE"></span><span id="espp::Button"></span><span class="target" id="classespp_1_1_button"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Button</span></span></span><a class="headerlink" href="#_CPPv4N4espp6ButtonE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A class to handle a button connected to a GPIO. </p>
+<p>This class uses the ESP-IDF GPIO interrupt handler to detect button presses and releases. It then publishes events to the event manager with the topic specified in the config. The events are “pressed” and “released”.</p>
+<section id="classespp_1_1_button_1button_ex1">
+<h4>Button Example<a class="headerlink" href="#classespp_1_1_button_1button_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_button_1button_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">button_topic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;button/state&quot;</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">button_component_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;button&quot;</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1">// create a button on GPIO 2</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="w"> </span><span class="nf">button</span><span class="p">({</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_2</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">topic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">button_topic</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">component_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">button_component_name</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">HIGH</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">InterruptType</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">    </span><span class="p">});</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Initial button state: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">button</span><span class="p">.</span><span class="n">is_pressed</span><span class="p">());</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1">// register subscriber on the button topic</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">em</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">did_sub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_subscriber</span><span class="p">(</span><span class="n">button_topic</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;example subscriber&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="c1">// deserialize the data</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deserialize</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">Event</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;[{:.3f}]: button {} state changed to: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">gpio_num</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">pressed</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to deserialize button state: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="p">});</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Subscribed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_sub</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="p">}</span><span class="w"></span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button11ActiveLevelE">
+<span id="_CPPv3N4espp6Button11ActiveLevelE"></span><span id="_CPPv2N4espp6Button11ActiveLevelE"></span><span class="target" id="classespp_1_1_button_1a1acf380daa5f7c2d2e58f2c8b64b0c06"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ActiveLevel</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button11ActiveLevelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The active level of the GPIO. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button11ActiveLevel3LOWE">
+<span id="_CPPv3N4espp6Button11ActiveLevel3LOWE"></span><span id="_CPPv2N4espp6Button11ActiveLevel3LOWE"></span><span class="target" id="classespp_1_1_button_1a1acf380daa5f7c2d2e58f2c8b64b0c06a41bc94cbd8eebea13ce0491b2ac11b88"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOW</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button11ActiveLevel3LOWE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Active low. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button11ActiveLevel4HIGHE">
+<span id="_CPPv3N4espp6Button11ActiveLevel4HIGHE"></span><span id="_CPPv2N4espp6Button11ActiveLevel4HIGHE"></span><span class="target" id="classespp_1_1_button_1a1acf380daa5f7c2d2e58f2c8b64b0c06ab89de3b4b81c4facfac906edf29aec8c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HIGH</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button11ActiveLevel4HIGHE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Active high. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13InterruptTypeE">
+<span id="_CPPv3N4espp6Button13InterruptTypeE"></span><span id="_CPPv2N4espp6Button13InterruptTypeE"></span><span class="target" id="classespp_1_1_button_1a6708829e9d98d2aeb40454baeb9fd8a0"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">InterruptType</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button13InterruptTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type of interrupt to use for the GPIO. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13InterruptType8ANY_EDGEE">
+<span id="_CPPv3N4espp6Button13InterruptType8ANY_EDGEE"></span><span id="_CPPv2N4espp6Button13InterruptType8ANY_EDGEE"></span><span class="target" id="classespp_1_1_button_1a6708829e9d98d2aeb40454baeb9fd8a0a79865522fb6fb871c11105472e8bfa82"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ANY_EDGE</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button13InterruptType8ANY_EDGEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interrupt on any edge. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13InterruptType11RISING_EDGEE">
+<span id="_CPPv3N4espp6Button13InterruptType11RISING_EDGEE"></span><span id="_CPPv2N4espp6Button13InterruptType11RISING_EDGEE"></span><span class="target" id="classespp_1_1_button_1a6708829e9d98d2aeb40454baeb9fd8a0ad85243a747ac5537ef0b7adde99c3e98"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RISING_EDGE</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button13InterruptType11RISING_EDGEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interrupt on rising edge. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13InterruptType12FALLING_EDGEE">
+<span id="_CPPv3N4espp6Button13InterruptType12FALLING_EDGEE"></span><span id="_CPPv2N4espp6Button13InterruptType12FALLING_EDGEE"></span><span class="target" id="classespp_1_1_button_1a6708829e9d98d2aeb40454baeb9fd8a0a297f5ea19073f4b51715b029f48d5d52"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">FALLING_EDGE</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button13InterruptType12FALLING_EDGEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interrupt on falling edge. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13InterruptType9LOW_LEVELE">
+<span id="_CPPv3N4espp6Button13InterruptType9LOW_LEVELE"></span><span id="_CPPv2N4espp6Button13InterruptType9LOW_LEVELE"></span><span class="target" id="classespp_1_1_button_1a6708829e9d98d2aeb40454baeb9fd8a0ad5ef89cca31152290b30f50cd1d8c536"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOW_LEVEL</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button13InterruptType9LOW_LEVELE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interrupt on low level. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13InterruptType10HIGH_LEVELE">
+<span id="_CPPv3N4espp6Button13InterruptType10HIGH_LEVELE"></span><span id="_CPPv2N4espp6Button13InterruptType10HIGH_LEVELE"></span><span class="target" id="classespp_1_1_button_1a6708829e9d98d2aeb40454baeb9fd8a0adfa16b340d97a534b55a7a2e2ba2b646"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HIGH_LEVEL</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button13InterruptType10HIGH_LEVELE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interrupt on high level. </p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6ButtonERK6Config">
+<span id="_CPPv3N4espp6Button6ButtonERK6Config"></span><span id="_CPPv2N4espp6Button6ButtonERK6Config"></span><span id="espp::Button::Button__ConfigCR"></span><span class="target" id="classespp_1_1_button_1a781547047e09fee03f2354fab6402a78"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Button</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Button6ConfigE" title="espp::Button::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Button6ButtonERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a button. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the button </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6ButtonD0Ev">
+<span id="_CPPv3N4espp6ButtonD0Ev"></span><span id="_CPPv2N4espp6ButtonD0Ev"></span><span id="espp::Button::~Button"></span><span class="target" id="classespp_1_1_button_1a2eb0dff9f0707f54b7c8c508ce188f4c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Button</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6ButtonD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Destroy the button. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Button10is_pressedEv">
+<span id="_CPPv3NK4espp6Button10is_pressedEv"></span><span id="_CPPv2NK4espp6Button10is_pressedEv"></span><span id="espp::Button::is_pressedC"></span><span class="target" id="classespp_1_1_button_1a31521040b4c8099f330dec8e5f7032b5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_pressed</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Button10is_pressedEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the button is currently pressed. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the button is pressed, false otherwise </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6ConfigE">
+<span id="_CPPv3N4espp6Button6ConfigE"></span><span id="_CPPv2N4espp6Button6ConfigE"></span><span id="espp::Button::Config"></span><span class="target" id="structespp_1_1_button_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The configuration for the button. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config8gpio_numE">
+<span id="_CPPv3N4espp6Button6Config8gpio_numE"></span><span id="_CPPv2N4espp6Button6Config8gpio_numE"></span><span id="espp::Button::Config::gpio_num__i"></span><span class="target" id="structespp_1_1_button_1_1_config_1a318a549eea1e94a871e1a1387fed218d"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_num</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config8gpio_numE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>GPIO number to use for the button. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config5topicE">
+<span id="_CPPv3N4espp6Button6Config5topicE"></span><span id="_CPPv2N4espp6Button6Config5topicE"></span><span id="espp::Button::Config::topic__ss"></span><span class="target" id="structespp_1_1_button_1_1_config_1a490d128bfd67533c32cb23e4adf543cc"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">topic</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config5topicE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Topic to publish events to via the event manager, e.g. “button/state”. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config14component_nameE">
+<span id="_CPPv3N4espp6Button6Config14component_nameE"></span><span id="_CPPv2N4espp6Button6Config14component_nameE"></span><span id="espp::Button::Config::component_name__ss"></span><span class="target" id="structespp_1_1_button_1_1_config_1ac71ec9089c91f891dc057ccf33e2fc38"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">component_name</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config14component_nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Name of the component for logging and event manager, e.g. “button”. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config12active_levelE">
+<span id="_CPPv3N4espp6Button6Config12active_levelE"></span><span id="_CPPv2N4espp6Button6Config12active_levelE"></span><span id="espp::Button::Config::active_level__ActiveLevel"></span><span class="target" id="structespp_1_1_button_1_1_config_1a7fb0d535fa0a1a5b47148871719a6146"></span><a class="reference internal" href="#_CPPv4N4espp6Button11ActiveLevelE" title="espp::Button::ActiveLevel"><span class="n"><span class="pre">ActiveLevel</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">active_level</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config12active_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Active level of the GPIO. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config14interrupt_typeE">
+<span id="_CPPv3N4espp6Button6Config14interrupt_typeE"></span><span id="_CPPv2N4espp6Button6Config14interrupt_typeE"></span><span id="espp::Button::Config::interrupt_type__InterruptType"></span><span class="target" id="structespp_1_1_button_1_1_config_1ab19bcc8d99593791a1b8403f28dd8bc7"></span><a class="reference internal" href="#_CPPv4N4espp6Button13InterruptTypeE" title="espp::Button::InterruptType"><span class="n"><span class="pre">InterruptType</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interrupt_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Button13InterruptTypeE" title="espp::Button::InterruptType"><span class="n"><span class="pre">InterruptType</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Button13InterruptType8ANY_EDGEE" title="espp::Button::InterruptType::ANY_EDGE"><span class="n"><span class="pre">ANY_EDGE</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Button6Config14interrupt_typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Interrupt type to use for the GPIO. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config14pullup_enabledE">
+<span id="_CPPv3N4espp6Button6Config14pullup_enabledE"></span><span id="_CPPv2N4espp6Button6Config14pullup_enabledE"></span><span id="espp::Button::Config::pullup_enabled__b"></span><span class="target" id="structespp_1_1_button_1_1_config_1a275abcf4ade4a68336e59b47bdb4d5df"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pullup_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config14pullup_enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to enable the pullup resistor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config16pulldown_enabledE">
+<span id="_CPPv3N4espp6Button6Config16pulldown_enabledE"></span><span id="_CPPv2N4espp6Button6Config16pulldown_enabledE"></span><span id="espp::Button::Config::pulldown_enabled__b"></span><span class="target" id="structespp_1_1_button_1_1_config_1a3792c7c8d801520d97e4fd813aac797e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pulldown_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config16pulldown_enabledE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to enable the pulldown resistor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config9log_levelE">
+<span id="_CPPv3N4espp6Button6Config9log_levelE"></span><span id="_CPPv2N4espp6Button6Config9log_levelE"></span><span id="espp::Button::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1_button_1_1_config_1a5e23113f3930c452b9abbb21527b832f"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Button6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log level for this class. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button5EventE">
+<span id="_CPPv3N4espp6Button5EventE"></span><span id="_CPPv2N4espp6Button5EventE"></span><span id="espp::Button::Event"></span><span class="target" id="structespp_1_1_button_1_1_event"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Event</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button5EventE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The event for the button. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button5Event8gpio_numE">
+<span id="_CPPv3N4espp6Button5Event8gpio_numE"></span><span id="_CPPv2N4espp6Button5Event8gpio_numE"></span><span id="espp::Button::Event::gpio_num__uint8_t"></span><span class="target" id="structespp_1_1_button_1_1_event_1a069540cb521adbcd5f61ac5143546f88"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">gpio_num</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button5Event8gpio_numE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The GPIO number of the button. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button5Event7pressedE">
+<span id="_CPPv3N4espp6Button5Event7pressedE"></span><span id="_CPPv2N4espp6Button5Event7pressedE"></span><span id="espp::Button::Event::pressed__b"></span><span class="target" id="structespp_1_1_button_1_1_event_1aa8d7e29ccf5b70f3f48b5b3b766c06ea"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pressed</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button5Event7pressedE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the button is pressed. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="bldc/bldc_motor.html" class="btn btn-neutral float-left" title="BLDC Motor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="controller.html" class="btn btn-neutral float-right" title="Controller APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
