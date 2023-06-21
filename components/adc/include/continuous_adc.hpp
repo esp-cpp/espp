@@ -76,31 +76,60 @@ public:
     // to force the task to return from the wait
     BaseType_t mustYield = pdFALSE;
     vTaskNotifyGiveFromISR(task_handle_, &mustYield);
+    // then stop the task
     task_->stop();
     delete[] result_data_;
-    ESP_ERROR_CHECK(adc_continuous_stop(handle_));
+    stop();
     ESP_ERROR_CHECK(adc_continuous_deinit(handle_));
     // clean up the calibration data
-    for (auto &channel : channels_) {
+    for (auto &config : configs_) {
+      auto id = get_id(config);
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
-      ESP_ERROR_CHECK(adc_cali_delete_scheme_curve_fitting(cali_handles_[channel]));
+      ESP_ERROR_CHECK(adc_cali_delete_scheme_curve_fitting(cali_handles_[id]));
 #elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
-      ESP_ERROR_CHECK(adc_cali_delete_scheme_line_fitting(cali_handles_[channel]));
+      ESP_ERROR_CHECK(adc_cali_delete_scheme_line_fitting(cali_handles_[id]));
 #endif
     }
   }
 
   /**
+   * @brief Start the continuous adc reader.
+   */
+  void start() {
+    if (running_) {
+      return;
+    }
+    running_ = true;
+    ESP_ERROR_CHECK(adc_continuous_start(handle_));
+  }
+
+  /**
+   * @brief Stop the continuous adc reader.
+   */
+  void stop() {
+    if (!running_) {
+      return;
+    }
+    running_ = false;
+    ESP_ERROR_CHECK(adc_continuous_stop(handle_));
+  }
+
+  /**
    * @brief Get the most up to date filtered voltage (in mV) from the
    *        provided \p channel.
-   * @param channel The channel to get the latest data for.
+   * @param config The config used to initialize the channel (includes unit and
+   *        channel)
    * @return std::optional<float> voltage in mV for the provided channel (if
-   *         it was configured).
+   *         it was configured and the adc is running).
    */
-  std::optional<float> get_mv(adc_channel_t channel) {
+  std::optional<float> get_mv(const AdcConfig &config) {
+    if (!running_) {
+      return {};
+    }
     std::lock_guard<std::mutex> lock{data_mutex_};
-    if (values_.find(channel) != values_.end()) {
-      return values_[channel];
+    int id = get_id(config);
+    if (values_.find(id) != values_.end()) {
+      return values_[id];
     } else {
       return {};
     }
@@ -109,29 +138,45 @@ public:
   /**
    * @brief Get the most up to date sampling rate (in Hz) from the provided
    *        \p channel.
-   * @param channel The channel to get the latest sampling rate for.
+   * @param config The config used to initialize the channel (includes unit and
+   *        channel)
    * @return std::optional<float> Rate in Hz for the provided channel (if it
-   *         was configured).
+   *         was configured and the adc is running).
    */
-  std::optional<float> get_rate(adc_channel_t channel) {
+  std::optional<float> get_rate(const AdcConfig &config) {
+    if (!running_) {
+      return {};
+    }
     std::lock_guard<std::mutex> lock{data_mutex_};
-    if (actual_rates_.find(channel) != actual_rates_.end()) {
-      return actual_rates_[channel];
+    int id = get_id(config);
+    if (actual_rates_.find(id) != actual_rates_.end()) {
+      return actual_rates_[id];
     } else {
       return {};
     }
   }
 
 protected:
+  int get_id(const AdcConfig &config) { return get_id(config.unit, config.channel); }
+
+  int get_id(adc_unit_t unit, adc_channel_t channel) {
+    // We want to make sure that the id is unique for each channel, so we
+    // multiply the unit by 32 (which is currently larger than the number of
+    // channels on any ESP32 chip), and then add the channel number to get a
+    // unique id.
+    return static_cast<int>(unit) * 32 + static_cast<int>(channel);
+  }
+
   bool update_task(std::mutex &task_m, std::condition_variable &task_cv) {
     task_handle_ = xTaskGetCurrentTaskHandle();
     static auto previous_timestamp = std::chrono::high_resolution_clock::now();
     // wait until conversion is ready (will be notified by the registered
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     auto current_timestamp = std::chrono::high_resolution_clock::now();
-    for (auto &channel : channels_) {
-      sums_[channel] = 0;
-      num_samples_[channel] = 0;
+    for (auto &config : configs_) {
+      auto id = get_id(config);
+      sums_[id] = 0;
+      num_samples_[id] = 0;
     }
     esp_err_t ret;
     uint32_t ret_num = 0;
@@ -149,21 +194,23 @@ protected:
       adc_digi_output_data_t *p = reinterpret_cast<adc_digi_output_data_t *>(&result_data_[i]);
 #if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
       if (output_format_ == ADC_DIGI_OUTPUT_FORMAT_TYPE1) {
-        auto unit = (conv_mode_ == ADC_CONV_SINGLE_UNIT_1) ? 1 : 2;
+        auto unit = (conv_mode_ == ADC_CONV_SINGLE_UNIT_1) ? ADC_UNIT_1 : ADC_UNIT_2;
         auto channel = (adc_channel_t)p->type1.channel;
+        auto id = get_id(unit, channel);
         auto data = p->type1.data;
-        sums_[channel] += data;
-        num_samples_[channel]++;
+        sums_[id] += data;
+        num_samples_[id]++;
       }
 #endif
 #if !CONFIG_IDF_TARGET_ESP32
       if (output_format_ == ADC_DIGI_OUTPUT_FORMAT_TYPE2) {
         if (check_valid_data(p)) {
-          auto unit = p->type2.unit + 1; // 1 or 2
+          auto unit = p->type2.unit;
           auto channel = (adc_channel_t)p->type2.channel;
           auto data = p->type2.data;
-          sums_[channel] += data;
-          num_samples_[channel]++;
+          auto id = get_id(unit, channel);
+          sums_[id] += data;
+          num_samples_[id]++;
         } else {
           // we have invalid data? how?!
           logger_.error("invalid data!");
@@ -182,21 +229,22 @@ protected:
     // filter / update the measurements
     {
       std::lock_guard<std::mutex> lk(data_mutex_);
-      for (auto &channel : channels_) {
-        float num_samples = num_samples_[channel];
+      for (auto &config : configs_) {
+        auto id = get_id(config);
+        float num_samples = num_samples_[id];
         if (num_samples > 0) {
-          float sum = sums_[channel];
+          float sum = sums_[id];
           // note: the data collected above is uncalibrated (raw) values so we need to convert
           // to millivolts
           // TODO: use ESP32 hardware-accelerated filter
           // simple filter
           int millivolts = 0;
-          adc_cali_raw_to_voltage(cali_handles_[channel], sum / num_samples, &millivolts);
-          values_[channel] = float(millivolts);
-          actual_rates_[channel] = num_samples / elapsed_seconds;
+          adc_cali_raw_to_voltage(cali_handles_[id], sum / num_samples, &millivolts);
+          values_[id] = float(millivolts);
+          actual_rates_[id] = num_samples / elapsed_seconds;
         }
-        logger_.debug_rate_limited("CH{} - {}, {}, {:.2f}, {:.2f}", (int)channel, sums_[channel],
-                                   num_samples_[channel], values_[channel], actual_rates_[channel]);
+        logger_.debug_rate_limited("CH{} - {}, {}, {:.2f}, {:.2f}", (int)config.channel, sums_[id],
+                                   num_samples_[id], values_[id], actual_rates_[id]);
       }
     }
 
@@ -260,19 +308,22 @@ protected:
       logger_.info("adc_pattern[{}].channel is 0x{:02x}", i, (int)adc_pattern[i].channel);
       logger_.info("adc_pattern[{}].unit is 0x{:02x}", i, (int)adc_pattern[i].unit);
 
+      // get the id for this config
+      auto id = get_id(conf);
+
       // create the calibration data
       auto calibrated =
           init_calibration(conf.unit, conf.attenuation, (adc_bitwidth_t)adc_pattern[i].bit_width,
-                           &cali_handles_[conf.channel]);
+                           &cali_handles_[id]);
       logger_.info("adc_pattern[{}].cali_handle is calibrated: {}", i, calibrated);
 
       // save the channel
-      channels_.push_back(conf.channel);
+      configs_.push_back(conf);
       // update our dictionaries
-      sums_[conf.channel] = 0;
-      num_samples_[conf.channel] = 0;
-      values_[conf.channel] = 0;
-      actual_rates_[conf.channel] = 0;
+      sums_[id] = 0;
+      num_samples_[id] = 0;
+      values_[id] = 0;
+      actual_rates_[id] = 0;
     }
     dig_cfg.adc_pattern = adc_pattern;
     ESP_ERROR_CHECK(adc_continuous_config(handle_, &dig_cfg));
@@ -281,7 +332,6 @@ protected:
     memset(&cbs, 0, sizeof(cbs));
     cbs.on_conv_done = s_conv_done_cb;
     ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(handle_, &cbs, &task_handle_));
-    ESP_ERROR_CHECK(adc_continuous_start(handle_));
   }
 
   bool init_calibration(adc_unit_t unit, adc_atten_t atten, adc_bitwidth_t bitwidth,
@@ -354,11 +404,15 @@ protected:
   TaskHandle_t task_handle_{NULL};
   std::mutex data_mutex_;
   uint8_t *result_data_;
-  std::vector<adc_channel_t> channels_;
-  std::unordered_map<adc_channel_t, adc_cali_handle_t> cali_handles_;
-  std::unordered_map<adc_channel_t, size_t> sums_;
-  std::unordered_map<adc_channel_t, size_t> num_samples_;
-  std::unordered_map<adc_channel_t, float> values_;
-  std::unordered_map<adc_channel_t, float> actual_rates_;
+
+  std::atomic<bool> running_{false};
+
+  std::vector<AdcConfig> configs_;
+  // these maps are indexed by get_id(config.unit, config.channel)
+  std::unordered_map<int, adc_cali_handle_t> cali_handles_;
+  std::unordered_map<int, size_t> sums_;
+  std::unordered_map<int, size_t> num_samples_;
+  std::unordered_map<int, float> values_;
+  std::unordered_map<int, float> actual_rates_;
 };
 } // namespace espp

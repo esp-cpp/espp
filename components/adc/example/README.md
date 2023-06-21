@@ -4,6 +4,7 @@ This example shows the use of the `espp::OneshotAdc` and the `espp::ContinuousAd
 
 It uses the following components:
 * `adc`
+* `logger`
 * `task`
 
 These adc components can be used to read analog values using the ESP's built-in
@@ -26,3 +27,8 @@ idf.py -p PORT flash monitor
 (Replace PORT with the name of the serial port to use.)
 
 (To exit the serial monitor, type ``Ctrl-]``.)
+
+## Example Output
+
+![CleanShot 2023-06-21 at 09 08 47](https://github.com/esp-cpp/espp/assets/213467/e6665d20-57b8-43fb-bb55-a0de1ddae7ed)
+

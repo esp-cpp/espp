@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py task adc"
+  "main esptool_py logger task adc"
   CACHE STRING
   "List of components to include"
   )

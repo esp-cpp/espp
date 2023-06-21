@@ -131,7 +131,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Controller APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/5a07a6b/docs/en/controller.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f98e57e/docs/en/controller.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -152,7 +152,7 @@ GPIO configuration for the unused buttons to be -1.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/5a07a6b/components/controller/include/controller.hpp">components/controller/include/controller.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f98e57e/components/controller/include/controller.hpp">components/controller/include/controller.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -227,8 +227,8 @@ GPIO configuration for the unused buttons to be -1.</p>
 <span class="w">    </span><span class="c1">// make the function which will get the raw data from the ADC and convert to</span>
 <span class="w">    </span><span class="c1">// uncalibrated [-1,1]</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">read_joystick</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">adc</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">channels</span><span class="p">](</span><span class="kt">float</span><span class="w"> </span><span class="o">*</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="o">*</span><span class="n">y</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">maybe_x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">read_mv</span><span class="p">(</span><span class="n">channels</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">channel</span><span class="p">);</span><span class="w"></span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">maybe_y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">read_mv</span><span class="p">(</span><span class="n">channels</span><span class="p">[</span><span class="mi">1</span><span class="p">].</span><span class="n">channel</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">maybe_x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">read_mv</span><span class="p">(</span><span class="n">channels</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span><span class="w"></span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">maybe_y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adc</span><span class="p">.</span><span class="n">read_mv</span><span class="p">(</span><span class="n">channels</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span><span class="w"></span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">maybe_x_mv</span><span class="p">.</span><span class="n">has_value</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">maybe_y_mv</span><span class="p">.</span><span class="n">has_value</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">maybe_x_mv</span><span class="p">.</span><span class="n">value</span><span class="p">();</span><span class="w"></span>
 <span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">maybe_y_mv</span><span class="p">.</span><span class="n">value</span><span class="p">();</span><span class="w"></span>
