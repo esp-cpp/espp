@@ -132,7 +132,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Button APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/b04db37/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/42fa3bf/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -144,24 +144,21 @@
 <h1>Button APIs<a class="headerlink" href="#button-apis" title="Permalink to this headline"></a></h1>
 <p>The <cite>Button</cite> class provides a simple wrapper around the ESP-IDF gpio API to
 provide a simple interface for reading the state of a button. The class sets the
-GPIO pin to input mode and installs an ISR to detect button presses. The ISR sends
-data to the <cite>Button</cite>’s queue which is read by the <cite>Button</cite>’s task. The task
-periodically checks the queue for new data and updates the button state
-accordingly, additionally publishing a message to the <cite>Button</cite>’s topic when the
-button state changes via the <cite>EventManager</cite>.</p>
-<p>Note: the data published to the <cite>Button</cite>’s topic is a <cite>espp::Button::Event</cite>
-object which contains the button’s state and the gpio associated with the
-button. It is serialized using the <cite>espp::serialization</cite> component, which is a
-wrapper around the <cite>alpaca</cite> serialization library. See the example code for
-deserializing the event data.</p>
-<p>Additionally, users can check the state of the button by calling the <cite>is_pressed</cite>
-method.</p>
+GPIO pin to input mode and installs an ISR to detect button presses. The ISR
+sends data to the <cite>Button</cite>’s queue which is read by the <cite>Button</cite>’s task. The
+task periodically checks the queue for new data and updates the button state
+accordingly, additionally calling the provided callback function if one was
+registered.</p>
+<p>Note: the data passed to the callback function is a <cite>espp::Button::Event</cite> object
+which contains the button’s state and the gpio associated with the button.</p>
+<p>Additionally, users can check the state of the button by calling the
+<cite>is_pressed</cite> method.</p>
 <section id="api-reference">
 <h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b04db37/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/42fa3bf/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
