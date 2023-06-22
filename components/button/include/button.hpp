@@ -52,6 +52,10 @@ public:
     InterruptType interrupt_type = InterruptType::ANY_EDGE; ///< Interrupt type to use for the GPIO
     bool pullup_enabled = false;   ///< Whether to enable the pullup resistor
     bool pulldown_enabled = false; ///< Whether to enable the pulldown resistor
+    size_t task_stack_size_bytes =
+        4 * 1024; ///< Stack size for the task. @note This may need to be increased if the
+                  ///< callback is doing a lot of work (esp. string manipulation, calling many
+                  ///< functions, etc.)
     espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN; ///< Log level for this class
   };
 
@@ -89,7 +93,7 @@ public:
         espp::Task::Config{.name = "Button",
                            .callback = std::bind(&Button::task_callback, this,
                                                  std::placeholders::_1, std::placeholders::_2),
-                           .stack_size_bytes = 4 * 1024});
+                           .stack_size_bytes = config.task_stack_size_bytes});
     task_->start();
   }
 
