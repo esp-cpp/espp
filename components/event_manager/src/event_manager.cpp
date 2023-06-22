@@ -66,12 +66,12 @@ bool EventManager::add_subscriber(const std::string &topic, const std::string &c
   return true;
 }
 
-bool EventManager::publish(const std::string &topic, const std::string &data) {
+bool EventManager::publish(const std::string &topic, const std::vector<uint8_t> &data) {
   logger_.info("Publishing on topic '{}'", topic);
   // find topic in `subscriber_data_`, push_back into the queue there and notify
   // the cv.
   // get the data queue
-  subscriber_data_t *sub_data;
+  SubscriberData *sub_data;
   {
     std::lock_guard<std::recursive_mutex> lk(data_mutex_);
     // find sub_data in `subscriber_data_`
@@ -80,12 +80,14 @@ bool EventManager::publish(const std::string &topic, const std::string &data) {
     }
     sub_data = &subscriber_data_[topic];
   }
-  auto &deq = std::get<DEQ_INDEX>(*sub_data);
-  auto &cv = std::get<CV_INDEX>(*sub_data);
-  // push the data into the queue
-  deq.push_back(data);
-  // notify the task that there is new data in the queue
-  cv.notify_all();
+  {
+    // lock the data queue
+    std::unique_lock<std::mutex> lk(sub_data->m);
+    // push the data into the queue
+    sub_data->deq.push_back(data);
+    // notify the task that there is new data in the queue
+    sub_data->cv.notify_all();
+  }
   return true;
 }
 
@@ -155,9 +157,7 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
     // notify the data (so the subscriber task function can stop waiting on the data cv)
     {
       std::lock_guard<std::recursive_mutex> lk(data_mutex_);
-      auto &sub_data = subscriber_data_[topic];
-      auto &cv = std::get<CV_INDEX>(sub_data);
-      cv.notify_all();
+      subscriber_data_[topic].cv.notify_all();
     }
     {
       std::lock_guard<std::recursive_mutex> lk(tasks_mutex_);
@@ -178,7 +178,7 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
 bool EventManager::subscriber_task_fn(const std::string &topic, std::mutex &m,
                                       std::condition_variable &cv) {
   // get the data queue
-  subscriber_data_t *sub_data;
+  SubscriberData *sub_data;
   {
     std::lock_guard<std::recursive_mutex> lk(data_mutex_);
     // find sub_data in `subscriber_data_`
@@ -190,39 +190,50 @@ bool EventManager::subscriber_task_fn(const std::string &topic, std::mutex &m,
   }
   // get the data
   logger_.debug("Waiting on data for topic '{}'", topic);
-  std::string data;
   {
-    auto &[deq_m, deq_cv, deq] = *sub_data;
     // wait on sub_data's mutex/cv
-    std::unique_lock<std::mutex> lk(deq_m);
-    deq_cv.wait(lk);
-    if (deq.empty()) {
+    std::unique_lock<std::mutex> lk(sub_data->m);
+    sub_data->cv.wait(lk);
+    if (sub_data->deq.empty()) {
       // stop the task, we were notified, but there was no data available.
       return true;
     }
-    // set data to sub_data's deque front
-    data = deq.front();
-    // and pop the front data off
-    deq.pop_front();
   }
-  // get all the callbacks
-  logger_.debug("Finding callbacks for topic '{}'", topic);
-  std::vector<std::pair<std::string, event_callback_fn>> *callbacks;
-  {
-    std::lock_guard<std::recursive_mutex> lk(callbacks_mutex_);
-    if (!subscriber_callbacks_.contains(topic)) {
-      // stop the task, we don't have any callbacks anymore.
-      return true;
+  // we were woken up - that means there must be >= 1 element in the queue,
+  // so let's loop until we get all the data
+  while (true) {
+    logger_.debug("Getting data for topic '{}'", topic);
+    std::vector<uint8_t> data;
+    {
+      std::unique_lock<std::mutex> lk(sub_data->m);
+      if (sub_data->deq.empty()) {
+        // we've gotten all the data, so break out of the loop
+        break;
+      }
+      // set data to sub_data's deque front
+      data = sub_data->deq.front();
+      // and pop the front data off
+      sub_data->deq.pop_front();
     }
-    // copy here so that we don't hold this lock the whole time we're calling
-    // callbacks
-    callbacks = &subscriber_callbacks_[topic];
-  }
-  // call all the callbacks
-  logger_.debug("Calling {} callbacks for topic '{}'", callbacks->size(), topic);
-  for (auto [comp, callback] : *callbacks) {
-    logger_.debug("Callback for '{}'", comp);
-    callback(data);
+    // get all the callbacks
+    logger_.debug("Finding callbacks for topic '{}'", topic);
+    std::vector<std::pair<std::string, event_callback_fn>> *callbacks;
+    {
+      std::lock_guard<std::recursive_mutex> lk(callbacks_mutex_);
+      if (!subscriber_callbacks_.contains(topic)) {
+        // stop the task, we don't have any callbacks anymore.
+        return true;
+      }
+      // copy here so that we don't hold this lock the whole time we're calling
+      // callbacks
+      callbacks = &subscriber_callbacks_[topic];
+    }
+    // call all the callbacks
+    logger_.debug("Calling {} callbacks for topic '{}'", callbacks->size(), topic);
+    for (auto [comp, callback] : *callbacks) {
+      logger_.debug("Callback for '{}'", comp);
+      callback(data);
+    }
   }
   // we don't want to stop the task...
   return false;

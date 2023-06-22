@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py format event_manager"
+  "main esptool_py logger event_manager serialization"
   CACHE STRING
   "List of components to include"
   )

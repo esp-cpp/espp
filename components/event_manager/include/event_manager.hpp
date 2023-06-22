@@ -3,7 +3,6 @@
 #include <deque>
 #include <mutex>
 #include <string>
-#include <tuple>
 #include <unordered_map>
 #include <vector>
 
@@ -40,9 +39,9 @@ public:
   /**
    * @brief Function definition for function prototypes to be called when
    *        subscription/event data is available.
-   * @param std::string& The data associated with the event
+   * @param std::vector<uint8_t>& The data associated with the event
    */
-  typedef std::function<void(const std::string &)> event_callback_fn;
+  typedef std::function<void(const std::vector<uint8_t> &)> event_callback_fn;
 
   /**
    * @brief Get the singleton instance of the EventManager.
@@ -82,12 +81,12 @@ public:
   /**
    * @brief Publish \p data on \p topic.
    * @param topic Topic to publish data on.
-   * @param data Data to publish, within a string container.
+   * @param data Data to publish, within a vector container.
    * @return True if \p data was successfully published to \p topic, false
    *         otherwise. Publish will not occur (and will return false) if
    *         there are no subscribers for this topic.
    */
-  bool publish(const std::string &topic, const std::string &data);
+  bool publish(const std::string &topic, const std::vector<uint8_t> &data);
 
   /**
    * @brief Remove \p component's publisher for \p topic.
@@ -116,12 +115,11 @@ public:
 protected:
   EventManager() : logger_({.tag = "Event Manager", .level = Logger::Verbosity::WARN}) {}
 
-  static constexpr int MUT_INDEX = 0;
-  static constexpr int CV_INDEX = 1;
-  static constexpr int DEQ_INDEX = 2;
-
-  typedef std::tuple<std::mutex, std::condition_variable, std::deque<std::string>>
-      subscriber_data_t;
+  struct SubscriberData {
+    std::mutex m;
+    std::condition_variable cv;
+    std::deque<std::vector<uint8_t>> deq;
+  };
 
   bool subscriber_task_fn(const std::string &topic, std::mutex &m, std::condition_variable &cv);
 
@@ -136,7 +134,7 @@ protected:
   std::unordered_map<std::string, std::unique_ptr<Task>> subscriber_tasks_;
 
   std::recursive_mutex data_mutex_;
-  std::unordered_map<std::string, subscriber_data_t> subscriber_data_;
+  std::unordered_map<std::string, SubscriberData> subscriber_data_;
 
   Logger logger_;
 };
