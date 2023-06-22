@@ -132,7 +132,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Button APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/42fa3bf/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/d651416/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -158,7 +158,7 @@ which contains the button’s state and the gpio associated with the button.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/42fa3bf/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d651416/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -364,6 +364,16 @@ which contains the button’s state and the gpio associated with the button.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config16pulldown_enabledE">
 <span id="_CPPv3N4espp6Button6Config16pulldown_enabledE"></span><span id="_CPPv2N4espp6Button6Config16pulldown_enabledE"></span><span id="espp::Button::Config::pulldown_enabled__b"></span><span class="target" id="structespp_1_1_button_1_1_config_1a3792c7c8d801520d97e4fd813aac797e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pulldown_enabled</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config16pulldown_enabledE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Whether to enable the pulldown resistor. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config21task_stack_size_bytesE">
+<span id="_CPPv3N4espp6Button6Config21task_stack_size_bytesE"></span><span id="_CPPv2N4espp6Button6Config21task_stack_size_bytesE"></span><span id="espp::Button::Config::task_stack_size_bytes__s"></span><span class="target" id="structespp_1_1_button_1_1_config_1aadd1bc1b0554b1561b7d34c3f70f813a"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_stack_size_bytes</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config21task_stack_size_bytesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stack size for the task. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This may need to be increased if the callback is doing a lot of work (esp. string manipulation, calling many functions, etc.) </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
