@@ -1,23 +1,21 @@
 #pragma once
 
 #include <atomic>
+#include <functional>
 
 #include <driver/gpio.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-#include "event_manager.hpp"
 #include "logger.hpp"
-#include "serialization.hpp"
 #include "task.hpp"
 
 namespace espp {
 /// \brief A class to handle a button connected to a GPIO
 /// \details This class uses the ESP-IDF GPIO interrupt handler to detect
-///          button presses and releases. It then publishes events to the
-///          event manager with the topic specified in the config. The events
-///          are "pressed" and "released".
+///          button presses and releases. It then calls the callback function
+///          with the event.
 ///
 /// \section button_ex1 Button Example
 /// \snippet button_example.cpp button example
@@ -44,12 +42,12 @@ public:
     HIGH_LEVEL = GPIO_INTR_HIGH_LEVEL, ///< Interrupt on high level
   };
 
+  typedef std::function<void(const Event &)> event_callback_fn; ///< The callback for the event
+
   /// \brief The configuration for the button
   struct Config {
-    int gpio_num;      ///< GPIO number to use for the button
-    std::string topic; ///< Topic to publish events to via the event manager, e.g. "button/state"
-    std::string
-        component_name; ///< Name of the component for logging and event manager, e.g. "button"
+    int gpio_num;                                           ///< GPIO number to use for the button
+    event_callback_fn callback;                             ///< Callback for the button event
     ActiveLevel active_level;                               ///< Active level of the GPIO
     InterruptType interrupt_type = InterruptType::ANY_EDGE; ///< Interrupt type to use for the GPIO
     bool pullup_enabled = false;   ///< Whether to enable the pullup resistor
@@ -60,13 +58,10 @@ public:
   /// \brief Construct a button
   /// \param config The configuration for the button
   explicit Button(const Config &config)
-      : gpio_num_(config.gpio_num), topic_(config.topic),
-        logger_({.tag = config.component_name, .level = config.log_level}) {
+      : gpio_num_(config.gpio_num), callback_(config.callback), active_level_(config.active_level),
+        logger_({.tag = "Button", .level = config.log_level}) {
     // make the event queue
     event_queue_ = xQueueCreate(10, sizeof(EventData));
-
-    // register with the event manager that we want to publish events
-    espp::EventManager::get().add_publisher(topic_, config.component_name);
 
     // configure the GPIO for an interrupt
     gpio_config_t io_conf;
@@ -79,8 +74,7 @@ public:
     gpio_config(&io_conf);
 
     // set the initial state of the button
-    pressed_ =
-        gpio_get_level(static_cast<gpio_num_t>(gpio_num_)) == static_cast<int>(config.active_level);
+    update();
 
     // install the isr handler
     handler_args_ = {
@@ -126,6 +120,17 @@ protected:
     int gpio_num;
   };
 
+  bool update() {
+    auto new_state =
+        gpio_get_level(static_cast<gpio_num_t>(gpio_num_)) == static_cast<int>(active_level_);
+    logger_.debug("Button new state: {}", new_state);
+    if (new_state != pressed_) {
+      pressed_ = new_state;
+      return true;
+    }
+    return false;
+  }
+
   static void isr_handler(void *arg) {
     HandlerArgs *handler_args = static_cast<HandlerArgs *>(arg);
     EventData event_data = {
@@ -141,19 +146,14 @@ protected:
         logger_.error("Received event for wrong GPIO");
         return false;
       }
-      pressed_ = !pressed_;
-      logger_.debug("Button state: {}", pressed_);
+      bool updated = update();
+      logger_.debug("ISR Notify, button state: {}, was updated: {}", pressed_, updated);
       Event event = {
           .gpio_num = static_cast<uint8_t>(gpio_num_),
           .pressed = pressed_,
       };
-      std::vector<uint8_t> buffer;
-      auto bytes_written = espp::serialize(event, buffer);
-      if (bytes_written) {
-        std::string data(buffer.begin(), buffer.end());
-        espp::EventManager::get().publish(topic_, data);
-      } else {
-        logger_.error("Failed to serialize event data");
+      if (callback_) {
+        callback_(event);
       }
     }
     // we don't want to stop the task, so return false
@@ -161,10 +161,11 @@ protected:
   }
 
   int gpio_num_;
+  event_callback_fn callback_;
+  ActiveLevel active_level_;
   QueueHandle_t event_queue_;
   HandlerArgs handler_args_;
   std::atomic<bool> pressed_{false};
-  std::string topic_;
   std::unique_ptr<espp::Task> task_;
   espp::Logger logger_;
 };

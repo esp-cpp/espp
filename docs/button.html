@@ -132,7 +132,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Button APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/1e8869b/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/42fa3bf/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -144,24 +144,21 @@
 <h1>Button APIs<a class="headerlink" href="#button-apis" title="Permalink to this headline"></a></h1>
 <p>The <cite>Button</cite> class provides a simple wrapper around the ESP-IDF gpio API to
 provide a simple interface for reading the state of a button. The class sets the
-GPIO pin to input mode and installs an ISR to detect button presses. The ISR sends
-data to the <cite>Button</cite>’s queue which is read by the <cite>Button</cite>’s task. The task
-periodically checks the queue for new data and updates the button state
-accordingly, additionally publishing a message to the <cite>Button</cite>’s topic when the
-button state changes via the <cite>EventManager</cite>.</p>
-<p>Note: the data published to the <cite>Button</cite>’s topic is a <cite>espp::Button::Event</cite>
-object which contains the button’s state and the gpio associated with the
-button. It is serialized using the <cite>espp::serialization</cite> component, which is a
-wrapper around the <cite>alpaca</cite> serialization library. See the example code for
-deserializing the event data.</p>
-<p>Additionally, users can check the state of the button by calling the <cite>is_pressed</cite>
-method.</p>
+GPIO pin to input mode and installs an ISR to detect button presses. The ISR
+sends data to the <cite>Button</cite>’s queue which is read by the <cite>Button</cite>’s task. The
+task periodically checks the queue for new data and updates the button state
+accordingly, additionally calling the provided callback function if one was
+registered.</p>
+<p>Note: the data passed to the callback function is a <cite>espp::Button::Event</cite> object
+which contains the button’s state and the gpio associated with the button.</p>
+<p>Additionally, users can check the state of the button by calling the
+<cite>is_pressed</cite> method.</p>
 <section id="api-reference">
 <h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1e8869b/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/42fa3bf/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -170,7 +167,7 @@ method.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6ButtonE">
 <span id="_CPPv3N4espp6ButtonE"></span><span id="_CPPv2N4espp6ButtonE"></span><span id="espp::Button"></span><span class="target" id="classespp_1_1_button"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Button</span></span></span><a class="headerlink" href="#_CPPv4N4espp6ButtonE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>A class to handle a button connected to a GPIO. </p>
-<p>This class uses the ESP-IDF GPIO interrupt handler to detect button presses and releases. It then publishes events to the event manager with the topic specified in the config. The events are “pressed” and “released”.</p>
+<p>This class uses the ESP-IDF GPIO interrupt handler to detect button presses and releases. It then calls the callback function with the event.</p>
 <section id="classespp_1_1_button_1button_ex1">
 <h4>Button Example<a class="headerlink" href="#classespp_1_1_button_1button_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_button_1button_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
@@ -180,30 +177,48 @@ method.</p>
 <span class="w">  </span><span class="c1">// create a button on GPIO 2</span>
 <span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="w"> </span><span class="nf">button</span><span class="p">({</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_2</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">topic</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">button_topic</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">component_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">button_component_name</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">Event</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;[Callback][{:.3f}] Button {} state changed to: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"></span>
+<span class="w">                        </span><span class="n">event</span><span class="p">.</span><span class="n">gpio_num</span><span class="p">,</span><span class="w"> </span><span class="n">event</span><span class="p">.</span><span class="n">pressed</span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="c1">// serialize the event</span>
+<span class="w">            </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">buffer</span><span class="p">;</span><span class="w"></span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">bytes_written</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">serialize</span><span class="p">(</span><span class="n">event</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bytes_written</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">              </span><span class="c1">// publish the event</span>
+<span class="w">              </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">().</span><span class="n">publish</span><span class="p">(</span><span class="n">button_topic</span><span class="p">,</span><span class="w"> </span><span class="n">buffer</span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">              </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to serialize button state&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">            </span><span class="p">}</span><span class="w"></span>
+<span class="w">          </span><span class="p">},</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">HIGH</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">InterruptType</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"></span>
 <span class="w">      </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="p">});</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="p">});</span><span class="w"></span>
 
 <span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Initial button state: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">button</span><span class="p">.</span><span class="n">is_pressed</span><span class="p">());</span><span class="w"></span>
 
 <span class="w">  </span><span class="c1">// register subscriber on the button topic</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">em</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">();</span><span class="w"></span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">did_sub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_subscriber</span><span class="p">(</span><span class="n">button_topic</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;example subscriber&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
-<span class="w">    </span><span class="c1">// deserialize the data</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deserialize</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">Event</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;[{:.3f}]: button {} state changed to: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">gpio_num</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">pressed</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to deserialize button state: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">  </span><span class="p">});</span><span class="w"></span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">did_sub</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">      </span><span class="n">em</span><span class="p">.</span><span class="n">add_subscriber</span><span class="p">(</span><span class="n">button_topic</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;example subscriber&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">data</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// deserialize the data</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span><span class="w"></span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">deserialize</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">Event</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;[Subscriber][{:.3f}]: button {} state changed to: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"></span>
+<span class="w">                      </span><span class="n">state</span><span class="p">.</span><span class="n">gpio_num</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">pressed</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">          </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Failed to deserialize button state: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
+<span class="w">        </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="p">});</span><span class="w"></span>
 <span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Subscribed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_sub</span><span class="p">);</span><span class="w"></span>
 
 <span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
@@ -271,6 +286,12 @@ method.</p>
 
 </dd></dl>
 
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button17event_callback_fnE">
+<span id="_CPPv3N4espp6Button17event_callback_fnE"></span><span id="_CPPv2N4espp6Button17event_callback_fnE"></span><span id="espp::Button::event_callback_fn"></span><span class="target" id="classespp_1_1_button_1a1e5ed3fdcb8ac6d1b693487f0bdee27f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Button5EventE" title="espp::Button::Event"><span class="n"><span class="pre">Event</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">event_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button17event_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The callback for the event. </p>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
@@ -316,15 +337,9 @@ method.</p>
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config5topicE">
-<span id="_CPPv3N4espp6Button6Config5topicE"></span><span id="_CPPv2N4espp6Button6Config5topicE"></span><span id="espp::Button::Config::topic__ss"></span><span class="target" id="structespp_1_1_button_1_1_config_1a490d128bfd67533c32cb23e4adf543cc"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">topic</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config5topicE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Topic to publish events to via the event manager, e.g. “button/state”. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config14component_nameE">
-<span id="_CPPv3N4espp6Button6Config14component_nameE"></span><span id="_CPPv2N4espp6Button6Config14component_nameE"></span><span id="espp::Button::Config::component_name__ss"></span><span class="target" id="structespp_1_1_button_1_1_config_1ac71ec9089c91f891dc057ccf33e2fc38"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">component_name</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config14component_nameE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Name of the component for logging and event manager, e.g. “button”. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config8callbackE">
+<span id="_CPPv3N4espp6Button6Config8callbackE"></span><span id="_CPPv2N4espp6Button6Config8callbackE"></span><span id="espp::Button::Config::callback__event_callback_fn"></span><span class="target" id="structespp_1_1_button_1_1_config_1a4b21f2b223759e2534a0730c61c05c1c"></span><a class="reference internal" href="#_CPPv4N4espp6Button17event_callback_fnE" title="espp::Button::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config8callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for the button event. </p>
 </dd></dl>
 
 <dl class="cpp var">
