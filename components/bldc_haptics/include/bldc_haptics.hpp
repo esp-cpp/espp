@@ -154,26 +154,26 @@ public:
 
   /// @brief Start the haptic motor
   void start() {
-    if (is_running()) {
-      return;
-    }
     // enable the motor
     {
       std::unique_lock<std::mutex> lk(motor_mutex_);
       motor_.get().enable();
+    }
+    if (is_running()) {
+      return;
     }
     motor_task_->start();
   }
 
   /// @brief Stop the haptic motor
   void stop() {
-    if (!is_running()) {
-      return;
-    }
     // disable the motor
     {
       std::unique_lock<std::mutex> lk(motor_mutex_);
       motor_.get().disable();
+    }
+    if (!is_running()) {
+      return;
     }
     motor_task_->stop();
   }
