@@ -14,8 +14,8 @@
 #include "task.hpp"
 #include "wifi_sta.hpp"
 
-#include "rtsp_server.hpp"
 #include "rtsp_client.hpp"
+#include "rtsp_server.hpp"
 
 #include "jpeg_image.hpp"
 
@@ -64,7 +64,7 @@ extern "C" void app_main(void) {
       .port = server_port,
       .path = "/mjpeg/1",
       .log_level = espp::Logger::Verbosity::INFO,
-    });
+  });
   rtsp_server.start();
 
   espp::JpegFrame jpeg_frame(jpeg_data, sizeof(jpeg_data));
@@ -77,13 +77,15 @@ extern "C" void app_main(void) {
   //! [rtsp_client_example]
   espp::RtspClient rtsp_client({
       .server_address = ip_address, // string of the form {}.{}.{}.{}
-        .rtsp_port = CONFIG_RTSP_SERVER_PORT,
-        .path = "/mjpeg/1",
-        .on_jpeg_frame = [](std::unique_ptr<espp::JpegFrame> jpeg_frame) {
-          fmt::print("Got JPEG frame of size {}x{}\n", jpeg_frame->get_width(), jpeg_frame->get_height());
-        },
-        .log_level = espp::Logger::Verbosity::ERROR,
-        });
+      .rtsp_port = CONFIG_RTSP_SERVER_PORT,
+      .path = "/mjpeg/1",
+      .on_jpeg_frame =
+          [](std::unique_ptr<espp::JpegFrame> jpeg_frame) {
+            fmt::print("Got JPEG frame of size {}x{}\n", jpeg_frame->get_width(),
+                       jpeg_frame->get_height());
+          },
+      .log_level = espp::Logger::Verbosity::ERROR,
+  });
 
   std::error_code ec;
 
