@@ -1012,6 +1012,8 @@ protected:
     if (data_format_ == DataFormat::RAW) {
       // TODO: figure out how to know when the conversion is complete in RAW
       // mode
+      logger_.error("Unsupported data format: RAW for conversion complete, returning true");
+      return true;
     } else if (data_format_ == DataFormat::AVERAGED) {
       // if we have enabled the OSR (averaging), then we need to wait (for
       // t_conv * OSR_CFG[2:0]) for the averaging to complete. We'll know it's
