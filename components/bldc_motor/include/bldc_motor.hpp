@@ -169,8 +169,12 @@ public:
 
     // finish the rest of init
     init();
+    // enable the motor for foc initialization
+    enable();
     // then initialize the foc (calibration etc.)
     init_foc(config.zero_electric_offset, config.sensor_direction);
+    // disable the motor to put it back into a safe state
+    disable();
   }
 
   /**
@@ -180,11 +184,17 @@ public:
   ~BldcMotor() { disable(); }
 
   /**
+   * @brief Check if the motor is enabled.
+   * @return True if the motor is enabled, false otherwise.
+   */
+  bool is_enabled() const { return enabled_; }
+
+  /**
    * @brief Enable the controller and driver output.
    */
   void enable() {
-    enabled_ = true;
     driver_->enable();
+    enabled_ = true;
   }
 
   /**
@@ -211,6 +221,10 @@ public:
    * @param el_angle current electrical angle of the motor
    */
   void set_phase_voltage(float uq, float ud, float el_angle) {
+    if (!enabled_) {
+      return;
+    }
+
     float center;
     int sector;
     float _ca, _sa;
@@ -642,11 +656,7 @@ public:
   }
 
 protected:
-  void init() {
-    status_ = Status::INITIALIZING;
-    enable();
-    status_ = Status::UNCALIBRATED;
-  }
+  void init() { status_ = Status::UNCALIBRATED; }
 
   void init_foc(float zero_electric_offset = 0,
                 detail::SensorDirection sensor_direction = detail::SensorDirection::CLOCKWISE) {

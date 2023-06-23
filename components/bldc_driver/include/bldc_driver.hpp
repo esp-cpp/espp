@@ -68,13 +68,16 @@ public:
    *        force level.
    */
   void enable() {
-    logger_.info("Enabling");
-    for (auto g : generators_) {
-      // remove force level, and don't hold it
-      mcpwm_generator_set_force_level(g, -1, false);
+    if (enabled_) {
+      return;
     }
-    gpio_set_level((gpio_num_t)gpio_en_, 1);
+    logger_.info("Enabling");
+    mcpwm_timer_enable(timer_);
+    mcpwm_timer_start_stop(timer_, MCPWM_TIMER_START_NO_STOP);
     enabled_ = true;
+    if (gpio_en_ >= 0) {
+      gpio_set_level((gpio_num_t)gpio_en_, 1);
+    }
   }
 
   /**
@@ -83,13 +86,13 @@ public:
    *        low.
    */
   void disable() {
-    logger_.info("Disabling");
-    for (auto g : generators_) {
-      // set force level to 0 (gate off), and hold it
-      mcpwm_generator_set_force_level(g, 0, true);
+    if (!enabled_) {
+      return;
     }
+    logger_.info("Disabling");
+    mcpwm_timer_start_stop(timer_, MCPWM_TIMER_STOP_FULL);
+    mcpwm_timer_disable(timer_);
     enabled_ = false;
-    std::lock_guard<std::mutex> lock(en_mutex_);
     if (gpio_en_ >= 0) {
       gpio_set_level((gpio_num_t)gpio_en_, 0);
     }
@@ -107,7 +110,6 @@ public:
    * @return True if the driver is faulted, false otherwise.
    */
   bool is_faulted() {
-    std::lock_guard<std::mutex> lock(fault_mutex_);
     if (gpio_fault_ < 0) {
       return false;
     }
@@ -174,14 +176,6 @@ public:
     uint32_t b_ticks = (uint32_t)(duty_b * (float)(TICKS_PER_PERIOD / 2));
     uint32_t c_ticks = (uint32_t)(duty_c * (float)(TICKS_PER_PERIOD / 2));
 
-    static int log_counter = 0;
-    // log_counter++;
-    if (log_counter == 500) {
-      fmt::print("PWM (abc): {:.3f},{:.3f},{:.3f}\n", duty_a, duty_b, duty_c);
-      fmt::print("Ticks (abc): {},{},{}\n", a_ticks, b_ticks, c_ticks);
-      log_counter = 0;
-    }
-
     mcpwm_comparator_set_compare_value(comparators_[0], a_ticks);
     mcpwm_comparator_set_compare_value(comparators_[1], b_ticks);
     mcpwm_comparator_set_compare_value(comparators_[2], c_ticks);
@@ -223,16 +217,10 @@ protected:
     configure_operators();
     configure_comparators();
     configure_generators();
-    // start timer
-    logger_.info("starting timer");
-    mcpwm_timer_enable(timer_);
-    mcpwm_timer_start_stop(timer_, MCPWM_TIMER_START_NO_STOP);
-    // enable
     enable();
   }
 
   void configure_enable_gpio() {
-    std::lock_guard<std::mutex> lock(en_mutex_);
     if (gpio_en_ < 0) {
       return;
     }
@@ -246,7 +234,6 @@ protected:
   }
 
   void configure_fault_gpio() {
-    std::lock_guard<std::mutex> lock(fault_mutex_);
     if (gpio_fault_ < 0) {
       return;
     }
@@ -347,9 +334,7 @@ protected:
   gpio_num_t gpio_bl_;
   gpio_num_t gpio_ch_;
   gpio_num_t gpio_cl_;
-  std::mutex en_mutex_;
   int gpio_en_;
-  std::mutex fault_mutex_;
   int gpio_fault_;
   std::atomic<float> power_supply_voltage_;
   std::atomic<float> limit_voltage_;
