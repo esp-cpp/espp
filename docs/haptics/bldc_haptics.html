@@ -139,7 +139,7 @@
           <li><a href="index.html">Haptics APIs</a> &raquo;</li>
       <li>BLDC Haptics</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/d651416/docs/en/haptics/bldc_haptics.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/367f874/docs/en/haptics/bldc_haptics.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -180,19 +180,19 @@ haptic feedback loop with configuration of:</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d651416/components/bldc_haptics/include/detent_config.hpp">components/bldc_haptics/include/detent_config.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/367f874/components/bldc_haptics/include/detent_config.hpp">components/bldc_haptics/include/detent_config.hpp</a></p></li>
 </ul>
 </section>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d651416/components/bldc_haptics/include/haptic_config.hpp">components/bldc_haptics/include/haptic_config.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/367f874/components/bldc_haptics/include/haptic_config.hpp">components/bldc_haptics/include/haptic_config.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
 <h3>Header File<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d651416/components/bldc_haptics/include/bldc_haptics.hpp">components/bldc_haptics/include/bldc_haptics.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/367f874/components/bldc_haptics/include/bldc_haptics.hpp">components/bldc_haptics/include/bldc_haptics.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -297,6 +297,27 @@ The haptics provided by this class enable configuration of:<ul class="simple">
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>config</strong> – Configuration for the haptic motor </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11BldcHapticsD0Ev">
+<span id="_CPPv3N4espp11BldcHapticsD0Ev"></span><span id="_CPPv2N4espp11BldcHapticsD0Ev"></span><span id="espp::BldcHaptics::~BldcHaptics"></span><span class="target" id="classespp_1_1_bldc_haptics_1a25533de30e53313d80457d599937e9fd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~BldcHaptics</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11BldcHapticsD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Destructor for the haptic motor. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will stop the motor if it is running </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11BldcHaptics10is_runningEv">
+<span id="_CPPv3NK4espp11BldcHaptics10is_runningEv"></span><span id="_CPPv2NK4espp11BldcHaptics10is_runningEv"></span><span id="espp::BldcHaptics::is_runningC"></span><span class="target" id="classespp_1_1_bldc_haptics_1af6e00881aabb30b71edddc802ae94c33"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_running</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11BldcHaptics10is_runningEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Check if the haptic motor is running. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the haptic motor is running, false otherwise </p>
 </dd>
 </dl>
 </dd></dl>
