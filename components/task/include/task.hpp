@@ -178,6 +178,13 @@ public:
    */
   bool is_started() { return started_; }
 
+  /**
+   * @brief Is the task running?
+   *
+   * @return true if the task is running, false otherwise.
+   */
+  bool is_running() { return is_started(); }
+
 #if defined(ESP_PLATFORM)
   /**
    * @brief Get the info (as a string) for the task of the current context.
@@ -215,6 +222,7 @@ protected:
           break;
         }
       } else {
+        started_ = false;
         break;
       }
     }
