@@ -656,9 +656,7 @@ public:
   }
 
 protected:
-  void init() {
-    status_ = Status::UNCALIBRATED;
-  }
+  void init() { status_ = Status::UNCALIBRATED; }
 
   void init_foc(float zero_electric_offset = 0,
                 detail::SensorDirection sensor_direction = detail::SensorDirection::CLOCKWISE) {
