@@ -141,11 +141,42 @@ public:
                            .log_level = Logger::Verbosity::WARN});
   }
 
+  /// @brief Destructor for the haptic motor
+  /// @note This will stop the motor if it is running
+  ~BldcHaptics() {
+    // stop the motor if it is running
+    stop();
+  }
+
+  /// @brief Check if the haptic motor is running
+  /// @return True if the haptic motor is running, false otherwise
+  bool is_running() const { return motor_task_->is_running(); }
+
   /// @brief Start the haptic motor
-  void start() { motor_task_->start(); }
+  void start() {
+    if (is_running()) {
+      return;
+    }
+    // enable the motor
+    {
+      std::unique_lock<std::mutex> lk(motor_mutex_);
+      motor_.get().enable();
+    }
+    motor_task_->start();
+  }
 
   /// @brief Stop the haptic motor
-  void stop() { motor_task_->stop(); }
+  void stop() {
+    if (!is_running()) {
+      return;
+    }
+    // disable the motor
+    {
+      std::unique_lock<std::mutex> lk(motor_mutex_);
+      motor_.get().disable();
+    }
+    motor_task_->stop();
+  }
 
   /// @brief Get the current position of the haptic motor
   /// @return Current position of the haptic motor
