@@ -9,6 +9,9 @@ The `Cli` and associated `LineInput` classes support:
   *   ctrl+n (move up a line / previous input history)
   *   ctrl+p (move down a line / next input history)
   *   ctrl+k (delete from the cursor to the end of the line)
+  *   ctrl+b (move the cursor back one character)
+  *   ctrl+f (move the cursor forward one character)
+  *   ctrl+l (clear the screen)
 
 ## How to use example
 

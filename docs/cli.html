@@ -135,7 +135,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Command Line Interface (CLI) APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/367f874/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/d9ee192/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -178,7 +178,7 @@ beyond the examples provided here.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/367f874/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d9ee192/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -327,7 +327,7 @@ beyond the examples provided here.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/367f874/components/cli/include/line_input.hpp">components/cli/include/line_input.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d9ee192/components/cli/include/line_input.hpp">components/cli/include/line_input.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -337,13 +337,17 @@ beyond the examples provided here.</p>
 <span id="_CPPv3N4espp9LineInputE"></span><span id="_CPPv2N4espp9LineInputE"></span><span id="espp::LineInput"></span><span class="target" id="classespp_1_1_line_input"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">LineInput</span></span></span><a class="headerlink" href="#_CPPv4N4espp9LineInputE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for getting a line of input from the terminal using c++ istream while showing the input and allowing cursor navigation and backspace. Optionally allows for a prompt to be printed and command history to be stored. By default the history_size is 0, which is unlimited history. </p>
 <p>The class allows for line movement using:<ul class="simple">
+<li><p>ctrl+l (clear the screen)</p></li>
 <li><p>ctrl+a (move to beginning of line)</p></li>
 <li><p>ctrl+e (move to end of line)</p></li>
 <li><p>ctrl+n (move up a line / previous input history)</p></li>
 <li><p>ctrl+p (move down a line / next input history)</p></li>
-<li><p>ctrl+k (delete from the cursor to the end of the line) </p></li>
+<li><p>ctrl+k (delete from the cursor to the end of the line)</p></li>
+<li><p>ctrl+b (move back one character)</p></li>
+<li><p>ctrl+f (move forward one character)</p></li>
 </ul>
 </p>
+<p>It has some <em>very</em> basic support for handling terminal resize events, but this is not very robust and should be improved. For now, any time it detects a resize, it will clear the screen and redraw the prompt and input. Note that this does not run continuously, but only when the user presses a key. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
@@ -419,6 +423,24 @@ beyond the examples provided here.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput17get_terminal_sizeERiRi">
+<span id="_CPPv3N4espp9LineInput17get_terminal_sizeERiRi"></span><span id="_CPPv2N4espp9LineInput17get_terminal_sizeERiRi"></span><span id="espp::LineInput::get_terminal_size__iR.iR"></span><span class="target" id="classespp_1_1_line_input_1a7ef97492620b3624fda047f72502f40a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_terminal_size</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">width</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">height</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput17get_terminal_sizeERiRi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the current terminal size. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Tries to move the cursor to the bottom right of the terminal (999,999) and then get the cursor position. This is a bit of a hack, but it seems to work. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>width</strong> – Reference to an int to store the width in. </p></li>
+<li><p><strong>height</strong> – Reference to an int to store the height in. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn">
 <span id="_CPPv3N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn"></span><span id="_CPPv2N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn"></span><span id="espp::LineInput::get_user_input__isR.prompt_fn"></span><span class="target" id="classespp_1_1_line_input_1ae733c9cfa705852c3d1666c3c69ea193"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_user_input</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">istream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">is</span></span>, <a class="reference internal" href="#_CPPv4N4espp9LineInput9prompt_fnE" title="espp::LineInput::prompt_fn"><span class="n"><span class="pre">prompt_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">prompt</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get user input with arrow key and backspace support. </p>
@@ -433,6 +455,30 @@ beyond the examples provided here.</p>
 <dd class="field-even"><p>User input as a std::string </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput12clear_screenEv">
+<span id="_CPPv3N4espp9LineInput12clear_screenEv"></span><span id="_CPPv2N4espp9LineInput12clear_screenEv"></span><span id="espp::LineInput::clear_screen"></span><span class="target" id="classespp_1_1_line_input_1a5369968781b49271e230978c6682396e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_screen</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput12clear_screenEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the screen. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput10clear_lineEv">
+<span id="_CPPv3N4espp9LineInput10clear_lineEv"></span><span id="_CPPv2N4espp9LineInput10clear_lineEv"></span><span id="espp::LineInput::clear_line"></span><span class="target" id="classespp_1_1_line_input_1ab8d371efb36951798b3b215853ac9a61"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_line</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput10clear_lineEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the line (that the cursor is on) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput20clear_to_end_of_lineEv">
+<span id="_CPPv3N4espp9LineInput20clear_to_end_of_lineEv"></span><span id="_CPPv2N4espp9LineInput20clear_to_end_of_lineEv"></span><span id="espp::LineInput::clear_to_end_of_line"></span><span class="target" id="classespp_1_1_line_input_1ae854da9b20ef295394350eace65347bb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_to_end_of_line</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput20clear_to_end_of_lineEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear to end of line (from cursor) </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput22clear_to_start_of_lineEv">
+<span id="_CPPv3N4espp9LineInput22clear_to_start_of_lineEv"></span><span id="_CPPv2N4espp9LineInput22clear_to_start_of_lineEv"></span><span id="espp::LineInput::clear_to_start_of_line"></span><span class="target" id="classespp_1_1_line_input_1abfa48a24a56630d8b9e22f406092a423"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_to_start_of_line</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput22clear_to_start_of_lineEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear to start of line (from cursor) </p>
 </dd></dl>
 
 </div>
