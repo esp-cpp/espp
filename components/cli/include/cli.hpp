@@ -94,6 +94,10 @@ public:
     esp_vfs_dev_usb_serial_jtag_set_rx_line_endings(ESP_LINE_ENDINGS_CR);
     esp_vfs_dev_usb_serial_jtag_set_tx_line_endings(ESP_LINE_ENDINGS_CRLF);
 #endif // CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+
+    fflush(stdout);
+    fsync(fileno(stdout));
+
     configured = true;
   }
 

@@ -15,11 +15,19 @@ namespace espp {
  *        stored. By default the history_size is 0, which is unlimited history.
  *
  *        The class allows for line movement using:
+ *        *   ctrl+l (clear the screen)
  *        *   ctrl+a (move to beginning of line)
  *        *   ctrl+e (move to end of line)
  *        *   ctrl+n (move up a line / previous input history)
  *        *   ctrl+p (move down a line / next input history)
  *        *   ctrl+k (delete from the cursor to the end of the line)
+ *        *   ctrl+b (move back one character)
+ *        *   ctrl+f (move forward one character)
+ *
+ * It has some _very_ basic support for handling terminal resize events, but
+ * this is not very robust and should be improved. For now, any time it detects
+ * a resize, it will clear the screen and redraw the prompt and input. Note that
+ * this does not run continuously, but only when the user presses a key.
  */
 class LineInput {
 public:
@@ -30,10 +38,10 @@ public:
   typedef std::deque<std::string> History;
 
   /// Constructor
-  LineInput() {}
+  LineInput() = default;
 
   /// Destructor
-  ~LineInput() {}
+  ~LineInput() = default;
 
   /**
    * @brief Set the history size for the line input.
@@ -68,6 +76,20 @@ public:
   }
 
   /**
+   * @brief Get the current terminal size.
+   * @note Tries to move the cursor to the bottom right of the terminal
+   *       (999,999) and then get the cursor position. This is a bit of a hack,
+   *       but it seems to work.
+   * @param width Reference to an int to store the width in.
+   * @param height Reference to an int to store the height in.
+   */
+  void get_terminal_size(int &width, int &height) {
+    printf("\033[s\033[999;999H\033[6n\033[u");
+    fflush(stdout);
+    scanf("\033[%d;%dR", &height, &width);
+  }
+
+  /**
    * @brief Get user input with arrow key and backspace support
    * @param is Reference to a std::istream from which to read input
    * @param prompt Function to show prompt at the beginning of the line
@@ -76,6 +98,9 @@ public:
   std::string get_user_input(std::istream &is, prompt_fn prompt = nullptr) {
     int start_pos_x, start_pos_y;
     get_cursor_position(start_pos_x, start_pos_y);
+
+    // get the current terminal size
+    get_terminal_size(terminal_width_, terminal_height_);
 
     // add a new element to the front of the queue
     std::string &input = input_history_.emplace_front();
@@ -88,6 +113,15 @@ public:
     int input_index = 0;
 
     while (true) {
+      if (handle_resize()) {
+        // for now, just clear the screen and redraw the prompt and input
+        // TODO: handle resizing more gracefully
+        clear_screen();
+        pos_y = 1;
+        move_cursor(pos_x, pos_y);
+        redraw(start_pos_x, input, prompt);
+      }
+
       int ch = is.get();
 
       // Handle arrow keys
@@ -123,8 +157,12 @@ public:
         pos_x = std::min((int)input.size() + start_pos_x, pos_x + 1);
       } else if (ch == 11) { // Ctrl+K (kill to end of line)
         input.resize(pos_x - start_pos_x);
-        printf("\033[0K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
-                           // entire line
+        clear_to_end_of_line();
+      } else if (ch == 12) { // Ctrl+L (clear screen)
+        clear_screen();
+        pos_y = 1;
+        move_cursor(pos_x, pos_y);
+        redraw(start_pos_x, input, prompt);
       } else if (ch == 14) { // Ctrl+N (move down 1 line)
         input_index = std::max(input_index - 1, 0);
         input = input_history_[input_index];
@@ -156,6 +194,37 @@ public:
     return input;
   }
 
+  /**
+   * @brief Clear the screen
+   */
+  void clear_screen() {
+    printf("\033[2J"); // Clear the screen
+  }
+
+  /**
+   * @brief Clear the line (that the cursor is on)
+   */
+  void clear_line() {
+    printf("\033[2K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
+                       // entire line
+  }
+
+  /**
+   * @brief Clear to end of line (from cursor)
+   */
+  void clear_to_end_of_line() {
+    printf("\033[0K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
+                       // entire line
+  }
+
+  /**
+   * @brief Clear to start of line (from cursor)
+   */
+  void clear_to_start_of_line() {
+    printf("\033[1K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
+                       // entire line
+  }
+
 protected:
   void redraw(int start_pos_x, std::string_view input, prompt_fn prompt) {
     printf("\033[2K");     // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
@@ -164,12 +233,15 @@ protected:
     // make sure to regenerate the prompt if there was one
     if (prompt)
       prompt();
-    printf("\033[%dG", start_pos_x); // Move cursor to beginning of the input
+    // Move cursor to beginning of the input
+    move_cursor(start_pos_x);
     std::cout << input;
   }
 
   // Move the cursor
   void move_cursor(int x, int y) { printf("\033[%d;%dH", y, x); }
+
+  void move_cursor(int x) { printf("\033[%dG", x); }
 
   // Get cursor position
   void get_cursor_position(int &x, int &y) {
@@ -177,6 +249,20 @@ protected:
     scanf("\033[%d;%dR", &y, &x);
   }
 
+  // Update the terminal size and return true if it changed
+  bool handle_resize() {
+    int term_width, term_height;
+    get_terminal_size(term_width, term_height);
+    if (term_width != terminal_width_ || term_height != terminal_height_) {
+      terminal_width_ = term_width;
+      terminal_height_ = term_height;
+      return true;
+    }
+    return false;
+  }
+
+  int terminal_width_;
+  int terminal_height_;
   size_t history_size_ = 0;
   History input_history_;
 };
