@@ -79,6 +79,8 @@ jobs:
           target: esp32s3
         - path: 'components/state_machine/example'
           target: esp32
+        - path: 'components/tabulate/example'
+          target: esp32
         - path: 'components/task/example'
           target: esp32
         - path: 'components/thermistor/example'
