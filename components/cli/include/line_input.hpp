@@ -38,13 +38,10 @@ public:
   typedef std::deque<std::string> History;
 
   /// Constructor
-  LineInput() {
-    // get the current terminal size
-    get_terminal_size(terminal_width_, terminal_height_);
-  }
+  LineInput() = default;
 
   /// Destructor
-  ~LineInput() {}
+  ~LineInput() = default;
 
   /**
    * @brief Set the history size for the line input.
@@ -101,6 +98,9 @@ public:
   std::string get_user_input(std::istream &is, prompt_fn prompt = nullptr) {
     int start_pos_x, start_pos_y;
     get_cursor_position(start_pos_x, start_pos_y);
+
+    // get the current terminal size
+    get_terminal_size(terminal_width_, terminal_height_);
 
     // add a new element to the front of the queue
     std::string &input = input_history_.emplace_front();
