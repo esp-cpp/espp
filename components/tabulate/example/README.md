@@ -1,6 +1,7 @@
-# CSV Example
+# Tabulate Example
 
-This example shows the use of the `csv` component to read and write CSV data.
+This example shows the use of the `tabulate` component to easily create and
+pretty print tables to the console.
 
 ## How to use example
 
@@ -20,5 +21,5 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-![output](https://user-images.githubusercontent.com/213467/228974953-4ec7bc85-4fe2-44c3-955d-0b179f02ba7b.png)
+![image](https://github.com/esp-cpp/espp/assets/213467/50d8bdc2-7f94-48b4-9402-5c5e306cfe1a)
 
