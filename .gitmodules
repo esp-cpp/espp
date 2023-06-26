@@ -19,3 +19,6 @@
 [submodule "external/cli"]
 	path = external/cli
 	url = git@github.com:daniele77/cli
+[submodule "external/tabulate"]
+	path = external/tabulate
+	url = git@github.com:p-ranav/tabulate
