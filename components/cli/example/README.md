@@ -34,3 +34,8 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 ![output](https://user-images.githubusercontent.com/213467/231225408-90881f56-901a-4d7f-9649-1ddd4d3ea560.png)
 
 https://user-images.githubusercontent.com/213467/231188170-47f45641-fc44-4cc6-b673-506e643a5e02.mp4
+
+Showing terminal resize and support for `ctrl+l`:
+
+https://github.com/esp-cpp/espp/assets/213467/54c362a7-99f2-4d8a-aa26-4498646f86e6
+
