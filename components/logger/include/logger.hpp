@@ -59,6 +59,15 @@ public:
   void set_verbosity(const Verbosity level) { level_ = level; }
 
   /**
+   * @brief Change the tag for the logger.
+   * @param tag The new tag.
+   */
+  void set_tag(const std::string_view tag) {
+    std::lock_guard<std::mutex> lock(tag_mutex_);
+    tag_ = tag;
+  }
+
+  /**
    * @brief Format args into string according to format string. From:
    * https://en.cppreference.com/w/cpp/utility/format/format
    *
@@ -79,6 +88,7 @@ public:
     if (level_ > Verbosity::DEBUG)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
+    std::lock_guard<std::mutex> lock(tag_mutex_);
     fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
   }
 
@@ -91,6 +101,7 @@ public:
     if (level_ > Verbosity::INFO)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
+    std::lock_guard<std::mutex> lock(tag_mutex_);
     fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
   }
 
@@ -103,6 +114,7 @@ public:
     if (level_ > Verbosity::WARN)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
+    std::lock_guard<std::mutex> lock(tag_mutex_);
     fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
   }
 
@@ -115,6 +127,7 @@ public:
     if (level_ > Verbosity::ERROR)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
+    std::lock_guard<std::mutex> lock(tag_mutex_);
     fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
   }
 
@@ -135,6 +148,7 @@ public:
       last_print_ = now;
     }
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
+    std::lock_guard<std::mutex> lock(tag_mutex_);
     fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
   }
 
@@ -155,6 +169,7 @@ public:
       last_print_ = now;
     }
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
+    std::lock_guard<std::mutex> lock(tag_mutex_);
     fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
   }
 
@@ -175,6 +190,7 @@ public:
       last_print_ = now;
     }
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
+    std::lock_guard<std::mutex> lock(tag_mutex_);
     fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
   }
 
@@ -195,10 +211,13 @@ public:
       last_print_ = now;
     }
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
+    std::lock_guard<std::mutex> lock(tag_mutex_);
     fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
   }
 
 protected:
+  std::mutex tag_mutex_;
+
   /**
    *   Name given to the logger to be prepended to all logs.
    */
