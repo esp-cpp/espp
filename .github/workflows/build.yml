@@ -85,6 +85,8 @@ jobs:
           target: esp32
         - path: 'components/thermistor/example'
           target: esp32
+        - path: 'components/timer/example'
+          target: esp32
         - path: 'components/wifi/example'
           target: esp32
 

@@ -42,4 +42,5 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    tabulate
    task
    thermistor
+   timer
    wifi/index
