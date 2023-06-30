@@ -132,6 +132,17 @@ public:
   }
 
   /**
+   * @brief Set the pin values for Port 0 and Port 1.
+   * @param pins The pin values for Port 0 and Port 1 as a 16 bit mask to set.
+   */
+  void set_pins(uint16_t pins) {
+    auto addr = Registers::OUTPORT0;
+    // first byte is P0, second byte is P1
+    uint8_t data[] = {(uint8_t)pins, (uint8_t)(pins >> 8)};
+    write_many_((uint8_t)addr, data, 2);
+  }
+
+  /**
    * @brief Configure the provided pins to interrupt on change.
    * @param port The port associated with the provided pin mask.
    * @param mask The pin mask to configure for interrupt (0=interrupt).
