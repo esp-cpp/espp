@@ -158,10 +158,6 @@ public:
    */
   bool stop() {
     logger_.debug("Stopping task");
-    if (!started_) {
-      logger_.warn("Task is not running!");
-      return false;
-    }
     started_ = false;
     cv_.notify_all();
     if (thread_.joinable()) {

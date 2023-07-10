@@ -67,8 +67,11 @@ extern "C" void app_main(void) {
     auto task = espp::Task(
         {.name = "Task 1", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
-    //! [Task example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
+    // show explicitly stopping the task (though the destructor called at the
+    // end of this scope would do it for us)
+    task.stop();
+    //! [Task example]
   }
   test_end = std::chrono::high_resolution_clock::now();
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
