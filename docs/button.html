@@ -134,7 +134,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Button APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/3016379/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/a5a07c6/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -160,7 +160,7 @@ which contains the button’s state and the gpio associated with the button.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/3016379/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a5a07c6/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -222,6 +222,20 @@ which contains the button’s state and the gpio associated with the button.</p>
 <span class="w">        </span><span class="p">}</span><span class="w"></span>
 <span class="w">      </span><span class="p">});</span><span class="w"></span>
 <span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Subscribed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_sub</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">  </span><span class="c1">// create another button</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="w"> </span><span class="nf">button_2</span><span class="p">({</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_37</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">Event</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Button {} state changed to: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">event</span><span class="p">.</span><span class="n">gpio_num</span><span class="p">,</span><span class="w"> </span><span class="n">event</span><span class="p">.</span><span class="n">pressed</span><span class="p">);</span><span class="w"></span>
+<span class="w">          </span><span class="p">},</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">HIGH</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Button</span><span class="o">::</span><span class="n">InterruptType</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">,</span><span class="w"></span>
+<span class="w">  </span><span class="p">});</span><span class="w"></span>
 
 <span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"></span>

@@ -63,6 +63,20 @@ extern "C" void app_main(void) {
       });
   logger.info("Subscribed: {}", did_sub);
 
+  // create another button
+  espp::Button button_2({
+      .gpio_num = GPIO_NUM_37,
+      .callback =
+          [&](const espp::Button::Event &event) {
+            logger.info("Button {} state changed to: {}", event.gpio_num, event.pressed);
+          },
+      .active_level = espp::Button::ActiveLevel::HIGH,
+      .interrupt_type = espp::Button::InterruptType::ANY_EDGE,
+      .pullup_enabled = false,
+      .pulldown_enabled = false,
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+
   while (true) {
     std::this_thread::sleep_for(1s);
   }

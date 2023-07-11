@@ -85,7 +85,11 @@ public:
         .gpio_num = gpio_num_,
         .event_queue = event_queue_,
     };
-    gpio_install_isr_service(0);
+    static bool isr_service_installed = false;
+    if (!isr_service_installed) {
+      gpio_install_isr_service(0);
+      isr_service_installed = true;
+    }
     gpio_isr_handler_add(static_cast<gpio_num_t>(gpio_num_), isr_handler, &handler_args_);
 
     // make the task
