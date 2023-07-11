@@ -137,7 +137,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Command Line Interface (CLI) APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/c76a4da/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/3016379/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -180,7 +180,7 @@ beyond the examples provided here.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c76a4da/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/3016379/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -296,6 +296,21 @@ beyond the examples provided here.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Cli15SetHandleResizeEb">
+<span id="_CPPv3N4espp3Cli15SetHandleResizeEb"></span><span id="_CPPv2N4espp3Cli15SetHandleResizeEb"></span><span id="espp::Cli::SetHandleResize__b"></span><span class="target" id="classespp_1_1_cli_1a5a3bbcad8e7800052b002429d1a5d52e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SetHandleResize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle_resize</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3Cli15SetHandleResizeEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set whether or not to handle resize events. </p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is not very robust and should be used with caution. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>handle_resize</strong> – true to handle resize events, false to ignore them. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK4espp3Cli15GetInputHistoryEv">
 <span id="_CPPv3NK4espp3Cli15GetInputHistoryEv"></span><span id="_CPPv2NK4espp3Cli15GetInputHistoryEv"></span><span id="espp::Cli::GetInputHistoryC"></span><span class="target" id="classespp_1_1_cli_1a8feccc0588955beb10401bf4d9ceff3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9LineInputE" title="espp::LineInput"><span class="n"><span class="pre">LineInput</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp9LineInput7HistoryE" title="espp::LineInput::History"><span class="n"><span class="pre">History</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">GetInputHistory</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Cli15GetInputHistoryEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the input history for this session. </p>
@@ -329,7 +344,7 @@ beyond the examples provided here.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c76a4da/components/cli/include/line_input.hpp">components/cli/include/line_input.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/3016379/components/cli/include/line_input.hpp">components/cli/include/line_input.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -349,7 +364,11 @@ beyond the examples provided here.</p>
 <li><p>ctrl+f (move forward one character)</p></li>
 </ul>
 </p>
-<p>It has some <em>very</em> basic support for handling terminal resize events, but this is not very robust and should be improved. For now, any time it detects a resize, it will clear the screen and redraw the prompt and input. Note that this does not run continuously, but only when the user presses a key. </p>
+<p>It has some <em>very</em> basic support for handling terminal resize events, but this is not very robust and should be improved. For now, any time it detects a resize, it will clear the screen and redraw the prompt and input. Note that this does not run continuously, but only when the user presses a key. It will only detect a resize when the user presses a key, so if the user resizes the terminal without pressing a key, it will not be detected. This is a bit of a hack, but it seems to work ok enough for now. NOTE: this feature is enabled by default, but can be disabled by calling set_handle_resize(false).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The handle resize functionality is not very robust and can sometimes result in the prompt thinking that it was resized when it was not. Use with caution. This seems to happen if you hold the enter key down for too long. If this happens, you can press ctrl+l to redraw the prompt and input. </p>
+</div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
@@ -420,6 +439,25 @@ beyond the examples provided here.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>history</strong> – New History to use. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput17set_handle_resizeEb">
+<span id="_CPPv3N4espp9LineInput17set_handle_resizeEb"></span><span id="_CPPv2N4espp9LineInput17set_handle_resizeEb"></span><span id="espp::LineInput::set_handle_resize__b"></span><span class="target" id="classespp_1_1_line_input_1adbc09c5207a6b413cab7b0e139940150"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_handle_resize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle_resize</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput17set_handle_resizeEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set whether or not to handle terminal resize events. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">handle_resize</span></code> is true, then the terminal will be cleared and the prompt and input will be redrawn any time the terminal is resized. </p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This is not very robust and should be improved. Use with caution. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>handle_resize</strong> – Whether or not to handle terminal resize events. </p>
 </dd>
 </dl>
 </dd></dl>

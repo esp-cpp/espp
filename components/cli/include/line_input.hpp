@@ -27,7 +27,17 @@ namespace espp {
  * It has some _very_ basic support for handling terminal resize events, but
  * this is not very robust and should be improved. For now, any time it detects
  * a resize, it will clear the screen and redraw the prompt and input. Note that
- * this does not run continuously, but only when the user presses a key.
+ * this does not run continuously, but only when the user presses a key. It will
+ * only detect a resize when the user presses a key, so if the user resizes the
+ * terminal without pressing a key, it will not be detected. This is a bit of a
+ * hack, but it seems to work ok enough for now. NOTE: this feature is enabled
+ * by default, but can be disabled by calling set_handle_resize(false).
+ *
+ * @warning The handle resize functionality is not very robust and can sometimes
+ *          result in the prompt thinking that it was resized when it was not.
+ *          Use with caution. This seems to happen if you hold the enter key
+ *          down for too long. If this happens, you can press ctrl+l to redraw
+ *          the prompt and input.
  */
 class LineInput {
 public:
@@ -76,6 +86,16 @@ public:
   }
 
   /**
+   * @brief Set whether or not to handle terminal resize events.
+   * @note If \p handle_resize is true, then the terminal will be cleared and
+   *       the prompt and input will be redrawn any time the terminal is
+   *       resized.
+   * @warning This is not very robust and should be improved. Use with caution.
+   * @param handle_resize Whether or not to handle terminal resize events.
+   */
+  void set_handle_resize(bool handle_resize) { should_handle_resize_ = handle_resize; }
+
+  /**
    * @brief Get the current terminal size.
    * @note Tries to move the cursor to the bottom right of the terminal
    *       (999,999) and then get the cursor position. This is a bit of a hack,
@@ -86,6 +106,7 @@ public:
   void get_terminal_size(int &width, int &height) {
     printf("\033[s\033[999;999H\033[6n\033[u");
     fflush(stdout);
+    fsync(fileno(stdout));
     scanf("\033[%d;%dR", &height, &width);
   }
 
@@ -99,8 +120,10 @@ public:
     int start_pos_x, start_pos_y;
     get_cursor_position(start_pos_x, start_pos_y);
 
-    // get the current terminal size
-    get_terminal_size(terminal_width_, terminal_height_);
+    if (should_handle_resize_) {
+      // get the current terminal size
+      get_terminal_size(terminal_width_, terminal_height_);
+    }
 
     // add a new element to the front of the queue
     std::string &input = input_history_.emplace_front();
@@ -145,6 +168,17 @@ public:
           break;
         case 'D': // Left
           pos_x = std::max(start_pos_x, pos_x - 1);
+          break;
+        default:
+          // we likely got some other escape sequence, so just ignore it
+          {
+            // ignore the rest of the sequence; it likely came from our calls to
+            // get_cursor_position and get_terminal_size which expect a response
+            // of the form \033[#;#R so we'll ignore until we see the ';' and
+            // then 'R'
+            is.ignore(std::numeric_limits<std::streamsize>::max(), ';');
+            is.ignore(std::numeric_limits<std::streamsize>::max(), 'R');
+          }
           break;
         }
       } else if (ch == 1) { // Ctrl+A (move to start of line)
@@ -246,11 +280,15 @@ protected:
   // Get cursor position
   void get_cursor_position(int &x, int &y) {
     printf("\033[6n"); // Request cursor position
+    fflush(stdout);
+    fsync(fileno(stdout));
     scanf("\033[%d;%dR", &y, &x);
   }
 
   // Update the terminal size and return true if it changed
   bool handle_resize() {
+    if (!should_handle_resize_)
+      return false;
     int term_width, term_height;
     get_terminal_size(term_width, term_height);
     if (term_width != terminal_width_ || term_height != terminal_height_) {
@@ -265,5 +303,6 @@ protected:
   int terminal_height_;
   size_t history_size_ = 0;
   History input_history_;
+  std::atomic<bool> should_handle_resize_{true};
 };
 } // namespace espp

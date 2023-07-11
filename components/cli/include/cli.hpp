@@ -137,6 +137,13 @@ public:
   void SetInputHistory(const LineInput::History &history) { line_input_.set_history(history); }
 
   /**
+   * @brief Set whether or not to handle resize events.
+   * @param handle_resize true to handle resize events, false to ignore them.
+   * @warning This is not very robust and should be used with caution.
+   */
+  void SetHandleResize(bool handle_resize) { line_input_.set_handle_resize(handle_resize); }
+
+  /**
    * @brief Get the input history for this session.
    * @return The current input history for this session.
    */
