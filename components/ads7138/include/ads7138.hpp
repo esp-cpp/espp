@@ -5,6 +5,7 @@
 #include <functional>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 #include "logger.hpp"
 
@@ -152,6 +153,15 @@ public:
     std::vector<Channel> analog_inputs = {};   ///< List of analog input channels to sample.
     std::vector<Channel> digital_inputs = {};  ///< List of digital input channels to sample.
     std::vector<Channel> digital_outputs = {}; ///< List of digital output channels to sample.
+    std::unordered_map<Channel, OutputMode> digital_output_modes =
+        {}; ///< Optional output mode for digital
+            ///< output channels. If not specified,
+            ///< the default value is open-drain.
+    std::unordered_map<Channel, bool> digital_output_values =
+        {}; ///< Optional initial values for digital
+            ///< output channels. If not specified,
+            ///< the default value is false in open-drain
+            ///< mode.
     OversamplingRatio oversampling_ratio = OversamplingRatio::NONE; ///< Oversampling ratio to use.
     bool statistics_enabled = true; ///< Enable statistics collection (min, max, recent)
     write_fn write;                 ///< Function to write to the ADC
@@ -226,6 +236,28 @@ public:
     // convert the raw values (uint16_t) to mv (float)
     std::transform(raw_values.begin(), raw_values.end(), std::back_inserter(values),
                    [this](uint16_t raw) { return raw_to_mv(raw); });
+    return values;
+  }
+
+  /**
+   * @brief Communicate with the ADC to get the analog value for all channels
+   *        and return them.
+   * @return An unordered map of the voltages (in mV) read from each channel.
+   * @note These are the channels that were configured as analog inputs.
+   * @note If the ADC is in autonomous mode, this function will simply read
+   *       the values from the ADC's buffer. If the ADC is in manual mode, this
+   *       function will trigger a conversion and then read the values from the
+   *       ADC's buffer (blocking until conversion is complete).
+   */
+  std::unordered_map<Channel, float> get_all_mv_map() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::unordered_map<Channel, float> values;
+    // TODO: handle the non-autonomous case
+    auto raw_values = read_mapped_recent_all();
+    // convert the raw values (uint16_t) to mv (float)
+    std::transform(
+        raw_values.begin(), raw_values.end(), std::inserter(values, values.end()),
+        [this](const auto &pair) { return std::make_pair(pair.first, raw_to_mv(pair.second)); });
     return values;
   }
 
@@ -710,6 +742,20 @@ protected:
     // set pin configuration (analog vs digital)
     set_pin_configuration();
 
+    // set the digital output outputmode (push-pull vs open-drain). NOTE: this
+    // will work because the digital output channels have already been saved
+    // (though they have not been configured yet)
+    for (auto &[channel, output_mode] : config.digital_output_modes) {
+      set_digital_output_mode(channel, output_mode);
+    }
+
+    // set the digital output values. NOTE: this will work because the digital
+    // output channels have already been saved (though they have not been
+    // configured yet)
+    for (auto &[channel, value] : config.digital_output_values) {
+      set_digital_output_value(channel, value);
+    }
+
     // Set the digital input/output channels
     set_digital_io_direction();
 
@@ -889,6 +935,28 @@ protected:
         uint8_t lsb = raw_values[i * 2];
         uint8_t msb = raw_values[i * 2 + 1];
         values.push_back((msb << 8) | lsb);
+      }
+    }
+    return values;
+  }
+
+  std::unordered_map<Channel, uint16_t> read_mapped_recent_all() {
+    if (!statistics_enabled_) {
+      logger_.error("Statistics are not enabled, cannot read recent value");
+      return {};
+    }
+    logger_.info("Reading recent mapped values for all channels");
+    std::unordered_map<Channel, uint16_t> values;
+    uint8_t raw_values[16];
+    read_many_(Register::RECENT_CH0_LSB, raw_values, 16);
+    // only pull out the ones that were configured as analog inputs
+    for (int i = 0; i < 8; i++) {
+      Channel ch = static_cast<Channel>(i);
+      if (is_analog_input(ch)) {
+        // read both the LSB AND MSB registers and combine them (lsb is first)
+        uint8_t lsb = raw_values[i * 2];
+        uint8_t msb = raw_values[i * 2 + 1];
+        values[ch] = (msb << 8) | lsb;
       }
     }
     return values;

@@ -127,6 +127,8 @@ extern "C" void app_main(void) {
         .digital_inputs = {espp::Ads7138::Channel::CH5},
         .digital_outputs =
             {espp::Ads7138::Channel::CH7}, // On the BP-ADS7128, CH7 is the LED (active low)
+        // unordered map of channel to digital output value
+        .digital_output_values = {{espp::Ads7138::Channel::CH7, 1}}, // start the LED off
         // enable oversampling / averaging
         .oversampling_ratio = espp::Ads7138::OversamplingRatio::OSR_32,
         .write = ads_write,
@@ -189,9 +191,6 @@ extern "C" void app_main(void) {
     // set the digital output drive mode to open-drain
     ads.set_digital_output_mode(espp::Ads7138::Channel::CH7, espp::Ads7138::OutputMode::OPEN_DRAIN);
 
-    // set the digital output to 1 (turn off the LED)
-    ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 1);
-
     // set an alert on the digital input (Sel) so that we can get notified when the button is
     // pressed (goes low)
     ads.set_digital_alert(espp::Ads7138::Channel::CH5, espp::Ads7138::DigitalEvent::LOW);
@@ -207,6 +206,11 @@ extern "C" void app_main(void) {
       auto all_mv = ads.get_all_mv();
       auto x_mv = all_mv[0]; // the first channel is channel 1 (X axis)
       auto y_mv = all_mv[1]; // the second channel is channel 3 (Y axis)
+
+      // alternatively we could get the analog data in a map
+      auto mapped_mv = ads.get_all_mv_map();
+      x_mv = mapped_mv[espp::Ads7138::Channel::CH1];
+      y_mv = mapped_mv[espp::Ads7138::Channel::CH3];
 
       // NOTE: we could get all digital inputs as a bitmask using
       // get_digital_input_values(), but we'll just get the one we want.
