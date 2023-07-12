@@ -139,7 +139,7 @@
           <li><a href="index.html">IO Expander APIs</a> &raquo;</li>
       <li>AW9523 I/O Expander</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/a5a07c6/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/d38b58d/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -158,7 +158,7 @@ are configured into a special LED mode.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a5a07c6/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d38b58d/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -430,14 +430,108 @@ are configured into a special LED mode.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE4Port7uint8_t">
+<span id="_CPPv3N4espp6Aw95236outputE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw95236outputE4Port7uint8_t"></span><span id="espp::Aw9523::output__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a5f98138fd55f457fdfbeeb93e8c6745e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write the pin values on the provided port. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous pin values on the port for all output pins on the port. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to write the pins </p></li>
+<li><p><strong>value</strong> – The pin values to apply. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE7uint8_t7uint8_t">
+<span id="_CPPv3N4espp6Aw95236outputE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw95236outputE7uint8_t7uint8_t"></span><span id="espp::Aw9523::output__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1abbaef52d09ace634ad0d50521e9c1b49"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write the pin values on both Port 0 and Port 1. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous pin values on the port for all output pins on the ports. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The pin values to apply to Port 0. </p></li>
+<li><p><strong>p1</strong> – The pin values to apply to Port 1. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE8uint16_t">
+<span id="_CPPv3N4espp6Aw95236outputE8uint16_t"></span><span id="_CPPv2N4espp6Aw95236outputE8uint16_t"></span><span id="espp::Aw9523::output__uint16_t"></span><span class="target" id="classespp_1_1_aw9523_1acbd3714ee0c05b934d95dfb62b2b93c5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write the pin values on both Port 0 and Port 1. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This will overwrite any previous pin values on the port for all output pins on the ports. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – The pin values to apply as a 16 bit value (P0_0 lsb, P1_7 msb). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE4Port7uint8_t">
+<span id="_CPPv3N4espp6Aw952310clear_pinsE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE4Port7uint8_t"></span><span id="espp::Aw9523::clear_pins__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a735843186ab4e4929e866e6a3adeac14"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the pin values on the provided port according to the provided mask. </p>
+<p>Reads the current pin values and clears any bits set in the mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to clear the pin outputs. </p></li>
+<li><p><strong>mask</strong> – The pin values as an 8 bit mask to clear. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE7uint8_t7uint8_t">
+<span id="_CPPv3N4espp6Aw952310clear_pinsE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE7uint8_t7uint8_t"></span><span id="espp::Aw9523::clear_pins__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a94637496809e85d2ddc6676c02643689"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the pin values for Port 0 and Port 1 according to the provided masks. </p>
+<p>Reads the current pin values and clears any bits set in the masks. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p0</strong> – The pin values as an 8 bit mask for Port 0 to clear. </p></li>
+<li><p><strong>p1</strong> – The pin values as an 8 bit mask for Port 1 to clear. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE8uint16_t">
+<span id="_CPPv3N4espp6Aw952310clear_pinsE8uint16_t"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE8uint16_t"></span><span id="espp::Aw9523::clear_pins__uint16_t"></span><span class="target" id="classespp_1_1_aw9523_1a9b948493ec86673d6d3fbd6e7aeb376a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the pin values for Port 0 and Port 1 according to the provided mask. </p>
+<p>Reads the current pin values and clears any bits set in the mask. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to clear. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE4Port7uint8_t">
-<span id="_CPPv3N4espp6Aw95238set_pinsE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw95238set_pinsE4Port7uint8_t"></span><span id="espp::Aw9523::set_pins__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1aa30689db2dea336b35d19a4134f9724b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">output</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Set the pin values on the provided port. </p>
+<span id="_CPPv3N4espp6Aw95238set_pinsE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw95238set_pinsE4Port7uint8_t"></span><span id="espp::Aw9523::set_pins__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1ab6a35459a81283386891b52ddeeb132e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the pin values on the provided port according to the provided mask. </p>
+<p>Reads the current pin values and sets any bits set in the mask. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>port</strong> – The Port for which to set the pin outputs. </p></li>
-<li><p><strong>output</strong> – The pin values as an 8 bit mask to set. </p></li>
+<li><p><strong>mask</strong> – The pin values as an 8 bit mask to set. </p></li>
 </ul>
 </dd>
 </dl>
@@ -446,7 +540,8 @@ are configured into a special LED mode.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE7uint8_t7uint8_t">
 <span id="_CPPv3N4espp6Aw95238set_pinsE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw95238set_pinsE7uint8_t7uint8_t"></span><span id="espp::Aw9523::set_pins__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a94b3a9e2a47d00dd1977399f4b04ceb6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Set the pin values for Port 0 and Port 1. </p>
+<dd><p>Set the pin values for Port 0 and Port 1 according to the provided masks. </p>
+<p>Reads the current pin values and sets any bits set in the masks. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -459,11 +554,12 @@ are configured into a special LED mode.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE8uint16_t">
-<span id="_CPPv3N4espp6Aw95238set_pinsE8uint16_t"></span><span id="_CPPv2N4espp6Aw95238set_pinsE8uint16_t"></span><span id="espp::Aw9523::set_pins__uint16_t"></span><span class="target" id="classespp_1_1_aw9523_1a480d9a833c0c9da377f1cd71781d981d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pins</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE8uint16_t" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Set the pin values for Port 0 and Port 1. </p>
+<span id="_CPPv3N4espp6Aw95238set_pinsE8uint16_t"></span><span id="_CPPv2N4espp6Aw95238set_pinsE8uint16_t"></span><span id="espp::Aw9523::set_pins__uint16_t"></span><span class="target" id="classespp_1_1_aw9523_1ab056ab2e34d0deeac3d984016ed11ffc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the pin values for Port 0 and Port 1 according to the provided mask. </p>
+<p>Reads the current pin values and sets any bits set in the mask. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>pins</strong> – The pin values for Port 0 and Port 1 as a 16 bit mask to set. </p>
+<dd class="field-odd"><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to set. </p>
 </dd>
 </dl>
 </dd></dl>

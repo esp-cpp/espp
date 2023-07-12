@@ -111,35 +111,106 @@ public:
   }
 
   /**
-   * @brief Set the pin values on the provided port.
-   * @param port The Port for which to set the pin outputs.
-   * @param output The pin values as an 8 bit mask to set.
+   * @brief Write the pin values on the provided port.
+   * @param port The Port for which to write the pins
+   * @param value The pin values to apply.
+   * @note This will overwrite any previous pin values on the port for all
+   *       output pins on the port.
    */
-  void set_pins(Port port, uint8_t output) {
+  void output(Port port, uint8_t value) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    write_one_((uint8_t)addr, output);
+    write_one_((uint8_t)addr, value);
   }
 
   /**
-   * @brief Set the pin values for Port 0 and Port 1.
+   * @brief Write the pin values on both Port 0 and Port 1.
+   * @param p0 The pin values to apply to Port 0.
+   * @param p1 The pin values to apply to Port 1.
+   * @note This will overwrite any previous pin values on the port for all
+   *       output pins on the ports.
+   */
+  void output(uint8_t p0, uint8_t p1) {
+    output(Port::PORT0, p0);
+    output(Port::PORT1, p1);
+  }
+
+  /**
+   * @brief Write the pin values on both Port 0 and Port 1.
+   * @param value The pin values to apply as a 16 bit value (P0_0 lsb, P1_7 msb).
+   * @note This will overwrite any previous pin values on the port for all
+   *       output pins on the ports.
+   */
+  void output(uint16_t value) {
+    output(Port::PORT0, value & 0xFF);
+    output(Port::PORT1, value >> 8);
+  }
+
+  /**
+   * @brief Clear the pin values on the provided port according to the provided mask.
+   * @details Reads the current pin values and clears any bits set in the mask.
+   * @param port The Port for which to clear the pin outputs.
+   * @param mask The pin values as an 8 bit mask to clear.
+   */
+  void clear_pins(Port port, uint8_t mask) {
+    auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
+    auto data = read_one_((uint8_t)addr);
+    data &= ~mask;
+    write_one_((uint8_t)addr, data);
+  }
+
+  /**
+   * @brief Clear the pin values for Port 0 and Port 1 according to the provided masks.
+   * @details Reads the current pin values and clears any bits set in the masks.
+   * @param p0 The pin values as an 8 bit mask for Port 0 to clear.
+   * @param p1 The pin values as an 8 bit mask for Port 1 to clear.
+   */
+  void clear_pins(uint8_t p0, uint8_t p1) {
+    clear_pins(Port::PORT0, p0);
+    clear_pins(Port::PORT1, p1);
+  }
+
+  /**
+   * @brief Clear the pin values for Port 0 and Port 1 according to the provided mask.
+   * @details Reads the current pin values and clears any bits set in the mask.
+   * @param mask The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to clear.
+   */
+  void clear_pins(uint16_t mask) {
+    clear_pins(Port::PORT0, mask & 0xFF);
+    clear_pins(Port::PORT1, mask >> 8);
+  }
+
+  /**
+   * @brief Set the pin values on the provided port according to the provided mask.
+   * @brief Reads the current pin values and sets any bits set in the mask.
+   * @param port The Port for which to set the pin outputs.
+   * @param mask The pin values as an 8 bit mask to set.
+   */
+  void set_pins(Port port, uint8_t mask) {
+    auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
+    auto data = read_one_((uint8_t)addr);
+    data |= mask;
+    write_one_((uint8_t)addr, data);
+  }
+
+  /**
+   * @brief Set the pin values for Port 0 and Port 1 according to the provided masks.
+   * @details Reads the current pin values and sets any bits set in the masks.
    * @param p0 The pin values for Port 0 as an 8 bit mask to set.
    * @param p1 The pin values for Port 1 as an 8 bit mask to set.
    */
   void set_pins(uint8_t p0, uint8_t p1) {
-    auto addr = Registers::OUTPORT0;
-    uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2);
+    set_pins(Port::PORT0, p0);
+    set_pins(Port::PORT1, p1);
   }
 
   /**
-   * @brief Set the pin values for Port 0 and Port 1.
-   * @param pins The pin values for Port 0 and Port 1 as a 16 bit mask to set.
+   * @brief Set the pin values for Port 0 and Port 1 according to the provided mask.
+   * @details Reads the current pin values and sets any bits set in the mask.
+   * @param mask The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to set.
    */
-  void set_pins(uint16_t pins) {
-    auto addr = Registers::OUTPORT0;
-    // first byte is P0, second byte is P1
-    uint8_t data[] = {(uint8_t)pins, (uint8_t)(pins >> 8)};
-    write_many_((uint8_t)addr, data, 2);
+  void set_pins(uint16_t mask) {
+    set_pins(Port::PORT0, mask & 0xFF);
+    set_pins(Port::PORT1, mask >> 8);
   }
 
   /**
