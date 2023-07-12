@@ -8,11 +8,11 @@
 
 using namespace std::chrono_literals;
 
-#define I2C_NUM (I2C_NUM_1)
-#define I2C_SCL_IO (GPIO_NUM_19)
-#define I2C_SDA_IO (GPIO_NUM_22)
-#define I2C_FREQ_HZ (400 * 1000)
-#define I2C_TIMEOUT_MS (10)
+static constexpr auto I2C_NUM = I2C_NUM_1;
+static constexpr auto I2C_SCL_IO = GPIO_NUM_19;
+static constexpr auto I2C_SDA_IO = GPIO_NUM_22;
+static constexpr auto I2C_FREQ_HZ = (400 * 1000);
+static constexpr auto I2C_TIMEOUT_MS = 10;
 
 extern "C" void app_main(void) {
   {
