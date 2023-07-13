@@ -135,7 +135,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Tabulate APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/d38b58d/docs/en/tabulate.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/0c5ac19/docs/en/tabulate.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -156,7 +156,7 @@ here.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d38b58d/components/tabulate/include/tabulate.hpp">components/tabulate/include/tabulate.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/0c5ac19/components/tabulate/include/tabulate.hpp">components/tabulate/include/tabulate.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -170,82 +170,17 @@ here.</p>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8TabulateE">
-<span id="_CPPv3N4espp8TabulateE"></span><span id="_CPPv2N4espp8TabulateE"></span><span id="espp::Tabulate"></span><span class="target" id="classespp_1_1_tabulate"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Tabulate</span></span></span><a class="headerlink" href="#_CPPv4N4espp8TabulateE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Simple c++ class for printing tables using libfmt. </p>
-<p>Does simple width calculations and alignment, then prints the table using fmt::print (drawing boxes with unicode characters). </p>
-<div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Tabulate8TabulateENSt6vectorINSt6stringEEE">
-<span id="_CPPv3N4espp8Tabulate8TabulateENSt6vectorINSt6stringEEE"></span><span id="_CPPv2N4espp8Tabulate8TabulateENSt6vectorINSt6stringEEE"></span><span id="espp::Tabulate::Tabulate__std::vector:ss:"></span><span class="target" id="classespp_1_1_tabulate_1a76426323eec42550992342bd846be861"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Tabulate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">headers</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Tabulate8TabulateENSt6vectorINSt6stringEEE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1_tabulate"><span class="std std-ref">Tabulate</span></a> object. </p>
-<p>Construct a new <a class="reference internal" href="#classespp_1_1_tabulate"><span class="std std-ref">Tabulate</span></a> object with the first row / headers provided. Will set the num_columns based on the size of the headers. Will also set the column_widths to the size of the headers. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>headers</strong> – First row of the table </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8TabulateixEi">
-<span id="_CPPv3N4espp8TabulateixEi"></span><span id="_CPPv2N4espp8TabulateixEi"></span><span id="espp::Tabulate::subscript-operator__i"></span><span class="target" id="classespp_1_1_tabulate_1aa8bf1d736f74430aed615907de45fa3e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">row</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8TabulateixEi" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Get a reference to a row in the table. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>row</strong> – Row of the table </p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>std::vector&lt;std::string&gt;&amp; Reference to the row </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Tabulate7add_rowENSt6vectorINSt6stringEEE">
-<span id="_CPPv3N4espp8Tabulate7add_rowENSt6vectorINSt6stringEEE"></span><span id="_CPPv2N4espp8Tabulate7add_rowENSt6vectorINSt6stringEEE"></span><span id="espp::Tabulate::add_row__std::vector:ss:"></span><span class="target" id="classespp_1_1_tabulate_1a23f736f3130abd56f5becc41f4f4f529"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_row</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">row</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Tabulate7add_rowENSt6vectorINSt6stringEEE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Add a row to the table. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>row</strong> – Row to add to the table </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Tabulate5printEv">
-<span id="_CPPv3NK4espp8Tabulate5printEv"></span><span id="_CPPv2NK4espp8Tabulate5printEv"></span><span id="espp::Tabulate::printC"></span><span class="target" id="classespp_1_1_tabulate_1aa6a08e489f3436b0fc743043be1652b2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">print</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Tabulate5printEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Print the table to stdout. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK4espp8Tabulate3getEv">
-<span id="_CPPv3NK4espp8Tabulate3getEv"></span><span id="_CPPv2NK4espp8Tabulate3getEv"></span><span id="espp::Tabulate::getC"></span><span class="target" id="classespp_1_1_tabulate_1a844510d840927e38d3cea7628cffea86"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8Tabulate3getEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Get the table as a string. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>std::string Table as a string </p>
-</dd>
-</dl>
-</dd></dl>
-
-</div>
-</dd></dl>
-
-<dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp26__tabulate_documentation__E">
 <span id="_CPPv3N4espp26__tabulate_documentation__E"></span><span id="_CPPv2N4espp26__tabulate_documentation__E"></span><span id="espp::__tabulate_documentation__"></span><span class="target" id="classespp_1_1____tabulate__documentation____"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">__tabulate_documentation__</span></span></span><a class="headerlink" href="#_CPPv4N4espp26__tabulate_documentation__E" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Table maker for modern c++ convenience wrapper around <a class="reference external" href="https://github.com/p-ranav/tabulate">p-ranav/tabulate</a> which exposes tabulate::Table for creating human-readable tables in console/terminal applications. </p>
 <section id="namespaceespp_1tabulate_ex1">
 <h4>Tabulate Example<a class="headerlink" href="#namespaceespp_1tabulate_ex1" title="Permalink to this headline"></a></h4>
-<p id="namespaceespp_1tabulate_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// using namespace tabulate;</span>
-<span class="w">  </span><span class="c1">// using Row_t = Table::Row_t;</span>
+<p id="namespaceespp_1tabulate_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">tabulate</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Row_t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Table</span><span class="o">::</span><span class="n">Row_t</span><span class="p">;</span><span class="w"></span>
 
-<span class="w">  </span><span class="c1">// Table universal_constants;</span>
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Tabulate</span><span class="w"> </span><span class="n">universal_constants</span><span class="p">({</span><span class="s">&quot;Quantity&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Value&quot;</span><span class="p">});</span><span class="w"></span>
+<span class="w">  </span><span class="n">Table</span><span class="w"> </span><span class="n">universal_constants</span><span class="p">;</span><span class="w"></span>
 
-<span class="w">  </span><span class="c1">//universal_constants.add_row({&quot;Quantity&quot;, &quot;Value&quot;});</span>
+<span class="w">  </span><span class="n">universal_constants</span><span class="p">.</span><span class="n">add_row</span><span class="p">({</span><span class="s">&quot;Quantity&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Value&quot;</span><span class="p">});</span><span class="w"></span>
 <span class="w">  </span><span class="n">universal_constants</span><span class="p">.</span><span class="n">add_row</span><span class="p">({</span><span class="s">&quot;Characteristic impedance of vacuum&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;376.730 313 461... Ω&quot;</span><span class="p">});</span><span class="w"></span>
 <span class="w">  </span><span class="n">universal_constants</span><span class="p">.</span><span class="n">add_row</span><span class="p">(</span><span class="w"></span>
 <span class="w">      </span><span class="p">{</span><span class="s">&quot;Electric constant (permittivity of free space)&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;8.854 187 817... × 10⁻¹²F·m⁻¹&quot;</span><span class="p">});</span><span class="w"></span>
@@ -257,29 +192,27 @@ here.</p>
 <span class="w">  </span><span class="n">universal_constants</span><span class="p">.</span><span class="n">add_row</span><span class="p">({</span><span class="s">&quot;Dirac&#39;s constant&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;1.054 571 68(18) × 10⁻³⁴ J·s&quot;</span><span class="p">});</span><span class="w"></span>
 <span class="w">  </span><span class="n">universal_constants</span><span class="p">.</span><span class="n">add_row</span><span class="p">({</span><span class="s">&quot;Speed of light in vacuum&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;299 792 458 m·s⁻¹&quot;</span><span class="p">});</span><span class="w"></span>
 
-<span class="w">  </span><span class="cm">/*</span>
-<span class="cm">  universal_constants.format()</span>
-<span class="cm">      .font_style({FontStyle::bold})</span>
-<span class="cm">      .border_top(&quot; &quot;)</span>
-<span class="cm">      .border_bottom(&quot; &quot;)</span>
-<span class="cm">      .border_left(&quot; &quot;)</span>
-<span class="cm">      .border_right(&quot; &quot;)</span>
-<span class="cm">      .corner(&quot; &quot;);</span>
+<span class="w">  </span><span class="n">universal_constants</span><span class="p">.</span><span class="n">format</span><span class="p">()</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">font_style</span><span class="p">({</span><span class="n">FontStyle</span><span class="o">::</span><span class="n">bold</span><span class="p">})</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">border_top</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">border_bottom</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">border_left</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">border_right</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">corner</span><span class="p">(</span><span class="s">&quot; &quot;</span><span class="p">);</span><span class="w"></span>
 
-<span class="cm">  universal_constants[0]</span>
-<span class="cm">      .format()</span>
-<span class="cm">      .padding_top(1)</span>
-<span class="cm">      .padding_bottom(1)</span>
-<span class="cm">      .font_align(FontAlign::center)</span>
-<span class="cm">      .font_style({FontStyle::underline})</span>
-<span class="cm">      .font_background_color(Color::red);</span>
+<span class="w">  </span><span class="n">universal_constants</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">format</span><span class="p">()</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">padding_top</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">padding_bottom</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">font_align</span><span class="p">(</span><span class="n">FontAlign</span><span class="o">::</span><span class="n">center</span><span class="p">)</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">font_style</span><span class="p">({</span><span class="n">FontStyle</span><span class="o">::</span><span class="n">underline</span><span class="p">})</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">font_background_color</span><span class="p">(</span><span class="n">Color</span><span class="o">::</span><span class="n">red</span><span class="p">);</span><span class="w"></span>
 
-<span class="cm">  universal_constants.column(1).format().font_color(Color::yellow);</span>
+<span class="w">  </span><span class="n">universal_constants</span><span class="p">.</span><span class="n">column</span><span class="p">(</span><span class="mi">1</span><span class="p">).</span><span class="n">format</span><span class="p">().</span><span class="n">font_color</span><span class="p">(</span><span class="n">Color</span><span class="o">::</span><span class="n">yellow</span><span class="p">);</span><span class="w"></span>
 
-<span class="cm">  universal_constants[0][1].format().font_background_color(Color::blue).font_color(Color::white);</span>
-<span class="cm">  std::cout &lt;&lt; universal_constants &lt;&lt; std::endl &lt;&lt; std::endl;</span>
-<span class="cm">  */</span><span class="w"></span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">universal_constants</span><span class="p">.</span><span class="n">get</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="n">universal_constants</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">].</span><span class="n">format</span><span class="p">().</span><span class="n">font_background_color</span><span class="p">(</span><span class="n">Color</span><span class="o">::</span><span class="n">blue</span><span class="p">).</span><span class="n">font_color</span><span class="p">(</span><span class="n">Color</span><span class="o">::</span><span class="n">white</span><span class="p">);</span><span class="w"></span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">universal_constants</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span><span class="w"></span>
 </pre></div>
 </div>
  </p>
