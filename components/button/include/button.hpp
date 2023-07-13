@@ -53,9 +53,11 @@ public:
     bool pullup_enabled = false;   ///< Whether to enable the pullup resistor
     bool pulldown_enabled = false; ///< Whether to enable the pulldown resistor
     size_t task_stack_size_bytes =
-        4 * 1024; ///< Stack size for the task. @note This may need to be increased if the
-                  ///< callback is doing a lot of work (esp. string manipulation, calling many
-                  ///< functions, etc.)
+        4 * 1024;       ///< Stack size for the task. @note This may need to be increased if the
+                        ///< callback is doing a lot of work (esp. string manipulation, calling many
+                        ///< functions, etc.)
+    size_t priority{0}; ///< Priority of the button task, 0 is lowest priority on ESP / FreeRTOS.
+    int core_id{-1};    ///< Core ID of the button task, -1 means it is not pinned to any core.
     espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN; ///< Log level for this class
   };
 
@@ -97,7 +99,9 @@ public:
         espp::Task::Config{.name = "Button",
                            .callback = std::bind(&Button::task_callback, this,
                                                  std::placeholders::_1, std::placeholders::_2),
-                           .stack_size_bytes = config.task_stack_size_bytes});
+                           .stack_size_bytes = config.task_stack_size_bytes,
+                           .priority = config.priority,
+                           .core_id = config.core_id});
     task_->start();
   }
 
