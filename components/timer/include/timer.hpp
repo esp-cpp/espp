@@ -73,7 +73,7 @@ public:
                  .level = config.log_level}) {
     // make the task
     task_ = espp::Task::make_unique({
-        .name = std::string(config.name) + "_task",
+        .name = config.name,
         .callback = std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1,
                               std::placeholders::_2),
         .stack_size_bytes = config.stack_size_bytes,

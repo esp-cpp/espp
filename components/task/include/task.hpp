@@ -72,7 +72,7 @@ public:
   Task(const Config &config)
       : name_(config.name), callback_(config.callback), stack_size_bytes_(config.stack_size_bytes),
         priority_(config.priority), core_id_(config.core_id),
-        logger_({.tag = config.name, .level = config.log_level}) {}
+        logger_({.tag = name_, .level = config.log_level}) {}
 
   /**
    * @brief Get a unique pointer to a new task created with \p config.
