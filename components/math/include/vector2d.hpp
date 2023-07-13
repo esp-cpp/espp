@@ -254,7 +254,7 @@ typedef Vector2d<uint8_t> Vector2u8; ///< Typedef for 8 bit integer 2D vectors.
  * @param v Vector to be scaled.
  * @return Scaled vector (v*f).
  */
-static Vector2f operator*(float f, const Vector2f &v) {
+[[maybe_unused]] static Vector2f operator*(float f, const Vector2f &v) {
   return espp::Vector2f(v.x() * f, v.y() * f);
 }
 
@@ -264,7 +264,7 @@ static Vector2f operator*(float f, const Vector2f &v) {
  * @param rhs Right hand side vector
  * @return True if their x and y are equal, false otherwise.
  */
-static bool operator==(const Vector2f &lhs, const Vector2f &rhs) {
+[[maybe_unused]] static bool operator==(const Vector2f &lhs, const Vector2f &rhs) {
   return lhs.x() == rhs.x() && lhs.y() == rhs.y();
 }
 
