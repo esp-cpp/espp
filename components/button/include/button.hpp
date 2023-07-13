@@ -46,6 +46,7 @@ public:
 
   /// \brief The configuration for the button
   struct Config {
+    std::string_view name{"Button"};                        ///< Name of the button
     int gpio_num;                                           ///< GPIO number to use for the button
     event_callback_fn callback;                             ///< Callback for the button event
     ActiveLevel active_level;                               ///< Active level of the GPIO
@@ -65,7 +66,7 @@ public:
   /// \param config The configuration for the button
   explicit Button(const Config &config)
       : gpio_num_(config.gpio_num), callback_(config.callback), active_level_(config.active_level),
-        logger_({.tag = "Button", .level = config.log_level}) {
+        logger_({.tag = config.name, .level = config.log_level}) {
     // make the event queue
     event_queue_ = xQueueCreate(10, sizeof(EventData));
 
@@ -96,7 +97,7 @@ public:
 
     // make the task
     task_ = espp::Task::make_unique(
-        espp::Task::Config{.name = "Button",
+        espp::Task::Config{.name = config.name,
                            .callback = std::bind(&Button::task_callback, this,
                                                  std::placeholders::_1, std::placeholders::_2),
                            .stack_size_bytes = config.task_stack_size_bytes,
