@@ -135,7 +135,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Timer APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/0c5ac19/docs/en/timer.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/453ec29/docs/en/timer.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -160,7 +160,7 @@ is executed in the context of the timer task.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/0c5ac19/components/timer/include/timer.hpp">components/timer/include/timer.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/453ec29/components/timer/include/timer.hpp">components/timer/include/timer.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -362,15 +362,27 @@ is executed in the context of the timer task.</p>
 </dd></dl>
 
 <dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp5Timer6Config10auto_startE">
+<span id="_CPPv3N4espp5Timer6Config10auto_startE"></span><span id="_CPPv2N4espp5Timer6Config10auto_startE"></span><span id="espp::Timer::Config::auto_start__b"></span><span class="target" id="structespp_1_1_timer_1_1_config_1a3291f5de458d8b8a98b800e9cbb9a2e5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp5Timer6Config10auto_startE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>If true, the timer will start automatically when constructed. </p>
+</dd></dl>
+
+<dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp5Timer6Config16stack_size_bytesE">
 <span id="_CPPv3N4espp5Timer6Config16stack_size_bytesE"></span><span id="_CPPv2N4espp5Timer6Config16stack_size_bytesE"></span><span id="espp::Timer::Config::stack_size_bytes__s"></span><span class="target" id="structespp_1_1_timer_1_1_config_1aaaf119e4725ec82cb59bd8a0e1721000"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stack_size_bytes</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">4096</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp5Timer6Config16stack_size_bytesE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The stack size of the task that runs the timer. </p>
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp5Timer6Config10auto_startE">
-<span id="_CPPv3N4espp5Timer6Config10auto_startE"></span><span id="_CPPv2N4espp5Timer6Config10auto_startE"></span><span id="espp::Timer::Config::auto_start__b"></span><span class="target" id="structespp_1_1_timer_1_1_config_1a3291f5de458d8b8a98b800e9cbb9a2e5"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp5Timer6Config10auto_startE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>If true, the timer will start automatically when constructed. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp5Timer6Config8priorityE">
+<span id="_CPPv3N4espp5Timer6Config8priorityE"></span><span id="_CPPv2N4espp5Timer6Config8priorityE"></span><span id="espp::Timer::Config::priority__s"></span><span class="target" id="structespp_1_1_timer_1_1_config_1a9e4c551da815e9189e876f9d31aa4bb9"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">priority</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp5Timer6Config8priorityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Priority of the timer, 0 is lowest priority on ESP / FreeRTOS. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp5Timer6Config7core_idE">
+<span id="_CPPv3N4espp5Timer6Config7core_idE"></span><span id="_CPPv2N4espp5Timer6Config7core_idE"></span><span id="espp::Timer::Config::core_id__i"></span><span class="target" id="structespp_1_1_timer_1_1_config_1a700a8e0546283bd95739a8227f899179"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">core_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp5Timer6Config7core_idE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Core ID of the timer, -1 means it is not pinned to any core. </p>
 </dd></dl>
 
 <dl class="cpp var">
