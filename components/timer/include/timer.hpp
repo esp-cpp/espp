@@ -55,9 +55,11 @@ public:
         period; ///< The period of the timer. If 0, the timer callback will only be called once.
     std::chrono::duration<float> delay{
         0}; ///< The delay before the first execution of the timer callback after start() is called.
-    callback_fn callback;          ///< The callback function to call when the timer expires.
-    size_t stack_size_bytes{4096}; ///< The stack size of the task that runs the timer.
+    callback_fn callback;  ///< The callback function to call when the timer expires.
     bool auto_start{true}; ///< If true, the timer will start automatically when constructed.
+    size_t stack_size_bytes{4096}; ///< The stack size of the task that runs the timer.
+    size_t priority{0}; ///< Priority of the timer, 0 is lowest priority on ESP / FreeRTOS.
+    int core_id{-1};    ///< Core ID of the timer, -1 means it is not pinned to any core.
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::WARN; ///< The log level for the timer.
   };
@@ -75,6 +77,8 @@ public:
         .callback = std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1,
                               std::placeholders::_2),
         .stack_size_bytes = config.stack_size_bytes,
+        .priority = config.priority,
+        .core_id = config.core_id,
     });
     if (config.auto_start) {
       start();
