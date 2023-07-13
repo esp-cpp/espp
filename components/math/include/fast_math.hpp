@@ -10,14 +10,14 @@ namespace espp {
  * @param f Value to square.
  * @return The square of f (f*f).
  */
-float square(float f) { return f * f; }
+[[maybe_unused]] static float square(float f) { return f * f; }
 
 /**
  * @brief Simple cube of the input.
  * @param f Value to cube.
  * @return The cube of f (f*f*f).
  */
-float cube(float f) { return f * f * f; }
+[[maybe_unused]] static float cube(float f) { return f * f * f; }
 
 /**
  * @brief Fast square root approximation.
@@ -26,7 +26,7 @@ float cube(float f) { return f * f * f; }
  * @param value [description]
  * @return [description]
  */
-float fast_sqrt(float value) {
+[[maybe_unused]] static float fast_sqrt(float value) {
   uint32_t i{0};
   float y{0};
   // float x;
@@ -55,7 +55,7 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
  * @param x Floating point value to be rounded.
  * @return Nearest integer to x.
  */
-int round(float x) { return (x > 0) ? (int)(x + 0.5) : (int)(x - 0.5); }
+[[maybe_unused]] static int round(float x) { return (x > 0) ? (int)(x + 0.5) : (int)(x - 0.5); }
 
 /**
  * @brief fast natural log function, ln(x).
@@ -64,7 +64,7 @@ int round(float x) { return (x > 0) ? (int)(x + 0.5) : (int)(x - 0.5); }
  * @param x Value to take the natural log of.
  * @return ln(x)
  */
-float fast_ln(float x) {
+[[maybe_unused]] static float fast_ln(float x) {
   uint32_t bx = 0;
   memcpy(&bx, &x, sizeof(bx));
   // bx = * reinterpret_cast<uint32_t *> (&x);
@@ -102,7 +102,7 @@ static constexpr int sine_array[200] = {
  * @param angle Angle in radians [0, 2*PI]
  * @return Approximation of sin(value)
  */
-float fast_sin(float angle) {
+[[maybe_unused]] static float fast_sin(float angle) {
   if (angle < M_PI_2) {
     return 0.0001f * sine_array[round(126.6873f * angle)];
   } else if (angle < M_PI) {
@@ -120,7 +120,7 @@ float fast_sin(float angle) {
  * @param angle Angle in radians [0, 2*PI]
  * @return Approximation of cos(value)
  */
-float fast_cos(float angle) {
+[[maybe_unused]] static float fast_cos(float angle) {
   float a_sin = angle + M_PI_2;
   a_sin = (a_sin > (2.0f * M_PI)) ? (a_sin - (2.0f * M_PI)) : a_sin;
   return fast_sin(a_sin);
