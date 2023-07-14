@@ -140,7 +140,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>NDEF</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/a84c073/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/0c1c6a8/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -157,7 +157,7 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a84c073/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/0c1c6a8/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
 </ul>
 </section>
 <section id="unions">
@@ -985,6 +985,10 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE">
 <span id="_CPPv3N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE"></span><span id="espp::Ndef::make_oob_pairing__uint64_t.uint32_t.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1a40ce6bd6dd8019916ca17ea6120c61cc"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">device_class</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Static function to make an NDEF record for BT classic OOB Pairing (Android). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be 0xf412fa42fe9e. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1003,10 +1007,14 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearance">
 <span id="_CPPv3N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearance"></span><span id="_CPPv2N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearance"></span><span id="espp::Ndef::make_le_oob_pairing__uint64_t.BleRole.std::string_view.BtAppearance"></span><span class="target" id="classespp_1_1_ndef_1aa025414d1b02f989d85935ae5b67bc00"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_le_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <a class="reference internal" href="#_CPPv4N4espp4Ndef7BleRoleE" title="espp::Ndef::BleRole"><span class="n"><span class="pre">BleRole</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">role</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="espp::Ndef::BtAppearance"><span class="n"><span class="pre">BtAppearance</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">appearance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="espp::Ndef::BtAppearance"><span class="n"><span class="pre">BtAppearance</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearance7UNKNOWNE" title="espp::Ndef::BtAppearance::UNKNOWN"><span class="n"><span class="pre">UNKNOWN</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearance" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Static function to make an NDEF record for BLE OOB Pairing (Android). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be 0xf412fa42fe9e. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mac_addr</strong> – 48 bit MAC Address of the BLE radio </p></li>
+<li><p><strong>mac_addr</strong> – 48 bit MAC Address of the BLE radio. </p></li>
 <li><p><strong>role</strong> – The BLE role of the device (central / peripheral / dual) </p></li>
 <li><p><strong>name</strong> – Name of the BLE device. </p></li>
 <li><p><strong>appearance</strong> – BtAppearance of the device. </p></li>
