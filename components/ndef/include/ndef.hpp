@@ -313,6 +313,8 @@ public:
   /**
    * @brief Static function to make an NDEF record for BT classic OOB Pairing (Android).
    * @param mac_addr 48 bit MAC Address of the BT radio
+   * @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be
+   *       0xf412fa42fe9e.
    * @param device_class The bluetooth device class for this radio.
    * @param name Name of the BT device.
    * @return NDEF record object.
@@ -331,13 +333,13 @@ public:
     // bytes MAC addr.
     data.resize(8);
     data[1] = (uint8_t)BtType::BREDR;
-    // 6 bytes of BT device MAC address
-    data[2] = (mac_addr >> 40) & 0xFF;
-    data[3] = (mac_addr >> 32) & 0xFF;
-    data[4] = (mac_addr >> 24) & 0xFF;
-    data[5] = (mac_addr >> 16) & 0xFF;
-    data[6] = (mac_addr >> 8) & 0xFF;
-    data[7] = (mac_addr >> 0) & 0xFF;
+    // 6 bytes of BT device MAC address in reverse order
+    data[2] = (mac_addr >> 0) & 0xFF;
+    data[3] = (mac_addr >> 8) & 0xFF;
+    data[4] = (mac_addr >> 16) & 0xFF;
+    data[5] = (mac_addr >> 24) & 0xFF;
+    data[6] = (mac_addr >> 32) & 0xFF;
+    data[7] = (mac_addr >> 40) & 0xFF;
 
     // add optional EIR data (no specific order required)
     add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
@@ -351,7 +353,9 @@ public:
 
   /**
    * @brief Static function to make an NDEF record for BLE OOB Pairing (Android).
-   * @param mac_addr 48 bit MAC Address of the BLE radio
+   * @param mac_addr 48 bit MAC Address of the BLE radio.
+   * @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be
+   *       0xf412fa42fe9e.
    * @param role The BLE role of the device (central / peripheral / dual)
    * @param name Name of the BLE device.
    * @param appearance BtAppearance of the device.
@@ -370,19 +374,15 @@ public:
     // https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf
     // for examples
 
-    // (mandatory 0x1B) LE device address NOTE: we use an additional byte here
-    // because there's an extra byte required after the MAC as part of this
-    // EIR payload to define address type
-    uint8_t mac_addr_bytes[7]{
-        (uint8_t)(mac_addr >> 40 & 0xFF),
-        (uint8_t)(mac_addr >> 32 & 0xFF),
-        (uint8_t)(mac_addr >> 24 & 0xFF),
-        (uint8_t)(mac_addr >> 16 & 0xFF),
-        (uint8_t)(mac_addr >> 8 & 0xFF),
-        (uint8_t)(mac_addr >> 0 & 0xFF),
-        0x01, // static address
-    };
-    add_bt_eir(data, BtEir::MAC, std::string_view{(const char *)&mac_addr_bytes[0], 7});
+    // optional local name (put this first so that it shows up in the initial popup on android)
+    add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
+
+    // (mandatory 0x1B) LE device address in reverse order
+    uint8_t mac_addr_bytes[] = {(uint8_t)(mac_addr >> 0 & 0xFF),  (uint8_t)(mac_addr >> 8 & 0xFF),
+                                (uint8_t)(mac_addr >> 16 & 0xFF), (uint8_t)(mac_addr >> 24 & 0xFF),
+                                (uint8_t)(mac_addr >> 32 & 0xFF), (uint8_t)(mac_addr >> 40 & 0xFF)};
+    add_bt_eir(data, BtEir::MAC,
+               std::string_view{(const char *)&mac_addr_bytes[0], sizeof(mac_addr_bytes)});
 
     // (mandatory 0x1C) LE role
     add_bt_eir(data, BtEir::LE_ROLE, std::string_view{(const char *)&role, 1});
@@ -390,14 +390,16 @@ public:
     // optional appearance
     uint8_t appearance_bytes[] = {(uint8_t)((uint16_t)appearance >> 8),
                                   (uint8_t)((uint16_t)appearance & 0xFF)};
-    add_bt_eir(data, BtEir::APPEARANCE, std::string_view{(const char *)&appearance_bytes[0], 2});
+    add_bt_eir(data, BtEir::APPEARANCE,
+               std::string_view{(const char *)&appearance_bytes[0], sizeof(appearance_bytes)});
 
-    // optional local name
-    add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
+    // optional Flags (0x19)
+    // uint8_t flags_bytes[] = {0x06}; // BR/EDR not supported, LE supported, Simultaneous LE/BT to
+    // same device capable (controller) add_bt_eir(data, BtEir::FLAGS, std::string_view{(const char
+    // *)&flags_bytes[0], sizeof(flags_bytes)});
 
     // TODO: provide additional optional parameters
     // (optional  0x10) Security Manager TK value (LE legacy pairing)
-    // (optional  0x01) Flags
     // (optional  0x22) LE secure connections confirmation value
     // (optional  0x23) LE secure connections random value
 
@@ -541,7 +543,7 @@ protected:
       num_eir_bytes = 2; // 2 byte appearance type
       break;
     case BtEir::MAC:
-      num_eir_bytes = 7; // 6 for mac addr + 1 for mac addr type
+      num_eir_bytes = payload.size();
       break;
     case BtEir::LE_ROLE:
       num_eir_bytes = 1;
