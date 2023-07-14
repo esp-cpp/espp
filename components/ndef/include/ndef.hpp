@@ -378,15 +378,11 @@ public:
     add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
 
     // (mandatory 0x1B) LE device address in reverse order
-    uint8_t mac_addr_bytes[] = {
-        (uint8_t)(mac_addr >> 0 & 0xFF),
-        (uint8_t)(mac_addr >> 8 & 0xFF),
-        (uint8_t)(mac_addr >> 16 & 0xFF),
-        (uint8_t)(mac_addr >> 24 & 0xFF),
-        (uint8_t)(mac_addr >> 32 & 0xFF),
-        (uint8_t)(mac_addr >> 40 & 0xFF)
-    };
-    add_bt_eir(data, BtEir::MAC, std::string_view{(const char *)&mac_addr_bytes[0], sizeof(mac_addr_bytes)});
+    uint8_t mac_addr_bytes[] = {(uint8_t)(mac_addr >> 0 & 0xFF),  (uint8_t)(mac_addr >> 8 & 0xFF),
+                                (uint8_t)(mac_addr >> 16 & 0xFF), (uint8_t)(mac_addr >> 24 & 0xFF),
+                                (uint8_t)(mac_addr >> 32 & 0xFF), (uint8_t)(mac_addr >> 40 & 0xFF)};
+    add_bt_eir(data, BtEir::MAC,
+               std::string_view{(const char *)&mac_addr_bytes[0], sizeof(mac_addr_bytes)});
 
     // (mandatory 0x1C) LE role
     add_bt_eir(data, BtEir::LE_ROLE, std::string_view{(const char *)&role, 1});
@@ -394,11 +390,13 @@ public:
     // optional appearance
     uint8_t appearance_bytes[] = {(uint8_t)((uint16_t)appearance >> 8),
                                   (uint8_t)((uint16_t)appearance & 0xFF)};
-    add_bt_eir(data, BtEir::APPEARANCE, std::string_view{(const char *)&appearance_bytes[0], sizeof(appearance_bytes)});
+    add_bt_eir(data, BtEir::APPEARANCE,
+               std::string_view{(const char *)&appearance_bytes[0], sizeof(appearance_bytes)});
 
     // optional Flags (0x19)
-    // uint8_t flags_bytes[] = {0x06}; // BR/EDR not supported, LE supported, Simultaneous LE/BT to same device capable (controller)
-    // add_bt_eir(data, BtEir::FLAGS, std::string_view{(const char *)&flags_bytes[0], sizeof(flags_bytes)});
+    // uint8_t flags_bytes[] = {0x06}; // BR/EDR not supported, LE supported, Simultaneous LE/BT to
+    // same device capable (controller) add_bt_eir(data, BtEir::FLAGS, std::string_view{(const char
+    // *)&flags_bytes[0], sizeof(flags_bytes)});
 
     // TODO: provide additional optional parameters
     // (optional  0x10) Security Manager TK value (LE legacy pairing)
