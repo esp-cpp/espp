@@ -317,9 +317,14 @@ public:
    *       0xf412fa42fe9e.
    * @param device_class The bluetooth device class for this radio.
    * @param name Name of the BT device.
+   * @param random_value The Simple pairing randomizer R for the pairing.
+   * @param confirm_value The Simple pairing hash C (confirm value) for the
+   *                      pairing.
    * @return NDEF record object.
    */
-  static Ndef make_oob_pairing(uint64_t mac_addr, uint32_t device_class, std::string_view name) {
+  static Ndef make_oob_pairing(uint64_t mac_addr, uint32_t device_class, std::string_view name,
+                               std::string_view random_value = "",
+                               std::string_view confirm_value = "") {
     std::vector<uint8_t> data;
     // NOTE: for the extended inquiry response (EIR) data types see the
     // BT_HANDOVER_TYPE_ codes here:
@@ -344,6 +349,20 @@ public:
     // add optional EIR data (no specific order required)
     add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
 
+    // (optional  0x22) secure connections confirmation value (16 bytes)
+    if (confirm_value.size() == 16) {
+      add_bt_eir(data, BtEir::SP_HASH_C192, confirm_value);
+    } else {
+      fmt::print("confirm_value must be 16 bytes, got {}\n", confirm_value.size());
+    }
+
+    // (optional  0x23) secure connections random value (16 bytes)
+    if (random_value.size() == 16) {
+      add_bt_eir(data, BtEir::SP_RANDOM_R192, random_value);
+    } else {
+      fmt::print("random_value must be 16 bytes, got {}\n", random_value.size());
+    }
+
     // now make sure the length is updated (includes length field)
     int length = data.size();
     data[0] = length;
@@ -359,10 +378,15 @@ public:
    * @param role The BLE role of the device (central / peripheral / dual)
    * @param name Name of the BLE device.
    * @param appearance BtAppearance of the device.
+   * @param random_value The Simple pairing randomizer R for the pairing.
+   * @param confirm_value The Simple pairing hash C (confirm value) for the
+   * @param tk Temporary key for the pairing (16 bytes, optional)
    * @return NDEF record object.
    */
   static Ndef make_le_oob_pairing(uint64_t mac_addr, BleRole role, std::string_view name,
-                                  BtAppearance appearance = BtAppearance::UNKNOWN) {
+                                  BtAppearance appearance = BtAppearance::UNKNOWN,
+                                  std::string_view random_value = "",
+                                  std::string_view confirm_value = "", std::string_view tk = "") {
     std::vector<uint8_t> data;
     // NOTE: for the extended inquiry response (EIR) data types see the
     // BT_HANDOVER_TYPE_ codes here:
@@ -387,6 +411,27 @@ public:
     // (mandatory 0x1C) LE role
     add_bt_eir(data, BtEir::LE_ROLE, std::string_view{(const char *)&role, 1});
 
+    // (optional  0x10) Security Manager TK value (LE legacy pairing) (16 bytes)
+    if (tk.size() == 16) {
+      add_bt_eir(data, BtEir::SECURITY_MANAGER_TK, tk);
+    } else {
+      fmt::print("tk must be 16 bytes, got {}\n", tk.size());
+    }
+
+    // (optional  0x22) secure connections confirmation value (16 bytes)
+    if (confirm_value.size() == 16) {
+      add_bt_eir(data, BtEir::LE_SC_CONFIRMATION, confirm_value);
+    } else {
+      fmt::print("confirm_value must be 16 bytes, got {}\n", confirm_value.size());
+    }
+
+    // (optional  0x23) secure connections random value (16 bytes)
+    if (random_value.size() == 16) {
+      add_bt_eir(data, BtEir::LE_SC_RANDOM, random_value);
+    } else {
+      fmt::print("random_value must be 16 bytes, got {}\n", random_value.size());
+    }
+
     // optional appearance
     uint8_t appearance_bytes[] = {(uint8_t)((uint16_t)appearance >> 8),
                                   (uint8_t)((uint16_t)appearance & 0xFF)};
@@ -397,11 +442,6 @@ public:
     // uint8_t flags_bytes[] = {0x06}; // BR/EDR not supported, LE supported, Simultaneous LE/BT to
     // same device capable (controller) add_bt_eir(data, BtEir::FLAGS, std::string_view{(const char
     // *)&flags_bytes[0], sizeof(flags_bytes)});
-
-    // TODO: provide additional optional parameters
-    // (optional  0x10) Security Manager TK value (LE legacy pairing)
-    // (optional  0x22) LE secure connections confirmation value
-    // (optional  0x23) LE secure connections random value
 
     auto sv_data = std::string_view{(const char *)data.data(), data.size()};
     return Ndef(TNF::MIME_MEDIA, "application/vnd.bluetooth.le.oob", sv_data);
@@ -538,6 +578,7 @@ protected:
       num_eir_bytes = 3; // 24 bit class of device structure
       break;
     case BtEir::SECURITY_MANAGER_TK:
+      num_eir_bytes = payload.size();
       break;
     case BtEir::APPEARANCE:
       num_eir_bytes = 2; // 2 byte appearance type
@@ -548,9 +589,15 @@ protected:
     case BtEir::LE_ROLE:
       num_eir_bytes = 1;
       break;
+    case BtEir::SP_HASH_C192:
     case BtEir::LE_SC_CONFIRMATION:
+      // NOTE: should be 16
+      num_eir_bytes = payload.size();
       break;
+    case BtEir::SP_RANDOM_R192:
     case BtEir::LE_SC_RANDOM:
+      // NOTE: should be 16
+      num_eir_bytes = payload.size();
       break;
     default:
       break;
