@@ -134,7 +134,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Event Manager APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/24d75ce/docs/en/event_manager.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/7ab4637/docs/en/event_manager.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -160,7 +160,7 @@ data structures to/from <cite>std::vector&lt;uint8_t&gt;</cite> for publishing/s
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/24d75ce/components/event_manager/include/event_manager.hpp">components/event_manager/include/event_manager.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7ab4637/components/event_manager/include/event_manager.hpp">components/event_manager/include/event_manager.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -349,15 +349,20 @@ data structures to/from <cite>std::vector&lt;uint8_t&gt;</cite> for publishing/s
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fn">
-<span id="_CPPv3N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fn"></span><span id="_CPPv2N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fn"></span><span id="espp::EventManager::add_subscriber__ssCR.ssCR.event_callback_fnCR"></span><span class="target" id="classespp_1_1_event_manager_1a207ec7de43793dce412cdd10ea8a188a"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_subscriber</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">component</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp12EventManager17event_callback_fnE" title="espp::EventManager::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fn" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fnK6size_t">
+<span id="_CPPv3N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fnK6size_t"></span><span id="_CPPv2N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fnK6size_t"></span><span id="espp::EventManager::add_subscriber__ssCR.ssCR.event_callback_fnCR.sC"></span><span class="target" id="classespp_1_1_event_manager_1a6f5bc08ad4418b068463cbd74b3e9239"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_subscriber</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">component</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp12EventManager17event_callback_fnE" title="espp::EventManager::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stack_size_bytes</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fnK6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Register a subscriber for <code class="docutils literal notranslate"><span class="pre">component</span></code> on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The stack size is only used if a subscriber is not already registered for that topic. If a subscriber is already registered for that topic, the stack size is ignored. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>topic</strong> – Topic name for the data being subscribed to. </p></li>
 <li><p><strong>component</strong> – Name of the component publishing data. </p></li>
 <li><p><strong>callback</strong> – The event_callback_fn to be called when receicing data on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p></li>
+<li><p><strong>stack_size_bytes</strong> – The stack size in bytes to use for the subscriber </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
