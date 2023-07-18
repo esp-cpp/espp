@@ -72,11 +72,15 @@ public:
    * @param component Name of the component publishing data.
    * @param callback The event_callback_fn to be called when receicing data on
    *        \p topic.
+   * @param stack_size_bytes The stack size in bytes to use for the subscriber
+   * @note The stack size is only used if a subscriber is not already registered
+   *       for that topic. If a subscriber is already registered for that topic,
+   *       the stack size is ignored.
    * @return True if the subscriber was added, false if it was already
    *         registered for that component.
    */
   bool add_subscriber(const std::string &topic, const std::string &component,
-                      const event_callback_fn &callback);
+                      const event_callback_fn &callback, const size_t stack_size_bytes = 8 * 1024);
 
   /**
    * @brief Publish \p data on \p topic.
