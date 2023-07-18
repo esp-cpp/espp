@@ -18,7 +18,8 @@ bool EventManager::add_publisher(const std::string &topic, const std::string &co
 }
 
 bool EventManager::add_subscriber(const std::string &topic, const std::string &component,
-                                  const event_callback_fn &callback) {
+                                  const event_callback_fn &callback,
+                                  const size_t stack_size_bytes) {
   logger_.info("Adding subscriber '{}' to topic '{}'", component, topic);
   {
     std::lock_guard<std::recursive_mutex> lk(events_mutex_);
@@ -58,7 +59,7 @@ bool EventManager::add_subscriber(const std::string &topic, const std::string &c
       subscriber_tasks_[topic] = Task::make_unique(
           {.name = topic + " subscriber",
            .callback = std::bind(&EventManager::subscriber_task_fn, this, topic, _1, _2),
-           .stack_size_bytes{8 * 1024}});
+           .stack_size_bytes{stack_size_bytes}});
       // and start it
       subscriber_tasks_[topic]->start();
     }
