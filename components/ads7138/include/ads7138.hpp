@@ -230,12 +230,13 @@ public:
    */
   std::vector<float> get_all_mv() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
-    std::vector<float> values;
     // TODO: handle the non-autonomous case
     auto raw_values = read_recent_all();
+    std::vector<float> values(analog_inputs_.size());
     // convert the raw values (uint16_t) to mv (float)
-    std::transform(raw_values.begin(), raw_values.end(), std::back_inserter(values),
-                   [this](uint16_t raw) { return raw_to_mv(raw); });
+    for (int i = 0; i < raw_values.size(); i++) {
+      values[i] = raw_to_mv(raw_values[i]);
+    }
     return values;
   }
 
@@ -255,9 +256,9 @@ public:
     // TODO: handle the non-autonomous case
     auto raw_values = read_mapped_recent_all();
     // convert the raw values (uint16_t) to mv (float)
-    std::transform(
-        raw_values.begin(), raw_values.end(), std::inserter(values, values.end()),
-        [this](const auto &pair) { return std::make_pair(pair.first, raw_to_mv(pair.second)); });
+    for (auto &[channel, raw] : raw_values) {
+      values[channel] = raw_to_mv(raw);
+    }
     return values;
   }
 
@@ -925,16 +926,17 @@ protected:
       return {};
     }
     logger_.info("Reading recent values for all channels");
-    std::vector<uint16_t> values;
+    std::vector<uint16_t> values(analog_inputs_.size());
     uint8_t raw_values[16];
     read_many_(Register::RECENT_CH0_LSB, raw_values, 16);
+    int analog_index = 0;
     // only pull out the ones that were configured as analog inputs
     for (int i = 0; i < 8; i++) {
       if (is_analog_input(static_cast<Channel>(i))) {
         // read both the LSB AND MSB registers and combine them (lsb is first)
         uint8_t lsb = raw_values[i * 2];
         uint8_t msb = raw_values[i * 2 + 1];
-        values.push_back((msb << 8) | lsb);
+        values[analog_index++] = (msb << 8) | lsb;
       }
     }
     return values;
@@ -984,8 +986,9 @@ protected:
       return {};
     }
     logger_.info("Reading max values for all channels");
-    std::vector<uint16_t> values;
+    std::vector<uint16_t> values(analog_inputs_.size());
     uint8_t raw_values[16];
+    int analog_index = 0;
     read_many_(Register::MAX_CH0_LSB, raw_values, 16);
     // only pull out the ones that were configured as analog inputs
     for (int i = 0; i < 8; i++) {
@@ -993,7 +996,7 @@ protected:
         // read both the LSB AND MSB registers and combine them (lsb first)
         uint8_t lsb = raw_values[i * 2];
         uint8_t msb = raw_values[i * 2 + 1];
-        values.push_back((msb << 8) | lsb);
+        values[analog_index++] = (msb << 8) | lsb;
       }
     }
     return values;
@@ -1021,8 +1024,9 @@ protected:
       return {};
     }
     logger_.info("Reading min values for all channels");
-    std::vector<uint16_t> values;
+    std::vector<uint16_t> values(analog_inputs_.size());
     uint8_t raw_values[16];
+    int analog_index = 0;
     read_many_(Register::MIN_CH0_LSB, raw_values, 16);
     // only pull out the ones that were configured as analog inputs
     for (int i = 0; i < 8; i++) {
@@ -1030,7 +1034,7 @@ protected:
         // read both the LSB AND MSB registers and combine them (lsb first)
         uint8_t lsb = raw_values[i * 2];
         uint8_t msb = raw_values[i * 2 + 1];
-        values.push_back((msb << 8) | lsb);
+        values[analog_index++] = (msb << 8) | lsb;
       }
     }
     return values;
