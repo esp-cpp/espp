@@ -28,8 +28,11 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-![output](https://user-images.githubusercontent.com/213467/209173473-28d0b3f3-c636-4a48-ab0a-4370d1d9ab9d.png)
-![output 2](https://user-images.githubusercontent.com/213467/208487187-237ba823-0ded-4b71-adc5-17332fb4ad15.png)
+Writing multiple records:
+![CleanShot 2023-07-25 at 11 44 01](https://github.com/esp-cpp/espp/assets/213467/052f7099-c6be-4a25-8ca3-778455f70e8b)
+
+Multiple records read:
+![image](https://github.com/esp-cpp/espp/assets/213467/0765fddc-ef4d-4127-9d98-3a9ef6e91cbe)
 
 Reading tag containing text:
 ![phone 1](https://user-images.githubusercontent.com/213467/208488067-03cba102-9cb0-4412-bb9e-a922bdfbefff.png)
