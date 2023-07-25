@@ -140,7 +140,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>NDEF</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7ab4637/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ca25bdd/docs/en/nfc/ndef.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -157,7 +157,7 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7ab4637/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ca25bdd/components/ndef/include/ndef.hpp">components/ndef/include/ndef.hpp</a></p></li>
 </ul>
 </section>
 <section id="unions">
@@ -214,7 +214,8 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <li><p><a class="reference external" href="https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/">https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/</a></p></li>
 <li><p><a class="reference external" href="https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html">https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html</a></p></li>
 <li><p><a class="reference external" href="https://developer.android.com/reference/android/nfc/NdefMessage">https://developer.android.com/reference/android/nfc/NdefMessage</a></p></li>
-<li><p><a class="reference external" href="https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html">https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html</a> </p></li>
+<li><p><a class="reference external" href="https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html">https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html</a></p></li>
+<li><p><a class="reference external" href="https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef">https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef</a> </p></li>
 </ul>
 </p>
 </div>
@@ -619,6 +620,38 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 </dd></dl>
 
 <dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerStateE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerStateE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerStateE"></span><span class="target" id="classespp_1_1_ndef_1a4de88f0052d7d3aeec538f5bd58be6aa"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CarrierPowerState</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerStateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Power state of a BLE radio. </p>
+<p>Representation of the carrier power state in a Handover Select message. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerState8INACTIVEE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerState8INACTIVEE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerState8INACTIVEE"></span><span class="target" id="classespp_1_1_ndef_1a4de88f0052d7d3aeec538f5bd58be6aaa6b273343c454f9c53dcfc9c4ccf171d2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">INACTIVE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerState8INACTIVEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Carrier power is off. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerState6ACTIVEE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerState6ACTIVEE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerState6ACTIVEE"></span><span class="target" id="classespp_1_1_ndef_1a4de88f0052d7d3aeec538f5bd58be6aaa18ff74f43da410c5529f7d6fca84f115"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVE</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerState6ACTIVEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Carrier power is on. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerState10ACTIVATINGE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerState10ACTIVATINGE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerState10ACTIVATINGE"></span><span class="target" id="classespp_1_1_ndef_1a4de88f0052d7d3aeec538f5bd58be6aaaf0e310ac027b783acc3f0772af161652"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ACTIVATING</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerState10ACTIVATINGE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Carrier power is turning on. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef17CarrierPowerState7UNKNOWNE">
+<span id="_CPPv3N4espp4Ndef17CarrierPowerState7UNKNOWNE"></span><span id="_CPPv2N4espp4Ndef17CarrierPowerState7UNKNOWNE"></span><span class="target" id="classespp_1_1_ndef_1a4de88f0052d7d3aeec538f5bd58be6aaa696b031073e74bf2cb98e5ef201d4aa3"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UNKNOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef17CarrierPowerState7UNKNOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Carrier power state is unknown. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef5BtEirE">
 <span id="_CPPv3N4espp4Ndef5BtEirE"></span><span id="_CPPv2N4espp4Ndef5BtEirE"></span><span class="target" id="classespp_1_1_ndef_1ae3328b4bb00e11aaf1b2c38c11402e1c"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BtEir</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef5BtEirE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Extended Inquiry Response (EIR) codes for data types in BT and BLE out of band (OOB) pairing NDEF records. </p>
@@ -887,12 +920,18 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef9serializeEv">
-<span id="_CPPv3N4espp4Ndef9serializeEv"></span><span id="_CPPv2N4espp4Ndef9serializeEv"></span><span id="espp::Ndef::serialize"></span><span class="target" id="classespp_1_1_ndef_1a5b3b059b101deb28f06c64b724e8d708"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef9serializeEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef9serializeEbb">
+<span id="_CPPv3N4espp4Ndef9serializeEbb"></span><span id="_CPPv2N4espp4Ndef9serializeEbb"></span><span id="espp::Ndef::serialize__b.b"></span><span class="target" id="classespp_1_1_ndef_1ae34e66cba73ac6096c971b4c532e6f2c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">serialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">message_begin</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">message_end</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef9serializeEbb" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Serialize the NDEF record into a sequence of bytes. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The vector&lt;uint8_t&gt; of bytes representing the NDEF record. </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message_begin</strong> – True if this is the first record in the message. </p></li>
+<li><p><strong>message_end</strong> – True if this is the last record in the message. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The vector&lt;uint8_t&gt; of bytes representing the NDEF record. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -904,6 +943,28 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>Payload of the NDEF record as a vector of bytes. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef6set_idEi">
+<span id="_CPPv3N4espp4Ndef6set_idEi"></span><span id="_CPPv2N4espp4Ndef6set_idEi"></span><span id="espp::Ndef::set_id__i"></span><span class="target" id="classespp_1_1_ndef_1a9cd7c27c52e10849685a9233f486b5d7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_id</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef6set_idEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the payload ID of the NDEF record. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>id</strong> – ID of the NDEF record. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp4Ndef6get_idEv">
+<span id="_CPPv3NK4espp4Ndef6get_idEv"></span><span id="_CPPv2NK4espp4Ndef6get_idEv"></span><span id="espp::Ndef::get_idC"></span><span class="target" id="classespp_1_1_ndef_1a4044f091190b594c84de3b6cb6019175"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_id</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp4Ndef6get_idEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the ID of the NDEF record. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>ID of the NDEF record. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -982,6 +1043,62 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef20make_handover_selectEi">
+<span id="_CPPv3N4espp4Ndef20make_handover_selectEi"></span><span id="_CPPv2N4espp4Ndef20make_handover_selectEi"></span><span id="espp::Ndef::make_handover_select__i"></span><span class="target" id="classespp_1_1_ndef_1ae9b137db087845a5df8b4d6550d92238"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_handover_select</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">carrier_data_ref</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef20make_handover_selectEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a Handover Select record for a Bluetooth device. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf">https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf</a> </p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>carrier_data_ref</strong> – Reference to the carrier data record, which is the record that contains the actual bluetooth data. This should be the same as the id of the carrier data record, such as ‘0’. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef21make_handover_requestEi">
+<span id="_CPPv3N4espp4Ndef21make_handover_requestEi"></span><span id="_CPPv2N4espp4Ndef21make_handover_requestEi"></span><span id="espp::Ndef::make_handover_request__i"></span><span class="target" id="classespp_1_1_ndef_1a32d1ff3b1abd28aba61066cda5b5f65e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_handover_request</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">carrier_data_ref</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef21make_handover_requestEi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a Handover request record for a Bluetooth device. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf">https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf</a> </p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>carrier_data_ref</strong> – Reference to the carrier data record, which is the record that contains the actual bluetooth data. This should be the same as the id of the carrier data record, such as ‘0’. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef24make_alternative_carrierERK17CarrierPowerStatei">
+<span id="_CPPv3N4espp4Ndef24make_alternative_carrierERK17CarrierPowerStatei"></span><span id="_CPPv2N4espp4Ndef24make_alternative_carrierERK17CarrierPowerStatei"></span><span id="espp::Ndef::make_alternative_carrier__CarrierPowerStateCR.i"></span><span class="target" id="classespp_1_1_ndef_1a357035211d0eb593a74384ba33db10ec"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_alternative_carrier</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ndef17CarrierPowerStateE" title="espp::Ndef::CarrierPowerState"><span class="n"><span class="pre">CarrierPowerState</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">power_state</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">carrier_data_ref</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef24make_alternative_carrierERK17CarrierPowerStatei" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a Handover Request record for a Bluetooth device. </p>
+<p>See page 18 of <a class="reference external" href="https://core.ac.uk/download/pdf/250136576.pdf">https://core.ac.uk/download/pdf/250136576.pdf</a> for more details. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>power_state</strong> – Power state of the alternative carrier. </p></li>
+<li><p><strong>carrier_data_ref</strong> – Reference to the carrier data record, which is the record that contains the actual bluetooth data. This should be the same as the id of the carrier data record, such as ‘0’. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NDEF record object. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewENSt11string_viewENSt11string_viewE">
 <span id="_CPPv3N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="espp::Ndef::make_oob_pairing__uint64_t.uint32_t.std::string_view.std::string_view.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1ab1322fa414a1bc131675b5c354ad5bc5"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">device_class</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">random_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">confirm_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef16make_oob_pairingE8uint64_t8uint32_tNSt11string_viewENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Static function to make an NDEF record for BT classic OOB Pairing (Android). </p>
@@ -1007,7 +1124,7 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearanceNSt11string_viewENSt11string_viewENSt11string_viewE">
-<span id="_CPPv3N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearanceNSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearanceNSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="espp::Ndef::make_le_oob_pairing__uint64_t.BleRole.std::string_view.BtAppearance.std::string_view.std::string_view.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1aa53d33945195a69adfba2b9f2c565be8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_le_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <a class="reference internal" href="#_CPPv4N4espp4Ndef7BleRoleE" title="espp::Ndef::BleRole"><span class="n"><span class="pre">BleRole</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">role</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span>, <a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="espp::Ndef::BtAppearance"><span class="n"><span class="pre">BtAppearance</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">appearance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="espp::Ndef::BtAppearance"><span class="n"><span class="pre">BtAppearance</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearance7UNKNOWNE" title="espp::Ndef::BtAppearance::UNKNOWN"><span class="n"><span class="pre">UNKNOWN</span></span></a>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">random_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">confirm_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tk</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearanceNSt11string_viewENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearanceNSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearanceNSt11string_viewENSt11string_viewENSt11string_viewE"></span><span id="espp::Ndef::make_le_oob_pairing__uint64_t.BleRole.std::string_view.BtAppearance.std::string_view.std::string_view.std::string_view"></span><span class="target" id="classespp_1_1_ndef_1af53a2cabd873656e89bcd012cdf31446"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4NdefE" title="espp::Ndef"><span class="n"><span class="pre">Ndef</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_le_oob_pairing</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint64_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mac_addr</span></span>, <a class="reference internal" href="#_CPPv4N4espp4Ndef7BleRoleE" title="espp::Ndef::BleRole"><span class="n"><span class="pre">BleRole</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">role</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="espp::Ndef::BtAppearance"><span class="n"><span class="pre">BtAppearance</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">appearance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearanceE" title="espp::Ndef::BtAppearance"><span class="n"><span class="pre">BtAppearance</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp4Ndef12BtAppearance7UNKNOWNE" title="espp::Ndef::BtAppearance::UNKNOWN"><span class="n"><span class="pre">UNKNOWN</span></span></a>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">random_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">confirm_value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">tk</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Ndef19make_le_oob_pairingE8uint64_t7BleRoleNSt11string_viewE12BtAppearanceNSt11string_viewENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Static function to make an NDEF record for BLE OOB Pairing (Android). </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -1018,10 +1135,10 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mac_addr</strong> – 48 bit MAC Address of the BLE radio. </p></li>
 <li><p><strong>role</strong> – The BLE role of the device (central / peripheral / dual) </p></li>
-<li><p><strong>name</strong> – Name of the BLE device. </p></li>
-<li><p><strong>appearance</strong> – BtAppearance of the device. </p></li>
-<li><p><strong>random_value</strong> – The Simple pairing randomizer R for the pairing. </p></li>
-<li><p><strong>confirm_value</strong> – The Simple pairing hash C (confirm value) for the </p></li>
+<li><p><strong>name</strong> – Name of the BLE device. Optional. </p></li>
+<li><p><strong>appearance</strong> – BtAppearance of the device. Optional. </p></li>
+<li><p><strong>random_value</strong> – The Simple pairing randomizer R for the pairing. (16 bytes, optional) </p></li>
+<li><p><strong>confirm_value</strong> – The Simple pairing hash C (confirm value) for the pairing. (16 bytes, optional) </p></li>
 <li><p><strong>tk</strong> – Temporary key for the pairing (16 bytes, optional) </p></li>
 </ul>
 </dd>
@@ -1029,6 +1146,15 @@ Format (NDEF) records, which are used by NFC Tags.</p>
 <dd class="field-even"><p>NDEF record object. </p>
 </dd>
 </dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Ndef16HANDOVER_VERSIONE">
+<span id="_CPPv3N4espp4Ndef16HANDOVER_VERSIONE"></span><span id="_CPPv2N4espp4Ndef16HANDOVER_VERSIONE"></span><span id="espp::Ndef::HANDOVER_VERSION__uint8_t"></span><span class="target" id="classespp_1_1_ndef_1afe00767664ad49497e25d6064b3d882f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HANDOVER_VERSION</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x13</span></span><a class="headerlink" href="#_CPPv4N4espp4Ndef16HANDOVER_VERSIONE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Connection Handover version 1.3. </p>
 </dd></dl>
 
 </div>

@@ -150,10 +150,11 @@ public:
     tlv.serialize(full_record, offset);
     offset += tlv_size;
     // debug log the record up to the NDEF data
-    logger_.debug("Writing record header: {::#04x}", std::span(full_record.data(), offset));
+    logger_.debug("Writing {} bytes of record header: {::#04x}", offset,
+                  std::span(full_record.data(), offset));
 
     // copy the NDEF record data
-    logger_.debug("Writing record data: {::#04x}", record_data);
+    logger_.debug("Writing {} bytes of record data: {::#04x}", ndef_size, record_data);
     memcpy(&full_record[offset], record_data.data(), record_data.size());
     offset += ndef_size;
     // add the TLV terminator (0xFE)
@@ -186,10 +187,11 @@ public:
    * @param payload Sequence of bytes to write.
    */
   void write(std::string_view payload) {
-    uint8_t data[2 + payload.size()];
+    size_t payload_size = payload.size();
+    uint8_t data[2 + payload_size];
     data[0] = (uint8_t)(AREA_1_START_ADDR >> 8);
     data[1] = (uint8_t)(AREA_1_START_ADDR & 0xFF);
-    memcpy(&data[2], payload.data(), payload.size());
+    memcpy(&data[2], payload.data(), payload_size);
     write_(DATA_ADDRESS, data, sizeof(data));
   }
 
@@ -345,11 +347,16 @@ protected:
     // System configuration registers, must be accessed with device select
     // E2=1, and a security session must be opened first by presenting a valid
     // I2C password.
-    GPO_CONF = 0x0000, /**< Enable / Disable interrupts on GPO. */
-    MEM_SIZE = 0x0014, /**< Memory size value in blocks, 2 bytes. */
-    BLK_SIZE = 0x0016, /**< Block size value in bytes. */
-    UID = 0x0018,      /**< Unique identifier, 8 bytes. */
-    I2C_PWD = 0x0900,  /**< I2C Security session password, 8 bytes. */
+    GPO_CONF = 0x0000,           /**< Enable / Disable interrupts on GPO. */
+    INT_PULSE_DURATION = 0x0001, /**< Duration of the interrupt pulse. */
+    ENDA1 = 0x0005,              /**< End address of Area 1. */
+    ENDA2 = 0x0007,              /**< End address of Area 2. */
+    ENDA3 = 0x0009,              /**< End address of Area 3. */
+    MEM_SIZE = 0x0014,           /**< Memory size value in blocks, 2 bytes. */
+    BLK_SIZE = 0x0016,           /**< Block size value in bytes. */
+    UID = 0x0018,                /**< Unique identifier, 8 bytes. */
+    IC_REV = 0x0020,             /**< IC revision, 1 byte. */
+    I2C_PWD = 0x0900,            /**< I2C Security session password, 8 bytes. */
     // Dynamic registers:
     GPO_CTRL = 0x2000, /**< GPO Control register. */
     EH_CTRL = 0x2002,  /**< Energy Harvesting management and usage status register. */

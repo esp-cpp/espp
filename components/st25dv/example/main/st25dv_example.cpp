@@ -2,20 +2,68 @@
 #include <chrono>
 #include <vector>
 
-#include "driver/i2c.h"
+#include <esp_err.h>
+#include <esp_log.h>
+
+#include <esp_bt.h>
+#include <esp_bt_defs.h>
+#include <esp_bt_device.h>
+#include <esp_bt_main.h>
+#include <esp_gap_bt_api.h>
+#if CONFIG_BT_BLE_ENABLED
+#include <esp_gap_ble_api.h>
+#include <esp_gatt_defs.h>
+#include <esp_gattc_api.h>
+#endif
+#include <nvs_flash.h>
+
+#include <driver/i2c.h>
 
 #include "st25dv.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
 
-#define I2C_NUM (I2C_NUM_1)
-#define I2C_SCL_IO (GPIO_NUM_40)
-#define I2C_SDA_IO (GPIO_NUM_41)
-#define I2C_FREQ_HZ (400 * 1000)
-#define I2C_TIMEOUT_MS (10)
+static constexpr auto I2C_NUM = I2C_NUM_1;
+static constexpr auto I2C_SCL_IO = GPIO_NUM_40;
+static constexpr auto I2C_SDA_IO = GPIO_NUM_41;
+static constexpr auto I2C_FREQ_HZ = (400 * 1000);
+static constexpr auto I2C_TIMEOUT_MS = 10;
+
+static constexpr auto HIDD_IDLE_MODE = 0x00;
+static constexpr auto HIDD_BLE_MODE = 0x01;
+static constexpr auto HIDD_BT_MODE = 0x02;
+static constexpr auto HIDD_BTDM_MODE = 0x03;
+
+#if CONFIG_BT_HID_DEVICE_ENABLED
+#if CONFIG_BT_BLE_ENABLED
+static constexpr auto HID_DEV_MODE = HIDD_BTDM_MODE;
+#else
+static constexpr auto HID_DEV_MODE = HIDD_BT_MODE;
+#endif
+#elif CONFIG_BT_BLE_ENABLED
+static constexpr auto HID_DEV_MODE = HIDD_BLE_MODE;
+#else
+static constexpr auto HID_DEV_MODE = HIDD_IDLE_MODE;
+#endif
+
+static esp_err_t init_low_level(uint8_t mode);
 
 extern "C" void app_main(void) {
+  static auto start = std::chrono::high_resolution_clock::now();
+  static auto elapsed = [&]() {
+    auto now = std::chrono::high_resolution_clock::now();
+    return std::chrono::duration<float>(now - start).count();
+  };
+
+  // Initialize NVS - needed for bluetooth
+  auto ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ret = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(ret);
+
   {
     std::atomic<bool> quit_test = false;
     fmt::print("Starting st25dv example, place your phone near it (while running NFC Tools app) to "
@@ -55,57 +103,59 @@ extern "C" void app_main(void) {
     st25dv.read(programmed_data.data(), programmed_data.size());
     fmt::print("Read: {}\n", programmed_data);
 
+    std::vector<espp::Ndef> records;
+
     // create some sample records
-    auto text_record = espp::Ndef::make_text("hello!");
-    auto uri_record = espp::Ndef::make_uri("github.com/esp-cpp/espp", espp::Ndef::Uic::HTTPS);
-    auto launcher_record = espp::Ndef::make_android_launcher("com.google.android.apps.photos");
-    auto wifi_record = espp::Ndef::make_wifi_config({
+    int payload_id = '0';
+
+    records.emplace_back(espp::Ndef::make_handover_select(payload_id));
+    records.emplace_back(espp::Ndef::make_text("hello!"));
+    records.emplace_back(espp::Ndef::make_uri("github.com/esp-cpp/espp", espp::Ndef::Uic::HTTPS));
+    records.emplace_back(espp::Ndef::make_android_launcher("com.google.android.apps.photos"));
+    records.emplace_back(espp::Ndef::make_wifi_config({
         .ssid = CONFIG_ESP_WIFI_SSID,
         .key = CONFIG_ESP_WIFI_PASSWORD,
-    });
-
-    // create BT OOB pairing record
-    uint64_t radio_mac_addr = 0x060504030201; // 48b
-    uint32_t bt_device_class = 0x000000;      // 24b
-    std::string_view bt_radio_name = "BT Radio";
-    auto bt_oob_record =
-        espp::Ndef::make_oob_pairing(radio_mac_addr, bt_device_class, bt_radio_name);
+    }));
 
     // create BLE OOB pairing record
+    uint64_t radio_mac_addr = 0x060504030201; // 48b, example address 06:05:04:03:02:01
+#if CONFIG_BT_BLE_ENABLED
+    // get the mac address of the radio
+    init_low_level(HID_DEV_MODE);
+    const uint8_t *point = esp_bt_dev_get_address();
+    if (point == nullptr) {
+      fmt::print("Failed to get radio mac address!\n");
+      return;
+    } else {
+      // convert the 6 byte mac address to a 48 bit integer
+      for (int i = 0; i < 6; i++) {
+        radio_mac_addr |= (uint64_t)point[5 - i] << (i * 8);
+      }
+    }
+    fmt::print("radio mac addr: {:#x}\n", radio_mac_addr);
+#endif
     auto ble_role = espp::Ndef::BleRole::PERIPHERAL_ONLY;
     auto ble_appearance = espp::Ndef::BtAppearance::GAMEPAD;
     std::string_view ble_radio_name = "BLE Radio";
-    auto ble_oob_record =
-        espp::Ndef::make_le_oob_pairing(radio_mac_addr, ble_role, ble_radio_name, ble_appearance);
+    records.emplace_back(
+        espp::Ndef::make_le_oob_pairing(radio_mac_addr, ble_role, ble_radio_name, ble_appearance));
+    records.back().set_id(payload_id);
 
     // set one of the records we made to be the active tag
-    st25dv.set_record(wifi_record);
-
-    // print out the NDEF records we created so we can check them against
-    // documentation
-    fmt::print("text: {::#x}\n", text_record.serialize());
-    fmt::print("uri:  {::#x}\n", uri_record.serialize());
-    fmt::print("wifi: {::#x}\n", wifi_record.serialize());
-    fmt::print("launcher: {::#x}\n", launcher_record.serialize());
-    fmt::print("bt oob:   {::#x}\n", bt_oob_record.payload());
-    fmt::print("ble oob:  {::#x}\n", ble_oob_record.payload());
+    st25dv.set_records(records);
 
     // and finally, make the task to periodically poll the st25dv and print the
     // state. The task will trigger sample quit when the phone reads the tag.
     auto task_fn = [&quit_test, &st25dv](std::mutex &m, std::condition_variable &cv) {
-      static auto start = std::chrono::high_resolution_clock::now();
-      auto now = std::chrono::high_resolution_clock::now();
-      auto seconds = std::chrono::duration<float>(now - start).count();
       auto it_sts = st25dv.get_interrupt_status();
-      fmt::print("IT STS: {:02x}\n", it_sts);
-      quit_test = it_sts && espp::St25dv::IT_STS::FIELD_RISING;
-      // NOTE: sleeping in this way allows the sleep to exit early when the
-      // task is being stopped / destroyed
-      {
-        std::unique_lock<std::mutex> lk(m);
-        cv.wait_for(lk, 200ms);
+      static auto last_it_sts = it_sts;
+      if (it_sts != last_it_sts) {
+        fmt::print("[{:.3f}] IT STS: {:02x}\n", elapsed(), it_sts);
       }
-      // don't want to stop the task
+      last_it_sts = it_sts;
+      std::unique_lock<std::mutex> lock(m);
+      cv.wait_for(lock, 10ms);
+      // we don't want to stop the task, so return false
       return false;
     };
     auto task = espp::Task({.name = "St25dv Task",
@@ -126,4 +176,45 @@ extern "C" void app_main(void) {
   while (true) {
     std::this_thread::sleep_for(1s);
   }
+}
+
+static esp_err_t init_low_level(uint8_t mode) {
+  esp_err_t ret;
+#if CONFIG_BT_BLE_ENABLED
+  esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+#if CONFIG_IDF_TARGET_ESP32
+  bt_cfg.mode = mode;
+#endif
+  {
+    ret = esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);
+    if (ret) {
+      fmt::print("esp_bt_controller_mem_release failed: {}\n", ret);
+      return ret;
+    }
+  }
+  ret = esp_bt_controller_init(&bt_cfg);
+  if (ret) {
+    fmt::print("esp_bt_controller_init failed: {}\n", ret);
+    return ret;
+  }
+
+  ret = esp_bt_controller_enable((esp_bt_mode_t)mode);
+  if (ret) {
+    fmt::print("esp_bt_controller_enable failed: {}\n", ret);
+    return ret;
+  }
+
+  ret = esp_bluedroid_init();
+  if (ret) {
+    fmt::print("esp_bluedroid_init failed: {}\n", ret);
+    return ret;
+  }
+
+  ret = esp_bluedroid_enable();
+  if (ret) {
+    fmt::print("esp_bluedroid_enable failed: {}\n", ret);
+    return ret;
+  }
+#endif
+  return ret;
 }
