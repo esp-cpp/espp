@@ -3,6 +3,8 @@
 #include <atomic>
 #include <cmath>
 #include <functional>
+#include <span>
+#include <vector>
 
 #include "logger.hpp"
 #include "ndef.hpp"
@@ -109,10 +111,12 @@ public:
    * @param record The new NDEF record to serialize to the NFC EEPROM.
    */
   void set_record(Ndef &record) {
-    // add in the T5T tag compatibility container (CC) header
-    std::vector<uint8_t> full_record;
-    auto payload = record.serialize();
-    full_record.resize(payload.size() + 6);
+    auto record_data = record.serialize();
+    set_record(record_data);
+  }
+
+  void set_record(const std::vector<uint8_t> &record_data) {
+    // clang-format off
     /**
      * @note CC indicates how the tag can be accessed. There are two different
      *       types of CC used (depending on the size of the tag):
@@ -121,27 +125,61 @@ public:
      *            |:------------:|:---------------------------:|:-----------:|:--------------:|
      *            | Magic Number | Version & Access Conditions | Memory Size | NFC Type 5 Tag |
      *         2. 8 B CC (for memory size > 16 Kbit)
-     *            | Byte0        | Byte1                       | Byte2 | Byte3 |Byte4|Byte5| Byte6
-     * | Byte7     |
+     *            | Byte0        | Byte1                       | Byte2 | Byte3          |Byte4|Byte5| Byte6     | Byte7     |
      *            |:------------:|:---------------------------:|:-----:|:--------------:|:---:|:---:|:---------:|:---------:|
-     *            | Magic Number | Version & Access Conditions | 0x00h | NFC Type 5 Tag | RFU | RFU
-     * |Memory Size|Memory Size|
+     *            | Magic Number | Version & Access Conditions | 0x00h | NFC Type 5 Tag | RFU | RFU |Memory Size|Memory Size|
      */
-    // capability container (T5T tag)
-    full_record[0] = 0xE1; // magic number, should be 0xE1 or 0xE2 (for extended API)
-    full_record[1] = 0x40; // CC version (1.0) and access condition (always, always) (version is
-                           // b7b6.b5b4, read access is b3b2, write access is b1b0)
-    full_record[2] = 0x40; // MLEN NDEF data size 512 bytes (0x40), expressed in blocks (set to 0 if
-                           // tag is greater than 16 Kbit)
-    full_record[3] = 5; // additional feature information (support multiple block read) (b0: support
-                        // read multiple block, b1 & b2 : RFU, b3: supports lock block, b4: requires
-                        // special frame format)
+    // clang-format on
+    size_t cc_size = 4;
+    size_t ndef_size = record_data.size();
+    Tlv tlv(Type5TagType::NDEF_MSG, ndef_size);
+    size_t tlv_size = tlv.size();
+    size_t total_size = cc_size + tlv_size + ndef_size + 1; // +1 for terminator TLV
+    std::vector<uint8_t> full_record(total_size, 0);
+    int offset = 0;
+    // NDEF is preceded by a CC header
+    full_record[offset++] = 0xE1; // magic number, should be 0xE1 or 0xE2 (for extended API)
+    full_record[offset++] = 0x40; // CC version (1.0) and access condition (always, always) (version
+                                  // is b7b6.b5b4, read access is b3b2, write access is b1b0)
+    full_record[offset++] = 0x40; // MLEN NDEF data size 512 bytes (0x40), expressed in blocks (set
+                                  // to 0 if tag is greater than 16 Kbit)
+    full_record[offset++] = 5; // additional feature information (support multiple block read) (b0:
+                               // support read multiple block, b1 & b2 : RFU, b3: supports lock
+                               // block, b4: requires special frame format)
     // The message is preceded by a type5 tag header:
-    Tlv tlv(Type5TagType::NDEF_MSG, payload.size());
-    int tlv_size = tlv.size();
-    memcpy(&full_record[4], tlv.raw, tlv_size);
-    memcpy(&full_record[4 + tlv_size], payload.data(), payload.size());
+    tlv.serialize(full_record, offset);
+    offset += tlv_size;
+    // debug log the record up to the NDEF data
+    logger_.debug("Writing {} bytes of record header: {::#04x}", offset,
+                  std::span(full_record.data(), offset));
+
+    // copy the NDEF record data
+    logger_.debug("Writing {} bytes of record data: {::#04x}", ndef_size, record_data);
+    memcpy(&full_record[offset], record_data.data(), record_data.size());
+    offset += ndef_size;
+    // add the TLV terminator (0xFE)
+    full_record[offset] = (uint8_t)Type5TagType::TERMINATOR;
     write(std::string_view{(const char *)full_record.data(), full_record.size()});
+  }
+
+  void set_records(std::vector<Ndef> &records) {
+    std::vector<uint8_t> record_data;
+    size_t total_size = 0;
+    for (auto &record : records) {
+      total_size += record.get_size();
+    }
+    record_data.reserve(total_size);
+    for (int i = 0; i < records.size(); i++) {
+      // set the first record to have MB = 1
+      bool message_begin = (i == 0);
+      // set the last record to have ME = 1
+      bool message_end = (i == (records.size() - 1));
+      auto &record = records[i];
+      auto serialized_record = record.serialize(message_begin, message_end);
+      record_data.insert(record_data.end(), serialized_record.begin(), serialized_record.end());
+      serialized_record.resize(0);
+    }
+    set_record(record_data);
   }
 
   /**
@@ -149,10 +187,11 @@ public:
    * @param payload Sequence of bytes to write.
    */
   void write(std::string_view payload) {
-    uint8_t data[2 + payload.size()];
+    size_t payload_size = payload.size();
+    uint8_t data[2 + payload_size];
     data[0] = (uint8_t)(AREA_1_START_ADDR >> 8);
     data[1] = (uint8_t)(AREA_1_START_ADDR & 0xFF);
-    memcpy(&data[2], payload.data(), payload.size());
+    memcpy(&data[2], payload.data(), payload_size);
     write_(DATA_ADDRESS, data, sizeof(data));
   }
 
@@ -308,11 +347,16 @@ protected:
     // System configuration registers, must be accessed with device select
     // E2=1, and a security session must be opened first by presenting a valid
     // I2C password.
-    GPO_CONF = 0x0000, /**< Enable / Disable interrupts on GPO. */
-    MEM_SIZE = 0x0014, /**< Memory size value in blocks, 2 bytes. */
-    BLK_SIZE = 0x0016, /**< Block size value in bytes. */
-    UID = 0x0018,      /**< Unique identifier, 8 bytes. */
-    I2C_PWD = 0x0900,  /**< I2C Security session password, 8 bytes. */
+    GPO_CONF = 0x0000,           /**< Enable / Disable interrupts on GPO. */
+    INT_PULSE_DURATION = 0x0001, /**< Duration of the interrupt pulse. */
+    ENDA1 = 0x0005,              /**< End address of Area 1. */
+    ENDA2 = 0x0007,              /**< End address of Area 2. */
+    ENDA3 = 0x0009,              /**< End address of Area 3. */
+    MEM_SIZE = 0x0014,           /**< Memory size value in blocks, 2 bytes. */
+    BLK_SIZE = 0x0016,           /**< Block size value in bytes. */
+    UID = 0x0018,                /**< Unique identifier, 8 bytes. */
+    IC_REV = 0x0020,             /**< IC revision, 1 byte. */
+    I2C_PWD = 0x0900,            /**< I2C Security session password, 8 bytes. */
     // Dynamic registers:
     GPO_CTRL = 0x2000, /**< GPO Control register. */
     EH_CTRL = 0x2002,  /**< Energy Harvesting management and usage status register. */
@@ -343,23 +387,8 @@ protected:
      */
     Tlv(Type5TagType t, int len) {
       type = t;
-      if (len < 255) {
-        length = len;
-      } else {
-        length = 0xFF;
-        length16 = len;
-      }
+      length = len;
     }
-
-    union {
-      struct {
-        Type5TagType type; ///< Message type
-        uint8_t length;    ///< Length if < 255 bytes
-        // NOTE: only written if Length >= 255 bytes
-        uint16_t length16; ///< Length if >= 255 bytes
-      };
-      uint8_t raw[4];
-    };
 
     /**
      * @brief Get the number of bytes that the TLV will occupy, based on the
@@ -368,6 +397,40 @@ protected:
      *         TLV.
      */
     int size() { return length < 255 ? 2 : 4; }
+
+    /**
+     * @brief Append the TLV into a vector of bytes.
+     * @param data The vector to append the TLV to.
+     */
+    void append(std::vector<uint8_t> &data) {
+      data.push_back((uint8_t)type);
+      if (length < 255) {
+        data.push_back((uint8_t)length);
+      } else {
+        data.push_back(0xFF);
+        data.push_back(length >> 8);
+        data.push_back(length & 0xFF);
+      }
+    }
+
+    /**
+     * @brief Serialize the TLV into a vector of bytes.
+     * @param data The vector to serialize the TLV into.
+     * @param offset The offset into the vector to start writing at.
+     */
+    void serialize(std::vector<uint8_t> &data, int offset) {
+      data[offset] = (uint8_t)type;
+      if (length < 255) {
+        data[offset + 1] = length;
+      } else {
+        data[offset + 1] = 0xFF;
+        data[offset + 2] = length >> 8;
+        data[offset + 3] = length & 0xFF;
+      }
+    }
+
+    Type5TagType type; ///< Message type
+    size_t length;     ///< Message length
   };
 
   class GPO {

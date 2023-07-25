@@ -103,7 +103,6 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ST25DV</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#unions">Unions</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
 </li>
@@ -140,7 +139,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>ST25DV</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7ab4637/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ca25bdd/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -161,29 +160,8 @@ maintains) followed by serialized NDEF records.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7ab4637/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ca25bdd/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
 </ul>
-</section>
-<section id="unions">
-<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h3>
-<dl class="cpp union">
-<dt class="sig sig-object cpp">
-<span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed11____"></span><span class="sig-name descname"><span class="pre">espp::St25dv::Tlv.__unnamed11__</span></span></dt>
-<dd><div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp">
-<span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed11_____1abdf416144f79b0adea50b8078e2b2c7f"></span><span class="sig-name descname"><span class="pre">struct</span> <span class="pre">espp::St25dv::Tlv</span></span></dt>
-<dd></dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError3rawE">
-<span id="_CPPv3N19PhonyNameDueToError3rawE"></span><span id="_CPPv2N19PhonyNameDueToError3rawE"></span><span id="PhonyNameDueToError::raw__uint8_tA"></span><span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed11_____1a47dbc742874a0cf505ba12473a003549"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">raw</span></span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span><br /></dt>
-<dd></dd></dl>
-
-</div>
-</dd></dl>
-
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
@@ -227,57 +205,58 @@ maintains) followed by serialized NDEF records.</p>
 <span class="w">    </span><span class="n">st25dv</span><span class="p">.</span><span class="n">read</span><span class="p">(</span><span class="n">programmed_data</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">programmed_data</span><span class="p">.</span><span class="n">size</span><span class="p">());</span><span class="w"></span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Read: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">programmed_data</span><span class="p">);</span><span class="w"></span>
 
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">&gt;</span><span class="w"> </span><span class="n">records</span><span class="p">;</span><span class="w"></span>
+
 <span class="w">    </span><span class="c1">// create some sample records</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">text_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_text</span><span class="p">(</span><span class="s">&quot;hello!&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">uri_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_uri</span><span class="p">(</span><span class="s">&quot;github.com/esp-cpp/espp&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">Uic</span><span class="o">::</span><span class="n">HTTPS</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">launcher_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_android_launcher</span><span class="p">(</span><span class="s">&quot;com.google.android.apps.photos&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">wifi_record</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_wifi_config</span><span class="p">({</span><span class="w"></span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">payload_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="sc">&#39;0&#39;</span><span class="p">;</span><span class="w"></span>
+
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_handover_select</span><span class="p">(</span><span class="n">payload_id</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_text</span><span class="p">(</span><span class="s">&quot;hello!&quot;</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_uri</span><span class="p">(</span><span class="s">&quot;github.com/esp-cpp/espp&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">Uic</span><span class="o">::</span><span class="n">HTTPS</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_android_launcher</span><span class="p">(</span><span class="s">&quot;com.google.android.apps.photos&quot;</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_wifi_config</span><span class="p">({</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_SSID</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_PASSWORD</span><span class="p">,</span><span class="w"></span>
-<span class="w">    </span><span class="p">});</span><span class="w"></span>
-
-<span class="w">    </span><span class="c1">// create BT OOB pairing record</span>
-<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x060504030201</span><span class="p">;</span><span class="w"> </span><span class="c1">// 48b</span>
-<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">bt_device_class</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x000000</span><span class="p">;</span><span class="w">      </span><span class="c1">// 24b</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">bt_radio_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BT Radio&quot;</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">bt_oob_record</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
-<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">bt_device_class</span><span class="p">,</span><span class="w"> </span><span class="n">bt_radio_name</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="p">}));</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// create BLE OOB pairing record</span>
+<span class="w">    </span><span class="kt">uint64_t</span><span class="w"> </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x060504030201</span><span class="p">;</span><span class="w"> </span><span class="c1">// 48b, example address 06:05:04:03:02:01</span>
+<span class="cp">#if CONFIG_BT_BLE_ENABLED</span>
+<span class="w">    </span><span class="c1">// get the mac address of the radio</span>
+<span class="w">    </span><span class="n">init_low_level</span><span class="p">(</span><span class="n">HID_DEV_MODE</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">point</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_bt_dev_get_address</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">point</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="k">nullptr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Failed to get radio mac address!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// convert the 6 byte mac address to a 48 bit integer</span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">6</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">)</span><span class="n">point</span><span class="p">[</span><span class="mi">5</span><span class="o">-</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;radio mac addr: {:#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">radio_mac_addr</span><span class="p">);</span><span class="w"></span>
+<span class="cp">#endif</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_role</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BleRole</span><span class="o">::</span><span class="n">PERIPHERAL_ONLY</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BtAppearance</span><span class="o">::</span><span class="n">GAMEPAD</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BLE Radio&quot;</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_oob_record</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
-<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_le_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">ble_role</span><span class="p">,</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="p">,</span><span class="w"> </span><span class="n">ble_appearance</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_le_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">ble_role</span><span class="p">,</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="p">,</span><span class="w"> </span><span class="n">ble_appearance</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">back</span><span class="p">().</span><span class="n">set_id</span><span class="p">(</span><span class="n">payload_id</span><span class="p">);</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// set one of the records we made to be the active tag</span>
-<span class="w">    </span><span class="n">st25dv</span><span class="p">.</span><span class="n">set_record</span><span class="p">(</span><span class="n">wifi_record</span><span class="p">);</span><span class="w"></span>
-
-<span class="w">    </span><span class="c1">// print out the NDEF records we created so we can check them against</span>
-<span class="w">    </span><span class="c1">// documentation</span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;text: {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">text_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;uri:  {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">uri_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;wifi: {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">wifi_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;launcher: {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">launcher_record</span><span class="p">.</span><span class="n">serialize</span><span class="p">());</span><span class="w"></span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;bt oob:   {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bt_oob_record</span><span class="p">.</span><span class="n">payload</span><span class="p">());</span><span class="w"></span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;ble oob:  {::#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ble_oob_record</span><span class="p">.</span><span class="n">payload</span><span class="p">());</span><span class="w"></span>
+<span class="w">    </span><span class="n">st25dv</span><span class="p">.</span><span class="n">set_records</span><span class="p">(</span><span class="n">records</span><span class="p">);</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the st25dv and print the</span>
 <span class="w">    </span><span class="c1">// state. The task will trigger sample quit when the phone reads the tag.</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">quit_test</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st25dv</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span><span class="w"></span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">it_sts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">st25dv</span><span class="p">.</span><span class="n">get_interrupt_status</span><span class="p">();</span><span class="w"></span>
-<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;IT STS: {:02x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">it_sts</span><span class="p">);</span><span class="w"></span>
-<span class="w">      </span><span class="n">quit_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it_sts</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">St25dv</span><span class="o">::</span><span class="n">IT_STS</span><span class="o">::</span><span class="n">FIELD_RISING</span><span class="p">;</span><span class="w"></span>
-<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
-<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
-<span class="w">      </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
-<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">last_it_sts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it_sts</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">it_sts</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">last_it_sts</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;[{:.3f}] IT STS: {:02x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">(),</span><span class="w"> </span><span class="n">it_sts</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="p">}</span><span class="w"></span>
-<span class="w">      </span><span class="c1">// don&#39;t want to stop the task</span>
+<span class="w">      </span><span class="n">last_it_sts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">it_sts</span><span class="p">;</span><span class="w"></span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lock</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// we don&#39;t want to stop the task, so return false</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="p">};</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;St25dv Task&quot;</span><span class="p">,</span><span class="w"></span>
@@ -568,37 +547,6 @@ maintains) followed by serialized NDEF records.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv6IT_STS8RF_WRITEE">
 <span id="_CPPv3N4espp6St25dv6IT_STS8RF_WRITEE"></span><span id="_CPPv2N4espp6St25dv6IT_STS8RF_WRITEE"></span><span id="espp::St25dv::IT_STS::RF_WRITE__i"></span><span class="target" id="classespp_1_1_st25dv_1_1_i_t___s_t_s_1ae73b551eb58569fb328ab84997ed17e7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RF_WRITE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0b10000000</span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv6IT_STS8RF_WRITEE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Write in eeprom. </p>
-</dd></dl>
-
-</div>
-</dd></dl>
-
-<dl class="cpp union">
-<dt class="sig sig-object cpp">
-<span class="target" id="unionespp_1_1_st25dv_1_1_tlv_8____unnamed11____"></span><span class="sig-name descname"><span class="pre">Tlv.__unnamed11__</span></span></dt>
-<dd></dd></dl>
-
-<dl class="cpp struct">
-<dt class="sig sig-object cpp">
-<span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed11_____8____unnamed13____"></span><span class="sig-name descname"><span class="pre">Tlv.__unnamed11__.__unnamed13__</span></span></dt>
-<dd><div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError4typeE">
-<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError4typeE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError4typeE"></span><span id="espp::St25dv::PhonyNameDueToError::type__Type5TagType"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed11_____8____unnamed13_____1a599dcce2998a6b40b1e38e8c6006cb0a"></span><span class="n"><span class="pre">Type5TagType</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError4typeE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Message type. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError6lengthE">
-<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError6lengthE"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError6lengthE"></span><span id="espp::St25dv::PhonyNameDueToError::length__uint8_t"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed11_____8____unnamed13_____1a2fa47f7c65fec19cc163b195725e3844"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">length</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError6lengthE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Length if &lt; 255 bytes. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6St25dv19PhonyNameDueToError8length16E">
-<span id="_CPPv3N4espp6St25dv19PhonyNameDueToError8length16E"></span><span id="_CPPv2N4espp6St25dv19PhonyNameDueToError8length16E"></span><span id="espp::St25dv::PhonyNameDueToError::length16__uint16_t"></span><span class="target" id="structespp_1_1_st25dv_1_1_tlv_8____unnamed11_____8____unnamed13_____1ac4f599693f1cfe63915fd0455e4a5fa5"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">length16</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St25dv19PhonyNameDueToError8length16E" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Length if &gt;= 255 bytes. </p>
 </dd></dl>
 
 </div>

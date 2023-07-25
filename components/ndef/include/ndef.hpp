@@ -6,6 +6,8 @@
 #include <string_view>
 #include <vector>
 
+#include <esp_random.h>
+
 namespace espp {
 /**
  * @brief implements serialization & deserialization logic for NFC Data
@@ -43,6 +45,7 @@ namespace espp {
  *       * https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html
  *       * https://developer.android.com/reference/android/nfc/NdefMessage
  *       * https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html
+ *       * https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef
  *
  */
 class Ndef {
@@ -153,6 +156,18 @@ public:
   };
 
   /**
+   * @brief Power state of a BLE radio.
+   * @details Representation of the carrier power state in a Handover Select
+   *          message.
+   */
+  enum class CarrierPowerState {
+    INACTIVE = 0x00,   ///< Carrier power is off
+    ACTIVE = 0x01,     ///< Carrier power is on
+    ACTIVATING = 0x02, ///< Carrier power is turning on
+    UNKNOWN = 0x03,    ///< Carrier power state is unknown
+  };
+
+  /**
    * @brief Extended Inquiry Response (EIR) codes for data types in BT and BLE
    *        out of band (OOB) pairing NDEF records.
    */
@@ -220,6 +235,8 @@ public:
     WPA2_PERSONAL = 0x20,     ///< WPA2 personal
     WPA_WPA2_PERSONAL = 0x22, ///< Both WPA and WPA2 personal
   };
+
+  static constexpr uint8_t HANDOVER_VERSION = 0x13; ///< Connection Handover version 1.3
 
   /**
    * @brief Makes an NDEF record with header and payload.
@@ -310,6 +327,96 @@ public:
     return Ndef(TNF::MIME_MEDIA, "application/vnd.wfa.wsc", sv_data);
   }
 
+  /*
+   * @brief Create a collision resolution record.
+   * @param random_number Random number to use for the collision resolution.
+   * @return NDEF record object.
+   */
+  static Ndef make_collision_resolution_record(uint16_t random_number) {
+    std::vector<uint8_t> payload;
+    payload.push_back(random_number >> 8);
+    payload.push_back(random_number & 0xFF);
+    return Ndef(TNF::WELL_KNOWN, "cr",
+                std::string_view{(const char *)payload.data(), payload.size()});
+  }
+
+  /**
+   * @brief Create a Handover Select record for a Bluetooth device.
+   * @see
+   * https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf
+   * @param carrier_data_ref Reference to the carrier data record, which is the
+   *        record that contains the actual bluetooth data. This should be the
+   *        same as the id of the carrier data record, such as '0'.
+   * @return NDEF record object.
+   */
+  static Ndef make_handover_select(int carrier_data_ref) {
+    std::vector<uint8_t> payload;
+    payload.push_back(HANDOVER_VERSION);
+
+    Ndef alternative_carrier =
+        make_alternative_carrier(CarrierPowerState::ACTIVE, carrier_data_ref);
+    auto alternative_carrier_data = alternative_carrier.serialize(true, true);
+    payload.insert(payload.end(), alternative_carrier_data.begin(), alternative_carrier_data.end());
+
+    return Ndef(TNF::WELL_KNOWN, "Hs",
+                std::string_view{(const char *)payload.data(), payload.size()});
+  }
+
+  /**
+   * @brief Create a Handover request record for a Bluetooth device.
+   * @see
+   * https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf
+   * @param carrier_data_ref Reference to the carrier data record, which is the
+   *        record that contains the actual bluetooth data. This should be the
+   *        same as the id of the carrier data record, such as '0'.
+   * @return NDEF record object.
+   */
+  static Ndef make_handover_request(int carrier_data_ref) {
+    std::vector<uint8_t> payload;
+    payload.push_back(HANDOVER_VERSION);
+
+    // Handover request requires a collision resolution record, so we'll just
+    // add collision resolution record which contains a random number.
+
+    uint16_t random_number = esp_random() & 0xFFFF;
+    Ndef collision_resolution_record = make_collision_resolution_record(random_number);
+    auto collision_resolution_data = collision_resolution_record.serialize(true, false);
+    payload.insert(payload.end(), collision_resolution_data.begin(),
+                   collision_resolution_data.end());
+
+    // now make the alternative carrier record
+    Ndef alternative_carrier =
+        make_alternative_carrier(CarrierPowerState::ACTIVE, carrier_data_ref);
+    auto alternative_carrier_data = alternative_carrier.serialize(true, true);
+    payload.insert(payload.end(), alternative_carrier_data.begin(), alternative_carrier_data.end());
+
+    return Ndef(TNF::WELL_KNOWN, "Hr",
+                std::string_view{(const char *)payload.data(), payload.size()});
+  }
+
+  /**
+   * @brief Create a Handover Request record for a Bluetooth device.
+   * @details See page 18 of https://core.ac.uk/download/pdf/250136576.pdf for more details.
+   * @param power_state Power state of the alternative carrier.
+   * @param carrier_data_ref Reference to the carrier data record, which is the
+   *        record that contains the actual bluetooth data. This should be the
+   *        same as the id of the carrier data record, such as '0'.
+   * @return NDEF record object.
+   */
+  static Ndef make_alternative_carrier(const CarrierPowerState &power_state, int carrier_data_ref) {
+    std::vector<uint8_t> payload;
+    // first byte is carrier power state
+    payload.push_back((uint8_t)power_state);
+    // second byte is carrier data reference length
+    payload.push_back(0x01);
+    // third byte is carrier data reference (ascii), e.g. '0'
+    payload.push_back((uint8_t)carrier_data_ref);
+    // fourth byte is auxiliary data reference count
+    payload.push_back(0x00); // no auxiliary data
+    return Ndef(TNF::WELL_KNOWN, "ac",
+                std::string_view{(const char *)payload.data(), payload.size()});
+  }
+
   /**
    * @brief Static function to make an NDEF record for BT classic OOB Pairing (Android).
    * @param mac_addr 48 bit MAC Address of the BT radio
@@ -352,15 +459,11 @@ public:
     // (optional  0x22) secure connections confirmation value (16 bytes)
     if (confirm_value.size() == 16) {
       add_bt_eir(data, BtEir::SP_HASH_C192, confirm_value);
-    } else {
-      fmt::print("confirm_value must be 16 bytes, got {}\n", confirm_value.size());
     }
 
     // (optional  0x23) secure connections random value (16 bytes)
     if (random_value.size() == 16) {
       add_bt_eir(data, BtEir::SP_RANDOM_R192, random_value);
-    } else {
-      fmt::print("random_value must be 16 bytes, got {}\n", random_value.size());
     }
 
     // now make sure the length is updated (includes length field)
@@ -376,14 +479,15 @@ public:
    * @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be
    *       0xf412fa42fe9e.
    * @param role The BLE role of the device (central / peripheral / dual)
-   * @param name Name of the BLE device.
-   * @param appearance BtAppearance of the device.
-   * @param random_value The Simple pairing randomizer R for the pairing.
-   * @param confirm_value The Simple pairing hash C (confirm value) for the
+   * @param name Name of the BLE device. Optional.
+   * @param appearance BtAppearance of the device. Optional.
+   * @param random_value The Simple pairing randomizer R for the pairing. (16 bytes, optional)
+   * @param confirm_value The Simple pairing hash C (confirm value) for the pairing. (16 bytes,
+   * optional)
    * @param tk Temporary key for the pairing (16 bytes, optional)
    * @return NDEF record object.
    */
-  static Ndef make_le_oob_pairing(uint64_t mac_addr, BleRole role, std::string_view name,
+  static Ndef make_le_oob_pairing(uint64_t mac_addr, BleRole role, std::string_view name = "",
                                   BtAppearance appearance = BtAppearance::UNKNOWN,
                                   std::string_view random_value = "",
                                   std::string_view confirm_value = "", std::string_view tk = "") {
@@ -398,50 +502,61 @@ public:
     // https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf
     // for examples
 
-    // optional local name (put this first so that it shows up in the initial popup on android)
-    add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
+    // optional local name (0x09)
+    // TODO: making this the first field ensures android displays it
+    if (name.size() > 0) {
+      add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
+    }
 
-    // (mandatory 0x1B) LE device address in reverse order
-    uint8_t mac_addr_bytes[] = {(uint8_t)(mac_addr >> 0 & 0xFF),  (uint8_t)(mac_addr >> 8 & 0xFF),
-                                (uint8_t)(mac_addr >> 16 & 0xFF), (uint8_t)(mac_addr >> 24 & 0xFF),
-                                (uint8_t)(mac_addr >> 32 & 0xFF), (uint8_t)(mac_addr >> 40 & 0xFF)};
+    // (mandatory 0x1B) LE device address in reverse order. According to section
+    // 3.3.1 of NFCForum-AD-BTSSP_1_1.pdf, the data value consists of 7 octets,
+    // with the 6 least significant octets being the MAC address in reverse
+    // order. The least significant bit in the most significant octet is the
+    // random address bit.
+    uint8_t mac_addr_bytes[] = {
+        (uint8_t)(mac_addr >> 0 & 0xFF),  (uint8_t)(mac_addr >> 8 & 0xFF),
+        (uint8_t)(mac_addr >> 16 & 0xFF), (uint8_t)(mac_addr >> 24 & 0xFF),
+        (uint8_t)(mac_addr >> 32 & 0xFF), (uint8_t)(mac_addr >> 40 & 0xFF),
+        // NOTE: according to the doc (see above) the
+        //       mac address field examples contain an
+        //       extra byte, but adding it causes
+        //       android to fail to parse this
+        // (uint8_t)(0x01)
+    };
     add_bt_eir(data, BtEir::MAC,
                std::string_view{(const char *)&mac_addr_bytes[0], sizeof(mac_addr_bytes)});
 
     // (mandatory 0x1C) LE role
     add_bt_eir(data, BtEir::LE_ROLE, std::string_view{(const char *)&role, 1});
 
-    // (optional  0x10) Security Manager TK value (LE legacy pairing) (16 bytes)
+    // optional temporary key (0x10)
+    // Security Manager TK value (LE legacy pairing) (16 bytes)
+    // The TK value requirements for such exchange is described in
+    // [BLUETOOTH_CORE] Volume 3, Part H, Section 2.3.5.4.
     if (tk.size() == 16) {
       add_bt_eir(data, BtEir::SECURITY_MANAGER_TK, tk);
-    } else {
-      fmt::print("tk must be 16 bytes, got {}\n", tk.size());
     }
 
     // (optional  0x22) secure connections confirmation value (16 bytes)
     if (confirm_value.size() == 16) {
       add_bt_eir(data, BtEir::LE_SC_CONFIRMATION, confirm_value);
-    } else {
-      fmt::print("confirm_value must be 16 bytes, got {}\n", confirm_value.size());
     }
 
     // (optional  0x23) secure connections random value (16 bytes)
     if (random_value.size() == 16) {
       add_bt_eir(data, BtEir::LE_SC_RANDOM, random_value);
-    } else {
-      fmt::print("random_value must be 16 bytes, got {}\n", random_value.size());
     }
 
-    // optional appearance
+    // optional appearance (0x19)
     uint8_t appearance_bytes[] = {(uint8_t)((uint16_t)appearance >> 8),
                                   (uint8_t)((uint16_t)appearance & 0xFF)};
     add_bt_eir(data, BtEir::APPEARANCE,
                std::string_view{(const char *)&appearance_bytes[0], sizeof(appearance_bytes)});
 
-    // optional Flags (0x19)
+    // optional Flags (0x01)
     // uint8_t flags_bytes[] = {0x06}; // BR/EDR not supported, LE supported, Simultaneous LE/BT to
-    // same device capable (controller) add_bt_eir(data, BtEir::FLAGS, std::string_view{(const char
-    // *)&flags_bytes[0], sizeof(flags_bytes)});
+    // same device capable (controller) add_bt_eir(data, BtEir::FLAGS, std::string_view{(const
+    // char*)&flags_bytes[0], sizeof(flags_bytes)});
 
     auto sv_data = std::string_view{(const char *)data.data(), data.size()};
     return Ndef(TNF::MIME_MEDIA, "application/vnd.bluetooth.le.oob", sv_data);
@@ -449,28 +564,40 @@ public:
 
   /**
    * @brief Serialize the NDEF record into a sequence of bytes.
+   * @param message_begin True if this is the first record in the message.
+   * @param message_end True if this is the last record in the message.
    * @return The vector<uint8_t> of bytes representing the NDEF record.
    */
-  std::vector<uint8_t> serialize() {
+  std::vector<uint8_t> serialize(bool message_begin = true, bool message_end = true) {
     std::vector<uint8_t> data;
     int size = get_size();
-    set_flags();
+    set_flags(message_begin, message_end);
     data.resize(size);
-    data[0] = flags_.raw;
-    data[1] = type_.size();
+    int offset = 0;
+    data[offset++] = flags_.raw;
+    data[offset++] = type_.size();
     if (flags_.SR) {
-      data[2] = (uint8_t)payload_.size();
-      memcpy(&data[3], type_.data(), type_.size());
-      memcpy(&data[3 + type_.size()], payload_.data(), payload_.size());
+      data[offset++] = (uint8_t)payload_.size();
     } else {
       uint32_t _num_bytes = payload_.size();
-      data[2] = (uint8_t)(_num_bytes >> 24 & 0xFF);
-      data[3] = (uint8_t)(_num_bytes >> 16 & 0xFF);
-      data[4] = (uint8_t)(_num_bytes >> 8 & 0xFF);
-      data[5] = (uint8_t)(_num_bytes >> 0 & 0xFF);
-      memcpy(&data[6], type_.data(), type_.size());
-      memcpy(&data[6 + type_.size()], payload_.data(), payload_.size());
+      data[offset++] = (uint8_t)(_num_bytes >> 24 & 0xFF);
+      data[offset++] = (uint8_t)(_num_bytes >> 16 & 0xFF);
+      data[offset++] = (uint8_t)(_num_bytes >> 8 & 0xFF);
+      data[offset++] = (uint8_t)(_num_bytes >> 0 & 0xFF);
     }
+    // If we have an ID, indicate the number of bytes of the ID
+    if (flags_.IL) {
+      data[offset++] = 1; // TODO: this is hardcoded to 1 byte for now
+    }
+    // copy the type
+    memcpy(&data[offset], type_.data(), type_.size());
+    offset += type_.size();
+    // copy the ID (if present)
+    if (flags_.IL) {
+      data[offset++] = (uint8_t)id_;
+    }
+    // copy the payload data
+    memcpy(&data[offset], payload_.data(), payload_.size());
     return data;
   }
 
@@ -483,10 +610,28 @@ public:
   }
 
   /**
+   * @brief Set the payload ID of the NDEF record.
+   * @param id ID of the NDEF record.
+   */
+  void set_id(int id) { id_ = id; }
+
+  /**
+   * @brief Get the ID of the NDEF record.
+   * @return ID of the NDEF record.
+   */
+  int get_id() const { return id_; }
+
+  /**
    * @brief Get the number of bytes needed for the NDEF record.
    * @return Size of the NDEF record (bytes), for serialization.
    */
   int get_size() const {
+    int num_id_length_bytes = 0;
+    int num_id_bytes = 0;
+    if (id_ != -1) {
+      num_id_length_bytes = 1;
+      num_id_bytes = 1;
+    }
     int num_payload_bytes = payload_.size();
     uint8_t num_payload_length_bytes = 1;
     if (num_payload_bytes > 255) {
@@ -494,7 +639,7 @@ public:
     }
     uint8_t type_length = type_.size();
     int total_length = sizeof(flags_.raw) + sizeof(type_length) + num_payload_length_bytes +
-                       type_length + num_payload_bytes;
+                       num_id_length_bytes + type_length + num_id_bytes + num_payload_bytes;
     return total_length;
   }
 
@@ -520,14 +665,14 @@ protected:
     AUTH_TYPE = 0x1003,
   };
 
-  void set_flags() {
+  void set_flags(bool message_begin, bool message_end) {
     flags_.TNF = (uint8_t)tnf_;
-    flags_.IL = 0; // no id length / field
+    flags_.IL = id_ != -1 ? 1 : 0;
     // short record?
     flags_.SR = payload_.size() < 256 ? 1 : 0;
     flags_.CF = 0; // first record of a chunk
-    flags_.ME = 1; // message end
-    flags_.MB = 1; // message begin
+    flags_.ME = message_end ? 1 : 0;
+    flags_.MB = message_begin ? 1 : 0;
   }
 
   static int add_wifi_field(std::vector<uint8_t> &data, WifiFieldId field,
@@ -613,6 +758,7 @@ protected:
 
   TNF tnf_;
   Flags flags_;
+  int id_{-1};
   std::string type_{""};
   std::string payload_{""};
 };
