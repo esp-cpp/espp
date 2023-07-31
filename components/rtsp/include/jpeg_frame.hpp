@@ -29,7 +29,7 @@ public:
   /// @param data The buffer containing the jpeg data.
   /// @param size The size of the buffer.
   explicit JpegFrame(const char *data, size_t size)
-      : data_(data, data + size), header_(std::string_view(data_.data(), size)) {}
+      : data_(data, data + size), header_(std::string_view((const char *)data_.data(), size)) {}
 
   /// Get a reference to the header.
   /// @return A reference to the header.
@@ -67,7 +67,9 @@ public:
   /// Get the serialized data.
   /// This will return the serialized data.
   /// @return The serialized data.
-  std::string_view get_data() const { return std::string_view(data_.data(), data_.size()); }
+  std::string_view get_data() const {
+    return std::string_view((const char *)data_.data(), data_.size());
+  }
 
   /// Get the scan data.
   /// This will return the scan data.
@@ -75,7 +77,7 @@ public:
   std::string_view get_scan_data() const {
     auto header_data = header_.get_data();
     size_t header_size = header_data.size();
-    return std::string_view(data_.data() + header_size, data_.size() - header_size);
+    return std::string_view((const char *)data_.data() + header_size, data_.size() - header_size);
   }
 
 protected:
@@ -117,7 +119,7 @@ protected:
     data_.push_back(0xD9);
   }
 
-  std::vector<char> data_;
+  std::vector<uint8_t> data_;
   JpegHeader header_;
   bool finalized_ = false;
 };

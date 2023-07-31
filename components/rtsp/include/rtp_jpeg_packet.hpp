@@ -88,7 +88,7 @@ public:
   /// Get the mjepg header.
   /// @return The mjepg header.
   std::string_view get_mjpeg_header() {
-    return std::string_view(get_payload().data(), MJPEG_HEADER_SIZE);
+    return std::string_view((char *)get_payload().data(), MJPEG_HEADER_SIZE);
   }
 
   /// Get whether the packet contains quantization tables.
@@ -128,7 +128,7 @@ public:
   /// @return The JPEG data.
   std::string_view get_jpeg_data() const {
     auto payload = get_payload();
-    return std::string_view(payload.data() + jpeg_data_start_, jpeg_data_size_);
+    return std::string_view((char *)payload.data() + jpeg_data_start_, jpeg_data_size_);
   }
 
 protected:
@@ -153,13 +153,13 @@ protected:
     size_t offset = MJPEG_HEADER_SIZE;
 
     if (has_q_tables()) {
-      int num_quant_bytes = payload[11];
+      uint8_t num_quant_bytes = payload[11];
       int expected_num_quant_bytes = NUM_Q_TABLES * Q_TABLE_SIZE;
       if (num_quant_bytes == expected_num_quant_bytes) {
         q_tables_.resize(NUM_Q_TABLES);
         offset += QUANT_HEADER_SIZE;
         for (int i = 0; i < NUM_Q_TABLES; i++) {
-          q_tables_[i] = std::string_view(payload.data() + offset, Q_TABLE_SIZE);
+          q_tables_[i] = std::string_view((char *)payload.data() + offset, Q_TABLE_SIZE);
           offset += Q_TABLE_SIZE;
         }
       }
@@ -193,20 +193,20 @@ protected:
     packet[offset++] = NUM_Q_TABLES * Q_TABLE_SIZE;
 
     memcpy(packet.data() + offset, q0.data(), Q_TABLE_SIZE);
-    q_tables_[0] = std::string_view(packet.data() + offset, Q_TABLE_SIZE);
+    q_tables_[0] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
     offset += Q_TABLE_SIZE;
 
     memcpy(packet.data() + offset, q1.data(), Q_TABLE_SIZE);
-    q_tables_[1] = std::string_view(packet.data() + offset, Q_TABLE_SIZE);
+    q_tables_[1] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
     offset += Q_TABLE_SIZE;
   }
 
-  int type_specific_{0};
-  int offset_{0};
-  int frag_type_{0};
-  int q_{0};
-  int width_{0};
-  int height_{0};
+  uint8_t type_specific_{0};
+  uint32_t offset_{0};
+  uint8_t frag_type_{0};
+  uint8_t q_{0};
+  uint32_t width_{0};
+  uint32_t height_{0};
   int jpeg_data_start_{0};
   int jpeg_data_size_{0};
   std::vector<std::string_view> q_tables_;

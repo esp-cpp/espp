@@ -72,7 +72,9 @@ public:
   /// @note If you manually build the packet_ vector, you should make sure that you
   ///       call serialize() before calling this method.
   /// @return A string_view of the whole packet.
-  std::string_view get_data() const { return std::string_view(packet_.data(), packet_.size()); }
+  std::string_view get_data() const {
+    return std::string_view((char *)packet_.data(), packet_.size());
+  }
 
   /// Get the size of the RTP header.
   /// @return The size of the RTP header.
@@ -81,17 +83,17 @@ public:
   /// Get a string_view of the RTP header.
   /// @return A string_view of the RTP header.
   std::string_view get_rpt_header() const {
-    return std::string_view(packet_.data(), RTP_HEADER_SIZE);
+    return std::string_view((char *)packet_.data(), RTP_HEADER_SIZE);
   }
 
   /// Get a reference to the packet_ vector.
   /// @return A reference to the packet_ vector.
-  std::vector<char> &get_packet() { return packet_; }
+  std::vector<uint8_t> &get_packet() { return packet_; }
 
   /// Get a string_view of the payload.
   /// @return A string_view of the payload.
   std::string_view get_payload() const {
-    return std::string_view(packet_.data() + RTP_HEADER_SIZE, payload_size_);
+    return std::string_view((char *)packet_.data() + RTP_HEADER_SIZE, payload_size_);
   }
 
   /// Set the payload.
@@ -132,7 +134,7 @@ protected:
     packet_[11] = ssrc_ & 0xFF;
   }
 
-  std::vector<char> packet_;
+  std::vector<uint8_t> packet_;
   int version_;
   bool padding_;
   bool extension_;
