@@ -38,7 +38,9 @@ public:
 
   /// Get the JPEG header data.
   /// @return The JPEG header data.
-  std::string_view get_data() const { return std::string_view(data_.data(), data_.size()); }
+  std::string_view get_data() const {
+    return std::string_view((const char *)data_.data(), data_.size());
+  }
 
   /// Get the Quantization table at the index.
   /// @param index The index of the quantization table.
@@ -52,7 +54,7 @@ protected:
   static constexpr int DQT_HEADER_SIZE = 5;
 
   // JFIF APP0 Marker for version 1.2 with 72 DPI and no thumbnail
-  static constexpr char JFIF_APP0_DATA[] = {
+  static constexpr uint8_t JFIF_APP0_DATA[] = {
       0xFF, 0xE0,                   // APP0 marker
       0x00, 0x10,                   // Length of APP0 data (16 bytes)
       0x4A, 0x46, 0x49, 0x46, 0x00, // Identifier: ASCII "JFIF\0"
@@ -63,7 +65,7 @@ protected:
       0x00, 0x00                    // No thumbnail
   };
 
-  static constexpr char HUFFMAN_TABLES[] = {
+  static constexpr uint8_t HUFFMAN_TABLES[] = {
       // Huffman table DC (luminance)
       0xff,
       0xc4,
@@ -503,7 +505,7 @@ protected:
   };
 
   // Scan header (SOS)
-  static constexpr char SOS[] = {
+  static constexpr uint8_t SOS[] = {
       0xFF, 0xDA,      // SOS marker
       0x00, 0x0C,      // length
       0x03,            // number of components
@@ -618,7 +620,7 @@ protected:
       fmt::print("Invalid DQT marker\n");
       return;
     }
-    q0_table_ = std::string_view(data_.data() + offset, 64);
+    q0_table_ = std::string_view((const char *)data_.data() + offset, 64);
     offset += 64;
     // check the DQT marker for chrominance
     if (data_[offset++] != 0xFF || data_[offset++] != 0xDB) {
@@ -633,7 +635,7 @@ protected:
       fmt::print("Invalid DQT marker\n");
       return;
     }
-    q1_table_ = std::string_view(data_.data() + offset, 64);
+    q1_table_ = std::string_view((const char *)data_.data() + offset, 64);
     offset += 64;
     // check huffman tables
     if (data_[offset++] != 0xFF || data_[offset++] != 0xC4) {
@@ -758,6 +760,6 @@ protected:
   std::string_view q0_table_;
   std::string_view q1_table_;
 
-  std::vector<char> data_;
+  std::vector<uint8_t> data_;
 };
 } // namespace espp
