@@ -111,10 +111,11 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 1.0f,             // Amps
-        .zero_electric_offset = 2.3914752, // gotten from previously running without providing this
-                                           // and it will be logged.
-        .sensor_direction = espp::detail::SensorDirection::COUNTER_CLOCKWISE,
+        .current_limit = 1.0f,        // Amps
+        .zero_electric_offset = 0.0f, // set to zero to always calibrate, since this is a test
+        .sensor_direction = espp::detail::SensorDirection::UNKNOWN, // set to unknown to always
+                                                                    // calibrate, since this is a
+                                                                    // test
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
         .driver = driver,
         .sensor = mt6701,
@@ -138,7 +139,7 @@ extern "C" void app_main(void) {
                 .output_min = -20.0,      // angle pid works on velocity (rad/s)
                 .output_max = 20.0,       // angle pid works on velocity (rad/s)
             },
-        .log_level = espp::Logger::Verbosity::INFO});
+        .log_level = espp::Logger::Verbosity::DEBUG});
 
     static const auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
     // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
@@ -149,6 +150,9 @@ extern "C" void app_main(void) {
     // updated in the target update task below)
     motor.set_motion_control_type(motion_control_type);
     std::atomic<float> target = 0;
+
+    // enable the motor
+    motor.enable();
 
     auto motor_task_fn = [&motor, &target](std::mutex &m, std::condition_variable &cv) {
       static auto delay = std::chrono::duration<float>(core_update_period);

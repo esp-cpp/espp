@@ -97,7 +97,7 @@ extern "C" void app_main(void) {
             .gpio_fault = 36,  // connected to the nFAULT pin of TMC6300-BOB
             .power_supply_voltage = 5.0f,
             .limit_voltage = 5.0f,
-            .log_level = espp::Logger::Verbosity::WARN});
+            .log_level = espp::Logger::Verbosity::DEBUG});
 
     // now make the bldc motor
     using BldcMotor = espp::BldcMotor<espp::BldcDriver, espp::Mt6701>;
@@ -109,10 +109,11 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 1.0f,             // Amps
-        .zero_electric_offset = 2.3914752, // gotten from previously running without providing this
-                                           // and it will be logged.
-        .sensor_direction = espp::detail::SensorDirection::COUNTER_CLOCKWISE,
+        .current_limit = 1.0f,        // Amps
+        .zero_electric_offset = 0.0f, // set to zero to always calibrate, since this is a test
+        .sensor_direction =
+            espp::detail::SensorDirection::UNKNOWN, // set to unknown to always calibrate, since
+                                                    // this is a test
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
         .driver = driver,
         .sensor = mt6701,
@@ -136,7 +137,7 @@ extern "C" void app_main(void) {
                 .output_min = -20.0,      // angle pid works on velocity (rad/s)
                 .output_max = 20.0,       // angle pid works on velocity (rad/s)
             },
-        .log_level = espp::Logger::Verbosity::INFO});
+        .log_level = espp::Logger::Verbosity::DEBUG});
 
     auto print_detent_config = [&logger](const auto &detent_config) {
       if (detent_config == espp::detail::UNBOUNDED_NO_DETENTS) {

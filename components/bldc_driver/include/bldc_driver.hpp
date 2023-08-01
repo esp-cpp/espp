@@ -72,8 +72,16 @@ public:
       return;
     }
     logger_.info("Enabling");
-    mcpwm_timer_enable(timer_);
-    mcpwm_timer_start_stop(timer_, MCPWM_TIMER_START_NO_STOP);
+    auto err = mcpwm_timer_enable(timer_);
+    if (err != ESP_OK) {
+      logger_.error("Failed to enable timer: {}", esp_err_to_name(err));
+      return;
+    }
+    err = mcpwm_timer_start_stop(timer_, MCPWM_TIMER_START_NO_STOP);
+    if (err != ESP_OK) {
+      logger_.error("Failed to start timer: {}", esp_err_to_name(err));
+      return;
+    }
     enabled_ = true;
     if (gpio_en_ >= 0) {
       gpio_set_level((gpio_num_t)gpio_en_, 1);
@@ -294,22 +302,28 @@ protected:
     }
 
     // A high / low
-    configure_generator_action(generators_[0], comparators_[0]);
+    configure_generator_action(generators_[0], generators_[1], comparators_[0]);
     configure_generator_deadtime(generators_[0], generators_[1]);
     // B high / low
-    configure_generator_action(generators_[2], comparators_[1]);
+    configure_generator_action(generators_[2], generators_[3], comparators_[1]);
     configure_generator_deadtime(generators_[2], generators_[3]);
     // C high / low
-    configure_generator_action(generators_[4], comparators_[2]);
+    configure_generator_action(generators_[4], generators_[5], comparators_[2]);
     configure_generator_deadtime(generators_[4], generators_[5]);
   }
 
-  void configure_generator_action(mcpwm_gen_handle_t &gen_high, mcpwm_cmpr_handle_t comp) {
+  void configure_generator_action(mcpwm_gen_handle_t &gen_high, mcpwm_gen_handle_t &gen_low,
+                                  mcpwm_cmpr_handle_t comp) {
     logger_.info("Setup generator action");
     ESP_ERROR_CHECK(mcpwm_generator_set_actions_on_compare_event(
         gen_high,
-        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, comp, MCPWM_GEN_ACTION_HIGH),
-        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_DOWN, comp, MCPWM_GEN_ACTION_LOW),
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, comp, MCPWM_GEN_ACTION_LOW),
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_DOWN, comp, MCPWM_GEN_ACTION_HIGH),
+        MCPWM_GEN_COMPARE_EVENT_ACTION_END()));
+    ESP_ERROR_CHECK(mcpwm_generator_set_actions_on_compare_event(
+        gen_low,
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, comp, MCPWM_GEN_ACTION_LOW),
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_DOWN, comp, MCPWM_GEN_ACTION_HIGH),
         MCPWM_GEN_COMPARE_EVENT_ACTION_END()));
   }
 
