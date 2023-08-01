@@ -60,7 +60,20 @@ public:
   /**
    * @brief Disable the BldcDriver and destroy it.
    */
-  ~BldcDriver() { disable(); }
+  ~BldcDriver() {
+    disable();
+    for (auto &gen : generators_) {
+      mcpwm_del_generator(gen);
+    }
+    for (auto &comp : comparators_) {
+      mcpwm_del_comparator(comp);
+    }
+    mcpwm_del_fault(fault_handle_);
+    for (auto &oper : operators_) {
+      mcpwm_del_operator(oper);
+    }
+    mcpwm_del_timer(timer_);
+  }
 
   /**
    * @brief Enable the driver, set the enable pin high (if we were provided an
@@ -220,9 +233,9 @@ public:
 protected:
   void init(const Config &config) {
     configure_enable_gpio();
-    configure_fault_gpio();
     configure_timer();
     configure_operators();
+    configure_fault();
     configure_comparators();
     configure_generators();
     enable();
@@ -239,20 +252,6 @@ protected:
     drv_en_config.mode = GPIO_MODE_OUTPUT;
     ESP_ERROR_CHECK(gpio_config(&drv_en_config));
     gpio_set_level((gpio_num_t)gpio_en_, 0);
-  }
-
-  void configure_fault_gpio() {
-    if (gpio_fault_ < 0) {
-      return;
-    }
-    logger_.info("Configure fault pin");
-    gpio_config_t drv_fault_config;
-    memset(&drv_fault_config, 0, sizeof(drv_fault_config));
-    drv_fault_config.pin_bit_mask = 1ULL << gpio_fault_;
-    drv_fault_config.mode = GPIO_MODE_INPUT;
-    drv_fault_config.pull_up_en = GPIO_PULLUP_DISABLE;
-    drv_fault_config.pull_down_en = GPIO_PULLDOWN_ENABLE;
-    ESP_ERROR_CHECK(gpio_config(&drv_fault_config));
   }
 
   void configure_timer() {
@@ -281,6 +280,40 @@ protected:
     }
   }
 
+  void configure_fault() {
+    if (gpio_fault_ < 0) {
+      return;
+    }
+    logger_.info("Create fault detector");
+    mcpwm_gpio_fault_config_t gpio_fault_config{};
+    memset(&gpio_fault_config, 0, sizeof(gpio_fault_config));
+    gpio_fault_config.gpio_num = (gpio_num_t)gpio_fault_;
+    gpio_fault_config.group_id = 0;
+    gpio_fault_config.flags.active_level = 1; // high level means fault, refer to TMC6300 datasheet
+    gpio_fault_config.flags.pull_down = true; // internally pull down
+    gpio_fault_config.flags.io_loop_back = true; // enable loop back to GPIO input
+    ESP_ERROR_CHECK(mcpwm_new_gpio_fault(&gpio_fault_config, &fault_handle_));
+
+    logger_.info("Set brake mode on the fault event");
+    mcpwm_brake_config_t brake_config{};
+    memset(&brake_config, 0, sizeof(brake_config));
+    brake_config.brake_mode = MCPWM_OPER_BRAKE_MODE_CBC;
+    brake_config.fault = fault_handle_;
+    brake_config.flags.cbc_recover_on_tez = true;
+    for (int i = 0; i < 3; i++) {
+      ESP_ERROR_CHECK(mcpwm_operator_set_brake_on_fault(operators_[i], &brake_config));
+    }
+
+    logger_.info("Configure fault pin");
+    gpio_config_t drv_fault_config;
+    memset(&drv_fault_config, 0, sizeof(drv_fault_config));
+    drv_fault_config.pin_bit_mask = 1ULL << gpio_fault_;
+    drv_fault_config.mode = GPIO_MODE_INPUT;
+    drv_fault_config.pull_up_en = GPIO_PULLUP_DISABLE;
+    drv_fault_config.pull_down_en = GPIO_PULLDOWN_ENABLE;
+    ESP_ERROR_CHECK(gpio_config(&drv_fault_config));
+  }
+
   void configure_comparators() {
     logger_.info("Create comparators");
     mcpwm_comparator_config_t compare_config;
@@ -301,6 +334,10 @@ protected:
       ESP_ERROR_CHECK(mcpwm_new_generator(operators_[i / 2], &gen_config, &generators_[i]));
     }
 
+    // set high and low generators to output the same waveform using the
+    // comparator. we will use the dead time module to add edge delay, also make
+    // gen_high and gen_low complementary
+
     // A high / low
     configure_generator_action(generators_[0], generators_[1], comparators_[0]);
     configure_generator_deadtime(generators_[0], generators_[1]);
@@ -315,16 +352,31 @@ protected:
   void configure_generator_action(mcpwm_gen_handle_t &gen_high, mcpwm_gen_handle_t &gen_low,
                                   mcpwm_cmpr_handle_t comp) {
     logger_.info("Setup generator action");
-    ESP_ERROR_CHECK(mcpwm_generator_set_actions_on_compare_event(
+
+    // set high/low generators to output low when the timer is counting up, and
+    // high when the timer is counting down.
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(
         gen_high,
-        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, comp, MCPWM_GEN_ACTION_LOW),
-        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_DOWN, comp, MCPWM_GEN_ACTION_HIGH),
-        MCPWM_GEN_COMPARE_EVENT_ACTION_END()));
-    ESP_ERROR_CHECK(mcpwm_generator_set_actions_on_compare_event(
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, comp, MCPWM_GEN_ACTION_LOW)));
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(
+        gen_high,
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_DOWN, comp, MCPWM_GEN_ACTION_HIGH)));
+
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(
         gen_low,
-        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, comp, MCPWM_GEN_ACTION_LOW),
-        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_DOWN, comp, MCPWM_GEN_ACTION_HIGH),
-        MCPWM_GEN_COMPARE_EVENT_ACTION_END()));
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, comp, MCPWM_GEN_ACTION_LOW)));
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_compare_event(
+        gen_low,
+        MCPWM_GEN_COMPARE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_DOWN, comp, MCPWM_GEN_ACTION_HIGH)));
+
+    // set the brake event to stop the motor (set low) for both the high and low generators
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_brake_event(
+        gen_high, MCPWM_GEN_BRAKE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, MCPWM_OPER_BRAKE_MODE_CBC,
+                                               MCPWM_GEN_ACTION_LOW)));
+
+    ESP_ERROR_CHECK(mcpwm_generator_set_action_on_brake_event(
+        gen_low, MCPWM_GEN_BRAKE_EVENT_ACTION(MCPWM_TIMER_DIRECTION_UP, MCPWM_OPER_BRAKE_MODE_CBC,
+                                              MCPWM_GEN_ACTION_LOW)));
   }
 
   void configure_generator_deadtime(mcpwm_gen_handle_t &gen_high, mcpwm_gen_handle_t &gen_low) {
@@ -350,6 +402,7 @@ protected:
   gpio_num_t gpio_cl_;
   int gpio_en_;
   int gpio_fault_;
+  mcpwm_fault_handle_t fault_handle_;
   std::atomic<float> power_supply_voltage_;
   std::atomic<float> limit_voltage_;
   float dead_zone_;

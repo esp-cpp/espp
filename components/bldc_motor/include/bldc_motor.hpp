@@ -716,13 +716,13 @@ protected:
       std::this_thread::sleep_for(1ms * 200);
       // determine the direction the sensor moved
       if (mid_angle == end_angle) {
-        logger_.warn("Failed to notice movement");
+        logger_.warn("Failed to notice movement when trying to find natural direction.");
         return 0; // failed calibration
       } else if (mid_angle < end_angle) {
-        logger_.debug("sensor_direction==CCW");
+        logger_.info("sensor direction: detail::SensorDirection::COUNTER_CLOCKWISE");
         sensor_direction_ = detail::SensorDirection::COUNTER_CLOCKWISE;
       } else {
-        logger_.debug("sensor_direction==CW");
+        logger_.info("sensor direction: detail::SensorDirection::CLOCKWISE");
         sensor_direction_ = detail::SensorDirection::CLOCKWISE;
       }
       // check pole pair number
