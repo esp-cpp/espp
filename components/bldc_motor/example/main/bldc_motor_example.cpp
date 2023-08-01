@@ -111,9 +111,11 @@ extern "C" void app_main(void) {
             5.0f, // tested by running velocity_openloop and seeing if the veloicty is ~correct
         .kv_rating =
             320, // tested by running velocity_openloop and seeing if the velocity is ~correct
-        .current_limit = 1.0f,             // Amps
-        .zero_electric_offset = 2.3914752, // gotten from previously running without providing this
-                                           // and it will be logged.
+        .current_limit = 1.0f,        // Amps
+        .zero_electric_offset = 0.0f, // set to zero to always calibrate, since this is a test
+        // .zero_electric_offset = 2.3914752, // gotten from previously running without providing
+        // this
+        //                                    // and it will be logged.
         .sensor_direction = espp::detail::SensorDirection::COUNTER_CLOCKWISE,
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
         .driver = driver,
