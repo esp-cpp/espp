@@ -111,6 +111,20 @@ public:
    */
   Rgb rgb() const;
 };
+
+// equality operators
+[[maybe_unused]] static bool operator==(const Rgb &lhs, const Rgb &rhs) {
+  return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b;
+}
+
+[[maybe_unused]] static bool operator==(const Hsv &lhs, const Hsv &rhs) {
+  return lhs.h == rhs.h && lhs.s == rhs.s && lhs.v == rhs.v;
+}
+
+// inequality operators
+[[maybe_unused]] static bool operator!=(const Rgb &lhs, const Rgb &rhs) { return !(lhs == rhs); }
+
+[[maybe_unused]] static bool operator!=(const Hsv &lhs, const Hsv &rhs) { return !(lhs == rhs); }
 } // namespace espp
 
 #include "format.hpp"
