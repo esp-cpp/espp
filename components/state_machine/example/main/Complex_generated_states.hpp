@@ -1,27 +1,25 @@
 #pragma once
 
+#include <condition_variable>
+#include <deque>
+#include <functional>
+#include <mutex>
+#include <string>
+
 #include "deep_history_state.hpp"
+#include "magic_enum.hpp"
 #include "shallow_history_state.hpp"
 #include "state_base.hpp"
 
 #include "Complex_event_data.hpp"
-#include "magic_enum.hpp"
-#include <deque>
-#include <mutex>
-#include <string>
-
-#ifdef DEBUG_OUTPUT
-#include <iostream>
-#endif
 
 // User Includes for the HFSM
 //::::/c::::Includes::::
 #include <stdio.h>
 
-namespace espp {
-namespace state_machine {
+namespace espp::state_machine::Complex {
 
-namespace Complex {
+typedef std::function<void(std::string_view)> LogCallback;
 
 enum class EventType {
   ENDEVENT,
@@ -77,45 +75,69 @@ class EventFactory {
 public:
   ~EventFactory(void) { clear_events(); }
 
+  void set_log_callback(LogCallback cb) { log_callback_ = cb; }
+
   void spawn_ENDEVENT_event(const ENDEVENTEventData &data) {
-#ifdef DEBUG_OUTPUT
-    std::cout << "\033[32mSPAWN: ENDEVENT\033[0m" << std::endl;
-#endif
+    log("\033[32mSPAWN: ENDEVENT\033[0m");
     GeneratedEventBase *new_event = new ENDEVENTEvent{EventType::ENDEVENT, data};
     std::lock_guard<std::mutex> lock(queue_mutex_);
-    _eventQ.push_back(new_event);
+    events_.push_back(new_event);
+    queue_cv_.notify_one();
   }
   void spawn_EVENT1_event(const EVENT1EventData &data) {
-#ifdef DEBUG_OUTPUT
-    std::cout << "\033[32mSPAWN: EVENT1\033[0m" << std::endl;
-#endif
+    log("\033[32mSPAWN: EVENT1\033[0m");
     GeneratedEventBase *new_event = new EVENT1Event{EventType::EVENT1, data};
     std::lock_guard<std::mutex> lock(queue_mutex_);
-    _eventQ.push_back(new_event);
+    events_.push_back(new_event);
+    queue_cv_.notify_one();
   }
   void spawn_EVENT2_event(const EVENT2EventData &data) {
-#ifdef DEBUG_OUTPUT
-    std::cout << "\033[32mSPAWN: EVENT2\033[0m" << std::endl;
-#endif
+    log("\033[32mSPAWN: EVENT2\033[0m");
     GeneratedEventBase *new_event = new EVENT2Event{EventType::EVENT2, data};
     std::lock_guard<std::mutex> lock(queue_mutex_);
-    _eventQ.push_back(new_event);
+    events_.push_back(new_event);
+    queue_cv_.notify_one();
   }
   void spawn_EVENT3_event(const EVENT3EventData &data) {
-#ifdef DEBUG_OUTPUT
-    std::cout << "\033[32mSPAWN: EVENT3\033[0m" << std::endl;
-#endif
+    log("\033[32mSPAWN: EVENT3\033[0m");
     GeneratedEventBase *new_event = new EVENT3Event{EventType::EVENT3, data};
     std::lock_guard<std::mutex> lock(queue_mutex_);
-    _eventQ.push_back(new_event);
+    events_.push_back(new_event);
+    queue_cv_.notify_one();
   }
   void spawn_EVENT4_event(const EVENT4EventData &data) {
-#ifdef DEBUG_OUTPUT
-    std::cout << "\033[32mSPAWN: EVENT4\033[0m" << std::endl;
-#endif
+    log("\033[32mSPAWN: EVENT4\033[0m");
     GeneratedEventBase *new_event = new EVENT4Event{EventType::EVENT4, data};
     std::lock_guard<std::mutex> lock(queue_mutex_);
-    _eventQ.push_back(new_event);
+    events_.push_back(new_event);
+    queue_cv_.notify_one();
+  }
+
+  // Returns the number of events in the queue
+  size_t get_num_events(void) {
+    std::lock_guard<std::mutex> lock(queue_mutex_);
+    return events_.size();
+  }
+
+  // Blocks until an event is available
+  void wait_for_events(void) {
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    queue_cv_.wait(lock);
+  }
+
+  // Blocks until an event is available or the timeout is reached
+  void sleep_until_event(float seconds) {
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    queue_cv_.wait_for(lock, std::chrono::duration<float>(seconds));
+  }
+
+  // Blocks until an event is available
+  GeneratedEventBase *get_next_event_blocking(void) {
+    std::unique_lock<std::mutex> lock(queue_mutex_);
+    queue_cv_.wait(lock, [this] { return events_.size() > 0; });
+    GeneratedEventBase *ptr = events_.front();
+    events_.pop_front(); // remove the event from the Q
+    return ptr;
   }
 
   // Retrieves the pointer to the next event in the queue, or
@@ -123,9 +145,9 @@ public:
   GeneratedEventBase *get_next_event(void) {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     GeneratedEventBase *ptr = nullptr;
-    if (_eventQ.size()) {
-      ptr = _eventQ.front();
-      _eventQ.pop_front(); // remove the event from the Q
+    if (events_.size()) {
+      ptr = events_.front();
+      events_.pop_front(); // remove the event from the Q
     }
     return ptr;
   }
@@ -142,16 +164,24 @@ public:
   std::string to_string(void) {
     std::lock_guard<std::mutex> lock(queue_mutex_);
     std::string qStr = "[ ";
-    for (int i = 0; i < _eventQ.size(); i++) {
-      qStr += _eventQ[i]->to_string();
+    for (int i = 0; i < events_.size(); i++) {
+      qStr += events_[i]->to_string();
     }
     qStr += " ]";
     return qStr;
   }
 
 protected:
-  std::deque<GeneratedEventBase *> _eventQ;
+  void log(std::string_view msg) {
+    if (log_callback_) {
+      log_callback_(msg);
+    }
+  }
+
+  std::deque<GeneratedEventBase *> events_;
   std::mutex queue_mutex_;
+  std::condition_variable queue_cv_;
+  LogCallback log_callback_{nullptr};
 }; // class EventFactory
 
 /**
@@ -173,9 +203,23 @@ public:
   int someNumber = 40;
   int someValue = 50;
 
+protected:
+  void log(const std::string &msg) {
+    if (log_callback_) {
+      log_callback_(msg);
+    }
+  }
+
+  LogCallback log_callback_{nullptr};
+
 public:
   // event factory for spawning / ordering events
   EventFactory event_factory;
+
+  void set_log_callback(LogCallback cb) {
+    log_callback_ = cb;
+    event_factory.set_log_callback(cb);
+  }
 
   // helper functions for spawning events into the HFSM
   void spawn_ENDEVENT_event(const ENDEVENTEventData &data) {
@@ -213,6 +257,27 @@ public:
    *  initial transition and entry actions accordingly.
    */
   void initialize(void);
+
+  /**
+   * @brief Returns true if there are any events in the event queue.
+   */
+  bool has_events(void) { return event_factory.get_num_events() > 0; }
+
+  /**
+   * @brief Sleeps until an event is available or the current state's timer
+   *  period expires, then returns. This will block until an event is
+   *  available. The amount of time spent sleeping is determined by the
+   *  current state's timer period.
+   */
+  void sleep_until_event(void) {
+    event_factory.sleep_until_event(getActiveLeaf()->getTimerPeriod());
+  }
+
+  /**
+   * @brief Waits for an event to be available, then returns.
+   * This will block until an event is available.
+   */
+  void wait_for_events(void) { event_factory.wait_for_events(); }
 
   /**
    * @brief Handles all events in the event queue, ensuring to free the
@@ -262,7 +327,7 @@ public:
 
   // Child Substates
   // Declaration for State_1 : /c/Y
-  class State_1 : public state_machine::StateBase {
+  class State_1 : public StateBase {
   public:
     // User Declarations for the State
     //::::/c/Y::::Declarations::::
@@ -287,7 +352,7 @@ public:
     virtual bool handleEvent(GeneratedEventBase *event);
   };
   // Declaration for State_2 : /c/v
-  class State_2 : public state_machine::StateBase {
+  class State_2 : public StateBase {
   public:
     // User Declarations for the State
     //::::/c/v::::Declarations::::
@@ -312,7 +377,7 @@ public:
     virtual bool handleEvent(GeneratedEventBase *event);
 
     // Declaration for State_2::ChildState : /c/v/K
-    class ChildState : public state_machine::StateBase {
+    class ChildState : public StateBase {
     public:
       // User Declarations for the State
       //::::/c/v/K::::Declarations::::
@@ -337,7 +402,7 @@ public:
       virtual bool handleEvent(GeneratedEventBase *event);
     };
     // Declaration for State_2::ChildState2 : /c/v/e
-    class ChildState2 : public state_machine::StateBase {
+    class ChildState2 : public StateBase {
     public:
       // User Declarations for the State
       //::::/c/v/e::::Declarations::::
@@ -362,7 +427,7 @@ public:
       virtual bool handleEvent(GeneratedEventBase *event);
     };
     // Declaration for State_2::ChildState3 : /c/v/z
-    class ChildState3 : public state_machine::StateBase {
+    class ChildState3 : public StateBase {
     public:
       // User Declarations for the State
       //::::/c/v/z::::Declarations::::
@@ -387,7 +452,7 @@ public:
       virtual bool handleEvent(GeneratedEventBase *event);
 
       // Declaration for State_2::ChildState3::Grand : /c/v/z/6
-      class Grand : public state_machine::StateBase {
+      class Grand : public StateBase {
       public:
         // User Declarations for the State
         //::::/c/v/z/6::::Declarations::::
@@ -412,7 +477,7 @@ public:
         virtual bool handleEvent(GeneratedEventBase *event);
       };
       // Declaration for State_2::ChildState3::Grand2 : /c/v/z/c
-      class Grand2 : public state_machine::StateBase {
+      class Grand2 : public StateBase {
       public:
         // User Declarations for the State
         //::::/c/v/z/c::::Declarations::::
@@ -439,7 +504,7 @@ public:
     };
   };
   // Declaration for State3 : /c/T
-  class State3 : public state_machine::StateBase {
+  class State3 : public StateBase {
   public:
     // User Declarations for the State
     //::::/c/T::::Declarations::::
@@ -464,7 +529,7 @@ public:
     virtual bool handleEvent(GeneratedEventBase *event);
 
     // Declaration for State3::ChildState2 : /c/T/0
-    class ChildState2 : public state_machine::StateBase {
+    class ChildState2 : public StateBase {
     public:
       // User Declarations for the State
       //::::/c/T/0::::Declarations::::
@@ -489,7 +554,7 @@ public:
       virtual bool handleEvent(GeneratedEventBase *event);
     };
     // Declaration for State3::ChildState : /c/T/W
-    class ChildState : public state_machine::StateBase {
+    class ChildState : public StateBase {
     public:
       // User Declarations for the State
       //::::/c/T/W::::Declarations::::
@@ -514,7 +579,7 @@ public:
       virtual bool handleEvent(GeneratedEventBase *event);
     };
     // Declaration for State3::ChildState3 : /c/T/w
-    class ChildState3 : public state_machine::StateBase {
+    class ChildState3 : public StateBase {
     public:
       // User Declarations for the State
       //::::/c/T/w::::Declarations::::
@@ -545,7 +610,7 @@ public:
    * @brief This is the terminal END STATE for the HFSM, after which no
    *  events or other actions will be processed.
    */
-  class End_State : public state_machine::StateBase {
+  class End_State : public StateBase {
   public:
     explicit End_State(StateBase *parent) : StateBase(parent) {}
     void entry(void) {}
@@ -553,23 +618,23 @@ public:
     void tick(void) {}
     // Simply returns true since the END STATE trivially handles all
     // events.
-    bool handleEvent(state_machine::EventBase *event) { return true; }
+    bool handleEvent(EventBase *event) { return true; }
     bool handleEvent(GeneratedEventBase *event) { return true; }
   };
 
   // State Objects
   State_1 COMPLEX_OBJ__STATE_1_OBJ;
   State_2::ChildState COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE_OBJ;
-  state_machine::DeepHistoryState COMPLEX_OBJ__STATE_2_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ;
+  DeepHistoryState COMPLEX_OBJ__STATE_2_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ;
   State_2::ChildState2 COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE2_OBJ;
   State_2::ChildState3::Grand COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND_OBJ;
   State_2::ChildState3::Grand2 COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ;
   State_2::ChildState3 COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ;
-  state_machine::ShallowHistoryState COMPLEX_OBJ__STATE_2_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ;
+  ShallowHistoryState COMPLEX_OBJ__STATE_2_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ;
   State_2 COMPLEX_OBJ__STATE_2_OBJ;
   State3::ChildState2 COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE2_OBJ;
-  state_machine::ShallowHistoryState COMPLEX_OBJ__STATE3_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ;
-  state_machine::DeepHistoryState COMPLEX_OBJ__STATE3_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ;
+  ShallowHistoryState COMPLEX_OBJ__STATE3_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ;
+  DeepHistoryState COMPLEX_OBJ__STATE3_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ;
   State3::ChildState COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE_OBJ;
   State3::ChildState3 COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE3_OBJ;
   State3 COMPLEX_OBJ__STATE3_OBJ;
@@ -579,6 +644,4 @@ public:
   Root *_root;
 }; // class Root
 
-}; // namespace Complex
-} // namespace state_machine
-} // namespace espp
+}; // namespace espp::state_machine::Complex

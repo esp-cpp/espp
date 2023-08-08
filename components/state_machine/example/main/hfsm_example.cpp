@@ -31,12 +31,19 @@ extern "C" void app_main(void) {
     // create the HFSM
     espp::state_machine::Complex::Root complex_root;
 
+    // set the log callback to print to stdout
+    complex_root.set_log_callback([](std::string_view msg) { fmt::print("{}\n", msg); });
+
     // initialize the HFSM
     complex_root.initialize();
 
     // start a task to run the hfsm
     auto task_fn = [&complex_root](std::mutex &m, std::condition_variable &cv) {
       // execute the state machine
+      complex_root.handle_all_events();
+      complex_root.tick();
+      // NOTE: if we call tick above, then we need to call handle_all_events()
+      //      again to handle any events that were spawned by the tick()
       complex_root.handle_all_events();
       // get the active state period (the state may have changed from handling
       // events, so we always need to get the active leaf)
@@ -85,16 +92,54 @@ extern "C" void app_main(void) {
     // create the HFSM
     espp::state_machine::Complex::Root complex_root;
 
+    // set the log callback to print to stdout
+    complex_root.set_log_callback([](std::string_view msg) { fmt::print("{}\n", msg); });
+
     // initialize the HFSM
     complex_root.initialize();
+
+    // start a task to run the hfsm
+    auto task_fn = [&complex_root](std::mutex &m, std::condition_variable &cv) {
+      // execute the state machine
+      complex_root.handle_all_events();
+
+      // NOTE: we would normally call the tick() function here, but we want to
+      //       be able to manually tick the HFSM from the test bench and we
+      //       don't want to clutter the log with the tick() messages.
+      // complex_root.tick();
+
+      // NOTE: if we call tick above, then we need to call handle_all_events()
+      //       again to handle any events that were spawned by the tick()
+      //       function
+      // complex_root.handle_all_events();
+
+      // get the active state period (the state may have changed from handling
+      // events, so we always need to get the active leaf)
+      auto current_hfsm_period = complex_root.getActiveLeaf()->getTimerPeriod();
+      // NOTE: sleeping in this way allows the sleep to exit early when the
+      // task is being stopped / destroyed
+      {
+        std::unique_lock<std::mutex> lk(m);
+        cv.wait_for(lk, std::chrono::duration<float>(current_hfsm_period));
+      }
+      // stop the task if the hfsm has stopped (reached its end state)
+      return complex_root.has_stopped();
+    };
+    auto task = espp::Task(
+        {.name = "HFSM", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+    task.start();
 
     // NOTE: this is just a copy of the HFSM code from the generated test bench,
     //       and is not intended to show how to actually run the HFSM in
     //       production.
-    while (true) {
+    while (!complex_root.has_stopped()) {
+      do {
+        std::this_thread::sleep_for(100ms);
+      } while (complex_root.has_events());
       display_event_menu();
       int selection = get_user_selection();
       if (selection == ExitSelection) {
+        complex_root.terminate();
         break;
       } else if (selection == RestartSelection) {
         complex_root.restart();
@@ -103,7 +148,6 @@ extern "C" void app_main(void) {
       } else {
         make_event(complex_root, selection);
       }
-      complex_root.handle_all_events();
     }
     //! [hfsm test bench example]
   }

@@ -1,8 +1,7 @@
 #pragma once
 #include <string>
 
-namespace espp {
-namespace state_machine {
+namespace espp::state_machine {
 
 // Base Class for Events, abstract so you never instantiate.
 class EventBase {
@@ -13,7 +12,7 @@ public:
 
 /**
  * States contain other states and can consume generic
- * state_machine::EventBase objects if they have internal or external
+ * EventBase objects if they have internal or external
  * transitions on those events and if those transitions' guards are
  * satisfied. Only one transition can consume an event in a given
  * state machine.
@@ -52,7 +51,7 @@ public:
   /**
    * @brief Calls handleEvent on the activeLeaf.
    *
-   * @param[in] event EventBase* Event needing to be handled
+   * @param[in] EventBase* Event needing to be handled
    *
    * @return true if event is consumed, false otherwise
    */
@@ -128,7 +127,6 @@ public:
 
   /**
    * @brief Update the active child state.
-   * @param childState New child state to set to be active state.
    */
   void setActiveChild(StateBase *childState) { _activeState = childState; }
 
@@ -160,7 +158,6 @@ public:
 
   /**
    * @brief Will set the parent state.
-   * @param parent Set the parent state of this state.
    */
   void setParentState(StateBase *parent) { _parentState = parent; }
 
@@ -177,5 +174,4 @@ public:
   StateBase *_parentState;
 }; // class StateBase
 
-} // namespace state_machine
-} // namespace espp
+} // namespace espp::state_machine

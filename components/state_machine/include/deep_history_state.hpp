@@ -2,8 +2,7 @@
 
 #include "state_base.hpp"
 
-namespace espp {
-namespace state_machine {
+namespace espp::state_machine {
 
 /**
  * @brief Deep History Pseudostates exist purely to re-implement the
@@ -24,5 +23,4 @@ public:
     }
   }
 };
-} // namespace state_machine
-} // namespace espp
+} // namespace espp::state_machine
