@@ -48,11 +48,7 @@ Hsv Rgb::hsv() const {
   } else {
     HSV.s = (max - min) / max;
   }
-  if (HSV.s == 0.0f) {
-    // NOTE: H is undefined here, so we will say H is angle -1, outside
-    //       the range [0,360].
-    HSV.h = -1.0f;
-  } else {
+  if (HSV.s > 0.0f) {
     d = max - min;
     if (r == max) {
       // color is between yellow and magenta
