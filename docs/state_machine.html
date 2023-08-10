@@ -141,7 +141,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>State Machine APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/ca25bdd/docs/en/state_machine.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/cf6bab6/docs/en/state_machine.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -164,7 +164,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ca25bdd/components/state_machine/include/state_machine.hpp">components/state_machine/include/state_machine.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/cf6bab6/components/state_machine/include/state_machine.hpp">components/state_machine/include/state_machine.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -189,12 +189,19 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <span class="w">    </span><span class="c1">// create the HFSM</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">Root</span><span class="w"> </span><span class="n">complex_root</span><span class="p">;</span><span class="w"></span>
 
+<span class="w">    </span><span class="c1">// set the log callback to print to stdout</span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">set_log_callback</span><span class="p">([](</span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">);</span><span class="w"> </span><span class="p">});</span><span class="w"></span>
+
 <span class="w">    </span><span class="c1">// initialize the HFSM</span>
 <span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// start a task to run the hfsm</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">complex_root</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="c1">// execute the state machine</span>
+<span class="w">      </span><span class="n">complex_root</span><span class="p">.</span><span class="n">handle_all_events</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="n">complex_root</span><span class="p">.</span><span class="n">tick</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: if we call tick above, then we need to call handle_all_events()</span>
+<span class="w">      </span><span class="c1">//      again to handle any events that were spawned by the tick()</span>
 <span class="w">      </span><span class="n">complex_root</span><span class="p">.</span><span class="n">handle_all_events</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="c1">// get the active state period (the state may have changed from handling</span>
 <span class="w">      </span><span class="c1">// events, so we always need to get the active leaf)</span>
@@ -242,16 +249,54 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <span class="w">    </span><span class="c1">// create the HFSM</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">state_machine</span><span class="o">::</span><span class="n">Complex</span><span class="o">::</span><span class="n">Root</span><span class="w"> </span><span class="n">complex_root</span><span class="p">;</span><span class="w"></span>
 
+<span class="w">    </span><span class="c1">// set the log callback to print to stdout</span>
+<span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">set_log_callback</span><span class="p">([](</span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">);</span><span class="w"> </span><span class="p">});</span><span class="w"></span>
+
 <span class="w">    </span><span class="c1">// initialize the HFSM</span>
 <span class="w">    </span><span class="n">complex_root</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">    </span><span class="c1">// start a task to run the hfsm</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">complex_root</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// execute the state machine</span>
+<span class="w">      </span><span class="n">complex_root</span><span class="p">.</span><span class="n">handle_all_events</span><span class="p">();</span><span class="w"></span>
+
+<span class="w">      </span><span class="c1">// NOTE: we would normally call the tick() function here, but we want to</span>
+<span class="w">      </span><span class="c1">//       be able to manually tick the HFSM from the test bench and we</span>
+<span class="w">      </span><span class="c1">//       don&#39;t want to clutter the log with the tick() messages.</span>
+<span class="w">      </span><span class="c1">// complex_root.tick();</span>
+
+<span class="w">      </span><span class="c1">// NOTE: if we call tick above, then we need to call handle_all_events()</span>
+<span class="w">      </span><span class="c1">//       again to handle any events that were spawned by the tick()</span>
+<span class="w">      </span><span class="c1">//       function</span>
+<span class="w">      </span><span class="c1">// complex_root.handle_all_events();</span>
+
+<span class="w">      </span><span class="c1">// get the active state period (the state may have changed from handling</span>
+<span class="w">      </span><span class="c1">// events, so we always need to get the active leaf)</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">current_hfsm_period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">complex_root</span><span class="p">.</span><span class="n">getActiveLeaf</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">getTimerPeriod</span><span class="p">();</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">current_hfsm_period</span><span class="p">));</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"></span>
+<span class="w">      </span><span class="c1">// stop the task if the hfsm has stopped (reached its end state)</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">complex_root</span><span class="p">.</span><span class="n">has_stopped</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="p">};</span><span class="w"></span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">(</span><span class="w"></span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;HFSM&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span><span class="w"></span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// NOTE: this is just a copy of the HFSM code from the generated test bench,</span>
 <span class="w">    </span><span class="c1">//       and is not intended to show how to actually run the HFSM in</span>
 <span class="w">    </span><span class="c1">//       production.</span>
-<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">complex_root</span><span class="p">.</span><span class="n">has_stopped</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">      </span><span class="k">do</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">complex_root</span><span class="p">.</span><span class="n">has_events</span><span class="p">());</span><span class="w"></span>
 <span class="w">      </span><span class="n">display_event_menu</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">selection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_user_selection</span><span class="p">();</span><span class="w"></span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ExitSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">        </span><span class="n">complex_root</span><span class="p">.</span><span class="n">terminate</span><span class="p">();</span><span class="w"></span>
 <span class="w">        </span><span class="k">break</span><span class="p">;</span><span class="w"></span>
 <span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">selection</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">RestartSelection</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="n">complex_root</span><span class="p">.</span><span class="n">restart</span><span class="p">();</span><span class="w"></span>
@@ -260,7 +305,6 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">        </span><span class="n">make_event</span><span class="p">(</span><span class="n">complex_root</span><span class="p">,</span><span class="w"> </span><span class="n">selection</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="p">}</span><span class="w"></span>
-<span class="w">      </span><span class="n">complex_root</span><span class="p">.</span><span class="n">handle_all_events</span><span class="p">();</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 </pre></div>
 </div>
@@ -276,7 +320,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ca25bdd/components/state_machine/include/state_base.hpp">components/state_machine/include/state_base.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/cf6bab6/components/state_machine/include/state_base.hpp">components/state_machine/include/state_base.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -289,7 +333,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBaseE">
 <span id="_CPPv3N4espp13state_machine9StateBaseE"></span><span id="_CPPv2N4espp13state_machine9StateBaseE"></span><span id="espp::state_machine::StateBase"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">state_machine</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">StateBase</span></span></span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBaseE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>States contain other states and can consume generic <a class="reference internal" href="#classespp_1_1state__machine_1_1_event_base"><span class="std std-ref">state_machine::EventBase</span></a> objects if they have internal or external transitions on those events and if those transitions’ guards are satisfied. Only one transition can consume an event in a given state machine.</p>
+<dd><p>States contain other states and can consume generic <a class="reference internal" href="#classespp_1_1state__machine_1_1_event_base"><span class="std std-ref">EventBase</span></a> objects if they have internal or external transitions on those events and if those transitions’ guards are satisfied. Only one transition can consume an event in a given state machine.</p>
 <p>There is also a different kind of Event, the tick event, which is not consumed, but instead executes from the top-level state all the way to the curently active leaf state.</p>
 <p>Entry and Exit actions also occur whenever a state is entered or exited, respectively. </p>
 <p>Subclassed by <a class="reference internal" href="#classespp_1_1state__machine_1_1_deep_history_state"><span class="std std-ref">espp::state_machine::DeepHistoryState</span></a>, <a class="reference internal" href="#classespp_1_1state__machine_1_1_shallow_history_state"><span class="std std-ref">espp::state_machine::ShallowHistoryState</span></a></p>
@@ -319,7 +363,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dd><p>Calls handleEvent on the activeLeaf. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>event</strong> – <strong>[in]</strong> EventBase* Event needing to be handled</p>
+<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>true if event is consumed, false otherwise </p>
@@ -383,11 +427,6 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14setActiveChildEP9StateBase">
 <span id="_CPPv3N4espp13state_machine9StateBase14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine9StateBase14setActiveChildEP9StateBase"></span><span id="espp::state_machine::StateBase::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update the active child state. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>childState</strong> – New child state to set to be active state. </p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -406,11 +445,6 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine9StateBase14setParentStateEP9StateBase">
 <span id="_CPPv3N4espp13state_machine9StateBase14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine9StateBase14setParentStateEP9StateBase"></span><span id="espp::state_machine::StateBase::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine9StateBase14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Will set the parent state. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>parent</strong> – Set the parent state of this state. </p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -426,7 +460,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id3">
 <h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ca25bdd/components/state_machine/include/shallow_history_state.hpp">components/state_machine/include/shallow_history_state.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/cf6bab6/components/state_machine/include/shallow_history_state.hpp">components/state_machine/include/shallow_history_state.hpp</a></p></li>
 </ul>
 </section>
 <section id="id4">
@@ -467,7 +501,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dd><p>Calls handleEvent on the activeLeaf. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>event</strong> – <strong>[in]</strong> EventBase* Event needing to be handled</p>
+<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>true if event is consumed, false otherwise </p>
@@ -524,11 +558,6 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase">
 <span id="_CPPv3N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase"></span><span id="espp::state_machine::ShallowHistoryState::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update the active child state. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>childState</strong> – New child state to set to be active state. </p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -547,11 +576,6 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase">
 <span id="_CPPv3N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase"></span><span id="espp::state_machine::ShallowHistoryState::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine19ShallowHistoryState14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Will set the parent state. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>parent</strong> – Set the parent state of this state. </p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -567,7 +591,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <section id="id5">
 <h3>Header File<a class="headerlink" href="#id5" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ca25bdd/components/state_machine/include/deep_history_state.hpp">components/state_machine/include/deep_history_state.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/cf6bab6/components/state_machine/include/deep_history_state.hpp">components/state_machine/include/deep_history_state.hpp</a></p></li>
 </ul>
 </section>
 <section id="id6">
@@ -608,7 +632,7 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dd><p>Calls handleEvent on the activeLeaf. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>event</strong> – <strong>[in]</strong> EventBase* Event needing to be handled</p>
+<dd class="field-odd"><p><strong>EventBase*</strong> – <strong>[in]</strong> Event needing to be handled</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>true if event is consumed, false otherwise </p>
@@ -665,11 +689,6 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase">
 <span id="_CPPv3N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase"></span><span id="espp::state_machine::DeepHistoryState::setActiveChild__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a79e7c37ccf755923defc5ca355f87cc0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setActiveChild</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">childState</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14setActiveChildEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update the active child state. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>childState</strong> – New child state to set to be active state. </p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -688,11 +707,6 @@ provided and for which the code was generated from webgme-hfsm):</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase">
 <span id="_CPPv3N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase"></span><span id="_CPPv2N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase"></span><span id="espp::state_machine::DeepHistoryState::setParentState__StateBaseP"></span><span class="target" id="classespp_1_1state__machine_1_1_state_base_1a68beeabd455880aba3bc4904d32f04cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setParentState</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13state_machine9StateBaseE" title="espp::state_machine::StateBase"><span class="n"><span class="pre">StateBase</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">parent</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13state_machine16DeepHistoryState14setParentStateEP9StateBase" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Will set the parent state. </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>parent</strong> – Set the parent state of this state. </p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="cpp function">
