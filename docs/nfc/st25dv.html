@@ -139,7 +139,7 @@
           <li><a href="index.html">NFC APIs</a> &raquo;</li>
       <li>ST25DV</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/ca25bdd/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/cf6bab6/docs/en/nfc/st25dv.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -160,7 +160,7 @@ maintains) followed by serialized NDEF records.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ca25bdd/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/cf6bab6/components/st25dv/include/st25dv.hpp">components/st25dv/include/st25dv.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -224,14 +224,14 @@ maintains) followed by serialized NDEF records.</p>
 <span class="cp">#if CONFIG_BT_BLE_ENABLED</span>
 <span class="w">    </span><span class="c1">// get the mac address of the radio</span>
 <span class="w">    </span><span class="n">init_low_level</span><span class="p">(</span><span class="n">HID_DEV_MODE</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">point</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_bt_dev_get_address</span><span class="p">();</span><span class="w"></span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">point</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">esp_bt_dev_get_address</span><span class="p">();</span><span class="w"></span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">point</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="k">nullptr</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Failed to get radio mac address!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="k">return</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
 <span class="w">      </span><span class="c1">// convert the 6 byte mac address to a 48 bit integer</span>
 <span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">6</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">)</span><span class="n">point</span><span class="p">[</span><span class="mi">5</span><span class="o">-</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span><span class="w"></span>
+<span class="w">        </span><span class="n">radio_mac_addr</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="p">(</span><span class="kt">uint64_t</span><span class="p">)</span><span class="n">point</span><span class="p">[</span><span class="mi">5</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span><span class="w"></span>
 <span class="w">      </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="p">}</span><span class="w"></span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;radio mac addr: {:#x}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">radio_mac_addr</span><span class="p">);</span><span class="w"></span>
@@ -239,7 +239,8 @@ maintains) followed by serialized NDEF records.</p>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_role</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BleRole</span><span class="o">::</span><span class="n">PERIPHERAL_ONLY</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">BtAppearance</span><span class="o">::</span><span class="n">GAMEPAD</span><span class="p">;</span><span class="w"></span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;BLE Radio&quot;</span><span class="p">;</span><span class="w"></span>
-<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_le_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">ble_role</span><span class="p">,</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="p">,</span><span class="w"> </span><span class="n">ble_appearance</span><span class="p">));</span><span class="w"></span>
+<span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="w"></span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Ndef</span><span class="o">::</span><span class="n">make_le_oob_pairing</span><span class="p">(</span><span class="n">radio_mac_addr</span><span class="p">,</span><span class="w"> </span><span class="n">ble_role</span><span class="p">,</span><span class="w"> </span><span class="n">ble_radio_name</span><span class="p">,</span><span class="w"> </span><span class="n">ble_appearance</span><span class="p">));</span><span class="w"></span>
 <span class="w">    </span><span class="n">records</span><span class="p">.</span><span class="n">back</span><span class="p">().</span><span class="n">set_id</span><span class="p">(</span><span class="n">payload_id</span><span class="p">);</span><span class="w"></span>
 
 <span class="w">    </span><span class="c1">// set one of the records we made to be the active tag</span>
