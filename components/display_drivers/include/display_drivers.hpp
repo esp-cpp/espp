@@ -93,12 +93,13 @@ static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t back
 
   // turn on the backlight
   gpio_set_level(backlight, backlight_on);
+  gpio_set_level(reset, 1);
 
   using namespace std::chrono_literals;
   // Reset the display
-  gpio_set_level(reset, 0);
-  std::this_thread::sleep_for(100ms);
   gpio_set_level(reset, 1);
+  std::this_thread::sleep_for(100ms);
+  gpio_set_level(reset, 0);
   std::this_thread::sleep_for(100ms);
 }
 } // namespace display_drivers
