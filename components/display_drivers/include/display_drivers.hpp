@@ -43,12 +43,14 @@ struct Config {
                                   command bits. */
   gpio_num_t backlight_pin;    /**< GPIO used for controlling the backlight of the display. */
   bool backlight_on_value{false}; /**< Whether backlight is active high or active low(default). */
-  bool invert_colors{false};      /**< Whether to invert the colors on the display. */
-  int offset_x{0};                /**< X Gap / offset, in pixels. */
-  int offset_y{0};                /**< Y Gap / offset, in pixels. */
-  bool swap_xy{false};            /**< Swap row/column order. */
-  bool mirror_x{false};           /**< Mirror the display horizontally. */
-  bool mirror_y{false};           /**< Mirror the display vertically. */
+  bool reset_value{false}; /**< The value to set the reset pin to when resetting the display (low to
+                              reset default). */
+  bool invert_colors{false}; /**< Whether to invert the colors on the display. */
+  int offset_x{0};           /**< X Gap / offset, in pixels. */
+  int offset_y{0};           /**< Y Gap / offset, in pixels. */
+  bool swap_xy{false};       /**< Swap row/column order. */
+  bool mirror_x{false};      /**< Mirror the display horizontally. */
+  bool mirror_y{false};      /**< Mirror the display vertically. */
 };
 
 /**
@@ -79,8 +81,16 @@ struct LcdInitCmd {
   uint8_t length; /**< Number of data bytes; bit 7 means delay after, 0xFF means end of commands. */
 };
 
+/**
+ * @brief Initialize the display pins.
+ * @param reset GPIO pin used for resetting the display.
+ * @param data_command GPIO pin used for indicating to the LCD whether the bits are data or command
+ * @param backlight GPIO pin used for controlling the backlight of the display.
+ * @param backlight_on Whether backlight is active high or active low(default).
+ * @param reset_value The value to set the reset pin to when resetting the display.
+ */
 static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t backlight,
-                      uint8_t backlight_on) {
+                      uint8_t backlight_on, uint8_t reset_value) {
   // Initialize display pins
   uint64_t gpio_output_pin_sel = ((1ULL << data_command) | (1ULL << reset) | (1ULL << backlight));
 
@@ -96,9 +106,9 @@ static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t back
 
   using namespace std::chrono_literals;
   // Reset the display
-  gpio_set_level(reset, 0);
+  gpio_set_level(reset, reset_value);
   std::this_thread::sleep_for(100ms);
-  gpio_set_level(reset, 1);
+  gpio_set_level(reset, !reset_value);
   std::this_thread::sleep_for(100ms);
 }
 } // namespace display_drivers
