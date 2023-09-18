@@ -189,6 +189,8 @@ extern "C" void app_main(void) {
   size_t width = 320;
   size_t height = 240;
   size_t pixel_buffer_size = 16384;
+  bool backlight_on_value = false;
+  bool reset_value = false;
   bool invert_colors = false;
   auto flush_cb = espp::Ili9341::flush;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
@@ -208,6 +210,8 @@ extern "C" void app_main(void) {
   size_t width = 240;
   size_t height = 135;
   size_t pixel_buffer_size = 12800;
+  bool backlight_on_value = false;
+  bool reset_value = false;
   bool invert_colors = false;
   auto flush_cb = espp::St7789::flush;
   auto rotation = espp::Display::Rotation::PORTRAIT;
@@ -227,6 +231,8 @@ extern "C" void app_main(void) {
   size_t width = 320;
   size_t height = 240;
   size_t pixel_buffer_size = width * 50;
+  bool backlight_on_value = true;
+  bool reset_value = false;
   bool invert_colors = true;
   auto flush_cb = espp::St7789::flush;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
@@ -293,8 +299,8 @@ extern "C" void app_main(void) {
         .reset_pin = reset,
         .data_command_pin = dc_pin,
         .backlight_pin = backlight,
-        .backlight_on_value = invert_colors,
-        .invert_colors = true,
+        .backlight_on_value = backlight_on_value,
+        .invert_colors = invert_colors,
         .mirror_x = true,
         .mirror_y = true,
     });

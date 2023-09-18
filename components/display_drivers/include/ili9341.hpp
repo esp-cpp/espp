@@ -55,7 +55,8 @@ public:
     offset_y_ = config.offset_y;
 
     // Initialize display pins
-    display_drivers::init_pins(reset_pin_, dc_pin_, backlight_pin_, config.backlight_on_value);
+    display_drivers::init_pins(reset_pin_, dc_pin_, backlight_pin_, config.backlight_on_value,
+                               config.reset_value);
 
     // init the display
     display_drivers::LcdInitCmd ili_init_cmds[] = {
