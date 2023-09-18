@@ -93,14 +93,20 @@ static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t back
 
   // turn on the backlight
   gpio_set_level(backlight, backlight_on);
-  gpio_set_level(reset, 1);
 
   using namespace std::chrono_literals;
   // Reset the display
+#if CONFIG_BSP_ESP32_S3_BOX_3
   gpio_set_level(reset, 1);
   std::this_thread::sleep_for(100ms);
   gpio_set_level(reset, 0);
   std::this_thread::sleep_for(100ms);
+#else
+  gpio_set_level(reset, 0);
+  std::this_thread::sleep_for(100ms);
+  gpio_set_level(reset, 1);
+  std::this_thread::sleep_for(100ms);
+#endif
 }
 } // namespace display_drivers
 } // namespace espp
