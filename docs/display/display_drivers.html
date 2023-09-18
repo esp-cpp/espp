@@ -141,7 +141,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display Drivers</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/cf6bab6/docs/en/display/display_drivers.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/b77715a/docs/en/display/display_drivers.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -159,7 +159,7 @@ boards.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/cf6bab6/components/display_drivers/include/ili9341.hpp">components/display_drivers/include/ili9341.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/display_drivers/include/ili9341.hpp">components/display_drivers/include/ili9341.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -184,6 +184,8 @@ boards.</p>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">320</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">240</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">16384</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">reset_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">flush_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ili9341</span><span class="o">::</span><span class="n">flush</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Display</span><span class="o">::</span><span class="n">Rotation</span><span class="o">::</span><span class="n">LANDSCAPE</span><span class="p">;</span><span class="w"></span>
@@ -250,8 +252,8 @@ boards.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">reset_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reset</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">data_command_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dc_pin</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">backlight_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backlight</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">invert_colors</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backlight_on_value</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">invert_colors</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">mirror_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">mirror_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="p">});</span><span class="w"></span>
@@ -436,7 +438,7 @@ boards.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/cf6bab6/components/display_drivers/include/st7789.hpp">components/display_drivers/include/st7789.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/display_drivers/include/st7789.hpp">components/display_drivers/include/st7789.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -461,6 +463,8 @@ boards.</p>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">240</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">135</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">12800</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">reset_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">flush_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">St7789</span><span class="o">::</span><span class="n">flush</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Display</span><span class="o">::</span><span class="n">Rotation</span><span class="o">::</span><span class="n">PORTRAIT</span><span class="p">;</span><span class="w"></span>
@@ -482,6 +486,8 @@ boards.</p>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">320</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">240</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">width</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">reset_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">flush_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">St7789</span><span class="o">::</span><span class="n">flush</span><span class="p">;</span><span class="w"></span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Display</span><span class="o">::</span><span class="n">Rotation</span><span class="o">::</span><span class="n">LANDSCAPE</span><span class="p">;</span><span class="w"></span>
@@ -548,8 +554,8 @@ boards.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">reset_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reset</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">data_command_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dc_pin</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">backlight_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backlight</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">invert_colors</span><span class="p">,</span><span class="w"></span>
-<span class="w">        </span><span class="p">.</span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backlight_on_value</span><span class="p">,</span><span class="w"></span>
+<span class="w">        </span><span class="p">.</span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">invert_colors</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">mirror_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"></span>
 <span class="w">        </span><span class="p">.</span><span class="n">mirror_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"></span>
 <span class="w">    </span><span class="p">});</span><span class="w"></span>
