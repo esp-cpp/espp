@@ -70,6 +70,12 @@ public:
    */
   typedef std::function<bool()> simple_callback_fn;
 
+  /**
+   * @brief Configuration struct for the Task.
+   * @note This is the recommended way to configure the Task, and allows you to
+   *       use the condition variable and mutex from the task to wait_for and
+   *       wait_until.
+   */
   struct Config {
     std::string_view name;             /**< Name of the task */
     callback_fn callback;              /**< Callback function  */
@@ -79,6 +85,11 @@ public:
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
 
+  /**
+   * @brief Simple configuration struct for the Task.
+   * @note This is useful for when you don't need to use the condition variable
+   *       or mutex in the callback.
+   */
   struct SimpleConfig {
     std::string_view name;             /**< Name of the task */
     simple_callback_fn callback;       /**< Callback function  */
@@ -113,6 +124,16 @@ public:
    * @return std::unique_ptr<Task> pointer to the newly created task.
    */
   static std::unique_ptr<Task> make_unique(const Config &config) {
+    return std::make_unique<Task>(config);
+  }
+
+  /**
+   * @brief Get a unique pointer to a new task created with \p config.
+   *        Useful to not have to use templated std::make_unique (less typing).
+   * @param config SimpleConfig struct to initialize the Task with.
+   * @return std::unique_ptr<Task> pointer to the newly created task.
+   */
+  static std::unique_ptr<Task> make_unique(const SimpleConfig &config) {
     return std::make_unique<Task>(config);
   }
 
