@@ -10,6 +10,10 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#if !defined(ESP_PLATFORM)
+#include <unistd.h>
+#endif
+
 #include <math.h>
 
 #include "format.hpp"
@@ -81,7 +85,13 @@ public:
         address = inet_ntoa(((struct sockaddr_in *)&raw)->sin_addr);
         port = ((struct sockaddr_in *)&raw)->sin_port;
       } else if (raw.ss_family == PF_INET6) {
+#if defined(ESP_PLATFORM)
         address = inet_ntoa(((struct sockaddr_in6 *)&raw)->sin6_addr);
+#else
+        char str[INET6_ADDRSTRLEN];
+        inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)&raw)->sin6_addr), str, INET6_ADDRSTRLEN);
+        address = str;
+#endif
         port = ((struct sockaddr_in6 *)&raw)->sin6_port;
       }
     }
@@ -110,7 +120,13 @@ public:
      * @param &source_address sockaddr info filled out by recvfrom.
      */
     void from_sockaddr(const struct sockaddr_in6 &source_address) {
+#if defined(ESP_PLATFORM)
       address = inet_ntoa(source_address.sin6_addr);
+#else
+      char str[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &(source_address.sin6_addr), str, INET6_ADDRSTRLEN);
+      address = str;
+#endif
       port = source_address.sin6_port;
       memcpy(&raw, &source_address, sizeof(source_address));
     }
@@ -291,9 +307,15 @@ public:
     int err = 0;
 
     // Configure source interface
+#if defined(ESP_PLATFORM)
     imreq.imr_interface.s_addr = IPADDR_ANY;
     // Configure multicast address to listen to
     err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr.s_addr);
+#else
+    imreq.imr_interface.s_addr = htonl(INADDR_ANY);
+    // Configure multicast address to listen to
+    err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr);
+#endif
 
     if (err != 1 || !IN_MULTICAST(ntohl(imreq.imr_multiaddr.s_addr))) {
       // it's not actually a multicast address, so return false?

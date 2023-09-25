@@ -22,3 +22,6 @@
 [submodule "external/tabulate"]
 	path = external/tabulate
 	url = git@github.com:p-ranav/tabulate
+[submodule "lib/pybind11"]
+	path = lib/pybind11
+	url = git@github.com:pybind/pybind11

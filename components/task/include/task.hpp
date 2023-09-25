@@ -60,6 +60,16 @@ public:
    */
   typedef std::function<bool(std::mutex &m, std::condition_variable &cv)> callback_fn;
 
+  /**
+   * @brief Simple callback function signature.
+   *
+   * @ note The callback is run repeatedly within the Task, therefore it MUST
+   *        return, and also SHOULD have a sleep to give the processor over to
+   *        other tasks.
+   * @return True to stop the task, false to continue running.
+   */
+  typedef std::function<bool()> simple_callback_fn;
+
   struct Config {
     std::string_view name;             /**< Name of the task */
     callback_fn callback;              /**< Callback function  */
@@ -69,10 +79,32 @@ public:
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
 
-  Task(const Config &config)
+  struct SimpleConfig {
+    std::string_view name;             /**< Name of the task */
+    simple_callback_fn callback;       /**< Callback function  */
+    size_t stack_size_bytes{4 * 1024}; /**< Stack Size (B) allocated to the task. */
+    size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
+    int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
+    Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
+  };
+
+  /**
+   * @brief Construct a new Task object using the Config struct.
+   * @param config Config struct to initialize the Task with.
+   */
+  explicit Task(const Config &config)
       : name_(config.name), callback_(config.callback), stack_size_bytes_(config.stack_size_bytes),
         priority_(config.priority), core_id_(config.core_id),
         logger_({.tag = name_, .level = config.log_level}) {}
+
+  /**
+   *  @brief Construct a new Task object using the SimpleConfig struct.
+   *  @param config SimpleConfig struct to initialize the Task with.
+   */
+  explicit Task(const SimpleConfig &config)
+      : name_(config.name), simple_callback_(config.callback),
+        stack_size_bytes_(config.stack_size_bytes), priority_(config.priority),
+        core_id_(config.core_id), logger_({.tag = name_, .level = config.log_level}) {}
 
   /**
    * @brief Get a unique pointer to a new task created with \p config.
@@ -217,6 +249,14 @@ protected:
           started_ = false;
           break;
         }
+      } else if (simple_callback_) {
+        bool should_stop = simple_callback_();
+        if (should_stop) {
+          // callback returned true, so stop running the thread function
+          logger_.debug("Callback requested stop, thread_function exiting");
+          started_ = false;
+          break;
+        }
       } else {
         started_ = false;
         break;
@@ -234,6 +274,12 @@ protected:
    * started.
    */
   callback_fn callback_;
+
+  /**
+   * @brief Simple callback function called within Task::thread_function() when
+   * started.
+   */
+  simple_callback_fn simple_callback_;
 
   // NOTE: the below parameters are only used on ESP / FreeRTOS platform
   /**
