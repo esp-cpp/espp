@@ -92,7 +92,10 @@ struct LcdInitCmd {
 static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t backlight,
                       uint8_t backlight_on, uint8_t reset_value) {
   // Initialize display pins
-  uint64_t gpio_output_pin_sel = ((1ULL << data_command) | (1ULL << reset) | (1ULL << backlight));
+  uint64_t gpio_output_pin_sel = ((1ULL << data_command) | (1ULL << backlight));
+  if (reset != GPIO_NUM_NC) {
+    gpio_output_pin_sel |= (1ULL << reset);
+  }
 
   gpio_config_t o_conf{.pin_bit_mask = gpio_output_pin_sel,
                        .mode = GPIO_MODE_OUTPUT,
@@ -105,11 +108,13 @@ static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t back
   gpio_set_level(backlight, backlight_on);
 
   using namespace std::chrono_literals;
-  // Reset the display
-  gpio_set_level(reset, reset_value);
-  std::this_thread::sleep_for(100ms);
-  gpio_set_level(reset, !reset_value);
-  std::this_thread::sleep_for(100ms);
+  if (reset != GPIO_NUM_NC) {
+    // Reset the display
+    gpio_set_level(reset, reset_value);
+    std::this_thread::sleep_for(100ms);
+    gpio_set_level(reset, !reset_value);
+    std::this_thread::sleep_for(100ms);
+  }
 }
 } // namespace display_drivers
 } // namespace espp
