@@ -150,7 +150,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>RTSP APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/b77715a/docs/en/rtsp.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/87d6eb4/docs/en/rtsp.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -190,7 +190,7 @@ packets. TCP transport is not supported.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/rtsp/include/rtsp_client.hpp">components/rtsp/include/rtsp_client.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/rtsp/include/rtsp_client.hpp">components/rtsp/include/rtsp_client.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -203,45 +203,45 @@ packets. TCP transport is not supported.</p>
 <p>The RTSP client is designed to be used with the RTSP server in the [camera-streamer]<a class="reference external" href="https://github.com/esp-cpp/camera-streamer">https://github.com/esp-cpp/camera-streamer</a>) project, but it should work with any RTSP server that sends JPEG frames over RTP.</p>
 <section id="classespp_1_1_rtsp_client_1RtspClient">
 <h4>Example<a class="headerlink" href="#classespp_1_1_rtsp_client_1RtspClient" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_rtsp_client_1RtspClient"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">RtspClient</span><span class="w"> </span><span class="n">rtsp_client</span><span class="p">({</span><span class="w"></span>
+<p id="classespp_1_1_rtsp_client_1RtspClient"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">RtspClient</span><span class="w"> </span><span class="n">rtsp_client</span><span class="p">({</span>
 <span class="w">      </span><span class="p">.</span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip_address</span><span class="p">,</span><span class="w"> </span><span class="c1">// string of the form {}.{}.{}.{}</span>
-<span class="w">      </span><span class="p">.</span><span class="n">rtsp_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_RTSP_SERVER_PORT</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/mjpeg/1&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">on_jpeg_frame</span><span class="w"> </span><span class="o">=</span><span class="w"></span>
-<span class="w">          </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">JpegFrame</span><span class="o">&gt;</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Got JPEG frame of size {}x{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="o">-&gt;</span><span class="n">get_width</span><span class="p">(),</span><span class="w"></span>
-<span class="w">                       </span><span class="n">jpeg_frame</span><span class="o">-&gt;</span><span class="n">get_height</span><span class="p">());</span><span class="w"></span>
-<span class="w">          </span><span class="p">},</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">ERROR</span><span class="p">,</span><span class="w"></span>
-<span class="w">  </span><span class="p">});</span><span class="w"></span>
+<span class="w">      </span><span class="p">.</span><span class="n">rtsp_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_RTSP_SERVER_PORT</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/mjpeg/1&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">on_jpeg_frame</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[](</span><span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">JpegFrame</span><span class="o">&gt;</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Got JPEG frame of size {}x{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="o">-&gt;</span><span class="n">get_width</span><span class="p">(),</span>
+<span class="w">                       </span><span class="n">jpeg_frame</span><span class="o">-&gt;</span><span class="n">get_height</span><span class="p">());</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">ERROR</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
 
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span><span class="w"></span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
 
-<span class="w">  </span><span class="k">do</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
+<span class="w">  </span><span class="k">do</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// clear the error code</span>
-<span class="w">    </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span><span class="w"></span>
-<span class="w">    </span><span class="n">rtsp_client</span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error connecting to server: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Retrying in 1s...&quot;</span><span class="p">);</span><span class="w"></span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
+<span class="w">    </span><span class="n">ec</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">    </span><span class="n">rtsp_client</span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error connecting to server: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Retrying in 1s...&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">rtsp_client</span><span class="p">.</span><span class="n">describe</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error describing server: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
-<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="n">rtsp_client</span><span class="p">.</span><span class="n">describe</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error describing server: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="n">rtsp_client</span><span class="p">.</span><span class="n">setup</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error setting up server: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
-<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="n">rtsp_client</span><span class="p">.</span><span class="n">setup</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error setting up server: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="n">rtsp_client</span><span class="p">.</span><span class="n">play</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span><span class="w"></span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error playing server: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span><span class="w"></span>
-<span class="w">  </span><span class="p">}</span><span class="w"></span>
+<span class="w">  </span><span class="n">rtsp_client</span><span class="p">.</span><span class="n">play</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Error playing server: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
 </pre></div>
 </div>
  </p>
@@ -451,7 +451,7 @@ packets. TCP transport is not supported.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/rtsp/include/rtsp_server.hpp">components/rtsp/include/rtsp_server.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/rtsp/include/rtsp_server.hpp">components/rtsp/include/rtsp_server.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -466,25 +466,25 @@ packets. TCP transport is not supported.</p>
 </p>
 <section id="classespp_1_1_rtsp_server_1RtspServer">
 <h4>example<a class="headerlink" href="#classespp_1_1_rtsp_server_1RtspServer" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_rtsp_server_1RtspServer"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">server_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_RTSP_SERVER_PORT</span><span class="p">;</span><span class="w"></span>
-<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">server_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;rtsp://{}:{}/mjpeg/1&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip_address</span><span class="p">,</span><span class="w"> </span><span class="n">server_port</span><span class="p">);</span><span class="w"></span>
+<p id="classespp_1_1_rtsp_server_1RtspServer"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">server_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_RTSP_SERVER_PORT</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">server_uri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;rtsp://{}:{}/mjpeg/1&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ip_address</span><span class="p">,</span><span class="w"> </span><span class="n">server_port</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Starting RTSP Server on port {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">server_port</span><span class="p">);</span><span class="w"></span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;RTSP URI: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">server_uri</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Starting RTSP Server on port {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">server_port</span><span class="p">);</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;RTSP URI: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">server_uri</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">RtspServer</span><span class="w"> </span><span class="n">rtsp_server</span><span class="p">({</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip_address</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">server_port</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/mjpeg/1&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span><span class="w"></span>
-<span class="w">  </span><span class="p">});</span><span class="w"></span>
-<span class="w">  </span><span class="n">rtsp_server</span><span class="p">.</span><span class="n">start</span><span class="p">();</span><span class="w"></span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">RtspServer</span><span class="w"> </span><span class="n">rtsp_server</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">server_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ip_address</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">server_port</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/mjpeg/1&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="n">rtsp_server</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
 
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">JpegFrame</span><span class="w"> </span><span class="nf">jpeg_frame</span><span class="p">(</span><span class="n">jpeg_data</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">jpeg_data</span><span class="p">));</span><span class="w"></span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">JpegFrame</span><span class="w"> </span><span class="nf">jpeg_frame</span><span class="p">(</span><span class="n">jpeg_data</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">jpeg_data</span><span class="p">));</span>
 
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Parsed JPEG image, num bytes: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="p">.</span><span class="n">get_data</span><span class="p">().</span><span class="n">size</span><span class="p">());</span><span class="w"></span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Created frame of size {}x{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="p">.</span><span class="n">get_width</span><span class="p">(),</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="p">.</span><span class="n">get_height</span><span class="p">());</span><span class="w"></span>
-<span class="w">  </span><span class="n">rtsp_server</span><span class="p">.</span><span class="n">send_frame</span><span class="p">(</span><span class="n">jpeg_frame</span><span class="p">);</span><span class="w"></span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Parsed JPEG image, num bytes: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="p">.</span><span class="n">get_data</span><span class="p">().</span><span class="n">size</span><span class="p">());</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Created frame of size {}x{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="p">.</span><span class="n">get_width</span><span class="p">(),</span><span class="w"> </span><span class="n">jpeg_frame</span><span class="p">.</span><span class="n">get_height</span><span class="p">());</span>
+<span class="w">  </span><span class="n">rtsp_server</span><span class="p">.</span><span class="n">send_frame</span><span class="p">(</span><span class="n">jpeg_frame</span><span class="p">);</span>
 </pre></div>
 </div>
  </p>
@@ -609,7 +609,7 @@ packets. TCP transport is not supported.</p>
 <section id="id3">
 <h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/rtsp/include/rtsp_session.hpp">components/rtsp/include/rtsp_session.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/rtsp/include/rtsp_session.hpp">components/rtsp/include/rtsp_session.hpp</a></p></li>
 </ul>
 </section>
 <section id="id4">
@@ -766,7 +766,7 @@ packets. TCP transport is not supported.</p>
 <section id="id5">
 <h3>Header File<a class="headerlink" href="#id5" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/rtsp/include/rtp_packet.hpp">components/rtsp/include/rtp_packet.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/rtsp/include/rtp_packet.hpp">components/rtsp/include/rtp_packet.hpp</a></p></li>
 </ul>
 </section>
 <section id="id6">
@@ -908,7 +908,7 @@ packets. TCP transport is not supported.</p>
 <section id="id7">
 <h3>Header File<a class="headerlink" href="#id7" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/rtsp/include/rtp_jpeg_packet.hpp">components/rtsp/include/rtp_jpeg_packet.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/rtsp/include/rtp_jpeg_packet.hpp">components/rtsp/include/rtp_jpeg_packet.hpp</a></p></li>
 </ul>
 </section>
 <section id="id8">
@@ -1207,7 +1207,7 @@ packets. TCP transport is not supported.</p>
 <section id="id9">
 <h3>Header File<a class="headerlink" href="#id9" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/rtsp/include/rtcp_packet.hpp">components/rtsp/include/rtcp_packet.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/rtsp/include/rtcp_packet.hpp">components/rtsp/include/rtcp_packet.hpp</a></p></li>
 </ul>
 </section>
 <section id="id10">
@@ -1223,7 +1223,7 @@ packets. TCP transport is not supported.</p>
 <section id="id11">
 <h3>Header File<a class="headerlink" href="#id11" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/rtsp/include/jpeg_header.hpp">components/rtsp/include/jpeg_header.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/rtsp/include/jpeg_header.hpp">components/rtsp/include/jpeg_header.hpp</a></p></li>
 </ul>
 </section>
 <section id="id12">
@@ -1310,7 +1310,7 @@ packets. TCP transport is not supported.</p>
 <section id="id13">
 <h3>Header File<a class="headerlink" href="#id13" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/rtsp/include/jpeg_frame.hpp">components/rtsp/include/jpeg_frame.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/rtsp/include/jpeg_frame.hpp">components/rtsp/include/jpeg_frame.hpp</a></p></li>
 </ul>
 </section>
 <section id="id14">
