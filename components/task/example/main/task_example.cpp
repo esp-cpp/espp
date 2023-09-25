@@ -134,7 +134,7 @@ extern "C" void app_main(void) {
     for (size_t i = 0; i < num_tasks; i++) {
       size_t iterations{0};
       // copy the loop variables and indicate that we intend to mutate them!
-      auto task_fn = [i, iterations](std::mutex &m, std::condition_variable &cv) mutable {
+      auto task_fn = [i, iterations]() mutable {
         fmt::print("Task {}: #iterations = {}\n", i, iterations);
         iterations++;
         // NOTE: sleeping in this way PREVENTS the sleep / task from early

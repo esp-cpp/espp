@@ -4,6 +4,8 @@
 #include <string_view>
 #include <vector>
 
+#include <netinet/tcp.h>
+
 #include "logger.hpp"
 #include "socket.hpp"
 #include "task.hpp"
@@ -390,7 +392,12 @@ protected:
     }
     // set the idle time
     optval = idle_time.count();
+
+#if defined(__APPLE__)
+// TODO: figure out how to set keepidle on macos
+#else
     err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval));
+#endif
     if (err < 0) {
       logger_.error("Unable to set keepalive idle time: {} - '{}'", errno, strerror(errno));
       return false;

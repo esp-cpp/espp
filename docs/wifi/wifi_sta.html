@@ -139,7 +139,7 @@
           <li><a href="index.html">WiFi APIs</a> &raquo;</li>
       <li>WiFi Station (STA)</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/b77715a/docs/en/wifi/wifi_sta.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/87d6eb4/docs/en/wifi/wifi_sta.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -156,7 +156,7 @@ access point.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b77715a/components/wifi/include/wifi_sta.hpp">components/wifi/include/wifi_sta.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/wifi/include/wifi_sta.hpp">components/wifi/include/wifi_sta.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -168,18 +168,18 @@ access point.</p>
 <p>see <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-station-general-scenario">https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/wifi.html#esp32-wi-fi-station-general-scenario</a></p>
 <section id="classespp_1_1_wifi_sta_1wifista_ex1">
 <h4>WiFi Station Example<a class="headerlink" href="#classespp_1_1_wifi_sta_1wifista_ex1" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_wifi_sta_1wifista_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiSta</span><span class="w"> </span><span class="nf">wifi_sta</span><span class="p">({.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_SSID</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_PASSWORD</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="p">.</span><span class="n">num_connect_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_MAXIMUM_RETRY</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="p">.</span><span class="n">on_connected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="p">.</span><span class="n">on_disconnected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span><span class="w"></span>
-<span class="w">                            </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">ip_event_got_ip_t</span><span class="w"> </span><span class="o">*</span><span class="n">eventdata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">                              </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;got IP: {}.{}.{}.{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span><span class="w"></span>
-<span class="w">                            </span><span class="p">}});</span><span class="w"></span>
+<p id="classespp_1_1_wifi_sta_1wifista_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">WifiSta</span><span class="w"> </span><span class="nf">wifi_sta</span><span class="p">({.</span><span class="n">ssid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_SSID</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">password</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_WIFI_PASSWORD</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">num_connect_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_ESP_MAXIMUM_RETRY</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_connected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_disconnected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">,</span>
+<span class="w">                            </span><span class="p">.</span><span class="n">on_got_ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">ip_event_got_ip_t</span><span class="w"> </span><span class="o">*</span><span class="n">eventdata</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                              </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;got IP: {}.{}.{}.{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">IP2STR</span><span class="p">(</span><span class="o">&amp;</span><span class="n">eventdata</span><span class="o">-&gt;</span><span class="n">ip_info</span><span class="p">.</span><span class="n">ip</span><span class="p">));</span>
+<span class="w">                            </span><span class="p">}});</span>
 
-<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">wifi_sta</span><span class="p">.</span><span class="n">is_connected</span><span class="p">())</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">wifi_sta</span><span class="p">.</span><span class="n">is_connected</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
 </pre></div>
 </div>
  </p>

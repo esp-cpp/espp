@@ -66,7 +66,7 @@ public:
 
   /// @brief Construct a new Timer object
   /// @param config The configuration for the timer.
-  Timer(const Config &config)
+  explicit Timer(const Config &config)
       : period_(config.period), delay_(config.delay), callback_(config.callback),
         logger_({.tag = config.name,
                  .rate_limit = std::chrono::milliseconds(100),
@@ -152,13 +152,13 @@ protected:
       }
     }
     // now run the callback
-    auto start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::steady_clock::now();
     bool requested_stop = callback_();
     if (requested_stop || period_.count() == 0) {
       // stop the timer if requested or if the period is 0
       return true;
     }
-    auto end = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::steady_clock::now();
     float elapsed = std::chrono::duration<float>(end - start).count();
     if (elapsed > period_.count()) {
       // if the callback took longer than the period, then we should just

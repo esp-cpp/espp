@@ -5,7 +5,11 @@
 #include <system_error>
 #include <vector>
 
-#include "esp_random.h"
+#if defined(ESP_PLATFORM)
+#include <esp_random.h>
+#else
+#include <random>
+#endif
 
 #include "logger.hpp"
 #include "task.hpp"
@@ -391,7 +395,16 @@ protected:
   /// Session IDs are generated randomly when a client sends a SETUP request and are
   /// used to identify the client in subsequent requests when managing the RTP session.
   /// @return The new session id
-  uint32_t generate_session_id() { return esp_random(); }
+  uint32_t generate_session_id() {
+#if defined(ESP_PLATFORM)
+    return esp_random();
+#else
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dis(0, std::numeric_limits<int>::max());
+    return dis(gen);
+#endif
+  }
 
   /// Parse the RTSP command sequence number from a request
   /// @param request The request to parse

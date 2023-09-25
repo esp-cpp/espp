@@ -10,6 +10,15 @@
 #include <string>
 #include <vector>
 
+#include <dirent.h>
+#include <sys/types.h>
+
+#if defined(ESP_PLATFORM)
+#include "esp_random.h"
+#else
+#include <random>
+#endif
+
 #include "logger.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
@@ -690,8 +699,15 @@ protected:
   /// \return True if the command was handled, false otherwise.
   bool handle_pasv(std::string_view arguments) {
     logger_.info("Handling pasv: {}", arguments);
-    // randomly select a port number
+#if defined(ESP_PLATFORM)
     int port = esp_random() % 10000 + 1024;
+#else
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dis(0, std::numeric_limits<int>::max());
+    int port = dis(gen) % 10000 + 1024;
+#endif
+    // randomly select a port number
     logger_.debug("Selected port: {}", port);
     // ensure that the socket is closed and ready to be used again
     passive_socket_.reinit();

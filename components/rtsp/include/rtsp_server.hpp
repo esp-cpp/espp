@@ -5,7 +5,11 @@
 #include <system_error>
 #include <vector>
 
-#include "esp_random.h"
+#if defined(ESP_PLATFORM)
+#include <esp_random.h>
+#else
+#include <random>
+#endif
 
 #include "logger.hpp"
 #include "task.hpp"
@@ -51,7 +55,14 @@ public:
         max_data_size_(config.max_data_size),
         logger_({.tag = "RTSP Server", .level = config.log_level}) {
     // generate a random ssrc
+#if defined(ESP_PLATFORM)
     ssrc_ = esp_random();
+#else
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint32_t> dis;
+    ssrc_ = dis(gen);
+#endif
   }
 
   /// @brief Destroy the RTSP server
