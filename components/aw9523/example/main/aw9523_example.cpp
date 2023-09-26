@@ -15,7 +15,7 @@ static constexpr auto I2C_FREQ_HZ = (400 * 1000);
 static constexpr auto I2C_TIMEOUT_MS = 10;
 
 extern "C" void app_main(void) {
-  {
+  
     fmt::print("Starting aw9523 example, controls:\n"
                "\tP0_0 -> increase P1_5 brightness\n"
                "\tP0_1 -> increase P1_6 brightness\n"
@@ -68,6 +68,7 @@ extern "C" void app_main(void) {
                          .write = aw9523_write,
                          .read = aw9523_read,
                          .log_level = espp::Logger::Verbosity::WARN});
+    aw9523.initialize(); //Initialized separately from the constructor.
     // set P1_5, P1_6, and P1_7 to be leds
     int r_led = (1 << 13);
     int g_led = (1 << 14);
@@ -140,7 +141,7 @@ extern "C" void app_main(void) {
     }
     // now clean up the i2c driver
     i2c_driver_delete(I2C_NUM);
-  }
+  
 
   fmt::print("Aw9523 example complete!\n");
 

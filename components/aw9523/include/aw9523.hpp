@@ -80,13 +80,19 @@ public:
   };
 
   /**
-   * @brief Construct the Aw9523 and configure it.
+   * @brief Construct the Aw9523. Initialization called separately. 
    * @param config Config structure for configuring the AW9523
    */
   Aw9523(const Config &config)
-      : address_(config.device_address), write_(config.write), read_(config.read),
+      : config_(config), address_(config.device_address), write_(config.write), read_(config.read),
         logger_({.tag = "Aw9523", .level = config.log_level}) {
-    init(config);
+  }
+
+   /**
+   * @brief Initialize the component class. 
+   */
+  void initialize(void) {
+    init(config_);
   }
 
   /**
@@ -211,6 +217,27 @@ public:
   void set_pins(uint16_t mask) {
     set_pins(Port::PORT0, mask & 0xFF);
     set_pins(Port::PORT1, mask >> 8);
+  }
+
+    /**
+   * @brief Read the output pin values on the provided port.
+   * @param port The Port for which to read the pins
+   * @return The pin values as an 8 bit mask.
+   */
+  uint8_t get_output(Port port) {
+    auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
+    return read_one_((uint8_t)addr);
+  }
+
+  /**
+   * @brief Read the output pin values on both Port 0 and Port 1.
+   * @return The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb).
+   */
+  uint16_t get_output() {
+    return (read_one_((uint8_t)Registers::OUTPORT1) << 8) | read_one_((uint8_t)Registers::OUTPORT0);
+    // TODO: this should work as well, but doesn't seem to (only the first
+    //       byte read seems to be correct...)
+    // return read_two_((uint8_t)Registers::OUTPORT0);
   }
 
   /**
@@ -420,6 +447,8 @@ protected:
                ///< b00=imax, default=b00)
   };
 
+  
+
   void init(const Config &config) {
     configure_global_control(config.output_drive_mode_p0, config.max_led_current);
     set_direction(Port::PORT0, config.port_0_direction_mask);
@@ -450,6 +479,7 @@ protected:
     write_(address_, data, total_len);
   }
 
+  Config config_;
   uint8_t address_;
   write_fn write_;
   read_fn read_;
