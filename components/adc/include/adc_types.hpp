@@ -13,11 +13,11 @@ struct AdcConfig {
       attenuation; /**< The attenuation associated with this channel, e.g. ADC_ATTEN_DB_11. */
 };
 
-bool operator!=(const AdcConfig &lhs, const AdcConfig &rhs) {
+static bool operator!=(const AdcConfig &lhs, const AdcConfig &rhs) {
   return lhs.unit != rhs.unit || lhs.channel != rhs.channel || lhs.attenuation != rhs.attenuation;
 }
 
-bool operator==(const AdcConfig &lhs, const AdcConfig &rhs) { return !(lhs != rhs); }
+static bool operator==(const AdcConfig &lhs, const AdcConfig &rhs) { return !(lhs != rhs); }
 } // namespace espp
 
 // for easy serialization of AdcConfig with libfmt
