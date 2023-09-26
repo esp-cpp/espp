@@ -80,7 +80,7 @@ public:
   };
 
   /**
-   * @brief Construct the Aw9523 and configure it.
+   * @brief Construct the Aw9523. Initialization called separately. 
    * @param config Config structure for configuring the AW9523
    */
   Aw9523(const Config &config)
