@@ -502,26 +502,19 @@ public:
     // https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf
     // for examples
 
-    // optional local name (0x09)
-    // TODO: making this the first field ensures android displays it
-    if (name.size() > 0) {
-      add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
-    }
-
     // (mandatory 0x1B) LE device address in reverse order. According to section
     // 3.3.1 of NFCForum-AD-BTSSP_1_1.pdf, the data value consists of 7 octets,
     // with the 6 least significant octets being the MAC address in reverse
     // order. The least significant bit in the most significant octet is the
     // random address bit.
     uint8_t mac_addr_bytes[] = {
-        (uint8_t)(mac_addr >> 0 & 0xFF),  (uint8_t)(mac_addr >> 8 & 0xFF),
-        (uint8_t)(mac_addr >> 16 & 0xFF), (uint8_t)(mac_addr >> 24 & 0xFF),
-        (uint8_t)(mac_addr >> 32 & 0xFF), (uint8_t)(mac_addr >> 40 & 0xFF),
-        // NOTE: according to the doc (see above) the
-        //       mac address field examples contain an
-        //       extra byte, but adding it causes
-        //       android to fail to parse this
-        // (uint8_t)(0x01)
+        (uint8_t)(mac_addr >> 0 & 0xFF),
+        (uint8_t)(mac_addr >> 8 & 0xFF),
+        (uint8_t)(mac_addr >> 16 & 0xFF),
+        (uint8_t)(mac_addr >> 24 & 0xFF),
+        (uint8_t)(mac_addr >> 32 & 0xFF),
+        (uint8_t)(mac_addr >> 40 & 0xFF),
+        (uint8_t)(0x00) // Public address type
     };
     add_bt_eir(data, BtEir::MAC,
                std::string_view{(const char *)&mac_addr_bytes[0], sizeof(mac_addr_bytes)});
@@ -553,10 +546,17 @@ public:
     add_bt_eir(data, BtEir::APPEARANCE,
                std::string_view{(const char *)&appearance_bytes[0], sizeof(appearance_bytes)});
 
+    // optional local name (0x09)
+    if (name.size() > 0) {
+      add_bt_eir(data, BtEir::LONG_LOCAL_NAME, name);
+    }
+
     // optional Flags (0x01)
-    // uint8_t flags_bytes[] = {0x06}; // BR/EDR not supported, LE supported, Simultaneous LE/BT to
-    // same device capable (controller) add_bt_eir(data, BtEir::FLAGS, std::string_view{(const
-    // char*)&flags_bytes[0], sizeof(flags_bytes)});
+    // 0x06: BR/EDR not supported, LE supported, Simultaneous LE/BT to same
+    // device capable (controller)
+    uint8_t flags_bytes[] = {0x06};
+    add_bt_eir(data, BtEir::FLAGS,
+               std::string_view{(const char *)&flags_bytes[0], sizeof(flags_bytes)});
 
     auto sv_data = std::string_view{(const char *)data.data(), data.size()};
     return Ndef(TNF::MIME_MEDIA, "application/vnd.bluetooth.le.oob", sv_data);
@@ -714,6 +714,9 @@ protected:
     case BtEir::UUIDS_128_BIT_PARTIAL:
     case BtEir::UUIDS_128_BIT_COMPLETE:
       num_eir_bytes = payload.size();
+      break;
+    case BtEir::FLAGS:
+      num_eir_bytes = 1;
       break;
     case BtEir::SHORT_LOCAL_NAME:
     case BtEir::LONG_LOCAL_NAME:
