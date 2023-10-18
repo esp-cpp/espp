@@ -142,7 +142,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>ADS7138 I2C ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/87d6eb4/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/43b9241/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -164,7 +164,7 @@ continuous basis.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/43b9241/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -676,6 +676,16 @@ continuous basis.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810initializeEv">
+<span id="_CPPv3N4espp7Ads713810initializeEv"></span><span id="_CPPv2N4espp7Ads713810initializeEv"></span><span id="espp::Ads7138::initialize"></span><span class="target" id="classespp_1_1_ads7138_1a7e01761680cb201c0e62f96b3dd2aaaf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713810initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the ADC This function uses the configuration structure passed to the constructor to configure the ADC. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function must be called before any other functions as it configures the ADC pins and sets the mode. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386get_mvE7Channel">
 <span id="_CPPv3N4espp7Ads71386get_mvE7Channel"></span><span id="_CPPv2N4espp7Ads71386get_mvE7Channel"></span><span id="espp::Ads7138::get_mv__Channel"></span><span class="target" id="classespp_1_1_ads7138_1a4a8b217b4e0ff3ffa2ba8709670472b4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mv</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71386get_mvE7Channel" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Communicate with the ADC to get the analog value for the channel and return it. </p>
@@ -1051,6 +1061,12 @@ continuous basis.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config4readE">
 <span id="_CPPv3N4espp7Ads71386Config4readE"></span><span id="_CPPv2N4espp7Ads71386Config4readE"></span><span id="espp::Ads7138::Config::read__read_fn"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1afd972ada5fdef7425b1fa0be83a63a84"></span><a class="reference internal" href="#_CPPv4N4espp7Ads71387read_fnE" title="espp::Ads7138::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config4readE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to read from the ADC. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config9auto_initE">
+<span id="_CPPv3N4espp7Ads71386Config9auto_initE"></span><span id="_CPPv2N4espp7Ads71386Config9auto_initE"></span><span id="espp::Ads7138::Config::auto_init__b"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a89cceac61ab51388da1b3374bed9d74f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Automatically initialize the ADC on construction. If false, <a class="reference internal" href="#classespp_1_1_ads7138_1a7e01761680cb201c0e62f96b3dd2aaaf"><span class="std std-ref">initialize()</span></a> must be called before any other functions. </p>
 </dd></dl>
 
 <dl class="cpp var">
