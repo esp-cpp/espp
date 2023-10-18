@@ -139,7 +139,7 @@
           <li><a href="index.html">IO Expander APIs</a> &raquo;</li>
       <li>AW9523 I/O Expander</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/87d6eb4/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/43b9241/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -158,7 +158,7 @@ are configured into a special LED mode.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/87d6eb4/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/43b9241/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -212,6 +212,7 @@ are configured into a special LED mode.</p>
 <span class="w">                         </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">aw9523_write</span><span class="p">,</span>
 <span class="w">                         </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">aw9523_read</span><span class="p">,</span>
 <span class="w">                         </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="n">aw9523</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span><span class="w"> </span><span class="c1">//Initialized separately from the constructor.</span>
 <span class="w">    </span><span class="c1">// set P1_5, P1_6, and P1_7 to be leds</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">r_led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">13</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">g_led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">14</span><span class="p">);</span>
@@ -396,12 +397,18 @@ are configured into a special LED mode.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236Aw9523ERK6Config">
 <span id="_CPPv3N4espp6Aw95236Aw9523ERK6Config"></span><span id="_CPPv2N4espp6Aw95236Aw9523ERK6Config"></span><span id="espp::Aw9523::Aw9523__ConfigCR"></span><span class="target" id="classespp_1_1_aw9523_1a7a8c9bd9e24a4ec4622c297a1f4d76ef"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Aw9523</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Aw95236ConfigE" title="espp::Aw9523::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236Aw9523ERK6Config" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Construct the <a class="reference internal" href="#classespp_1_1_aw9523"><span class="std std-ref">Aw9523</span></a> and configure it. </p>
+<dd><p>Construct the <a class="reference internal" href="#classespp_1_1_aw9523"><span class="std std-ref">Aw9523</span></a>. Initialization called separately. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1_aw9523_1_1_config"><span class="std std-ref">Config</span></a> structure for configuring the AW9523 </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310initializeEv">
+<span id="_CPPv3N4espp6Aw952310initializeEv"></span><span id="_CPPv2N4espp6Aw952310initializeEv"></span><span id="espp::Aw9523::initialize__void"></span><span class="target" id="classespp_1_1_aw9523_1a576805a8c2f7040b58d7b1beb5abdf0f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the component class. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -560,6 +567,31 @@ are configured into a special LED mode.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to set. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310get_outputE4Port">
+<span id="_CPPv3N4espp6Aw952310get_outputE4Port"></span><span id="_CPPv2N4espp6Aw952310get_outputE4Port"></span><span id="espp::Aw9523::get_output__Port"></span><span class="target" id="classespp_1_1_aw9523_1a7037de923aa2ac03006de699c6beb06c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310get_outputE4Port" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the output pin values on the provided port. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>port</strong> – The Port for which to read the pins </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The pin values as an 8 bit mask. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310get_outputEv">
+<span id="_CPPv3N4espp6Aw952310get_outputEv"></span><span id="_CPPv2N4espp6Aw952310get_outputEv"></span><span id="espp::Aw9523::get_output"></span><span class="target" id="classespp_1_1_aw9523_1accbc1bfc3ba21ef2725059ad6311eb40"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_output</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310get_outputEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the output pin values on both Port 0 and Port 1. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb). </p>
 </dd>
 </dl>
 </dd></dl>

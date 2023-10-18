@@ -166,6 +166,8 @@ public:
     bool statistics_enabled = true; ///< Enable statistics collection (min, max, recent)
     write_fn write;                 ///< Function to write to the ADC
     read_fn read;                   ///< Function to read from the ADC
+    bool auto_init = true;          ///< Automatically initialize the ADC on construction. If false,
+                                    ///< initialize() must be called before any other functions.
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Verbosity for the logger.
   };
 
@@ -174,7 +176,7 @@ public:
    * @param config Configuration structure.
    */
   Ads7138(const Config &config)
-      : mode_(config.mode), avdd_mv_(config.avdd_volts * 1000.0f) // Convert to mV
+      : config_(config), mode_(config.mode), avdd_mv_(config.avdd_volts * 1000.0f) // Convert to mV
         ,
         data_format_(config.oversampling_ratio == OversamplingRatio::NONE ? DataFormat::RAW
                                                                           : DataFormat::AVERAGED),
@@ -183,8 +185,20 @@ public:
         oversampling_ratio_(config.oversampling_ratio), address_(config.device_address),
         write_(config.write), read_(config.read),
         logger_({.tag = "Ads7138", .level = config.log_level}) {
-    init(config);
+    // initialize the ADC
+    if (config.auto_init) {
+      initialize();
+    }
   }
+
+  /**
+   * @brief Initialize the ADC
+   *        This function uses the configuration structure passed to the
+   *        constructor to configure the ADC.
+   * @note This function must be called before any other functions as it
+   *       configures the ADC pins and sets the mode.
+   */
+  void initialize() { init(config_); }
 
   /**
    * @brief Communicate with the ADC to get the analog value for the channel
@@ -1312,6 +1326,8 @@ protected:
     memcpy(data_with_header + 2, data, len);
     write_(address_, data_with_header, total_len);
   }
+
+  Config config_;
 
   Mode mode_;
   float avdd_mv_;
