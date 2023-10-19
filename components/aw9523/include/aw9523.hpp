@@ -49,7 +49,7 @@ public:
    */
   enum class OutputDriveModeP0 : int {
     OPEN_DRAIN = 0, ///< In this mode it needs a pull-up reistor. This is the default mode.
-    PUSH_PUSH = 1,  ///< In this mode it needs no pull-up resistor.
+    PUSH_PULL = 1,  ///< In this mode it needs no pull-up resistor.
   };
 
   /**
@@ -80,20 +80,17 @@ public:
   };
 
   /**
-   * @brief Construct the Aw9523. Initialization called separately. 
+   * @brief Construct the Aw9523. Initialization called separately.
    * @param config Config structure for configuring the AW9523
    */
   Aw9523(const Config &config)
       : config_(config), address_(config.device_address), write_(config.write), read_(config.read),
-        logger_({.tag = "Aw9523", .level = config.log_level}) {
-  }
+        logger_({.tag = "Aw9523", .level = config.log_level}) {}
 
-   /**
-   * @brief Initialize the component class. 
+  /**
+   * @brief Initialize the component class.
    */
-  void initialize(void) {
-    init(config_);
-  }
+  void initialize(void) { init(config_); }
 
   /**
    * @brief Read the pin values on the provided port.
@@ -219,7 +216,7 @@ public:
     set_pins(Port::PORT1, mask >> 8);
   }
 
-    /**
+  /**
    * @brief Read the output pin values on the provided port.
    * @param port The Port for which to read the pins
    * @return The pin values as an 8 bit mask.
@@ -446,8 +443,6 @@ protected:
     ISEL = 0,  ///< [bits [1:0]] Set max drive current of LED (b11=imax/4, b10=imax/2, b01=imax*3/4,
                ///< b00=imax, default=b00)
   };
-
-  
 
   void init(const Config &config) {
     configure_global_control(config.output_drive_mode_p0, config.max_led_current);
