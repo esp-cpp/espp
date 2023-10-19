@@ -76,16 +76,21 @@ public:
     MaxLedCurrent max_led_current = MaxLedCurrent::IMAX;  ///< Max current allowed on each LED.
     write_fn write;                                       ///< Function to write to the device.
     read_fn read;                                         ///< Function to read from the device.
+    bool auto_init = true;                                ///< Automatically initialize the device.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log verbosity for the component.
   };
 
   /**
-   * @brief Construct the Aw9523. Initialization called separately.
+   * @brief Construct the Aw9523. Will call initialize() if auto_init is true.
    * @param config Config structure for configuring the AW9523
    */
   Aw9523(const Config &config)
       : config_(config), address_(config.device_address), write_(config.write), read_(config.read),
-        logger_({.tag = "Aw9523", .level = config.log_level}) {}
+        logger_({.tag = "Aw9523", .level = config.log_level}) {
+    if (config.auto_init) {
+      initialize();
+    }
+  }
 
   /**
    * @brief Initialize the component class.
