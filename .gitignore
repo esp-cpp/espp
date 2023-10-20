@@ -43,3 +43,4 @@ dependencies.lock
 
 # weird mac folders...
 .DS_Store
+lib/pc
