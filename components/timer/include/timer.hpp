@@ -67,10 +67,11 @@ public:
   /// @brief Construct a new Timer object
   /// @param config The configuration for the timer.
   explicit Timer(const Config &config)
-      : period_(config.period), delay_(config.delay), callback_(config.callback),
-        logger_({.tag = config.name,
-                 .rate_limit = std::chrono::milliseconds(100),
-                 .level = config.log_level}) {
+      : period_(std::chrono::duration_cast<std::chrono::microseconds>(config.period)),
+        delay_(std::chrono::duration_cast<std::chrono::microseconds>(config.delay)),
+        callback_(config.callback), logger_({.tag = config.name,
+                                             .rate_limit = std::chrono::milliseconds(100),
+                                             .level = config.log_level}) {
     // make the task
     task_ = espp::Task::make_unique({
         .name = config.name,
@@ -80,6 +81,8 @@ public:
         .priority = config.priority,
         .core_id = config.core_id,
     });
+    period_float = std::chrono::duration<float>(period_).count();
+    delay_float = std::chrono::duration<float>(delay_).count();
     if (config.auto_start) {
       start();
     }
@@ -92,8 +95,7 @@ public:
   /// @brief Start the timer.
   /// @details Starts the timer. Does nothing if the timer is already running.
   void start() {
-    logger_.info("starting with period {:.3f} s and delay {:.3f} s", period_.count(),
-                 delay_.count());
+    logger_.info("starting with period {:.3f} s and delay {:.3f} s", period_float, delay_float);
     // start the task
     task_->start();
   }
@@ -114,7 +116,8 @@ public:
       logger_.info("restarting with delay {:.3f} s", delay.count());
       cancel();
     }
-    delay_ = delay;
+    delay_ = std::chrono::duration_cast<std::chrono::microseconds>(delay);
+    delay_float = std::chrono::duration<float>(delay_).count();
     start();
   }
 
@@ -140,11 +143,11 @@ protected:
     // initial delay, if any - this is only used the first time the timer
     // runs
     if (delay_.count() > 0) {
-      logger_.debug("waiting for delay {:.3f} s", delay_.count());
+      logger_.debug("waiting for delay {:.3f} s", delay_float);
       std::unique_lock<std::mutex> lock(m);
       auto cv_retval = cv.wait_for(lock, delay_);
       // now set the delay to 0
-      delay_ = std::chrono::duration<float>(0);
+      delay_ = std::chrono::microseconds(0);
       if (cv_retval == std::cv_status::no_timeout) {
         // if there was no timeout, then we were notified, which means that the timer
         // was canceled while waiting for the delay, so we should go ahead and return
@@ -154,8 +157,8 @@ protected:
     // now run the callback
     auto start = std::chrono::steady_clock::now();
     bool requested_stop = callback_();
-    if (requested_stop || period_.count() == 0) {
-      // stop the timer if requested or if the period is 0
+    if (requested_stop || period_.count() <= 0) {
+      // stop the timer if requested or if the period is <= 0
       return true;
     }
     auto end = std::chrono::steady_clock::now();
@@ -164,7 +167,7 @@ protected:
       // if the callback took longer than the period, then we should just
       // return and run the callback again immediately
       logger_.warn_rate_limited("callback took longer ({:.3f} s) than period ({:.3f} s)", elapsed,
-                                period_.count());
+                                period_float);
       return false;
     }
     // now wait for the period (taking into account the time it took to run
@@ -180,11 +183,12 @@ protected:
     return false;
   }
 
-  std::chrono::duration<float> period_{
-      0}; ///< The period of the timer. If 0, the timer will run once.
-  std::chrono::duration<float> delay_{0}; ///< The delay before the timer starts.
-  callback_fn callback_;                  ///< The callback function to call when the timer expires.
-  std::unique_ptr<espp::Task> task_;      ///< The task that runs the timer.
-  espp::Logger logger_;                   ///< The logger for the timer.
+  std::chrono::microseconds period_{0}; ///< The period of the timer. If 0, the timer will run once.
+  std::chrono::microseconds delay_{0};  ///< The delay before the timer starts.
+  float period_float;
+  float delay_float;
+  callback_fn callback_;             ///< The callback function to call when the timer expires.
+  std::unique_ptr<espp::Task> task_; ///< The task that runs the timer.
+  espp::Logger logger_;              ///< The logger for the timer.
 };
 } // namespace espp
