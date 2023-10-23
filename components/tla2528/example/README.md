@@ -7,6 +7,9 @@ It uses the `task` component to periodically read two channels of analog data
 and one channel of digital input from the TLA2528, set one channel of digital
 output, and print the data in CSV format using the `format` component.
 
+Note: `RAW` mode (no oversampling / `OversamplingRatio::NONE`) has been tested
+and shown to be working. Averaging / oversampling mode does not currently work.
+
 ## How to use example
 
 ### Hardware Required
