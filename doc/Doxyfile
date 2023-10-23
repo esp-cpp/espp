@@ -58,6 +58,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/tabulate/example/main/tabulate_exampl
 EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
@@ -141,6 +142,7 @@ INPUT += $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp
 INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
 INPUT += $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp
 INPUT += $(PROJECT_PATH)/components/timer/include/timer.hpp
+INPUT += $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp
 
