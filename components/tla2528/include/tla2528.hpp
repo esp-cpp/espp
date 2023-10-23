@@ -200,9 +200,13 @@ public:
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // we need to trigger a conversion and then read the result
     trigger_conversion(channel);
-    uint8_t data[2];
-    read_(address_, data, 2);
-    uint16_t raw = (data[1] << 8) | data[0];
+    size_t num_bytes_per_sample = 2;
+    if (data_format_ == DataFormat::AVERAGED && append_ == Append::CHANNEL_ID) {
+      num_bytes_per_sample = 3;
+    }
+    uint8_t data[num_bytes_per_sample];
+    read_(address_, data, num_bytes_per_sample);
+    uint16_t raw = parse_frame(data);
     return raw_to_mv(raw);
   }
 
@@ -645,25 +649,33 @@ protected:
     int analog_index = 0;
     // only pull out the ones that were configured as analog inputs
     for (int i = 0; i < num_bytes; i += num_bytes_per_sample) {
-      uint8_t msb = raw_values[i];
-      uint8_t lsb = raw_values[i + 1];
-      uint8_t channel_id = (append_ == Append::CHANNEL_ID) ? (lsb & 0x0F) : 0;
-      uint16_t value = 0;
-      if (num_bytes_per_sample == 3) {
-        // we are averaging and we have channel id
-        channel_id = raw_values[i + 2] >> 4;
-      }
-      if (data_format_ == DataFormat::RAW) {
-        // if it's raw, then it's only 12 bit instead of 16 bit
-        value = (msb << 4) | (lsb >> 4);
-      } else {
-        value = (msb << 8) | lsb;
-      }
-      logger_.debug("Got channel id: {}", channel_id);
-      logger_.debug("         value: {}", value);
-      values[analog_index++] = value;
+      values[analog_index++] = parse_frame(&raw_values[i]);
     }
     return values;
+  }
+
+  uint16_t parse_frame(uint8_t *frame_ptr) {
+    size_t num_bytes_per_sample = 2;
+    if (data_format_ == DataFormat::AVERAGED && append_ == Append::CHANNEL_ID) {
+      num_bytes_per_sample = 3;
+    }
+    uint8_t msb = frame_ptr[0];
+    uint8_t lsb = frame_ptr[1];
+    uint8_t channel_id = (append_ == Append::CHANNEL_ID) ? (lsb & 0x0F) : 0;
+    uint16_t value = 0;
+    if (num_bytes_per_sample == 3) {
+      // we are averaging and we have channel id
+      channel_id = frame_ptr[2] >> 4;
+    }
+    if (data_format_ == DataFormat::RAW) {
+      // if it's raw, then it's only 12 bit instead of 16 bit
+      value = (msb << 4) | (lsb >> 4);
+    } else {
+      value = (msb << 8) | lsb;
+    }
+    logger_.debug("Got channel id: {}", channel_id);
+    logger_.debug("         value: {}", value);
+    return value;
   }
 
   std::unordered_map<Channel, uint16_t> read_all_map() {
@@ -693,12 +705,21 @@ protected:
    * @return Voltage in mV.
    */
   float raw_to_mv(uint16_t raw) {
-    // we have a 16-bit ADC, so we can represent 2^16 = 65536 values
-    // we were configured with avdd_mv_ as the reference voltage, so we
-    // can represent avdd_mv_ volts with 65536 values
-    // therefore, each value represents avdd_mv_ / 65536 volts.
-    // multiply by 1000 to get mV
-    return static_cast<float>(raw) * avdd_mv_ / 65536.0;
+    if (data_format_ == DataFormat::AVERAGED) {
+      // we have a 16-bit ADC, so we can represent 2^16 = 65536 values
+      // we were configured with avdd_mv_ as the reference voltage, so we
+      // can represent avdd_mv_ volts with 65536 values
+      // therefore, each value represents avdd_mv_ / 65536 volts.
+      // multiply by 1000 to get mV
+      return static_cast<float>(raw) * avdd_mv_ / 65536.0;
+    } else {
+      // we have a 12-bit ADC, so we can represent 2^12 = 4096 values
+      // we were configured with avdd_mv_ as the reference voltage, so we
+      // can represent avdd_mv_ volts with 4096 values
+      // therefore, each value represents avdd_mv_ / 4096 volts.
+      // multiply by 1000 to get mV
+      return static_cast<float>(raw) * avdd_mv_ / 4096.0;
+    }
   }
 
   /**

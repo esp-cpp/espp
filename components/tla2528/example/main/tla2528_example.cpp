@@ -62,13 +62,13 @@ extern "C" void app_main(void) {
         // Address pin is connected via 11k to ADC_DECAP, so the default address
         // of 0x10 becomes 0x16
         .device_address = espp::Tla2528::DEFAULT_ADDRESS | 0x06,
-        .mode = espp::Tla2528::Mode::AUTO_SEQ,
+        .mode = espp::Tla2528::Mode::MANUAL,
         .analog_inputs = {espp::Tla2528::Channel::CH1, espp::Tla2528::Channel::CH6,
                           espp::Tla2528::Channel::CH7},
         .digital_inputs = {},
         .digital_outputs = {},
         // enable oversampling / averaging
-        .oversampling_ratio = espp::Tla2528::OversamplingRatio::OSR_32,
+        .oversampling_ratio = espp::Tla2528::OversamplingRatio::NONE,
         .write = tla_write,
         .read = tla_read,
         .log_level = espp::Logger::Verbosity::WARN,
@@ -82,10 +82,14 @@ extern "C" void app_main(void) {
       auto elapsed = std::chrono::duration<float>(now - start).count();
 
       // get the analog input data
-      auto all_mv = tla.get_all_mv();
-      auto ntc_mv = all_mv[0]; // channel 1 (NTC)
-      auto y_mv = all_mv[1];   // channel 6 (Y axis)
-      auto x_mv = all_mv[2];   // channel 7 (X axis)
+      // auto all_mv = tla.get_all_mv();
+      // auto ntc_mv = all_mv[0]; // channel 1 (NTC)
+      // auto y_mv = all_mv[1];   // channel 6 (Y axis)
+      // auto x_mv = all_mv[2];   // channel 7 (X axis)
+
+      auto ntc_mv = tla.get_mv(espp::Tla2528::Channel::CH1);
+      auto y_mv = tla.get_mv(espp::Tla2528::Channel::CH7);
+      auto x_mv = tla.get_mv(espp::Tla2528::Channel::CH6);
 
       // // alternatively we could get the analog data in a map
       // auto mapped_mv = tla.get_all_mv_map();
