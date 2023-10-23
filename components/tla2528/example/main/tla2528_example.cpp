@@ -70,7 +70,8 @@ extern "C" void app_main(void) {
         // of 0x10 becomes 0x16
         .device_address = espp::Tla2528::DEFAULT_ADDRESS | 0x06,
         .mode = espp::Tla2528::Mode::AUTO_SEQ,
-        .analog_inputs = {espp::Tla2528::Channel::CH6, espp::Tla2528::Channel::CH7},
+        .analog_inputs = {espp::Tla2528::Channel::CH1, espp::Tla2528::Channel::CH6,
+                          espp::Tla2528::Channel::CH7},
         .digital_inputs = {},
         .digital_outputs = {},
         // enable oversampling / averaging
@@ -80,11 +81,8 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
-    // set the digital output drive mode to open-drain
-    tla.set_digital_output_mode(espp::Tla2528::Channel::CH7, espp::Tla2528::OutputMode::OPEN_DRAIN);
-
     // make the task which will get the raw data from the I2C ADC
-    fmt::print("%time (s), x (mV), y (mV)\n");
+    fmt::print("%time (s), ntc (mV), x (mV), y (mV)\n");
     auto tla_read_task_fn = [&tla](std::mutex &m, std::condition_variable &cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
@@ -92,8 +90,9 @@ extern "C" void app_main(void) {
 
       // get the analog input data
       auto all_mv = tla.get_all_mv();
-      auto y_mv = all_mv[0]; // the first channel is channel 6 (Y axis)
-      auto x_mv = all_mv[1]; // the second channel is channel 7 (X axis)
+      auto ntc_mv = all_mv[0]; // channel 1 (NTC)
+      auto y_mv = all_mv[1];   // channel 6 (Y axis)
+      auto x_mv = all_mv[2];   // channel 7 (X axis)
 
       // // alternatively we could get the analog data in a map
       // auto mapped_mv = tla.get_all_mv_map();
@@ -102,7 +101,7 @@ extern "C" void app_main(void) {
 
       // use fmt to print so it doesn't have the prefix and can be used more
       // easily as CSV (for plotting using uart_serial_plotter)
-      fmt::print("{:.3f}, {:.3f}, {:.3f}\n", elapsed, x_mv, y_mv);
+      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}\n", elapsed, ntc_mv, x_mv, y_mv);
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
