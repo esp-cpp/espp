@@ -529,6 +529,8 @@ protected:
     }
     data_format_ = format;
     logger_.info("Data format set to {}", data_format_);
+    append_ = append;
+    logger_.info("Append set to {}", append_);
   }
 
   void set_oversampling_ratio(OversamplingRatio ratio) {
@@ -629,22 +631,37 @@ protected:
     logger_.info("Reading recent values for all channels");
     size_t num_inputs = analog_inputs_.size();
     std::vector<uint16_t> values(num_inputs);
+    size_t num_bytes_per_sample = 2;
+    if (data_format_ == DataFormat::AVERAGED && append_ == Append::CHANNEL_ID) {
+      num_bytes_per_sample = 3;
+    }
+    size_t num_bytes = num_inputs * num_bytes_per_sample;
+    uint8_t raw_values[num_bytes] = {0};
     // start the auto conversion sequence
     start_auto_conversion();
-    size_t num_bytes = num_inputs * 2;
-    uint8_t raw_values[num_bytes];
     read_(address_, raw_values, num_bytes);
     // stop the auto conversion sequence
     stop_auto_conversion();
     int analog_index = 0;
     // only pull out the ones that were configured as analog inputs
-    for (int i = 0; i < 8; i++) {
-      if (is_analog_input(static_cast<Channel>(i))) {
-        // read both the LSB AND MSB registers and combine them (lsb is first)
-        uint8_t lsb = raw_values[i * 2];
-        uint8_t msb = raw_values[i * 2 + 1];
-        values[analog_index++] = (msb << 8) | lsb;
+    for (int i = 0; i < num_bytes; i += num_bytes_per_sample) {
+      uint8_t msb = raw_values[i];
+      uint8_t lsb = raw_values[i + 1];
+      uint8_t channel_id = (append_ == Append::CHANNEL_ID) ? (lsb & 0x0F) : 0;
+      uint16_t value = 0;
+      if (num_bytes_per_sample == 3) {
+        // we are averaging and we have channel id
+        channel_id = raw_values[i + 2] >> 4;
       }
+      if (data_format_ == DataFormat::RAW) {
+        // if it's raw, then it's only 12 bit instead of 16 bit
+        value = (msb << 4) | (lsb >> 4);
+      } else {
+        value = (msb << 8) | lsb;
+      }
+      logger_.debug("Got channel id: {}", channel_id);
+      logger_.debug("         value: {}", value);
+      values[analog_index++] = value;
     }
     return values;
   }
@@ -815,6 +832,7 @@ protected:
   Mode mode_;
   float avdd_mv_;
   DataFormat data_format_;
+  Append append_;
   std::vector<Channel> analog_inputs_;
   std::vector<Channel> digital_inputs_;
   std::vector<Channel> digital_outputs_;

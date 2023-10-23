@@ -17,13 +17,6 @@ static constexpr auto I2C_SDA_IO = (GPIO_NUM_22);
 static constexpr auto I2C_FREQ_HZ = (400 * 1000);
 static constexpr auto I2C_TIMEOUT_MS = (10);
 
-static QueueHandle_t gpio_evt_queue;
-
-static void gpio_isr_handler(void *arg) {
-  uint32_t gpio_num = (uint32_t)arg;
-  xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
-}
-
 extern "C" void app_main(void) {
   static espp::Logger logger({.tag = "tla2528 example", .level = espp::Logger::Verbosity::INFO});
   // This example shows using the i2c adc (tla2528)
