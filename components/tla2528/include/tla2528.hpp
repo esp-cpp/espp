@@ -13,12 +13,12 @@ namespace espp {
 /**
  * @brief Class for reading values from the TLA2528 family of ADC chips.
  * @details The TLA2528 is a 16-bit, 8-channel ADC with 8 digital I/O pins. It
- *          supports a variety of sampling modes, including autonomous
- *          sampling, manual sampling, and auto sequence sampling. It also
- *          supports oversampling ratios of 2, 4, 8, 16, 32, 64, and 128. It
- *          additionally allows the user to configure the analog or digital
- *          inputs to trigger an alert when the value goes above or below a
- *          threshold (enter or leave a region of voltage).
+ *          supports a variety of sampling modes, including manual sampling, and
+ *          auto sequence sampling. It also supports oversampling ratios of 2,
+ *          4, 8, 16, 32, 64, and 128. It additionally allows the user to
+ *          configure the analog or digital inputs to trigger an alert when the
+ *          value goes above or below a threshold (enter or leave a region of
+ *          voltage).
  * @see https://www.ti.com/lit/ds/symlink/tla2528.pdf
  *
  * \section tla2528_ex1 TLA2528 Example
@@ -87,13 +87,6 @@ public:
   ///   the data from the device. The mux automatically switches through the
   ///   predetermined channel sequence, and the data conversion results are
   ///   sent through the data bus.
-  /// * Autonomous Mode: After receiving the first start of conversion pulse
-  ///   from the host, the ADS7128 device then generates the subsequent start
-  ///   of conversion signals autonomously. The device features an internal
-  ///   oscillator to generate the start of ADC conversion pulses without the
-  ///   host controlling the conversions. Output data are not returned over
-  ///   the digital bus; only a signal on the ALERT is generated when an input
-  ///   signal crosses the programmable thresholds.
   enum class Mode : uint8_t {
     MANUAL = 0, ///< Manual mode (9th falling edge of SCL (ACK) triggers conversion) and the MUX is
                 ///< controlled by register write to MANUAL_CHID field of the CHANNEL_SEL register.
@@ -133,8 +126,8 @@ public:
    */
   struct Config {
     uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the device.
-    float avdd_volts = 3.3f; ///< AVDD voltage in Volts. Used for calculating analog input voltage.
-    Mode mode = Mode::AUTO_SEQ;                ///< Mode for analog input conversion.
+    float avdd_volts = 3.3f;  ///< AVDD voltage in Volts. Used for calculating analog input voltage.
+    Mode mode = Mode::MANUAL; ///< Mode for analog input conversion.
     std::vector<Channel> analog_inputs = {};   ///< List of analog input channels to sample.
     std::vector<Channel> digital_inputs = {};  ///< List of digital input channels to sample.
     std::vector<Channel> digital_outputs = {}; ///< List of digital output channels to sample.
@@ -148,10 +141,11 @@ public:
             ///< the default value is false in open-drain
             ///< mode.
     OversamplingRatio oversampling_ratio = OversamplingRatio::NONE; ///< Oversampling ratio to use.
-    write_fn write;        ///< Function to write to the ADC
-    read_fn read;          ///< Function to read from the ADC
-    bool auto_init = true; ///< Automatically initialize the ADC on construction. If false,
-                           ///< initialize() must be called before any other functions.
+    Append append = Append::NONE; ///< What data to append to samples when reading analog inputs.
+    write_fn write;               ///< Function to write to the ADC
+    read_fn read;                 ///< Function to read from the ADC
+    bool auto_init = true;        ///< Automatically initialize the ADC on construction. If false,
+                                  ///< initialize() must be called before any other functions.
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Verbosity for the logger.
   };
 
@@ -164,10 +158,15 @@ public:
         ,
         data_format_(config.oversampling_ratio == OversamplingRatio::NONE ? DataFormat::RAW
                                                                           : DataFormat::AVERAGED),
-        analog_inputs_(config.analog_inputs), digital_inputs_(config.digital_inputs),
-        digital_outputs_(config.digital_outputs), oversampling_ratio_(config.oversampling_ratio),
-        address_(config.device_address), write_(config.write), read_(config.read),
+        append_(config.append), analog_inputs_(config.analog_inputs),
+        digital_inputs_(config.digital_inputs), digital_outputs_(config.digital_outputs),
+        oversampling_ratio_(config.oversampling_ratio), address_(config.device_address),
+        write_(config.write), read_(config.read),
         logger_({.tag = "Tla2528", .level = config.log_level}) {
+    num_bytes_per_sample_ = 2;
+    if (data_format_ == DataFormat::AVERAGED && append_ == Append::CHANNEL_ID) {
+      num_bytes_per_sample_ = 3;
+    }
     // initialize the ADC
     if (config.auto_init) {
       initialize();
@@ -200,12 +199,8 @@ public:
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // we need to trigger a conversion and then read the result
     trigger_conversion(channel);
-    size_t num_bytes_per_sample = 2;
-    if (data_format_ == DataFormat::AVERAGED && append_ == Append::CHANNEL_ID) {
-      num_bytes_per_sample = 3;
-    }
-    uint8_t data[num_bytes_per_sample];
-    read_(address_, data, num_bytes_per_sample);
+    uint8_t data[num_bytes_per_sample_];
+    read_(address_, data, num_bytes_per_sample_);
     uint16_t raw = parse_frame(data);
     return raw_to_mv(raw);
   }
@@ -484,16 +479,9 @@ protected:
     AUTO = 1,   ///< Auto mode
   };
 
-  enum class EventRegion {
-    OUTSIDE_OR_HIGH = 0, ///< Trigger when ADC value goes outside the low/high thresholds or
-                         ///< digital input is high
-    INSIDE_OR_LOW = 1,   ///< Trigger when ADC value goes inside the low/high thresholds or digital
-                         ///< input is low
-  };
-
   void init(const Config &config) {
     // Set the data format
-    set_data_format(data_format_, Append::CHANNEL_ID);
+    set_data_format(data_format_, append_);
 
     // Set the oversampling ratio
     set_oversampling_ratio(config.oversampling_ratio);
@@ -526,15 +514,15 @@ protected:
   }
 
   void set_data_format(DataFormat format, Append append) {
-    clear_bits_(Register::DATA_CFG, APPEND);
-    if (append == Append::CHANNEL_ID) {
-      logger_.debug("Appending channel ID");
-      set_bits_(Register::DATA_CFG, APPEND_CHID);
-    }
     data_format_ = format;
     logger_.info("Data format set to {}", data_format_);
     append_ = append;
     logger_.info("Append set to {}", append_);
+    clear_bits_(Register::DATA_CFG, APPEND);
+    if (append_ == Append::CHANNEL_ID) {
+      logger_.debug("Appending channel ID");
+      set_bits_(Register::DATA_CFG, APPEND_CHID);
+    }
   }
 
   void set_oversampling_ratio(OversamplingRatio ratio) {
@@ -635,11 +623,7 @@ protected:
     logger_.info("Reading recent values for all channels");
     size_t num_inputs = analog_inputs_.size();
     std::vector<uint16_t> values(num_inputs);
-    size_t num_bytes_per_sample = 2;
-    if (data_format_ == DataFormat::AVERAGED && append_ == Append::CHANNEL_ID) {
-      num_bytes_per_sample = 3;
-    }
-    size_t num_bytes = num_inputs * num_bytes_per_sample;
+    size_t num_bytes = num_inputs * num_bytes_per_sample_;
     uint8_t raw_values[num_bytes] = {0};
     // start the auto conversion sequence
     start_auto_conversion();
@@ -648,22 +632,18 @@ protected:
     stop_auto_conversion();
     int analog_index = 0;
     // only pull out the ones that were configured as analog inputs
-    for (int i = 0; i < num_bytes; i += num_bytes_per_sample) {
+    for (int i = 0; i < num_bytes; i += num_bytes_per_sample_) {
       values[analog_index++] = parse_frame(&raw_values[i]);
     }
     return values;
   }
 
   uint16_t parse_frame(uint8_t *frame_ptr) {
-    size_t num_bytes_per_sample = 2;
-    if (data_format_ == DataFormat::AVERAGED && append_ == Append::CHANNEL_ID) {
-      num_bytes_per_sample = 3;
-    }
     uint8_t msb = frame_ptr[0];
     uint8_t lsb = frame_ptr[1];
     uint8_t channel_id = (append_ == Append::CHANNEL_ID) ? (lsb & 0x0F) : 0;
     uint16_t value = 0;
-    if (num_bytes_per_sample == 3) {
+    if (num_bytes_per_sample_ == 3) {
       // we are averaging and we have channel id
       channel_id = frame_ptr[2] >> 4;
     }
@@ -854,6 +834,7 @@ protected:
   float avdd_mv_;
   DataFormat data_format_;
   Append append_;
+  size_t num_bytes_per_sample_{2};
   std::vector<Channel> analog_inputs_;
   std::vector<Channel> digital_inputs_;
   std::vector<Channel> digital_outputs_;

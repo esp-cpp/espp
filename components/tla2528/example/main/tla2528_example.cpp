@@ -57,14 +57,17 @@ extern "C" void app_main(void) {
       }
     };
 
+    static auto NTC_CHANNEL = espp::Tla2528::Channel::CH1;
+    static auto X_CHANNEL = espp::Tla2528::Channel::CH6;
+    static auto Y_CHANNEL = espp::Tla2528::Channel::CH7;
+
     // make the actual tla class
     espp::Tla2528 tla(espp::Tla2528::Config{
         // Address pin is connected via 11k to ADC_DECAP, so the default address
         // of 0x10 becomes 0x16
         .device_address = espp::Tla2528::DEFAULT_ADDRESS | 0x06,
         .mode = espp::Tla2528::Mode::MANUAL,
-        .analog_inputs = {espp::Tla2528::Channel::CH1, espp::Tla2528::Channel::CH6,
-                          espp::Tla2528::Channel::CH7},
+        .analog_inputs = {NTC_CHANNEL, X_CHANNEL, Y_CHANNEL},
         .digital_inputs = {},
         .digital_outputs = {},
         // enable oversampling / averaging
@@ -82,19 +85,9 @@ extern "C" void app_main(void) {
       auto elapsed = std::chrono::duration<float>(now - start).count();
 
       // get the analog input data
-      // auto all_mv = tla.get_all_mv();
-      // auto ntc_mv = all_mv[0]; // channel 1 (NTC)
-      // auto y_mv = all_mv[1];   // channel 6 (Y axis)
-      // auto x_mv = all_mv[2];   // channel 7 (X axis)
-
-      auto ntc_mv = tla.get_mv(espp::Tla2528::Channel::CH1);
-      auto y_mv = tla.get_mv(espp::Tla2528::Channel::CH7);
-      auto x_mv = tla.get_mv(espp::Tla2528::Channel::CH6);
-
-      // // alternatively we could get the analog data in a map
-      // auto mapped_mv = tla.get_all_mv_map();
-      // x_mv = mapped_mv[espp::Tla2528::Channel::CH7];
-      // y_mv = mapped_mv[espp::Tla2528::Channel::CH6];
+      auto ntc_mv = tla.get_mv(NTC_CHANNEL);
+      auto x_mv = tla.get_mv(X_CHANNEL);
+      auto y_mv = tla.get_mv(Y_CHANNEL);
 
       // use fmt to print so it doesn't have the prefix and can be used more
       // easily as CSV (for plotting using uart_serial_plotter)
