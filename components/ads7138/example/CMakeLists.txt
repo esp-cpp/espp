@@ -16,6 +16,6 @@ set(
   "List of components to include"
   )
 
-project(ads1x15_example)
+project(ads7138_example)
 
 set(CMAKE_CXX_STANDARD 20)
