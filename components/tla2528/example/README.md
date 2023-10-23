@@ -15,7 +15,6 @@ To run this example, you need:
 * [QtPy ESP32S3](https://www.adafruit.com/product/5426)
 * [TLA2528]()
 * [Adafruit Thumb Joystick](https://www.adafruit.com/product/512)
-* 1 kOhm resistor (between Joystick Select and 3.3V)
 * Some dupont wires
 * QwiiC cable (JST-SH to Dupont)
 
@@ -35,3 +34,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+![CleanShot 2023-10-23 at 12 32 53](https://github.com/esp-cpp/espp/assets/213467/2b3e345f-4030-4e7a-9547-164ddb4cbafc)
