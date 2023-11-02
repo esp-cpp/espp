@@ -22,8 +22,9 @@ public:
    * @param dev_addr Address of the device to write to.
    * @param data Pointer to array of bytes to write.
    * @param data_len Number of data bytes to write.
+   * @return True if the write was successful.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
+  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
 
   /**
    * @brief Function to read bytes from the device.
@@ -31,8 +32,9 @@ public:
    * @param reg_addr Register address to read from.
    * @param data Pointer to array of bytes to read into.
    * @param data_len Number of data bytes to read.
+   * @return True if the read was successful.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
+  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
       read_fn;
 
   /**
@@ -120,14 +122,21 @@ public:
    * @brief Communicate with the ADC to sample the channel and return the
    *        sampled value.
    * @param channel Which channel of the ADC to sample
+   * @param ec Error code to set if there is an error.
    * @return The voltage (in mV) sampled on the channel.
    */
-  float sample_mv(int channel) { return raw_to_mv(sample_raw(channel)); }
+  float sample_mv(int channel, std::error_code &ec) {
+    auto raw = sample_raw(channel, ec);
+    if (ec) {
+      return 0.0f;
+    }
+    return raw_to_mv(raw);
+  }
 
 protected:
-  int16_t sample_raw(int channel);
+  int16_t sample_raw(int channel, std::error_code &ec);
 
-  bool conversion_complete();
+  bool conversion_complete(std::error_code &ec);
 
   float raw_to_mv(int16_t raw) {
     // see data sheet Table 3
@@ -157,16 +166,23 @@ protected:
     return raw * (fsRange / (32768 >> bit_shift_));
   }
 
-  uint16_t read_two_(uint8_t reg_addr) {
+  uint16_t read_two_(uint8_t reg_addr, std::error_code &ec) {
     uint8_t data[2];
-    read_(address_, reg_addr, data, 2);
+    bool success = read_(address_, reg_addr, data, 2);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return (data[0] << 8) | data[1];
   }
 
-  void write_two_(uint8_t reg_addr, uint16_t value) {
+  void write_two_(uint8_t reg_addr, uint16_t value, std::error_code &ec) {
     uint8_t total_len = 3;
     uint8_t data[total_len] = {reg_addr, (uint8_t)(value >> 8), (uint8_t)(value & 0xFF)};
-    write_(address_, data, total_len);
+    bool success = write_(address_, data, total_len);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
   enum class Register : uint8_t {

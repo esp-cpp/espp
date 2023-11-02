@@ -45,16 +45,12 @@ extern "C" void app_main(void) {
     auto tla_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
       auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
                                             I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      if (err != ESP_OK) {
-        logger.error("I2C WRITE ERROR: to {:#04x} '{}'", dev_addr, esp_err_to_name(err));
-      }
+      return err == ESP_OK;
     };
     auto tla_read = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
       auto err = i2c_master_read_from_device(I2C_NUM, dev_addr, data, data_len,
                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      if (err != ESP_OK) {
-        logger.error("I2C READ ERROR: to {:#04x} '{}'", dev_addr, esp_err_to_name(err));
-      }
+      return err == ESP_OK;
     };
 
     static auto NTC_CHANNEL = espp::Tla2528::Channel::CH1;
@@ -99,7 +95,12 @@ extern "C" void app_main(void) {
 
       // Could also use the mapped version; NOTE: this only works if you have configured the
       // TLA2528 to use AUTO_SEQ mode (which is more efficient)
-      auto all_mv_map = tla.get_all_mv_map();
+      std::error_code ec;
+      auto all_mv_map = tla.get_all_mv_map(ec);
+      if (ec) {
+        logger.error("error reading TLA2528: {}", ec.message());
+        return false;
+      }
       auto ntc_mv = all_mv_map[NTC_CHANNEL];
       auto x_mv = all_mv_map[X_CHANNEL];
       auto y_mv = all_mv_map[Y_CHANNEL];

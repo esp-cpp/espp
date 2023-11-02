@@ -23,8 +23,9 @@ public:
    * @param dev_addr Address of the device to write to.
    * @param data Pointer to array of bytes to write.
    * @param data_len Number of data bytes to write.
+   * @return True if successful, false otherwise.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
+  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
 
   /**
    * @brief Function to read bytes from the device.
@@ -32,8 +33,9 @@ public:
    * @param reg_addr Register address to read from.
    * @param data Pointer to array of bytes to read into.
    * @param data_len Number of data bytes to read.
+   * @return True if successful, false otherwise.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
+  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
       read_fn;
 
   /**
@@ -88,69 +90,86 @@ public:
       : config_(config), address_(config.device_address), write_(config.write), read_(config.read),
         logger_({.tag = "Aw9523", .level = config.log_level}) {
     if (config.auto_init) {
-      initialize();
+      std::error_code ec;
+      initialize(ec);
+      if (ec) {
+        logger_.error("Failed to initialize AW9523: {}", ec.message());
+      }
     }
   }
 
   /**
    * @brief Initialize the component class.
+   * @param ec Error code to set if an error occurs.
    */
-  void initialize(void) { init(config_); }
+  void initialize(std::error_code &ec) { init(config_, ec); }
 
   /**
    * @brief Read the pin values on the provided port.
    * @param port The Port for which to read the pins
+   * @param ec Error code to set if an error occurs.
    * @return The pin values as an 8 bit mask.
    */
-  uint8_t get_pins(Port port) {
+  uint8_t get_pins(Port port, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::INPORT0 : Registers::INPORT1;
-    return read_one_((uint8_t)addr);
+    return read_one_((uint8_t)addr, ec);
   }
 
   /**
    * @brief Read the pin values on both Port 0 and Port 1.
+   * @param ec Error code to set if an error occurs.
    * @return The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb).
    */
-  uint16_t get_pins() {
-    return (read_one_((uint8_t)Registers::INPORT1) << 8) | read_one_((uint8_t)Registers::INPORT0);
-    // TODO: this should work as well, but doesn't seem to (only the first
-    //       byte read seems to be correct...)
-    // return read_two_((uint8_t)Registers::INPORT0);
+  uint16_t get_pins(std::error_code &ec) {
+    uint16_t p0 = read_one_((uint8_t)Registers::INPORT0, ec);
+    if (ec)
+      return 0;
+    uint16_t p1 = read_one_((uint8_t)Registers::INPORT1, ec);
+    if (ec)
+      return 0;
+    return (p1 << 8) | p0;
   }
 
   /**
    * @brief Write the pin values on the provided port.
    * @param port The Port for which to write the pins
    * @param value The pin values to apply.
+   * @param ec Error code to set if an error occurs.
    * @note This will overwrite any previous pin values on the port for all
    *       output pins on the port.
    */
-  void output(Port port, uint8_t value) {
+  void output(Port port, uint8_t value, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    write_one_((uint8_t)addr, value);
+    write_one_((uint8_t)addr, value, ec);
   }
 
   /**
    * @brief Write the pin values on both Port 0 and Port 1.
    * @param p0 The pin values to apply to Port 0.
    * @param p1 The pin values to apply to Port 1.
+   * @param ec Error code to set if an error occurs.
    * @note This will overwrite any previous pin values on the port for all
    *       output pins on the ports.
    */
-  void output(uint8_t p0, uint8_t p1) {
-    output(Port::PORT0, p0);
-    output(Port::PORT1, p1);
+  void output(uint8_t p0, uint8_t p1, std::error_code &ec) {
+    output(Port::PORT0, p0, ec);
+    if (ec)
+      return;
+    output(Port::PORT1, p1, ec);
   }
 
   /**
    * @brief Write the pin values on both Port 0 and Port 1.
    * @param value The pin values to apply as a 16 bit value (P0_0 lsb, P1_7 msb).
+   * @param ec Error code to set if an error occurs.
    * @note This will overwrite any previous pin values on the port for all
    *       output pins on the ports.
    */
-  void output(uint16_t value) {
-    output(Port::PORT0, value & 0xFF);
-    output(Port::PORT1, value >> 8);
+  void output(uint16_t value, std::error_code &ec) {
+    output(Port::PORT0, value & 0xFF, ec);
+    if (ec)
+      return;
+    output(Port::PORT1, value >> 8, ec);
   }
 
   /**
@@ -158,12 +177,15 @@ public:
    * @details Reads the current pin values and clears any bits set in the mask.
    * @param port The Port for which to clear the pin outputs.
    * @param mask The pin values as an 8 bit mask to clear.
+   * @param ec Error code to set if an error occurs.
    */
-  void clear_pins(Port port, uint8_t mask) {
+  void clear_pins(Port port, uint8_t mask, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    auto data = read_one_((uint8_t)addr);
+    auto data = read_one_((uint8_t)addr, ec);
+    if (ec)
+      return;
     data &= ~mask;
-    write_one_((uint8_t)addr, data);
+    write_one_((uint8_t)addr, data, ec);
   }
 
   /**
@@ -171,20 +193,26 @@ public:
    * @details Reads the current pin values and clears any bits set in the masks.
    * @param p0 The pin values as an 8 bit mask for Port 0 to clear.
    * @param p1 The pin values as an 8 bit mask for Port 1 to clear.
+   * @param ec Error code to set if an error occurs.
    */
-  void clear_pins(uint8_t p0, uint8_t p1) {
-    clear_pins(Port::PORT0, p0);
-    clear_pins(Port::PORT1, p1);
+  void clear_pins(uint8_t p0, uint8_t p1, std::error_code &ec) {
+    clear_pins(Port::PORT0, p0, ec);
+    if (ec)
+      return;
+    clear_pins(Port::PORT1, p1, ec);
   }
 
   /**
    * @brief Clear the pin values for Port 0 and Port 1 according to the provided mask.
    * @details Reads the current pin values and clears any bits set in the mask.
    * @param mask The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to clear.
+   * @param ec Error code to set if an error occurs.
    */
-  void clear_pins(uint16_t mask) {
-    clear_pins(Port::PORT0, mask & 0xFF);
-    clear_pins(Port::PORT1, mask >> 8);
+  void clear_pins(uint16_t mask, std::error_code &ec) {
+    clear_pins(Port::PORT0, mask & 0xFF, ec);
+    if (ec)
+      return;
+    clear_pins(Port::PORT1, mask >> 8, ec);
   }
 
   /**
@@ -192,12 +220,15 @@ public:
    * @brief Reads the current pin values and sets any bits set in the mask.
    * @param port The Port for which to set the pin outputs.
    * @param mask The pin values as an 8 bit mask to set.
+   * @param ec Error code to set if an error occurs.
    */
-  void set_pins(Port port, uint8_t mask) {
+  void set_pins(Port port, uint8_t mask, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    auto data = read_one_((uint8_t)addr);
+    auto data = read_one_((uint8_t)addr, ec);
+    if (ec)
+      return;
     data |= mask;
-    write_one_((uint8_t)addr, data);
+    write_one_((uint8_t)addr, data, ec);
   }
 
   /**
@@ -205,132 +236,151 @@ public:
    * @details Reads the current pin values and sets any bits set in the masks.
    * @param p0 The pin values for Port 0 as an 8 bit mask to set.
    * @param p1 The pin values for Port 1 as an 8 bit mask to set.
+   * @param ec Error code to set if an error occurs.
    */
-  void set_pins(uint8_t p0, uint8_t p1) {
-    set_pins(Port::PORT0, p0);
-    set_pins(Port::PORT1, p1);
+  void set_pins(uint8_t p0, uint8_t p1, std::error_code &ec) {
+    set_pins(Port::PORT0, p0, ec);
+    if (ec)
+      return;
+    set_pins(Port::PORT1, p1, ec);
   }
 
   /**
    * @brief Set the pin values for Port 0 and Port 1 according to the provided mask.
    * @details Reads the current pin values and sets any bits set in the mask.
    * @param mask The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to set.
+   * @param ec Error code to set if an error occurs.
    */
-  void set_pins(uint16_t mask) {
-    set_pins(Port::PORT0, mask & 0xFF);
-    set_pins(Port::PORT1, mask >> 8);
+  void set_pins(uint16_t mask, std::error_code &ec) {
+    set_pins(Port::PORT0, mask & 0xFF, ec);
+    if (ec)
+      return;
+    set_pins(Port::PORT1, mask >> 8, ec);
   }
 
   /**
    * @brief Read the output pin values on the provided port.
    * @param port The Port for which to read the pins
+   * @param ec Error code to set if an error occurs.
    * @return The pin values as an 8 bit mask.
    */
-  uint8_t get_output(Port port) {
+  uint8_t get_output(Port port, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    return read_one_((uint8_t)addr);
+    return read_one_((uint8_t)addr, ec);
   }
 
   /**
    * @brief Read the output pin values on both Port 0 and Port 1.
+   * @param ec Error code to set if an error occurs.
    * @return The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb).
    */
-  uint16_t get_output() {
-    return (read_one_((uint8_t)Registers::OUTPORT1) << 8) | read_one_((uint8_t)Registers::OUTPORT0);
-    // TODO: this should work as well, but doesn't seem to (only the first
-    //       byte read seems to be correct...)
-    // return read_two_((uint8_t)Registers::OUTPORT0);
+  uint16_t get_output(std::error_code &ec) {
+    uint16_t p0 = read_one_((uint8_t)Registers::OUTPORT0, ec);
+    if (ec)
+      return 0;
+    uint16_t p1 = read_one_((uint8_t)Registers::OUTPORT1, ec);
+    if (ec)
+      return 0;
+    return (p1 << 8) | p0;
   }
 
   /**
    * @brief Configure the provided pins to interrupt on change.
    * @param port The port associated with the provided pin mask.
    * @param mask The pin mask to configure for interrupt (0=interrupt).
+   * @param ec Error code to set if an error occurs.
    */
-  void set_interrupt(Port port, uint8_t mask) {
+  void set_interrupt(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting interrupt on change for Port {} pins {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::INTPORT0 : Registers::INTPORT1;
-    write_one_((uint8_t)addr, mask);
+    write_one_((uint8_t)addr, mask, ec);
   }
 
   /**
    * @brief Configure the provided pins to interrupt on change.
    * @param p0 The pin mask for Port 0 to configure for interrupt (0=interrupt).
    * @param p1 The pin mask for Port 1 to configure for interrupt (0=interrupt).
+   * @param ec Error code to set if an error occurs.
    */
-  void set_interrupt(uint8_t p0, uint8_t p1) {
+  void set_interrupt(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Setting interrupt on change p0:{}, p1:{}", p0, p1);
     auto addr = Registers::INTPORT0;
     uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2);
+    write_many_((uint8_t)addr, data, 2, ec);
   }
 
   /**
    * @brief Set the i/o direction for the pins according to mask.
    * @param port The port associated with the provided pin mask.
    * @param mask The mask indicating direction (1 = input, 0 = output)
+   * @param ec Error code to set if an error occurs.
    */
-  void set_direction(Port port, uint8_t mask) {
+  void set_direction(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting direction for Port {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::DIRPORT0 : Registers::DIRPORT1;
-    write_one_((uint8_t)addr, mask);
+    write_one_((uint8_t)addr, mask, ec);
   }
 
   /**
    * @brief Set the i/o direction for the pins on Port 0 and Port 1.
    * @param p0 The mask for Port 0 indicating direction (1 = input, 0 = output)
    * @param p1 The mask for Port 1 indicating direction (1 = input, 0 = output)
+   * @param ec Error code to set if an error occurs.
    */
-  void set_direction(uint8_t p0, uint8_t p1) {
+  void set_direction(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Setting direction  p0:{}, p1:{}", p0, p1);
     auto addr = Registers::DIRPORT0;
     uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2);
+    write_many_((uint8_t)addr, data, 2, ec);
   }
 
   /**
    * @brief Enable/disable the LED function on the associated port pins.
    * @param port The port associated with the provided pin mask.
    * @param mask The mask indicating LED function (1 = GPIO, 0 = LED)
+   * @param ec Error code to set if an error occurs.
    */
-  void configure_led(Port port, uint8_t mask) {
+  void configure_led(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Configuring LED function for Port {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::LEDMODE0 : Registers::LEDMODE1;
-    write_one_((uint8_t)addr, mask);
+    write_one_((uint8_t)addr, mask, ec);
   }
 
   /**
    * @brief Enable/disable the LED function on the associated port pins.
    * @param p0 The mask for Port 0 indicating LED function (1 = GPIO, 0 = LED)
    * @param p1 The mask for Port 1 indicating LED function (1 = GPIO, 0 = LED)
+   * @param ec Error code to set if an error occurs.
    */
-  void configure_led(uint8_t p0, uint8_t p1) {
+  void configure_led(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
     auto addr = Registers::LEDMODE0;
     uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2);
+    write_many_((uint8_t)addr, data, 2, ec);
   }
 
   /**
    * @brief Enable/disable the LED function on the associated port pins.
    * @param mask The bit mask for Port 0 and Port 1 [(Port 1 << 8) | (Port 0)]
    *        indicating LED function (1 = GPIO, 0 = LED)
+   * @param ec Error code to set if an error occurs.
    */
-  void configure_led(uint16_t mask) {
+  void configure_led(uint16_t mask, std::error_code &ec) {
     uint8_t p0 = mask & 0xFF;
     uint8_t p1 = (mask >> 8) & 0xFF;
     logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
     auto addr = Registers::LEDMODE0;
     uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2);
+    write_many_((uint8_t)addr, data, 2, ec);
   }
 
   /**
    * @brief Set the pin's LED to new brightness value.
    * @param pin The pin bit corresponding to the pin (P0_0 lsb, P1_7 msb).
    * @param brightness The brightness value [0,255] to set the LED to.
+   * @param ec Error code to set if an error occurs.
    */
-  void led(uint16_t pin, uint8_t brightness) {
+  void led(uint16_t pin, uint8_t brightness, std::error_code &ec) {
     logger_.debug("Setting LED brightness for pin {} to {}", pin, brightness);
     uint8_t addr = 0;
     switch (pin) {
@@ -386,16 +436,17 @@ public:
       return; // bad mask, don't do anything!
       break;
     }
-    write_one_(addr, brightness);
+    write_one_(addr, brightness, ec);
   }
 
   /**
    * @brief Configure the global control register.
    * @param output_drive_mode_p0 Output drive mode for Port 0.
    * @param max_led_current Maximum LED current for each LED pin.
+   * @param ec Error code to set if an error occurs.
    */
   void configure_global_control(OutputDriveModeP0 output_drive_mode_p0,
-                                MaxLedCurrent max_led_current) {
+                                MaxLedCurrent max_led_current, std::error_code &ec) {
     logger_.debug("Configuring output drive for port 0 to {}", (uint8_t)output_drive_mode_p0);
     logger_.debug("Configuring max led current to {}", (uint8_t)max_led_current);
     auto addr = Registers::GLOBALCTRL;
@@ -404,7 +455,7 @@ public:
     uint8_t data = 0;
     data |= ((uint8_t)output_drive_mode_p0) << (int)ControlBit::GPOMD;
     data |= ((uint8_t)max_led_current) << (int)ControlBit::ISEL;
-    write_one_((uint8_t)addr, data);
+    write_one_((uint8_t)addr, data, ec);
   }
 
 protected:
@@ -449,34 +500,56 @@ protected:
                ///< b00=imax, default=b00)
   };
 
-  void init(const Config &config) {
-    configure_global_control(config.output_drive_mode_p0, config.max_led_current);
-    set_direction(Port::PORT0, config.port_0_direction_mask);
-    set_direction(Port::PORT1, config.port_1_direction_mask);
-    set_interrupt(Port::PORT0, config.port_0_interrupt_mask);
-    set_interrupt(Port::PORT1, config.port_1_interrupt_mask);
+  void init(const Config &config, std::error_code &ec) {
+    configure_global_control(config.output_drive_mode_p0, config.max_led_current, ec);
+    if (ec)
+      return;
+    set_direction(Port::PORT0, config.port_0_direction_mask, ec);
+    if (ec)
+      return;
+    set_direction(Port::PORT1, config.port_1_direction_mask, ec);
+    if (ec)
+      return;
+    set_interrupt(Port::PORT0, config.port_0_interrupt_mask, ec);
+    if (ec)
+      return;
+    set_interrupt(Port::PORT1, config.port_1_interrupt_mask, ec);
   }
 
-  uint8_t read_one_(uint8_t reg_addr) {
+  uint8_t read_one_(uint8_t reg_addr, std::error_code &ec) {
     uint8_t data;
-    read_(address_, reg_addr, &data, 1);
+    bool success = read_(address_, reg_addr, &data, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return data;
   }
 
-  uint16_t read_two_(uint8_t reg_addr) {
-    uint8_t data[2];
-    read_(address_, reg_addr, data, 2);
+  uint16_t read_two_(uint8_t reg_addr, std::error_code &ec) {
+    uint8_t data[2] = {0};
+    bool success = read_(address_, reg_addr, data, 2);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return (data[1] << 8) | data[0];
   }
 
-  void write_one_(uint8_t reg_addr, uint8_t data) { write_many_(reg_addr, &data, 1); }
+  void write_one_(uint8_t reg_addr, uint8_t data, std::error_code &ec) {
+    write_many_(reg_addr, &data, 1, ec);
+  }
 
-  void write_many_(uint8_t reg_addr, uint8_t *write_data, size_t write_data_len) {
+  void write_many_(uint8_t reg_addr, uint8_t *write_data, size_t write_data_len,
+                   std::error_code &ec) {
     uint8_t total_len = 1 + write_data_len;
     uint8_t data[total_len];
     data[0] = reg_addr;
     memcpy(&data[1], write_data, write_data_len);
-    write_(address_, data, total_len);
+    bool success = write_(address_, data, total_len);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
   Config config_;

@@ -23,7 +23,7 @@ public:
    * @param data Pointer to array of bytes to write.
    * @param data_len Number of data bytes to write.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
+  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
 
   /**
    * @brief Function to read bytes from the device.
@@ -31,8 +31,9 @@ public:
    * @param reg_addr Register address to read from.
    * @param data Pointer to array of bytes to read into.
    * @param data_len Number of data bytes to read.
+   * @return True if the read was successful, false otherwise.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
+  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
       read_fn;
 
   /**
@@ -54,6 +55,8 @@ public:
     uint8_t port_b_interrupt_mask = 0x00;     ///< Interrupt mask (1 = interrupt) for port b.
     write_fn write;                           ///< Function to write to the device.
     read_fn read;                             ///< Function to read from the device.
+    bool auto_init = true;                    ///< True if the device should be initialized on
+                                              ///< construction.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log verbosity for the component.
   };
 
@@ -63,50 +66,81 @@ public:
    */
   Mcp23x17(const Config &config)
 
-      : address_(config.device_address), write_(config.write), read_(config.read),
-        logger_({.tag = "Mcp23x17", .level = config.log_level}) {
-    init(config);
+      : address_(config.device_address), port_a_direction_mask_(config.port_a_direction_mask),
+        port_a_interrupt_mask_(config.port_a_interrupt_mask),
+        port_b_direction_mask_(config.port_b_direction_mask),
+        port_b_interrupt_mask_(config.port_b_interrupt_mask), write_(config.write),
+        read_(config.read), logger_({.tag = "Mcp23x17", .level = config.log_level}) {
+    if (config.auto_init) {
+      std::error_code ec;
+      init(ec);
+    }
+  }
+
+  /**
+   * @brief Initialize the device.
+   * @param ec Error code to set if there is an error.
+   */
+  void initialize(std::error_code &ec) {
+    init(ec);
+    if (ec) {
+      logger_.error("Failed to initialize: {}", ec.message());
+    }
   }
 
   /**
    * @brief Read the pin values on the provided port.
    * @param port The Port for which to read the pins
+   * @param ec Error code to set if there is an error.
    * @return The pin values as an 8 bit mask.
    */
-  uint8_t get_pins(Port port) {
+  uint8_t get_pins(Port port, std::error_code &ec) {
     auto addr = port == Port::A ? Registers::GPIOA : Registers::GPIOB;
-    return read_one_((uint8_t)addr);
+    auto val = read_one_((uint8_t)addr, ec);
+    if (ec) {
+      logger_.error("Failed to read pins: {}", ec.message());
+      return 0;
+    }
+    return val;
   }
 
   /**
    * @brief Set the pin values on the provided port.
    * @param port The Port for which to set the pin outputs.
    * @param output The pin values as an 8 bit mask to set.
+   * @param ec Error code to set if there is an error.
    */
-  void set_pins(Port port, uint8_t output) {
+  void set_pins(Port port, uint8_t output, std::error_code &ec) {
     auto addr = port == Port::A ? Registers::GPIOA : Registers::GPIOB;
-    write_one_((uint8_t)addr, output);
+    write_one_((uint8_t)addr, output, ec);
   }
 
   /**
    * @brief Get the pin state at the time of interrupt for the provided port.
    * @param port The port for which to get the pin states at time of capture.
+   * @param ec Error code to set if there is an error.
    * @return An 8 bit mask of pin values for the provided port.
    */
-  uint8_t get_interrupt_capture(Port port) {
+  uint8_t get_interrupt_capture(Port port, std::error_code &ec) {
     auto addr = port == Port::A ? Registers::INTCAPA : Registers::INTCAPB;
-    return read_one_((uint8_t)addr);
+    auto val = read_one_((uint8_t)addr, ec);
+    if (ec) {
+      logger_.error("Failed to read interrupt capture: {}", ec.message());
+      return 0;
+    }
+    return val;
   }
 
   /**
    * @brief Configure the provided pins to interrupt on change.
    * @param port The port associated with the provided pin mask.
    * @param mask The pin mask to configure for interrupt (1=interrupt).
+   * @param ec Error code to set if there is an error.
    */
-  void set_interrupt_on_change(Port port, uint8_t mask) {
+  void set_interrupt_on_change(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting interrupt on change for {} pins {}", (uint8_t)port, mask);
     auto addr = port == Port::A ? Registers::GPINTENA : Registers::GPINTENB;
-    write_one_((uint8_t)addr, mask);
+    write_one_((uint8_t)addr, mask, ec);
   }
 
   /**
@@ -114,65 +148,86 @@ public:
    * @param port The port associated with the provided pin mask.
    * @param pin_mask The pin mask to configure for interrupt (1=interrupt).
    * @param val_mask The value mask for the pin level to trigger interrupt.
+   * @param ec Error code to set if there is an error.
    */
-  void set_interrupt_on_value(Port port, uint8_t pin_mask, uint8_t val_mask) {
+  void set_interrupt_on_value(Port port, uint8_t pin_mask, uint8_t val_mask, std::error_code &ec) {
     logger_.debug("Setting interrupt on value for {} pins {} to {}", (uint8_t)port, pin_mask,
                   val_mask);
     // set the pin to enable interrupt
     auto addr = port == Port::A ? Registers::GPINTENA : Registers::GPINTENB;
-    write_one_((uint8_t)addr, pin_mask);
+    write_one_((uint8_t)addr, pin_mask, ec);
+    if (ec) {
+      logger_.error("Failed to enable interrupt: {}", ec.message());
+      return;
+    }
 
     // set the pin to interrupt on comparison to defval register
     addr = port == Port::A ? Registers::INTCONA : Registers::INTCONB;
-    write_one_((uint8_t)addr, pin_mask);
+    write_one_((uint8_t)addr, pin_mask, ec);
+    if (ec) {
+      logger_.error("Failed to set pin interrupt on comparison: {}", ec.message());
+      return;
+    }
 
     // set the defval register to be the value to compare against
     addr = port == Port::A ? Registers::DEFVALA : Registers::DEFVALB;
-    write_one_((uint8_t)addr, val_mask);
+    write_one_((uint8_t)addr, val_mask, ec);
+    if (ec) {
+      logger_.error("Failed to set defval: {}", ec.message());
+      return;
+    }
   }
 
   /**
    * @brief Set the i/o direction for the pins according to mask.
    * @param port The port associated with the provided pin mask.
    * @param mask The mask indicating direction (1 = input)
+   * @param ec Error code to set if there is an error.
    */
-  void set_direction(Port port, uint8_t mask) {
+  void set_direction(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting direction for {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::A ? Registers::IODIRA : Registers::IODIRB;
-    write_one_((uint8_t)addr, mask);
+    write_one_((uint8_t)addr, mask, ec);
   }
 
   /**
    * @brief Set the input polarity for the pins according to mask.
    * @param port The port associated with the provided polarity mask.
    * @param mask Polarity mask for the pins, 1 -> invert the pin value.
+   * @param ec Error code to set if there is an error.
    */
-  void set_input_polarity(Port port, uint8_t mask) {
+  void set_input_polarity(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting input polarity for {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::A ? Registers::IOPOLA : Registers::IOPOLB;
-    write_one_((uint8_t)addr, mask);
+    write_one_((uint8_t)addr, mask, ec);
   }
 
   /**
    * @brief Set the internal pull up (100 Kohm) for the port's pins.
    * @param port The port associated with the provided pull up mask.
    * @param mask Mask indicating which pins should be pulled up (1).
+   * @param ec Error code to set if there is an error.
    */
-  void set_pull_up(Port port, uint8_t mask) {
+  void set_pull_up(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting pull-up for {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::A ? Registers::GPPUA : Registers::GPPUB;
-    write_one_((uint8_t)addr, mask);
+    write_one_((uint8_t)addr, mask, ec);
   }
 
   /**
    * @brief Configure the interrupt mirroring for the MCP23x17.
    * @param mirror True if the interrupt pins should be internally connected,
    *        false otherwise.
+   * @param ec Error code to set if there is an error.
    */
-  void set_interrupt_mirror(bool mirror) {
+  void set_interrupt_mirror(bool mirror, std::error_code &ec) {
     logger_.debug("Setting interrupt mirror: {}", mirror);
     auto addr = (uint8_t)Registers::IOCON;
-    auto config = read_one_(addr);
+    auto config = read_one_(addr, ec);
+    if (ec) {
+      logger_.error("Failed to read config: {}", ec.message());
+      return;
+    }
     logger_.debug("Read config: {}", config);
     if (mirror) {
       config &= (1 << (int)ConfigBit::MIRROR);
@@ -181,18 +236,23 @@ public:
     }
     // now write it back
     logger_.debug("Writing new config: {}", config);
-    write_one_(addr, config);
+    write_one_(addr, config, ec);
   }
 
   /**
    * @brief Set the polarity of the interrupt pins.
    * @param active_high True if it should be active-high, false for
    *        active-low (default).
+   * @param ec Error code to set if there is an error.
    */
-  void set_interrupt_polarity(bool active_high) {
+  void set_interrupt_polarity(bool active_high, std::error_code &ec) {
     logger_.debug("Setting interrupt polarity: {}", active_high);
     auto addr = (uint8_t)Registers::IOCON;
-    auto config = read_one_(addr);
+    auto config = read_one_(addr, ec);
+    if (ec) {
+      logger_.error("Failed to read config: {}", ec.message());
+      return;
+    }
     logger_.debug("Read config: {}", config);
     if (active_high) {
       config &= (1 << (int)ConfigBit::INTPOL);
@@ -201,7 +261,7 @@ public:
     }
     // now write it back
     logger_.debug("Writing new config: {}", config);
-    write_one_(addr, config);
+    write_one_(addr, config, ec);
   }
 
 protected:
@@ -256,25 +316,42 @@ protected:
               ///< associated with each port are separated into different banks
   };
 
-  void init(const Config &config) {
-    set_direction(Port::A, config.port_a_direction_mask);
-    set_direction(Port::B, config.port_b_direction_mask);
-    set_interrupt_on_change(Port::A, config.port_a_interrupt_mask);
-    set_interrupt_on_change(Port::B, config.port_b_interrupt_mask);
+  void init(std::error_code &ec) {
+    set_direction(Port::A, port_a_direction_mask_, ec);
+    if (ec)
+      return;
+    set_direction(Port::B, port_b_direction_mask_, ec);
+    if (ec)
+      return;
+    set_interrupt_on_change(Port::A, port_a_interrupt_mask_, ec);
+    if (ec)
+      return;
+    set_interrupt_on_change(Port::B, port_b_interrupt_mask_, ec);
   }
 
-  void write_one_(uint8_t reg_addr, uint8_t write_data) {
+  void write_one_(uint8_t reg_addr, uint8_t write_data, std::error_code &ec) {
     uint8_t data[2] = {reg_addr, write_data};
-    write_(address_, data, 2);
+    bool success = write_(address_, data, 2);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
-  uint8_t read_one_(uint8_t reg_addr) {
+  uint8_t read_one_(uint8_t reg_addr, std::error_code &ec) {
     uint8_t data;
-    read_(address_, reg_addr, &data, 1);
+    bool success = read_(address_, reg_addr, &data, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return data;
   }
 
   uint8_t address_;
+  uint8_t port_a_direction_mask_;
+  uint8_t port_a_interrupt_mask_;
+  uint8_t port_b_direction_mask_;
+  uint8_t port_b_interrupt_mask_;
   write_fn write_;
   read_fn read_;
   Logger logger_;

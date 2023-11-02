@@ -103,19 +103,15 @@ extern "C" void app_main(void) {
       logger.error("install i2c driver failed");
 
     // make some lambda functions we'll use to read/write to the i2c adc
-    auto ads_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
+    auto ads_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) -> bool {
       auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
                                             I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      if (err != ESP_OK) {
-        logger.error("I2C WRITE ERROR: to {:#04x} '{}'", dev_addr, esp_err_to_name(err));
-      }
+      return err == ESP_OK;
     };
-    auto ads_read = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
+    auto ads_read = [](uint8_t dev_addr, uint8_t *data, size_t data_len) -> bool {
       auto err = i2c_master_read_from_device(I2C_NUM, dev_addr, data, data_len,
                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      if (err != ESP_OK) {
-        logger.error("I2C READ ERROR: to {:#04x} '{}'", dev_addr, esp_err_to_name(err));
-      }
+      return err == ESP_OK;
     };
 
     // make the actual ads class
@@ -165,8 +161,13 @@ extern "C" void app_main(void) {
               uint8_t event_flags = 0;
               uint8_t event_high_flags = 0;
               uint8_t event_low_flags = 0;
-              ads.get_event_data(&event_flags, &event_high_flags,
-                                 &event_low_flags); // NOTE: this clears the event flags / ALERT
+              std::error_code ec;
+              ads.get_event_data(&event_flags, &event_high_flags, &event_low_flags,
+                                 ec); // NOTE: this clears the event flags / ALERT
+              if (ec) {
+                logger.error("error getting event data: {}", ec.message());
+                return false;
+              }
 
               // See if there was an alert on the digital input (Sel, channel 5)
               if (event_flags & select_bit_mask) {
@@ -184,16 +185,27 @@ extern "C" void app_main(void) {
     });
     alert_task->start();
 
+    std::error_code ec;
     // configure the alert pin
-    ads.configure_alert(espp::Ads7138::OutputMode::PUSH_PULL,
-                        espp::Ads7138::AlertLogic::ACTIVE_LOW);
+    ads.configure_alert(espp::Ads7138::OutputMode::PUSH_PULL, espp::Ads7138::AlertLogic::ACTIVE_LOW,
+                        ec);
+    if (ec) {
+      logger.error("error configuring alert: {}", ec.message());
+    }
 
     // set the digital output drive mode to open-drain
-    ads.set_digital_output_mode(espp::Ads7138::Channel::CH7, espp::Ads7138::OutputMode::OPEN_DRAIN);
+    ads.set_digital_output_mode(espp::Ads7138::Channel::CH7, espp::Ads7138::OutputMode::OPEN_DRAIN,
+                                ec);
+    if (ec) {
+      logger.error("error setting digital output mode: {}", ec.message());
+    }
 
     // set an alert on the digital input (Sel) so that we can get notified when the button is
     // pressed (goes low)
-    ads.set_digital_alert(espp::Ads7138::Channel::CH5, espp::Ads7138::DigitalEvent::LOW);
+    ads.set_digital_alert(espp::Ads7138::Channel::CH5, espp::Ads7138::DigitalEvent::LOW, ec);
+    if (ec) {
+      logger.error("error setting digital alert: {}", ec.message());
+    }
 
     // make the task which will get the raw data from the I2C ADC
     fmt::print("%time (s), x (mV), y (mV), select pressed\n");
@@ -202,13 +214,23 @@ extern "C" void app_main(void) {
       auto now = std::chrono::high_resolution_clock::now();
       auto elapsed = std::chrono::duration<float>(now - start).count();
 
+      std::error_code ec;
       // get the analog input data
-      auto all_mv = ads.get_all_mv();
+      auto all_mv = ads.get_all_mv(ec);
+      if (ec) {
+        logger.error("error getting analog data: {}", ec.message());
+        return false;
+      }
       auto x_mv = all_mv[0]; // the first channel is channel 1 (X axis)
       auto y_mv = all_mv[1]; // the second channel is channel 3 (Y axis)
 
       // alternatively we could get the analog data in a map
-      auto mapped_mv = ads.get_all_mv_map();
+      auto mapped_mv = ads.get_all_mv_map(ec);
+      if (ec) {
+        logger.error("error getting analog data: {}", ec.message());
+        return false;
+      }
+
       x_mv = mapped_mv[espp::Ads7138::Channel::CH1];
       y_mv = mapped_mv[espp::Ads7138::Channel::CH3];
 
@@ -216,17 +238,22 @@ extern "C" void app_main(void) {
       // get_digital_input_values(), but we'll just get the one we want.
       // If we wanted to get all of them, we could do:
       // auto input_values = ads.get_digital_input_values();
-      auto select_value =
-          ads.get_digital_input_value(espp::Ads7138::Channel::CH5); // the button is on channel 5
-      auto select_pressed = select_value == 0;                      // joystick button is active low
+      auto select_value = ads.get_digital_input_value(espp::Ads7138::Channel::CH5,
+                                                      ec); // the button is on channel 5
+      if (ec) {
+        logger.error("error getting digital input value: {}", ec.message());
+        return false;
+      }
+
+      auto select_pressed = select_value == 0; // joystick button is active low
 
       // use fmt to print so it doesn't have the prefix and can be used more
       // easily as CSV (for plotting using uart_serial_plotter)
       fmt::print("{:.3f}, {:.3f}, {:.3f}, {}\n", elapsed, x_mv, y_mv, select_pressed ? 1 : 0);
       if (select_pressed) {
-        ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 0); // turn on the LED
+        ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 0, ec); // turn on the LED
       } else {
-        ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 1); // turn off the LED
+        ads.set_digital_output_value(espp::Ads7138::Channel::CH7, 1, ec); // turn off the LED
       }
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed

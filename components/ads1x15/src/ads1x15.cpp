@@ -50,7 +50,7 @@ static constexpr uint16_t REG_CONFIG_CQUE_4CONV =
 static constexpr uint16_t REG_CONFIG_CQUE_NONE =
     (0x0003); ///< Disable the comparator and put ALERT/RDY in high state (default)
 
-int16_t Ads1x15::sample_raw(int channel) {
+int16_t Ads1x15::sample_raw(int channel, std::error_code &ec) {
   if (!write_ || !read_) {
     logger_.error("Write / read functions not properly configured, cannot sample!");
     return 0;
@@ -71,16 +71,36 @@ int16_t Ads1x15::sample_raw(int channel) {
   config |= REG_CONFIG_OS_SINGLE;
   // configure to read from mux 0
   logger_.debug("configuring conversion for channel {}", channel);
-  write_two_((uint8_t)Register::POINTER_CONFIG, config);
-  write_two_((uint8_t)Register::POINTER_HITHRESH, 0x8000);
-  write_two_((uint8_t)Register::POINTER_LOWTHRESH, 0x0000);
+  write_two_((uint8_t)Register::POINTER_CONFIG, config, ec);
+  if (ec) {
+    logger_.error("error configuring conversion for channel {}", channel);
+    return 0;
+  }
+  write_two_((uint8_t)Register::POINTER_HITHRESH, 0x8000, ec);
+  if (ec) {
+    logger_.error("error configuring hi threshold for channel {}", channel);
+    return 0;
+  }
+  write_two_((uint8_t)Register::POINTER_LOWTHRESH, 0x0000, ec);
+  if (ec) {
+    logger_.error("error configuring low threshold for channel {}", channel);
+    return 0;
+  }
   // wait for conversion complete
   logger_.debug("waiting for conversion complete...");
-  while (!conversion_complete()) {
+  while (!conversion_complete(ec) && !ec) {
     std::this_thread::sleep_for(1us);
   }
+  if (ec) {
+    logger_.error("error waiting for conversion complete");
+    return 0;
+  }
   logger_.debug("reading conversion result for channel {}", channel);
-  uint16_t val = read_two_((uint8_t)Register::POINTER_CONVERT) >> bit_shift_;
+  uint16_t val = read_two_((uint8_t)Register::POINTER_CONVERT, ec) >> bit_shift_;
+  if (ec) {
+    logger_.error("error reading conversion result for channel {}", channel);
+    return 0;
+  }
   if (bit_shift_ > 0) {
     if (val > 0x07FF) {
       // negative number - extend the sign to the 16th bit
@@ -90,6 +110,11 @@ int16_t Ads1x15::sample_raw(int channel) {
   return (int16_t)val;
 }
 
-bool Ads1x15::conversion_complete() {
-  return (read_two_((uint8_t)Register::POINTER_CONFIG) & 0x8000) != 0;
+bool Ads1x15::conversion_complete(std::error_code &ec) {
+  auto val = read_two_((uint8_t)Register::POINTER_CONFIG, ec);
+  if (ec) {
+    logger_.error("error reading config register");
+    return false;
+  }
+  return (val & REG_CONFIG_OS_NOTBUSY) == REG_CONFIG_OS_NOTBUSY;
 }

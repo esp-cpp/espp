@@ -45,13 +45,15 @@ extern "C" void app_main(void) {
       logger.error("install i2c driver failed");
     // make some lambda functions we'll use to read/write to the mt6701
     auto mt6701_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
-      i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
-                                 I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
+                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      return err == ESP_OK;
     };
 
     auto mt6701_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len) {
-      i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, data_len,
-                                   I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      auto err = i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, data_len,
+                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      return err == ESP_OK;
     };
 
     // make the velocity filter

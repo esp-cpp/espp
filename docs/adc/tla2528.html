@@ -143,7 +143,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>TLA2528 I2C ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/4d45536/docs/en/adc/tla2528.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/12ef0d4/docs/en/adc/tla2528.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -165,7 +165,7 @@ sequenced basis.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/4d45536/components/tla2528/include/tla2528.hpp">components/tla2528/include/tla2528.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/12ef0d4/components/tla2528/include/tla2528.hpp">components/tla2528/include/tla2528.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -202,16 +202,12 @@ sequenced basis.</p>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">tla_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
 <span class="w">                                            </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;I2C WRITE ERROR: to {:#04x} &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span>
-<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">tla_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_read_from_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
 <span class="w">                                             </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;I2C READ ERROR: to {:#04x} &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span>
-<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">NTC_CHANNEL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH1</span><span class="p">;</span>
@@ -223,7 +219,7 @@ sequenced basis.</p>
 <span class="w">        </span><span class="c1">// Address pin is connected via 11k to ADC_DECAP, so the default address</span>
 <span class="w">        </span><span class="c1">// of 0x10 becomes 0x16</span>
 <span class="w">        </span><span class="p">.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="mh">0x06</span><span class="p">,</span>
-<span class="w">        </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Mode</span><span class="o">::</span><span class="n">MANUAL</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Mode</span><span class="o">::</span><span class="n">AUTO_SEQ</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">analog_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">NTC_CHANNEL</span><span class="p">,</span><span class="w"> </span><span class="n">X_CHANNEL</span><span class="p">,</span><span class="w"> </span><span class="n">Y_CHANNEL</span><span class="p">},</span>
 <span class="w">        </span><span class="p">.</span><span class="n">digital_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
 <span class="w">        </span><span class="p">.</span><span class="n">digital_outputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
@@ -241,10 +237,30 @@ sequenced basis.</p>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
 
-<span class="w">      </span><span class="c1">// get the analog input data</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">ntc_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tla</span><span class="p">.</span><span class="n">get_mv</span><span class="p">(</span><span class="n">NTC_CHANNEL</span><span class="p">);</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tla</span><span class="p">.</span><span class="n">get_mv</span><span class="p">(</span><span class="n">X_CHANNEL</span><span class="p">);</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tla</span><span class="p">.</span><span class="n">get_mv</span><span class="p">(</span><span class="n">Y_CHANNEL</span><span class="p">);</span>
+<span class="w">      </span><span class="c1">// get the analog input data individually; NOTE: this only works if you have configured the</span>
+<span class="w">      </span><span class="c1">// TLA2528 to use MANUAL mode</span>
+<span class="w">      </span><span class="c1">// auto ntc_mv = tla.get_mv(NTC_CHANNEL);</span>
+<span class="w">      </span><span class="c1">// auto x_mv = tla.get_mv(X_CHANNEL);</span>
+<span class="w">      </span><span class="c1">// auto y_mv = tla.get_mv(Y_CHANNEL);</span>
+
+<span class="w">      </span><span class="c1">// Could also read them all at once; NOTE: this only works if you have configured the</span>
+<span class="w">      </span><span class="c1">// TLA2528 to use AUTO_SEQ mode (which is more efficient)</span>
+<span class="w">      </span><span class="c1">// auto all_mv = tla.get_all_mv();</span>
+<span class="w">      </span><span class="c1">// auto ntc_mv = all_mv[0];</span>
+<span class="w">      </span><span class="c1">// auto x_mv = all_mv[1];</span>
+<span class="w">      </span><span class="c1">// auto y_mv = all_mv[2];</span>
+
+<span class="w">      </span><span class="c1">// Could also use the mapped version; NOTE: this only works if you have configured the</span>
+<span class="w">      </span><span class="c1">// TLA2528 to use AUTO_SEQ mode (which is more efficient)</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">all_mv_map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tla</span><span class="p">.</span><span class="n">get_all_mv_map</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error reading TLA2528: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">ntc_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv_map</span><span class="p">[</span><span class="n">NTC_CHANNEL</span><span class="p">];</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv_map</span><span class="p">[</span><span class="n">X_CHANNEL</span><span class="p">];</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv_map</span><span class="p">[</span><span class="n">Y_CHANNEL</span><span class="p">];</span>
 
 <span class="w">      </span><span class="c1">// use fmt to print so it doesn&#39;t have the prefix and can be used more</span>
 <span class="w">      </span><span class="c1">// easily as CSV (for plotting using uart_serial_plotter)</span>
@@ -504,7 +520,7 @@ sequenced basis.</p>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25288write_fnE">
-<span id="_CPPv3N4espp7Tla25288write_fnE"></span><span id="_CPPv2N4espp7Tla25288write_fnE"></span><span id="espp::Tla2528::write_fn"></span><span class="target" id="classespp_1_1_tla2528_1a6a8223b2bed14bada7781e73c6f8e31e"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25288write_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Tla25288write_fnE"></span><span id="_CPPv2N4espp7Tla25288write_fnE"></span><span id="espp::Tla2528::write_fn"></span><span class="target" id="classespp_1_1_tla2528_1a325ce7cb8fdeaf24352131911dc8ff73"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25288write_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to write bytes to the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
@@ -516,12 +532,15 @@ sequenced basis.</p>
 <dt class="field-odd">Param data_len</dt>
 <dd class="field-odd"><p>Number of data bytes to write. </p>
 </dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the write was successful, false otherwise. </p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25287read_fnE">
-<span id="_CPPv3N4espp7Tla25287read_fnE"></span><span id="_CPPv2N4espp7Tla25287read_fnE"></span><span id="espp::Tla2528::read_fn"></span><span class="target" id="classespp_1_1_tla2528_1a2e217bd8a468e60b5f6aab01ce7c818f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287read_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Tla25287read_fnE"></span><span id="_CPPv2N4espp7Tla25287read_fnE"></span><span id="espp::Tla2528::read_fn"></span><span class="target" id="classespp_1_1_tla2528_1a00afd6f156f7499788c57ef068c40b37"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25287read_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to read bytes from the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
@@ -532,6 +551,9 @@ sequenced basis.</p>
 </dd>
 <dt class="field-odd">Param data_len</dt>
 <dd class="field-odd"><p>Number of data bytes to read. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the read was successful, false otherwise. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -551,18 +573,23 @@ sequenced basis.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810initializeEv">
-<span id="_CPPv3N4espp7Tla252810initializeEv"></span><span id="_CPPv2N4espp7Tla252810initializeEv"></span><span id="espp::Tla2528::initialize"></span><span class="target" id="classespp_1_1_tla2528_1aef166378aba331400d0a764eaa4b9b15"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252810initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252810initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252810initializeERNSt10error_codeE"></span><span id="espp::Tla2528::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1a68babcb209d140aca6c453f36e0413c8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252810initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize the ADC This function uses the configuration structure passed to the constructor to configure the ADC. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This function must be called before any other functions as it configures the ADC pins and sets the mode. </p>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286get_mvE7Channel">
-<span id="_CPPv3N4espp7Tla25286get_mvE7Channel"></span><span id="_CPPv2N4espp7Tla25286get_mvE7Channel"></span><span id="espp::Tla2528::get_mv__Channel"></span><span class="target" id="classespp_1_1_tla2528_1a37dace1615f752ef8d572c5d7cf0d421"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mv</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25286get_mvE7Channel" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286get_mvE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla25286get_mvE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla25286get_mvE7ChannelRNSt10error_codeE"></span><span id="espp::Tla2528::get_mv__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1aba48a8a7b176bd06d548c9715a643f8d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mv</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25286get_mvE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Communicate with the ADC to get the analog value for the channel and return it. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -578,7 +605,10 @@ sequenced basis.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>channel</strong> – Which channel of the ADC to read </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Which channel of the ADC to read </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The voltage (in mV) read from the channel. </p>
@@ -587,8 +617,8 @@ sequenced basis.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810get_all_mvEv">
-<span id="_CPPv3N4espp7Tla252810get_all_mvEv"></span><span id="_CPPv2N4espp7Tla252810get_all_mvEv"></span><span id="espp::Tla2528::get_all_mv"></span><span class="target" id="classespp_1_1_tla2528_1a5950594ff77c94b927fde24ac62a3802"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252810get_all_mvEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252810get_all_mvERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252810get_all_mvERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252810get_all_mvERNSt10error_codeE"></span><span id="espp::Tla2528::get_all_mv__std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1a65210b54e7ed2eaea73c33f7fc03664e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252810get_all_mvERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Communicate with the ADC to get the analog value for all channels and return them. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -607,15 +637,18 @@ sequenced basis.</p>
 <p>If the ADC is in autonomous mode, this function will simply read the values from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the values from the ADC’s buffer (blocking until conversion is complete). </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A vector of the voltages (in mV) read from each channel. </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A vector of the voltages (in mV) read from each channel. </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252814get_all_mv_mapEv">
-<span id="_CPPv3N4espp7Tla252814get_all_mv_mapEv"></span><span id="_CPPv2N4espp7Tla252814get_all_mv_mapEv"></span><span id="espp::Tla2528::get_all_mv_map"></span><span class="target" id="classespp_1_1_tla2528_1ab3f50b771fc9749d34744799d6e37d93"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv_map</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252814get_all_mv_mapEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252814get_all_mv_mapERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252814get_all_mv_mapERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252814get_all_mv_mapERNSt10error_codeE"></span><span id="espp::Tla2528::get_all_mv_map__std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1a6f921830fb7a38d86aed3c4f988db025"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv_map</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252814get_all_mv_mapERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Communicate with the ADC to get the analog value for all channels and return them. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -626,15 +659,18 @@ sequenced basis.</p>
 <p>If the ADC is in autonomous mode, this function will simply read the values from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the values from the ADC’s buffer (blocking until conversion is complete). </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>An unordered map of the voltages (in mV) read from each channel. </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An unordered map of the voltages (in mV) read from each channel. </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252823set_digital_output_modeE7Channel10OutputMode">
-<span id="_CPPv3N4espp7Tla252823set_digital_output_modeE7Channel10OutputMode"></span><span id="_CPPv2N4espp7Tla252823set_digital_output_modeE7Channel10OutputMode"></span><span id="espp::Tla2528::set_digital_output_mode__Channel.OutputMode"></span><span class="target" id="classespp_1_1_tla2528_1a0cca3a749f14c6b2123428bfec8fb04a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Tla252810OutputModeE" title="espp::Tla2528::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252823set_digital_output_modeE7Channel10OutputMode" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE"></span><span id="espp::Tla2528::set_digital_output_mode__Channel.OutputMode.std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1a87e60a3e09aaf2b225bce730b06119f0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Tla252810OutputModeE" title="espp::Tla2528::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the digital output mode for the given channel. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -645,14 +681,15 @@ sequenced basis.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>channel</strong> – Channel to configure </p></li>
 <li><p><strong>output_mode</strong> – Output mode for the channel </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252824set_digital_output_valueE7Channelb">
-<span id="_CPPv3N4espp7Tla252824set_digital_output_valueE7Channelb"></span><span id="_CPPv2N4espp7Tla252824set_digital_output_valueE7Channelb"></span><span id="espp::Tla2528::set_digital_output_value__Channel.b"></span><span class="target" id="classespp_1_1_tla2528_1a98f346b93a2d0c7b81435dab52087115"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252824set_digital_output_valueE7Channelb" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252824set_digital_output_valueE7ChannelbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252824set_digital_output_valueE7ChannelbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252824set_digital_output_valueE7ChannelbRNSt10error_codeE"></span><span id="espp::Tla2528::set_digital_output_value__Channel.b.std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1a480a985d3dd5fe5e27ce667e8ddc3040"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252824set_digital_output_valueE7ChannelbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the digital output value for the given channel. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -663,14 +700,15 @@ sequenced basis.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>channel</strong> – Which channel to set the digital output value for. </p></li>
 <li><p><strong>value</strong> – The value to set the digital output to. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252823get_digital_input_valueE7Channel">
-<span id="_CPPv3N4espp7Tla252823get_digital_input_valueE7Channel"></span><span id="_CPPv2N4espp7Tla252823get_digital_input_valueE7Channel"></span><span id="espp::Tla2528::get_digital_input_value__Channel"></span><span class="target" id="classespp_1_1_tla2528_1a24dfbde89c054e82f6e3e02a8f644307"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252823get_digital_input_valueE7Channel" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252823get_digital_input_valueE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252823get_digital_input_valueE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252823get_digital_input_valueE7ChannelRNSt10error_codeE"></span><span id="espp::Tla2528::get_digital_input_value__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1a65060c4af5aa108fad56287d9ff1fd5d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Tla25287ChannelE" title="espp::Tla2528::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252823get_digital_input_valueE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the digital input value for the given channel. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -678,7 +716,10 @@ sequenced basis.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>channel</strong> – Which channel to get the digital input value for. </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Which channel to get the digital input value for. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The value of the digital input. </p>
@@ -687,8 +728,8 @@ sequenced basis.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252824get_digital_input_valuesEv">
-<span id="_CPPv3N4espp7Tla252824get_digital_input_valuesEv"></span><span id="_CPPv2N4espp7Tla252824get_digital_input_valuesEv"></span><span id="espp::Tla2528::get_digital_input_values"></span><span class="target" id="classespp_1_1_tla2528_1a8de78afec49419b345a5c1016b4d02c7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_values</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252824get_digital_input_valuesEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla252824get_digital_input_valuesERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla252824get_digital_input_valuesERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla252824get_digital_input_valuesERNSt10error_codeE"></span><span id="espp::Tla2528::get_digital_input_values__std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1a5132f0c5f1a730dd8e0d3d0284d77eb9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_values</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla252824get_digital_input_valuesERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the digital input values for all channels. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -699,20 +740,28 @@ sequenced basis.</p>
 <p>Only channels configured as digital inputs are returned. </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The values of the digital inputs. </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The values of the digital inputs. </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25285resetEv">
-<span id="_CPPv3N4espp7Tla25285resetEv"></span><span id="_CPPv2N4espp7Tla25285resetEv"></span><span id="espp::Tla2528::reset"></span><span class="target" id="classespp_1_1_tla2528_1a24de17cca10c0f4ca2214f2425b722cc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25285resetEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25285resetERNSt10error_codeE">
+<span id="_CPPv3N4espp7Tla25285resetERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tla25285resetERNSt10error_codeE"></span><span id="espp::Tla2528::reset__std::error_codeR"></span><span class="target" id="classespp_1_1_tla2528_1ab3901f9ccbb5f8e90b9a93db5c29d20d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tla25285resetERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Perform a software reset of the device. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This will reset all registers to their default values (converting all channels to analog inputs and disabling all events). </p>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -806,7 +855,7 @@ sequenced basis.</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Tla25286Config9auto_initE">
 <span id="_CPPv3N4espp7Tla25286Config9auto_initE"></span><span id="_CPPv2N4espp7Tla25286Config9auto_initE"></span><span id="espp::Tla2528::Config::auto_init__b"></span><span class="target" id="structespp_1_1_tla2528_1_1_config_1aae2540b06964c912d894256f7280d7c2"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp7Tla25286Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Automatically initialize the ADC on construction. If false, <a class="reference internal" href="#classespp_1_1_tla2528_1aef166378aba331400d0a764eaa4b9b15"><span class="std std-ref">initialize()</span></a> must be called before any other functions. </p>
+<dd><p>Automatically initialize the ADC on construction. If false, <a class="reference internal" href="#classespp_1_1_tla2528_1a68babcb209d140aca6c453f36e0413c8"><span class="std std-ref">initialize()</span></a> must be called before any other functions. </p>
 </dd></dl>
 
 <dl class="cpp var">

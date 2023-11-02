@@ -35,8 +35,9 @@ public:
    * @param dev_addr Address of the device to write to.
    * @param data Pointer to array of bytes to write.
    * @param data_len Number of data bytes to write.
+   * @return True if the write was successful, false otherwise.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
+  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
 
   /**
    * @brief Function to read bytes from the device.
@@ -44,8 +45,9 @@ public:
    * @param reg_addr Register address to read from.
    * @param data Pointer to array of bytes to read into.
    * @param data_len Number of data bytes to read.
+   * @return True if the read was successful, false otherwise.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
+  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
       read_fn;
 
   /**
@@ -81,6 +83,8 @@ public:
         .01f}; ///< Update period (1/sample rate) in seconds. This determines the periodicity of the
                ///< task which will read the position, update the accumulator, and update/filter
                ///< velocity.
+    bool auto_init{true}; ///< Whether to automatically initialize the accumulator to the current
+                          ///< position on startup.
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
@@ -91,11 +95,26 @@ public:
       : address_(config.device_address), write_(config.write), read_(config.read),
         velocity_filter_(config.velocity_filter), update_period_(config.update_period),
         logger_({.tag = "Mt6701", .level = config.log_level}) {
+    if (config.auto_init) {
+      std::error_code ec;
+      initialize(ec);
+    }
+  }
+
+  /**
+   * @brief Initialize the accumulator to the current position and start the
+   *        update task.
+   * @param ec Error code to set if there is an error.
+   */
+  void initialize(std::error_code &ec) {
     logger_.info("Initializing. Fastest measurable velocity will be {:.3f} RPM",
                  // half a rotation in one update period is the fastest we can
                  // measure
                  0.5f / update_period_.count() * SECONDS_PER_MINUTE);
-    init();
+    init(ec);
+    if (ec) {
+      logger_.error("Error initializing: {}", ec.message());
+    }
   }
 
   /**
@@ -162,15 +181,21 @@ public:
   float get_rpm() const { return velocity_rpm_.load(); }
 
 protected:
-  int read_count() {
+  int read_count(std::error_code &ec) {
     logger_.info("read_count");
     // read the angle count registers
-    uint8_t angle_h = read_one_((uint8_t)Registers::ANGLE_H);
-    uint8_t angle_l = read_one_((uint8_t)Registers::ANGLE_L) >> 2;
+    uint8_t angle_h = read_one_((uint8_t)Registers::ANGLE_H, ec);
+    if (ec) {
+      return 0;
+    }
+    uint8_t angle_l = read_one_((uint8_t)Registers::ANGLE_L, ec) >> 2;
+    if (ec) {
+      return 0;
+    }
     return (int)((angle_h << 6) | angle_l);
   }
 
-  void update() {
+  void update(std::error_code &ec) {
     logger_.info("update");
     // measure update timing
     static auto prev_time = std::chrono::high_resolution_clock::now();
@@ -179,7 +204,11 @@ protected:
     prev_time = now;
     float seconds = elapsed ? elapsed : update_period_.count();
     // update raw count
-    count_ = read_count();
+    auto count = read_count(ec);
+    if (ec) {
+      return;
+    }
+    count_.store(count);
     static int prev_count = count_;
     // compute diff
     int diff = count_ - prev_count;
@@ -209,7 +238,11 @@ protected:
 
   bool update_task(std::mutex &m, std::condition_variable &cv) {
     auto start = std::chrono::high_resolution_clock::now();
-    update();
+    std::error_code ec;
+    update(ec);
+    if (ec) {
+      logger_.error("Error updating: {}", ec.message());
+    }
     {
       std::unique_lock<std::mutex> lk(m);
       cv.wait_until(lk, start + update_period_);
@@ -218,9 +251,13 @@ protected:
     return false;
   }
 
-  void init() {
+  void init(std::error_code &ec) {
     // initialize the accumulator to have the current angle
-    accumulator_ = read_count();
+    auto count = read_count(ec);
+    if (ec) {
+      return;
+    }
+    accumulator_ = count;
     // start the task
     using namespace std::placeholders;
     task_ = Task::make_unique(
@@ -228,9 +265,13 @@ protected:
     task_->start();
   }
 
-  uint8_t read_one_(uint8_t reg_addr) {
+  uint8_t read_one_(uint8_t reg_addr, std::error_code &ec) {
     uint8_t data;
-    read_(address_, reg_addr, &data, 1);
+    bool success = read_(address_, reg_addr, &data, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return data;
   }
 

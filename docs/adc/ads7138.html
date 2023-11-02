@@ -143,7 +143,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>ADS7138 I2C ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/4d45536/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/12ef0d4/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -165,7 +165,7 @@ continuous basis.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/4d45536/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/12ef0d4/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -199,19 +199,15 @@ continuous basis.</p>
 <span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;install i2c driver failed&quot;</span><span class="p">);</span>
 
 <span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the i2c adc</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
 <span class="w">                                            </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;I2C WRITE ERROR: to {:#04x} &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span>
-<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_read_from_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
 <span class="w">                                             </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;I2C READ ERROR: to {:#04x} &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span>
-<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 
 <span class="w">    </span><span class="c1">// make the actual ads class</span>
@@ -261,8 +257,13 @@ continuous basis.</p>
 <span class="w">              </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="w">              </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_high_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="w">              </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_low_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">              </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
 <span class="w">              </span><span class="n">ads</span><span class="p">.</span><span class="n">get_event_data</span><span class="p">(</span><span class="o">&amp;</span><span class="n">event_flags</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event_high_flags</span><span class="p">,</span>
-<span class="w">                                 </span><span class="o">&amp;</span><span class="n">event_low_flags</span><span class="p">);</span><span class="w"> </span><span class="c1">// NOTE: this clears the event flags / ALERT</span>
+<span class="w">                                 </span><span class="o">&amp;</span><span class="n">event_low_flags</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// NOTE: this clears the event flags / ALERT</span>
+<span class="w">              </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error getting event data: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">              </span><span class="p">}</span>
 
 <span class="w">              </span><span class="c1">// See if there was an alert on the digital input (Sel, channel 5)</span>
 <span class="w">              </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">event_flags</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">select_bit_mask</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -280,16 +281,26 @@ continuous basis.</p>
 <span class="w">    </span><span class="p">});</span>
 <span class="w">    </span><span class="n">alert_task</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span>
 
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
 <span class="w">    </span><span class="c1">// configure the alert pin</span>
 <span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">configure_alert</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OutputMode</span><span class="o">::</span><span class="n">PUSH_PULL</span><span class="p">,</span>
-<span class="w">                        </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">AlertLogic</span><span class="o">::</span><span class="n">ACTIVE_LOW</span><span class="p">);</span>
+<span class="w">                        </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">AlertLogic</span><span class="o">::</span><span class="n">ACTIVE_LOW</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error configuring alert: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
 
 <span class="w">    </span><span class="c1">// set the digital output drive mode to open-drain</span>
-<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_mode</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OutputMode</span><span class="o">::</span><span class="n">OPEN_DRAIN</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_mode</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OutputMode</span><span class="o">::</span><span class="n">OPEN_DRAIN</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error setting digital output mode: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
 
 <span class="w">    </span><span class="c1">// set an alert on the digital input (Sel) so that we can get notified when the button is</span>
 <span class="w">    </span><span class="c1">// pressed (goes low)</span>
-<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_alert</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">DigitalEvent</span><span class="o">::</span><span class="n">LOW</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_alert</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">DigitalEvent</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error setting digital alert: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span>
 
 <span class="w">    </span><span class="c1">// make the task which will get the raw data from the I2C ADC</span>
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;%time (s), x (mV), y (mV), select pressed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
@@ -298,13 +309,23 @@ continuous basis.</p>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">elapsed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
 
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
 <span class="w">      </span><span class="c1">// get the analog input data</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">all_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">get_all_mv</span><span class="p">();</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">all_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">get_all_mv</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error getting analog data: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><span class="w"> </span><span class="c1">// the first channel is channel 1 (X axis)</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span><span class="w"> </span><span class="c1">// the second channel is channel 3 (Y axis)</span>
 
 <span class="w">      </span><span class="c1">// alternatively we could get the analog data in a map</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">mapped_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">get_all_mv_map</span><span class="p">();</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">mapped_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">get_all_mv_map</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error getting analog data: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
 <span class="w">      </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mapped_mv</span><span class="p">[</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH1</span><span class="p">];</span>
 <span class="w">      </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mapped_mv</span><span class="p">[</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH3</span><span class="p">];</span>
 
@@ -313,16 +334,21 @@ continuous basis.</p>
 <span class="w">      </span><span class="c1">// If we wanted to get all of them, we could do:</span>
 <span class="w">      </span><span class="c1">// auto input_values = ads.get_digital_input_values();</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">=</span>
-<span class="w">          </span><span class="n">ads</span><span class="p">.</span><span class="n">get_digital_input_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">);</span><span class="w"> </span><span class="c1">// the button is on channel 5</span>
+<span class="w">          </span><span class="n">ads</span><span class="p">.</span><span class="n">get_digital_input_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// the button is on channel 5</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error getting digital input value: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                      </span><span class="c1">// joystick button is active low</span>
 
 <span class="w">      </span><span class="c1">// use fmt to print so it doesn&#39;t have the prefix and can be used more</span>
 <span class="w">      </span><span class="c1">// easily as CSV (for plotting using uart_serial_plotter)</span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {:.3f}, {:.3f}, {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"> </span><span class="n">x_mv</span><span class="p">,</span><span class="w"> </span><span class="n">y_mv</span><span class="p">,</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">select_pressed</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="c1">// turn on the LED</span>
+<span class="w">        </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// turn on the LED</span>
 <span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span><span class="w"> </span><span class="c1">// turn off the LED</span>
+<span class="w">        </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// turn off the LED</span>
 <span class="w">      </span><span class="p">}</span>
 <span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
 <span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
@@ -630,7 +656,7 @@ continuous basis.</p>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71388write_fnE">
-<span id="_CPPv3N4espp7Ads71388write_fnE"></span><span id="_CPPv2N4espp7Ads71388write_fnE"></span><span id="espp::Ads7138::write_fn"></span><span class="target" id="classespp_1_1_ads7138_1a384e7797c662f0b09443c8ee893740b7"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71388write_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Ads71388write_fnE"></span><span id="_CPPv2N4espp7Ads71388write_fnE"></span><span id="espp::Ads7138::write_fn"></span><span class="target" id="classespp_1_1_ads7138_1af91c885e0b7fbded58e460125c4276a4"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71388write_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to write bytes to the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
@@ -642,12 +668,15 @@ continuous basis.</p>
 <dt class="field-odd">Param data_len</dt>
 <dd class="field-odd"><p>Number of data bytes to write. </p>
 </dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if successful, false otherwise. </p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71387read_fnE">
-<span id="_CPPv3N4espp7Ads71387read_fnE"></span><span id="_CPPv2N4espp7Ads71387read_fnE"></span><span id="espp::Ads7138::read_fn"></span><span class="target" id="classespp_1_1_ads7138_1a535de8b88266b6f0b6e3d641d027d567"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387read_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Ads71387read_fnE"></span><span id="_CPPv2N4espp7Ads71387read_fnE"></span><span id="espp::Ads7138::read_fn"></span><span class="target" id="classespp_1_1_ads7138_1a03521cd9af48a6549fb8fb962826fbe1"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71387read_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to read bytes from the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
@@ -658,6 +687,9 @@ continuous basis.</p>
 </dd>
 <dt class="field-odd">Param data_len</dt>
 <dd class="field-odd"><p>Number of data bytes to read. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if successful, false otherwise. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -677,18 +709,23 @@ continuous basis.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810initializeEv">
-<span id="_CPPv3N4espp7Ads713810initializeEv"></span><span id="_CPPv2N4espp7Ads713810initializeEv"></span><span id="espp::Ads7138::initialize"></span><span class="target" id="classespp_1_1_ads7138_1a7e01761680cb201c0e62f96b3dd2aaaf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713810initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713810initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713810initializeERNSt10error_codeE"></span><span id="espp::Ads7138::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1adac5e2dd2f45a9ce7815e7dfb2e12857"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713810initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize the ADC This function uses the configuration structure passed to the constructor to configure the ADC. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This function must be called before any other functions as it configures the ADC pins and sets the mode. </p>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386get_mvE7Channel">
-<span id="_CPPv3N4espp7Ads71386get_mvE7Channel"></span><span id="_CPPv2N4espp7Ads71386get_mvE7Channel"></span><span id="espp::Ads7138::get_mv__Channel"></span><span class="target" id="classespp_1_1_ads7138_1a4a8b217b4e0ff3ffa2ba8709670472b4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mv</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71386get_mvE7Channel" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386get_mvE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads71386get_mvE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads71386get_mvE7ChannelRNSt10error_codeE"></span><span id="espp::Ads7138::get_mv__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a00bd3f4050ad382d512c4abf9e0feac4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_mv</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71386get_mvE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Communicate with the ADC to get the analog value for the channel and return it. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -704,7 +741,10 @@ continuous basis.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>channel</strong> – Which channel of the ADC to read </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Which channel of the ADC to read </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The voltage (in mV) read from the channel. </p>
@@ -713,8 +753,8 @@ continuous basis.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810get_all_mvEv">
-<span id="_CPPv3N4espp7Ads713810get_all_mvEv"></span><span id="_CPPv2N4espp7Ads713810get_all_mvEv"></span><span id="espp::Ads7138::get_all_mv"></span><span class="target" id="classespp_1_1_ads7138_1ad3e8e0507f249a1aedd46ba961b965c2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713810get_all_mvEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713810get_all_mvERNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713810get_all_mvERNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713810get_all_mvERNSt10error_codeE"></span><span id="espp::Ads7138::get_all_mv__std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1ae98abf106a5d66895a96a5e6a68188dd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713810get_all_mvERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Communicate with the ADC to get the analog value for all channels and return them. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -733,15 +773,18 @@ continuous basis.</p>
 <p>If the ADC is in autonomous mode, this function will simply read the values from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the values from the ADC’s buffer (blocking until conversion is complete). </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A vector of the voltages (in mV) read from each channel. </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A vector of the voltages (in mV) read from each channel. </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713814get_all_mv_mapEv">
-<span id="_CPPv3N4espp7Ads713814get_all_mv_mapEv"></span><span id="_CPPv2N4espp7Ads713814get_all_mv_mapEv"></span><span id="espp::Ads7138::get_all_mv_map"></span><span class="target" id="classespp_1_1_ads7138_1ac6403cefa262c86ea310b05ca347332a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv_map</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713814get_all_mv_mapEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713814get_all_mv_mapERNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713814get_all_mv_mapERNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713814get_all_mv_mapERNSt10error_codeE"></span><span id="espp::Ads7138::get_all_mv_map__std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a1d51b8dff1d95570fdfd59603f79dd9b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unordered_map</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_all_mv_map</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713814get_all_mv_mapERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Communicate with the ADC to get the analog value for all channels and return them. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -752,29 +795,33 @@ continuous basis.</p>
 <p>If the ADC is in autonomous mode, this function will simply read the values from the ADC’s buffer. If the ADC is in manual mode, this function will trigger a conversion and then read the values from the ADC’s buffer (blocking until conversion is complete). </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>An unordered map of the voltages (in mV) read from each channel. </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An unordered map of the voltages (in mV) read from each channel. </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713815configure_alertE10OutputMode10AlertLogic">
-<span id="_CPPv3N4espp7Ads713815configure_alertE10OutputMode10AlertLogic"></span><span id="_CPPv2N4espp7Ads713815configure_alertE10OutputMode10AlertLogic"></span><span id="espp::Ads7138::configure_alert__OutputMode.AlertLogic"></span><span class="target" id="classespp_1_1_ads7138_1a3695ee5177ef8b23c4427b9d9fc9332a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads713810OutputModeE" title="espp::Ads7138::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713810AlertLogicE" title="espp::Ads7138::AlertLogic"><span class="n"><span class="pre">AlertLogic</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">alert_logic</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713815configure_alertE10OutputMode10AlertLogic" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713815configure_alertE10OutputMode10AlertLogicRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713815configure_alertE10OutputMode10AlertLogicRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713815configure_alertE10OutputMode10AlertLogicRNSt10error_codeE"></span><span id="espp::Ads7138::configure_alert__OutputMode.AlertLogic.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a368bb800eb2d43225641ad5a8475b886"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads713810OutputModeE" title="espp::Ads7138::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713810AlertLogicE" title="espp::Ads7138::AlertLogic"><span class="n"><span class="pre">AlertLogic</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">alert_logic</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713815configure_alertE10OutputMode10AlertLogicRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the ALERT pin. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>output_mode</strong> – Output mode ALERT pin </p></li>
 <li><p><strong>alert_logic</strong> – Alert logic for ALERT pin </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventi">
-<span id="_CPPv3N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventi"></span><span id="_CPPv2N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventi"></span><span id="espp::Ads7138::set_analog_alert__Channel.float.float.AnalogEvent.i"></span><span class="target" id="classespp_1_1_ads7138_1ab015a3862b18ba97707843bed4b7d51c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_analog_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">high_threshold_mv</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">low_threshold_mv</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713811AnalogEventE" title="espp::Ads7138::AnalogEvent"><span class="n"><span class="pre">AnalogEvent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">event</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">event_count</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventi" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventiRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventiRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventiRNSt10error_codeE"></span><span id="espp::Ads7138::set_analog_alert__Channel.float.float.AnalogEvent.i.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a710e1510b5fa22d265583f8179eaf836"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_analog_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">high_threshold_mv</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">low_threshold_mv</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713811AnalogEventE" title="espp::Ads7138::AnalogEvent"><span class="n"><span class="pre">AnalogEvent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">event</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">event_count</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713816set_analog_alertE7Channelff11AnalogEventiRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the analog channel to generate an alert when the voltage crosses a low or high threshold. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -788,28 +835,30 @@ continuous basis.</p>
 <li><p><strong>low_threshold_mv</strong> – Low threshold (in mV) to generate an alert </p></li>
 <li><p><strong>event</strong> – Event type which will generate an alert </p></li>
 <li><p><strong>event_count</strong> – Number of events to generate an alert (1-15). Checks n+1 consecutive samples above or below threshold before setting event flag. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817set_digital_alertE7Channel12DigitalEvent">
-<span id="_CPPv3N4espp7Ads713817set_digital_alertE7Channel12DigitalEvent"></span><span id="_CPPv2N4espp7Ads713817set_digital_alertE7Channel12DigitalEvent"></span><span id="espp::Ads7138::set_digital_alert__Channel.DigitalEvent"></span><span class="target" id="classespp_1_1_ads7138_1a3fce9df9eb77ac879b2d4d5d7ab05ed5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713812DigitalEventE" title="espp::Ads7138::DigitalEvent"><span class="n"><span class="pre">DigitalEvent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">event</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713817set_digital_alertE7Channel12DigitalEvent" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713817set_digital_alertE7Channel12DigitalEventRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713817set_digital_alertE7Channel12DigitalEventRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713817set_digital_alertE7Channel12DigitalEventRNSt10error_codeE"></span><span id="espp::Ads7138::set_digital_alert__Channel.DigitalEvent.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1aebc6387709894f86121b62adb5366280"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_alert</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713812DigitalEventE" title="espp::Ads7138::DigitalEvent"><span class="n"><span class="pre">DigitalEvent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">event</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713817set_digital_alertE7Channel12DigitalEventRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the digital input channel to generate an alert when the input goes high or low. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>channel</strong> – Digital input channel to configure </p></li>
 <li><p><strong>event</strong> – Event type which will generate an alert </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_t">
-<span id="_CPPv3N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_t"></span><span id="_CPPv2N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_t"></span><span id="espp::Ads7138::get_event_data__uint8_tP.uint8_tP.uint8_tP"></span><span class="target" id="classespp_1_1_ads7138_1a3b7fff92aad75291d136efe5a5edd178"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_flags</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_high_flags</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_low_flags</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_tRNSt10error_codeE"></span><span id="espp::Ads7138::get_event_data__uint8_tP.uint8_tP.uint8_tP.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a0e35f29b0aa2cbc52e85f052d9ccf45e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_data</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_flags</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_high_flags</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">event_low_flags</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713814get_event_dataEP7uint8_tP7uint8_tP7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get all the event data registers. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -821,81 +870,97 @@ continuous basis.</p>
 <li><p><strong>event_flags</strong> – <strong>[inout]</strong> Event flag register </p></li>
 <li><p><strong>event_high_flags</strong> – <strong>[inout]</strong> Event high flag register </p></li>
 <li><p><strong>event_low_flags</strong> – <strong>[inout]</strong> Event low flag register </p></li>
+<li><p><strong>ec</strong> – <strong>[inout]</strong> Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713815get_event_flagsEv">
-<span id="_CPPv3N4espp7Ads713815get_event_flagsEv"></span><span id="_CPPv2N4espp7Ads713815get_event_flagsEv"></span><span id="espp::Ads7138::get_event_flags"></span><span class="target" id="classespp_1_1_ads7138_1ad253716280aff57d9e44e42154bac3f3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_flags</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713815get_event_flagsEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713815get_event_flagsERNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713815get_event_flagsERNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713815get_event_flagsERNSt10error_codeE"></span><span id="espp::Ads7138::get_event_flags__std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1aface5cbabf759972b1518da4b04d6df3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_flags</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713815get_event_flagsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the event flag register. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The event flags are NOT cleared after reading. </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The event flag register </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The event flag register </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713819get_event_high_flagEv">
-<span id="_CPPv3N4espp7Ads713819get_event_high_flagEv"></span><span id="_CPPv2N4espp7Ads713819get_event_high_flagEv"></span><span id="espp::Ads7138::get_event_high_flag"></span><span class="target" id="classespp_1_1_ads7138_1a6cfd22dc1af7c6b64e6e491c2a547019"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_high_flag</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713819get_event_high_flagEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713819get_event_high_flagERNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713819get_event_high_flagERNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713819get_event_high_flagERNSt10error_codeE"></span><span id="espp::Ads7138::get_event_high_flag__std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a713c7f95e97c96c06d205e3c4b400a17"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_high_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713819get_event_high_flagERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the event high flag register. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The event high flags are NOT cleared after reading. </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The event high flag register </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The event high flag register </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713818get_event_low_flagEv">
-<span id="_CPPv3N4espp7Ads713818get_event_low_flagEv"></span><span id="_CPPv2N4espp7Ads713818get_event_low_flagEv"></span><span id="espp::Ads7138::get_event_low_flag"></span><span class="target" id="classespp_1_1_ads7138_1a7cf119291b047fc882dc50c57988d4a8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_low_flag</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713818get_event_low_flagEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713818get_event_low_flagERNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713818get_event_low_flagERNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713818get_event_low_flagERNSt10error_codeE"></span><span id="espp::Ads7138::get_event_low_flag__std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1ac4842d55b51c2ce3c1f97023c6ff360e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_event_low_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713818get_event_low_flagERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the event low flag register. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The event low flags are NOT cleared after reading. </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The event low flag register </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The event low flag register </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713821clear_event_high_flagE7uint8_t">
-<span id="_CPPv3N4espp7Ads713821clear_event_high_flagE7uint8_t"></span><span id="_CPPv2N4espp7Ads713821clear_event_high_flagE7uint8_t"></span><span id="espp::Ads7138::clear_event_high_flag__uint8_t"></span><span class="target" id="classespp_1_1_ads7138_1a3aea247b3a57c1a4767be2630bcabb22"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_event_high_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713821clear_event_high_flagE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713821clear_event_high_flagE7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713821clear_event_high_flagE7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713821clear_event_high_flagE7uint8_tRNSt10error_codeE"></span><span id="espp::Ads7138::clear_event_high_flag__uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a3f035298f8fca1c0003350706f519f2e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_event_high_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713821clear_event_high_flagE7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Clear the event flag register. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>flags</strong> – Flags to clear </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flags</strong> – Flags to clear </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713820clear_event_low_flagE7uint8_t">
-<span id="_CPPv3N4espp7Ads713820clear_event_low_flagE7uint8_t"></span><span id="_CPPv2N4espp7Ads713820clear_event_low_flagE7uint8_t"></span><span id="espp::Ads7138::clear_event_low_flag__uint8_t"></span><span class="target" id="classespp_1_1_ads7138_1a6ac184ac5608fc8531933f1aee31b2ce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_event_low_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0xFF</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713820clear_event_low_flagE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713820clear_event_low_flagE7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713820clear_event_low_flagE7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713820clear_event_low_flagE7uint8_tRNSt10error_codeE"></span><span id="espp::Ads7138::clear_event_low_flag__uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1ab008d9937ce3f3a88424e0ffe1efbb99"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_event_low_flag</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713820clear_event_low_flagE7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Clear the event flag register. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>flags</strong> – Flags to clear </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flags</strong> – Flags to clear </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode">
-<span id="_CPPv3N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode"></span><span id="_CPPv2N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode"></span><span id="espp::Ads7138::set_digital_output_mode__Channel.OutputMode"></span><span class="target" id="classespp_1_1_ads7138_1ae181b04f73845beecd2ddaa28858f06a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713810OutputModeE" title="espp::Ads7138::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713823set_digital_output_modeE7Channel10OutputMode" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE"></span><span id="espp::Ads7138::set_digital_output_mode__Channel.OutputMode.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a1d80c11e5c096b3fc66559554a56b9e1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_mode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <a class="reference internal" href="#_CPPv4N4espp7Ads713810OutputModeE" title="espp::Ads7138::OutputMode"><span class="n"><span class="pre">OutputMode</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_mode</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713823set_digital_output_modeE7Channel10OutputModeRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the digital output mode for the given channel. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -906,14 +971,15 @@ continuous basis.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>channel</strong> – Channel to configure </p></li>
 <li><p><strong>output_mode</strong> – Output mode for the channel </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713824set_digital_output_valueE7Channelb">
-<span id="_CPPv3N4espp7Ads713824set_digital_output_valueE7Channelb"></span><span id="_CPPv2N4espp7Ads713824set_digital_output_valueE7Channelb"></span><span id="espp::Ads7138::set_digital_output_value__Channel.b"></span><span class="target" id="classespp_1_1_ads7138_1ac64f1de81f2ae2d985c510abdb132bd4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713824set_digital_output_valueE7Channelb" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713824set_digital_output_valueE7ChannelbRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713824set_digital_output_valueE7ChannelbRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713824set_digital_output_valueE7ChannelbRNSt10error_codeE"></span><span id="espp::Ads7138::set_digital_output_value__Channel.b.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a392bc89a7ba8b0864854a4b64c59d796"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_digital_output_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713824set_digital_output_valueE7ChannelbRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the digital output value for the given channel. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -924,14 +990,15 @@ continuous basis.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>channel</strong> – Which channel to set the digital output value for. </p></li>
 <li><p><strong>value</strong> – The value to set the digital output to. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713823get_digital_input_valueE7Channel">
-<span id="_CPPv3N4espp7Ads713823get_digital_input_valueE7Channel"></span><span id="_CPPv2N4espp7Ads713823get_digital_input_valueE7Channel"></span><span id="espp::Ads7138::get_digital_input_value__Channel"></span><span class="target" id="classespp_1_1_ads7138_1a0abb1ba161fa17da37be2898a7266343"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713823get_digital_input_valueE7Channel" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713823get_digital_input_valueE7ChannelRNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713823get_digital_input_valueE7ChannelRNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713823get_digital_input_valueE7ChannelRNSt10error_codeE"></span><span id="espp::Ads7138::get_digital_input_value__Channel.std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1ac513f8099dfe987782822759d69bbe7e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_value</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Ads71387ChannelE" title="espp::Ads7138::Channel"><span class="n"><span class="pre">Channel</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713823get_digital_input_valueE7ChannelRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the digital input value for the given channel. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -939,7 +1006,10 @@ continuous basis.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>channel</strong> – Which channel to get the digital input value for. </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel</strong> – Which channel to get the digital input value for. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The value of the digital input. </p>
@@ -948,8 +1018,8 @@ continuous basis.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713824get_digital_input_valuesEv">
-<span id="_CPPv3N4espp7Ads713824get_digital_input_valuesEv"></span><span id="_CPPv2N4espp7Ads713824get_digital_input_valuesEv"></span><span id="espp::Ads7138::get_digital_input_values"></span><span class="target" id="classespp_1_1_ads7138_1acacea288bf185391c7ae7c1ac7c066c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_values</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713824get_digital_input_valuesEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads713824get_digital_input_valuesERNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads713824get_digital_input_valuesERNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads713824get_digital_input_valuesERNSt10error_codeE"></span><span id="espp::Ads7138::get_digital_input_values__std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a01a1c2ac31e7298710ca0ecbe1bc3f57"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_digital_input_values</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads713824get_digital_input_valuesERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get the digital input values for all channels. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -960,20 +1030,28 @@ continuous basis.</p>
 <p>Only channels configured as digital inputs are returned. </p>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The values of the digital inputs. </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The values of the digital inputs. </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71385resetEv">
-<span id="_CPPv3N4espp7Ads71385resetEv"></span><span id="_CPPv2N4espp7Ads71385resetEv"></span><span id="espp::Ads7138::reset"></span><span class="target" id="classespp_1_1_ads7138_1a317b60f95f02aa2180e1ab2e536fce06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71385resetEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71385resetERNSt10error_codeE">
+<span id="_CPPv3N4espp7Ads71385resetERNSt10error_codeE"></span><span id="_CPPv2N4espp7Ads71385resetERNSt10error_codeE"></span><span id="espp::Ads7138::reset__std::error_codeR"></span><span class="target" id="classespp_1_1_ads7138_1a5f86ef052b68471dbbc0d42c3c075c23"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Ads71385resetERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Perform a software reset of the device. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This will reset all registers to their default values (converting all channels to analog inputs and disabling all events). </p>
 </div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -1067,7 +1145,7 @@ continuous basis.</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ads71386Config9auto_initE">
 <span id="_CPPv3N4espp7Ads71386Config9auto_initE"></span><span id="_CPPv2N4espp7Ads71386Config9auto_initE"></span><span id="espp::Ads7138::Config::auto_init__b"></span><span class="target" id="structespp_1_1_ads7138_1_1_config_1a89cceac61ab51388da1b3374bed9d74f"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp7Ads71386Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Automatically initialize the ADC on construction. If false, <a class="reference internal" href="#classespp_1_1_ads7138_1a7e01761680cb201c0e62f96b3dd2aaaf"><span class="std std-ref">initialize()</span></a> must be called before any other functions. </p>
+<dd><p>Automatically initialize the ADC on construction. If false, <a class="reference internal" href="#classespp_1_1_ads7138_1adac5e2dd2f45a9ce7815e7dfb2e12857"><span class="std std-ref">initialize()</span></a> must be called before any other functions. </p>
 </dd></dl>
 
 <dl class="cpp var">

@@ -141,7 +141,7 @@
           <li><a href="index.html">Encoder APIs</a> &raquo;</li>
       <li>AS5600 Magnetic Encoder</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/4d45536/docs/en/encoder/as5600.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/12ef0d4/docs/en/encoder/as5600.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -174,7 +174,7 @@ closed-loop motor control.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/4d45536/components/as5600/include/as5600.hpp">components/as5600/include/as5600.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/12ef0d4/components/as5600/include/as5600.hpp">components/as5600/include/as5600.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -203,13 +203,15 @@ closed-loop motor control.</p>
 <span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;install i2c driver failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
 <span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the as5600</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">as5600_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
 <span class="w">                                 </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">as5600_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">i2c_master_write_read_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_read_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
 <span class="w">                                   </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 <span class="w">    </span><span class="c1">// make the velocity filter</span>
 <span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">filter_cutoff_hz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">;</span>
@@ -269,7 +271,7 @@ closed-loop motor control.</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6As56008write_fnE">
-<span id="_CPPv3N4espp6As56008write_fnE"></span><span id="_CPPv2N4espp6As56008write_fnE"></span><span id="espp::As5600::write_fn"></span><span class="target" id="classespp_1_1_as5600_1a3de671fd2b2ffb02a84a868328a9d020"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6As56008write_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6As56008write_fnE"></span><span id="_CPPv2N4espp6As56008write_fnE"></span><span id="espp::As5600::write_fn"></span><span class="target" id="classespp_1_1_as5600_1a8e83badb2fdc2ffd7c3cbabb0873d6ab"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6As56008write_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to write bytes to the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
@@ -281,12 +283,15 @@ closed-loop motor control.</p>
 <dt class="field-odd">Param data_len</dt>
 <dd class="field-odd"><p>Number of data bytes to write. </p>
 </dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the write was successful, false otherwise. </p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6As56007read_fnE">
-<span id="_CPPv3N4espp6As56007read_fnE"></span><span id="_CPPv2N4espp6As56007read_fnE"></span><span id="espp::As5600::read_fn"></span><span class="target" id="classespp_1_1_as5600_1ad4ad1e86a56a24580b266ceec40a7a2b"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6As56007read_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6As56007read_fnE"></span><span id="_CPPv2N4espp6As56007read_fnE"></span><span id="espp::As5600::read_fn"></span><span class="target" id="classespp_1_1_as5600_1a54da1d7dc479b42b9014fb8087871490"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6As56007read_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to read bytes from the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
@@ -300,6 +305,9 @@ closed-loop motor control.</p>
 </dd>
 <dt class="field-even">Param data_len</dt>
 <dd class="field-even"><p>Number of data bytes to read. </p>
+</dd>
+<dt class="field-odd">Return</dt>
+<dd class="field-odd"><p>True if the read was successful, false otherwise. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -325,6 +333,17 @@ closed-loop motor control.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6As56006As5600ERK6Config">
 <span id="_CPPv3N4espp6As56006As5600ERK6Config"></span><span id="_CPPv2N4espp6As56006As5600ERK6Config"></span><span id="espp::As5600::As5600__ConfigCR"></span><span class="target" id="classespp_1_1_as5600_1a92a5ef3a50778d1dd8ddbbf9dd86cfc4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">As5600</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6As56006ConfigE" title="espp::As5600::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6As56006As5600ERK6Config" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Construct the <a class="reference internal" href="#classespp_1_1_as5600"><span class="std std-ref">As5600</span></a> and start the update task. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6As560010initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp6As560010initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp6As560010initializeERNSt10error_codeE"></span><span id="espp::As5600::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1_as5600_1a961995f33f1f18dba545248998436699"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6As560010initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the sensor. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if there is an error. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -513,6 +532,12 @@ closed-loop motor control.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6As56006Config13update_periodE">
 <span id="_CPPv3N4espp6As56006Config13update_periodE"></span><span id="_CPPv2N4espp6As56006Config13update_periodE"></span><span id="espp::As5600::Config::update_period__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1_as5600_1_1_config_1a3448e7325c8a7182d9b9da8d54989833"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_period</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">.01f</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6As56006Config13update_periodE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update period (1/sample rate) in seconds. This determines the periodicity of the task which will read the position, update the accumulator, and update/filter velocity. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6As56006Config9auto_initE">
+<span id="_CPPv3N4espp6As56006Config9auto_initE"></span><span id="_CPPv2N4espp6As56006Config9auto_initE"></span><span id="espp::As5600::Config::auto_init__b"></span><span class="target" id="structespp_1_1_as5600_1_1_config_1abe91c90f6c024411c593dcaa7abf66f1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6As56006Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to automatically initialize the accumulator to the current position. </p>
 </dd></dl>
 
 </div>

@@ -37,13 +37,15 @@ extern "C" void app_main(void) {
       printf("install i2c driver failed\n");
     // make some lambda functions we'll use to read/write to the mcp23x17
     auto mcp23x17_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
-      i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
-                                 I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
+                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      return err == ESP_OK;
     };
 
     auto mcp23x17_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len) {
-      i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, data_len,
-                                   I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      auto err = i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, data_len,
+                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      return err == ESP_OK;
     };
     // now make the mcp23x17 which handles GPIO
     espp::Mcp23x17 mcp23x17({.port_a_direction_mask = (1 << 0), // input on A0
@@ -54,8 +56,15 @@ extern "C" void app_main(void) {
                              .read = mcp23x17_read,
                              .log_level = espp::Logger::Verbosity::WARN});
     // set pull up on the input pins
-    mcp23x17.set_pull_up(espp::Mcp23x17::Port::A, (1 << 0));
-    mcp23x17.set_pull_up(espp::Mcp23x17::Port::B, (1 << 7));
+    std::error_code ec;
+    mcp23x17.set_pull_up(espp::Mcp23x17::Port::A, (1 << 0), ec);
+    if (ec) {
+      fmt::print("set_pull_up failed: {}\n", ec.message());
+    }
+    mcp23x17.set_pull_up(espp::Mcp23x17::Port::B, (1 << 7), ec);
+    if (ec) {
+      fmt::print("set_pull_up failed: {}\n", ec.message());
+    }
     // and finally, make the task to periodically poll the mcp23x17 and print
     // the state. NOTE: the Mcp23x17 does not internally manage its own state
     // update, so whatever rate we use here is the rate at which the state will
@@ -64,13 +73,26 @@ extern "C" void app_main(void) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds = std::chrono::duration<float>(now - start).count();
-      auto a_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::A);
-      auto b_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::B);
+      std::error_code ec;
+      auto a_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::A, ec);
+      if (ec) {
+        fmt::print("get_pins failed: {}\n", ec.message());
+        return false;
+      }
+      auto b_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::B, ec);
+      if (ec) {
+        fmt::print("get_pins failed: {}\n", ec.message());
+        return false;
+      }
       bool on = !(a_pins & (1 << 0));
       if (on) {
-        mcp23x17.set_pins(espp::Mcp23x17::Port::B, (1 << 3));
+        mcp23x17.set_pins(espp::Mcp23x17::Port::B, (1 << 3), ec);
       } else {
-        mcp23x17.set_pins(espp::Mcp23x17::Port::B, 0x00);
+        mcp23x17.set_pins(espp::Mcp23x17::Port::B, 0x00, ec);
+      }
+      if (ec) {
+        fmt::print("set_pins failed: {}\n", ec.message());
+        return false;
       }
       fmt::print("{:.3f}, {:#x}, {:#x}\n", seconds, a_pins, b_pins);
       quit_test = !(b_pins & (1 << 7));
