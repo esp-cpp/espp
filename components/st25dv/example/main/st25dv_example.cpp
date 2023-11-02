@@ -87,20 +87,28 @@ extern "C" void app_main(void) {
       printf("install i2c driver failed\n");
     // make some lambda functions we'll use to read/write to the st25dv
     auto st25dv_write = [](uint8_t addr, uint8_t *data, uint8_t length) {
-      i2c_master_write_to_device(I2C_NUM, addr, data, length, I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      auto err = i2c_master_write_to_device(I2C_NUM, addr, data, length,
+                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      return err == ESP_OK;
     };
 
     auto st25dv_read = [](uint8_t addr, uint16_t reg_addr, uint8_t *data, uint8_t length) {
       uint8_t reg[2] = {(uint8_t)(reg_addr >> 8), (uint8_t)(reg_addr & 0xFF)};
-      i2c_master_write_read_device(I2C_NUM, addr, reg, 2, data, length,
-                                   I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      auto err = i2c_master_write_read_device(I2C_NUM, addr, reg, 2, data, length,
+                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+      return err == ESP_OK;
     };
     // now make the st25dv which decodes the data
     espp::St25dv st25dv(
         {.write = st25dv_write, .read = st25dv_read, .log_level = espp::Logger::Verbosity::DEBUG});
 
     std::array<uint8_t, 50> programmed_data;
-    st25dv.read(programmed_data.data(), programmed_data.size());
+    std::error_code ec;
+    st25dv.read(programmed_data.data(), programmed_data.size(), ec);
+    if (ec) {
+      fmt::print("Failed to read st25dv: {}\n", ec.message());
+      return;
+    }
     fmt::print("Read: {}\n", programmed_data);
 
     std::vector<espp::Ndef> records;
@@ -142,12 +150,17 @@ extern "C" void app_main(void) {
     records.back().set_id(payload_id);
 
     // set one of the records we made to be the active tag
-    st25dv.set_records(records);
+    st25dv.set_records(records, ec);
 
     // and finally, make the task to periodically poll the st25dv and print the
     // state. The task will trigger sample quit when the phone reads the tag.
     auto task_fn = [&quit_test, &st25dv](std::mutex &m, std::condition_variable &cv) {
-      auto it_sts = st25dv.get_interrupt_status();
+      std::error_code ec;
+      auto it_sts = st25dv.get_interrupt_status(ec);
+      if (ec) {
+        fmt::print("Failed to get interrupt status: {}\n", ec.message());
+        return false;
+      }
       static auto last_it_sts = it_sts;
       if (it_sts != last_it_sts) {
         fmt::print("[{:.3f}] IT STS: {:02x}\n", elapsed(), it_sts);

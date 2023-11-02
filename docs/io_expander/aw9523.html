@@ -139,7 +139,7 @@
           <li><a href="index.html">IO Expander APIs</a> &raquo;</li>
       <li>AW9523 I/O Expander</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/4d45536/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/12ef0d4/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -158,7 +158,7 @@ are configured into a special LED mode.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/4d45536/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/12ef0d4/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -186,20 +186,16 @@ are configured into a special LED mode.</p>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span>
 <span class="w">      </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;install i2c driver failed</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
 <span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the aw9523</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">aw9523_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">aw9523_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
 <span class="w">                                            </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;I2C WRITE ERROR: &#39;{}&#39;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span>
-<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">aw9523_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">aw9523_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_read_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
 <span class="w">                                              </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;I2C READ ERROR: &#39;{}&#39;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">esp_err_to_name</span><span class="p">(</span><span class="n">err</span><span class="p">));</span>
-<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 <span class="w">    </span><span class="c1">// now make the aw9523 which handles GPIO</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Aw9523</span><span class="w"> </span><span class="nf">aw9523</span><span class="p">({</span><span class="c1">// since this uses LEDs, both of the address pins are pulled up in</span>
@@ -212,19 +208,28 @@ are configured into a special LED mode.</p>
 <span class="w">                         </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">aw9523_write</span><span class="p">,</span>
 <span class="w">                         </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">aw9523_read</span><span class="p">,</span>
 <span class="w">                         </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
-<span class="w">    </span><span class="n">aw9523</span><span class="p">.</span><span class="n">initialize</span><span class="p">();</span><span class="w"> </span><span class="c1">//Initialized separately from the constructor.</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="n">aw9523</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">//Initialized separately from the constructor.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;aw9523 initialization failed: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">    </span><span class="c1">// set P1_5, P1_6, and P1_7 to be leds</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">r_led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">13</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">g_led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">14</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">b_led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">15</span><span class="p">);</span>
 <span class="w">    </span><span class="c1">// for the port led mask, 0 = LED, 1 = GPIO so we invert the pins above</span>
 <span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">leds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">~</span><span class="p">(</span><span class="n">r_led</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">g_led</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">b_led</span><span class="p">);</span>
-<span class="w">    </span><span class="n">aw9523</span><span class="p">.</span><span class="n">configure_led</span><span class="p">(</span><span class="n">leds</span><span class="p">);</span>
+<span class="w">    </span><span class="n">aw9523</span><span class="p">.</span><span class="n">configure_led</span><span class="p">(</span><span class="n">leds</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;aw9523 led configuration failed: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">      </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the aw9523 and print</span>
 <span class="w">    </span><span class="c1">// the state. NOTE: the Aw9523 does not internally manage its own state</span>
 <span class="w">    </span><span class="c1">// update, so whatever rate we use here is the rate at which the state will</span>
 <span class="w">    </span><span class="c1">// update.</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">aw9523</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">r_led</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">g_led</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">b_led</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
@@ -232,10 +237,14 @@ are configured into a special LED mode.</p>
 <span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">g_brightness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">b_brightness</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="w">      </span><span class="c1">// returns the pins as P0_0 lsb, P1_7 msb</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">pins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">aw9523</span><span class="p">.</span><span class="n">get_pins</span><span class="p">();</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">pins</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">aw9523</span><span class="p">.</span><span class="n">get_pins</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;aw9523 get pins failed: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// stop the task</span>
+<span class="w">      </span><span class="p">}</span>
 <span class="w">      </span><span class="c1">// equivalent to:</span>
-<span class="w">      </span><span class="c1">// auto pins = (aw9523.get_pins(espp::Aw9523::Port::PORT1) &lt;&lt; 8) |</span>
-<span class="w">      </span><span class="c1">// aw9523.get_pins(espp::Aw9523::Port::PORT0);</span>
+<span class="w">      </span><span class="c1">// auto pins = (aw9523.get_pins(espp::Aw9523::Port::PORT1, ec) &lt;&lt; 8) |</span>
+<span class="w">      </span><span class="c1">// aw9523.get_pins(espp::Aw9523::Port::PORT0, ec);</span>
 <span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">r_up</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">pins</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">));</span><span class="w">   </span><span class="c1">// P0_0</span>
 <span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">g_up</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">pins</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">1</span><span class="p">));</span><span class="w">   </span><span class="c1">// P0_1</span>
 <span class="w">      </span><span class="kt">int</span><span class="w"> </span><span class="n">b_up</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">pins</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">9</span><span class="p">));</span><span class="w">   </span><span class="c1">// P1_0</span>
@@ -259,9 +268,13 @@ are configured into a special LED mode.</p>
 <span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">b_down</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">b_brightness</span><span class="w"> </span><span class="o">-=</span><span class="w"> </span><span class="n">increment</span><span class="p">;</span>
 <span class="w">      </span><span class="p">}</span>
-<span class="w">      </span><span class="n">aw9523</span><span class="p">.</span><span class="n">led</span><span class="p">(</span><span class="n">r_led</span><span class="p">,</span><span class="w"> </span><span class="n">r_brightness</span><span class="p">);</span>
-<span class="w">      </span><span class="n">aw9523</span><span class="p">.</span><span class="n">led</span><span class="p">(</span><span class="n">g_led</span><span class="p">,</span><span class="w"> </span><span class="n">g_brightness</span><span class="p">);</span>
-<span class="w">      </span><span class="n">aw9523</span><span class="p">.</span><span class="n">led</span><span class="p">(</span><span class="n">b_led</span><span class="p">,</span><span class="w"> </span><span class="n">b_brightness</span><span class="p">);</span>
+<span class="w">      </span><span class="n">aw9523</span><span class="p">.</span><span class="n">led</span><span class="p">(</span><span class="n">r_led</span><span class="p">,</span><span class="w"> </span><span class="n">r_brightness</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="n">aw9523</span><span class="p">.</span><span class="n">led</span><span class="p">(</span><span class="n">g_led</span><span class="p">,</span><span class="w"> </span><span class="n">g_brightness</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="n">aw9523</span><span class="p">.</span><span class="n">led</span><span class="p">(</span><span class="n">b_led</span><span class="p">,</span><span class="w"> </span><span class="n">b_brightness</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;aw9523 led failed: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// stop the task</span>
+<span class="w">      </span><span class="p">}</span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {:#x}, {}, {}, {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">seconds</span><span class="p">,</span><span class="w"> </span><span class="n">pins</span><span class="p">,</span><span class="w"> </span><span class="n">r_brightness</span><span class="p">,</span><span class="w"> </span><span class="n">g_brightness</span><span class="p">,</span>
 <span class="w">                 </span><span class="n">b_brightness</span><span class="p">);</span>
 <span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
@@ -356,7 +369,7 @@ are configured into a special LED mode.</p>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238write_fnE">
-<span id="_CPPv3N4espp6Aw95238write_fnE"></span><span id="_CPPv2N4espp6Aw95238write_fnE"></span><span id="espp::Aw9523::write_fn"></span><span class="target" id="classespp_1_1_aw9523_1a65bdc1790fe46d050ace92558e2901ec"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95238write_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6Aw95238write_fnE"></span><span id="_CPPv2N4espp6Aw95238write_fnE"></span><span id="espp::Aw9523::write_fn"></span><span class="target" id="classespp_1_1_aw9523_1a34f89954d7726f9b04897a0b7812c4cb"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95238write_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to write bytes to the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
@@ -368,12 +381,15 @@ are configured into a special LED mode.</p>
 <dt class="field-odd">Param data_len</dt>
 <dd class="field-odd"><p>Number of data bytes to write. </p>
 </dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if successful, false otherwise. </p>
+</dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95237read_fnE">
-<span id="_CPPv3N4espp6Aw95237read_fnE"></span><span id="_CPPv2N4espp6Aw95237read_fnE"></span><span id="espp::Aw9523::read_fn"></span><span class="target" id="classespp_1_1_aw9523_1aff59f100514d940d463c0a4433acd79f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95237read_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6Aw95237read_fnE"></span><span id="_CPPv2N4espp6Aw95237read_fnE"></span><span id="espp::Aw9523::read_fn"></span><span class="target" id="classespp_1_1_aw9523_1a2e6dbfdd10442fbb37a384d5cc7a3160"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95237read_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to read bytes from the device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param dev_addr</dt>
@@ -388,6 +404,9 @@ are configured into a special LED mode.</p>
 <dt class="field-even">Param data_len</dt>
 <dd class="field-even"><p>Number of data bytes to read. </p>
 </dd>
+<dt class="field-odd">Return</dt>
+<dd class="field-odd"><p>True if successful, false otherwise. </p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -397,7 +416,7 @@ are configured into a special LED mode.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236Aw9523ERK6Config">
 <span id="_CPPv3N4espp6Aw95236Aw9523ERK6Config"></span><span id="_CPPv2N4espp6Aw95236Aw9523ERK6Config"></span><span id="espp::Aw9523::Aw9523__ConfigCR"></span><span class="target" id="classespp_1_1_aw9523_1a7a8c9bd9e24a4ec4622c297a1f4d76ef"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Aw9523</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Aw95236ConfigE" title="espp::Aw9523::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236Aw9523ERK6Config" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Construct the <a class="reference internal" href="#classespp_1_1_aw9523"><span class="std std-ref">Aw9523</span></a>. Will call <a class="reference internal" href="#classespp_1_1_aw9523_1a576805a8c2f7040b58d7b1beb5abdf0f"><span class="std std-ref">initialize()</span></a> if auto_init is true. </p>
+<dd><p>Construct the <a class="reference internal" href="#classespp_1_1_aw9523"><span class="std std-ref">Aw9523</span></a>. Will call <a class="reference internal" href="#classespp_1_1_aw9523_1a532193d25e1a60ebeda68456475915fa"><span class="std std-ref">initialize()</span></a> if auto_init is true. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1_aw9523_1_1_config"><span class="std std-ref">Config</span></a> structure for configuring the AW9523 </p>
@@ -406,18 +425,26 @@ are configured into a special LED mode.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310initializeEv">
-<span id="_CPPv3N4espp6Aw952310initializeEv"></span><span id="_CPPv2N4espp6Aw952310initializeEv"></span><span id="espp::Aw9523::initialize__void"></span><span class="target" id="classespp_1_1_aw9523_1a576805a8c2f7040b58d7b1beb5abdf0f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">void</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310initializeEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310initializeERNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952310initializeERNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952310initializeERNSt10error_codeE"></span><span id="espp::Aw9523::initialize__std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a532193d25e1a60ebeda68456475915fa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310initializeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize the component class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238get_pinsE4Port">
-<span id="_CPPv3N4espp6Aw95238get_pinsE4Port"></span><span id="_CPPv2N4espp6Aw95238get_pinsE4Port"></span><span id="espp::Aw9523::get_pins__Port"></span><span class="target" id="classespp_1_1_aw9523_1a98e8461d9618ca3a908ad59d37c13c86"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238get_pinsE4Port" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238get_pinsE4PortRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95238get_pinsE4PortRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95238get_pinsE4PortRNSt10error_codeE"></span><span id="espp::Aw9523::get_pins__Port.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a9f057c93e2b9f259bc27088d7fc94f9a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238get_pinsE4PortRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read the pin values on the provided port. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>port</strong> – The Port for which to read the pins </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to read the pins </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The pin values as an 8 bit mask. </p>
@@ -426,19 +453,22 @@ are configured into a special LED mode.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238get_pinsEv">
-<span id="_CPPv3N4espp6Aw95238get_pinsEv"></span><span id="_CPPv2N4espp6Aw95238get_pinsEv"></span><span id="espp::Aw9523::get_pins"></span><span class="target" id="classespp_1_1_aw9523_1a7bd2ad9014ee7482a24901bf7941ea6b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_pins</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238get_pinsEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238get_pinsERNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95238get_pinsERNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95238get_pinsERNSt10error_codeE"></span><span id="espp::Aw9523::get_pins__std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a80aa060edbc46c80dee054a9e2d1ca54"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238get_pinsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read the pin values on both Port 0 and Port 1. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb). </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb). </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE4Port7uint8_t">
-<span id="_CPPv3N4espp6Aw95236outputE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw95236outputE4Port7uint8_t"></span><span id="espp::Aw9523::output__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a5f98138fd55f457fdfbeeb93e8c6745e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95236outputE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95236outputE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::output__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1ac5fb4134c05b45568f45f501ad347fe7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Write the pin values on the provided port. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -449,14 +479,15 @@ are configured into a special LED mode.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>port</strong> – The Port for which to write the pins </p></li>
 <li><p><strong>value</strong> – The pin values to apply. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE7uint8_t7uint8_t">
-<span id="_CPPv3N4espp6Aw95236outputE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw95236outputE7uint8_t7uint8_t"></span><span id="espp::Aw9523::output__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1abbaef52d09ace634ad0d50521e9c1b49"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95236outputE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95236outputE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::output__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a9cf1233dfbcfb30dca7d31d7c9928779"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Write the pin values on both Port 0 and Port 1. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -467,14 +498,15 @@ are configured into a special LED mode.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>p0</strong> – The pin values to apply to Port 0. </p></li>
 <li><p><strong>p1</strong> – The pin values to apply to Port 1. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE8uint16_t">
-<span id="_CPPv3N4espp6Aw95236outputE8uint16_t"></span><span id="_CPPv2N4espp6Aw95236outputE8uint16_t"></span><span id="espp::Aw9523::output__uint16_t"></span><span class="target" id="classespp_1_1_aw9523_1acbd3714ee0c05b934d95dfb62b2b93c5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236outputE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95236outputE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95236outputE8uint16_tRNSt10error_codeE"></span><span id="espp::Aw9523::output__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1abe769d6e0bfa6feea0e3149c0bdb75b5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95236outputE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Write the pin values on both Port 0 and Port 1. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -482,14 +514,17 @@ are configured into a special LED mode.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>value</strong> – The pin values to apply as a 16 bit value (P0_0 lsb, P1_7 msb). </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> – The pin values to apply as a 16 bit value (P0_0 lsb, P1_7 msb). </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE4Port7uint8_t">
-<span id="_CPPv3N4espp6Aw952310clear_pinsE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE4Port7uint8_t"></span><span id="espp::Aw9523::clear_pins__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a735843186ab4e4929e866e6a3adeac14"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952310clear_pinsE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::clear_pins__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a914ec0cbd031537e7092040a5974a45f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Clear the pin values on the provided port according to the provided mask. </p>
 <p>Reads the current pin values and clears any bits set in the mask. </p>
 <dl class="field-list simple">
@@ -497,14 +532,15 @@ are configured into a special LED mode.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>port</strong> – The Port for which to clear the pin outputs. </p></li>
 <li><p><strong>mask</strong> – The pin values as an 8 bit mask to clear. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE7uint8_t7uint8_t">
-<span id="_CPPv3N4espp6Aw952310clear_pinsE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE7uint8_t7uint8_t"></span><span id="espp::Aw9523::clear_pins__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a94637496809e85d2ddc6676c02643689"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952310clear_pinsE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::clear_pins__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a8b3a908fa270588d27e02e206cd3b037"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Clear the pin values for Port 0 and Port 1 according to the provided masks. </p>
 <p>Reads the current pin values and clears any bits set in the masks. </p>
 <dl class="field-list simple">
@@ -512,26 +548,30 @@ are configured into a special LED mode.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>p0</strong> – The pin values as an 8 bit mask for Port 0 to clear. </p></li>
 <li><p><strong>p1</strong> – The pin values as an 8 bit mask for Port 1 to clear. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE8uint16_t">
-<span id="_CPPv3N4espp6Aw952310clear_pinsE8uint16_t"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE8uint16_t"></span><span id="espp::Aw9523::clear_pins__uint16_t"></span><span class="target" id="classespp_1_1_aw9523_1a9b948493ec86673d6d3fbd6e7aeb376a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310clear_pinsE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952310clear_pinsE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952310clear_pinsE8uint16_tRNSt10error_codeE"></span><span id="espp::Aw9523::clear_pins__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a559d092252e2fac2ca688dfe67baeb3a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310clear_pinsE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Clear the pin values for Port 0 and Port 1 according to the provided mask. </p>
 <p>Reads the current pin values and clears any bits set in the mask. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to clear. </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to clear. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE4Port7uint8_t">
-<span id="_CPPv3N4espp6Aw95238set_pinsE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw95238set_pinsE4Port7uint8_t"></span><span id="espp::Aw9523::set_pins__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1ab6a35459a81283386891b52ddeeb132e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95238set_pinsE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95238set_pinsE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::set_pins__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a7f3cc2068c1ed244d3640af6d0041408"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the pin values on the provided port according to the provided mask. </p>
 <p>Reads the current pin values and sets any bits set in the mask. </p>
 <dl class="field-list simple">
@@ -539,14 +579,15 @@ are configured into a special LED mode.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>port</strong> – The Port for which to set the pin outputs. </p></li>
 <li><p><strong>mask</strong> – The pin values as an 8 bit mask to set. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE7uint8_t7uint8_t">
-<span id="_CPPv3N4espp6Aw95238set_pinsE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw95238set_pinsE7uint8_t7uint8_t"></span><span id="espp::Aw9523::set_pins__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a94b3a9e2a47d00dd1977399f4b04ceb6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95238set_pinsE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95238set_pinsE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::set_pins__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a38152c7de2a775cfae48c7c3ec9486b5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the pin values for Port 0 and Port 1 according to the provided masks. </p>
 <p>Reads the current pin values and sets any bits set in the masks. </p>
 <dl class="field-list simple">
@@ -554,30 +595,37 @@ are configured into a special LED mode.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>p0</strong> – The pin values for Port 0 as an 8 bit mask to set. </p></li>
 <li><p><strong>p1</strong> – The pin values for Port 1 as an 8 bit mask to set. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE8uint16_t">
-<span id="_CPPv3N4espp6Aw95238set_pinsE8uint16_t"></span><span id="_CPPv2N4espp6Aw95238set_pinsE8uint16_t"></span><span id="espp::Aw9523::set_pins__uint16_t"></span><span class="target" id="classespp_1_1_aw9523_1ab056ab2e34d0deeac3d984016ed11ffc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238set_pinsE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95238set_pinsE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95238set_pinsE8uint16_tRNSt10error_codeE"></span><span id="espp::Aw9523::set_pins__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a2e84c152221ad576602333380011b975"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_pins</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95238set_pinsE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the pin values for Port 0 and Port 1 according to the provided mask. </p>
 <p>Reads the current pin values and sets any bits set in the mask. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to set. </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to set. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310get_outputE4Port">
-<span id="_CPPv3N4espp6Aw952310get_outputE4Port"></span><span id="_CPPv2N4espp6Aw952310get_outputE4Port"></span><span id="espp::Aw9523::get_output__Port"></span><span class="target" id="classespp_1_1_aw9523_1a7037de923aa2ac03006de699c6beb06c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310get_outputE4Port" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310get_outputE4PortRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952310get_outputE4PortRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952310get_outputE4PortRNSt10error_codeE"></span><span id="espp::Aw9523::get_output__Port.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a33e862d1e0c36cb0f1d1757587663979"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_output</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310get_outputE4PortRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read the output pin values on the provided port. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>port</strong> – The Port for which to read the pins </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>port</strong> – The Port for which to read the pins </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The pin values as an 8 bit mask. </p>
@@ -586,134 +634,148 @@ are configured into a special LED mode.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310get_outputEv">
-<span id="_CPPv3N4espp6Aw952310get_outputEv"></span><span id="_CPPv2N4espp6Aw952310get_outputEv"></span><span id="espp::Aw9523::get_output"></span><span class="target" id="classespp_1_1_aw9523_1accbc1bfc3ba21ef2725059ad6311eb40"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_output</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310get_outputEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952310get_outputERNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952310get_outputERNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952310get_outputERNSt10error_codeE"></span><span id="espp::Aw9523::get_output__std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a8988fa7ae432e64be0621118ec6fcb6b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_output</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952310get_outputERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read the output pin values on both Port 0 and Port 1. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb). </p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb). </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_interruptE4Port7uint8_t">
-<span id="_CPPv3N4espp6Aw952313set_interruptE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw952313set_interruptE4Port7uint8_t"></span><span id="espp::Aw9523::set_interrupt__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1ade44afa03bbf790d3023a275819b30dc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_interrupt</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_interruptE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_interruptE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952313set_interruptE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952313set_interruptE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::set_interrupt__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a527c3eac6849e21a231f57aa2b870d96"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_interrupt</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_interruptE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the provided pins to interrupt on change. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
 <li><p><strong>mask</strong> – The pin mask to configure for interrupt (0=interrupt). </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_interruptE7uint8_t7uint8_t">
-<span id="_CPPv3N4espp6Aw952313set_interruptE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw952313set_interruptE7uint8_t7uint8_t"></span><span id="espp::Aw9523::set_interrupt__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a41074f545e5109f6f871585a1fb7d461"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_interrupt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_interruptE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_interruptE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952313set_interruptE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952313set_interruptE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::set_interrupt__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a321c9e66e3ab143e2e076863740b9ee0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_interrupt</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_interruptE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the provided pins to interrupt on change. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>p0</strong> – The pin mask for Port 0 to configure for interrupt (0=interrupt). </p></li>
 <li><p><strong>p1</strong> – The pin mask for Port 1 to configure for interrupt (0=interrupt). </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_directionE4Port7uint8_t">
-<span id="_CPPv3N4espp6Aw952313set_directionE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw952313set_directionE4Port7uint8_t"></span><span id="espp::Aw9523::set_direction__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a68830c65e9ffa134da9dc97c7ae7dd11"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_direction</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_directionE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_directionE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952313set_directionE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952313set_directionE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::set_direction__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1ac4d83bafc93e0a888d766f6a8f81cf3a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_direction</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_directionE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the i/o direction for the pins according to mask. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
 <li><p><strong>mask</strong> – The mask indicating direction (1 = input, 0 = output) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_directionE7uint8_t7uint8_t">
-<span id="_CPPv3N4espp6Aw952313set_directionE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw952313set_directionE7uint8_t7uint8_t"></span><span id="espp::Aw9523::set_direction__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a3876b6bc269c5fcdc141b0be6216ffda"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_direction</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_directionE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_directionE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952313set_directionE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952313set_directionE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::set_direction__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a65d02c182a6f88942e731720ed0af31b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_direction</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_directionE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the i/o direction for the pins on Port 0 and Port 1. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>p0</strong> – The mask for Port 0 indicating direction (1 = input, 0 = output) </p></li>
 <li><p><strong>p1</strong> – The mask for Port 1 indicating direction (1 = input, 0 = output) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313configure_ledE4Port7uint8_t">
-<span id="_CPPv3N4espp6Aw952313configure_ledE4Port7uint8_t"></span><span id="_CPPv2N4espp6Aw952313configure_ledE4Port7uint8_t"></span><span id="espp::Aw9523::configure_led__Port.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1ad31adbfd1f3a511417893b869d6c07a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_led</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313configure_ledE4Port7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313configure_ledE4Port7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952313configure_ledE4Port7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952313configure_ledE4Port7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::configure_led__Port.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a971c42a1dd77271d0712e535f5251e6e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_led</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw95234PortE" title="espp::Aw9523::Port"><span class="n"><span class="pre">Port</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">port</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313configure_ledE4Port7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Enable/disable the LED function on the associated port pins. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>port</strong> – The port associated with the provided pin mask. </p></li>
 <li><p><strong>mask</strong> – The mask indicating LED function (1 = GPIO, 0 = LED) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313configure_ledE7uint8_t7uint8_t">
-<span id="_CPPv3N4espp6Aw952313configure_ledE7uint8_t7uint8_t"></span><span id="_CPPv2N4espp6Aw952313configure_ledE7uint8_t7uint8_t"></span><span id="espp::Aw9523::configure_led__uint8_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1aeef6f4ece22eb63e3e632733c87c4dc3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_led</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313configure_ledE7uint8_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313configure_ledE7uint8_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952313configure_ledE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952313configure_ledE7uint8_t7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::configure_led__uint8_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1ab882c9ada5c188c368ddd79fad1ae949"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_led</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">p1</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313configure_ledE7uint8_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Enable/disable the LED function on the associated port pins. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>p0</strong> – The mask for Port 0 indicating LED function (1 = GPIO, 0 = LED) </p></li>
 <li><p><strong>p1</strong> – The mask for Port 1 indicating LED function (1 = GPIO, 0 = LED) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313configure_ledE8uint16_t">
-<span id="_CPPv3N4espp6Aw952313configure_ledE8uint16_t"></span><span id="_CPPv2N4espp6Aw952313configure_ledE8uint16_t"></span><span id="espp::Aw9523::configure_led__uint16_t"></span><span class="target" id="classespp_1_1_aw9523_1a1be09aee9e758eecbacc4b4d12086edd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_led</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313configure_ledE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313configure_ledE8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952313configure_ledE8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952313configure_ledE8uint16_tRNSt10error_codeE"></span><span id="espp::Aw9523::configure_led__uint16_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a9d969d2f89ca173f7dc46b430c864f32"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_led</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mask</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313configure_ledE8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Enable/disable the LED function on the associated port pins. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>mask</strong> – The bit mask for Port 0 and Port 1 [(Port 1 &lt;&lt; 8) | (Port 0)] indicating LED function (1 = GPIO, 0 = LED) </p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> – The bit mask for Port 0 and Port 1 [(Port 1 &lt;&lt; 8) | (Port 0)] indicating LED function (1 = GPIO, 0 = LED) </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95233ledE8uint16_t7uint8_t">
-<span id="_CPPv3N4espp6Aw95233ledE8uint16_t7uint8_t"></span><span id="_CPPv2N4espp6Aw95233ledE8uint16_t7uint8_t"></span><span id="espp::Aw9523::led__uint16_t.uint8_t"></span><span class="target" id="classespp_1_1_aw9523_1a536166be6c05ed1fe95a8b08f2229f2f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">led</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pin</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95233ledE8uint16_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95233ledE8uint16_t7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw95233ledE8uint16_t7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw95233ledE8uint16_t7uint8_tRNSt10error_codeE"></span><span id="espp::Aw9523::led__uint16_t.uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1a53f768c41f6fbe393efb672f9a87e7da"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">led</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pin</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw95233ledE8uint16_t7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the pin’s LED to new brightness value. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pin</strong> – The pin bit corresponding to the pin (P0_0 lsb, P1_7 msb). </p></li>
 <li><p><strong>brightness</strong> – The brightness value [0,255] to set the LED to. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952324configure_global_controlE17OutputDriveModeP013MaxLedCurrent">
-<span id="_CPPv3N4espp6Aw952324configure_global_controlE17OutputDriveModeP013MaxLedCurrent"></span><span id="_CPPv2N4espp6Aw952324configure_global_controlE17OutputDriveModeP013MaxLedCurrent"></span><span id="espp::Aw9523::configure_global_control__OutputDriveModeP0.MaxLedCurrent"></span><span class="target" id="classespp_1_1_aw9523_1ac7b42c88a8607bd7273598c11a181a8a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_global_control</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw952317OutputDriveModeP0E" title="espp::Aw9523::OutputDriveModeP0"><span class="n"><span class="pre">OutputDriveModeP0</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_drive_mode_p0</span></span>, <a class="reference internal" href="#_CPPv4N4espp6Aw952313MaxLedCurrentE" title="espp::Aw9523::MaxLedCurrent"><span class="n"><span class="pre">MaxLedCurrent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">max_led_current</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952324configure_global_controlE17OutputDriveModeP013MaxLedCurrent" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952324configure_global_controlE17OutputDriveModeP013MaxLedCurrentRNSt10error_codeE">
+<span id="_CPPv3N4espp6Aw952324configure_global_controlE17OutputDriveModeP013MaxLedCurrentRNSt10error_codeE"></span><span id="_CPPv2N4espp6Aw952324configure_global_controlE17OutputDriveModeP013MaxLedCurrentRNSt10error_codeE"></span><span id="espp::Aw9523::configure_global_control__OutputDriveModeP0.MaxLedCurrent.std::error_codeR"></span><span class="target" id="classespp_1_1_aw9523_1ac1c6ab79924a52bb0fd4fc1b35f99f15"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure_global_control</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp6Aw952317OutputDriveModeP0E" title="espp::Aw9523::OutputDriveModeP0"><span class="n"><span class="pre">OutputDriveModeP0</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">output_drive_mode_p0</span></span>, <a class="reference internal" href="#_CPPv4N4espp6Aw952313MaxLedCurrentE" title="espp::Aw9523::MaxLedCurrent"><span class="n"><span class="pre">MaxLedCurrent</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">max_led_current</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952324configure_global_controlE17OutputDriveModeP013MaxLedCurrentRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configure the global control register. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>output_drive_mode_p0</strong> – Output drive mode for Port 0. </p></li>
 <li><p><strong>max_led_current</strong> – Maximum LED current for each LED pin. </p></li>
+<li><p><strong>ec</strong> – Error code to set if an error occurs. </p></li>
 </ul>
 </dd>
 </dl>

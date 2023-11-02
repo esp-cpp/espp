@@ -35,16 +35,18 @@ public:
    * @param dev_addr Address of the device to write to.
    * @param data Pointer to array of bytes to write.
    * @param data_len Number of data bytes to write.
+   * @return True if the write was successful, false otherwise.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
+  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
 
   /**
    * @brief Function to read bytes from the device.
    * @param dev_addr Address of the device to write to.
    * @param data Pointer to array of bytes to read into.
    * @param data_len Number of data bytes to read.
+   * @return True if the read was successful, false otherwise.
    */
-  typedef std::function<void(uint8_t dev_addr, uint8_t *data, size_t data_len)> read_fn;
+  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> read_fn;
 
   /// @brief Possible oversampling ratios, see data sheet Table 15 (p. 34)
   enum class OversamplingRatio : uint8_t {
@@ -169,7 +171,11 @@ public:
     }
     // initialize the ADC
     if (config.auto_init) {
-      initialize();
+      std::error_code ec;
+      initialize(ec);
+      if (ec) {
+        logger_.error("Error initializing ADC: {}", ec.message());
+      }
     }
   }
 
@@ -177,15 +183,17 @@ public:
    * @brief Initialize the ADC
    *        This function uses the configuration structure passed to the
    *        constructor to configure the ADC.
+   * @param ec Error code to set if an error occurs.
    * @note This function must be called before any other functions as it
    *       configures the ADC pins and sets the mode.
    */
-  void initialize() { init(config_); }
+  void initialize(std::error_code &ec) { init(config_, ec); }
 
   /**
    * @brief Communicate with the ADC to get the analog value for the channel
    *        and return it.
    * @param channel Which channel of the ADC to read
+   * @param ec Error code to set if an error occurs.
    * @return The voltage (in mV) read from the channel.
    * @note The channel must have been configured as an analog input.
    * @note If the ADC is in autonomous mode, this function will simply read
@@ -195,12 +203,19 @@ public:
    * @note This function will return 0 and log an error if the channel is not
    *       configured as an analog input.
    */
-  float get_mv(Channel channel) {
+  float get_mv(Channel channel, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // we need to trigger a conversion and then read the result
-    trigger_conversion(channel);
+    trigger_conversion(channel, ec);
+    if (ec) {
+      return 0.0f;
+    }
     uint8_t data[num_bytes_per_sample_];
-    read_(address_, data, num_bytes_per_sample_);
+    bool success = read_(address_, data, num_bytes_per_sample_);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0.0f;
+    }
     uint16_t raw = parse_frame(data);
     return raw_to_mv(raw);
   }
@@ -208,6 +223,7 @@ public:
   /**
    * @brief Communicate with the ADC to get the analog value for all channels
    *        and return them.
+   * @param ec Error code to set if an error occurs.
    * @return A vector of the voltages (in mV) read from each channel.
    * @note The channels must have been configured as analog inputs.
    * @note The vector will be in the order of the channels configured in the
@@ -219,10 +235,13 @@ public:
    *       function will trigger a conversion and then read the values from the
    *       ADC's buffer (blocking until conversion is complete).
    */
-  std::vector<float> get_all_mv() {
+  std::vector<float> get_all_mv(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // TODO: handle the non-autonomous case
-    auto raw_values = read_all();
+    auto raw_values = read_all(ec);
+    if (ec) {
+      return {};
+    }
     std::vector<float> values(analog_inputs_.size());
     // convert the raw values (uint16_t) to mv (float)
     for (int i = 0; i < raw_values.size(); i++) {
@@ -234,6 +253,7 @@ public:
   /**
    * @brief Communicate with the ADC to get the analog value for all channels
    *        and return them.
+   * @param ec Error code to set if an error occurs.
    * @return An unordered map of the voltages (in mV) read from each channel.
    * @note These are the channels that were configured as analog inputs.
    * @note If the ADC is in autonomous mode, this function will simply read
@@ -241,11 +261,14 @@ public:
    *       function will trigger a conversion and then read the values from the
    *       ADC's buffer (blocking until conversion is complete).
    */
-  std::unordered_map<Channel, float> get_all_mv_map() {
+  std::unordered_map<Channel, float> get_all_mv_map(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::unordered_map<Channel, float> values;
     // TODO: handle the non-autonomous case
-    auto raw_values = read_all_map();
+    auto raw_values = read_all_map(ec);
+    if (ec) {
+      return {};
+    }
     // convert the raw values (uint16_t) to mv (float)
     for (auto &[channel, raw] : raw_values) {
       values[channel] = raw_to_mv(raw);
@@ -256,19 +279,21 @@ public:
   /// @brief Configure the digital output mode for the given channel.
   /// @param channel Channel to configure
   /// @param output_mode Output mode for the channel
+  /// @param ec Error code to set if an error occurs.
   /// @note The channel must have been configured as a digital output.
-  void set_digital_output_mode(Channel channel, OutputMode output_mode) {
+  void set_digital_output_mode(Channel channel, OutputMode output_mode, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!is_digital_output(channel)) {
       logger_.error("Channel {} is not configured as a digital output", channel);
+      ec = std::make_error_code(std::errc::invalid_argument);
       return;
     }
     if (output_mode == OutputMode::OPEN_DRAIN) {
       // 0 in the register = open-drain
-      clear_bits_(Register::GPO_DRIVE_CFG, 1 << (int)channel);
+      clear_bits_(Register::GPO_DRIVE_CFG, 1 << (int)channel, ec);
     } else {
       // 1 in the register = push-pull
-      set_bits_(Register::GPO_DRIVE_CFG, 1 << (int)channel);
+      set_bits_(Register::GPO_DRIVE_CFG, 1 << (int)channel, ec);
     }
   }
 
@@ -276,52 +301,67 @@ public:
    * @brief Set the digital output value for the given channel.
    * @param channel Which channel to set the digital output value for.
    * @param value The value to set the digital output to.
+   * @param ec Error code to set if an error occurs.
    * @note The channel must have been configured as a digital output.
    */
-  void set_digital_output_value(Channel channel, bool value) {
+  void set_digital_output_value(Channel channel, bool value, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!is_digital_output(channel)) {
       logger_.error("Channel {} is not configured as a digital output", channel);
+      ec = std::make_error_code(std::errc::invalid_argument);
       return;
     }
     if (value) {
-      set_bits_(Register::GPO_VALUE, 1 << (int)channel);
+      set_bits_(Register::GPO_VALUE, 1 << (int)channel, ec);
     } else {
-      clear_bits_(Register::GPO_VALUE, 1 << (int)channel);
+      clear_bits_(Register::GPO_VALUE, 1 << (int)channel, ec);
     }
   }
 
   /**
    * @brief Get the digital input value for the given channel.
    * @param channel Which channel to get the digital input value for.
+   * @param ec Error code to set if an error occurs.
    * @return The value of the digital input.
    * @note The channel must have been configured as a digital input.
    */
-  bool get_digital_input_value(Channel channel) {
+  bool get_digital_input_value(Channel channel, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!is_digital_input(channel)) {
       logger_.error("Channel {} is not configured as a digital input", channel);
+      ec = std::make_error_code(std::errc::invalid_argument);
       return false;
     }
-    return (read_one_(Register::GPI_VALUE) & (1 << (int)channel)) != 0;
+    uint8_t value = read_one_(Register::GPI_VALUE, ec);
+    if (ec) {
+      return false;
+    }
+    return (value & (1 << (int)channel)) != 0;
   }
 
   /**
    * @brief Get the digital input values for all channels.
+   * @param ec Error code to set if an error occurs.
    * @return The values of the digital inputs.
    * @note The returned value is a bitfield, with each bit corresponding to a
    *       channel. The LSB corresponds to channel 0, the MSB to channel 7.
    * @note Only channels configured as digital inputs are returned.
    */
-  uint8_t get_digital_input_values() { return read_one_(Register::GPI_VALUE); }
+  uint8_t get_digital_input_values(std::error_code &ec) {
+    return read_one_(Register::GPI_VALUE, ec);
+  }
 
   /// @brief Perform a software reset of the device
+  /// @param ec Error code to set if an error occurs.
   /// @note This will reset all registers to their default values (converting
   ///       all channels to analog inputs and disabling all events).
-  void reset() {
+  void reset(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     // reset the device
-    write_one_(Register::GENERAL_CFG, SW_RST);
+    write_one_(Register::GENERAL_CFG, SW_RST, ec);
+    if (ec) {
+      return;
+    }
     // wait for the reset to complete
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
@@ -479,58 +519,74 @@ protected:
     AUTO = 1,   ///< Auto mode
   };
 
-  void init(const Config &config) {
+  void init(const Config &config, std::error_code &ec) {
     // Set the data format
-    set_data_format(data_format_, append_);
+    set_data_format(data_format_, append_, ec);
+    if (ec)
+      return;
 
     // Set the oversampling ratio
-    set_oversampling_ratio(config.oversampling_ratio);
+    set_oversampling_ratio(config.oversampling_ratio, ec);
+    if (ec)
+      return;
 
     // set pin configuration (analog vs digital)
-    set_pin_configuration();
+    set_pin_configuration(ec);
+    if (ec)
+      return;
 
     // set the digital output outputmode (push-pull vs open-drain). NOTE: this
     // will work because the digital output channels have already been saved
     // (though they have not been configured yet)
     for (auto &[channel, output_mode] : config.digital_output_modes) {
-      set_digital_output_mode(channel, output_mode);
+      set_digital_output_mode(channel, output_mode, ec);
+      if (ec)
+        return;
     }
 
     // set the digital output values. NOTE: this will work because the digital
     // output channels have already been saved (though they have not been
     // configured yet)
     for (auto &[channel, value] : config.digital_output_values) {
-      set_digital_output_value(channel, value);
+      set_digital_output_value(channel, value, ec);
+      if (ec)
+        return;
     }
 
     // Set the digital input/output channels
-    set_digital_io_direction();
+    set_digital_io_direction(ec);
+    if (ec)
+      return;
 
     // Set the analog input channels
-    set_analog_inputs();
+    set_analog_inputs(ec);
+    if (ec)
+      return;
 
     // set the operational mode
-    set_operational_mode();
+    set_operational_mode(ec);
   }
 
-  void set_data_format(DataFormat format, Append append) {
+  void set_data_format(DataFormat format, Append append, std::error_code &ec) {
     data_format_ = format;
     logger_.info("Data format set to {}", data_format_);
     append_ = append;
     logger_.info("Append set to {}", append_);
-    clear_bits_(Register::DATA_CFG, APPEND);
+    clear_bits_(Register::DATA_CFG, APPEND, ec);
+    if (ec)
+      return;
     if (append_ == Append::CHANNEL_ID) {
       logger_.debug("Appending channel ID");
-      set_bits_(Register::DATA_CFG, APPEND_CHID);
+      set_bits_(Register::DATA_CFG, APPEND_CHID, ec);
     }
   }
 
-  void set_oversampling_ratio(OversamplingRatio ratio) {
+  void set_oversampling_ratio(OversamplingRatio ratio, std::error_code &ec) {
     uint8_t data = static_cast<uint8_t>(ratio);
-    write_one_(Register::OSR_CFG, data);
+    write_one_(Register::OSR_CFG, data, ec);
   }
 
-  void set_pin_configuration() {
+  void set_pin_configuration(std::error_code &ec) {
     logger_.info("Setting digital mode for outputs {} and inputs {}", digital_outputs_,
                  digital_inputs_);
     uint8_t data = 0;
@@ -542,20 +598,20 @@ protected:
     }
     // don't have to do anything for analog inputs since they are the default
     // state (0)
-    write_one_(Register::PIN_CFG, data);
+    write_one_(Register::PIN_CFG, data, ec);
   }
 
-  void set_digital_io_direction() {
+  void set_digital_io_direction(std::error_code &ec) {
     logger_.info("Setting digital output for pins {}", digital_outputs_);
     // default direction is input (0)
     uint8_t data = 0;
     for (auto channel : digital_outputs_) {
       data |= 1 << static_cast<uint8_t>(channel);
     }
-    write_one_(Register::GPIO_CFG, data);
+    write_one_(Register::GPIO_CFG, data, ec);
   }
 
-  void set_analog_inputs() {
+  void set_analog_inputs(std::error_code &ec) {
     logger_.info("Setting analog inputs for pins {}", analog_inputs_);
     if (mode_ == Mode::AUTO_SEQ) {
       logger_.info("Setting analog inputs for autonomous mode");
@@ -564,11 +620,12 @@ protected:
       for (auto channel : analog_inputs_) {
         data |= 1 << static_cast<uint8_t>(channel);
       }
-      write_one_(Register::AUTO_SEQ_CH_SEL, data);
+      write_one_(Register::AUTO_SEQ_CH_SEL, data, ec);
     }
   }
 
   /// \brief Sets the operational mode of the device
+  /// \param ec Error code to set if an error occurs.
   /// \details Set the operational mode based on the value of the mode_
   ///         variable. The SEQ_MODE bits in the SEQUENCE_CFG register are also
   ///         set based on the mode_ member variable.
@@ -576,48 +633,51 @@ protected:
   /// \sa The mode_ member variable.
   /// \sa Table 7 (page 22) of the datasheet for more information on the
   ///     functional modes.
-  void set_operational_mode() {
+  void set_operational_mode(std::error_code &ec) {
     // set the SEQ_MODE bits in SEQUENCE_CFG based on mode_
     if (mode_ == Mode::MANUAL) {
-      set_sequence_mode(SequenceMode::MANUAL);
+      set_sequence_mode(SequenceMode::MANUAL, ec);
     } else {
-      set_sequence_mode(SequenceMode::AUTO);
+      set_sequence_mode(SequenceMode::AUTO, ec);
     }
   }
 
-  void set_sequence_mode(SequenceMode mode) {
+  void set_sequence_mode(SequenceMode mode, std::error_code &ec) {
     if (mode == SequenceMode::AUTO) {
       logger_.info("Setting auto sequence mode");
-      set_bits_(Register::SEQUENCE_CFG, SEQ_MODE);
+      set_bits_(Register::SEQUENCE_CFG, SEQ_MODE, ec);
     } else {
       logger_.info("Setting manual sequence mode");
-      clear_bits_(Register::SEQUENCE_CFG, SEQ_MODE);
+      clear_bits_(Register::SEQUENCE_CFG, SEQ_MODE, ec);
     }
   }
 
-  void start_auto_conversion() {
+  void start_auto_conversion(std::error_code &ec) {
     if (mode_ == Mode::MANUAL) {
       logger_.error("Auto sequence mode is not enabled, not starting");
+      ec = std::make_error_code(std::errc::protocol_error);
       return;
     }
     logger_.info("Starting auto conversion sequence");
     // start the auto conversion sequence
-    set_bits_(Register::SEQUENCE_CFG, SEQ_START);
+    set_bits_(Register::SEQUENCE_CFG, SEQ_START, ec);
   }
 
-  void stop_auto_conversion() {
+  void stop_auto_conversion(std::error_code &ec) {
     if (mode_ == Mode::MANUAL) {
       logger_.error("Auto sequence mode is not enabled, not stopping");
+      ec = std::make_error_code(std::errc::protocol_error);
       return;
     }
     logger_.info("Stopping auto conversion sequence");
     // start the auto conversion sequence
-    clear_bits_(Register::SEQUENCE_CFG, SEQ_START);
+    clear_bits_(Register::SEQUENCE_CFG, SEQ_START, ec);
   }
 
-  std::vector<uint16_t> read_all() {
+  std::vector<uint16_t> read_all(std::error_code &ec) {
     if (mode_ == Mode::MANUAL) {
       logger_.error("cannot read_all when in MANUAL mode!");
+      ec = std::make_error_code(std::errc::protocol_error);
       return {};
     }
     logger_.info("Reading recent values for all channels");
@@ -626,10 +686,20 @@ protected:
     size_t num_bytes = num_inputs * num_bytes_per_sample_;
     uint8_t raw_values[num_bytes] = {0};
     // start the auto conversion sequence
-    start_auto_conversion();
-    read_(address_, raw_values, num_bytes);
+    start_auto_conversion(ec);
+    if (ec) {
+      return {};
+    }
+    bool success = read_(address_, raw_values, num_bytes);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return {};
+    }
     // stop the auto conversion sequence
-    stop_auto_conversion();
+    stop_auto_conversion(ec);
+    if (ec) {
+      return {};
+    }
     int analog_index = 0;
     // only pull out the ones that were configured as analog inputs
     for (int i = 0; i < num_bytes; i += num_bytes_per_sample_) {
@@ -658,8 +728,11 @@ protected:
     return value;
   }
 
-  std::unordered_map<Channel, uint16_t> read_all_map() {
-    auto raw_values = read_all();
+  std::unordered_map<Channel, uint16_t> read_all_map(std::error_code &ec) {
+    auto raw_values = read_all(ec);
+    if (ec) {
+      return {};
+    }
     // convert the vector (in order of analog_inputs) into a map
     std::unordered_map<Channel, uint16_t> map_values;
     for (int i = 0; i < analog_inputs_.size(); i++) {
@@ -669,14 +742,15 @@ protected:
     return map_values;
   }
 
-  void trigger_conversion(Channel ch) {
+  void trigger_conversion(Channel ch, std::error_code &ec) {
     if (!is_analog_input(ch)) {
       logger_.error("Channel {} is not configured as an analog input", ch);
+      ec = std::make_error_code(std::errc::invalid_argument);
       return;
     }
     logger_.info("Triggering conversion for channel {}", ch);
     // set the channel to sample
-    select_channel(ch);
+    select_channel(ch, ec);
   }
 
   /**
@@ -716,40 +790,46 @@ protected:
     return static_cast<uint16_t>(mv / avdd_mv_ * 65536);
   }
 
-  bool conversion_complete() {
+  bool conversion_complete(std::error_code &ec) {
     if (data_format_ == DataFormat::RAW) {
       // TODO: figure out how to know when the conversion is complete in RAW
       // mode
       logger_.error("Unsupported data format: RAW for conversion complete, returning true");
+      ec = std::make_error_code(std::errc::not_supported);
       return true;
     } else if (data_format_ == DataFormat::AVERAGED) {
       // if we have enabled the OSR (averaging), then we need to wait (for
       // t_conv * OSR_CFG[2:0]) for the averaging to complete. We'll know it's
       // done when the OSR_DONE bit is set in the SYSTEM_STATUS register
-      uint8_t status = read_one_(Register::SYSTEM_STATUS);
+      uint8_t status = read_one_(Register::SYSTEM_STATUS, ec);
+      if (ec) {
+        return false;
+      }
       return (status & OSR_DONE) == OSR_DONE;
     } else {
       logger_.error("Unknown data format");
+      ec = std::make_error_code(std::errc::not_supported);
       return false;
     }
   }
 
-  void wait_for_conversion() {
+  void wait_for_conversion(std::error_code &ec) {
     logger_.info("Waiting for conversion to complete");
-    while (!conversion_complete()) {
+    while (!conversion_complete(ec) && !ec) {
       // wait for the conversion to complete
     }
   }
 
-  void select_channel(Channel channel) {
+  void select_channel(Channel channel, std::error_code &ec) {
     // only in manual mode
     if (mode_ != Mode::MANUAL) {
       logger_.error("Cannot select channel in non-manual mode");
+      ec = std::make_error_code(std::errc::protocol_error);
       return;
     }
     logger_.info("Selecting channel {}", channel);
     // set the channel to sample
-    write_one_(Register::CHANNEL_SEL, static_cast<uint8_t>(channel));
+    write_one_(Register::CHANNEL_SEL, static_cast<uint8_t>(channel), ec);
   }
 
   bool is_digital_input(Channel channel) {
@@ -766,66 +846,107 @@ protected:
     return std::find(analog_inputs_.begin(), analog_inputs_.end(), channel) != analog_inputs_.end();
   }
 
-  uint8_t read_only_() {
+  uint8_t read_only_(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t val;
-    read_(address_, &val, 1);
+    bool success = read_(address_, &val, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return val;
   }
 
-  uint8_t read_one_(Register reg) {
+  uint8_t read_one_(Register reg, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t read_one_command[] = {OP_READ_ONE, (uint8_t)reg};
-    write_(address_, read_one_command, sizeof(read_one_command));
+    bool success = write_(address_, read_one_command, sizeof(read_one_command));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     uint8_t data;
-    read_(address_, &data, 1);
+    success = read_(address_, &data, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return data;
   }
 
-  uint16_t read_two_(Register reg) {
+  uint16_t read_two_(Register reg, std::error_code &ec) {
     uint8_t data[2];
-    read_many_(reg, data, 2);
+    read_many_(reg, data, 2, ec);
+    if (ec) {
+      return 0;
+    }
     // NOTE: registers are little endian (LSB first, then MSB) so if we want
     // to read the value of a 16 bit register we need to read the LSB first,
     // then the MSB and combine them into a 16 bit value
     return (data[1] << 8) | data[0];
   }
 
-  void read_many_(Register reg, uint8_t *data, uint8_t len) {
+  void read_many_(Register reg, uint8_t *data, uint8_t len, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t read_block_command[] = {OP_READ_BLOCK, (uint8_t)reg};
-    write_(address_, read_block_command, sizeof(read_block_command));
-    read_(address_, data, len);
+    bool success = write_(address_, read_block_command, sizeof(read_block_command));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return;
+    }
+    success = read_(address_, data, len);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return;
+    }
   }
 
-  void set_bits_(Register reg, uint8_t bit) {
+  void set_bits_(Register reg, uint8_t bit, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t data[] = {OP_SET_BITS, (uint8_t)reg, bit};
-    write_(address_, data, sizeof(data));
+    bool success = write_(address_, data, sizeof(data));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return;
+    }
   }
 
-  void clear_bits_(Register reg, uint8_t bit) {
+  void clear_bits_(Register reg, uint8_t bit, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t data[] = {OP_CLR_BITS, (uint8_t)reg, bit};
-    write_(address_, data, sizeof(data));
+    bool success = write_(address_, data, sizeof(data));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return;
+    }
   }
 
-  void write_one_(Register reg, uint8_t value) {
+  void write_one_(Register reg, uint8_t value, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t data[] = {OP_WRITE_ONE, (uint8_t)reg, value};
-    write_(address_, data, sizeof(data));
+    bool success = write_(address_, data, sizeof(data));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return;
+    }
   }
 
-  void write_two_(Register reg, uint16_t value) { write_many_(reg, (uint8_t *)&value, 2); }
+  void write_two_(Register reg, uint16_t value, std::error_code &ec) {
+    write_many_(reg, (uint8_t *)&value, 2, ec);
+  }
 
-  void write_many_(Register reg, uint8_t *data, uint8_t len) {
+  void write_many_(Register reg, uint8_t *data, uint8_t len, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t total_len = len + 2;
     uint8_t data_with_header[total_len];
     data_with_header[0] = OP_WRITE_BLOCK;
     data_with_header[1] = (uint8_t)reg;
     memcpy(data_with_header + 2, data, len);
-    write_(address_, data_with_header, total_len);
+    bool success = write_(address_, data_with_header, total_len);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return;
+    }
   }
 
   Config config_;

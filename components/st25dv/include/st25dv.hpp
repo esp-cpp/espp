@@ -59,8 +59,9 @@ public:
    * @param addr I2C address to write to
    * @param data Data to be written.
    * @param length Number of bytes to write.
+   * @return True if the write was successful, false otherwise.
    */
-  typedef std::function<void(uint8_t addr, uint8_t *data, uint8_t length)> write_fn;
+  typedef std::function<bool(uint8_t addr, uint8_t *data, uint8_t length)> write_fn;
 
   /**
    * @brief Function to read a sequence of bytes from St25dv.
@@ -69,8 +70,9 @@ public:
    * @param data Pointer to memory which will be filled with data read
    *        from St25dv.
    * @param length Number of bytes to read
+   * @return True if the read was successful, false otherwise.
    */
-  typedef std::function<void(uint8_t addr, uint16_t reg_addr, uint8_t *data, uint8_t length)>
+  typedef std::function<bool(uint8_t addr, uint16_t reg_addr, uint8_t *data, uint8_t length)>
       read_fn;
 
   /**
@@ -79,6 +81,7 @@ public:
   struct Config {
     write_fn write;                                       ///< Function to write to the device.
     read_fn read;                                         ///< Function to read from the device.
+    bool auto_init{true};                                 ///< Automatically initialize the device.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the component.  */
   };
 
@@ -88,19 +91,35 @@ public:
   St25dv(const Config &config)
       : write_(config.write), read_(config.read),
         logger_({.tag = "St25dv", .level = config.log_level}) {
-    init();
+    if (config.auto_init) {
+      std::error_code ec;
+      initialize(ec);
+    }
   }
 
   /**
+   * @brief Initialize the St25dv.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            initialization.
+   */
+  void initialize(std::error_code &ec) { init(ec); }
+
+  /**
    * @brief Get the interrupt status register (dynamic IT_STS).
+   * @param &ec Error code to be filled with any errors that occur during
+   *            reading.
    * @note Reading the interrupt status register clears it.
    * @note The available states / flags in the register are available in \c
    *       St25dv::IT_STS.
    * @return The raw interrupt status register value read from the chip.
    */
-  uint8_t get_interrupt_status() {
+  uint8_t get_interrupt_status(std::error_code &ec) {
     uint8_t it_sts = 0;
-    read_(DATA_ADDRESS, (uint16_t)Registers::IT_STS, &it_sts, 1);
+    bool success = read_(DATA_ADDRESS, (uint16_t)Registers::IT_STS, &it_sts, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return it_sts;
   }
 
@@ -109,13 +128,21 @@ public:
    * @note Right now this only supports 4 B CC headers (for memory less than
    *       16 Kbit).
    * @param record The new NDEF record to serialize to the NFC EEPROM.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            writing.
    */
-  void set_record(Ndef &record) {
+  void set_record(Ndef &record, std::error_code &ec) {
     auto record_data = record.serialize();
-    set_record(record_data);
+    set_record(record_data, ec);
   }
 
-  void set_record(const std::vector<uint8_t> &record_data) {
+  /**
+   * @brief Writes the provided record (along with CC header) to the EEPROM.
+   * @param &record_data The serialized NDEF record to write to the NFC EEPROM.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            writing.
+   */
+  void set_record(const std::vector<uint8_t> &record_data, std::error_code &ec) {
     // clang-format off
     /**
      * @note CC indicates how the tag can be accessed. There are two different
@@ -159,10 +186,16 @@ public:
     offset += ndef_size;
     // add the TLV terminator (0xFE)
     full_record[offset] = (uint8_t)Type5TagType::TERMINATOR;
-    write(std::string_view{(const char *)full_record.data(), full_record.size()});
+    write(std::string_view{(const char *)full_record.data(), full_record.size()}, ec);
   }
 
-  void set_records(std::vector<Ndef> &records) {
+  /**
+   * @brief Writes the provided records (along with CC header) to the EEPROM.
+   * @param &records Vector of NDEF records to serialize to the NFC EEPROM.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            writing.
+   */
+  void set_records(std::vector<Ndef> &records, std::error_code &ec) {
     std::vector<uint8_t> record_data;
     size_t total_size = 0;
     for (auto &record : records) {
@@ -179,31 +212,52 @@ public:
       record_data.insert(record_data.end(), serialized_record.begin(), serialized_record.end());
       serialized_record.resize(0);
     }
-    set_record(record_data);
+    set_record(record_data, ec);
   }
 
   /**
    * @brief Write a raw sequence of bytes to the EEPROM.
    * @param payload Sequence of bytes to write.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            writing.
    */
-  void write(std::string_view payload) {
+  void write(std::string_view payload, std::error_code &ec) {
     size_t payload_size = payload.size();
     uint8_t data[2 + payload_size];
     data[0] = (uint8_t)(AREA_1_START_ADDR >> 8);
     data[1] = (uint8_t)(AREA_1_START_ADDR & 0xFF);
     memcpy(&data[2], payload.data(), payload_size);
-    write_(DATA_ADDRESS, data, sizeof(data));
+    bool success = write_(DATA_ADDRESS, data, sizeof(data));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
   /**
-   * @brief Read a sequence of bytes from the EEPROM.
+   * @brief Read a sequence of bytes from the EEPROM starting at offset 0.
    * @note This may contain raw NDEF bytes as well as the CC header.
    * @param *data Pointer to memory to be filled with bytes read.
    * @param length Number of bytes to read.
-   * @param offset Optional offset to start reading from.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            reading.
    */
-  void read(uint8_t *data, uint8_t length, uint16_t offset = 0) {
-    read_(DATA_ADDRESS, AREA_1_START_ADDR + offset, data, length);
+  void read(uint8_t *data, uint8_t length, std::error_code &ec) { read(data, length, 0, ec); }
+
+  /**
+   * @brief Read a sequence of bytes from the EEPROM starting at the provided
+   *        offset.
+   * @note This may contain raw NDEF bytes as well as the CC header.
+   * @param *data Pointer to memory to be filled with bytes read.
+   * @param length Number of bytes to read.
+   * @param offset Offset to start reading from.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            reading.
+   */
+  void read(uint8_t *data, uint8_t length, uint16_t offset, std::error_code &ec) {
+    bool success = read_(DATA_ADDRESS, AREA_1_START_ADDR + offset, data, length);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
   /**
@@ -211,8 +265,12 @@ public:
    *        between RF and I2C. After calling this, you can call transfer(),
    *        receive(), and get_ftm_length() for fast bi-directional
    *        communications between RF and I2C.
+   * @note You must call stop_fast_transfer_mode() before calling any other
+   *       functions on this class.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            writing.
    */
-  void start_fast_transfer_mode() {
+  void start_fast_transfer_mode(std::error_code &ec) {
     uint16_t reg_addr = (uint16_t)Registers::MB_CTRL;
     uint8_t data[3] = {
         (uint8_t)(reg_addr >> 8),
@@ -220,7 +278,10 @@ public:
         // data
         MB_CTRL::EN,
     };
-    write_(DATA_ADDRESS, data, sizeof(data));
+    bool success = write_(DATA_ADDRESS, data, sizeof(data));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
   /**
@@ -228,8 +289,10 @@ public:
    *        between RF and I2C. After calling this, you cannot call transfer()
    *        or receive() without again calling start_fast_transfer_mode()
    *        first.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            writing.
    */
-  void stop_fast_transfer_mode() {
+  void stop_fast_transfer_mode(std::error_code &ec) {
     uint16_t reg_addr = (uint16_t)Registers::MB_CTRL;
     uint8_t data[3] = {
         (uint8_t)(reg_addr >> 8),
@@ -237,17 +300,26 @@ public:
         // data
         0,
     };
-    write_(DATA_ADDRESS, data, sizeof(data));
+    bool success = write_(DATA_ADDRESS, data, sizeof(data));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
   /**
    * @brief Returns the available message length in the FTM message box.
    * @details Will return non-zero if the RF received data into the FTM.
+   * @param &ec Error code to be filled with any errors that occur during
+   *            reading.
    * @return Number of bytes (up to 255) available in the FTM message box.
    */
-  uint8_t get_ftm_length() {
+  uint8_t get_ftm_length(std::error_code &ec) {
     uint8_t len = 0;
-    read_(DATA_ADDRESS, (uint16_t)Registers::MB_LEN, &len, 1);
+    bool success = read_(DATA_ADDRESS, (uint16_t)Registers::MB_LEN, &len, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     return len;
   }
 
@@ -256,8 +328,9 @@ public:
    * @note Must call start_fast_transfer_mode() prior to use.
    * @param data Data to be written.
    * @param length Number of bytes to write.
+   * @param &ec Error code to be filled with any errors that occur during
    */
-  void transfer(uint8_t *data, uint8_t length) { write_ftm(data, length); }
+  void transfer(uint8_t *data, uint8_t length, std::error_code &ec) { write_ftm(data, length, ec); }
 
   /**
    * @brief Read data from the FTM message box.
@@ -266,63 +339,109 @@ public:
    *       get_ftm_length().
    * @param data Pointer to memory to be filled with data.
    * @param length Number of bytes to read.
+   * @param &ec Error code to be filled with any errors that occur during
    */
-  void receive(uint8_t *data, uint8_t length) { read_ftm(data, length); }
+  void receive(uint8_t *data, uint8_t length, std::error_code &ec) { read_ftm(data, length, ec); }
 
 protected:
-  void init() {
+  void init(std::error_code &ec) {
     logger_.info("Initializing");
-    read_uuid();
-    read_password();
-    auto block_size_bytes = read_block_size_bytes();
-    auto memory_size_blocks = read_memory_size_blocks();
+    [[maybe_unused]] auto uuid = read_uuid(ec);
+    if (ec) {
+      logger_.error("Failed to read uuid");
+      return;
+    }
+    [[maybe_unused]] auto password = read_password(ec);
+    if (ec) {
+      logger_.error("Failed to read password");
+      return;
+    }
+    auto block_size_bytes = read_block_size_bytes(ec);
+    if (ec) {
+      logger_.error("Failed to read block size");
+      return;
+    }
+    auto memory_size_blocks = read_memory_size_blocks(ec);
+    if (ec) {
+      logger_.error("Failed to read memory size");
+      return;
+    }
     memory_size_bytes_ = block_size_bytes * memory_size_blocks;
     logger_.info("Memory size (B): {}", memory_size_bytes_);
   }
 
-  void write_ftm(uint8_t *data, uint8_t length) {
+  void write_ftm(uint8_t *data, uint8_t length, std::error_code &ec) {
     // must start from FTM_START_ADDR
     uint8_t all_data[2 + length];
     all_data[0] = (uint8_t)(FTM_START_ADDR >> 8);
     all_data[1] = (uint8_t)(FTM_START_ADDR & 0xFF);
     memcpy(&all_data[2], data, length);
-    write_(DATA_ADDRESS, all_data, length + 2);
+    bool success = write_(DATA_ADDRESS, all_data, length + 2);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
-  void read_ftm(uint8_t *data, uint8_t length, uint8_t offset = 0) {
+  void read_ftm(uint8_t *data, uint8_t length, std::error_code &ec) {
+    read_ftm(data, length, 0, ec);
+  }
+
+  void read_ftm(uint8_t *data, uint8_t length, uint8_t offset, std::error_code &ec) {
     // read can start from any byte offset within the FTM mailbox.
-    read_(DATA_ADDRESS, FTM_START_ADDR + offset, data, length);
+    bool success = read_(DATA_ADDRESS, FTM_START_ADDR + offset, data, length);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
-  void read_uuid() {
+  uint64_t read_uuid(std::error_code &ec) {
     uint8_t uuid[8];
-    read_(SYST_ADDRESS, (uint16_t)Registers::UID, uuid, sizeof(uuid));
+    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::UID, uuid, sizeof(uuid));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     memcpy(&uuid_, uuid, sizeof(uuid));
     logger_.debug("Got uuid: 0x{:016X}", uuid_);
+    return uuid_;
   }
 
-  uint8_t read_block_size_bytes() {
+  uint8_t read_block_size_bytes(std::error_code &ec) {
     uint8_t block_size_bytes = 0;
-    read_(SYST_ADDRESS, (uint16_t)Registers::MEM_SIZE, &block_size_bytes, 1);
+    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::MEM_SIZE, &block_size_bytes, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     logger_.debug("Block size (B): {}", block_size_bytes);
     return block_size_bytes;
   }
 
-  uint16_t read_memory_size_blocks() {
+  uint16_t read_memory_size_blocks(std::error_code &ec) {
     uint16_t memory_size_blocks = 0;
-    read_(SYST_ADDRESS, (uint16_t)Registers::BLK_SIZE, (uint8_t *)&memory_size_blocks, 2);
+    bool success =
+        read_(SYST_ADDRESS, (uint16_t)Registers::BLK_SIZE, (uint8_t *)&memory_size_blocks, 2);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     logger_.debug("Memory size (blocks): {}", memory_size_blocks);
     return memory_size_blocks;
   }
 
-  void read_password() {
+  uint64_t read_password(std::error_code &ec) {
     uint8_t pswd[8];
-    read_(SYST_ADDRESS, (uint16_t)Registers::I2C_PWD, pswd, sizeof(pswd));
+    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::I2C_PWD, pswd, sizeof(pswd));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
     memcpy(&password_, pswd, sizeof(pswd));
     logger_.debug("Got pswd: 0x{:016X}", password_);
+    return password_;
   }
 
-  void present_password() {
+  void present_password(std::error_code &ec) {
     // length of messsage is 17 bytes, plus 2 for address
     uint8_t data[2 + 17] = {0};
     data[0] = (uint16_t)Registers::I2C_PWD >> 8;
@@ -337,7 +456,10 @@ protected:
       data[2 + i + 13] = data[2 + i + 4];
     }
     logger_.debug("Presenting password: {}\n", data);
-    write_(SYST_ADDRESS, data, sizeof(data));
+    bool success = write_(SYST_ADDRESS, data, sizeof(data));
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    }
   }
 
   /**
