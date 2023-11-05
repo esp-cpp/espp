@@ -21,7 +21,7 @@ public:
     gpio_pullup_t sda_pullup_en = GPIO_PULLUP_DISABLE; ///< SDA pullup
     gpio_pullup_t scl_pullup_en = GPIO_PULLUP_DISABLE; ///< SCL pullup
     uint32_t timeout_ms = 10;                          ///< I2C timeout in milliseconds
-    uint32_t clk_speed = 400000;                       ///< I2C clock speed in hertz
+    uint32_t clk_speed = 400 * 1000;                   ///< I2C clock speed in hertz
     bool auto_init = true; ///< Automatically initialize I2C on construction
     espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN; ///< Verbosity of logger
   };

@@ -10,13 +10,15 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   {
     std::atomic<bool> quit_test = false;
-    fmt::print("Starting ft5x06 example, press select & start together to quit!\n");
+    fmt::print("Starting ft5x06 example\n");
     //! [ft5x06 example]
     // make the I2C that we'll use to communicate
     espp::I2c i2c({
-        .port = I2C_NUM_1,
-        .sda_io_num = GPIO_NUM_18,
-        .scl_io_num = GPIO_NUM_8,
+        .port = I2C_NUM_0,
+        .sda_io_num = GPIO_NUM_8,
+        .scl_io_num = GPIO_NUM_18,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
     });
     // now make the ft5x06 which decodes the data
     espp::Ft5x06 ft5x06({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
@@ -50,7 +52,7 @@ extern "C" void app_main(void) {
         {.name = "Ft5x06 Task", .callback = task_fn, .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [ft5x06 example]
-    while (!true) {
+    while (true) {
       std::this_thread::sleep_for(100ms);
     }
   }

@@ -30,7 +30,11 @@ public:
   /// @param config The configuration for the driver
   explicit Tt21100(const Config &config)
       : read_(config.read), logger_({.tag = "Tt21100", .level = config.log_level}) {
-    init();
+    std::error_code ec;
+    init(ec);
+    if (ec) {
+      logger_.error("Failed to initialize: {}", ec.message());
+    }
   }
 
   /// @brief Read the touch data
@@ -41,6 +45,7 @@ public:
 
     bool success = read_(DEFAULT_ADDRESS, (uint8_t *)&data_len, sizeof(data_len));
     if (!success) {
+      logger_.error("Failed to read data length");
       ec = std::make_error_code(std::errc::io_error);
       return;
     }
@@ -48,12 +53,14 @@ public:
     logger_.debug("Data length: {}", data_len);
 
     if (data_len == 0xff) {
+      logger_.error("Invalid data length");
       ec = std::make_error_code(std::errc::io_error);
       return;
     }
 
     success = read_(DEFAULT_ADDRESS, data, data_len);
     if (!success) {
+      logger_.error("Failed to read data");
       ec = std::make_error_code(std::errc::io_error);
       return;
     }
@@ -115,11 +122,18 @@ public:
   uint8_t get_home_button_state() const { return home_button_pressed_; }
 
 protected:
-  void init() {
+  void init(std::error_code &ec) {
+    logger_.debug("Initializing...");
     uint16_t reg_val = 0;
     do {
       using namespace std::chrono_literals;
-      read_(DEFAULT_ADDRESS, (uint8_t *)&reg_val, sizeof(reg_val));
+      bool success = read_(DEFAULT_ADDRESS, (uint8_t *)&reg_val, 2);
+      if (!success) {
+        logger_.error("Failed to read...");
+        ec = std::make_error_code(std::errc::io_error);
+        return;
+      }
+      logger_.debug("reg_val: {:#04x}", reg_val);
       std::this_thread::sleep_for(20ms);
     } while (0x0002 != reg_val);
   }

@@ -10,11 +10,11 @@ using namespace std::chrono_literals;
 extern "C" void app_main(void) {
   {
     std::atomic<bool> quit_test = false;
-    fmt::print("Starting gt911 example, press select & start together to quit!\n");
+    fmt::print("Starting gt911 example\n");
     //! [gt911 example]
     // make the I2C that we'll use to communicate
     espp::I2c i2c({
-        .port = I2C_NUM_1,
+        .port = I2C_NUM_0,
         .sda_io_num = GPIO_NUM_18,
         .scl_io_num = GPIO_NUM_8,
     });
@@ -59,7 +59,7 @@ extern "C" void app_main(void) {
         {.name = "Gt911 Task", .callback = task_fn, .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [gt911 example]
-    while (!true) {
+    while (true) {
       std::this_thread::sleep_for(100ms);
     }
   }

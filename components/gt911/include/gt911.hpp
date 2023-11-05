@@ -5,6 +5,10 @@
 #include "logger.hpp"
 
 namespace espp {
+/// @brief Driver for the GT911 touch controller
+///
+/// \section Example
+/// \snippet gt911_example.cpp gt911 example
 class Gt911 {
 public:
   /// Default address for the GT911 chip
@@ -262,7 +266,11 @@ protected:
 
   void read(Registers reg, uint8_t *data, size_t len, std::error_code &ec) {
     uint16_t reg_addr = (uint16_t)reg;
-    bool success = write_read_(address_, (uint8_t *)&reg_addr, 2, data, len);
+    uint8_t reg_data[2] = {
+        (uint8_t)(reg_addr >> 8),
+        (uint8_t)(reg_addr & 0xFF),
+    };
+    bool success = write_read_(address_, reg_data, 2, data, len);
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
     }

@@ -14,9 +14,11 @@ extern "C" void app_main(void) {
     //! [tt21100 example]
     // make the I2C that we'll use to communicate
     espp::I2c i2c({
-        .port = I2C_NUM_1,
-        .sda_io_num = GPIO_NUM_18,
-        .scl_io_num = GPIO_NUM_8,
+        .port = I2C_NUM_0,
+        .sda_io_num = GPIO_NUM_8,
+        .scl_io_num = GPIO_NUM_18,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
     });
     // now make the tt21100
     auto tt21100 = espp::Tt21100({
@@ -37,12 +39,20 @@ extern "C" void app_main(void) {
       uint8_t num_touch_points = 0;
       uint16_t x = 0, y = 0;
       tt21100.get_touch_point(&num_touch_points, &x, &y);
-      fmt::print("num_touch_points: {}, x: {}, y: {}\n", num_touch_points, x, y);
+      bool button_state = tt21100.get_home_button_state();
+      if (num_touch_points == 0 && !button_state) {
+        // no touch points, so don't bother printing
+      } else if (num_touch_points == 0 && button_state) {
+        fmt::print("home button pressed\n");
+      } else {
+        fmt::print("num_touch_points: {}, x: {}, y: {}, button state: {}\n", num_touch_points, x, y,
+                   button_state);
+      }
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
         std::unique_lock<std::mutex> lk(m);
-        cv.wait_for(lk, 500ms);
+        cv.wait_for(lk, 50ms);
       }
       return false; // don't stop the task
     };
