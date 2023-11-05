@@ -24,6 +24,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    filters/index
    ftp/index
    haptics/index
+   i2c
    input/index
    io_expander/index
    joystick
@@ -35,6 +36,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    network/index
    nfc/index
    pid
+   qwiicnes
    rmt
    rtsp
    serialization

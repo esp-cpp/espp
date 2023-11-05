@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QwiicNES - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/clipboard.min.js"></script>
+        <script src="_static/copybutton.js"></script>
+    <script src="_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'qwiicnes';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Remote Control Transceiver (RMT)" href="rmt.html" />
+    <link rel="prev" title="PID APIs" href="pid.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> ESPP
+            <img src="_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">QwiicNES</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#unions">Unions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>QwiicNES</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/44773e5/docs/en/qwiicnes.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="qwiicnes">
+<h1>QwiicNES<a class="headerlink" href="#qwiicnes" title="Permalink to this headline"></a></h1>
+<p>The <cite>Qwiicnes</cite> component provides a driver for the <a class="reference external" href="https://www.sparkfun.com/products/retired/18038">SparkFun Qwiic NES Controller</a>.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/44773e5/components/qwiicnes/include/qwiicnes.hpp">components/qwiicnes/include/qwiicnes.hpp</a></p></li>
+</ul>
+</section>
+<section id="unions">
+<h3>Unions<a class="headerlink" href="#unions" title="Permalink to this headline"></a></h3>
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_qwiic_nes_1_1_button_state_8____unnamed11____"></span><span class="sig-name descname"><span class="pre">espp::QwiicNes::ButtonState.__unnamed11__</span></span></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_qwiic_nes_1_1_button_state_8____unnamed11_____1abdf416144f79b0adea50b8078e2b2c7f"></span><span class="sig-name descname"><span class="pre">struct</span> <span class="pre">espp::QwiicNes::ButtonState</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N19PhonyNameDueToError3rawE">
+<span id="_CPPv3N19PhonyNameDueToError3rawE"></span><span id="_CPPv2N19PhonyNameDueToError3rawE"></span><span id="PhonyNameDueToError::raw__uint8_t"></span><span class="target" id="unionespp_1_1_qwiic_nes_1_1_button_state_8____unnamed11_____1abdd166af3a63f7be696dd17a218a6ffb"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">raw</span></span></span><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNesE">
+<span id="_CPPv3N4espp8QwiicNesE"></span><span id="_CPPv2N4espp8QwiicNesE"></span><span id="espp::QwiicNes"></span><span class="target" id="classespp_1_1_qwiic_nes"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">QwiicNes</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A class to interface with the Qwiic NES controller. </p>
+<p>This class is used to interface with the Qwiic NES controller. The Qwiic NES controller is a breakout board for the NES controller. The Qwiic NES controller uses the I2C bus to communicate.</p>
+<section id="classespp_1_1_tt21100_1Example">
+<h4>Example<a class="headerlink" href="#classespp_1_1_tt21100_1Example" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_22</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_19</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// now make the qwiicnes which decodes the data</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">QwiicNes</span><span class="w"> </span><span class="nf">qwiicnes</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                                                </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">                             </span><span class="p">.</span><span class="n">write_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read_at_register</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span>
+<span class="w">                                                     </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                                                     </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">),</span>
+<span class="w">                             </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the qwiicnes and print</span>
+<span class="w">    </span><span class="c1">// the state</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">quit_test</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">qwiicnes</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">      </span><span class="n">qwiicnes</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;QwiicNes update failed: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span><span class="w"> </span><span class="c1">// stop the task</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">button_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">qwiicnes</span><span class="p">.</span><span class="n">get_button_state</span><span class="p">();</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;QwiicNes buttons:</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">A:      {}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">B:      {}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">Select: {}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">Start:  {}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">Up:     {}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">Down:   {}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">Left:   {}</span><span class="se">\n</span><span class="s">&quot;</span>
+<span class="w">                 </span><span class="s">&quot;</span><span class="se">\t</span><span class="s">Right:  {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">button_state</span><span class="p">.</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">button_state</span><span class="p">.</span><span class="n">b</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">button_state</span><span class="p">.</span><span class="n">select</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">button_state</span><span class="p">.</span><span class="n">start</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">button_state</span><span class="p">.</span><span class="n">up</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">button_state</span><span class="p">.</span><span class="n">down</span><span class="p">,</span>
+<span class="w">                 </span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">button_state</span><span class="p">.</span><span class="n">left</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">)</span><span class="n">button_state</span><span class="p">.</span><span class="n">right</span><span class="p">);</span>
+<span class="w">      </span><span class="n">quit_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">button_state</span><span class="p">.</span><span class="n">select</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">button_state</span><span class="p">.</span><span class="n">start</span><span class="p">;</span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// don&#39;t stop the task</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Qwiicnes Task&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6ButtonE">
+<span id="_CPPv3N4espp8QwiicNes6ButtonE"></span><span id="_CPPv2N4espp8QwiicNes6ButtonE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Button</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6ButtonE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The buttons on the NES controller. &#64;deftails The values in this enum match the button’s corresponding bit field in the byte returned by <a class="reference internal" href="#classespp_1_1_qwiic_nes_1a0fc17dc5e4657c3c42385b84ead9b467"><span class="std std-ref">read_current_state()</span></a> and read_button_accumulator(). </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button1AE">
+<span id="_CPPv3N4espp8QwiicNes6Button1AE"></span><span id="_CPPv2N4espp8QwiicNes6Button1AE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70a7fc56270e7a70fa81a5935b72eacbe29"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">A</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Button1AE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button1BE">
+<span id="_CPPv3N4espp8QwiicNes6Button1BE"></span><span id="_CPPv2N4espp8QwiicNes6Button1BE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70a9d5ed678fe57bcca610140957afab571"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">B</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Button1BE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button6SELECTE">
+<span id="_CPPv3N4espp8QwiicNes6Button6SELECTE"></span><span id="_CPPv2N4espp8QwiicNes6Button6SELECTE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70a63225f19fccb18e7c709f1fa11bc738e"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SELECT</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Button6SELECTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button5STARTE">
+<span id="_CPPv3N4espp8QwiicNes6Button5STARTE"></span><span id="_CPPv2N4espp8QwiicNes6Button5STARTE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70ab078ffd28db767c502ac367053f6e0ac"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">START</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Button5STARTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button2UPE">
+<span id="_CPPv3N4espp8QwiicNes6Button2UPE"></span><span id="_CPPv2N4espp8QwiicNes6Button2UPE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70afbaedde498cdead4f2780217646e9ba1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UP</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Button2UPE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button4DOWNE">
+<span id="_CPPv3N4espp8QwiicNes6Button4DOWNE"></span><span id="_CPPv2N4espp8QwiicNes6Button4DOWNE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70ac4e0e4e3118472beeb2ae75827450f1f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Button4DOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button4LEFTE">
+<span id="_CPPv3N4espp8QwiicNes6Button4LEFTE"></span><span id="_CPPv2N4espp8QwiicNes6Button4LEFTE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70a684d325a7303f52e64011467ff5c5758"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LEFT</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Button4LEFTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button5RIGHTE">
+<span id="_CPPv3N4espp8QwiicNes6Button5RIGHTE"></span><span id="_CPPv2N4espp8QwiicNes6Button5RIGHTE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70a21507b40c80068eda19865706fdc2403"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RIGHT</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Button5RIGHTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes8write_fnE">
+<span id="_CPPv3N4espp8QwiicNes8write_fnE"></span><span id="_CPPv2N4espp8QwiicNes8write_fnE"></span><span id="espp::QwiicNes::write_fn"></span><span class="target" id="classespp_1_1_qwiic_nes_1a01fa3c4bf404e848f07a39d1b34a37cd"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes8write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function to write data to the I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The I2C address of the device. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The data to write to the I2C bus. </p>
+</dd>
+<dt class="field-odd">Param data_len</dt>
+<dd class="field-odd"><p>The length of the data to write to the I2C bus. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>true if the function succeeds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes13write_read_fnE">
+<span id="_CPPv3N4espp8QwiicNes13write_read_fnE"></span><span id="_CPPv2N4espp8QwiicNes13write_read_fnE"></span><span id="espp::QwiicNes::write_read_fn"></span><span class="target" id="classespp_1_1_qwiic_nes_1a8ee5f7ce1284bcd4fad301e715a7e032"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes13write_read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function to write then read data from the I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The I2C address of the device. </p>
+</dd>
+<dt class="field-even">Param register</dt>
+<dd class="field-even"><p>The register to write to the I2C bus. </p>
+</dd>
+<dt class="field-odd">Param data</dt>
+<dd class="field-odd"><p>The data to read from the I2C bus. </p>
+</dd>
+<dt class="field-even">Param data_len</dt>
+<dd class="field-even"><p>The length of the data to read from the I2C bus. </p>
+</dd>
+<dt class="field-odd">Return</dt>
+<dd class="field-odd"><p>true if the function succeeds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes8QwiicNesERK6Config">
+<span id="_CPPv3N4espp8QwiicNes8QwiicNesERK6Config"></span><span id="_CPPv2N4espp8QwiicNes8QwiicNesERK6Config"></span><span id="espp::QwiicNes::QwiicNes__ConfigCR"></span><span class="target" id="classespp_1_1_qwiic_nes_1ad480d5ed05d6f37950b6afddef412090"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QwiicNes</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes6ConfigE" title="espp::QwiicNes::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes8QwiicNesERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1_qwiic_nes"><span class="std std-ref">QwiicNes</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the <a class="reference internal" href="#classespp_1_1_qwiic_nes"><span class="std std-ref">QwiicNes</span></a> class. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8QwiicNes10is_pressedE6Button">
+<span id="_CPPv3NK4espp8QwiicNes10is_pressedE6Button"></span><span id="_CPPv2NK4espp8QwiicNes10is_pressedE6Button"></span><span id="espp::QwiicNes::is_pressed__ButtonC"></span><span class="target" id="classespp_1_1_qwiic_nes_1afe49f9bbbd9dd5c794b46c4c2179bc23"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_pressed</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes6ButtonE" title="espp::QwiicNes::Button"><span class="n"><span class="pre">Button</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">button</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes10is_pressedE6Button" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return true if the given button is pressed. </p>
+<p>
+This function uses the accumulated button states which are updated by the <a class="reference internal" href="#classespp_1_1_qwiic_nes_1ac9dde8708b9ac39ff4419065136999c4"><span class="std std-ref">update()</span></a> function. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>button</strong> – The button to check. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the given button is pressed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8QwiicNes16get_button_stateEv">
+<span id="_CPPv3NK4espp8QwiicNes16get_button_stateEv"></span><span id="_CPPv2NK4espp8QwiicNes16get_button_stateEv"></span><span id="espp::QwiicNes::get_button_stateC"></span><span class="target" id="classespp_1_1_qwiic_nes_1a59d4a6a6af1f20095f905e5e110dbc7f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes11ButtonStateE" title="espp::QwiicNes::ButtonState"><span class="n"><span class="pre">ButtonState</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_button_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes16get_button_stateEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the current state of the buttons. </p>
+<p>
+This function uses the accumulated button states which are updated by the <a class="reference internal" href="#classespp_1_1_qwiic_nes_1ac9dde8708b9ac39ff4419065136999c4"><span class="std std-ref">update()</span></a> function. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The current state of the buttons.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6updateERNSt10error_codeE">
+<span id="_CPPv3N4espp8QwiicNes6updateERNSt10error_codeE"></span><span id="_CPPv2N4espp8QwiicNes6updateERNSt10error_codeE"></span><span id="espp::QwiicNes::update__std::error_codeR"></span><span class="target" id="classespp_1_1_qwiic_nes_1ac9dde8708b9ac39ff4419065136999c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6updateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the state of the buttons. </p>
+<p>
+This function reads the current state of the buttons and updates the accumulated button states. This function should be called periodically to ensure the accumulated button states are up to date. This function will log an error if it fails to read the current state of the buttons. The accumulated states represent all buttons which have been pressed since the last time this function was called. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1_qwiic_nes_1a59d4a6a6af1f20095f905e5e110dbc7f"><span class="std std-ref">get_button_state()</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1_qwiic_nes_1a61f0f39e1d81414a0389dbcbe8a3d2d3"><span class="std std-ref">is_pressed()</span></a> </p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code if the function fails.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8QwiicNes18read_current_stateERNSt10error_codeE">
+<span id="_CPPv3NK4espp8QwiicNes18read_current_stateERNSt10error_codeE"></span><span id="_CPPv2NK4espp8QwiicNes18read_current_stateERNSt10error_codeE"></span><span id="espp::QwiicNes::read_current_state__std::error_codeRC"></span><span class="target" id="classespp_1_1_qwiic_nes_1a0fc17dc5e4657c3c42385b84ead9b467"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_current_state</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes18read_current_stateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the current state of the buttons. </p>
+<p>
+This function will log an error if it fails to read the current state of the buttons. This function does not update the accumulated button states. To update the accumulated button states, call the <a class="reference internal" href="#classespp_1_1_qwiic_nes_1ac9dde8708b9ac39ff4419065136999c4"><span class="std std-ref">update()</span></a> function. The current state represents the buttons which are currently pressed. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code if the function fails. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The current state of the buttons.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp8QwiicNes12read_addressERNSt10error_codeE">
+<span id="_CPPv3NK4espp8QwiicNes12read_addressERNSt10error_codeE"></span><span id="_CPPv2NK4espp8QwiicNes12read_addressERNSt10error_codeE"></span><span id="espp::QwiicNes::read_address__std::error_codeRC"></span><span class="target" id="classespp_1_1_qwiic_nes_1a2b7cf87cc571ab55f4cdcf8d724a5c3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes12read_addressERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read the current I2C address of the device. </p>
+<p>
+This function will log an error if it fails to read the current I2C address of the device. The I2C address is a 7-bit value. The 7-bit I2C address is shifted left by 1 bit and the least significant bit is set to 0. For example, if the I2C address is 0x54, then the value returned by this function will be 0xA8. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code if the function fails. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The current I2C address of the device.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes14update_addressE7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp8QwiicNes14update_addressE7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp8QwiicNes14update_addressE7uint8_tRNSt10error_codeE"></span><span id="espp::QwiicNes::update_address__uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_qwiic_nes_1ace8f6ae0fb889afc6e6368bc6a80b2fc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">new_address</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes14update_addressE7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Update the I2C address of the device. </p>
+<p>
+This function will log an error if it fails to update the I2C address of the device. The I2C address is a 7-bit value. The 7-bit I2C address is shifted left by 1 bit and the least significant bit is set to 0. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>new_address</strong> – The new I2C address of the device. </p></li>
+<li><p><strong>ec</strong> – The error code if the function fails.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes10is_pressedE7uint8_t6Button">
+<span id="_CPPv3N4espp8QwiicNes10is_pressedE7uint8_t6Button"></span><span id="_CPPv2N4espp8QwiicNes10is_pressedE7uint8_t6Button"></span><span id="espp::QwiicNes::is_pressed__uint8_t.Button"></span><span class="target" id="classespp_1_1_qwiic_nes_1a61f0f39e1d81414a0389dbcbe8a3d2d3"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_pressed</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">state</span></span>, <a class="reference internal" href="#_CPPv4N4espp8QwiicNes6ButtonE" title="espp::QwiicNes::Button"><span class="n"><span class="pre">Button</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">button</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes10is_pressedE7uint8_t6Button" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return true if the given button is pressed. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> – The byte returned by <a class="reference internal" href="#classespp_1_1_qwiic_nes_1a0fc17dc5e4657c3c42385b84ead9b467"><span class="std std-ref">read_current_state()</span></a>. </p></li>
+<li><p><strong>button</strong> – The button to check. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>true if the given button is pressed. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes15DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp8QwiicNes15DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp8QwiicNes15DEFAULT_ADDRESSE"></span><span id="espp::QwiicNes::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_qwiic_nes_1ac9314480a0f0b8ea8eb38129da6dcd9a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0x54</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes15DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The default I2C address of the device. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes11ButtonStateE">
+<span id="_CPPv3N4espp8QwiicNes11ButtonStateE"></span><span id="_CPPv2N4espp8QwiicNes11ButtonStateE"></span><span id="espp::QwiicNes::ButtonState"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_button_state"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ButtonState</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes11ButtonStateE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The state of the buttons on the NES controller. </p>
+<p>Contains the state of each button on the NES controller. </p>
+</dd></dl>
+
+<dl class="cpp union">
+<dt class="sig sig-object cpp">
+<span class="target" id="unionespp_1_1_qwiic_nes_1_1_button_state_8____unnamed11____"></span><span class="sig-name descname"><span class="pre">ButtonState.__unnamed11__</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp">
+<span class="target" id="structespp_1_1_qwiic_nes_1_1_button_state_8____unnamed11_____8____unnamed13____"></span><span class="sig-name descname"><span class="pre">ButtonState.__unnamed11__.__unnamed13__</span></span></dt>
+<dd></dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6ConfigE">
+<span id="_CPPv3N4espp8QwiicNes6ConfigE"></span><span id="_CPPv2N4espp8QwiicNes6ConfigE"></span><span id="espp::QwiicNes::Config"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The configuration for the <a class="reference internal" href="#classespp_1_1_qwiic_nes"><span class="std std-ref">QwiicNes</span></a> class. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Config5writeE">
+<span id="_CPPv3N4espp8QwiicNes6Config5writeE"></span><span id="_CPPv2N4espp8QwiicNes6Config5writeE"></span><span id="espp::QwiicNes::Config::write__write_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1aba6436effa674ed74623e0d087a413ca"></span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes8write_fnE" title="espp::QwiicNes::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function to write data to the I2C bus. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Config10write_readE">
+<span id="_CPPv3N4espp8QwiicNes6Config10write_readE"></span><span id="_CPPv2N4espp8QwiicNes6Config10write_readE"></span><span id="espp::QwiicNes::Config::write_read__write_read_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1acdadb2ed91ec6427e00d5edaccf88590"></span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes13write_read_fnE" title="espp::QwiicNes::write_read_fn"><span class="n"><span class="pre">write_read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config10write_readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function to write then read data from the I2C bus. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Config9log_levelE">
+<span id="_CPPv3N4espp8QwiicNes6Config9log_levelE"></span><span id="_CPPv2N4espp8QwiicNes6Config9log_levelE"></span><span id="espp::QwiicNes::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1a778194519740983b9af97ffa615f19f3"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The log level for the class. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pid.html" class="btn btn-neutral float-left" title="PID APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rmt.html" class="btn btn-neutral float-right" title="Remote Control Transceiver (RMT)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

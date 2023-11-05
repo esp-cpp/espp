@@ -104,6 +104,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
@@ -115,6 +116,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
@@ -143,7 +145,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>ADS7138 I2C ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/12ef0d4/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/44773e5/docs/en/adc/ads7138.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -165,7 +167,7 @@ continuous basis.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/12ef0d4/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/44773e5/components/ads7138/include/ads7138.hpp">components/ads7138/include/ads7138.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -258,8 +260,8 @@ continuous basis.</p>
 <span class="w">              </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_high_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="w">              </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">event_low_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="w">              </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
-<span class="w">              </span><span class="n">ads</span><span class="p">.</span><span class="n">get_event_data</span><span class="p">(</span><span class="o">&amp;</span><span class="n">event_flags</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event_high_flags</span><span class="p">,</span>
-<span class="w">                                 </span><span class="o">&amp;</span><span class="n">event_low_flags</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// NOTE: this clears the event flags / ALERT</span>
+<span class="w">              </span><span class="n">ads</span><span class="p">.</span><span class="n">get_event_data</span><span class="p">(</span><span class="o">&amp;</span><span class="n">event_flags</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event_high_flags</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event_low_flags</span><span class="p">,</span>
+<span class="w">                                 </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// NOTE: this clears the event flags / ALERT</span>
 <span class="w">              </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">                </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error getting event data: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
 <span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
@@ -283,14 +285,15 @@ continuous basis.</p>
 
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
 <span class="w">    </span><span class="c1">// configure the alert pin</span>
-<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">configure_alert</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OutputMode</span><span class="o">::</span><span class="n">PUSH_PULL</span><span class="p">,</span>
-<span class="w">                        </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">AlertLogic</span><span class="o">::</span><span class="n">ACTIVE_LOW</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">configure_alert</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OutputMode</span><span class="o">::</span><span class="n">PUSH_PULL</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">AlertLogic</span><span class="o">::</span><span class="n">ACTIVE_LOW</span><span class="p">,</span>
+<span class="w">                        </span><span class="n">ec</span><span class="p">);</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error configuring alert: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
 <span class="w">    </span><span class="p">}</span>
 
 <span class="w">    </span><span class="c1">// set the digital output drive mode to open-drain</span>
-<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_mode</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OutputMode</span><span class="o">::</span><span class="n">OPEN_DRAIN</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ads</span><span class="p">.</span><span class="n">set_digital_output_mode</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">OutputMode</span><span class="o">::</span><span class="n">OPEN_DRAIN</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">ec</span><span class="p">);</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error setting digital output mode: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
 <span class="w">    </span><span class="p">}</span>
@@ -333,14 +336,14 @@ continuous basis.</p>
 <span class="w">      </span><span class="c1">// get_digital_input_values(), but we&#39;ll just get the one we want.</span>
 <span class="w">      </span><span class="c1">// If we wanted to get all of them, we could do:</span>
 <span class="w">      </span><span class="c1">// auto input_values = ads.get_digital_input_values();</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">=</span>
-<span class="w">          </span><span class="n">ads</span><span class="p">.</span><span class="n">get_digital_input_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// the button is on channel 5</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ads</span><span class="p">.</span><span class="n">get_digital_input_value</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Ads7138</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span>
+<span class="w">                                                      </span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// the button is on channel 5</span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error getting digital input value: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="w">      </span><span class="p">}</span>
 
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">                      </span><span class="c1">// joystick button is active low</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">select_pressed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">select_value</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="c1">// joystick button is active low</span>
 
 <span class="w">      </span><span class="c1">// use fmt to print so it doesn&#39;t have the prefix and can be used more</span>
 <span class="w">      </span><span class="c1">// easily as CSV (for plotting using uart_serial_plotter)</span>

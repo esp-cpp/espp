@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FT5x06 Touch Controller - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'input/ft5x06';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="GT911 Touch Controller" href="gt911.html" />
+    <link rel="prev" title="Input APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Input APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">FT5x06 Touch Controller</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gt911.html">GT911 Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tt21100.html">TT21100 Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="touchpad_input.html">Touchpad Input</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Input APIs</a> &raquo;</li>
+      <li>FT5x06 Touch Controller</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/44773e5/docs/en/input/ft5x06.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ft5x06-touch-controller">
+<h1>FT5x06 Touch Controller<a class="headerlink" href="#ft5x06-touch-controller" title="Permalink to this headline"></a></h1>
+<p>The FT5x06 is a capacitive touch controller that supports up to 5 touch points.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/44773e5/components/ft5x06/include/ft5x06.hpp">components/ft5x06/include/ft5x06.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x06E">
+<span id="_CPPv3N4espp6Ft5x06E"></span><span id="_CPPv2N4espp6Ft5x06E"></span><span id="espp::Ft5x06"></span><span class="target" id="classespp_1_1_ft5x06"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Ft5x06</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x06E" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The FT5x06 touch controller. </p>
+<p>This class is used to communicate with the FT5x06 touch controller.</p>
+<section id="classespp_1_1_tt21100_1Example">
+<h4>Example<a class="headerlink" href="#classespp_1_1_tt21100_1Example" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_1</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_18</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_8</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// now make the ft5x06 which decodes the data</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Ft5x06</span><span class="w"> </span><span class="nf">ft5x06</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                                            </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">read_at_register</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span>
+<span class="w">                             </span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read_at_register</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                             </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">),</span>
+<span class="w">                         </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the ft5x06 and print</span>
+<span class="w">    </span><span class="c1">// the state</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">ft5x06</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">      </span><span class="c1">// get the state</span>
+<span class="w">      </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">num_touch_points</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">      </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">      </span><span class="n">ft5x06</span><span class="p">.</span><span class="n">get_touch_point</span><span class="p">(</span><span class="o">&amp;</span><span class="n">num_touch_points</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Could not get touch point</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;num_touch_points: {}, x: {}, y: {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">num_touch_points</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">y</span><span class="p">);</span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// don&#39;t stop the task</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Ft5x06 Task&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x067GestureE">
+<span id="_CPPv3N4espp6Ft5x067GestureE"></span><span id="_CPPv2N4espp6Ft5x067GestureE"></span><span class="target" id="classespp_1_1_ft5x06_1ad1772cc014c9c99e7dbb3840c90f8f81"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Gesture</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x067GestureE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The gesture that was detected. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x067Gesture4NONEE">
+<span id="_CPPv3N4espp6Ft5x067Gesture4NONEE"></span><span id="_CPPv2N4espp6Ft5x067Gesture4NONEE"></span><span class="target" id="classespp_1_1_ft5x06_1ad1772cc014c9c99e7dbb3840c90f8f81ab50339a10e1de285ac99d4c3990b8693"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">NONE</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x067Gesture4NONEE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x067Gesture7MOVE_UPE">
+<span id="_CPPv3N4espp6Ft5x067Gesture7MOVE_UPE"></span><span id="_CPPv2N4espp6Ft5x067Gesture7MOVE_UPE"></span><span class="target" id="classespp_1_1_ft5x06_1ad1772cc014c9c99e7dbb3840c90f8f81ae397b4fa67c25cc1c9eae980cfdd43eb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MOVE_UP</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x067Gesture7MOVE_UPE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x067Gesture9MOVE_LEFTE">
+<span id="_CPPv3N4espp6Ft5x067Gesture9MOVE_LEFTE"></span><span id="_CPPv2N4espp6Ft5x067Gesture9MOVE_LEFTE"></span><span class="target" id="classespp_1_1_ft5x06_1ad1772cc014c9c99e7dbb3840c90f8f81ad7aa835d76fc894935ade13f4d0624f8"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MOVE_LEFT</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x067Gesture9MOVE_LEFTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x067Gesture9MOVE_DOWNE">
+<span id="_CPPv3N4espp6Ft5x067Gesture9MOVE_DOWNE"></span><span id="_CPPv2N4espp6Ft5x067Gesture9MOVE_DOWNE"></span><span class="target" id="classespp_1_1_ft5x06_1ad1772cc014c9c99e7dbb3840c90f8f81a8b32429247158c80deab773f4e04e1c2"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MOVE_DOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x067Gesture9MOVE_DOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x067Gesture10MOVE_RIGHTE">
+<span id="_CPPv3N4espp6Ft5x067Gesture10MOVE_RIGHTE"></span><span id="_CPPv2N4espp6Ft5x067Gesture10MOVE_RIGHTE"></span><span class="target" id="classespp_1_1_ft5x06_1ad1772cc014c9c99e7dbb3840c90f8f81a3dc5ed1f827e8c9a6392edb90af992d5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">MOVE_RIGHT</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x067Gesture10MOVE_RIGHTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x067Gesture7ZOOM_INE">
+<span id="_CPPv3N4espp6Ft5x067Gesture7ZOOM_INE"></span><span id="_CPPv2N4espp6Ft5x067Gesture7ZOOM_INE"></span><span class="target" id="classespp_1_1_ft5x06_1ad1772cc014c9c99e7dbb3840c90f8f81a9fb15123c848cda02eec2316e765134a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ZOOM_IN</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x067Gesture7ZOOM_INE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x067Gesture8ZOOM_OUTE">
+<span id="_CPPv3N4espp6Ft5x067Gesture8ZOOM_OUTE"></span><span id="_CPPv2N4espp6Ft5x067Gesture8ZOOM_OUTE"></span><span class="target" id="classespp_1_1_ft5x06_1ad1772cc014c9c99e7dbb3840c90f8f81aa2ef1b00efd83e548ce99f6ead83bacd"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ZOOM_OUT</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x067Gesture8ZOOM_OUTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x068write_fnE">
+<span id="_CPPv3N4espp6Ft5x068write_fnE"></span><span id="_CPPv2N4espp6Ft5x068write_fnE"></span><span id="espp::Ft5x06::write_fn"></span><span class="target" id="classespp_1_1_ft5x06_1a47be7add465e6e4d3a1672a0cfd65c17"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x068write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function to write data to the I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The I2C address of the device. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The data to write to the I2C bus. </p>
+</dd>
+<dt class="field-odd">Param data_len</dt>
+<dd class="field-odd"><p>The length of the data to write to the I2C bus. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>true if the function succeeds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x0619read_at_register_fnE">
+<span id="_CPPv3N4espp6Ft5x0619read_at_register_fnE"></span><span id="_CPPv2N4espp6Ft5x0619read_at_register_fnE"></span><span id="espp::Ft5x06::read_at_register_fn"></span><span class="target" id="classespp_1_1_ft5x06_1a79fef7db671fa4398da067cff8d6199b"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_at_register_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x0619read_at_register_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function to read data starting at a register from the I2C bus. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The I2C address of the device. </p>
+</dd>
+<dt class="field-even">Param register</dt>
+<dd class="field-even"><p>The register to write to the I2C bus. </p>
+</dd>
+<dt class="field-odd">Param data</dt>
+<dd class="field-odd"><p>The data to read from the I2C bus. </p>
+</dd>
+<dt class="field-even">Param data_len</dt>
+<dd class="field-even"><p>The length of the data to read from the I2C bus. </p>
+</dd>
+<dt class="field-odd">Return</dt>
+<dd class="field-odd"><p>true if the function succeeds. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x066Ft5x06ERK6Config">
+<span id="_CPPv3N4espp6Ft5x066Ft5x06ERK6Config"></span><span id="_CPPv2N4espp6Ft5x066Ft5x06ERK6Config"></span><span id="espp::Ft5x06::Ft5x06__ConfigCR"></span><span class="target" id="classespp_1_1_ft5x06_1ad73d04f8e2c4b7b02dfa4074216477c9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ft5x06</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ft5x066ConfigE" title="espp::Ft5x06::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ft5x066Ft5x06ERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new FT5x06. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration for the FT5x06. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x0620get_num_touch_pointsERNSt10error_codeE">
+<span id="_CPPv3N4espp6Ft5x0620get_num_touch_pointsERNSt10error_codeE"></span><span id="_CPPv2N4espp6Ft5x0620get_num_touch_pointsERNSt10error_codeE"></span><span id="espp::Ft5x06::get_num_touch_points__std::error_codeR"></span><span class="target" id="classespp_1_1_ft5x06_1a1cf811bf1b73c26fbbba6b47c1b23592"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_num_touch_points</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ft5x0620get_num_touch_pointsERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the number of touch points. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code if the function fails. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The number of touch points. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x0615get_touch_pointEP7uint8_tP8uint16_tP8uint16_tRNSt10error_codeE">
+<span id="_CPPv3N4espp6Ft5x0615get_touch_pointEP7uint8_tP8uint16_tP8uint16_tRNSt10error_codeE"></span><span id="_CPPv2N4espp6Ft5x0615get_touch_pointEP7uint8_tP8uint16_tP8uint16_tRNSt10error_codeE"></span><span id="espp::Ft5x06::get_touch_point__uint8_tP.uint16_tP.uint16_tP.std::error_codeR"></span><span class="target" id="classespp_1_1_ft5x06_1a4f3923fda3e7fccfaea3f44554995476"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_touch_point</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">num_touch_points</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">y</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ft5x0615get_touch_pointEP7uint8_tP8uint16_tP8uint16_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the touch point. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_touch_points</strong> – The number of touch points. </p></li>
+<li><p><strong>x</strong> – The x coordinate of the touch point. </p></li>
+<li><p><strong>y</strong> – The y coordinate of the touch point. </p></li>
+<li><p><strong>ec</strong> – The error code if the function fails. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x0612read_gestureERNSt10error_codeE">
+<span id="_CPPv3N4espp6Ft5x0612read_gestureERNSt10error_codeE"></span><span id="_CPPv2N4espp6Ft5x0612read_gestureERNSt10error_codeE"></span><span id="espp::Ft5x06::read_gesture__std::error_codeR"></span><span class="target" id="classespp_1_1_ft5x06_1aa592354515cc38af614d4ab85606bccf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Ft5x067GestureE" title="espp::Ft5x06::Gesture"><span class="n"><span class="pre">Gesture</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_gesture</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Ft5x0612read_gestureERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the gesture that was detected. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code if the function fails. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The gesture that was detected. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x0615DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp6Ft5x0615DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp6Ft5x0615DEFAULT_ADDRESSE"></span><span id="espp::Ft5x06::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_ft5x06_1afde76ad77b9d2cde44f2983c233d5b81"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">0x38</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x0615DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The default I2C address for the FT5x06. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x066ConfigE">
+<span id="_CPPv3N4espp6Ft5x066ConfigE"></span><span id="_CPPv2N4espp6Ft5x066ConfigE"></span><span id="espp::Ft5x06::Config"></span><span class="target" id="structespp_1_1_ft5x06_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x066ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The configuration for the FT5x06. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x066Config5writeE">
+<span id="_CPPv3N4espp6Ft5x066Config5writeE"></span><span id="_CPPv2N4espp6Ft5x066Config5writeE"></span><span id="espp::Ft5x06::Config::write__write_fn"></span><span class="target" id="structespp_1_1_ft5x06_1_1_config_1a34f4293d7a4ebbc2f2cb6aee648e8d54"></span><a class="reference internal" href="#_CPPv4N4espp6Ft5x068write_fnE" title="espp::Ft5x06::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x066Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function to write data to the I2C bus. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x066Config16read_at_registerE">
+<span id="_CPPv3N4espp6Ft5x066Config16read_at_registerE"></span><span id="_CPPv2N4espp6Ft5x066Config16read_at_registerE"></span><span id="espp::Ft5x06::Config::read_at_register__read_at_register_fn"></span><span class="target" id="structespp_1_1_ft5x06_1_1_config_1ac66d50438b41e0bf61b5a933194a8886"></span><a class="reference internal" href="#_CPPv4N4espp6Ft5x0619read_at_register_fnE" title="espp::Ft5x06::read_at_register_fn"><span class="n"><span class="pre">read_at_register_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_at_register</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x066Config16read_at_registerE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function to write then read data from the I2C bus. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Ft5x066Config9log_levelE">
+<span id="_CPPv3N4espp6Ft5x066Config9log_levelE"></span><span id="_CPPv2N4espp6Ft5x066Config9log_levelE"></span><span id="espp::Ft5x06::Config::log_level__espp::Logger::Verbosity"></span><span class="target" id="structespp_1_1_ft5x06_1_1_config_1a6daaa388d45d235c9d0be3b8003413c5"></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp6Ft5x066Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The log level. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Input APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="gt911.html" class="btn btn-neutral float-right" title="GT911 Touch Controller" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
