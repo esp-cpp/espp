@@ -51,6 +51,8 @@ jobs:
           target: esp32
         - path: 'components/ft5x06/example'
           target: esp32s3
+        - path: 'components/gt911/example'
+          target: esp32s3
         - path: 'components/i2c/example'
           target: esp32
         - path: 'components/joystick/example'
