@@ -34,8 +34,8 @@ extern "C" void app_main(void) {
         return true; // stop the task
       }
       // get the state
-      uint8_t num_touch_points;
-      uint16_t x, y;
+      uint8_t num_touch_points = 0;
+      uint16_t x = 0, y = 0;
       tt21100.get_touch_point(&num_touch_points, &x, &y);
       fmt::print("num_touch_points: {}, x: {}, y: {}\n", num_touch_points, x, y);
       // NOTE: sleeping in this way allows the sleep to exit early when the

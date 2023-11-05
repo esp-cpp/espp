@@ -30,8 +30,8 @@ extern "C" void app_main(void) {
     auto task_fn = [&ft5x06](std::mutex &m, std::condition_variable &cv) {
       std::error_code ec;
       // get the state
-      uint8_t num_touch_points;
-      uint16_t x, y;
+      uint8_t num_touch_points = 0;
+      uint16_t x = 0, y = 0;
       ft5x06.get_touch_point(&num_touch_points, &x, &y, ec);
       if (ec) {
         fmt::print("Could not get touch point\n");

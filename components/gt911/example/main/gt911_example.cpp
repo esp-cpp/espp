@@ -39,8 +39,8 @@ extern "C" void app_main(void) {
         return false; // don't stop the task
       }
       // get the state
-      uint8_t num_touch_points;
-      uint16_t x, y;
+      uint8_t num_touch_points = 0;
+      uint16_t x = 0, y = 0;
       gt911.get_touch_point(&num_touch_points, &x, &y);
       if (ec) {
         fmt::print("Could not get touch point\n");
