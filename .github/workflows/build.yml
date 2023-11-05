@@ -50,7 +50,7 @@ jobs:
         - path: 'components/ftp/example'
           target: esp32
         - path: 'components/ft5x06/example'
-          target: esp32
+          target: esp32s3
         - path: 'components/i2c/example'
           target: esp32
         - path: 'components/joystick/example'
@@ -96,7 +96,7 @@ jobs:
         - path: 'components/tla2528/example'
           target: esp32
         - path: 'components/tt21100/example'
-          target: esp32
+          target: esp32s3
         - path: 'components/wifi/example'
           target: esp32
 

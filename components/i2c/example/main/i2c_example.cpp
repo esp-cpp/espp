@@ -13,8 +13,8 @@ extern "C" void app_main(void) {
     //! [i2c example]
     espp::I2c i2c({
         .port = I2C_NUM_0,
-        .sda_io_num = GPIO_NUM_41,
-        .scl_io_num = GPIO_NUM_40,
+        .sda_io_num = GPIO_NUM_22, // qwiic sda on the qtpy
+        .scl_io_num = GPIO_NUM_19, // qwiic scl on the qtpy
     });
     // finally, make the task to periodically query the bus
     auto task_fn = [&i2c](std::mutex &m, std::condition_variable &cv) {

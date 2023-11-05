@@ -6,6 +6,9 @@
 
 namespace espp {
 /// @brief Driver for the Tt21100 touch controller
+///
+/// \section Example
+/// \snippet tt21100_example.cpp tt21100 example
 class Tt21100 {
 public:
   /// @brief The default i2c address

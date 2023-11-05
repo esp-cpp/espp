@@ -15,8 +15,8 @@ extern "C" void app_main(void) {
     // make the I2C that we'll use to communicate
     espp::I2c i2c({
         .port = I2C_NUM_0,
-        .sda_io_num = GPIO_NUM_41,
-        .scl_io_num = GPIO_NUM_40,
+        .sda_io_num = GPIO_NUM_22,
+        .scl_io_num = GPIO_NUM_19,
     });
     // now make the qwiicnes which decodes the data
     espp::QwiicNes qwiicnes({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,

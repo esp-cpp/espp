@@ -10,6 +10,9 @@ namespace espp {
 ///         The Qwiic NES controller is a breakout board for the NES
 ///         controller.
 ///         The Qwiic NES controller uses the I2C bus to communicate.
+///
+/// \section Example
+/// \snippet qwiicnes_example.cpp qwiicnes example
 class QwiicNes {
 public:
   /// @brief The default I2C address of the device.

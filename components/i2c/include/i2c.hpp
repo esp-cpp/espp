@@ -5,7 +5,12 @@
 #include "logger.hpp"
 
 namespace espp {
-/// I2C driver
+/// @brief I2C driver
+/// @details
+/// This class is a wrapper around the ESP-IDF I2C driver.
+///
+/// \section Example
+/// \snippet i2c_example.cpp i2c example
 class I2c {
 public:
   /// Configuration for I2C
