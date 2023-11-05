@@ -96,6 +96,7 @@
 <li class="toctree-l1"><a class="reference internal" href="filters/index.html">Filter APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="ftp/index.html">FTP APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
@@ -107,6 +108,7 @@
 <li class="toctree-l1"><a class="reference internal" href="network/index.html">Network APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="nfc/index.html">NFC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qwiicnes.html">QwiicNES</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rmt.html">Remote Control Transceiver (RMT)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="rtsp.html">RTSP APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="serialization.html">Serialization APIs</a></li>
@@ -134,7 +136,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Controller APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/12ef0d4/docs/en/controller.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/bf854ed/docs/en/controller.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -155,7 +157,7 @@ GPIO configuration for the unused buttons to be -1.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/12ef0d4/components/controller/include/controller.hpp">components/controller/include/controller.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/bf854ed/components/controller/include/controller.hpp">components/controller/include/controller.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -323,13 +325,13 @@ GPIO configuration for the unused buttons to be -1.</p>
 <span class="w">    </span><span class="c1">// make some lambda functions we&#39;ll use to read/write to the i2c adc</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_to_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span>
-<span class="w">                                 </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
+<span class="w">                                            </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ads_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">reg_addr</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">data_len</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c_master_write_read_device</span><span class="p">(</span><span class="n">I2C_NUM</span><span class="p">,</span><span class="w"> </span><span class="n">dev_addr</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">reg_addr</span><span class="p">,</span>
-<span class="w">                                   </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="c1">// size of addr</span>
-<span class="w">                                   </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span><span class="w"> </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
+<span class="w">                                              </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="c1">// size of addr</span>
+<span class="w">                                              </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">data_len</span><span class="p">,</span><span class="w"> </span><span class="n">I2C_TIMEOUT_MS</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">portTICK_PERIOD_MS</span><span class="p">);</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">err</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ESP_OK</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 <span class="w">    </span><span class="c1">// make the actual ads class</span>
