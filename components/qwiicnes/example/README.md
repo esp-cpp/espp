@@ -26,3 +26,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+<img width="795" alt="CleanShot 2023-11-05 at 11 07 00@2x" src="https://github.com/esp-cpp/espp/assets/213467/58ca2068-8e94-4c91-9a85-0b3f15528d3d">

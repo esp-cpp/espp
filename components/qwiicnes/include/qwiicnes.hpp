@@ -199,3 +199,22 @@ protected:
   espp::Logger logger_;
 };
 } // namespace espp
+
+static bool operator==(const espp::QwiicNes::ButtonState &lhs,
+                       const espp::QwiicNes::ButtonState &rhs) {
+  return lhs.raw == rhs.raw;
+}
+
+// for allowing easy serialization/printing of the
+// espp::QwiicNes::ButtonState struct
+template <> struct fmt::formatter<espp::QwiicNes::ButtonState> {
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(espp::QwiicNes::ButtonState const &v, FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "a: {}, b: {}, select: {}, start: {}, up: {}, down: {}, left: {}, right: {}",
+        (bool)v.a, (bool)v.b, (bool)v.select, (bool)v.start, (bool)v.up, (bool)v.down, (bool)v.left,
+        (bool)v.right);
+  }
+};
