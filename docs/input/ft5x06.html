@@ -116,6 +116,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
@@ -143,7 +144,7 @@
           <li><a href="index.html">Input APIs</a> &raquo;</li>
       <li>FT5x06 Touch Controller</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/44773e5/docs/en/input/ft5x06.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/b6ec4c4/docs/en/input/ft5x06.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -159,7 +160,7 @@
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/44773e5/components/ft5x06/include/ft5x06.hpp">components/ft5x06/include/ft5x06.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b6ec4c4/components/ft5x06/include/ft5x06.hpp">components/ft5x06/include/ft5x06.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -173,9 +174,11 @@
 <h4>Example<a class="headerlink" href="#classespp_1_1_tt21100_1Example" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
-<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_1</span><span class="p">,</span>
-<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_18</span><span class="p">,</span>
-<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_8</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_8</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_18</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
 <span class="w">    </span><span class="p">});</span>
 <span class="w">    </span><span class="c1">// now make the ft5x06 which decodes the data</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Ft5x06</span><span class="w"> </span><span class="nf">ft5x06</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>

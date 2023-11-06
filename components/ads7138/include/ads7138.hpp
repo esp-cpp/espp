@@ -21,8 +21,8 @@ namespace espp {
  *          threshold (enter or leave a region of voltage).
  * @see https://www.ti.com/lit/ds/symlink/ads7138.pdf
  *
- * \section ads7138_ex1 ADS7138 Example
- * \snippet ads7138_example.cpp ads7138 example
+ * @section ads7138_ex1 ADS7138 Example
+ * @snippet ads7138_example.cpp ads7138 example
  */
 class Ads7138 {
 public:
@@ -105,13 +105,13 @@ public:
                     ///< MUX is incremented after each conversion.
   };
 
-  /// \brief Event for triggering alerts on analog inputs.
+  /// @brief Event for triggering alerts on analog inputs.
   enum class AnalogEvent {
     OUTSIDE = 0b00, ///< Trigger when ADC value goes outside the low/high thresholds
     INSIDE = 0b01,  ///< Trigger when ADC value goes inside the low/high thresholds
   };
 
-  /// \brief Event for triggering alerts on digital inputs.
+  /// @brief Event for triggering alerts on digital inputs.
   enum class DigitalEvent {
     HIGH = 0b00, ///< Trigger on logic 1
     LOW = 0b01,  ///< Trigger on logic 0
@@ -123,13 +123,13 @@ public:
     PUSH_PULL = 1,  ///< Push-pull output mode
   };
 
-  /// \brief Enum for the data format that can be read from the ADC
+  /// @brief Enum for the data format that can be read from the ADC
   enum class DataFormat : uint8_t {
     RAW = 0,      ///< Raw data format, 12 bit ADC data
     AVERAGED = 1, ///< Averaged data format, 16 bit ADC data
   };
 
-  /// \brief Enum for the different configurations of bits that can be
+  /// @brief Enum for the different configurations of bits that can be
   ///        appended to the data when reading from the ADC
   enum class Append : uint8_t {
     NONE = 0,       ///< No append
@@ -958,15 +958,15 @@ protected:
     }
   }
 
-  /// \brief Sets the operational mode of the device
-  /// \details The operational mode is set by the CONV_MODE bits in the
+  /// @brief Sets the operational mode of the device
+  /// @details The operational mode is set by the CONV_MODE bits in the
   ///         OPMODE_CFG register. The mode_ member variable is used to
   ///         determine the value to write to the register.
   ///         The SEQ_MODE bits in the SEQUENCE_CFG register are also set
   ///         based on the mode_ member variable.
-  /// \sa The Mode enum for more information on the different modes.
-  /// \sa The mode_ member variable.
-  /// \sa Table 7 (page 22) of the datasheet for more information on the
+  /// @sa The Mode enum for more information on the different modes.
+  /// @sa The mode_ member variable.
+  /// @sa Table 7 (page 22) of the datasheet for more information on the
   ///     functional modes.
   void set_operational_mode(std::error_code &ec) {
     // set the CONV_MODE bits in OPMODE_CFG based on mode_
@@ -1369,13 +1369,13 @@ protected:
     }
   }
 
-  /// \brief Configure an alert events for an analog channel.
-  /// \param channel Channel to configure.
-  /// \param low_threshold_mv Low threshold in mV.
-  /// \param high_threshold_mv High threshold in mV.
-  /// \param event_count Number of events to trigger an alert.
-  /// \param ec Error code.
-  /// \note The event count is the number of events (event_count + 1) that must occur before an
+  /// @brief Configure an alert events for an analog channel.
+  /// @param channel Channel to configure.
+  /// @param low_threshold_mv Low threshold in mV.
+  /// @param high_threshold_mv High threshold in mV.
+  /// @param event_count Number of events to trigger an alert.
+  /// @param ec Error code.
+  /// @note The event count is the number of events (event_count + 1) that must occur before an
   /// alert is triggered.
   void configure_event(Channel ch, float low_threshold_mv, float high_threshold_mv, int event_count,
                        std::error_code &ec) {
