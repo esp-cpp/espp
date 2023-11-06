@@ -38,6 +38,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    pid
    qwiicnes
    rmt
+   rtc/index
    rtsp
    serialization
    state_machine
