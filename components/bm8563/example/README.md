@@ -32,3 +32,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+![CleanShot 2023-11-06 at 08 26 00](https://github.com/esp-cpp/espp/assets/213467/5b006353-e8ee-4038-a8e8-1cd899c2b833)
