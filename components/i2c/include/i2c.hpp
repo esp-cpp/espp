@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include <driver/i2c.h>
 
 #include "logger.hpp"
@@ -47,6 +49,7 @@ public:
       return;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
     i2c_config_t i2c_cfg;
     memset(&i2c_cfg, 0, sizeof(i2c_cfg));
     i2c_cfg.sda_io_num = config_.sda_io_num;
@@ -79,6 +82,7 @@ public:
       return;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
     auto err = i2c_driver_delete(config_.port);
     if (err != ESP_OK) {
       logger_.error("delete i2c driver failed");
@@ -100,6 +104,7 @@ public:
       return false;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
     auto err = i2c_master_write_to_device(config_.port, dev_addr, data, data_len,
                                           config_.timeout_ms / portTICK_PERIOD_MS);
     if (err != ESP_OK) {
@@ -124,6 +129,7 @@ public:
       return false;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
     auto err =
         i2c_master_write_read_device(config_.port, dev_addr, write_data, write_size, read_data,
                                      read_size, config_.timeout_ms / portTICK_PERIOD_MS);
@@ -147,6 +153,7 @@ public:
       return false;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
     auto err = i2c_master_write_read_device(config_.port, dev_addr, &reg_addr, 1, data, data_len,
                                             config_.timeout_ms / portTICK_PERIOD_MS);
     if (err != ESP_OK) {
@@ -169,6 +176,7 @@ public:
       return false;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
     auto err = i2c_master_read_from_device(config_.port, dev_addr, data, data_len,
                                            config_.timeout_ms / portTICK_PERIOD_MS);
     if (err != ESP_OK) {
@@ -179,10 +187,31 @@ public:
     return true;
   }
 
+  /// Probe I2C device
+  /// \param dev_addr I2C device address
+  /// \return True if successful
+  /// \details
+  /// This function sends a start condition, writes the device address, and then
+  /// sends a stop condition. If the device acknowledges the address, then it is
+  /// present on the bus.
+  bool probe_device(uint8_t dev_addr) {
+    bool success = false;
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_stop(cmd);
+    if (i2c_master_cmd_begin(config_.port, cmd, 1000) == ESP_OK) {
+      success = true;
+    }
+    i2c_cmd_link_delete(cmd);
+    return success;
+  }
+
 protected:
   Config config_;
   bool initialized_ = false;
-
+  std::mutex mutex_;
   espp::Logger logger_;
 };
 } // namespace espp
