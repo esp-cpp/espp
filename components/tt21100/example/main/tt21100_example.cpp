@@ -30,10 +30,14 @@ extern "C" void app_main(void) {
     // the state
     auto task_fn = [&tt21100](std::mutex &m, std::condition_variable &cv) {
       std::error_code ec;
-      tt21100.update(ec);
+      bool new_data = tt21100.update(ec);
       if (ec) {
         fmt::print("TT21100 update failed: {}\n", ec.message());
         return true; // stop the task
+      }
+      if (!new_data) {
+        // no new data, so don't bother printing
+        return false; // don't stop the task
       }
       // get the state
       uint8_t num_touch_points = 0;
