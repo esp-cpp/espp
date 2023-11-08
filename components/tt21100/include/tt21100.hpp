@@ -39,7 +39,8 @@ public:
 
   /// @brief Read the touch data
   /// @param ec The error code to set if an error occurs
-  void update(std::error_code &ec) {
+  /// @return True if there is new touch data
+  bool update(std::error_code &ec) {
     static uint16_t data_len;
     static uint8_t data[256];
 
@@ -47,7 +48,7 @@ public:
     if (!success) {
       logger_.error("Failed to read data length");
       ec = std::make_error_code(std::errc::io_error);
-      return;
+      return false;
     }
 
     logger_.debug("Data length: {}", data_len);
@@ -55,16 +56,17 @@ public:
     if (data_len == 0xff) {
       logger_.error("Invalid data length");
       ec = std::make_error_code(std::errc::io_error);
-      return;
+      return false;
     }
 
     success = read_(DEFAULT_ADDRESS, data, data_len);
     if (!success) {
       logger_.error("Failed to read data");
       ec = std::make_error_code(std::errc::io_error);
-      return;
+      return false;
     }
 
+    bool new_data = false;
     switch (data_len) {
     case 2:
       // no available data
@@ -79,6 +81,7 @@ public:
       y_ = touch_data->y;
       num_touch_points_ = (data_len - sizeof(TouchReport)) / sizeof(TouchRecord);
       logger_.debug("Touch event: #={}, [0]=({}, {})", num_touch_points_, x_, y_);
+      new_data = true;
       break;
     }
     case 14: {
@@ -88,11 +91,13 @@ public:
       auto btn_signal = button_data->btn_signal[0];
       logger_.debug("Button event({}): {}, {}", (int)(button_data->length), home_button_pressed_,
                     btn_signal);
+      new_data = true;
       break;
     }
     default:
       break;
     }
+    return new_data;
   }
 
   /// @brief Get the number of touch points
