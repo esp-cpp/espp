@@ -144,7 +144,7 @@
           <li><a href="index.html">Input APIs</a> &raquo;</li>
       <li>TT21100 Touch Controller</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/b6ec4c4/docs/en/input/tt21100.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/0775afc/docs/en/input/tt21100.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -162,7 +162,7 @@ touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b6ec4c4/components/tt21100/include/tt21100.hpp">components/tt21100/include/tt21100.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/0775afc/components/tt21100/include/tt21100.hpp">components/tt21100/include/tt21100.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -259,11 +259,14 @@ touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Tt211006updateERNSt10error_codeE">
-<span id="_CPPv3N4espp7Tt211006updateERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tt211006updateERNSt10error_codeE"></span><span id="espp::Tt21100::update__std::error_codeR"></span><span class="target" id="classespp_1_1_tt21100_1a8cf08f6265f257bcc15919f87f97a210"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tt211006updateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Tt211006updateERNSt10error_codeE"></span><span id="_CPPv2N4espp7Tt211006updateERNSt10error_codeE"></span><span id="espp::Tt21100::update__std::error_codeR"></span><span class="target" id="classespp_1_1_tt21100_1a6ae28e1bf1310ae7c4e162ba63f79082"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tt211006updateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read the touch data. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if there is new touch data </p>
 </dd>
 </dl>
 </dd></dl>
@@ -274,7 +277,7 @@ touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.</p>
 <dd><p>Get the number of touch points. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This is the number of touch points that were present when the last <a class="reference internal" href="#classespp_1_1_tt21100_1a8cf08f6265f257bcc15919f87f97a210"><span class="std std-ref">update()</span></a> was called </p>
+<p>This is the number of touch points that were present when the last <a class="reference internal" href="#classespp_1_1_tt21100_1a6ae28e1bf1310ae7c4e162ba63f79082"><span class="std std-ref">update()</span></a> was called </p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
@@ -289,7 +292,7 @@ touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.</p>
 <dd><p>Get the touch point data. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This is the touch point data that was present when the last <a class="reference internal" href="#classespp_1_1_tt21100_1a8cf08f6265f257bcc15919f87f97a210"><span class="std std-ref">update()</span></a> was called </p>
+<p>This is the touch point data that was present when the last <a class="reference internal" href="#classespp_1_1_tt21100_1a6ae28e1bf1310ae7c4e162ba63f79082"><span class="std std-ref">update()</span></a> was called </p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -308,7 +311,7 @@ touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.</p>
 <dd><p>Get the state of the home button. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This is the state of the home button when the last <a class="reference internal" href="#classespp_1_1_tt21100_1a8cf08f6265f257bcc15919f87f97a210"><span class="std std-ref">update()</span></a> was called </p>
+<p>This is the state of the home button when the last <a class="reference internal" href="#classespp_1_1_tt21100_1a6ae28e1bf1310ae7c4e162ba63f79082"><span class="std std-ref">update()</span></a> was called </p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
