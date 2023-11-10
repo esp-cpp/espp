@@ -25,4 +25,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-<img width="275" alt="CleanShot 2023-11-10 at 12 51 08@2x" src="https://github.com/esp-cpp/espp/assets/213467/d7ede416-b350-4499-bb21-aa01faf5ff78">
+<img width="318" alt="CleanShot 2023-11-10 at 13 17 53@2x" src="https://github.com/esp-cpp/espp/assets/213467/68b89daa-4686-4d29-8a73-400b4d91617d">

@@ -145,7 +145,7 @@
           <li><a href="index.html">Input APIs</a> &raquo;</li>
       <li>LilyGo T-Keyboard</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/c07e2fd/docs/en/input/t_keyboard.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/8eb91d4/docs/en/input/t_keyboard.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -162,7 +162,7 @@ keypad. It allows you to read which key is currently pressed.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c07e2fd/components/t_keyboard/include/t_keyboard.hpp">components/t_keyboard/include/t_keyboard.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/8eb91d4/components/t_keyboard/include/t_keyboard.hpp">components/t_keyboard/include/t_keyboard.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -179,13 +179,17 @@ keypad. It allows you to read which key is currently pressed.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_18</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_8</span><span class="p">,</span>
-<span class="w">    </span><span class="p">});</span>
+<span class="w">      </span><span class="p">});</span>
 <span class="w">    </span><span class="c1">// now make the tkeyboard which decodes the data</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TKeyboard</span><span class="w"> </span><span class="nf">tkeyboard</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
-<span class="w">                                                 </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
-<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">                                                  </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">          </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                            </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">          </span><span class="p">.</span><span class="n">key_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39; Pressed!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n">key</span><span class="p">);</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">          </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">          </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
 
 <span class="w">    </span><span class="c1">// on the LilyGo T-Deck, the peripheral power control pin must be set high</span>
 <span class="w">    </span><span class="c1">// to enable peripheral power</span>
@@ -195,36 +199,11 @@ keypad. It allows you to read which key is currently pressed.</p>
 
 <span class="w">    </span><span class="k">do</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Waiting for tkeyboard to boot up...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">250</span><span class="n">ms</span><span class="p">);</span>
 <span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">TKeyboard</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">));</span>
 
 <span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Tkeyboard ready!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the tkeyboard and print</span>
-<span class="w">    </span><span class="c1">// the state</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">tkeyboard</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
-<span class="w">      </span><span class="c1">// update the state</span>
-<span class="w">      </span><span class="kt">char</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tkeyboard</span><span class="p">.</span><span class="n">get_key</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Could not get key</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-<span class="w">      </span><span class="p">}</span>
-<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// don&#39;t stop the task</span>
-<span class="w">      </span><span class="p">}</span>
-<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Key: &#39;{}&#39;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">);</span>
-<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
-<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
-<span class="w">      </span><span class="p">{</span>
-<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
-<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="n">ms</span><span class="p">);</span>
-<span class="w">      </span><span class="p">}</span>
-<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// don&#39;t stop the task</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">(</span>
-<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Tkeyboard Task&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
-<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+<span class="w">    </span><span class="n">tkeyboard</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
 </pre></div>
 </div>
  </p>
@@ -233,7 +212,7 @@ keypad. It allows you to read which key is currently pressed.</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard8write_fnE">
-<span id="_CPPv3N4espp9TKeyboard8write_fnE"></span><span id="_CPPv2N4espp9TKeyboard8write_fnE"></span><span id="espp::TKeyboard::write_fn"></span><span class="target" id="classespp_1_1_t_keyboard_1affb2c96f32c151d4c030e7ace9983fe3"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard8write_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp9TKeyboard8write_fnE"></span><span id="_CPPv2N4espp9TKeyboard8write_fnE"></span><span id="espp::TKeyboard::write_fn"></span><span class="target" id="classespp_1_1_t_keyboard_1a95fa7a78988d1111fc6ac5bfe9a3e426"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard8write_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The function signature for the write function. </p>
 <p>This function is used to write data to the keyboard. </p>
 <dl class="field-list simple">
@@ -254,7 +233,7 @@ keypad. It allows you to read which key is currently pressed.</p>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard7read_fnE">
-<span id="_CPPv3N4espp9TKeyboard7read_fnE"></span><span id="_CPPv2N4espp9TKeyboard7read_fnE"></span><span id="espp::TKeyboard::read_fn"></span><span class="target" id="classespp_1_1_t_keyboard_1a17b9df81113af359b5feb0eb50bb953c"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard7read_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp9TKeyboard7read_fnE"></span><span id="_CPPv2N4espp9TKeyboard7read_fnE"></span><span id="espp::TKeyboard::read_fn"></span><span class="target" id="classespp_1_1_t_keyboard_1ab08594fe29079498e0442a0010e97e1e"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard7read_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The function signature for the read function. </p>
 <p>This function is used to read data from the keyboard. </p>
 <dl class="field-list simple">
@@ -269,6 +248,18 @@ keypad. It allows you to read which key is currently pressed.</p>
 </dd>
 <dt class="field-even">Return</dt>
 <dd class="field-even"><p>True if the read was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard9key_cb_fnE">
+<span id="_CPPv3N4espp9TKeyboard9key_cb_fnE"></span><span id="_CPPv2N4espp9TKeyboard9key_cb_fnE"></span><span id="espp::TKeyboard::key_cb_fn"></span><span class="target" id="classespp_1_1_t_keyboard_1a4d04bff6d563b4bafd59ad36d76f0505"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key_cb_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard9key_cb_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function signature for the key callback function. </p>
+<p>This function is called when a key is pressed. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param key</dt>
+<dd class="field-odd"><p>The key that was pressed. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -288,15 +279,41 @@ keypad. It allows you to read which key is currently pressed.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard7get_keyERNSt10error_codeE">
-<span id="_CPPv3N4espp9TKeyboard7get_keyERNSt10error_codeE"></span><span id="_CPPv2N4espp9TKeyboard7get_keyERNSt10error_codeE"></span><span id="espp::TKeyboard::get_key__std::error_codeR"></span><span class="target" id="classespp_1_1_t_keyboard_1a75bf46f808e2b009ba6a5e9e1822ac87"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_key</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard7get_keyERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Get the key that is currently pressed. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard7get_keyEv">
+<span id="_CPPv3N4espp9TKeyboard7get_keyEv"></span><span id="_CPPv2N4espp9TKeyboard7get_keyEv"></span><span id="espp::TKeyboard::get_key"></span><span class="target" id="classespp_1_1_t_keyboard_1ab92171fbc2af26390e19620cbda67110"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_key</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard7get_keyEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the currently pressed key. </p>
+<p>This function returns the currently pressed key. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will return 0 if no key has been pressed. </p>
+</div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs. </p>
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The currently pressed key. </p>
 </dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The key that is currently pressed. </p>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard5startEv">
+<span id="_CPPv3N4espp9TKeyboard5startEv"></span><span id="_CPPv2N4espp9TKeyboard5startEv"></span><span id="espp::TKeyboard::start"></span><span class="target" id="classespp_1_1_t_keyboard_1aed732dd923cf2e02656fa6bdac44ef81"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard5startEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start the keyboard task. </p>
+<p>This function starts the keyboard task. It should be called after the keyboard has been initialized. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the task was started, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard4stopEv">
+<span id="_CPPv3N4espp9TKeyboard4stopEv"></span><span id="_CPPv2N4espp9TKeyboard4stopEv"></span><span id="espp::TKeyboard::stop"></span><span class="target" id="classespp_1_1_t_keyboard_1aa17b81c9a4c124fcbb9b63f0d44bdaab"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard4stopEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop the keyboard task. </p>
+<p>This function stops the keyboard task. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if the task was stopped, false otherwise. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -330,9 +347,27 @@ keypad. It allows you to read which key is currently pressed.</p>
 </dd></dl>
 
 <dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config6key_cbE">
+<span id="_CPPv3N4espp9TKeyboard6Config6key_cbE"></span><span id="_CPPv2N4espp9TKeyboard6Config6key_cbE"></span><span id="espp::TKeyboard::Config::key_cb__key_cb_fn"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1a0d4c6b9ca4ee0e8ee4e96d0e77d20505"></span><a class="reference internal" href="#_CPPv4N4espp9TKeyboard9key_cb_fnE" title="espp::TKeyboard::key_cb_fn"><span class="n"><span class="pre">key_cb_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key_cb</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config6key_cbE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The key callback function to use. </p>
+</dd></dl>
+
+<dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config7addressE">
 <span id="_CPPv3N4espp9TKeyboard6Config7addressE"></span><span id="_CPPv2N4espp9TKeyboard6Config7addressE"></span><span id="espp::TKeyboard::Config::address__uint8_t"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1a9b045de05bb77384c1b59460555f0b92"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TKeyboard15DEFAULT_ADDRESSE" title="espp::TKeyboard::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config7addressE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The address of the keyboard. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config16polling_intervalE">
+<span id="_CPPv3N4espp9TKeyboard6Config16polling_intervalE"></span><span id="_CPPv2N4espp9TKeyboard6Config16polling_intervalE"></span><span id="espp::TKeyboard::Config::polling_interval__std::chrono::milliseconds"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1a8342f02a99f304297810655688e81fdf"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">polling_interval</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="p"><span class="pre">(</span></span><span class="m"><span class="pre">10</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config16polling_intervalE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The polling interval for the keyboard. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config10auto_startE">
+<span id="_CPPv3N4espp9TKeyboard6Config10auto_startE"></span><span id="_CPPv2N4espp9TKeyboard6Config10auto_startE"></span><span id="espp::TKeyboard::Config::auto_start__b"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1a2d9c0a2ca59346863d77f54ca9933b5b"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_start</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config10auto_startE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether or not to automatically start the keyboard task. </p>
 </dd></dl>
 
 <dl class="cpp var">
