@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LilyGo T-Keyboard - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'input/t_keyboard';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Touchpad Input" href="touchpad_input.html" />
+    <link rel="prev" title="TT21100 Touch Controller" href="tt21100.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Input APIs</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ft5x06.html">FT5x06 Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gt911.html">GT911 Touch Controller</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tt21100.html">TT21100 Touch Controller</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">LilyGo T-Keyboard</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="touchpad_input.html">Touchpad Input</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Input APIs</a> &raquo;</li>
+      <li>LilyGo T-Keyboard</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/c07e2fd/docs/en/input/t_keyboard.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="lilygo-t-keyboard">
+<h1>LilyGo T-Keyboard<a class="headerlink" href="#lilygo-t-keyboard" title="Permalink to this headline"></a></h1>
+<p>The <cite>TKeyboard</cite> component provides a simple interface to the T-Keyboard
+keypad. It allows you to read which key is currently pressed.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c07e2fd/components/t_keyboard/include/t_keyboard.hpp">components/t_keyboard/include/t_keyboard.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboardE">
+<span id="_CPPv3N4espp9TKeyboardE"></span><span id="_CPPv2N4espp9TKeyboardE"></span><span id="espp::TKeyboard"></span><span class="target" id="classespp_1_1_t_keyboard"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TKeyboard</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboardE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for interacting with the LilyGo T-Keyboard. </p>
+<p>This class is used to interact with the LilyGo T-Keyboard. It is designed as a peripheral component for use with a serial interface such as I2C.</p>
+<section id="classespp_1_1_tt21100_1Example">
+<h4>Example<a class="headerlink" href="#classespp_1_1_tt21100_1Example" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_18</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_8</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// now make the tkeyboard which decodes the data</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TKeyboard</span><span class="w"> </span><span class="nf">tkeyboard</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                                                 </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// on the LilyGo T-Deck, the peripheral power control pin must be set high</span>
+<span class="w">    </span><span class="c1">// to enable peripheral power</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">power_ctrl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_10</span><span class="p">;</span>
+<span class="w">    </span><span class="n">gpio_set_direction</span><span class="p">(</span><span class="n">power_ctrl</span><span class="p">,</span><span class="w"> </span><span class="n">GPIO_MODE_OUTPUT</span><span class="p">);</span>
+<span class="w">    </span><span class="n">gpio_set_level</span><span class="p">(</span><span class="n">power_ctrl</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">do</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Waiting for tkeyboard to boot up...</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">500</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">TKeyboard</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="p">));</span>
+
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Tkeyboard ready!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the tkeyboard and print</span>
+<span class="w">    </span><span class="c1">// the state</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">tkeyboard</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">      </span><span class="c1">// update the state</span>
+<span class="w">      </span><span class="kt">char</span><span class="w"> </span><span class="n">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tkeyboard</span><span class="p">.</span><span class="n">get_key</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Could not get key</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// don&#39;t stop the task</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Key: &#39;{}&#39;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">);</span>
+<span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">      </span><span class="p">{</span>
+<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">        </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="c1">// don&#39;t stop the task</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Tkeyboard Task&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard8write_fnE">
+<span id="_CPPv3N4espp9TKeyboard8write_fnE"></span><span id="_CPPv2N4espp9TKeyboard8write_fnE"></span><span id="espp::TKeyboard::write_fn"></span><span class="target" id="classespp_1_1_t_keyboard_1affb2c96f32c151d4c030e7ace9983fe3"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard8write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function signature for the write function. </p>
+<p>This function is used to write data to the keyboard. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address to write to. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The data to write. </p>
+</dd>
+<dt class="field-odd">Param size</dt>
+<dd class="field-odd"><p>The size of the data to write. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the write was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard7read_fnE">
+<span id="_CPPv3N4espp9TKeyboard7read_fnE"></span><span id="_CPPv2N4espp9TKeyboard7read_fnE"></span><span id="espp::TKeyboard::read_fn"></span><span class="target" id="classespp_1_1_t_keyboard_1a17b9df81113af359b5feb0eb50bb953c"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard7read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The function signature for the read function. </p>
+<p>This function is used to read data from the keyboard. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address to read from. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The data to read into. </p>
+</dd>
+<dt class="field-odd">Param size</dt>
+<dd class="field-odd"><p>The size of the data to read. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the read was successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard9TKeyboardERK6Config">
+<span id="_CPPv3N4espp9TKeyboard9TKeyboardERK6Config"></span><span id="_CPPv2N4espp9TKeyboard9TKeyboardERK6Config"></span><span id="espp::TKeyboard::TKeyboard__ConfigCR"></span><span class="target" id="classespp_1_1_t_keyboard_1ab526e389c2b4c7605b448475a2f21b0e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TKeyboard</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TKeyboard6ConfigE" title="espp::TKeyboard::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard9TKeyboardERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Constructor for the <a class="reference internal" href="#classespp_1_1_t_keyboard"><span class="std std-ref">TKeyboard</span></a> class. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – The configuration to use. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard7get_keyERNSt10error_codeE">
+<span id="_CPPv3N4espp9TKeyboard7get_keyERNSt10error_codeE"></span><span id="_CPPv2N4espp9TKeyboard7get_keyERNSt10error_codeE"></span><span id="espp::TKeyboard::get_key__std::error_codeR"></span><span class="target" id="classespp_1_1_t_keyboard_1a75bf46f808e2b009ba6a5e9e1822ac87"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_key</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard7get_keyERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the key that is currently pressed. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The key that is currently pressed. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard15DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp9TKeyboard15DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp9TKeyboard15DEFAULT_ADDRESSE"></span><span id="espp::TKeyboard::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_t_keyboard_1a8f4d3aebc6a62b4f90fe0d9da24be736"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x55</span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard15DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The default address of the keyboard. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6ConfigE">
+<span id="_CPPv3N4espp9TKeyboard6ConfigE"></span><span id="_CPPv2N4espp9TKeyboard6ConfigE"></span><span id="espp::TKeyboard::Config"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The configuration structure for the keyboard. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config5writeE">
+<span id="_CPPv3N4espp9TKeyboard6Config5writeE"></span><span id="_CPPv2N4espp9TKeyboard6Config5writeE"></span><span id="espp::TKeyboard::Config::write__write_fn"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1ad7de8da2473e506c65a55b662f4db06c"></span><a class="reference internal" href="#_CPPv4N4espp9TKeyboard8write_fnE" title="espp::TKeyboard::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The write function to use. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config4readE">
+<span id="_CPPv3N4espp9TKeyboard6Config4readE"></span><span id="_CPPv2N4espp9TKeyboard6Config4readE"></span><span id="espp::TKeyboard::Config::read__read_fn"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1a9566ebd3d7663e20dad51d7d5e3b1f9d"></span><a class="reference internal" href="#_CPPv4N4espp9TKeyboard7read_fnE" title="espp::TKeyboard::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The read function to use. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config7addressE">
+<span id="_CPPv3N4espp9TKeyboard6Config7addressE"></span><span id="_CPPv2N4espp9TKeyboard6Config7addressE"></span><span id="espp::TKeyboard::Config::address__uint8_t"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1a9b045de05bb77384c1b59460555f0b92"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp9TKeyboard15DEFAULT_ADDRESSE" title="espp::TKeyboard::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config7addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The address of the keyboard. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config9log_levelE">
+<span id="_CPPv3N4espp9TKeyboard6Config9log_levelE"></span><span id="_CPPv2N4espp9TKeyboard6Config9log_levelE"></span><span id="espp::TKeyboard::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1ab03b1537df126811ec9690345aacbdcb"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The log level to use. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tt21100.html" class="btn btn-neutral float-left" title="TT21100 Touch Controller" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="touchpad_input.html" class="btn btn-neutral float-right" title="Touchpad Input" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
