@@ -26,7 +26,7 @@ extern "C" void app_main(void) {
          .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
                            std::placeholders::_3),
          .key_cb = [](uint8_t key) { fmt::print("'{}' Pressed!\n", (char)key); },
-         .auto_start = false,
+         .auto_start = false, // can't auto start since we need to provide power
          .log_level = espp::Logger::Verbosity::WARN});
 
     // on the LilyGo T-Deck, the peripheral power control pin must be set high

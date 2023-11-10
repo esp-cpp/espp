@@ -11,7 +11,8 @@ namespace espp {
 /// \brief Class for interacting with the LilyGo T-Keyboard.
 /// \details This class is used to interact with the LilyGo T-Keyboard. It is
 ///          designed as a peripheral component for use with a serial
-///          interface such as I2C.
+///          interface such as I2C. On The T-Keyboard, you can press Alt+B to
+///          toggle the keyboard backlight.
 ///
 /// \section Example
 /// \snippet t_keyboard_example.cpp tkeyboard example
@@ -49,7 +50,8 @@ public:
     /// The read function to use.
     read_fn read;
 
-    /// The key callback function to use.
+    /// The key callback function to use. This function will be called when a
+    /// key is pressed if it is not null and the keyboard task is running.
     key_cb_fn key_cb;
 
     /// The address of the keyboard.
@@ -88,6 +90,23 @@ public:
   /// \return The currently pressed key.
   /// \note This function will return 0 if no key has been pressed.
   uint8_t get_key() { return pressed_key_; }
+
+  /// \brief Read a key from the keyboard.
+  /// \details This function reads a key from the keyboard.
+  /// \param ec The error code to set if an error occurs.
+  /// \return The key that was read.
+  /// \note This function will return 0 if no key was read.
+  /// \note This function will return 0 if an error occurs.
+  /// \note This function will set the error code if the keyboard task is
+  ///       running.
+  uint8_t read_key(std::error_code &ec) {
+    if (task_->is_running()) {
+      logger_.error("Keyboard task is running, use get_key() instead");
+      ec = std::make_error_code(std::errc::operation_in_progress);
+      return 0;
+    }
+    return read_char(ec);
+  }
 
   /// \brief Start the keyboard task.
   /// \details This function starts the keyboard task. It should be called

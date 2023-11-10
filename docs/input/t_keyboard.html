@@ -145,7 +145,7 @@
           <li><a href="index.html">Input APIs</a> &raquo;</li>
       <li>LilyGo T-Keyboard</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/8eb91d4/docs/en/input/t_keyboard.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/15ad5f4/docs/en/input/t_keyboard.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -162,7 +162,7 @@ keypad. It allows you to read which key is currently pressed.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/8eb91d4/components/t_keyboard/include/t_keyboard.hpp">components/t_keyboard/include/t_keyboard.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/15ad5f4/components/t_keyboard/include/t_keyboard.hpp">components/t_keyboard/include/t_keyboard.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -171,7 +171,7 @@ keypad. It allows you to read which key is currently pressed.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboardE">
 <span id="_CPPv3N4espp9TKeyboardE"></span><span id="_CPPv2N4espp9TKeyboardE"></span><span id="espp::TKeyboard"></span><span class="target" id="classespp_1_1_t_keyboard"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TKeyboard</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboardE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for interacting with the LilyGo T-Keyboard. </p>
-<p>This class is used to interact with the LilyGo T-Keyboard. It is designed as a peripheral component for use with a serial interface such as I2C.</p>
+<p>This class is used to interact with the LilyGo T-Keyboard. It is designed as a peripheral component for use with a serial interface such as I2C. On The T-Keyboard, you can press Alt+B to toggle the keyboard backlight.</p>
 <section id="classespp_1_1_tt21100_1Example">
 <h4>Example<a class="headerlink" href="#classespp_1_1_tt21100_1Example" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
@@ -179,17 +179,16 @@ keypad. It allows you to read which key is currently pressed.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_18</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_8</span><span class="p">,</span>
-<span class="w">      </span><span class="p">});</span>
+<span class="w">    </span><span class="p">});</span>
 <span class="w">    </span><span class="c1">// now make the tkeyboard which decodes the data</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TKeyboard</span><span class="w"> </span><span class="nf">tkeyboard</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
-<span class="w">                                                  </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">          </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
-<span class="w">                            </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">          </span><span class="p">.</span><span class="n">key_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">            </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39; Pressed!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n">key</span><span class="p">);</span>
-<span class="w">          </span><span class="p">},</span>
-<span class="w">          </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
-<span class="w">          </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TKeyboard</span><span class="w"> </span><span class="nf">tkeyboard</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                            </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">         </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                           </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">         </span><span class="p">.</span><span class="n">key_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;&#39;{}&#39; Pressed!</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n">key</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">         </span><span class="p">.</span><span class="n">auto_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="c1">// can&#39;t auto start since we need to provide power</span>
+<span class="w">         </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
 
 <span class="w">    </span><span class="c1">// on the LilyGo T-Deck, the peripheral power control pin must be set high</span>
 <span class="w">    </span><span class="c1">// to enable peripheral power</span>
@@ -295,6 +294,33 @@ keypad. It allows you to read which key is currently pressed.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard8read_keyERNSt10error_codeE">
+<span id="_CPPv3N4espp9TKeyboard8read_keyERNSt10error_codeE"></span><span id="_CPPv2N4espp9TKeyboard8read_keyERNSt10error_codeE"></span><span id="espp::TKeyboard::read_key__std::error_codeR"></span><span class="target" id="classespp_1_1_t_keyboard_1aacbd7616fdaca464a3aad0361ad95e83"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_key</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard8read_keyERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read a key from the keyboard. </p>
+<p>This function reads a key from the keyboard. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will return 0 if no key was read. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will return 0 if an error occurs. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will set the error code if the keyboard task is running. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – The error code to set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The key that was read. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard5startEv">
 <span id="_CPPv3N4espp9TKeyboard5startEv"></span><span id="_CPPv2N4espp9TKeyboard5startEv"></span><span id="espp::TKeyboard::start"></span><span class="target" id="classespp_1_1_t_keyboard_1aed732dd923cf2e02656fa6bdac44ef81"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard5startEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Start the keyboard task. </p>
@@ -349,7 +375,7 @@ keypad. It allows you to read which key is currently pressed.</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9TKeyboard6Config6key_cbE">
 <span id="_CPPv3N4espp9TKeyboard6Config6key_cbE"></span><span id="_CPPv2N4espp9TKeyboard6Config6key_cbE"></span><span id="espp::TKeyboard::Config::key_cb__key_cb_fn"></span><span class="target" id="structespp_1_1_t_keyboard_1_1_config_1a0d4c6b9ca4ee0e8ee4e96d0e77d20505"></span><a class="reference internal" href="#_CPPv4N4espp9TKeyboard9key_cb_fnE" title="espp::TKeyboard::key_cb_fn"><span class="n"><span class="pre">key_cb_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">key_cb</span></span></span><a class="headerlink" href="#_CPPv4N4espp9TKeyboard6Config6key_cbE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The key callback function to use. </p>
+<dd><p>The key callback function to use. This function will be called when a key is pressed if it is not null and the keyboard task is running. </p>
 </dd></dl>
 
 <dl class="cpp var">
