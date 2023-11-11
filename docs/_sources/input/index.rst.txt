@@ -8,4 +8,6 @@ Input APIs
     gt911
     tt21100
     t_keyboard
+    encoder_input
+    keypad_input
     touchpad_input
