@@ -65,6 +65,18 @@ public:
     }
   }
 
+  /**
+   * @brief Get a pointer to the LVGL input device driver for the touchpad.
+   * @return Pointer to the LVGL input device driver for the touchpad.
+   */
+  lv_indev_t *get_touchpad_input_device() { return indev_touchpad_; }
+
+  /**
+   * @brief Get a pointer to the LVGL input device driver for the home button.
+   * @return Pointer to the LVGL input device driver for the home button.
+   */
+  lv_indev_t *get_home_button_input_device() { return indev_button_; }
+
 protected:
   static void touchpad_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
     TouchpadInput *tpi = (TouchpadInput *)drv->user_data;
