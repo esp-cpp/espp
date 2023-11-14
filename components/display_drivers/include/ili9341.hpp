@@ -70,7 +70,7 @@ public:
         {0xC1, {0x11}, 1},
         {0xC5, {0x35, 0x3E}, 2},
         {0xC7, {0xBE}, 1},
-        {0x36, {0x28}, 1},
+        {0x36, {0x28}, 1}, // madctl
         {0x3A, {0x55}, 1},
         {0xB1, {0x00, 0x1B}, 2},
         {0xF2, {0x08}, 1},
@@ -90,6 +90,17 @@ public:
         {0x29, {0}, 0x80},
         {0, {0}, 0xff},
     };
+
+    // NOTE: these configurations operates on the MADCTL command / register
+    if (config.mirror_x) {
+      ili_init_cmds[10].data[0] |= LCD_CMD_MX_BIT;
+    }
+    if (config.mirror_y) {
+      ili_init_cmds[10].data[0] |= LCD_CMD_MY_BIT;
+    }
+    if (config.swap_xy) {
+      ili_init_cmds[10].data[0] |= LCD_CMD_MV_BIT;
+    }
 
     // send the init commands
     send_commands(ili_init_cmds);
