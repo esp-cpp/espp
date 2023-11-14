@@ -80,6 +80,7 @@ public:
         .stack_size_bytes = config.stack_size_bytes,
         .priority = config.priority,
         .core_id = config.core_id,
+        .log_level = config.log_level,
     });
     period_float = std::chrono::duration<float>(period_).count();
     delay_float = std::chrono::duration<float>(delay_).count();
@@ -136,6 +137,7 @@ public:
 
 protected:
   bool timer_callback_fn(std::mutex &m, std::condition_variable &cv) {
+    logger_.debug("callback entered");
     if (!callback_) {
       // stop the timer, the callback is null
       return true;
@@ -146,19 +148,22 @@ protected:
       logger_.debug("waiting for delay {:.3f} s", delay_float);
       std::unique_lock<std::mutex> lock(m);
       auto cv_retval = cv.wait_for(lock, delay_);
-      // now set the delay to 0
-      delay_ = std::chrono::microseconds(0);
       if (cv_retval == std::cv_status::no_timeout) {
         // if there was no timeout, then we were notified, which means that the timer
         // was canceled while waiting for the delay, so we should go ahead and return
+        logger_.debug("delay canceled, stopping");
         return true;
       }
+      // now set the delay to 0
+      delay_ = std::chrono::microseconds(0);
     }
     // now run the callback
     auto start = std::chrono::steady_clock::now();
+    logger_.debug("running callback");
     bool requested_stop = callback_();
     if (requested_stop || period_.count() <= 0) {
       // stop the timer if requested or if the period is <= 0
+      logger_.debug("callback requested stop or period is <= 0, stopping");
       return true;
     }
     auto end = std::chrono::steady_clock::now();
