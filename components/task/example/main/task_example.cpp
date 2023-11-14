@@ -284,6 +284,52 @@ extern "C" void app_main(void) {
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
   fmt::print("Test ran for {:.03f} seconds\n", test_duration);
 
+  /**
+   *   Show an example of the task auto-stopping itself from within the task
+   *   callback function and then starting it again.
+   */
+  test_start = std::chrono::high_resolution_clock::now();
+  {
+    fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
+    //! [Task Request Stop Then Restart example]
+    auto task_fn = [&num_seconds_to_run](std::mutex &m, std::condition_variable &cv) {
+      static auto begin = std::chrono::high_resolution_clock::now();
+      auto now = std::chrono::high_resolution_clock::now();
+      auto elapsed = std::chrono::duration<float>(now - begin).count();
+      if (elapsed > num_seconds_to_run) {
+        static int num_times_run{0};
+        fmt::print("Task stopping early after {} runs!\n", ++num_times_run);
+        // we've gone long enough, time to stop our task!
+        return true;
+      }
+      // NOTE: sleeping in this way allows the sleep to exit early when the
+      // task is being stopped / destroyed
+      {
+        std::unique_lock<std::mutex> lk(m);
+        cv.wait_for(lk, 10ms);
+      }
+      // we don't want to stop yet, so return false
+      return false;
+    };
+    auto task = espp::Task({.name = "AutoStop Task",
+                            .callback = task_fn,
+                            .log_level = espp::Logger::Verbosity::DEBUG});
+    task.start();
+    while (task.is_started()) {
+      std::this_thread::sleep_for(10ms);
+    }
+    // restart the task without explicitly cancelling it
+    fmt::print("Restarting task...\n");
+    task.start();
+    while (task.is_started()) {
+      std::this_thread::sleep_for(10ms);
+    }
+    //! [Task Request Stop Then Restart example]
+  }
+  test_end = std::chrono::high_resolution_clock::now();
+  test_duration = std::chrono::duration<float>(test_end - test_start).count();
+  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+
   fmt::print("Task example complete!\n");
 
   while (true) {

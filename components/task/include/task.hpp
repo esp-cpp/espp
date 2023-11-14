@@ -193,6 +193,10 @@ public:
     }
 #endif
 
+    if (thread_.joinable()) {
+      thread_.join();
+    }
+
     // set the atomic so that when the thread starts it won't immediately
     // exit.
     started_ = true;
