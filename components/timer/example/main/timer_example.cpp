@@ -111,6 +111,29 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
 
+  // oneshot timer example cancel itself then start it again with delay
+  {
+    logger.info("[{:.3f}] Starting oneshot timer cancel itself then restart example", elapsed());
+    //! [timer oneshot restart example]
+    auto timer_fn = []() {
+      static size_t iterations{0};
+      fmt::print("[{:.3f}] #iterations = {}\n", elapsed(), iterations);
+      iterations++;
+      // we don't want to stop, so return false
+      return true;
+    };
+    auto timer = espp::Timer({.name = "Timer 1",
+                              .period = 0ms, // one shot timer
+                              .delay = 500ms,
+                              .callback = timer_fn,
+                              .log_level = espp::Logger::Verbosity::DEBUG});
+    std::this_thread::sleep_for(2s);
+    timer.cancel();  // it will have already been cancelled by here, but this should be harmless
+    timer.start(1s); // restart the timer with a 1 second delay
+    //! [timer oneshot restart example]
+    std::this_thread::sleep_for(num_seconds_to_run * 1s);
+  }
+
   logger.info("Test ran for {:.03f} seconds", elapsed());
 
   logger.info("Example complete!");
