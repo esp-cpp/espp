@@ -43,6 +43,8 @@ namespace espp {
 /// \snippet timer_example.cpp timer oneshot example
 /// \section timer_ex4 Timer Cancel Itself Example
 /// \snippet timer_example.cpp timer cancel itself example
+/// \section timer_ex5 Oneshot Timer Cancel Itself Then Start again with Delay Example
+/// \snippet timer_example.cpp timer oneshot restart example
 class Timer {
 public:
   typedef std::function<bool()>
@@ -74,7 +76,7 @@ public:
                                              .level = config.log_level}) {
     // make the task
     task_ = espp::Task::make_unique({
-        .name = config.name,
+        .name = std::string(config.name) + "_task",
         .callback = std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1,
                               std::placeholders::_2),
         .stack_size_bytes = config.stack_size_bytes,
@@ -144,10 +146,11 @@ protected:
     }
     // initial delay, if any - this is only used the first time the timer
     // runs
-    if (delay_.count() > 0) {
+    if (delay_float > 0) {
+      auto start = std::chrono::steady_clock::now();
       logger_.debug("waiting for delay {:.3f} s", delay_float);
       std::unique_lock<std::mutex> lock(m);
-      auto cv_retval = cv.wait_for(lock, delay_);
+      auto cv_retval = cv.wait_until(lock, start + delay_);
       if (cv_retval == std::cv_status::no_timeout) {
         // if there was no timeout, then we were notified, which means that the timer
         // was canceled while waiting for the delay, so we should go ahead and return
@@ -156,19 +159,20 @@ protected:
       }
       // now set the delay to 0
       delay_ = std::chrono::microseconds(0);
+      delay_float = 0;
     }
     // now run the callback
     auto start = std::chrono::steady_clock::now();
     logger_.debug("running callback");
     bool requested_stop = callback_();
-    if (requested_stop || period_.count() <= 0) {
+    if (requested_stop || period_float <= 0) {
       // stop the timer if requested or if the period is <= 0
       logger_.debug("callback requested stop or period is <= 0, stopping");
       return true;
     }
     auto end = std::chrono::steady_clock::now();
     float elapsed = std::chrono::duration<float>(end - start).count();
-    if (elapsed > period_.count()) {
+    if (elapsed > period_float) {
       // if the callback took longer than the period, then we should just
       // return and run the callback again immediately
       logger_.warn_rate_limited("callback took longer ({:.3f} s) than period ({:.3f} s)", elapsed,
