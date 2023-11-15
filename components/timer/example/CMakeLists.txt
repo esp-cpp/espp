@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py timer"
+  "main esptool_py esp_pm timer"
   CACHE STRING
   "List of components to include"
   )
