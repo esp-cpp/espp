@@ -99,6 +99,7 @@ public:
   /// @details Starts the timer. Does nothing if the timer is already running.
   void start() {
     logger_.info("starting with period {:.3f} s and delay {:.3f} s", period_float, delay_float);
+    running_ = true;
     // start the task
     task_->start();
   }
@@ -124,10 +125,15 @@ public:
     start();
   }
 
+  /// @brief Stop the timer, same as cancel().
+  /// @details Stops the timer, same as cancel().
+  void stop() { cancel(); }
+
   /// @brief Cancel the timer.
   /// @details Cancels the timer.
   void cancel() {
     logger_.info("canceling");
+    running_ = false;
     // cancel the task
     task_->stop();
   }
@@ -135,13 +141,20 @@ public:
   /// @brief Check if the timer is running.
   /// @details Checks if the timer is running.
   /// @return true if the timer is running, false otherwise.
-  bool is_running() const { return task_->is_running(); }
+  bool is_running() const { return running_ && task_->is_running(); }
 
 protected:
   bool timer_callback_fn(std::mutex &m, std::condition_variable &cv) {
     logger_.debug("callback entered");
+    if (!running_) {
+      // stop the timer, the timer was canceled
+      logger_.debug("timer was canceled, stopping");
+      return true;
+    }
     if (!callback_) {
       // stop the timer, the callback is null
+      logger_.debug("callback is null, stopping");
+      running_ = false;
       return true;
     }
     // initial delay, if any - this is only used the first time the timer
@@ -150,10 +163,8 @@ protected:
       auto start = std::chrono::steady_clock::now();
       logger_.debug("waiting for delay {:.3f} s", delay_float);
       std::unique_lock<std::mutex> lock(m);
-      auto cv_retval = cv.wait_until(lock, start + delay_);
-      if (cv_retval == std::cv_status::no_timeout) {
-        // if there was no timeout, then we were notified, which means that the timer
-        // was canceled while waiting for the delay, so we should go ahead and return
+      cv.wait_until(lock, start + delay_);
+      if (!running_) {
         logger_.debug("delay canceled, stopping");
         return true;
       }
@@ -168,6 +179,7 @@ protected:
     if (requested_stop || period_float <= 0) {
       // stop the timer if requested or if the period is <= 0
       logger_.debug("callback requested stop or period is <= 0, stopping");
+      running_ = false;
       return true;
     }
     auto end = std::chrono::steady_clock::now();
@@ -194,6 +206,7 @@ protected:
 
   std::chrono::microseconds period_{0}; ///< The period of the timer. If 0, the timer will run once.
   std::chrono::microseconds delay_{0};  ///< The delay before the timer starts.
+  std::atomic<bool> running_{false};    ///< True if the timer is running, false otherwise.
   float period_float;
   float delay_float;
   callback_fn callback_;             ///< The callback function to call when the timer expires.
