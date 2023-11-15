@@ -1,5 +1,11 @@
+#include <sdkconfig.h>
+
 #include <chrono>
 #include <vector>
+
+#include <esp_pm.h>
+#include <esp_sleep.h>
+#include <esp_system.h>
 
 #include "logger.hpp"
 #include "timer.hpp"
@@ -15,6 +21,16 @@ extern "C" void app_main(void) {
     auto now = std::chrono::high_resolution_clock::now();
     return std::chrono::duration<float>(now - start).count();
   };
+
+#if CONFIG_PM_ENABLE
+  logger.info("Enabling power management...");
+  // Configure dynamic frequency scaling:
+  // maximum and minimum frequencies are set in sdkconfig,
+  // automatic light sleep is enabled if tickless idle support is enabled.
+  esp_pm_config_t pm_config = {.max_freq_mhz = 240, .min_freq_mhz = 40, .light_sleep_enable = true};
+  // if we have BT enabled, then the power mode won't work well....
+  ESP_ERROR_CHECK(esp_pm_configure(&pm_config));
+#endif
 
   // basic timer example
   {
