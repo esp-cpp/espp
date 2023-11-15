@@ -77,6 +77,6 @@ template <> struct fmt::formatter<espp::LowpassFilter> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
 
   template <typename FormatContext> auto format(espp::LowpassFilter const &f, FormatContext &ctx) {
-    return format_to(ctx.out(), "Lowpass - {}", f.coeffs_);
+    return fmt::format_to(ctx.out(), "Lowpass - {}", f.coeffs_);
   }
 };
