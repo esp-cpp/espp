@@ -1558,23 +1558,23 @@ template <> struct fmt::formatter<espp::Ads7138::OversamplingRatio> {
   auto format(espp::Ads7138::OversamplingRatio const &ratio, FormatContext &ctx) {
     switch (ratio) {
     case espp::Ads7138::OversamplingRatio::NONE:
-      return format_to(ctx.out(), "NONE");
+      return fmt::format_to(ctx.out(), "NONE");
     case espp::Ads7138::OversamplingRatio::OSR_2:
-      return format_to(ctx.out(), "OSR_2 (2x)");
+      return fmt::format_to(ctx.out(), "OSR_2 (2x)");
     case espp::Ads7138::OversamplingRatio::OSR_4:
-      return format_to(ctx.out(), "OSR_4 (4x)");
+      return fmt::format_to(ctx.out(), "OSR_4 (4x)");
     case espp::Ads7138::OversamplingRatio::OSR_8:
-      return format_to(ctx.out(), "OSR_8 (8x)");
+      return fmt::format_to(ctx.out(), "OSR_8 (8x)");
     case espp::Ads7138::OversamplingRatio::OSR_16:
-      return format_to(ctx.out(), "OSR_16 (16x)");
+      return fmt::format_to(ctx.out(), "OSR_16 (16x)");
     case espp::Ads7138::OversamplingRatio::OSR_32:
-      return format_to(ctx.out(), "OSR_32 (32x)");
+      return fmt::format_to(ctx.out(), "OSR_32 (32x)");
     case espp::Ads7138::OversamplingRatio::OSR_64:
-      return format_to(ctx.out(), "OSR_64 (64x)");
+      return fmt::format_to(ctx.out(), "OSR_64 (64x)");
     case espp::Ads7138::OversamplingRatio::OSR_128:
-      return format_to(ctx.out(), "OSR_128 (128x)");
+      return fmt::format_to(ctx.out(), "OSR_128 (128x)");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1588,13 +1588,13 @@ template <> struct fmt::formatter<espp::Ads7138::Mode> {
   auto format(espp::Ads7138::Mode const &mode, FormatContext &ctx) {
     switch (mode) {
     case espp::Ads7138::Mode::MANUAL:
-      return format_to(ctx.out(), "MANUAL");
+      return fmt::format_to(ctx.out(), "MANUAL");
     case espp::Ads7138::Mode::AUTO_SEQ:
-      return format_to(ctx.out(), "AUTO_SEQ");
+      return fmt::format_to(ctx.out(), "AUTO_SEQ");
     case espp::Ads7138::Mode::AUTONOMOUS:
-      return format_to(ctx.out(), "AUTONOMOUS");
+      return fmt::format_to(ctx.out(), "AUTONOMOUS");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1608,11 +1608,11 @@ template <> struct fmt::formatter<espp::Ads7138::DataFormat> {
   auto format(espp::Ads7138::DataFormat const &format, FormatContext &ctx) {
     switch (format) {
     case espp::Ads7138::DataFormat::RAW:
-      return format_to(ctx.out(), "RAW");
+      return fmt::format_to(ctx.out(), "RAW");
     case espp::Ads7138::DataFormat::AVERAGED:
-      return format_to(ctx.out(), "AVERAGED");
+      return fmt::format_to(ctx.out(), "AVERAGED");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1626,13 +1626,13 @@ template <> struct fmt::formatter<espp::Ads7138::Append> {
   auto format(espp::Ads7138::Append const &format, FormatContext &ctx) {
     switch (format) {
     case espp::Ads7138::Append::NONE:
-      return format_to(ctx.out(), "NONE");
+      return fmt::format_to(ctx.out(), "NONE");
     case espp::Ads7138::Append::STATUS:
-      return format_to(ctx.out(), "STATUS");
+      return fmt::format_to(ctx.out(), "STATUS");
     case espp::Ads7138::Append::CHANNEL_ID:
-      return format_to(ctx.out(), "CHANNEL_ID");
+      return fmt::format_to(ctx.out(), "CHANNEL_ID");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1646,23 +1646,23 @@ template <> struct fmt::formatter<espp::Ads7138::Channel> {
   auto format(espp::Ads7138::Channel const &ch, FormatContext &ctx) {
     switch (ch) {
     case espp::Ads7138::Channel::CH0:
-      return format_to(ctx.out(), "CH0");
+      return fmt::format_to(ctx.out(), "CH0");
     case espp::Ads7138::Channel::CH1:
-      return format_to(ctx.out(), "CH1");
+      return fmt::format_to(ctx.out(), "CH1");
     case espp::Ads7138::Channel::CH2:
-      return format_to(ctx.out(), "CH2");
+      return fmt::format_to(ctx.out(), "CH2");
     case espp::Ads7138::Channel::CH3:
-      return format_to(ctx.out(), "CH3");
+      return fmt::format_to(ctx.out(), "CH3");
     case espp::Ads7138::Channel::CH4:
-      return format_to(ctx.out(), "CH4");
+      return fmt::format_to(ctx.out(), "CH4");
     case espp::Ads7138::Channel::CH5:
-      return format_to(ctx.out(), "CH5");
+      return fmt::format_to(ctx.out(), "CH5");
     case espp::Ads7138::Channel::CH6:
-      return format_to(ctx.out(), "CH6");
+      return fmt::format_to(ctx.out(), "CH6");
     case espp::Ads7138::Channel::CH7:
-      return format_to(ctx.out(), "CH7");
+      return fmt::format_to(ctx.out(), "CH7");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1681,6 +1681,6 @@ template <> struct fmt::formatter<std::vector<espp::Ads7138::Channel>> {
     if (result.size() > 1)
       result.resize(result.size() - 2); // remove trailing ", "
     result += "}";
-    return format_to(ctx.out(), "{}", result);
+    return fmt::format_to(ctx.out(), "{}", result);
   }
 };

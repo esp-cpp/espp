@@ -87,6 +87,6 @@ template <size_t ORDER, class Impl> struct fmt::formatter<espp::ButterworthFilte
     for (int i = 1; i < (ORDER + 1) / 2; i++) {
       format_to(out, ", [{}]", f.sections_[i]);
     }
-    return format_to(out, "]");
+    return fmt::format_to(out, "]");
   }
 };

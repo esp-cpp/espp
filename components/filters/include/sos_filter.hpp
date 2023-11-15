@@ -69,6 +69,6 @@ template <size_t N, class SectionImpl> struct fmt::formatter<espp::SosFilter<N, 
     for (int i = 1; i < N; i++) {
       format_to(out, ", [{}]", f.sections_[i]);
     }
-    return format_to(out, "]");
+    return fmt::format_to(out, "]");
   }
 };

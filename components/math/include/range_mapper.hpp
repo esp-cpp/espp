@@ -166,15 +166,15 @@ typedef RangeMapper<int> IntRangeMapper;
 
 template <> struct fmt::formatter<espp::FloatRangeMapper::Config> : fmt::formatter<std::string> {
   auto format(const espp::FloatRangeMapper::Config &config, format_context &ctx) {
-    return format_to(ctx.out(), "[{},{},{},{},{},{},{},{}]", config.center, config.deadband,
-                     config.minimum, config.maximum, config.invert_input, config.output_center,
-                     config.output_range, config.invert_output);
+    return fmt::format_to(ctx.out(), "[{},{},{},{},{},{},{},{}]", config.center, config.deadband,
+                          config.minimum, config.maximum, config.invert_input, config.output_center,
+                          config.output_range, config.invert_output);
   }
 };
 template <> struct fmt::formatter<espp::IntRangeMapper::Config> : fmt::formatter<std::string> {
   auto format(const espp::IntRangeMapper::Config &config, format_context &ctx) {
-    return format_to(ctx.out(), "[{},{},{},{},{},{},{},{}]", config.center, config.deadband,
-                     config.minimum, config.maximum, config.invert_input, config.output_center,
-                     config.output_range, config.invert_output);
+    return fmt::format_to(ctx.out(), "[{},{},{},{},{},{},{},{}]", config.center, config.deadband,
+                          config.minimum, config.maximum, config.invert_input, config.output_center,
+                          config.output_range, config.invert_output);
   }
 };

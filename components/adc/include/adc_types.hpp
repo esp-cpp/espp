@@ -25,7 +25,7 @@ template <> struct fmt::formatter<espp::AdcConfig> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
 
   template <typename FormatContext> auto format(const espp::AdcConfig &c, FormatContext &ctx) {
-    return format_to(ctx.out(), "AdcConfig(unit={}, channel={}, attenuation={})", (int)c.unit,
-                     (int)c.channel, (int)c.attenuation);
+    return fmt::format_to(ctx.out(), "AdcConfig(unit={}, channel={}, attenuation={})", (int)c.unit,
+                          (int)c.channel, (int)c.attenuation);
   }
 };

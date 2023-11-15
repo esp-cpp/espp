@@ -979,23 +979,23 @@ template <> struct fmt::formatter<espp::Tla2528::OversamplingRatio> {
   auto format(espp::Tla2528::OversamplingRatio const &ratio, FormatContext &ctx) {
     switch (ratio) {
     case espp::Tla2528::OversamplingRatio::NONE:
-      return format_to(ctx.out(), "NONE");
+      return fmt::format_to(ctx.out(), "NONE");
     case espp::Tla2528::OversamplingRatio::OSR_2:
-      return format_to(ctx.out(), "OSR_2 (2x)");
+      return fmt::format_to(ctx.out(), "OSR_2 (2x)");
     case espp::Tla2528::OversamplingRatio::OSR_4:
-      return format_to(ctx.out(), "OSR_4 (4x)");
+      return fmt::format_to(ctx.out(), "OSR_4 (4x)");
     case espp::Tla2528::OversamplingRatio::OSR_8:
-      return format_to(ctx.out(), "OSR_8 (8x)");
+      return fmt::format_to(ctx.out(), "OSR_8 (8x)");
     case espp::Tla2528::OversamplingRatio::OSR_16:
-      return format_to(ctx.out(), "OSR_16 (16x)");
+      return fmt::format_to(ctx.out(), "OSR_16 (16x)");
     case espp::Tla2528::OversamplingRatio::OSR_32:
-      return format_to(ctx.out(), "OSR_32 (32x)");
+      return fmt::format_to(ctx.out(), "OSR_32 (32x)");
     case espp::Tla2528::OversamplingRatio::OSR_64:
-      return format_to(ctx.out(), "OSR_64 (64x)");
+      return fmt::format_to(ctx.out(), "OSR_64 (64x)");
     case espp::Tla2528::OversamplingRatio::OSR_128:
-      return format_to(ctx.out(), "OSR_128 (128x)");
+      return fmt::format_to(ctx.out(), "OSR_128 (128x)");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1009,11 +1009,11 @@ template <> struct fmt::formatter<espp::Tla2528::Mode> {
   auto format(espp::Tla2528::Mode const &mode, FormatContext &ctx) {
     switch (mode) {
     case espp::Tla2528::Mode::MANUAL:
-      return format_to(ctx.out(), "MANUAL");
+      return fmt::format_to(ctx.out(), "MANUAL");
     case espp::Tla2528::Mode::AUTO_SEQ:
-      return format_to(ctx.out(), "AUTO_SEQ");
+      return fmt::format_to(ctx.out(), "AUTO_SEQ");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1027,11 +1027,11 @@ template <> struct fmt::formatter<espp::Tla2528::DataFormat> {
   auto format(espp::Tla2528::DataFormat const &format, FormatContext &ctx) {
     switch (format) {
     case espp::Tla2528::DataFormat::RAW:
-      return format_to(ctx.out(), "RAW");
+      return fmt::format_to(ctx.out(), "RAW");
     case espp::Tla2528::DataFormat::AVERAGED:
-      return format_to(ctx.out(), "AVERAGED");
+      return fmt::format_to(ctx.out(), "AVERAGED");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1045,11 +1045,11 @@ template <> struct fmt::formatter<espp::Tla2528::Append> {
   auto format(espp::Tla2528::Append const &format, FormatContext &ctx) {
     switch (format) {
     case espp::Tla2528::Append::NONE:
-      return format_to(ctx.out(), "NONE");
+      return fmt::format_to(ctx.out(), "NONE");
     case espp::Tla2528::Append::CHANNEL_ID:
-      return format_to(ctx.out(), "CHANNEL_ID");
+      return fmt::format_to(ctx.out(), "CHANNEL_ID");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1063,23 +1063,23 @@ template <> struct fmt::formatter<espp::Tla2528::Channel> {
   auto format(espp::Tla2528::Channel const &ch, FormatContext &ctx) {
     switch (ch) {
     case espp::Tla2528::Channel::CH0:
-      return format_to(ctx.out(), "CH0");
+      return fmt::format_to(ctx.out(), "CH0");
     case espp::Tla2528::Channel::CH1:
-      return format_to(ctx.out(), "CH1");
+      return fmt::format_to(ctx.out(), "CH1");
     case espp::Tla2528::Channel::CH2:
-      return format_to(ctx.out(), "CH2");
+      return fmt::format_to(ctx.out(), "CH2");
     case espp::Tla2528::Channel::CH3:
-      return format_to(ctx.out(), "CH3");
+      return fmt::format_to(ctx.out(), "CH3");
     case espp::Tla2528::Channel::CH4:
-      return format_to(ctx.out(), "CH4");
+      return fmt::format_to(ctx.out(), "CH4");
     case espp::Tla2528::Channel::CH5:
-      return format_to(ctx.out(), "CH5");
+      return fmt::format_to(ctx.out(), "CH5");
     case espp::Tla2528::Channel::CH6:
-      return format_to(ctx.out(), "CH6");
+      return fmt::format_to(ctx.out(), "CH6");
     case espp::Tla2528::Channel::CH7:
-      return format_to(ctx.out(), "CH7");
+      return fmt::format_to(ctx.out(), "CH7");
     default:
-      return format_to(ctx.out(), "UNKNOWN");
+      return fmt::format_to(ctx.out(), "UNKNOWN");
     }
   }
 };
@@ -1098,6 +1098,6 @@ template <> struct fmt::formatter<std::vector<espp::Tla2528::Channel>> {
     if (result.size() > 1)
       result.resize(result.size() - 2); // remove trailing ", "
     result += "}";
-    return format_to(ctx.out(), "{}", result);
+    return fmt::format_to(ctx.out(), "{}", result);
   }
 };

@@ -160,7 +160,7 @@ protected:
         return false;
       }
       bool updated = update();
-      logger_.debug("ISR Notify, button state: {}, was updated: {}", pressed_, updated);
+      logger_.debug("ISR Notify, button state: {}, was updated: {}", pressed_.load(), updated);
       Event event = {
           .gpio_num = static_cast<uint8_t>(gpio_num_),
           .pressed = pressed_,
