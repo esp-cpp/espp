@@ -80,7 +80,7 @@ public:
       x_ = touch_data->x;
       y_ = touch_data->y;
       num_touch_points_ = (data_len - sizeof(TouchReport)) / sizeof(TouchRecord);
-      logger_.debug("Touch event: #={}, [0]=({}, {})", num_touch_points_, x_, y_);
+      logger_.debug("Touch event: #={}, [0]=({}, {})", num_touch_points_.load(), x_.load(), y_.load());
       new_data = true;
       break;
     }
@@ -89,7 +89,7 @@ public:
       auto button_data = (ButtonRecord *)data;
       home_button_pressed_ = button_data->btn_val;
       auto btn_signal = button_data->btn_signal[0];
-      logger_.debug("Button event({}): {}, {}", (int)(button_data->length), home_button_pressed_,
+      logger_.debug("Button event({}): {}, {}", (int)(button_data->length), home_button_pressed_.load(),
                     btn_signal);
       new_data = true;
       break;
