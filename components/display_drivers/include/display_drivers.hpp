@@ -41,8 +41,6 @@ struct Config {
   gpio_num_t reset_pin;        /**< GPIO used for resetting the display. */
   gpio_num_t data_command_pin; /**< GPIO used for indicating to the LCD whether the bits are data or
                                   command bits. */
-  gpio_num_t backlight_pin;    /**< GPIO used for controlling the backlight of the display. */
-  bool backlight_on_value{false}; /**< Whether backlight is active high or active low(default). */
   bool reset_value{false}; /**< The value to set the reset pin to when resetting the display (low to
                               reset default). */
   bool invert_colors{false}; /**< Whether to invert the colors on the display. */
@@ -85,14 +83,11 @@ struct LcdInitCmd {
  * @brief Initialize the display pins.
  * @param reset GPIO pin used for resetting the display.
  * @param data_command GPIO pin used for indicating to the LCD whether the bits are data or command
- * @param backlight GPIO pin used for controlling the backlight of the display.
- * @param backlight_on Whether backlight is active high or active low(default).
  * @param reset_value The value to set the reset pin to when resetting the display.
  */
-static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t backlight,
-                      uint8_t backlight_on, uint8_t reset_value) {
+static void init_pins(gpio_num_t reset, gpio_num_t data_command, uint8_t reset_value) {
   // Initialize display pins
-  uint64_t gpio_output_pin_sel = ((1ULL << data_command) | (1ULL << backlight));
+  uint64_t gpio_output_pin_sel = (1ULL << data_command);
   if (reset != GPIO_NUM_NC) {
     gpio_output_pin_sel |= (1ULL << reset);
   }
@@ -103,9 +98,6 @@ static void init_pins(gpio_num_t reset, gpio_num_t data_command, gpio_num_t back
                        .pull_down_en = GPIO_PULLDOWN_DISABLE,
                        .intr_type = GPIO_INTR_DISABLE};
   ESP_ERROR_CHECK(gpio_config(&o_conf));
-
-  // turn on the backlight
-  gpio_set_level(backlight, backlight_on);
 
   using namespace std::chrono_literals;
   if (reset != GPIO_NUM_NC) {

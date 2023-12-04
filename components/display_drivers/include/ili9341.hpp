@@ -50,13 +50,11 @@ public:
     lcd_send_lines_ = config.lcd_send_lines;
     reset_pin_ = config.reset_pin;
     dc_pin_ = config.data_command_pin;
-    backlight_pin_ = config.backlight_pin;
     offset_x_ = config.offset_x;
     offset_y_ = config.offset_y;
 
     // Initialize display pins
-    display_drivers::init_pins(reset_pin_, dc_pin_, backlight_pin_, config.backlight_on_value,
-                               config.reset_value);
+    display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
 
     // init the display
     display_drivers::LcdInitCmd ili_init_cmds[] = {
@@ -281,7 +279,6 @@ protected:
   static display_drivers::send_lines_fn lcd_send_lines_;
   static gpio_num_t reset_pin_;
   static gpio_num_t dc_pin_;
-  static gpio_num_t backlight_pin_;
   static int offset_x_;
   static int offset_y_;
 };
