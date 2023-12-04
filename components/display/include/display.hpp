@@ -164,6 +164,7 @@ public:
    * @param brightness Brightness value between 0.0 and 1.0.
    */
   void set_brightness(float brightness) {
+    brightness = std::clamp(brightness, 0.0f, 1.0f);
     backlight_.set_duty(led_channel_configs_[0].channel, brightness * 100.0f);
   }
 
