@@ -5,9 +5,9 @@
 #include <optional>
 #include <vector>
 
-#include "driver/ledc.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+#include <driver/ledc.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 #include "logger.hpp"
 
@@ -33,7 +33,7 @@ public:
     float duty{
         0}; /**< The starting duty cycle (%) [0, 100] that you want the LED channel to have. */
     ledc_mode_t speed_mode{
-        LEDC_HIGH_SPEED_MODE}; /**< The LEDC speed mode you want for this LED channel. */
+        LEDC_LOW_SPEED_MODE}; /**< The LEDC speed mode you want for this LED channel. */
     bool output_invert{false}; /**< Whether to invert the GPIO output for this LED channel. */
   };
 
@@ -50,7 +50,7 @@ public:
         LEDC_TIMER_13_BIT}; /**< The resolution of the duty cycle for these LEDs. @note this is
                                inversely related to the frequency configuration. */
     ledc_mode_t speed_mode{
-        LEDC_HIGH_SPEED_MODE}; /**< The LEDC speed mode you want for these LED channels. */
+        LEDC_LOW_SPEED_MODE}; /**< The LEDC speed mode you want for these LED channels. */
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
 
@@ -144,12 +144,12 @@ public:
    * @return The duty percentage [0.0f, 100.0f] if the channel is managed,
    *         std::nullopt otherwise
    */
-  std::optional<float> get_duty(ledc_channel_t channel) {
+  std::optional<float> get_duty(ledc_channel_t channel) const {
     int index = get_channel_index(channel);
     if (index == -1) {
       return {};
     }
-    auto conf = channels_[index];
+    const auto& conf = channels_[index];
     auto raw_duty = ledc_get_duty(conf.speed_mode, conf.channel);
     return (float)raw_duty / (float)max_raw_duty_ * 100.0f;
   }
@@ -211,7 +211,7 @@ protected:
    * @param channel Channel to find.
    * @return -1 if not found, index of channel if found.
    */
-  int get_channel_index(ledc_channel_t channel) {
+  int get_channel_index(ledc_channel_t channel) const {
     for (int i = 0; i < channels_.size(); i++) {
       if (channels_[i].channel == channel) {
         return i;

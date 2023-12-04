@@ -275,7 +275,7 @@ extern "C" void app_main(void) {
                                                             .lcd_send_lines = lcd_send_lines,
                                                             .reset_pin = reset,
                                                             .data_command_pin = dc_pin,
-                                                            .backlight_pin = backlight,
+                                                            .reset_value = reset_value,
                                                             .invert_colors = invert_colors});
 #endif
 #if CONFIG_HARDWARE_TTGO
@@ -285,7 +285,6 @@ extern "C" void app_main(void) {
         .lcd_send_lines = lcd_send_lines,
         .reset_pin = reset,
         .data_command_pin = dc_pin,
-        .backlight_pin = backlight,
         .invert_colors = invert_colors,
         .offset_x = 40,
         .offset_y = 53,
@@ -298,8 +297,6 @@ extern "C" void app_main(void) {
         .lcd_send_lines = lcd_send_lines,
         .reset_pin = reset,
         .data_command_pin = dc_pin,
-        .backlight_pin = backlight,
-        .backlight_on_value = backlight_on_value,
         .invert_colors = invert_colors,
         .mirror_x = true,
         .mirror_y = true,
@@ -312,6 +309,8 @@ extern "C" void app_main(void) {
                                         .height = height,
                                         .pixel_buffer_size = pixel_buffer_size,
                                         .flush_callback = flush_cb,
+                                        .backlight_pin = backlight,
+                                        .backlight_on_value = backlight_on_value,
                                         .rotation = rotation,
                                         .software_rotation_enabled = true});
     // initialize the gui

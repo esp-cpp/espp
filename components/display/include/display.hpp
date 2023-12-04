@@ -1,10 +1,14 @@
 #pragma once
 
 #include <functional>
+#include <vector>
 
-#include "lvgl.h"
-#include "sdkconfig.h"
+#include <lvgl.h>
+#include <sdkconfig.h>
 
+#include <driver/gpio.h>
+
+#include "led.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -50,6 +54,9 @@ public:
     size_t height;            /**< Height of the display, in pixels. */
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
     flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
+    gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
+    bool backlight_on_value{
+        true}; /**< Value to write to the backlight pin to turn the backlight on. */
     std::chrono::duration<float> update_period{
         0.01}; /**< How frequently to run the update function. */
     bool double_buffered{
@@ -75,6 +82,9 @@ public:
     size_t height;     /**< Height of the display, in pixels. */
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
     flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
+    gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
+    bool backlight_on_value{
+        true}; /**< Value to write to the backlight pin to turn the backlight on. */
     std::chrono::duration<float> update_period{
         0.01};                              /**< How frequently to run the update function. */
     Rotation rotation{Rotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
@@ -91,7 +101,10 @@ public:
    */
   Display(const AllocatingConfig &config)
       : width_(config.width), height_(config.height),
-        display_buffer_px_size_(config.pixel_buffer_size), update_period_(config.update_period),
+        display_buffer_px_size_(config.pixel_buffer_size),
+        led_channel_configs_(std::vector<Led::ChannelConfig>{{.gpio = (size_t)config.backlight_pin, .channel = LEDC_CHANNEL_0, .timer = LEDC_TIMER_0, .output_invert = !config.backlight_on_value}}),
+        backlight_(Led::Config{.timer = LEDC_TIMER_0, .frequency_hz = 5000, .channels = led_channel_configs_, .duty_resolution = LEDC_TIMER_10_BIT}),
+        update_period_(config.update_period),
         logger_({.tag = "Display", .level = config.log_level}) {
     logger_.debug("Initializing with allocating config!");
     // create the display buffers
@@ -103,6 +116,7 @@ public:
     }
     created_vram_ = true;
     init(config.flush_callback, config.software_rotation_enabled, config.rotation);
+    set_brightness(1.0f);
   }
 
   /**
@@ -113,7 +127,10 @@ public:
   Display(const NonAllocatingConfig &config)
       : width_(config.width), height_(config.height),
         display_buffer_px_size_(config.pixel_buffer_size), vram_0_(config.vram0),
-        vram_1_(config.vram1), update_period_(config.update_period),
+        vram_1_(config.vram1),
+        led_channel_configs_(std::vector<Led::ChannelConfig>{{.gpio = (size_t)config.backlight_pin, .channel = LEDC_CHANNEL_0, .timer = LEDC_TIMER_0, .output_invert = !config.backlight_on_value}}),
+        backlight_(Led::Config{.timer = LEDC_TIMER_0, .frequency_hz = 5000, .channels = led_channel_configs_, .duty_resolution = LEDC_TIMER_10_BIT}),
+        update_period_(config.update_period),
         logger_({.tag = "Display", .level = config.log_level}) {
     logger_.debug("Initializing with non-allocating config!");
     init(config.flush_callback, config.software_rotation_enabled, config.rotation);
@@ -141,6 +158,27 @@ public:
    * @return size_t height of the display.
    */
   size_t height() const { return height_; }
+
+  /**
+   * @brief Set the brightness of the display.
+   * @param brightness Brightness value between 0.0 and 1.0.
+   */
+  void set_brightness(float brightness) {
+    brightness = std::clamp(brightness, 0.0f, 1.0f);
+    backlight_.set_duty(led_channel_configs_[0].channel, brightness * 100.0f);
+  }
+
+  /**
+   * @brief Get the brightness of the display.
+   * @return float Brightness value between 0.0 and 1.0.
+   */
+  float get_brightness() const {
+    auto maybe_duty = backlight_.get_duty(led_channel_configs_[0].channel);
+    if (maybe_duty.has_value()) {
+      return maybe_duty.value() / 100.0f;
+    }
+    return 0.0f;
+  }
 
   /**
    * @brief Pause the display update task, to prevent LVGL from writing to the
@@ -266,6 +304,8 @@ protected:
   lv_color_t *vram_0_{nullptr};
   lv_color_t *vram_1_{nullptr};
   bool created_vram_{false};
+  std::vector<Led::ChannelConfig> led_channel_configs_;
+  Led backlight_;
   std::chrono::duration<float> update_period_;
   lv_disp_draw_buf_t disp_buffer_;
   lv_disp_drv_t disp_driver_;
