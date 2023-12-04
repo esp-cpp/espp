@@ -142,7 +142,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/b048d77/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/57b5b0c/docs/en/display/display.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -160,7 +160,7 @@ high-priority lvgl update task which sends data to the display.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b048d77/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/57b5b0c/components/display/include/display.hpp">components/display/include/display.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -288,6 +288,28 @@ high-priority lvgl update task which sends data to the display.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display14set_brightnessEf">
+<span id="_CPPv3N4espp7Display14set_brightnessEf"></span><span id="_CPPv2N4espp7Display14set_brightnessEf"></span><span id="espp::Display::set_brightness__float"></span><span class="target" id="classespp_1_1_display_1a60af76b4a983ad4df52e9e277fd3525c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_brightness</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">brightness</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display14set_brightnessEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the brightness of the display. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>brightness</strong> – Brightness value between 0.0 and 1.0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp7Display14get_brightnessEv">
+<span id="_CPPv3NK4espp7Display14get_brightnessEv"></span><span id="_CPPv2NK4espp7Display14get_brightnessEv"></span><span id="espp::Display::get_brightnessC"></span><span class="target" id="classespp_1_1_display_1aaa66c11c410c2f3b83707f859576adce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_brightness</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp7Display14get_brightnessEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the brightness of the display. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>float Brightness value between 0.0 and 1.0. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Display5pauseEv">
 <span id="_CPPv3N4espp7Display5pauseEv"></span><span id="_CPPv2N4espp7Display5pauseEv"></span><span id="espp::Display::pause"></span><span class="target" id="classespp_1_1_display_1a1be19313d64c8bfcc3003cd3790b9862"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">pause</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Display5pauseEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Pause the display update task, to prevent LVGL from writing to the display. </p>
@@ -385,6 +407,18 @@ high-priority lvgl update task which sends data to the display.</p>
 </dd></dl>
 
 <dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display16AllocatingConfig13backlight_pinE">
+<span id="_CPPv3N4espp7Display16AllocatingConfig13backlight_pinE"></span><span id="_CPPv2N4espp7Display16AllocatingConfig13backlight_pinE"></span><span id="espp::Display::AllocatingConfig::backlight_pin__gpio_num_t"></span><span class="target" id="structespp_1_1_display_1_1_allocating_config_1a430eb433f16e6b13d353def1b223cd3b"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">backlight_pin</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display16AllocatingConfig13backlight_pinE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>GPIO pin for the backlight. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display16AllocatingConfig18backlight_on_valueE">
+<span id="_CPPv3N4espp7Display16AllocatingConfig18backlight_on_valueE"></span><span id="_CPPv2N4espp7Display16AllocatingConfig18backlight_on_valueE"></span><span id="espp::Display::AllocatingConfig::backlight_on_value__b"></span><span class="target" id="structespp_1_1_display_1_1_allocating_config_1a3877ae673a59b46c29f11b5b0f5ee12e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">backlight_on_value</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display16AllocatingConfig18backlight_on_valueE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Value to write to the backlight pin to turn the backlight on. </p>
+</dd></dl>
+
+<dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Display16AllocatingConfig13update_periodE">
 <span id="_CPPv3N4espp7Display16AllocatingConfig13update_periodE"></span><span id="_CPPv2N4espp7Display16AllocatingConfig13update_periodE"></span><span id="espp::Display::AllocatingConfig::update_period__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1_display_1_1_allocating_config_1aab3b38a125fd4390dbe1135e2eb027b3"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">update_period</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0.01</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display16AllocatingConfig13update_periodE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>How frequently to run the update function. </p>
@@ -463,6 +497,18 @@ high-priority lvgl update task which sends data to the display.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Display19NonAllocatingConfig14flush_callbackE">
 <span id="_CPPv3N4espp7Display19NonAllocatingConfig14flush_callbackE"></span><span id="_CPPv2N4espp7Display19NonAllocatingConfig14flush_callbackE"></span><span id="espp::Display::NonAllocatingConfig::flush_callback__flush_fn"></span><span class="target" id="structespp_1_1_display_1_1_non_allocating_config_1a649c1a63810b00700a2ec104fccb0205"></span><a class="reference internal" href="#_CPPv4N4espp7Display8flush_fnE" title="espp::Display::flush_fn"><span class="n"><span class="pre">flush_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flush_callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display19NonAllocatingConfig14flush_callbackE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function provided to LVGL for it to flush data to the display. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display19NonAllocatingConfig13backlight_pinE">
+<span id="_CPPv3N4espp7Display19NonAllocatingConfig13backlight_pinE"></span><span id="_CPPv2N4espp7Display19NonAllocatingConfig13backlight_pinE"></span><span id="espp::Display::NonAllocatingConfig::backlight_pin__gpio_num_t"></span><span class="target" id="structespp_1_1_display_1_1_non_allocating_config_1a1076d0b51adf94f8ba02d7d107987221"></span><span class="n"><span class="pre">gpio_num_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">backlight_pin</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Display19NonAllocatingConfig13backlight_pinE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>GPIO pin for the backlight. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Display19NonAllocatingConfig18backlight_on_valueE">
+<span id="_CPPv3N4espp7Display19NonAllocatingConfig18backlight_on_valueE"></span><span id="_CPPv2N4espp7Display19NonAllocatingConfig18backlight_on_valueE"></span><span id="espp::Display::NonAllocatingConfig::backlight_on_value__b"></span><span class="target" id="structespp_1_1_display_1_1_non_allocating_config_1ab9ebfcea417b7151783502889a092ce0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">backlight_on_value</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp7Display19NonAllocatingConfig18backlight_on_valueE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Value to write to the backlight pin to turn the backlight on. </p>
 </dd></dl>
 
 <dl class="cpp var">
