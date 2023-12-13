@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <functional>
+#include <mutex>
 #include <thread>
 
 #include "logger.hpp"
@@ -29,12 +30,11 @@ public:
   /**
    * @brief Function to read bytes from the device.
    * @param dev_addr Address of the device to write to.
-   * @param reg_addr Register address to read from.
    * @param data Pointer to array of bytes to read into.
    * @param data_len Number of data bytes to read.
    * @return True if the read was successful.
    */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
+  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)>
       read_fn;
 
   /**
@@ -167,8 +167,18 @@ protected:
   }
 
   uint16_t read_two_(uint8_t reg_addr, std::error_code &ec) {
+    // lock the mutex so that we don't have multiple threads trying to read
+    // from the device at the same time
+    std::lock_guard<std::mutex> lock(mutex_);
+    // write the reg addr we want to read from
+    bool success = write_(address_, &reg_addr, 1);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return 0;
+    }
+    // then read the two bytes
     uint8_t data[2];
-    bool success = read_(address_, reg_addr, data, 2);
+    success = read_(address_, data, 2);
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
       return 0;
@@ -202,6 +212,7 @@ protected:
   uint8_t address_;
   write_fn write_;
   read_fn read_;
+  std::mutex mutex_;
   espp::Logger logger_;
 };
 } // namespace espp
