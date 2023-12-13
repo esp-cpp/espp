@@ -43,10 +43,9 @@ extern "C" void app_main(void) {
                                             I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
       return err == ESP_OK;
     };
-    auto ads_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len) {
-      auto err = i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr,
-                                              1, // size of addr
-                                              data, data_len, I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
+    auto ads_read = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
+      auto err = i2c_master_read_from_device(I2C_NUM, dev_addr,
+                                             data, data_len, I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
       return err == ESP_OK;
     };
     // make the actual ads class
