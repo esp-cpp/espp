@@ -142,7 +142,7 @@
           <li><a href="index.html">Haptics APIs</a> &raquo;</li>
       <li>DRV2605 Haptic Motor Driver</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/84498fa/docs/en/haptics/drv2605.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1fada75/docs/en/haptics/drv2605.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -164,7 +164,7 @@ to 8 waveforms.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/84498fa/components/drv2605/include/drv2605.hpp">components/drv2605/include/drv2605.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1fada75/components/drv2605/include/drv2605.hpp">components/drv2605/include/drv2605.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -212,7 +212,7 @@ to 8 waveforms.</p>
 <span class="w">    </span><span class="c1">// we&#39;re using an ERM motor, so select an ERM library (1-5).</span>
 <span class="w">    </span><span class="c1">// drv2605.select_library(1, ec);</span>
 <span class="w">    </span><span class="c1">// we&#39;re using an LRA motor, so select an LRA library (6).</span>
-<span class="w">    </span><span class="n">drv2605</span><span class="p">.</span><span class="n">select_library</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="n">drv2605</span><span class="p">.</span><span class="n">select_library</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Drv2605</span><span class="o">::</span><span class="n">Library</span><span class="o">::</span><span class="n">LRA</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">);</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;select library failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
 <span class="w">    </span><span class="p">}</span>
@@ -451,6 +451,52 @@ to 8 waveforms.</p>
 
 </dd></dl>
 
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057LibraryE">
+<span id="_CPPv3N4espp7Drv26057LibraryE"></span><span id="_CPPv2N4espp7Drv26057LibraryE"></span><span class="target" id="classespp_1_1_drv2605_1a3fddeeb6c8560c522478d4037d8b2daf"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Library</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057LibraryE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The library of waveforms to use. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The DRV2605 has 7 different libraries of waveforms. The first library is empty, and the next 5 are ERM (eccentric rotating mass) libraries. The last library is an LRA (linear resonant actuator) library. </p>
+</div>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057Library5EMPTYE">
+<span id="_CPPv3N4espp7Drv26057Library5EMPTYE"></span><span id="_CPPv2N4espp7Drv26057Library5EMPTYE"></span><span class="target" id="classespp_1_1_drv2605_1a3fddeeb6c8560c522478d4037d8b2dafaba2b45bdc11e2a4a6e86aab2ac693cbb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">EMPTY</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057Library5EMPTYE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057Library5ERM_0E">
+<span id="_CPPv3N4espp7Drv26057Library5ERM_0E"></span><span id="_CPPv2N4espp7Drv26057Library5ERM_0E"></span><span class="target" id="classespp_1_1_drv2605_1a3fddeeb6c8560c522478d4037d8b2dafaf0d1cd2b38a32ac0a812ff4bb7ff5f4b"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERM_0</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057Library5ERM_0E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057Library5ERM_1E">
+<span id="_CPPv3N4espp7Drv26057Library5ERM_1E"></span><span id="_CPPv2N4espp7Drv26057Library5ERM_1E"></span><span class="target" id="classespp_1_1_drv2605_1a3fddeeb6c8560c522478d4037d8b2dafa8a3c35443fe2ff82d40585a08958a405"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERM_1</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057Library5ERM_1E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057Library5ERM_2E">
+<span id="_CPPv3N4espp7Drv26057Library5ERM_2E"></span><span id="_CPPv2N4espp7Drv26057Library5ERM_2E"></span><span class="target" id="classespp_1_1_drv2605_1a3fddeeb6c8560c522478d4037d8b2dafa79cd872446866a28d1547fb62838ffeb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERM_2</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057Library5ERM_2E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057Library5ERM_3E">
+<span id="_CPPv3N4espp7Drv26057Library5ERM_3E"></span><span id="_CPPv2N4espp7Drv26057Library5ERM_3E"></span><span class="target" id="classespp_1_1_drv2605_1a3fddeeb6c8560c522478d4037d8b2dafa2ede29da1cb81fd2dbbc38dfe2c28b3d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERM_3</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057Library5ERM_3E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057Library5ERM_4E">
+<span id="_CPPv3N4espp7Drv26057Library5ERM_4E"></span><span id="_CPPv2N4espp7Drv26057Library5ERM_4E"></span><span class="target" id="classespp_1_1_drv2605_1a3fddeeb6c8560c522478d4037d8b2dafaa40b20979cc5508a41bb9047505303a9"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ERM_4</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057Library5ERM_4E" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26057Library3LRAE">
+<span id="_CPPv3N4espp7Drv26057Library3LRAE"></span><span id="_CPPv2N4espp7Drv26057Library3LRAE"></span><span class="target" id="classespp_1_1_drv2605_1a3fddeeb6c8560c522478d4037d8b2dafab5f4b80d8f0f9d59fe750be25a7604eb"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LRA</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26057Library3LRAE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv26058write_fnE">
 <span id="_CPPv3N4espp7Drv26058write_fnE"></span><span id="_CPPv2N4espp7Drv26058write_fnE"></span><span id="espp::Drv2605::write_fn"></span><span class="target" id="classespp_1_1_drv2605_1ab95ddb435f359d146e317e42ca8dc96f"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Drv26058write_fnE" title="Permalink to this definition"></a><br /></dt>
@@ -570,8 +616,8 @@ to 8 waveforms.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv260514select_libraryE7uint8_tRNSt10error_codeE">
-<span id="_CPPv3N4espp7Drv260514select_libraryE7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp7Drv260514select_libraryE7uint8_tRNSt10error_codeE"></span><span id="espp::Drv2605::select_library__uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_drv2605_1af845d2c2728b9a3a62a9c6a16762b7c8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">select_library</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lib</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Drv260514select_libraryE7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Drv260514select_libraryE7LibraryRNSt10error_codeE">
+<span id="_CPPv3N4espp7Drv260514select_libraryE7LibraryRNSt10error_codeE"></span><span id="_CPPv2N4espp7Drv260514select_libraryE7LibraryRNSt10error_codeE"></span><span id="espp::Drv2605::select_library__Library.std::error_codeR"></span><span class="target" id="classespp_1_1_drv2605_1ab609ad99ae5449f11b59bdb702b2388d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">select_library</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp7Drv26057LibraryE" title="espp::Drv2605::Library"><span class="n"><span class="pre">Library</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">lib</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Drv260514select_libraryE7LibraryRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Select the waveform library to use. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
