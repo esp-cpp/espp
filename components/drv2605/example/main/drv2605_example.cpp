@@ -58,7 +58,7 @@ extern "C" void app_main(void) {
     // we're using an ERM motor, so select an ERM library (1-5).
     // drv2605.select_library(1, ec);
     // we're using an LRA motor, so select an LRA library (6).
-    drv2605.select_library(6, ec);
+    drv2605.select_library(espp::Drv2605::Library::LRA, ec);
     if (ec) {
       logger.error("select library failed: {}", ec.message());
     }

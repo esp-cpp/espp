@@ -92,6 +92,23 @@ public:
   };
 
   /**
+    * @brief The library of waveforms to use.
+    * @note The DRV2605 has 7 different libraries of waveforms. The first
+    *       library is empty, and the next 5 are ERM (eccentric rotating mass)
+    *       libraries. The last library is an LRA (linear resonant actuator)
+    *       library.
+    */
+  enum class Library {
+    EMPTY = 0,
+    ERM_0 = 1,
+    ERM_1 = 2,
+    ERM_2 = 3,
+    ERM_3 = 4,
+    ERM_4 = 5,
+    LRA = 6,
+  };
+
+  /**
    * @brief Configuration structure for the DRV2605
    */
   struct Config {
@@ -173,9 +190,12 @@ public:
    * @param lib Library to use, 0=Empty, 1-5 are ERM, 6 is LRA
    * @param ec Error code to set if there is an error.
    */
-  void select_library(uint8_t lib, std::error_code &ec) {
+  void select_library(Library lib, std::error_code &ec) {
     logger_.info("Selecting library {}", lib);
-    write_one_((uint8_t)Register::LIBRARY, lib, ec);
+    if (motor_type_ == MotorType::LRA && lib != Library::LRA) {
+      logger_.warn("LRA motor selected, but library {} is not an LRA library", lib);
+    }
+    write_one_((uint8_t)Register::LIBRARY, (uint8_t)lib, ec);
   }
 
 protected:
@@ -298,3 +318,111 @@ protected:
   espp::Logger logger_;
 };
 } // namespace espp
+
+// for easy printing of the enums with the libfmt library:
+template <>
+struct fmt::formatter<espp::Drv2605::Mode> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(espp::Drv2605::Mode m, FormatContext &ctx) {
+    switch (m) {
+    case espp::Drv2605::Mode::INTTRIG:
+      return fmt::format_to(ctx.out(), "INTTRIG");
+    case espp::Drv2605::Mode::EXTTRIGEDGE:
+      return fmt::format_to(ctx.out(), "EXTTRIGEDGE");
+    case espp::Drv2605::Mode::EXTTRIGLVL:
+      return fmt::format_to(ctx.out(), "EXTTRIGLVL");
+    case espp::Drv2605::Mode::PWMANALOG:
+      return fmt::format_to(ctx.out(), "PWMANALOG");
+    case espp::Drv2605::Mode::AUDIOVIBE:
+      return fmt::format_to(ctx.out(), "AUDIOVIBE");
+    case espp::Drv2605::Mode::REALTIME:
+      return fmt::format_to(ctx.out(), "REALTIME");
+    case espp::Drv2605::Mode::DIAGNOS:
+      return fmt::format_to(ctx.out(), "DIAGNOS");
+    case espp::Drv2605::Mode::AUTOCAL:
+      return fmt::format_to(ctx.out(), "AUTOCAL");
+    default:
+      return fmt::format_to(ctx.out(), "UNKNOWN");
+    }
+  }
+};
+
+template <>
+struct fmt::formatter<espp::Drv2605::Waveform> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(espp::Drv2605::Waveform w, FormatContext &ctx) {
+    switch (w) {
+    case espp::Drv2605::Waveform::END:
+      return fmt::format_to(ctx.out(), "END");
+    case espp::Drv2605::Waveform::STRONG_CLICK:
+      return fmt::format_to(ctx.out(), "STRONG_CLICK");
+    case espp::Drv2605::Waveform::SHARP_CLICK:
+      return fmt::format_to(ctx.out(), "SHARP_CLICK");
+    case espp::Drv2605::Waveform::SOFT_BUMP:
+      return fmt::format_to(ctx.out(), "SOFT_BUMP");
+    case espp::Drv2605::Waveform::DOUBLE_CLICK:
+      return fmt::format_to(ctx.out(), "DOUBLE_CLICK");
+    case espp::Drv2605::Waveform::TRIPLE_CLICK:
+      return fmt::format_to(ctx.out(), "TRIPLE_CLICK");
+    case espp::Drv2605::Waveform::SOFT_FUZZ:
+      return fmt::format_to(ctx.out(), "SOFT_FUZZ");
+    case espp::Drv2605::Waveform::STRONG_BUZZ:
+      return fmt::format_to(ctx.out(), "STRONG_BUZZ");
+    case espp::Drv2605::Waveform::ALERT_750MS:
+      return fmt::format_to(ctx.out(), "ALERT_750MS");
+    case espp::Drv2605::Waveform::ALERT_1000MS:
+      return fmt::format_to(ctx.out(), "ALERT_1000MS");
+    case espp::Drv2605::Waveform::BUZZ1:
+      return fmt::format_to(ctx.out(), "BUZZ1");
+    case espp::Drv2605::Waveform::BUZZ2:
+      return fmt::format_to(ctx.out(), "BUZZ2");
+    case espp::Drv2605::Waveform::BUZZ3:
+      return fmt::format_to(ctx.out(), "BUZZ3");
+    case espp::Drv2605::Waveform::BUZZ4:
+      return fmt::format_to(ctx.out(), "BUZZ4");
+    case espp::Drv2605::Waveform::BUZZ5:
+      return fmt::format_to(ctx.out(), "BUZZ5");
+    case espp::Drv2605::Waveform::PULSING_STRONG_1:
+      return fmt::format_to(ctx.out(), "PULSING_STRONG_1");
+    case espp::Drv2605::Waveform::PULSING_STRONG_2:
+      return fmt::format_to(ctx.out(), "PULSING_STRONG_2");
+    case espp::Drv2605::Waveform::TRANSITION_CLICK_1:
+      return fmt::format_to(ctx.out(), "TRANSITION_CLICK_1");
+    case espp::Drv2605::Waveform::TRANSITION_HUM_1:
+      return fmt::format_to(ctx.out(), "TRANSITION_HUM_1");
+    default:
+      return fmt::format_to(ctx.out(), "UNKNOWN");
+    }
+  }
+};
+
+template <>
+struct fmt::formatter<espp::Drv2605::Library> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(espp::Drv2605::Library l, FormatContext &ctx) {
+    switch (l) {
+    case espp::Drv2605::Library::EMPTY:
+      return fmt::format_to(ctx.out(), "EMPTY");
+    case espp::Drv2605::Library::ERM_0:
+      return fmt::format_to(ctx.out(), "ERM_0");
+    case espp::Drv2605::Library::ERM_1:
+      return fmt::format_to(ctx.out(), "ERM_1");
+    case espp::Drv2605::Library::ERM_2:
+      return fmt::format_to(ctx.out(), "ERM_2");
+    case espp::Drv2605::Library::ERM_3:
+      return fmt::format_to(ctx.out(), "ERM_3");
+    case espp::Drv2605::Library::ERM_4:
+      return fmt::format_to(ctx.out(), "ERM_4");
+    case espp::Drv2605::Library::LRA:
+      return fmt::format_to(ctx.out(), "LRA");
+    default:
+      return fmt::format_to(ctx.out(), "UNKNOWN");
+    }
+  }
+};
