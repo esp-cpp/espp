@@ -48,20 +48,20 @@ extern "C" void app_main(void) {
       return err == ESP_OK;
     };
     // now make the mcp23x17 which handles GPIO
-    espp::Mcp23x17 mcp23x17({.port_a_direction_mask = (1 << 0), // input on A0
-                             .port_a_interrupt_mask = (1 << 0), // interrupt on A0
-                             .port_b_direction_mask = (1 << 7), // input on B7
-                             .port_b_interrupt_mask = (1 << 7), // interrupt on B7
+    espp::Mcp23x17 mcp23x17({.port_0_direction_mask = (1 << 0), // input on A0
+                             .port_0_interrupt_mask = (1 << 0), // interrupt on A0
+                             .port_1_direction_mask = (1 << 7), // input on B7
+                             .port_1_interrupt_mask = (1 << 7), // interrupt on B7
                              .write = mcp23x17_write,
                              .read = mcp23x17_read,
                              .log_level = espp::Logger::Verbosity::WARN});
     // set pull up on the input pins
     std::error_code ec;
-    mcp23x17.set_pull_up(espp::Mcp23x17::Port::A, (1 << 0), ec);
+    mcp23x17.set_pull_up(espp::Mcp23x17::Port::PORT0, (1 << 0), ec);
     if (ec) {
       fmt::print("set_pull_up failed: {}\n", ec.message());
     }
-    mcp23x17.set_pull_up(espp::Mcp23x17::Port::B, (1 << 7), ec);
+    mcp23x17.set_pull_up(espp::Mcp23x17::Port::PORT1, (1 << 7), ec);
     if (ec) {
       fmt::print("set_pull_up failed: {}\n", ec.message());
     }
@@ -74,21 +74,21 @@ extern "C" void app_main(void) {
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds = std::chrono::duration<float>(now - start).count();
       std::error_code ec;
-      auto a_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::A, ec);
+      auto a_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::PORT0, ec);
       if (ec) {
         fmt::print("get_pins failed: {}\n", ec.message());
         return false;
       }
-      auto b_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::B, ec);
+      auto b_pins = mcp23x17.get_pins(espp::Mcp23x17::Port::PORT1, ec);
       if (ec) {
         fmt::print("get_pins failed: {}\n", ec.message());
         return false;
       }
       bool on = !(a_pins & (1 << 0));
       if (on) {
-        mcp23x17.set_pins(espp::Mcp23x17::Port::B, (1 << 3), ec);
+        mcp23x17.set_pins(espp::Mcp23x17::Port::PORT1, (1 << 3), ec);
       } else {
-        mcp23x17.set_pins(espp::Mcp23x17::Port::B, 0x00, ec);
+        mcp23x17.set_pins(espp::Mcp23x17::Port::PORT1, 0x00, ec);
       }
       if (ec) {
         fmt::print("set_pins failed: {}\n", ec.message());
