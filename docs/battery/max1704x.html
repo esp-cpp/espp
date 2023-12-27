@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAX1704X - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'battery/max1704x';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="BLDC APIs" href="../bldc/index.html" />
+    <link rel="prev" title="Battery APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Battery APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MAX1704X</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Battery APIs</a> &raquo;</li>
+      <li>MAX1704X</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/bbb6d3b/docs/en/battery/max1704x.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="max1704x">
+<h1>MAX1704X<a class="headerlink" href="#max1704x" title="Permalink to this headline"></a></h1>
+<p>The MAX17048/MAX17049 ICs are tiny, micropower current fuel gauges for
+lithium-ion (Li+) batteries in handheld and portable equipment. The MAX17048
+operates with a single lithium cell and the MAX17049 with two lithium cells in
+series.</p>
+<p>The ICs use the sophisticated Li+ battery-modeling algorithm ModelGauge™ to
+track the battery relative state-of-charge (SOC) continuously over widely varying
+charge and discharge conditions. The ModelGauge algorithm eliminates
+current-sense resistor and battery-learn cycles required in traditional fuel
+gauges. Temperature compensation is implemented using the system
+microcontroller.</p>
+<p>The ICs automatically detect when the battery enters a low-current state and
+enters low-power 3µA hibernate mode, while still providing accurate fuel
+gauging. The ICs automatically exit hibernate mode when the system returns to
+active state.</p>
+<p>On battery insertion, the ICs debounce initial voltage measurements to improve
+the initial SOC estimate, thus allowing them to be located on system side. SOC,
+voltage, and rate information is accessed using the I2C interface. The ICs are
+available in a tiny 0.9mm x 1.7mm, 8-bump wafer-level package (WLP), or a 2mm x
+2mm, 8-pin TDFN package.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/bbb6d3b/components/max1704x/include/max1704x.hpp">components/max1704x/include/max1704x.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704xE">
+<span id="_CPPv3N4espp8Max1704xE"></span><span id="_CPPv2N4espp8Max1704xE"></span><span id="espp::Max1704x"></span><span class="target" id="classespp_1_1_max1704x"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Max1704x</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Max1704xE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class to interface with the MAX1704x battery fuel gauge. </p>
+<p>This class is used to interface with the MAX1704x battery fuel gauge. It is used to get the battery voltage, state of charge, and charge/discharge rate. <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://cdn-learn.adafruit.com/assets/assets/000/114/607/original/MAX17048-MAX17049.pdf?1661966692">https://cdn-learn.adafruit.com/assets/assets/000/114/607/original/MAX17048-MAX17049.pdf?1661966692</a></p>
+</div>
+</p>
+<section id="classespp_1_1_max1704x_1max1704x_ex1">
+<h4>MAX1704X Example<a class="headerlink" href="#classespp_1_1_max1704x_1max1704x_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_max1704x_1max1704x_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="w"> </span><span class="n">logger</span><span class="p">({.</span><span class="n">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Max1704x example&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">});</span>
+<span class="w">  </span><span class="c1">// make the I2C that we&#39;ll use to communicate</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_22</span><span class="p">,</span><span class="w"> </span><span class="c1">// qwiic sda on the qtpy</span>
+<span class="w">      </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_19</span><span class="p">,</span><span class="w"> </span><span class="c1">// qwiic scl on the qtpy</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">  </span><span class="c1">// now make the max1704x which handles GPIO</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Max1704x</span><span class="w"> </span><span class="nf">max1704x</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                         </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span>
+<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// and finally, make the task to periodically poll the max1704x and print</span>
+<span class="w">  </span><span class="c1">// the state. NOTE: the Max1704x does not internally manage its own state</span>
+<span class="w">  </span><span class="c1">// update, so whatever rate we use here is the rate at which the state will</span>
+<span class="w">  </span><span class="c1">// update.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
+<span class="w">    </span><span class="c1">// task is being stopped / destroyed</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">unique_lock</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lk</span><span class="p">(</span><span class="n">m</span><span class="p">);</span>
+<span class="w">      </span><span class="n">cv</span><span class="p">.</span><span class="n">wait_for</span><span class="p">(</span><span class="n">lk</span><span class="p">,</span><span class="w"> </span><span class="mi">50</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">voltage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max1704x</span><span class="p">.</span><span class="n">get_battery_voltage</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">soc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max1704x</span><span class="p">.</span><span class="n">get_battery_percentage</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">charge_rate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max1704x</span><span class="p">.</span><span class="n">get_battery_charge_rate</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:0.2f}, {:0.2f}, {:0.2f}, {:0.2f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
+<span class="w">               </span><span class="n">seconds</span><span class="p">,</span><span class="w"> </span><span class="n">voltage</span><span class="p">,</span><span class="w"> </span><span class="n">soc</span><span class="p">,</span><span class="w"> </span><span class="n">charge_rate</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// don&#39;t want to stop the task</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">task</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="p">({.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Max1704x Task&quot;</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">task_fn</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span>
+<span class="w">                          </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;%time(s), voltage (V), SoC (%), Charge Rate (%/hr)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">task</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x8write_fnE">
+<span id="_CPPv3N4espp8Max1704x8write_fnE"></span><span id="_CPPv2N4espp8Max1704x8write_fnE"></span><span id="espp::Max1704x::write_fn"></span><span class="target" id="classespp_1_1_max1704x_1a3c72c7f93b2bf47767cf3442190438ba"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Max1704x8write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write bytes to the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param dev_addr</dt>
+<dd class="field-odd"><p>Address of the device to write to. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>Pointer to array of bytes to write. </p>
+</dd>
+<dt class="field-odd">Param data_len</dt>
+<dd class="field-odd"><p>Number of data bytes to write. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x7read_fnE">
+<span id="_CPPv3N4espp8Max1704x7read_fnE"></span><span id="_CPPv2N4espp8Max1704x7read_fnE"></span><span id="espp::Max1704x::read_fn"></span><span class="target" id="classespp_1_1_max1704x_1a8da1c390aa557b5f89bd9371e26be33b"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Max1704x7read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read bytes from the device. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param dev_addr</dt>
+<dd class="field-odd"><p>Address of the device to write to. </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>Pointer to array of bytes to read into. </p>
+</dd>
+<dt class="field-odd">Param data_len</dt>
+<dd class="field-odd"><p>Number of data bytes to read. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if successful, false otherwise. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x8Max1704xERK6Config">
+<span id="_CPPv3N4espp8Max1704x8Max1704xERK6Config"></span><span id="_CPPv2N4espp8Max1704x8Max1704xERK6Config"></span><span id="espp::Max1704x::Max1704x__ConfigCR"></span><span class="target" id="classespp_1_1_max1704x_1a9aab12a5551cbbe017e9faf702ee3ad0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Max1704x</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8Max1704x6ConfigE" title="espp::Max1704x::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x8Max1704xERK6Config" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1_max1704x"><span class="std std-ref">Max1704x</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – Configuration for the MAX1704x. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704xD0Ev">
+<span id="_CPPv3N4espp8Max1704xD0Ev"></span><span id="_CPPv2N4espp8Max1704xD0Ev"></span><span id="espp::Max1704x::~Max1704x"></span><span class="target" id="classespp_1_1_max1704x_1ab46c5ff3471e4e18950dffb67d89d026"></span><span class="sig-name descname"><span class="n"><span class="pre">~Max1704x</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704xD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Delete the <a class="reference internal" href="#classespp_1_1_max1704x"><span class="std std-ref">Max1704x</span></a> object. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x9initalizeERNSt10error_codeE">
+<span id="_CPPv3N4espp8Max1704x9initalizeERNSt10error_codeE"></span><span id="_CPPv2N4espp8Max1704x9initalizeERNSt10error_codeE"></span><span id="espp::Max1704x::initalize__std::error_codeR"></span><span class="target" id="classespp_1_1_max1704x_1a96e6bc852ad2681f634ca67ebb66fc92"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initalize</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x9initalizeERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the MAX1704x. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x11get_versionERNSt10error_codeE">
+<span id="_CPPv3N4espp8Max1704x11get_versionERNSt10error_codeE"></span><span id="_CPPv2N4espp8Max1704x11get_versionERNSt10error_codeE"></span><span id="espp::Max1704x::get_version__std::error_codeR"></span><span class="target" id="classespp_1_1_max1704x_1a9ab333f30e43ca9527fd5351cc091ab4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_version</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x11get_versionERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the IC version. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The IC version. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x11get_chip_idERNSt10error_codeE">
+<span id="_CPPv3N4espp8Max1704x11get_chip_idERNSt10error_codeE"></span><span id="_CPPv2N4espp8Max1704x11get_chip_idERNSt10error_codeE"></span><span id="espp::Max1704x::get_chip_id__std::error_codeR"></span><span class="target" id="classespp_1_1_max1704x_1a4a391e977f01850bd8b1dcf236378c6c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_chip_id</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x11get_chip_idERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the Chip ID. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The chip ID. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x19get_battery_voltageERNSt10error_codeE">
+<span id="_CPPv3N4espp8Max1704x19get_battery_voltageERNSt10error_codeE"></span><span id="_CPPv2N4espp8Max1704x19get_battery_voltageERNSt10error_codeE"></span><span id="espp::Max1704x::get_battery_voltage__std::error_codeR"></span><span class="target" id="classespp_1_1_max1704x_1a9e594882c50156c3c2d169bf7e47f76b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_battery_voltage</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x19get_battery_voltageERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the battery voltage. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The battery voltage in V. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x22get_battery_percentageERNSt10error_codeE">
+<span id="_CPPv3N4espp8Max1704x22get_battery_percentageERNSt10error_codeE"></span><span id="_CPPv2N4espp8Max1704x22get_battery_percentageERNSt10error_codeE"></span><span id="espp::Max1704x::get_battery_percentage__std::error_codeR"></span><span class="target" id="classespp_1_1_max1704x_1aab8f4b2082ea4dcda3ef78fd9a17e957"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_battery_percentage</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x22get_battery_percentageERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the battery state of charge. </p>
+<p>This is the percentage of battery charge remaining. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The battery state of charge in %. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x23get_battery_charge_rateERNSt10error_codeE">
+<span id="_CPPv3N4espp8Max1704x23get_battery_charge_rateERNSt10error_codeE"></span><span id="_CPPv2N4espp8Max1704x23get_battery_charge_rateERNSt10error_codeE"></span><span id="espp::Max1704x::get_battery_charge_rate__std::error_codeR"></span><span class="target" id="classespp_1_1_max1704x_1aef155e429bb8ebbc10b4d33e3297eea5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_battery_charge_rate</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x23get_battery_charge_rateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the battery charge or discharge rate. </p>
+<p>This is the rate at which the battery is charging or discharging. A positive value indicates charging. A negative value indicates discharging. Units are in % per hour. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The battery charge or discharge rate in %/hr. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x16get_alert_statusERNSt10error_codeE">
+<span id="_CPPv3N4espp8Max1704x16get_alert_statusERNSt10error_codeE"></span><span id="_CPPv2N4espp8Max1704x16get_alert_statusERNSt10error_codeE"></span><span id="espp::Max1704x::get_alert_status__std::error_codeR"></span><span class="target" id="classespp_1_1_max1704x_1a48866cf4c2ac0b8ffd1f4447b5b8af89"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">AlertStatus</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_alert_status</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x16get_alert_statusERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the alert status. </p>
+<p>This is the current alert status of the battery. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ec</strong> – Error code set if an error occurs. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The battery alert status as an AlertStatus. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x18clear_alert_statusE7uint8_tRNSt10error_codeE">
+<span id="_CPPv3N4espp8Max1704x18clear_alert_statusE7uint8_tRNSt10error_codeE"></span><span id="_CPPv2N4espp8Max1704x18clear_alert_statusE7uint8_tRNSt10error_codeE"></span><span id="espp::Max1704x::clear_alert_status__uint8_t.std::error_codeR"></span><span class="target" id="classespp_1_1_max1704x_1a1b2a5eae84a9afb31440bdd9204f8221"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_alert_status</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags_to_clear</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Max1704x18clear_alert_statusE7uint8_tRNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the alert status. </p>
+<p>This clears the alert status of the battery. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flags_to_clear</strong> – The flags to clear. </p></li>
+<li><p><strong>ec</strong> – Error code set if an error occurs. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x15DEFAULT_ADDRESSE">
+<span id="_CPPv3N4espp8Max1704x15DEFAULT_ADDRESSE"></span><span id="_CPPv2N4espp8Max1704x15DEFAULT_ADDRESSE"></span><span id="espp::Max1704x::DEFAULT_ADDRESS__uint8_t"></span><span class="target" id="classespp_1_1_max1704x_1a728d384050810e1dbaf6f12e07ce6206"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x36</span></span><a class="headerlink" href="#_CPPv4N4espp8Max1704x15DEFAULT_ADDRESSE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Default address of the MAX1704x. </p>
+</dd></dl>
+
+</div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x6ConfigE">
+<span id="_CPPv3N4espp8Max1704x6ConfigE"></span><span id="_CPPv2N4espp8Max1704x6ConfigE"></span><span id="espp::Max1704x::Config"></span><span class="target" id="structespp_1_1_max1704x_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Max1704x6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Configuration for the MAX1704x. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x6Config14device_addressE">
+<span id="_CPPv3N4espp8Max1704x6Config14device_addressE"></span><span id="_CPPv2N4espp8Max1704x6Config14device_addressE"></span><span id="espp::Max1704x::Config::device_address__uint8_t"></span><span class="target" id="structespp_1_1_max1704x_1_1_config_1a8ee937b3956f44512f4b7c83de0336bc"></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">device_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp8Max1704x15DEFAULT_ADDRESSE" title="espp::Max1704x::DEFAULT_ADDRESS"><span class="n"><span class="pre">DEFAULT_ADDRESS</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Max1704x6Config14device_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Address of the MAX1704x. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x6Config9auto_initE">
+<span id="_CPPv3N4espp8Max1704x6Config9auto_initE"></span><span id="_CPPv2N4espp8Max1704x6Config9auto_initE"></span><span id="espp::Max1704x::Config::auto_init__b"></span><span class="target" id="structespp_1_1_max1704x_1_1_config_1ad0221fef9223098897366052a3db490e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">auto_init</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">true</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Max1704x6Config9auto_initE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether to automatically initialize the MAX1704x. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Max1704x6Config9log_levelE">
+<span id="_CPPv3N4espp8Max1704x6Config9log_levelE"></span><span id="_CPPv2N4espp8Max1704x6Config9log_levelE"></span><span id="espp::Max1704x::Config::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1_max1704x_1_1_config_1afaf146e9184e0f8c4cbd1f419433415a"></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Max1704x6Config9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log level for the MAX1704x. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Battery APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../bldc/index.html" class="btn btn-neutral float-right" title="BLDC APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
