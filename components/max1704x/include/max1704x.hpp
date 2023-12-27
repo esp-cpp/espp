@@ -11,6 +11,10 @@ namespace espp {
    * @details This class is used to interface with the MAX1704x battery fuel
    *          gauge. It is used to get the battery voltage, state of charge, and
    *          charge/discharge rate.
+   * @see https://cdn-learn.adafruit.com/assets/assets/000/114/607/original/MAX17048-MAX17049.pdf?1661966692
+   *
+   * @section max1704x_ex1 MAX1704X Example
+   * @snippet max1704x_example.cpp max1704x example
    */
   class Max1704x {
   public:
