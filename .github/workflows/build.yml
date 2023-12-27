@@ -67,6 +67,8 @@ jobs:
           target: esp32
         - path: 'components/math/example'
           target: esp32
+        - path: 'components/max1704x/example'
+          target: esp32
         - path: 'components/monitor/example'
           target: esp32
         - path: 'components/mcp23x17/example'
