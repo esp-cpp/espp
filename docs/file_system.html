@@ -137,7 +137,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>File System APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/1fada75/docs/en/file_system.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/e14a4b5/docs/en/file_system.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -160,7 +160,7 @@ the filesystem, and listing files in a directory.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1fada75/components/file_system/include/file_system.hpp">components/file_system/include/file_system.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e14a4b5/components/file_system/include/file_system.hpp">components/file_system/include/file_system.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -178,25 +178,25 @@ the filesystem, and listing files in a directory.</p>
 </p>
 <section id="classespp_1_1_file_system_1fs_ex1">
 <h4>File System Info Example<a class="headerlink" href="#classespp_1_1_file_system_1fs_ex1" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_file_system_1fs_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
-<span class="w">  </span><span class="c1">// NOTE: partition label is configured by menuconfig and should match the</span>
-<span class="w">  </span><span class="c1">//       partition label in the partition table (partitions.csv).</span>
-<span class="w">  </span><span class="c1">// returns a const char*</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">partition_label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_partition_label</span><span class="p">();</span>
-<span class="w">  </span><span class="c1">// returns a std::string</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">mount_point</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_mount_point</span><span class="p">();</span>
-<span class="w">  </span><span class="c1">// returns a std::filesystem::path</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">root_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_root_path</span><span class="p">();</span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Partition label: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">partition_label</span><span class="p">);</span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Mount point:     {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">mount_point</span><span class="p">);</span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Root path:       {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">root_path</span><span class="p">.</span><span class="n">string</span><span class="p">());</span>
-<span class="w">  </span><span class="c1">// human_readable returns a string with the size and unit, e.g. 1.2 MB</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">total_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_total_space</span><span class="p">());</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">free_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_free_space</span><span class="p">());</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">used_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_used_space</span><span class="p">());</span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Total space: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">total_space</span><span class="p">);</span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Free space:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">free_space</span><span class="p">);</span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Used space:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">used_space</span><span class="p">);</span>
+<p id="classespp_1_1_file_system_1fs_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">fs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">FileSystem</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// NOTE: partition label is configured by menuconfig and should match the</span>
+<span class="w">    </span><span class="c1">//       partition label in the partition table (partitions.csv).</span>
+<span class="w">    </span><span class="c1">// returns a const char*</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">partition_label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_partition_label</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// returns a std::string</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">mount_point</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_mount_point</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// returns a std::filesystem::path</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">root_path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">get_root_path</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Partition label: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">partition_label</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Mount point:     {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">mount_point</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Root path:       {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">root_path</span><span class="p">.</span><span class="n">string</span><span class="p">());</span>
+<span class="w">    </span><span class="c1">// human_readable returns a string with the size and unit, e.g. 1.2 MB</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">total_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_total_space</span><span class="p">());</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">free_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_free_space</span><span class="p">());</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">used_space</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fs</span><span class="p">.</span><span class="n">human_readable</span><span class="p">(</span><span class="n">fs</span><span class="p">.</span><span class="n">get_used_space</span><span class="p">());</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Total space: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">total_space</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Free space:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">free_space</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Used space:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">used_space</span><span class="p">);</span>
 </pre></div>
 </div>
  </p>
