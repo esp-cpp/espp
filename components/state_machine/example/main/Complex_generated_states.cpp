@@ -52,7 +52,7 @@ void Root::restart(void) {
 bool Root::has_stopped(void) {
   bool reachedEnd = false;
   // Get the currently active leaf state
-  StateBase *activeLeaf = getActiveLeaf();
+  const StateBase *activeLeaf = getActiveLeaf();
   if (activeLeaf != nullptr && activeLeaf != this &&
       activeLeaf == static_cast<StateBase *>(&_root->COMPLEX_OBJ__END_STATE_OBJ)) {
     reachedEnd = true;

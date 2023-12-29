@@ -17,7 +17,7 @@ public:
   /**
    * @brief Calls _parentState->setShallowHistory().
    */
-  virtual void makeActive() {
+  virtual void makeActive() override {
     if (_parentState) {
       _parentState->setShallowHistory();
     }

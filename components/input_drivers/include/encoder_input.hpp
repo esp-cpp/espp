@@ -91,7 +91,7 @@ protected:
     }
   }
 
-  void button_read_impl(lv_indev_data_t *data) {
+  void button_read_impl(lv_indev_data_t *data) const {
     data->state = button_pressed_ ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
   }
 

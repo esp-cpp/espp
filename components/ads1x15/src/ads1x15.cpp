@@ -56,7 +56,7 @@ int16_t Ads1x15::sample_raw(int channel, std::error_code &ec) {
     return 0;
   }
   // Start with default values
-  // cppcheck-suppress badBitmaskCheck, knownConditionTrueFalse
+  // cppcheck-suppress badBitmaskCheck knownConditionTrueFalse
   uint16_t config = REG_CONFIG_CQUE_1CONV |   // Comparator enabled and asserts on 1
                                               // match
                     REG_CONFIG_CLAT_NONLAT |  // non-latching (default val)

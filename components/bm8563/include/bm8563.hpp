@@ -125,9 +125,9 @@ public:
   /// @param d The date.
   void set_date(const Date &d, std::error_code &ec) {
     logger_.info("setting date");
-    uint8_t data[] = {byte2bcd(d.day), byte2bcd(d.weekday),
-                      (uint8_t)(byte2bcd(d.month) | ((d.year < 2000) ? 0x80 : 0x00)),
-                      byte2bcd(d.year % 100)};
+    const uint8_t data[] = {byte2bcd(d.day), byte2bcd(d.weekday),
+                            (uint8_t)(byte2bcd(d.month) | ((d.year < 2000) ? 0x80 : 0x00)),
+                            byte2bcd(d.year % 100)};
     write_register(Registers::DATE, data, 4, ec);
   }
 
@@ -151,14 +151,14 @@ public:
   /// @param t The time.
   void set_time(const Time &t, std::error_code &ec) {
     logger_.info("Setting time");
-    uint8_t data[] = {byte2bcd(t.second), byte2bcd(t.minute), byte2bcd(t.hour)};
+    const uint8_t data[] = {byte2bcd(t.second), byte2bcd(t.minute), byte2bcd(t.hour)};
     write_register(Registers::TIME, data, 3, ec);
   }
 
 protected:
   void init(std::error_code &ec) {
     logger_.info("initializing");
-    uint8_t data[] = {0, 0};
+    const uint8_t data[] = {0, 0};
     write_register(Registers::CONTROL_STATUS1, data, 2, ec);
   }
 

@@ -75,8 +75,8 @@ public:
     case 17:
     case 27: {
       // touch event - NOTE: this only gets the first touch record
-      auto report_data = (TouchReport *)data;
-      const auto touch_data = (TouchRecord *)(&report_data->touch_record[0]);
+      const auto report_data = (const TouchReport *)data;
+      const auto touch_data = (const TouchRecord *)(&report_data->touch_record[0]);
       x_ = touch_data->x;
       y_ = touch_data->y;
       num_touch_points_ = (data_len - sizeof(TouchReport)) / sizeof(TouchRecord);
@@ -86,7 +86,7 @@ public:
     }
     case 14: {
       // button event
-      auto button_data = (ButtonRecord *)data;
+      const auto button_data = (const ButtonRecord *)data;
       home_button_pressed_ = button_data->btn_val;
       auto btn_signal = button_data->btn_signal[0];
       logger_.debug("Button event({}): {}, {}", (int)(button_data->length), home_button_pressed_,

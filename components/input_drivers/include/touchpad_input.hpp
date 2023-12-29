@@ -113,7 +113,7 @@ protected:
   }
 
   static void home_button_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
-    TouchpadInput *tpi = (TouchpadInput *)drv->user_data;
+    const TouchpadInput *tpi = (const TouchpadInput *)drv->user_data;
     if (tpi) {
       tpi->home_button_read_impl(data);
     }

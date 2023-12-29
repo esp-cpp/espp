@@ -844,8 +844,10 @@ protected:
     // calculate the sample time from last call
     float Ts = std::chrono::duration<float>(now - openloop_timestamp).count();
     // quick fix for strange cases (micros overflow + timestamp not defined)
-    if (Ts <= 0 || Ts > 0.5f)
+    if (Ts <= 0 || Ts > 0.5f) {
+      // cppcheck-suppress unreadVariable
       Ts = 1e-3f;
+    }
     // save timestamp for next call
     openloop_timestamp = now;
 

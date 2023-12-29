@@ -330,7 +330,9 @@ public:
    * @param length Number of bytes to write.
    * @param &ec Error code to be filled with any errors that occur during
    */
-  void transfer(uint8_t *data, uint8_t length, std::error_code &ec) { write_ftm(data, length, ec); }
+  void transfer(const uint8_t *data, uint8_t length, std::error_code &ec) {
+    write_ftm(data, length, ec);
+  }
 
   /**
    * @brief Read data from the FTM message box.
@@ -370,7 +372,7 @@ protected:
     logger_.info("Memory size (B): {}", memory_size_bytes_);
   }
 
-  void write_ftm(uint8_t *data, uint8_t length, std::error_code &ec) {
+  void write_ftm(const uint8_t *data, uint8_t length, std::error_code &ec) {
     // must start from FTM_START_ADDR
     uint8_t all_data[2 + length];
     all_data[0] = (uint8_t)(FTM_START_ADDR >> 8);

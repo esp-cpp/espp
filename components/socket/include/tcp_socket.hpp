@@ -399,11 +399,12 @@ protected:
     // set the idle time
     optval = idle_time.count();
     err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval));
-#endif
     if (err < 0) {
       logger_.error("Unable to set keepalive idle time: {} - '{}'", errno, strerror(errno));
       return false;
     }
+#endif
+
     // set the interval
     optval = interval.count();
     err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval));

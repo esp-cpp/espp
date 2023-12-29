@@ -305,7 +305,7 @@ public:
   void set_interrupt(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Setting interrupt on change p0:{}, p1:{}", p0, p1);
     auto addr = Registers::INTPORT0;
-    uint8_t data[] = {p0, p1};
+    const uint8_t data[] = {p0, p1};
     write_many_((uint8_t)addr, data, 2, ec);
   }
 
@@ -330,7 +330,7 @@ public:
   void set_direction(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Setting direction  p0:{}, p1:{}", p0, p1);
     auto addr = Registers::DIRPORT0;
-    uint8_t data[] = {p0, p1};
+    const uint8_t data[] = {p0, p1};
     write_many_((uint8_t)addr, data, 2, ec);
   }
 
@@ -355,7 +355,7 @@ public:
   void configure_led(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
     auto addr = Registers::LEDMODE0;
-    uint8_t data[] = {p0, p1};
+    const uint8_t data[] = {p0, p1};
     write_many_((uint8_t)addr, data, 2, ec);
   }
 
@@ -370,7 +370,7 @@ public:
     uint8_t p1 = (mask >> 8) & 0xFF;
     logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
     auto addr = Registers::LEDMODE0;
-    uint8_t data[] = {p0, p1};
+    const uint8_t data[] = {p0, p1};
     write_many_((uint8_t)addr, data, 2, ec);
   }
 

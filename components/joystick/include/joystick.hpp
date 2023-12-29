@@ -188,7 +188,7 @@ template <> struct fmt::formatter<espp::Joystick> {
     return it;
   }
 
-  template <typename FormatContext> auto format(espp::Joystick const &j, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::Joystick const &j, FormatContext &ctx) const {
     switch (presentation) {
     case 'v':
       return fmt::format_to(ctx.out(), "{}", j.position_);
