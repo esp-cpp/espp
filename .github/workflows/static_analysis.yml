@@ -15,12 +15,6 @@ jobs:
     - name: Run static analysis
       uses: esp-cpp/StaticAnalysis@master
       with:
-        # only analyze changes in this PR (not recommended, since changed code
-        # can affect other code in the repo); We may turn this on since we have
-        # analyzed the rest of the code and the analysis takes a _long_ time
-        # (>20 minutes)
-        report_pr_changes_only: false
-
         # Do not build the project and do not use cmake to generate compile_commands.json
         use_cmake: false
 
