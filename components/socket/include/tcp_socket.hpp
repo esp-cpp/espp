@@ -422,6 +422,6 @@ protected:
   }
 
   bool connected_{false};
-  Socket::Info remote_info_{0};
+  Socket::Info remote_info_{};
 };
 } // namespace espp

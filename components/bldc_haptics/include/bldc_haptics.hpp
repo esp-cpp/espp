@@ -390,10 +390,11 @@ protected:
         if (!out_of_bounds && detent_config.detent_positions.size() > 0) {
           // if there are manually specified detents, then we only apply torque
           // if we're in a detent
-          bool in_detent = std::any_of(detent_positions.begin(), detent_positions.end(),
-                                       [x](int y) { return current_position == y; })
-              // if we're not in a detent, then we don't apply any torque
-              if (!in_detent) {
+          bool in_detent = std::any_of(detent_config.detent_positions.begin(),
+                                       detent_config.detent_positions.end(),
+                                       [this](int y) { return current_position_ == y; });
+          // if we're not in a detent, then we don't apply any torque
+          if (!in_detent) {
             input = 0;
           }
         }

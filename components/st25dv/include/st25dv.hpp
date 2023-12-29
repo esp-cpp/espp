@@ -431,12 +431,12 @@ protected:
 
   uint64_t read_password(std::error_code &ec) {
     uint8_t pswds[8];
-    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::I2C_PWD, pswd, sizeof(pswd));
+    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::I2C_PWD, pswds, sizeof(pswds));
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
       return 0;
     }
-    memcpy(&password_, pswd, sizeof(pswd));
+    memcpy(&password_, pswds, sizeof(pswds));
     logger_.debug("Got pswd: 0x{:016X}", password_);
     return password_;
   }

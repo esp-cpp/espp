@@ -23,7 +23,7 @@ public:
    * @brief Vector copy constructor.
    * @param other Vector to copy.
    */
-  explicit Vector2d(const Vector2d &other) : x_(other.x_), y_(other.y_) {}
+  Vector2d(const Vector2d &other) : x_(other.x_), y_(other.y_) {}
 
   /**
    * @brief Assignment operator

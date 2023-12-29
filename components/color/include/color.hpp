@@ -36,7 +36,7 @@ public:
    *       be within the range [0,1] by dividing by 255.
    * @param rgb Rgb struct containing the values to copy.
    */
-  explicit Rgb(const Rgb &rgb);
+  Rgb(const Rgb &rgb);
 
   /**
    * @brief Construct an Rgb object from the provided Hsv object.
@@ -94,7 +94,7 @@ public:
    * @brief Copy-construct the Hsv object
    * @param hsv Object to copy from.
    */
-  explicit Hsv(const Hsv &hsv);
+  Hsv(const Hsv &hsv);
 
   /**
    * @brief Construct Hsv object from Rgb object. Calls rgb.hsv() to perform

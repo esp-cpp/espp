@@ -192,8 +192,10 @@ extern "C" void app_main(void) {
   bool backlight_on_value = false;
   bool reset_value = false;
   bool invert_colors = false;
-  size_t offset_x = 0;
-  size_t offset_y = 0;
+  int offset_x = 0;
+  int offset_y = 0;
+  bool mirror_x = false;
+  bool mirror_y = false;
   using DisplayDriver = espp::Ili9341;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
   //! [wrover_kit_config example]
@@ -215,8 +217,10 @@ extern "C" void app_main(void) {
   bool backlight_on_value = false;
   bool reset_value = false;
   bool invert_colors = false;
-  size_t offset_x = 40;
-  size_t offset_y = 53;
+  int offset_x = 40;
+  int offset_y = 53;
+  bool mirror_x = false;
+  bool mirror_y = false;
   using DisplayDriver = espp::St7789;
   auto rotation = espp::Display::Rotation::PORTRAIT;
   //! [ttgo_config example]
@@ -238,8 +242,10 @@ extern "C" void app_main(void) {
   bool backlight_on_value = true;
   bool reset_value = false;
   bool invert_colors = true;
-  size_t offset_x = 0;
-  size_t offset_y = 0;
+  int offset_x = 0;
+  int offset_y = 0;
+  bool mirror_x = true;
+  bool mirror_y = true;
   using DisplayDriver = espp::St7789;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
   //! [box_config example]
@@ -281,8 +287,6 @@ extern "C" void app_main(void) {
         .lcd_send_lines = lcd_send_lines,
         .reset_pin = reset,
         .data_command_pin = dc_pin,
-        .backlight_pin = backlight,
-        .backlight_on_value = backlight_value,
         .reset_value = reset_value,
         .invert_colors = invert_colors,
         .offset_x = offset_x,
