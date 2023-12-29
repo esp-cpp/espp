@@ -15,6 +15,12 @@ jobs:
     - name: Run static analysis
       uses: esp-cpp/StaticAnalysis@master
       with:
+        # only analyze changes in this PR (not recommended, since changed code
+        # can affect other code in the repo); We may turn this on since we have
+        # analyzed the rest of the code and the analysis takes a _long_ time
+        # (>20 minutes)
+        report_pr_changes_only: false
+
         # Do not build the project and do not use cmake to generate compile_commands.json
         use_cmake: false
 
@@ -22,4 +28,4 @@ jobs:
         esp_idf_version: release/v5.2
 
         # (Optional) cppcheck args
-        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/external -i$GITHUB_WORKSPACE/components/esp_littlefs -i$GITHUB_WORKSPACE/components/lvgl -i$GITHUB_WORKSPACE/components/state_machine/include/magic_enum.hpp -i$GITHUB_WORKSPACE/components/esp-dsp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
+        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/external -i$GITHUB_WORKSPACE/components/esp_littlefs -i$GITHUB_WORKSPACE/components/lvgl -i$GITHUB_WORKSPACE/components/esp-dsp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt

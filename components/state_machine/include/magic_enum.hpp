@@ -46,10 +46,6 @@
 #include <utility>
 #include <variant>
 
-#if defined(MAGIC_ENUM_CONFIG_FILE)
-#include MAGIC_ENUM_CONFIG_FILE
-#endif
-
 #if !defined(MAGIC_ENUM_USING_ALIAS_OPTIONAL)
 #include <optional>
 #endif
@@ -256,7 +252,7 @@ constexpr string_view pretty_name(string_view name) noexcept {
 }
 
 class case_insensitive {
-  static constexpr char to_lower(char c) noexcept {
+  [[maybe_unused]] static constexpr char to_lower(char c) noexcept {
     return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
   }
 
@@ -513,14 +509,14 @@ constexpr auto values(std::index_sequence<I...>) noexcept {
   constexpr std::size_t count = values_count(valid);
 
   if constexpr (count > 0) {
-    E values[count] = {};
+    E _values[count] = {};
     for (std::size_t i = 0, v = 0; v < count; ++i) {
       if (valid[i]) {
-        values[v++] = value<E, Min, IsFlags>(i);
+        _values[v++] = value<E, Min, IsFlags>(i);
       }
     }
 
-    return to_array(values, std::make_index_sequence<count>{});
+    return to_array(_values, std::make_index_sequence<count>{});
   } else {
     return std::array<E, 0>{};
   }
@@ -544,6 +540,7 @@ constexpr bool is_flags_enum() noexcept {
 
   if constexpr (has_is_flags<E>::value) {
     return customize::enum_range<E>::is_flags;
+  // cppcheck-suppress duplicateBranch
   } else if constexpr (std::is_same_v<U, bool>) { // bool special case
     return false;
   } else {
@@ -729,6 +726,7 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_vie
   };
   constexpr std::uint32_t operator()(string_view value) const noexcept {
     auto crc = static_cast<std::uint32_t>(0xffffffffL);
+    // cppcheck-suppress useStlAlgorithm
     for (const auto c : value) {
       crc = (crc >> 8) ^ crc_table[(crc ^ static_cast<std::uint32_t>(c)) & 0xff];
     }
@@ -738,6 +736,7 @@ struct constexpr_hash_t<Value, std::enable_if_t<std::is_same_v<Value, string_vie
   struct secondary_hash {
     constexpr std::uint32_t operator()(string_view value) const noexcept {
       auto acc = static_cast<std::uint64_t>(2166136261ULL);
+      // cppcheck-suppress useStlAlgorithm
       for (const auto c : value) {
         acc = ((acc ^ static_cast<std::uint64_t>(c)) * static_cast<std::uint64_t>(16777619ULL)) & (std::numeric_limits<std::uint32_t>::max)();
       }
@@ -751,16 +750,16 @@ constexpr static Hash hash_v{};
 
 template <auto* GlobValues, typename Hash>
 constexpr auto calculate_cases(std::size_t Page) noexcept {
-  constexpr std::array values = *GlobValues;
-  constexpr std::size_t size = values.size();
+  constexpr std::array _values = *GlobValues;
+  constexpr std::size_t size = _values.size();
 
-  using switch_t = std::invoke_result_t<Hash, typename decltype(values)::value_type>;
+  using switch_t = std::invoke_result_t<Hash, typename decltype(_values)::value_type>;
   static_assert(std::is_integral_v<switch_t> && !std::is_same_v<switch_t, bool>);
   const std::size_t values_to = (std::min)(static_cast<std::size_t>(256), size - Page);
 
   std::array<switch_t, 256> result{};
   auto fill = result.begin();
-  for (auto first = values.begin() + Page, last = values.begin() + Page + values_to; first != last; ) {
+  for (auto first = _values.begin() + Page, last = _values.begin() + Page + values_to; first != last; ) {
     *fill++ = hash_v<Hash>(*first++);
   }
 
@@ -864,8 +863,8 @@ constexpr std::invoke_result_t<ResultGetterType> constexpr_switch(
     BinaryPredicate&& pred = {}) {
   using result_t = std::invoke_result_t<ResultGetterType>;
   using hash_t = std::conditional_t<no_duplicate<GlobValues, Hash>(), Hash, typename Hash::secondary_hash>;
-  constexpr std::array values = *GlobValues;
-  constexpr std::size_t size = values.size();
+  constexpr std::array _values = *GlobValues;
+  constexpr std::size_t size = _values.size();
   constexpr std::array cases = calculate_cases<GlobValues, hash_t>(Page);
 
   switch (hash_v<hash_t>(searched)) {
