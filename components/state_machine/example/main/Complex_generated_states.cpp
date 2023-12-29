@@ -89,7 +89,7 @@ void Root::State_1::entry(void) {
   _root->log("\033[36mENTRY::State_1::/c/Y\033[0m");
   // Entry action for this state
   //::::/c/Y::::Entry::::
-  int a = 2;
+  [[maybe_unused]] int a = 2;
   printf("SerialTask :: initializing State 1\n");
 }
 
