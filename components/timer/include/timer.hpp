@@ -160,10 +160,10 @@ protected:
     // initial delay, if any - this is only used the first time the timer
     // runs
     if (delay_float > 0) {
-      auto start = std::chrono::steady_clock::now();
+      auto start_time = std::chrono::steady_clock::now();
       logger_.debug("waiting for delay {:.3f} s", delay_float);
       std::unique_lock<std::mutex> lock(m);
-      cv.wait_until(lock, start + delay_);
+      cv.wait_until(lock, start_time + delay_);
       if (!running_) {
         logger_.debug("delay canceled, stopping");
         return true;
@@ -173,7 +173,7 @@ protected:
       delay_float = 0;
     }
     // now run the callback
-    auto start = std::chrono::steady_clock::now();
+    auto start_time = std::chrono::steady_clock::now();
     logger_.debug("running callback");
     bool requested_stop = callback_();
     if (requested_stop || period_float <= 0) {
@@ -183,7 +183,7 @@ protected:
       return true;
     }
     auto end = std::chrono::steady_clock::now();
-    float elapsed = std::chrono::duration<float>(end - start).count();
+    float elapsed = std::chrono::duration<float>(end - start_time).count();
     if (elapsed > period_float) {
       // if the callback took longer than the period, then we should just
       // return and run the callback again immediately
@@ -195,7 +195,7 @@ protected:
     // the callback)
     {
       std::unique_lock<std::mutex> lock(m);
-      cv.wait_until(lock, start + period_);
+      cv.wait_until(lock, start_time + period_);
       // Note: we don't care about cv_retval here because we are going to
       // return from the function anyway. If the timer was canceled, then
       // the task will be stopped and the callback will not be called again.

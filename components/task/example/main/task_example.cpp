@@ -38,7 +38,6 @@ extern "C" void app_main(void) {
   size_t num_seconds_to_run = 2;
   auto test_start = std::chrono::high_resolution_clock::now();
   auto test_end = std::chrono::high_resolution_clock::now();
-  auto test_duration = std::chrono::duration<float>(test_end - test_start).count();
 
   /**
    *   Show a simple task running for a short period and then stopping. Enable
@@ -74,7 +73,7 @@ extern "C" void app_main(void) {
     //! [Task example]
   }
   test_end = std::chrono::high_resolution_clock::now();
-  test_duration = std::chrono::duration<float>(test_end - test_start).count();
+  auto test_duration = std::chrono::duration<float>(test_end - test_start).count();
   fmt::print("Test ran for {:.03f} seconds\n", test_duration);
 
   /**

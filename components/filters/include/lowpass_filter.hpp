@@ -25,7 +25,7 @@ public:
    * @brief Initialize the lowpass filter coefficients based on the config.
    * @param config Configuration struct.
    */
-  LowpassFilter(const Config &config) { init(config); }
+  explicit LowpassFilter(const Config &config) { init(config); }
 
   /**
    * @brief Filter the input samples, updating internal state, and writing the

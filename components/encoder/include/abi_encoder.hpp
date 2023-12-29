@@ -47,7 +47,8 @@ public:
    *       call the start() method at least once.
    */
   template <EncoderType type = T>
-  AbiEncoder(const Config &config) : logger_({.tag = "AbiEncoder", .level = config.log_level}) {
+  explicit AbiEncoder(const Config &config)
+      : logger_({.tag = "AbiEncoder", .level = config.log_level}) {
     // we only care about counts_per_revolution if it is EncoderType::ROTATIONAL
     if constexpr (type == EncoderType::ROTATIONAL) {
       if (config.counts_per_revolution == 0) {

@@ -32,9 +32,8 @@ public:
    *        encoder.
    * @param config Configuration structure for the EncoderInput.
    */
-  EncoderInput(const Config &config)
-      : read_(config.read)
-        logger_({.tag = "EncoderInput", .level = config.log_level}) {
+  explicit EncoderInput(const Config &config)
+      : read_(config.read), logger_({.tag = "EncoderInput", .level = config.log_level}) {
     init();
   }
 

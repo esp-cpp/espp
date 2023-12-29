@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <deque>
 #include <vector>
 
@@ -111,7 +112,7 @@ public:
 
   /// @brief Constructor for the haptic motor
   /// @param config Configuration for the haptic motor
-  BldcHaptics(const Config &config)
+  explicit BldcHaptics(const Config &config)
       : detent_pid_({.kp = 0,             // will be set later (motor_task)
                      .ki = 0,             // not configurable for now
                      .kd = 0,             // will be set later (update_detent_config)
@@ -276,7 +277,7 @@ protected:
   /// @param cv Condition variable to use for the task
   /// @return True if the task should be stopped, false otherwise
   bool motor_task(std::mutex &m, std::condition_variable &cv) {
-    auto start = std::chrono::steady_clock::now();
+    auto start_time = std::chrono::steady_clock::now();
     // if we are not moving, and we're close to the center (but not exactly at
     // the center), slowly move back to the center
 
@@ -389,15 +390,10 @@ protected:
         if (!out_of_bounds && detent_config.detent_positions.size() > 0) {
           // if there are manually specified detents, then we only apply torque
           // if we're in a detent
-          bool in_detent = false;
-          for (auto &detent : detent_config.detent_positions) {
-            if (detent == current_position_) {
-              in_detent = true;
-              break;
-            }
-          }
-          // if we're not in a detent, then we don't apply any torque
-          if (!in_detent) {
+          bool in_detent = std::any_of(detent_positions.begin(), detent_positions.end(),
+                                       [x](int y) { return current_position == y; })
+              // if we're not in a detent, then we don't apply any torque
+              if (!in_detent) {
             input = 0;
           }
         }
@@ -415,7 +411,7 @@ protected:
     {
       using namespace std::chrono_literals;
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + 1ms);
+      cv.wait_until(lk, start_time + 1ms);
     }
 
     // don't want to stop the task

@@ -15,7 +15,9 @@ namespace espp {
  */
 class KeypadInput {
 public:
-  typedef std::function<void(bool *up, bool *down, bool *left, bool *right, bool *enter, bool *escape)> read_fn;
+  typedef std::function<void(bool *up, bool *down, bool *left, bool *right, bool *enter,
+                             bool *escape)>
+      read_fn;
 
   /**
    *  @brief Configuration structure, containing the read function for the
@@ -32,9 +34,8 @@ public:
    *        keypad.
    * @param config Configuration structure for the KeypadInput.
    */
-  KeypadInput(const Config &config)
-      : read_(config.read),
-        logger_({.tag = "KeypadInput", .level = config.log_level}) {
+  explicit KeypadInput(const Config &config)
+      : read_(config.read), logger_({.tag = "KeypadInput", .level = config.log_level}) {
     init();
   }
 
@@ -67,7 +68,7 @@ protected:
       return;
     }
     logger_.info("Reading keypad...");
-    bool up,down,left,right,enter,escape;
+    bool up, down, left, right, enter, escape;
     read_(&up, &down, &left, &right, &enter, &escape);
     data->state = LV_INDEV_STATE_PRESSED;
     if (escape) {
@@ -85,8 +86,8 @@ protected:
     } else {
       data->state = LV_INDEV_STATE_RELEASED;
     }
-    logger_.debug("Keypad state: up: {}, down: {}, left: {}, right: {}, enter: {}, escape: {}",
-                  up, down, left, right, enter, escape);
+    logger_.debug("Keypad state: up: {}, down: {}, left: {}, right: {}, enter: {}, escape: {}", up,
+                  down, left, right, enter, escape);
     logger_.debug("Keypad data: state: {}, key: {}", (int)data->state, (int)data->key);
   }
 

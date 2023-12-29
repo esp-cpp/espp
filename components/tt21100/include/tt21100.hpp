@@ -76,7 +76,7 @@ public:
     case 27: {
       // touch event - NOTE: this only gets the first touch record
       auto report_data = (TouchReport *)data;
-      auto touch_data = (TouchRecord *)(&report_data->touch_record[0]);
+      const auto touch_data = (TouchRecord *)(&report_data->touch_record[0]);
       x_ = touch_data->x;
       y_ = touch_data->y;
       num_touch_points_ = (data_len - sizeof(TouchReport)) / sizeof(TouchRecord);

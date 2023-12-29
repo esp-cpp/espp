@@ -17,13 +17,13 @@ public:
    * @param x The starting X value.
    * @param y The starting Y value.
    */
-  Vector2d(T x = T(0), T y = T(0)) : x_(x), y_(y) {}
+  explicit Vector2d(T x = T(0), T y = T(0)) : x_(x), y_(y) {}
 
   /**
    * @brief Vector copy constructor.
    * @param other Vector to copy.
    */
-  Vector2d(const Vector2d &other) : x_(other.x_), y_(other.y_) {}
+  explicit Vector2d(const Vector2d &other) : x_(other.x_), y_(other.y_) {}
 
   /**
    * @brief Assignment operator
@@ -177,9 +177,9 @@ public:
    * @return Resultant scaled vector.
    */
   Vector2d operator/(const Vector2d &v) const {
-    auto x = v.x_ != T(0) ? (x_ / v.x_) : x_;
-    auto y = v.y_ != T(0) ? (y_ / v.y_) : y_;
-    return Vector2d(x, y);
+    auto _x = v.x_ != T(0) ? (x_ / v.x_) : x_;
+    auto _y = v.y_ != T(0) ? (y_ / v.y_) : y_;
+    return Vector2d(_x, _y);
   }
 
   /**

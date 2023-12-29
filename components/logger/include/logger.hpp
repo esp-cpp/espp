@@ -49,7 +49,7 @@ public:
    *
    * @param config configuration for the logger.
    */
-  Logger(const Config &config)
+  explicit Logger(const Config &config)
       : tag_(config.tag), rate_limit_(config.rate_limit), level_(config.level) {}
 
   /**

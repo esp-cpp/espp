@@ -194,7 +194,7 @@ protected:
   write_fn write_;
   write_read_fn write_read_;
   uint8_t accumulated_states_{0};
-  ButtonState button_state_;
+  ButtonState button_state_{0};
   uint8_t address_{DEFAULT_ADDRESS};
   espp::Logger logger_;
 };

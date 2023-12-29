@@ -65,7 +65,7 @@ public:
    * @brief Initialize the WiFi Station (STA)
    * @param config WifiSta::Config structure with initialization information.
    */
-  WifiSta(const Config &config)
+  explicit WifiSta(const Config &config)
       : num_retries_(config.num_connect_retries), connect_callback_(config.on_connected),
         disconnect_callback_(config.on_disconnected), ip_callback_(config.on_got_ip),
         logger_({.tag = "WifiSta", .level = config.log_level}) {
@@ -168,7 +168,7 @@ public:
    * @brief Whether the station is connected to an access point.
    * @return true if it is currently connected, false otherwise.
    */
-  bool is_connected() { return connected_; }
+  bool is_connected() const { return connected_; }
 
 protected:
   static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,

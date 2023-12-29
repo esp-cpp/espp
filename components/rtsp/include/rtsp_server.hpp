@@ -191,8 +191,8 @@ public:
       // set the ssrc
       packet->set_ssrc(ssrc_);
 
-      auto mjpeg_header = packet->get_mjpeg_header();
-      std::vector<char> mjpeg_vec(mjpeg_header.begin(), mjpeg_header.end());
+      // auto mjpeg_header = packet->get_mjpeg_header();
+      // std::vector<char> mjpeg_vec(mjpeg_header.begin(), mjpeg_header.end());
 
       // if it's the last packet, set the marker bit
       if (i == num_packets - 1) {

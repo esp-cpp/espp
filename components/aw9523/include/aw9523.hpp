@@ -86,7 +86,7 @@ public:
    * @brief Construct the Aw9523. Will call initialize() if auto_init is true.
    * @param config Config structure for configuring the AW9523
    */
-  Aw9523(const Config &config)
+  explicit Aw9523(const Config &config)
       : config_(config), address_(config.device_address), write_(config.write), read_(config.read),
         logger_({.tag = "Aw9523", .level = config.log_level}) {
     if (config.auto_init) {
@@ -540,7 +540,7 @@ protected:
     write_many_(reg_addr, &data, 1, ec);
   }
 
-  void write_many_(uint8_t reg_addr, uint8_t *write_data, size_t write_data_len,
+  void write_many_(uint8_t reg_addr, const uint8_t *write_data, size_t write_data_len,
                    std::error_code &ec) {
     uint8_t total_len = 1 + write_data_len;
     uint8_t data[total_len];

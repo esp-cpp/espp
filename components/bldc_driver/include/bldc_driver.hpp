@@ -47,7 +47,7 @@ public:
    * @note Enables the driver.
    * @param config Config used to initialize the driver.
    */
-  BldcDriver(const Config &config)
+  explicit BldcDriver(const Config &config)
       : gpio_ah_((gpio_num_t)config.gpio_a_h), gpio_al_((gpio_num_t)config.gpio_a_l),
         gpio_bh_((gpio_num_t)config.gpio_b_h), gpio_bl_((gpio_num_t)config.gpio_b_l),
         gpio_ch_((gpio_num_t)config.gpio_c_h), gpio_cl_((gpio_num_t)config.gpio_c_l),

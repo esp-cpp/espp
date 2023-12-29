@@ -25,7 +25,7 @@ extern "C" void app_main(void) {
   {
     fmt::print("Starting hfsm example!\n");
     //! [hfsm example]
-    espp::state_machine::Complex::GeneratedEventBase *e = nullptr;
+    const espp::state_machine::Complex::GeneratedEventBase *e = nullptr;
     bool handled = false;
 
     // create the HFSM
@@ -87,7 +87,7 @@ extern "C" void app_main(void) {
     //       get_user_selection() function.
     espp::Cli::configure_stdin_stdout();
 
-    espp::state_machine::Complex::GeneratedEventBase *e = nullptr;
+    const espp::state_machine::Complex::GeneratedEventBase *e = nullptr;
 
     // create the HFSM
     espp::state_machine::Complex::Root complex_root;

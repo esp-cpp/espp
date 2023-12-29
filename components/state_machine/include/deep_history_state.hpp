@@ -12,12 +12,12 @@ namespace espp::state_machine {
 class DeepHistoryState : public StateBase {
 public:
   DeepHistoryState() : StateBase() {}
-  DeepHistoryState(StateBase *_parent) : StateBase(_parent) {}
+  explicit DeepHistoryState(StateBase *_parent) : StateBase(_parent) {}
 
   /**
    * @brief Calls _parentState->setDeepHistory()
    */
-  void makeActive() {
+  virtual void makeActive() override {
     if (_parentState) {
       _parentState->setDeepHistory();
     }

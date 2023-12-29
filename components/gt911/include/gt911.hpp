@@ -63,7 +63,7 @@ public:
         return false;
       }
       // convert the data pointer to a GTPoint*
-      GTPoint *point = (GTPoint *)&data[0];
+      const GTPoint *point = (GTPoint *)&data[0];
       x_ = point->x;
       y_ = point->y;
       logger_.debug("Touch at ({}, {})", x_, y_);
@@ -242,7 +242,7 @@ protected:
 
   void write(Registers reg, uint8_t val, std::error_code &ec) { write(reg, &val, 1, ec); }
 
-  void write(Registers reg, uint8_t *data, size_t len, std::error_code &ec) {
+  void write(Registers reg, const uint8_t *data, size_t len, std::error_code &ec) {
     uint16_t reg_addr = (uint16_t)reg;
     size_t d_len = 2 + len;
     uint8_t d[d_len];

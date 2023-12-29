@@ -192,7 +192,9 @@ extern "C" void app_main(void) {
   bool backlight_on_value = false;
   bool reset_value = false;
   bool invert_colors = false;
-  auto flush_cb = espp::Ili9341::flush;
+  size_t offset_x = 0;
+  size_t offset_y = 0;
+  using DisplayDriver = espp::Ili9341;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
   //! [wrover_kit_config example]
 #endif
@@ -213,7 +215,9 @@ extern "C" void app_main(void) {
   bool backlight_on_value = false;
   bool reset_value = false;
   bool invert_colors = false;
-  auto flush_cb = espp::St7789::flush;
+  size_t offset_x = 40;
+  size_t offset_y = 53;
+  using DisplayDriver = espp::St7789;
   auto rotation = espp::Display::Rotation::PORTRAIT;
   //! [ttgo_config example]
 #endif
@@ -234,7 +238,9 @@ extern "C" void app_main(void) {
   bool backlight_on_value = true;
   bool reset_value = false;
   bool invert_colors = true;
-  auto flush_cb = espp::St7789::flush;
+  size_t offset_x = 0;
+  size_t offset_y = 0;
+  using DisplayDriver = espp::St7789;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
   //! [box_config example]
 #endif
@@ -269,50 +275,32 @@ extern "C" void app_main(void) {
     ret = spi_bus_add_device(spi_num, &devcfg, &spi);
     ESP_ERROR_CHECK(ret);
 
-#if CONFIG_HARDWARE_WROVER_KIT
     // initialize the controller
-    espp::Ili9341::initialize(espp::display_drivers::Config{.lcd_write = lcd_write,
-                                                            .lcd_send_lines = lcd_send_lines,
-                                                            .reset_pin = reset,
-                                                            .data_command_pin = dc_pin,
-                                                            .reset_value = reset_value,
-                                                            .invert_colors = invert_colors});
-#endif
-#if CONFIG_HARDWARE_TTGO
-    // initialize the controller
-    espp::St7789::initialize(espp::display_drivers::Config{
+    DisplayDriver::initialize(espp::display_drivers::Config{
         .lcd_write = lcd_write,
         .lcd_send_lines = lcd_send_lines,
         .reset_pin = reset,
         .data_command_pin = dc_pin,
+        .backlight_pin = backlight,
+        .backlight_on_value = backlight_value,
+        .reset_value = reset_value,
         .invert_colors = invert_colors,
-        .offset_x = 40,
-        .offset_y = 53,
+        .offset_x = offset_x,
+        .offset_y = offset_y,
+        .mirror_x = mirror_x,
+        .mirror_y = mirror_y,
     });
-#endif
-#if CONFIG_HARDWARE_BOX
-    // initialize the controller
-    espp::St7789::initialize(espp::display_drivers::Config{
-        .lcd_write = lcd_write,
-        .lcd_send_lines = lcd_send_lines,
-        .reset_pin = reset,
-        .data_command_pin = dc_pin,
-        .invert_colors = invert_colors,
-        .mirror_x = true,
-        .mirror_y = true,
-    });
-#endif
-
     // initialize the display / lvgl
     auto display = std::make_shared<espp::Display>(
         espp::Display::AllocatingConfig{.width = width,
                                         .height = height,
                                         .pixel_buffer_size = pixel_buffer_size,
-                                        .flush_callback = flush_cb,
+                                        .flush_callback = DisplayDriver::flush,
                                         .backlight_pin = backlight,
                                         .backlight_on_value = backlight_on_value,
                                         .rotation = rotation,
                                         .software_rotation_enabled = true});
+
     // initialize the gui
     Gui gui({.display = display});
     size_t iterations = 0;

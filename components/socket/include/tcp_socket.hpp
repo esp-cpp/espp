@@ -69,7 +69,7 @@ public:
    * @note Enables keepalive on the socket.
    * @param config Config for the socket.
    */
-  TcpSocket(const Config &config)
+  explicit TcpSocket(const Config &config)
       : Socket(Type::STREAM, Logger::Config{.tag = "TcpSocket", .level = config.log_level}) {
     set_keepalive();
   }
@@ -244,7 +244,8 @@ public:
     int num_bytes_received = receive(receive_buffer.get(), max_num_bytes);
     if (num_bytes_received > 0) {
       logger_.info("Received {} bytes", num_bytes_received);
-      data.assign(receive_buffer.get(), receive_buffer.get() + num_bytes_received);
+      uint8_t *data_ptr = (uint8_t *)receive_buffer.get();
+      data.assign(data_ptr, data_ptr + num_bytes_received);
       return true;
     }
     return false;
@@ -274,8 +275,9 @@ public:
     int num_bytes_received = ::recv(socket_, data, max_num_bytes, 0);
     // if we didn't receive anything return false and don't do anything else
     if (num_bytes_received < 0) {
-      // if we got an error, log it and return false
+      // if we got an error, log it and return 0
       logger_.debug("Receive failed: {} - '{}'", errno, strerror(errno));
+      return 0;
     } else if (num_bytes_received == 0) {
       logger_.warn("Remote socket closed!");
       // update our connection state here since remote end was closed...
@@ -370,7 +372,7 @@ protected:
    * @param socket_fd The socket file descriptor for the connection.
    * @param remote_info The remote endpoint info.
    */
-  TcpSocket(int socket_fd, const Socket::Info &remote_info)
+  explicit TcpSocket(int socket_fd, const Socket::Info &remote_info)
       : Socket(socket_fd, Logger::Config{.tag = "TcpSocket", .level = Logger::Verbosity::WARN}),
         remote_info_(remote_info) {
     connected_ = true;
@@ -390,12 +392,12 @@ protected:
       logger_.error("Unable to set keepalive: {} - '{}'", errno, strerror(errno));
       return false;
     }
-    // set the idle time
-    optval = idle_time.count();
 
 #if defined(__APPLE__)
-// TODO: figure out how to set keepidle on macos
+    // TODO: figure out how to set keepidle on macos
 #else
+    // set the idle time
+    optval = idle_time.count();
     err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval));
 #endif
     if (err < 0) {
@@ -420,6 +422,6 @@ protected:
   }
 
   bool connected_{false};
-  Socket::Info remote_info_;
+  Socket::Info remote_info_{0};
 };
 } // namespace espp

@@ -89,7 +89,7 @@ public:
   /// \details This function returns the currently pressed key.
   /// \return The currently pressed key.
   /// \note This function will return 0 if no key has been pressed.
-  uint8_t get_key() { return pressed_key_; }
+  uint8_t get_key() const { return pressed_key_; }
 
   /// \brief Read a key from the keyboard.
   /// \details This function reads a key from the keyboard.
@@ -125,7 +125,7 @@ public:
 protected:
   bool key_task(std::mutex &m, std::condition_variable &cv) {
     std::error_code ec;
-    auto start = std::chrono::steady_clock::now();
+    auto start_time = std::chrono::steady_clock::now();
     auto key = read_char(ec);
     if (!ec) {
       pressed_key_ = key;
@@ -138,7 +138,7 @@ protected:
     }
     {
       std::unique_lock<std::mutex> lock(m);
-      cv.wait_until(lock, start + polling_interval_);
+      cv.wait_until(lock, start_time + polling_interval_);
     }
     return false;
   }

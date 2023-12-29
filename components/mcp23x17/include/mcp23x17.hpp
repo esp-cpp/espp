@@ -64,8 +64,7 @@ public:
    * @brief Construct the Mcp23x17 and configure it.
    * @param config Config structure for configuring the MCP23X17
    */
-  Mcp23x17(const Config &config)
-
+  explicit Mcp23x17(const Config &config)
       : address_(config.device_address), port_0_direction_mask_(config.port_0_direction_mask),
         port_0_interrupt_mask_(config.port_0_interrupt_mask),
         port_1_direction_mask_(config.port_1_direction_mask),

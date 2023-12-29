@@ -155,7 +155,7 @@ public:
    * @brief Construct Tla2528
    * @param config Configuration structure.
    */
-  Tla2528(const Config &config)
+  explicit Tla2528(const Config &config)
       : config_(config), mode_(config.mode), avdd_mv_(config.avdd_volts * 1000.0f) // Convert to mV
         ,
         data_format_(config.oversampling_ratio == OversamplingRatio::NONE ? DataFormat::RAW
@@ -586,16 +586,16 @@ protected:
     write_one_(Register::OSR_CFG, data, ec);
   }
 
+  static uint8_t bit_pred(uint8_t value, Channel channel) {
+    return value | (1 << static_cast<uint8_t>(channel));
+  };
+
   void set_pin_configuration(std::error_code &ec) {
     logger_.info("Setting digital mode for outputs {} and inputs {}", digital_outputs_,
                  digital_inputs_);
     uint8_t data = 0;
-    for (auto channel : digital_inputs_) {
-      data |= 1 << static_cast<uint8_t>(channel);
-    }
-    for (auto channel : digital_outputs_) {
-      data |= 1 << static_cast<uint8_t>(channel);
-    }
+    std::accumulate(digital_inputs_.begin(), digital_inputs_.end(), data, bit_pred);
+    std::accumulate(digital_outputs_.begin(), digital_outputs_.end(), data, bit_pred);
     // don't have to do anything for analog inputs since they are the default
     // state (0)
     write_one_(Register::PIN_CFG, data, ec);
@@ -605,9 +605,7 @@ protected:
     logger_.info("Setting digital output for pins {}", digital_outputs_);
     // default direction is input (0)
     uint8_t data = 0;
-    for (auto channel : digital_outputs_) {
-      data |= 1 << static_cast<uint8_t>(channel);
-    }
+    std::accumulate(digital_outputs_.begin(), digital_outputs_.end(), data, bit_pred);
     write_one_(Register::GPIO_CFG, data, ec);
   }
 
@@ -617,9 +615,7 @@ protected:
       logger_.info("Setting analog inputs for autonomous mode");
       // configure the analog inputs for autonomous conversion sequence
       uint8_t data = 0;
-      for (auto channel : analog_inputs_) {
-        data |= 1 << static_cast<uint8_t>(channel);
-      }
+      std::accumulate(analog_inputs_.begin(), analog_inputs_.end(), data, bit_pred);
       write_one_(Register::AUTO_SEQ_CH_SEL, data, ec);
     }
   }
@@ -708,7 +704,7 @@ protected:
     return values;
   }
 
-  uint16_t parse_frame(uint8_t *frame_ptr) {
+  uint16_t parse_frame(const uint8_t *frame_ptr) {
     uint8_t msb = frame_ptr[0];
     uint8_t lsb = frame_ptr[1];
     uint8_t channel_id = (append_ == Append::CHANNEL_ID) ? (lsb & 0x0F) : 0;
@@ -758,7 +754,7 @@ protected:
    * @param raw Raw ADC value.
    * @return Voltage in mV.
    */
-  float raw_to_mv(uint16_t raw) {
+  float raw_to_mv(uint16_t raw) const {
     if (data_format_ == DataFormat::AVERAGED) {
       // we have a 16-bit ADC, so we can represent 2^16 = 65536 values
       // we were configured with avdd_mv_ as the reference voltage, so we
@@ -781,7 +777,7 @@ protected:
    * @param mv Voltage in mV.
    * @return Raw ADC value.
    */
-  uint16_t mv_to_raw(float mv) {
+  uint16_t mv_to_raw(float mv) const {
     // we have a 16-bit ADC, so we can represent 2^16 = 65536 values
     // we were configured with avdd_mv_ as the reference voltage, so we
     // can represent avdd_mv_ volts with 65536 values
@@ -935,7 +931,7 @@ protected:
     write_many_(reg, (uint8_t *)&value, 2, ec);
   }
 
-  void write_many_(Register reg, uint8_t *data, uint8_t len, std::error_code &ec) {
+  void write_many_(Register reg, const uint8_t *data, uint8_t len, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     uint8_t total_len = len + 2;
     uint8_t data_with_header[total_len];

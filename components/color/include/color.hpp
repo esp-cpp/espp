@@ -28,7 +28,7 @@ public:
    * @param b Floating point value for the blue channel, should be in range
    *        [0, 1]
    */
-  Rgb(const float &r, const float &g, const float &b);
+  explicit Rgb(const float &r, const float &g, const float &b);
 
   /**
    * @brief Copy-construct an Rgb object from the provided object.
@@ -36,7 +36,7 @@ public:
    *       be within the range [0,1] by dividing by 255.
    * @param rgb Rgb struct containing the values to copy.
    */
-  Rgb(const Rgb &rgb);
+  explicit Rgb(const Rgb &rgb);
 
   /**
    * @brief Construct an Rgb object from the provided Hsv object.
@@ -47,7 +47,7 @@ public:
    *       color will be changed.
    * @param hsv Hsv object to copy.
    */
-  Rgb(const Hsv &hsv);
+  explicit Rgb(const Hsv &hsv);
 
   Rgb &operator=(const Rgb &other) = default;
 
@@ -88,20 +88,20 @@ public:
    * @param s Saturation - will be clamped to be in range [0, 1]
    * @param v Value - will be clamped to be in range [0, 1]
    */
-  Hsv(const float &h, const float &s, const float &v);
+  explicit Hsv(const float &h, const float &s, const float &v);
 
   /**
    * @brief Copy-construct the Hsv object
    * @param hsv Object to copy from.
    */
-  Hsv(const Hsv &hsv);
+  explicit Hsv(const Hsv &hsv);
 
   /**
    * @brief Construct Hsv object from Rgb object. Calls rgb.hsv() to perform
    *        the conversion.
    * @param rgb The Rgb object to convert and copy.
    */
-  Hsv(const Rgb &rgb);
+  explicit Hsv(const Rgb &rgb);
 
   Hsv &operator=(const Hsv &other) = default;
 

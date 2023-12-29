@@ -40,7 +40,7 @@ Rgb &Rgb::operator+=(const Rgb &rhs) {
 Hsv Rgb::hsv() const {
   Hsv HSV;
 
-  float max = std::max(r, std::max(g, b)), min = std::min(r, std::min(g, b)), d;
+  float max = std::max(r, std::max(g, b)), min = std::min(r, std::min(g, b));
 
   HSV.v = max;
   if (max == 0.0f) {
@@ -49,7 +49,7 @@ Hsv Rgb::hsv() const {
     HSV.s = (max - min) / max;
   }
   if (HSV.s > 0.0f) {
-    d = max - min;
+    float d = max - min;
     if (r == max) {
       // color is between yellow and magenta
       HSV.h = (g - b) / d;

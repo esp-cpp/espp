@@ -91,7 +91,7 @@ public:
   /**
    * @brief Construct the Mt6701 and start the update task.
    */
-  Mt6701(const Config &config)
+  explicit Mt6701(const Config &config)
       : address_(config.device_address), write_(config.write), read_(config.read),
         velocity_filter_(config.velocity_filter), update_period_(config.update_period),
         logger_({.tag = "Mt6701", .level = config.log_level}) {

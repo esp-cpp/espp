@@ -57,7 +57,7 @@ public:
    * @brief Initialize the RangeMapper.
    * @param config Configuration describing the input distribution.
    */
-  RangeMapper(const Config &config) { configure(config); }
+  explicit RangeMapper(const Config &config) { configure(config); }
 
   /**
    * @brief Update the input / output distribution with the new configuration.

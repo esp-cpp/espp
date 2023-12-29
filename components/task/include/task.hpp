@@ -229,14 +229,14 @@ public:
    *
    * @return true if the task is started / running, false otherwise.
    */
-  bool is_started() { return started_; }
+  bool is_started() const { return started_; }
 
   /**
    * @brief Is the task running?
    *
    * @return true if the task is running, false otherwise.
    */
-  bool is_running() { return is_started(); }
+  bool is_running() const { return is_started(); }
 
 #if defined(ESP_PLATFORM)
   /**

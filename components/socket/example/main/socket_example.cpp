@@ -69,9 +69,7 @@ espp::UdpSocket client_socket({});
 auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
   static size_t iterations = 0;
   std::vector<uint8_t> data{0, 1, 2, 3, 4};
-  for (auto &d : data) {
-    d += iterations;
-  }
+  std::transform(data.begin(), data.end(), data.begin(), [](auto &d) { return d + iterations; });
   auto send_config = espp::UdpSocket::SendConfig{.ip_address = server_address, .port = port};
   client_socket.send(data, send_config);
   iterations++;
@@ -123,9 +121,7 @@ espp::UdpSocket client_socket({.log_level = espp::Logger::Verbosity::WARN});
 auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
   static size_t iterations = 0;
   std::vector<uint8_t> data{0, 1, 2, 3, 4};
-  for (auto &d : data) {
-    d += iterations;
-  }
+  std::transform(data.begin(), data.end(), data.begin(), [](auto &d) { return d + iterations; });
   auto send_config = espp::UdpSocket::SendConfig{
       .ip_address = server_address,
       .port = port,
@@ -189,9 +185,7 @@ espp::UdpSocket client_socket({});
 auto client_task_fn = [&client_socket, &port, &multicast_group](auto &, auto &) {
   static size_t iterations = 0;
   std::vector<uint8_t> data{0, 1, 2, 3, 4};
-  for (auto &d : data) {
-    d += iterations;
-  }
+  std::transform(data.begin(), data.end(), data.begin(), [](auto &d) { return d + iterations; });
   auto send_config = espp::UdpSocket::SendConfig{.ip_address = multicast_group,
                                                  .port = port,
                                                  .is_multicast_endpoint = true,
@@ -268,9 +262,7 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold, "Staring Basic
   auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
     static size_t iterations = 0;
     std::vector<uint8_t> data{0, 1, 2, 3, 4};
-    for (auto &d : data) {
-      d += iterations;
-    }
+    std::transform(data.begin(), data.end(), data.begin(), [](auto &d) { return d + iterations; });
     client_socket.transmit(data);
     iterations++;
     std::this_thread::sleep_for(1s);
@@ -346,9 +338,7 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
   auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
     static size_t iterations = 0;
     std::vector<uint8_t> data{0, 1, 2, 3, 4};
-    for (auto &d : data) {
-      d += iterations;
-    }
+    std::transform(data.begin(), data.end(), data.begin(), [](auto &d) { return d + iterations; });
     auto transmit_config = espp::detail::TcpTransmitConfig{
         .wait_for_response = true,
         .response_size = 128,
