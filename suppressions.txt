@@ -9,3 +9,4 @@ cstyleCast
 // Specific suppressions of the form:
 //   [error id]:[filename]:[line]
 *:lib/*
+*:components/state_machine/include/magic_enum.hpp
