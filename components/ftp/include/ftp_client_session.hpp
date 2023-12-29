@@ -207,7 +207,7 @@ protected:
     while (true) {
       std::vector<uint8_t> buffer(1024);
       std::size_t received = data_socket_->receive(buffer.data(), buffer.size());
-      if (received <= 0) {
+      if (received == 0) {
         break;
       }
       data.insert(data.end(), buffer.begin(), buffer.begin() + received);
@@ -300,7 +300,7 @@ protected:
     while (true) {
       std::vector<uint8_t> buffer(1024);
       std::size_t received = data_socket_->receive(buffer.data(), buffer.size());
-      if (received <= 0) {
+      if (received == 0) {
         break;
       }
       total_size += received;
@@ -372,7 +372,7 @@ protected:
     while (true) {
       file.read(buffer.get(), buffer_size);
       std::size_t bytes_read = file.gcount();
-      if (bytes_read <= 0) {
+      if (bytes_read == 0) {
         break;
       }
       std::string_view data(buffer.get(), bytes_read);

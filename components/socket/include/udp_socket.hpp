@@ -71,7 +71,7 @@ public:
    * @brief Initialize the socket and associated resources.
    * @param config Config for the socket.
    */
-  UdpSocket(const Config &config)
+  explicit UdpSocket(const Config &config)
       : Socket(Type::DGRAM, Logger::Config{.tag = "UdpSocket", .level = config.log_level}) {}
 
   /**
@@ -205,7 +205,8 @@ public:
       return false;
     }
     // we received data, so call the callback function if one was provided.
-    data.assign(receive_buffer.get(), receive_buffer.get() + num_bytes_received);
+    uint8_t *data_ptr = (uint8_t *)receive_buffer.get();
+    data.assign(data_ptr, data_ptr + num_bytes_received);
     remote_info.update();
     logger_.debug("Received {} bytes from {}", num_bytes_received, remote_info);
     return true;

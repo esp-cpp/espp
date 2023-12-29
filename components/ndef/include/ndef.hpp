@@ -244,7 +244,7 @@ public:
    * @param type String view for the type of this packet
    * @param payload The payload data for the packet
    */
-  Ndef(TNF tnf, std::string_view type, std::string_view payload)
+  explicit Ndef(TNF tnf, std::string_view type, std::string_view payload)
       : tnf_(tnf), type_(type), payload_(payload) {}
 
   /**
@@ -304,19 +304,19 @@ public:
    */
   static Ndef make_wifi_config(const WifiConfig &config) {
     // make the payload
-    std::vector<uint8_t> payload;
-    add_wifi_field(payload, WifiFieldId::SSID, config.ssid);
-    add_wifi_field(payload, WifiFieldId::NETWORK_KEY, config.key);
+    std::vector<uint8_t> _payload;
+    add_wifi_field(_payload, WifiFieldId::SSID, config.ssid);
+    add_wifi_field(_payload, WifiFieldId::NETWORK_KEY, config.key);
     uint8_t auth_bytes[] = {
         (uint8_t)(0x00),
         (uint8_t)(config.authentication),
     };
     auto sv_auth = std::string_view{(const char *)auth_bytes, 2};
-    add_wifi_field(payload, WifiFieldId::AUTH_TYPE, sv_auth);
+    add_wifi_field(_payload, WifiFieldId::AUTH_TYPE, sv_auth);
 
     // now encapsulate it into a wifi credential
     std::vector<uint8_t> data;
-    auto sv_payload = std::string_view{(const char *)payload.data(), payload.size()};
+    auto sv_payload = std::string_view{(const char *)_payload.data(), _payload.size()};
     add_wifi_field(data, WifiFieldId::CREDENTIAL, sv_payload);
 
     // TODO: add fields for the credential
@@ -333,11 +333,11 @@ public:
    * @return NDEF record object.
    */
   static Ndef make_collision_resolution_record(uint16_t random_number) {
-    std::vector<uint8_t> payload;
-    payload.push_back(random_number >> 8);
-    payload.push_back(random_number & 0xFF);
+    std::vector<uint8_t> _payload;
+    _payload.push_back(random_number >> 8);
+    _payload.push_back(random_number & 0xFF);
     return Ndef(TNF::WELL_KNOWN, "cr",
-                std::string_view{(const char *)payload.data(), payload.size()});
+                std::string_view{(const char *)_payload.data(), _payload.size()});
   }
 
   /**
@@ -350,16 +350,17 @@ public:
    * @return NDEF record object.
    */
   static Ndef make_handover_select(int carrier_data_ref) {
-    std::vector<uint8_t> payload;
-    payload.push_back(HANDOVER_VERSION);
+    std::vector<uint8_t> _payload;
+    _payload.push_back(HANDOVER_VERSION);
 
     Ndef alternative_carrier =
         make_alternative_carrier(CarrierPowerState::ACTIVE, carrier_data_ref);
     auto alternative_carrier_data = alternative_carrier.serialize(true, true);
-    payload.insert(payload.end(), alternative_carrier_data.begin(), alternative_carrier_data.end());
+    _payload.insert(_payload.end(), alternative_carrier_data.begin(),
+                    alternative_carrier_data.end());
 
     return Ndef(TNF::WELL_KNOWN, "Hs",
-                std::string_view{(const char *)payload.data(), payload.size()});
+                std::string_view{(const char *)_payload.data(), _payload.size()});
   }
 
   /**
@@ -372,8 +373,8 @@ public:
    * @return NDEF record object.
    */
   static Ndef make_handover_request(int carrier_data_ref) {
-    std::vector<uint8_t> payload;
-    payload.push_back(HANDOVER_VERSION);
+    std::vector<uint8_t> _payload;
+    _payload.push_back(HANDOVER_VERSION);
 
     // Handover request requires a collision resolution record, so we'll just
     // add collision resolution record which contains a random number.
@@ -381,17 +382,18 @@ public:
     uint16_t random_number = esp_random() & 0xFFFF;
     Ndef collision_resolution_record = make_collision_resolution_record(random_number);
     auto collision_resolution_data = collision_resolution_record.serialize(true, false);
-    payload.insert(payload.end(), collision_resolution_data.begin(),
-                   collision_resolution_data.end());
+    _payload.insert(_payload.end(), collision_resolution_data.begin(),
+                    collision_resolution_data.end());
 
     // now make the alternative carrier record
     Ndef alternative_carrier =
         make_alternative_carrier(CarrierPowerState::ACTIVE, carrier_data_ref);
     auto alternative_carrier_data = alternative_carrier.serialize(true, true);
-    payload.insert(payload.end(), alternative_carrier_data.begin(), alternative_carrier_data.end());
+    _payload.insert(_payload.end(), alternative_carrier_data.begin(),
+                    alternative_carrier_data.end());
 
     return Ndef(TNF::WELL_KNOWN, "Hr",
-                std::string_view{(const char *)payload.data(), payload.size()});
+                std::string_view{(const char *)_payload.data(), _payload.size()});
   }
 
   /**
@@ -404,17 +406,17 @@ public:
    * @return NDEF record object.
    */
   static Ndef make_alternative_carrier(const CarrierPowerState &power_state, int carrier_data_ref) {
-    std::vector<uint8_t> payload;
+    std::vector<uint8_t> _payload;
     // first byte is carrier power state
-    payload.push_back((uint8_t)power_state);
+    _payload.push_back((uint8_t)power_state);
     // second byte is carrier data reference length
-    payload.push_back(0x01);
+    _payload.push_back(0x01);
     // third byte is carrier data reference (ascii), e.g. '0'
-    payload.push_back((uint8_t)carrier_data_ref);
+    _payload.push_back((uint8_t)carrier_data_ref);
     // fourth byte is auxiliary data reference count
-    payload.push_back(0x00); // no auxiliary data
+    _payload.push_back(0x00); // no auxiliary data
     return Ndef(TNF::WELL_KNOWN, "ac",
-                std::string_view{(const char *)payload.data(), payload.size()});
+                std::string_view{(const char *)_payload.data(), _payload.size()});
   }
 
   /**
@@ -676,7 +678,7 @@ protected:
   }
 
   static int add_wifi_field(std::vector<uint8_t> &data, WifiFieldId field,
-                            std::string_view payload) {
+                            std::string_view _payload) {
     // field ID = short
     // field size = short
     // payload
@@ -689,22 +691,20 @@ protected:
     data.push_back(field_bytes[0]);
     data.push_back(field_bytes[1]);
     // add 2 byte size
-    int size = payload.size();
+    int size = _payload.size();
     uint8_t size_bytes[] = {
         (uint8_t)(size >> 8 & 0xFF),
         (uint8_t)(size >> 0 & 0xFF),
     };
     data.push_back(size_bytes[0]);
     data.push_back(size_bytes[1]);
-    // add payload
-    for (auto p : payload) {
-      data.push_back(p);
-    }
+    // add _payload
+    std::copy(_payload.begin(), _payload.end(), std::back_inserter(data));
     // return how many bytes this field is
-    return 4 + payload.size();
+    return 4 + _payload.size();
   }
 
-  static int add_bt_eir(std::vector<uint8_t> &data, BtEir eir_type, std::string_view payload) {
+  static int add_bt_eir(std::vector<uint8_t> &data, BtEir eir_type, std::string_view _payload) {
     uint8_t num_eir_bytes = 0;
     switch (eir_type) {
     case BtEir::UUIDS_16_BIT_PARTIAL:
@@ -713,26 +713,26 @@ protected:
     case BtEir::UUIDS_32_BIT_COMPLETE:
     case BtEir::UUIDS_128_BIT_PARTIAL:
     case BtEir::UUIDS_128_BIT_COMPLETE:
-      num_eir_bytes = payload.size();
+      num_eir_bytes = _payload.size();
       break;
     case BtEir::FLAGS:
       num_eir_bytes = 1;
       break;
     case BtEir::SHORT_LOCAL_NAME:
     case BtEir::LONG_LOCAL_NAME:
-      num_eir_bytes = payload.size();
+      num_eir_bytes = _payload.size();
       break;
     case BtEir::CLASS_OF_DEVICE:
       num_eir_bytes = 3; // 24 bit class of device structure
       break;
     case BtEir::SECURITY_MANAGER_TK:
-      num_eir_bytes = payload.size();
+      num_eir_bytes = _payload.size();
       break;
     case BtEir::APPEARANCE:
       num_eir_bytes = 2; // 2 byte appearance type
       break;
     case BtEir::MAC:
-      num_eir_bytes = payload.size();
+      num_eir_bytes = _payload.size();
       break;
     case BtEir::LE_ROLE:
       num_eir_bytes = 1;
@@ -740,12 +740,12 @@ protected:
     case BtEir::SP_HASH_C192:
     case BtEir::LE_SC_CONFIRMATION:
       // NOTE: should be 16
-      num_eir_bytes = payload.size();
+      num_eir_bytes = _payload.size();
       break;
     case BtEir::SP_RANDOM_R192:
     case BtEir::LE_SC_RANDOM:
       // NOTE: should be 16
-      num_eir_bytes = payload.size();
+      num_eir_bytes = _payload.size();
       break;
     default:
       break;
@@ -753,14 +753,14 @@ protected:
     data.push_back(num_eir_bytes + 1); // total size of EIR (including eir data type)
     data.push_back((uint8_t)eir_type);
     for (int i = 0; i < num_eir_bytes; i++) {
-      data.push_back(payload[i]);
+      data.push_back(_payload[i]);
     }
     // return the total number of bytes written
     return 2 + num_eir_bytes;
   }
 
   TNF tnf_;
-  Flags flags_;
+  Flags flags_{0};
   int id_{-1};
   std::string type_{""};
   std::string payload_{""};

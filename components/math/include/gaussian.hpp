@@ -26,7 +26,8 @@ public:
    * @brief Construct the gaussian object, configuring its parameters.
    * @param config Config structure for the gaussian.
    */
-  Gaussian(const Config &config) : gamma_(config.gamma), alpha_(config.alpha), beta_(config.beta) {}
+  explicit Gaussian(const Config &config)
+      : gamma_(config.gamma), alpha_(config.alpha), beta_(config.beta) {}
 
   /**
    * @brief Get the currently configured gamma (shape).

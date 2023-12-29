@@ -43,7 +43,8 @@ public:
    * @brief Initialize the oneshot adc reader.
    * @param config Config used to initialize the reader.
    */
-  OneshotAdc(const Config &config) : logger_({.tag = "Oneshot Adc", .level = config.log_level}) {
+  explicit OneshotAdc(const Config &config)
+      : logger_({.tag = "Oneshot Adc", .level = config.log_level}) {
     init(config);
   }
 

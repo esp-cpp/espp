@@ -87,7 +87,7 @@ public:
 
   /// Get the mjepg header.
   /// @return The mjepg header.
-  std::string_view get_mjpeg_header() {
+  std::string_view get_mjpeg_header() const {
     return std::string_view((char *)get_payload().data(), MJPEG_HEADER_SIZE);
   }
 
@@ -97,7 +97,7 @@ public:
   /// @note This check is based on the value of the q field. If the q field
   ///       is 128-256, the packet contains quantization tables.
   /// @return Whether the packet contains quantization tables.
-  bool has_q_tables() const { return q_ >= 128 && q_ <= 256; }
+  bool has_q_tables() const { return q_ >= 128; }
 
   /// Get the number of quantization tables.
   /// @note The quantization tables are optional. If they are present, the
@@ -198,7 +198,7 @@ protected:
 
     memcpy(packet.data() + offset, q1.data(), Q_TABLE_SIZE);
     q_tables_[1] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
-    offset += Q_TABLE_SIZE;
+    // offset += Q_TABLE_SIZE;
   }
 
   uint8_t type_specific_{0};

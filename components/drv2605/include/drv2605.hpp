@@ -92,12 +92,12 @@ public:
   };
 
   /**
-    * @brief The library of waveforms to use.
-    * @note The DRV2605 has 7 different libraries of waveforms. The first
-    *       library is empty, and the next 5 are ERM (eccentric rotating mass)
-    *       libraries. The last library is an LRA (linear resonant actuator)
-    *       library.
-    */
+   * @brief The library of waveforms to use.
+   * @note The DRV2605 has 7 different libraries of waveforms. The first
+   *       library is empty, and the next 5 are ERM (eccentric rotating mass)
+   *       libraries. The last library is an LRA (linear resonant actuator)
+   *       library.
+   */
   enum class Library {
     EMPTY = 0,
     ERM_0 = 1,
@@ -124,7 +124,7 @@ public:
   /**
    * @brief Construct and initialize the DRV2605.
    */
-  Drv2605(const Config &config)
+  explicit Drv2605(const Config &config)
       : motor_type_(config.motor_type), address_(config.device_address), write_(config.write),
         read_(config.read), logger_({.tag = "Drv2605", .level = config.log_level}) {
     if (config.auto_init) {
@@ -299,7 +299,7 @@ protected:
     write_many_(reg_addr, &data, 1, ec);
   }
 
-  void write_many_(uint8_t reg_addr, uint8_t *write_data, size_t write_data_len,
+  void write_many_(uint8_t reg_addr, const uint8_t *write_data, size_t write_data_len,
                    std::error_code &ec) {
     uint8_t total_len = 1 + write_data_len;
     uint8_t data[total_len];
@@ -320,12 +320,10 @@ protected:
 } // namespace espp
 
 // for easy printing of the enums with the libfmt library:
-template <>
-struct fmt::formatter<espp::Drv2605::Mode> {
+template <> struct fmt::formatter<espp::Drv2605::Mode> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
 
-  template <typename FormatContext>
-  auto format(espp::Drv2605::Mode m, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::Drv2605::Mode m, FormatContext &ctx) {
     switch (m) {
     case espp::Drv2605::Mode::INTTRIG:
       return fmt::format_to(ctx.out(), "INTTRIG");
@@ -349,12 +347,10 @@ struct fmt::formatter<espp::Drv2605::Mode> {
   }
 };
 
-template <>
-struct fmt::formatter<espp::Drv2605::Waveform> {
+template <> struct fmt::formatter<espp::Drv2605::Waveform> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
 
-  template <typename FormatContext>
-  auto format(espp::Drv2605::Waveform w, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::Drv2605::Waveform w, FormatContext &ctx) {
     switch (w) {
     case espp::Drv2605::Waveform::END:
       return fmt::format_to(ctx.out(), "END");
@@ -400,12 +396,10 @@ struct fmt::formatter<espp::Drv2605::Waveform> {
   }
 };
 
-template <>
-struct fmt::formatter<espp::Drv2605::Library> {
+template <> struct fmt::formatter<espp::Drv2605::Library> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
 
-  template <typename FormatContext>
-  auto format(espp::Drv2605::Library l, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::Drv2605::Library l, FormatContext &ctx) {
     switch (l) {
     case espp::Drv2605::Library::EMPTY:
       return fmt::format_to(ctx.out(), "EMPTY");

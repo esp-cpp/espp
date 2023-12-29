@@ -42,7 +42,8 @@ public:
         8 * 1024}; /**< Stack size (B) allocated to the TaskMonitor::task_callback.  */
   };
 
-  TaskMonitor(const Config &config) : period_(config.period), logger_({.tag = "TaskMonitor"}) {
+  explicit TaskMonitor(const Config &config)
+      : period_(config.period), logger_({.tag = "TaskMonitor"}) {
 #if CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS
     using namespace std::placeholders;
     task_ = Task::make_unique({.name = "TaskMonitor Task",

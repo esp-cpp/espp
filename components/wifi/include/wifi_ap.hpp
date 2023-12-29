@@ -38,7 +38,7 @@ public:
    * @brief Initialize the WiFi Access Point (AP)
    * @param config WifiAp::Config structure with initialization information.
    */
-  WifiAp(const Config &config) : logger_({.tag = "WifiAp", .level = config.log_level}) {
+  explicit WifiAp(const Config &config) : logger_({.tag = "WifiAp", .level = config.log_level}) {
     // Code below is modified from:
     // https://github.com/espressif/esp-idf/blob/master/examples/wifi/getting_started/softAP/main/softap_example_main.c
     // NOTE: Init phase

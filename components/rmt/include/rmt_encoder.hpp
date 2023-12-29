@@ -114,7 +114,7 @@ public:
 
   /// \brief Constructor
   /// \param config Configuration for this class
-  RmtEncoder(const Config &config) { init(config); }
+  explicit RmtEncoder(const Config &config) { init(config); }
 
   /// \brief Destructor
   ~RmtEncoder() {

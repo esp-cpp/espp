@@ -66,10 +66,8 @@ public:
   /// \param config The configuration for the button
   explicit Button(const Config &config)
       : gpio_num_(config.gpio_num), callback_(config.callback), active_level_(config.active_level),
+        event_queue_(xQueueCreate(10, sizeof(EventData))),
         logger_({.tag = config.name, .level = config.log_level}) {
-    // make the event queue
-    event_queue_ = xQueueCreate(10, sizeof(EventData));
-
     // configure the GPIO for an interrupt
     gpio_config_t io_conf;
     memset(&io_conf, 0, sizeof(io_conf));

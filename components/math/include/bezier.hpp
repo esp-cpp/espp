@@ -34,14 +34,15 @@ public:
    * @brief Construct an unweighted cubic bezier curve for evaluation.
    * @param config Unweighted Config structure containing the control points.
    */
-  Bezier(const Config &config) : weighted_(false), control_points_(config.control_points) {}
+  explicit Bezier(const Config &config)
+      : weighted_(false), control_points_(config.control_points) {}
 
   /**
    * @brief Construct a rational / weighted cubic bezier curve for evaluation.
    * @param config Rational / weighted WeightedConfig structure containing the
    *        control points and their weights.
    */
-  Bezier(const WeightedConfig &config)
+  explicit Bezier(const WeightedConfig &config)
       : weighted_(true), control_points_(config.control_points), weights_(config.weights) {}
 
   /**
@@ -82,8 +83,8 @@ protected:
     auto mt = 1.0f - t;
     auto mt2 = mt * mt;
     auto mt3 = mt2 * mt;
-    float f[] = {weights_[0] * mt3, weights_[1] * 3.0f * mt2 * t, weights_[2] * 3.0f * mt * t2,
-                 weights_[3] * t3};
+    const float f[] = {weights_[0] * mt3, weights_[1] * 3.0f * mt2 * t,
+                       weights_[2] * 3.0f * mt * t2, weights_[3] * t3};
     float basis = f[0] + f[1] + f[2] + f[3];
     return (f[0] * control_points_[0] + f[1] * control_points_[1] + f[2] * control_points_[2] +
             f[3] * control_points_[3]) /
@@ -92,6 +93,6 @@ protected:
 
   bool weighted_{false};
   std::array<T, 4> control_points_;
-  std::array<float, 4> weights_;
+  std::array<float, 4> weights_ = {{1.0f, 1.0f, 1.0f, 1.0f}};
 };
 } // namespace espp

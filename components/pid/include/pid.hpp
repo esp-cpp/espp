@@ -41,7 +41,7 @@ public:
   /**
    * @brief Create the PID controller.
    */
-  Pid(const Config &config)
+  explicit Pid(const Config &config)
       : prev_ts_(std::chrono::high_resolution_clock::now()),
         logger_({.tag = "PID", .level = config.log_level}) {
     change_gains(config);

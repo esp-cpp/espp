@@ -56,13 +56,14 @@ int16_t Ads1x15::sample_raw(int channel, std::error_code &ec) {
     return 0;
   }
   // Start with default values
-  uint16_t config = REG_CONFIG_CQUE_1CONV |   // Comparator enabled and asserts on 1
-                                              // match
-                    REG_CONFIG_CLAT_NONLAT |  // non-latching (default val)
-                    REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
-                    REG_CONFIG_CMODE_TRAD |   // Traditional comparator (default val)
-                    REG_CONFIG_MODE_SINGLE;   // Single conversion mode
-  // Set PGA/voltage range
+  uint16_t config = REG_CONFIG_MODE_SINGLE;
+  // This is equivalent to the below (since the rest are 0x0000):
+  //
+  // REG_CONFIG_CQUE_1CONV |   // Comparator enabled and asserts on 1 match
+  // REG_CONFIG_CLAT_NONLAT |  // non-latching (default val)
+  // REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low (default val)
+  // REG_CONFIG_CMODE_TRAD |   // Traditional comparator (default val)
+  // REG_CONFIG_MODE_SINGLE;   // Single conversion mode Set PGA/voltage range
   config |= (uint16_t)gain_;
   // Set data rate
   config |= rate_;

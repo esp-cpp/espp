@@ -16,9 +16,9 @@ using namespace std::chrono_literals;
 float get_random() { return ((float)esp_random() / (float)UINT32_MAX) * 2.0f - 1.0f; }
 
 extern "C" void app_main(void) {
-  size_t num_seconds_to_run = 10;
-
   {
+    size_t num_seconds_to_run = 10;
+
     fmt::print("Running both Lowpass and Butterworth Filter for {} seconds\n", num_seconds_to_run);
     //! [filter example]
     static constexpr float sample_freq_hz = 50.0f;

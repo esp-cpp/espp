@@ -52,7 +52,7 @@ void Root::restart(void) {
 bool Root::has_stopped(void) {
   bool reachedEnd = false;
   // Get the currently active leaf state
-  StateBase *activeLeaf = getActiveLeaf();
+  const StateBase *activeLeaf = getActiveLeaf();
   if (activeLeaf != nullptr && activeLeaf != this &&
       activeLeaf == static_cast<StateBase *>(&_root->COMPLEX_OBJ__END_STATE_OBJ)) {
     reachedEnd = true;
@@ -89,7 +89,7 @@ void Root::State_1::entry(void) {
   _root->log("\033[36mENTRY::State_1::/c/Y\033[0m");
   // Entry action for this state
   //::::/c/Y::::Entry::::
-  int a = 2;
+  [[maybe_unused]] int a = 2;
   printf("SerialTask :: initializing State 1\n");
 }
 

@@ -27,8 +27,8 @@ public:
 class StateBase {
 public:
   StateBase() : _activeState(this), _parentState(nullptr) {}
-  StateBase(StateBase *parent) : _activeState(this), _parentState(parent) {}
-  ~StateBase(void) {}
+  explicit StateBase(StateBase *parent) : _activeState(this), _parentState(parent) {}
+  virtual ~StateBase(void) {}
 
   /**
    * @brief Will be generated to call entry() then handle any child
@@ -118,7 +118,7 @@ public:
    *
    *  *Should only be called on leaf nodes!*
    */
-  void makeActive(void) {
+  virtual void makeActive(void) {
     if (_parentState != nullptr) {
       _parentState->setActiveChild(this);
       _parentState->makeActive();

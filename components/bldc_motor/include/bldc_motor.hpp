@@ -129,7 +129,7 @@ public:
    * @brief Create and initialize the BLDC motor, running through any
    *        necessary sensor calibration.
    */
-  BldcMotor(const Config &config)
+  explicit BldcMotor(const Config &config)
       : num_pole_pairs_(config.num_pole_pairs), phase_resistance_(config.phase_resistance),
         phase_inductance_(config.phase_inductance), kv_rating_(config.kv_rating * _SQRT2),
         current_limit_(config.current_limit), velocity_limit_(config.velocity_limit),
@@ -844,8 +844,10 @@ protected:
     // calculate the sample time from last call
     float Ts = std::chrono::duration<float>(now - openloop_timestamp).count();
     // quick fix for strange cases (micros overflow + timestamp not defined)
-    if (Ts <= 0 || Ts > 0.5f)
+    if (Ts <= 0 || Ts > 0.5f) {
+      // cppcheck-suppress unreadVariable
       Ts = 1e-3f;
+    }
     // save timestamp for next call
     openloop_timestamp = now;
 
@@ -902,8 +904,8 @@ protected:
   DqCurrent current_{0, 0}; //!< current d and q current measured
 
   // configuration parameters
-  float voltage_sensor_align_;  // sensor and motor align voltage parameter
-  float velocity_index_search_; // target velocity for index search
+  float voltage_sensor_align_;        // sensor and motor align voltage parameter
+  float velocity_index_search_{1.0f}; // target velocity for index search
 
   // motor physical parameters
   int num_pole_pairs_;

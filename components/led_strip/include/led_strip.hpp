@@ -74,7 +74,7 @@ public:
 
   /// \brief Constructor
   /// \param config Configuration for the LedStrip class
-  LedStrip(const Config &config)
+  explicit LedStrip(const Config &config)
       : num_leds_(config.num_leds), send_brightness_(config.send_brightness),
         byte_order_(config.byte_order), write_(config.write),
         logger_({.tag = "LedStrip", .level = config.log_level}) {

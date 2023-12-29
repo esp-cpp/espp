@@ -31,7 +31,7 @@ public:
    * @brief Construct the butterworth filter for the given config.
    * @param config The configuration struct for the Butterworth Filter
    */
-  ButterworthFilter(const Config &config)
+  explicit ButterworthFilter(const Config &config)
       : SosFilter<(ORDER + 1) / 2, Impl>(make_filter_config(config.normalized_cutoff_frequency)) {}
 
   friend struct fmt::formatter<ButterworthFilter<ORDER, Impl>>;

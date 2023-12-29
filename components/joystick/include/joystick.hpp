@@ -60,7 +60,7 @@ public:
    *  @brief Initalize the joystick using the provided configuration.
    *  @param config Config structure with initialization information.
    */
-  Joystick(const Config &config)
+  explicit Joystick(const Config &config)
       : x_mapper_(config.x_calibration), y_mapper_(config.y_calibration),
         deadzone_(config.deadzone), deadzone_radius_(config.deadzone_radius),
         get_values_(config.get_values), logger_({.tag = "Joystick", .level = config.log_level}) {}
@@ -101,18 +101,18 @@ public:
       logger_.error("No function provided with which to get values!");
       return;
     }
-    float x, y;
+    float _x, _y;
     logger_.info("Getting x,y values");
-    bool success = get_values_(&x, &y);
+    bool success = get_values_(&_x, &_y);
     if (!success) {
       logger_.error("Could not get values!");
       return;
     }
-    logger_.debug("Got x,y values: ({}, {})", x, y);
-    raw_.x(x);
-    raw_.y(y);
-    position_.x(x_mapper_.map(x));
-    position_.y(y_mapper_.map(y));
+    logger_.debug("Got x,y values: ({}, {})", _x, _y);
+    raw_.x(_x);
+    raw_.y(_y);
+    position_.x(x_mapper_.map(_x));
+    position_.y(y_mapper_.map(_y));
     // if we're configured to use a circular deadzone, then we apply a
     // circular deadzone on the vector.
     if (deadzone_ == Deadzone::CIRCULAR) {
@@ -188,7 +188,7 @@ template <> struct fmt::formatter<espp::Joystick> {
     return it;
   }
 
-  template <typename FormatContext> auto format(espp::Joystick const &j, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::Joystick const &j, FormatContext &ctx) const {
     switch (presentation) {
     case 'v':
       return fmt::format_to(ctx.out(), "{}", j.position_);

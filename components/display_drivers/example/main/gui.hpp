@@ -14,7 +14,7 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  Gui(const Config &config)
+  explicit Gui(const Config &config)
       : display_(config.display), logger_({.tag = "Gui", .level = config.log_level}) {
     init_ui();
     // now start the gui updater task

@@ -39,7 +39,9 @@ public:
 
   /// \brief Constructor
   /// \param config Configuration for this class
-  Rmt(const Config &config) : logger_({.tag = "RMT", .level = config.log_level}) { init(config); }
+  explicit Rmt(const Config &config) : logger_({.tag = "RMT", .level = config.log_level}) {
+    init(config);
+  }
 
   /// \brief Destructor
   /// \details This function disables the RMT peripheral and frees the

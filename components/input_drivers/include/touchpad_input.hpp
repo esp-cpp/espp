@@ -47,7 +47,7 @@ public:
    *        touchpad.
    * @param config Configuration structure for the TouchpadInput.
    */
-  TouchpadInput(const Config &config)
+  explicit TouchpadInput(const Config &config)
       : touchpad_read_(config.touchpad_read), swap_xy_(config.swap_xy), invert_x_(config.invert_x),
         invert_y_(config.invert_y), logger_({.tag = "TouchpadInput", .level = config.log_level}) {
     init();
@@ -113,13 +113,13 @@ protected:
   }
 
   static void home_button_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
-    TouchpadInput *tpi = (TouchpadInput *)drv->user_data;
+    const TouchpadInput *tpi = (const TouchpadInput *)drv->user_data;
     if (tpi) {
       tpi->home_button_read_impl(data);
     }
   }
 
-  void home_button_read_impl(lv_indev_data_t *data) {
+  void home_button_read_impl(lv_indev_data_t *data) const {
     data->state = home_button_pressed_ ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
   }
 
