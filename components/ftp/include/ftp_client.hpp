@@ -155,7 +155,7 @@ protected:
   /// \param arguments The arguments to the command.
   /// \param response The response from the FTP server.
   /// \return True if the command was sent successfully, false otherwise.
-  bool send_command(const std::string_view command, std::vector<std::string_view> &arguments,
+  bool send_command(const std::string_view command, const std::vector<std::string_view> &arguments,
                     Response &response) {
     std::string command_string = command.data();
     for (const auto &argument : arguments) {
@@ -228,7 +228,6 @@ protected:
     // encountered
     int code = 0;
     std::string message;
-    std::vector<std::string> lines;
     std::string line;
     std::istringstream stream(response.data());
     bool multiline = false;

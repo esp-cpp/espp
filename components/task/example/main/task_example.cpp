@@ -36,9 +36,6 @@ extern "C" void app_main(void) {
    *   Set up some variables we'll re-use to control and measure our tests.
    */
   size_t num_seconds_to_run = 2;
-  auto test_start = std::chrono::high_resolution_clock::now();
-  auto test_end = std::chrono::high_resolution_clock::now();
-  auto test_duration = std::chrono::duration<float>(test_end - test_start).count();
 
   /**
    *   Show a simple task running for a short period and then stopping. Enable
@@ -47,7 +44,7 @@ extern "C" void app_main(void) {
    *   which is called at the end of this scope block when the pointer leaves
    *   scope.
    */
-  test_start = std::chrono::high_resolution_clock::now();
+  auto test_start = std::chrono::high_resolution_clock::now();
   {
     fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
     //! [Task example]
@@ -73,8 +70,8 @@ extern "C" void app_main(void) {
     task.stop();
     //! [Task example]
   }
-  test_end = std::chrono::high_resolution_clock::now();
-  test_duration = std::chrono::duration<float>(test_end - test_start).count();
+  auto test_end = std::chrono::high_resolution_clock::now();
+  auto test_duration = std::chrono::duration<float>(test_end - test_start).count();
   fmt::print("Test ran for {:.03f} seconds\n", test_duration);
 
   /**

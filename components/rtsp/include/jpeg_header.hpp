@@ -590,7 +590,7 @@ protected:
 
     // add the SOS marker
     memcpy(data_.data() + offset, SOS, sizeof(SOS));
-    offset += sizeof(SOS);
+    // offset += sizeof(SOS);
   }
 
   void parse() {

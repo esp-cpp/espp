@@ -120,6 +120,7 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
   {
     std::lock_guard<std::recursive_mutex> lk(events_mutex_);
     if (!events_.subscribers.contains(topic)) {
+      logger_.warn("Cannot remove subscriber, there are no subscribers for topic '{}'", topic);
       // there is no publisher for this topic
       return false;
     }
@@ -128,6 +129,8 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
     auto elem = std::find(std::begin(topic_subscribers), std::end(topic_subscribers), component);
     bool exists = elem != std::end(topic_subscribers);
     if (!exists) {
+      logger_.warn("Cannot remove subscriber, '{}' is not registered as a subscriber for topic '{}'",
+                   component, topic);
       // component is not registered as a subscriber, so return false
       return false;
     }
@@ -138,7 +141,7 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
   // remove from `subscriber_callbacks_`
   {
     std::lock_guard<std::recursive_mutex> lk(callbacks_mutex_);
-    auto callbacks = subscriber_callbacks_[topic];
+    auto& callbacks = subscriber_callbacks_[topic];
 
     auto is_component = [&component](std::pair<std::string, event_callback_fn> &e) {
       return std::get<0>(e) == component;

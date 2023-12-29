@@ -19,7 +19,7 @@ public:
   void serialize() {}
 
 protected:
-  uint8_t *m_buffer;
-  uint32_t m_bufferSize;
+  uint8_t *m_buffer{nullptr};
+  uint32_t m_bufferSize{0};
 };
 } // namespace espp

@@ -18,7 +18,7 @@ public:
    * @brief Construct a second order sections filter.
    * @param config Array of TransferFunction<3> for configuring each of the biquad sections.
    */
-  SosFilter(const std::array<TransferFunction<3>, N> &config) {
+  explicit SosFilter(const std::array<TransferFunction<3>, N> &config) {
     for (int i = 0; i < N; i++) {
       sections_[i] = SectionImpl(config[i]);
     }

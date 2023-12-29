@@ -32,9 +32,8 @@ public:
    *        encoder.
    * @param config Configuration structure for the EncoderInput.
    */
-  EncoderInput(const Config &config)
-      : read_(config.read)
-        logger_({.tag = "EncoderInput", .level = config.log_level}) {
+  explicit EncoderInput(const Config &config)
+      : read_(config.read), logger_({.tag = "EncoderInput", .level = config.log_level}) {
     init();
   }
 
@@ -92,7 +91,7 @@ protected:
     }
   }
 
-  void button_read_impl(lv_indev_data_t *data) {
+  void button_read_impl(lv_indev_data_t *data) const {
     data->state = button_pressed_ ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
   }
 

@@ -86,7 +86,7 @@ public:
    * @brief Construct the Aw9523. Will call initialize() if auto_init is true.
    * @param config Config structure for configuring the AW9523
    */
-  Aw9523(const Config &config)
+  explicit Aw9523(const Config &config)
       : config_(config), address_(config.device_address), write_(config.write), read_(config.read),
         logger_({.tag = "Aw9523", .level = config.log_level}) {
     if (config.auto_init) {
@@ -305,7 +305,7 @@ public:
   void set_interrupt(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Setting interrupt on change p0:{}, p1:{}", p0, p1);
     auto addr = Registers::INTPORT0;
-    uint8_t data[] = {p0, p1};
+    const uint8_t data[] = {p0, p1};
     write_many_((uint8_t)addr, data, 2, ec);
   }
 
@@ -330,7 +330,7 @@ public:
   void set_direction(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Setting direction  p0:{}, p1:{}", p0, p1);
     auto addr = Registers::DIRPORT0;
-    uint8_t data[] = {p0, p1};
+    const uint8_t data[] = {p0, p1};
     write_many_((uint8_t)addr, data, 2, ec);
   }
 
@@ -355,7 +355,7 @@ public:
   void configure_led(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
     auto addr = Registers::LEDMODE0;
-    uint8_t data[] = {p0, p1};
+    const uint8_t data[] = {p0, p1};
     write_many_((uint8_t)addr, data, 2, ec);
   }
 
@@ -370,7 +370,7 @@ public:
     uint8_t p1 = (mask >> 8) & 0xFF;
     logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
     auto addr = Registers::LEDMODE0;
-    uint8_t data[] = {p0, p1};
+    const uint8_t data[] = {p0, p1};
     write_many_((uint8_t)addr, data, 2, ec);
   }
 
@@ -540,7 +540,7 @@ protected:
     write_many_(reg_addr, &data, 1, ec);
   }
 
-  void write_many_(uint8_t reg_addr, uint8_t *write_data, size_t write_data_len,
+  void write_many_(uint8_t reg_addr, const uint8_t *write_data, size_t write_data_len,
                    std::error_code &ec) {
     uint8_t total_len = 1 + write_data_len;
     uint8_t data[total_len];

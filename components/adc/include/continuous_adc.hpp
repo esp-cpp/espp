@@ -3,6 +3,7 @@
 #include <atomic>
 #include <optional>
 #include <unordered_map>
+#include <vector>
 
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
@@ -48,17 +49,15 @@ public:
    * @brief Initialize and start the continuous adc reader.
    * @param config Config used to initialize the reader.
    */
-  ContinuousAdc(const Config &config)
+  explicit ContinuousAdc(const Config &config)
       : sample_rate_hz_(config.sample_rate_hz), window_size_bytes_(config.window_size_bytes),
         num_channels_(config.channels.size()), conv_mode_(config.convert_mode),
+        result_data_(window_size_bytes_, 0xcc),
         logger_({.tag = "Continuous Adc",
                  .rate_limit = std::chrono::milliseconds(100),
                  .level = config.log_level}) {
     // initialize the adc continuous subsystem
     init(config.channels);
-    // allocate memory for the task to store result data from DMA
-    result_data_ = new uint8_t[window_size_bytes_];
-    memset(result_data_, 0xcc, window_size_bytes_);
     // and start the task
     using namespace std::placeholders;
     task_ =
@@ -78,12 +77,11 @@ public:
     vTaskNotifyGiveFromISR(task_handle_, &mustYield);
     // then stop the task
     task_->stop();
-    delete[] result_data_;
     stop();
     ESP_ERROR_CHECK(adc_continuous_deinit(handle_));
     // clean up the calibration data
-    for (auto &config : configs_) {
-      auto id = get_id(config);
+    for (const auto &config : configs_) {
+      [[maybe_unused]] auto id = get_id(config);
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
       ESP_ERROR_CHECK(adc_cali_delete_scheme_curve_fitting(cali_handles_[id]));
 #elif ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
@@ -173,14 +171,14 @@ protected:
     // wait until conversion is ready (will be notified by the registered
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     auto current_timestamp = std::chrono::high_resolution_clock::now();
-    for (auto &config : configs_) {
+    for (const auto &config : configs_) {
       auto id = get_id(config);
       sums_[id] = 0;
       num_samples_[id] = 0;
     }
     esp_err_t ret;
     uint32_t ret_num = 0;
-    ret = adc_continuous_read(handle_, result_data_, window_size_bytes_, &ret_num, 0);
+    ret = adc_continuous_read(handle_, result_data_.data(), window_size_bytes_, &ret_num, 0);
     if (ret == ESP_ERR_TIMEOUT) {
       // this is ok, we read faster than the hardware could give us data
       return false;
@@ -341,21 +339,20 @@ protected:
     bool calibrated = false;
 
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
-    if (!calibrated) {
-      logger_.info("calibration scheme version is {}", "Curve Fitting");
-      adc_cali_curve_fitting_config_t cali_config = {
-          .unit_id = unit,
-          .atten = atten,
-          .bitwidth = bitwidth,
-      };
-      ret = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
-      if (ret == ESP_OK) {
-        calibrated = true;
-      }
+    logger_.info("calibration scheme version is {}", "Curve Fitting");
+    adc_cali_curve_fitting_config_t cali_config = {
+        .unit_id = unit,
+        .atten = atten,
+        .bitwidth = bitwidth,
+    };
+    ret = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
+    if (ret == ESP_OK) {
+      calibrated = true;
     }
 #endif
 
 #if ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
+    // cppcheck-suppress knownConditionTrueFalse
     if (!calibrated) {
       logger_.info("calibration scheme version is {}", "Line Fitting");
       adc_cali_line_fitting_config_t cali_config = {
@@ -373,6 +370,7 @@ protected:
     *out_handle = handle;
     if (ret == ESP_OK) {
       logger_.info("Calibration Success");
+      // cppcheck-suppress knownConditionTrueFalse
     } else if (ret == ESP_ERR_NOT_SUPPORTED || !calibrated) {
       logger_.warn("eFuse not burnt, skip software calibration");
     } else {
@@ -399,11 +397,11 @@ protected:
   adc_continuous_handle_t handle_;
   adc_digi_convert_mode_t conv_mode_;
   adc_digi_output_format_t output_format_;
+  std::vector<uint8_t> result_data_;
   Logger logger_;
   std::unique_ptr<Task> task_;
   TaskHandle_t task_handle_{NULL};
   std::mutex data_mutex_;
-  uint8_t *result_data_;
 
   std::atomic<bool> running_{false};
 

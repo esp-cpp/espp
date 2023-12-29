@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <mutex>
+#include <numeric>
 
 #include "driver/dedic_gpio.h"
 #include "driver/gpio.h"
@@ -134,7 +136,7 @@ public:
   /**
    * @brief Create a Digital controller.
    */
-  Controller(const DigitalConfig &config)
+  explicit Controller(const DigitalConfig &config)
       : logger_({.tag = "Digital Controller", .level = config.log_level}) {
     gpio_.assign((int)Button::LAST_UNUSED, -1);
     input_state_.assign((int)Button::LAST_UNUSED, false);
@@ -154,7 +156,7 @@ public:
   /**
    * @brief Create an analog joystick controller.
    */
-  Controller(const AnalogJoystickConfig &config)
+  explicit Controller(const AnalogJoystickConfig &config)
       : joystick_(std::make_unique<espp::Joystick>(config.joystick_config)),
         logger_({.tag = "Analog Joystick Controller", .level = config.log_level}) {
     gpio_.assign((int)Button::LAST_UNUSED, -1);
@@ -172,7 +174,7 @@ public:
   /**
    * @brief Create a dual d-pad + analog joystick controller.
    */
-  Controller(const DualConfig &config)
+  explicit Controller(const DualConfig &config)
       : logger_({.tag = "Dual Digital Controller", .level = config.log_level}) {
     gpio_.assign((int)Button::LAST_UNUSED, -1);
     input_state_.assign((int)Button::LAST_UNUSED, false);
@@ -241,11 +243,11 @@ public:
     // configured (-1) in our vector, but the returned bitmask simply orders
     // them (low bit is low member in originally provided vector) so we need to
     // track the actual bit corresponding to the pin in the pin_state.
-    int bit = 0;
     // and pull out the state into the vector accordingly
     logger_.debug("Parsing bundle state from pin state 0x{:04X}", pin_state);
     {
       std::scoped_lock<std::mutex> lk(state_mutex_);
+      int bit = 0;
       for (int i = 0; i < gpio_.size(); i++) {
         auto gpio = gpio_[i];
         if (gpio != -1) {
@@ -285,16 +287,12 @@ protected:
   void init_gpio(bool active_low) {
     // select only the gpios that are used (not -1)
     std::vector<int> actual_gpios;
-    for (auto gpio : gpio_) {
-      if (gpio != -1) {
-        actual_gpios.push_back(gpio);
-      }
-    }
+    std::copy_if(gpio_.begin(), gpio_.end(), std::back_inserter(actual_gpios),
+                 [](int gpio) { return gpio != -1; });
 
     uint64_t pin_mask = 0;
-    for (auto gpio : actual_gpios) {
-      pin_mask |= (1ULL << gpio);
-    }
+    std::accumulate(actual_gpios.begin(), actual_gpios.end(), pin_mask,
+                    [](uint64_t mask, int gpio) { return mask | (1ULL << gpio); });
     gpio_config_t io_config = {
         .pin_bit_mask = pin_mask,
         .mode = GPIO_MODE_INPUT,

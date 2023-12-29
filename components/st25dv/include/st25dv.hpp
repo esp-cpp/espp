@@ -88,7 +88,7 @@ public:
   /**
    * @brief Construct the St25dv and start the update task.
    */
-  St25dv(const Config &config)
+  explicit St25dv(const Config &config)
       : write_(config.write), read_(config.read),
         logger_({.tag = "St25dv", .level = config.log_level}) {
     if (config.auto_init) {
@@ -330,7 +330,9 @@ public:
    * @param length Number of bytes to write.
    * @param &ec Error code to be filled with any errors that occur during
    */
-  void transfer(uint8_t *data, uint8_t length, std::error_code &ec) { write_ftm(data, length, ec); }
+  void transfer(const uint8_t *data, uint8_t length, std::error_code &ec) {
+    write_ftm(data, length, ec);
+  }
 
   /**
    * @brief Read data from the FTM message box.
@@ -370,7 +372,7 @@ protected:
     logger_.info("Memory size (B): {}", memory_size_bytes_);
   }
 
-  void write_ftm(uint8_t *data, uint8_t length, std::error_code &ec) {
+  void write_ftm(const uint8_t *data, uint8_t length, std::error_code &ec) {
     // must start from FTM_START_ADDR
     uint8_t all_data[2 + length];
     all_data[0] = (uint8_t)(FTM_START_ADDR >> 8);
@@ -430,13 +432,13 @@ protected:
   }
 
   uint64_t read_password(std::error_code &ec) {
-    uint8_t pswd[8];
-    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::I2C_PWD, pswd, sizeof(pswd));
+    uint8_t pswds[8];
+    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::I2C_PWD, pswds, sizeof(pswds));
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
       return 0;
     }
-    memcpy(&password_, pswd, sizeof(pswd));
+    memcpy(&password_, pswds, sizeof(pswds));
     logger_.debug("Got pswd: 0x{:016X}", password_);
     return password_;
   }
@@ -446,7 +448,7 @@ protected:
     uint8_t data[2 + 17] = {0};
     data[0] = (uint16_t)Registers::I2C_PWD >> 8;
     data[1] = (uint16_t)Registers::I2C_PWD & 0xFF;
-    uint8_t *pswd_data = (uint8_t *)&password_;
+    const uint8_t *pswd_data = (uint8_t *)&password_;
     // validation code in the middle
     data[8 + 2] = 0x09;
     for (int i = 0; i < 4; i++) {
@@ -518,7 +520,7 @@ protected:
      * @return Number of bytes of raw that should be written to represent the
      *         TLV.
      */
-    int size() { return length < 255 ? 2 : 4; }
+    int size() const { return length < 255 ? 2 : 4; }
 
     /**
      * @brief Append the TLV into a vector of bytes.
@@ -540,7 +542,7 @@ protected:
      * @param data The vector to serialize the TLV into.
      * @param offset The offset into the vector to start writing at.
      */
-    void serialize(std::vector<uint8_t> &data, int offset) {
+    void serialize(std::vector<uint8_t> &data, int offset) const {
       data[offset] = (uint8_t)type;
       if (length < 255) {
         data[offset + 1] = length;

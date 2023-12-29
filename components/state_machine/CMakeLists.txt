@@ -1,3 +1,3 @@
 idf_component_register(
-  INCLUDE_DIRS "include"
+  INCLUDE_DIRS "../../external/magic_enum/include/magic_enum" "include"
 )

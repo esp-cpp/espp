@@ -25,3 +25,6 @@
 [submodule "lib/pybind11"]
 	path = lib/pybind11
 	url = git@github.com:pybind/pybind11
+[submodule "external/magic_enum"]
+	path = external/magic_enum
+	url = git@github.com:neargye/magic_enum

@@ -99,11 +99,18 @@ public:
    * @param config Display configuration including buffer size and flush
    *        callback.
    */
-  Display(const AllocatingConfig &config)
+  explicit Display(const AllocatingConfig &config)
       : width_(config.width), height_(config.height),
         display_buffer_px_size_(config.pixel_buffer_size),
-        led_channel_configs_(std::vector<Led::ChannelConfig>{{.gpio = (size_t)config.backlight_pin, .channel = LEDC_CHANNEL_0, .timer = LEDC_TIMER_0, .output_invert = !config.backlight_on_value}}),
-        backlight_(Led::Config{.timer = LEDC_TIMER_0, .frequency_hz = 5000, .channels = led_channel_configs_, .duty_resolution = LEDC_TIMER_10_BIT}),
+        led_channel_configs_(
+            std::vector<Led::ChannelConfig>{{.gpio = (size_t)config.backlight_pin,
+                                             .channel = LEDC_CHANNEL_0,
+                                             .timer = LEDC_TIMER_0,
+                                             .output_invert = !config.backlight_on_value}}),
+        backlight_(Led::Config{.timer = LEDC_TIMER_0,
+                               .frequency_hz = 5000,
+                               .channels = led_channel_configs_,
+                               .duty_resolution = LEDC_TIMER_10_BIT}),
         update_period_(config.update_period),
         logger_({.tag = "Display", .level = config.log_level}) {
     logger_.debug("Initializing with allocating config!");
@@ -124,12 +131,18 @@ public:
    * @param config Display configuration including pointers to display buffer
    *        memory, the pixel buffer size and flush callback.
    */
-  Display(const NonAllocatingConfig &config)
+  explicit Display(const NonAllocatingConfig &config)
       : width_(config.width), height_(config.height),
         display_buffer_px_size_(config.pixel_buffer_size), vram_0_(config.vram0),
-        vram_1_(config.vram1),
-        led_channel_configs_(std::vector<Led::ChannelConfig>{{.gpio = (size_t)config.backlight_pin, .channel = LEDC_CHANNEL_0, .timer = LEDC_TIMER_0, .output_invert = !config.backlight_on_value}}),
-        backlight_(Led::Config{.timer = LEDC_TIMER_0, .frequency_hz = 5000, .channels = led_channel_configs_, .duty_resolution = LEDC_TIMER_10_BIT}),
+        vram_1_(config.vram1), led_channel_configs_(std::vector<Led::ChannelConfig>{
+                                   {.gpio = (size_t)config.backlight_pin,
+                                    .channel = LEDC_CHANNEL_0,
+                                    .timer = LEDC_TIMER_0,
+                                    .output_invert = !config.backlight_on_value}}),
+        backlight_(Led::Config{.timer = LEDC_TIMER_0,
+                               .frequency_hz = 5000,
+                               .channels = led_channel_configs_,
+                               .duty_resolution = LEDC_TIMER_10_BIT}),
         update_period_(config.update_period),
         logger_({.tag = "Display", .level = config.log_level}) {
     logger_.debug("Initializing with non-allocating config!");
@@ -199,7 +212,7 @@ public:
    *       (to draw to it with something other than LVGL) and want to switch
    *       back to the LVGL gui. Normally you should not call this function.
    */
-  void force_refresh() {
+  void force_refresh() const {
     auto disp = lv_disp_get_default();
     // lv_refr_now(disp);
     lv_area_t area = {.x1 = 0, .y1 = 0, .x2 = (int16_t)width_, .y2 = (int16_t)height_};
@@ -222,13 +235,13 @@ public:
    * @brief Return the number of pixels that vram() can hold.
    * @return size_t Number of pixels that fit in the display buffer.
    */
-  size_t vram_size_px() { return display_buffer_px_size_; }
+  size_t vram_size_px() const { return display_buffer_px_size_; }
 
   /**
    * @brief Return the number of bytes that vram() can hold.
    * @return size_t Number of bytes that fit in the display buffer.
    */
-  size_t vram_size_bytes() { return display_buffer_px_size_ * sizeof(lv_color_t); }
+  size_t vram_size_bytes() const { return display_buffer_px_size_ * sizeof(lv_color_t); }
 
 protected:
   /**

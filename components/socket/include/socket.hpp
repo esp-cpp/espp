@@ -246,7 +246,7 @@ public:
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
     fmt::print(fg(fmt::color::red), "CONFIG_LWIP_SO_REUSE not defined!\n");
     return false;
-#endif
+#else // CONFIG_LWIP_SO_REUSE || !defined(ESP_PLATFORM)
     int err = 0;
     int enabled = 1;
     err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
@@ -260,8 +260,9 @@ public:
       fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT\n");
       return false;
     }
-#endif
+#endif // !defined(ESP_PLATFORM)
     return true;
+#endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
   }
 
   /**
@@ -391,6 +392,7 @@ protected:
       logger_.error("Cannot create socket: {} - '{}'", errno, strerror(errno));
       return false;
     }
+    // cppcheck-suppress knownConditionTrueFalse
     if (!enable_reuse()) {
       logger_.error("Cannot enable reuse: {} - '{}'", errno, strerror(errno));
       return false;

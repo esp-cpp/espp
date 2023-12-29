@@ -33,7 +33,7 @@ public:
     float duty{
         0}; /**< The starting duty cycle (%) [0, 100] that you want the LED channel to have. */
     ledc_mode_t speed_mode{
-        LEDC_LOW_SPEED_MODE}; /**< The LEDC speed mode you want for this LED channel. */
+        LEDC_LOW_SPEED_MODE};  /**< The LEDC speed mode you want for this LED channel. */
     bool output_invert{false}; /**< Whether to invert the GPIO output for this LED channel. */
   };
 
@@ -58,7 +58,7 @@ public:
    * @brief Initialize the LEDC subsystem according to the configuration.
    * @param config The configuration structure for the LEDC subsystem.
    */
-  Led(const Config &config)
+  explicit Led(const Config &config)
       : duty_resolution_(config.duty_resolution),
         max_raw_duty_((uint32_t)(std::pow(2, (int)duty_resolution_) - 1)),
         channels_(config.channels), logger_({.tag = "Led", .level = config.log_level}) {
@@ -134,7 +134,7 @@ public:
     if (index == -1) {
       return false;
     }
-    auto sem = fade_semaphores_[index];
+    auto &sem = fade_semaphores_[index];
     return uxSemaphoreGetCount(sem) == 1;
   }
 
@@ -149,7 +149,7 @@ public:
     if (index == -1) {
       return {};
     }
-    const auto& conf = channels_[index];
+    const auto &conf = channels_[index];
     auto raw_duty = ledc_get_duty(conf.speed_mode, conf.channel);
     return (float)raw_duty / (float)max_raw_duty_ * 100.0f;
   }
@@ -167,7 +167,7 @@ public:
       return;
     }
     auto conf = channels_[index];
-    auto sem = fade_semaphores_[index];
+    auto &sem = fade_semaphores_[index];
     // ensure that it's not fading if it is
     xSemaphoreTake(sem, portMAX_DELAY);
     uint32_t actual_duty = std::clamp(duty_percent, 0.0f, 100.0f) * max_raw_duty_ / 100.0f;
@@ -192,7 +192,7 @@ public:
       return;
     }
     auto conf = channels_[index];
-    auto sem = fade_semaphores_[index];
+    auto &sem = fade_semaphores_[index];
     // ensure that it's not fading if it is
     xSemaphoreTake(sem, portMAX_DELAY);
     uint32_t actual_duty = std::clamp(duty_percent, 0.0f, 100.0f) * max_raw_duty_ / 100.0f;

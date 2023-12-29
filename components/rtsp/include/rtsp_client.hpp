@@ -245,8 +245,8 @@ public:
     auto transport_header =
         "RTP/AVP;unicast;client_port=" + std::to_string(rtp_port) + "-" + std::to_string(rtcp_port);
 
-    // send the setup request
-    auto response = send_request("SETUP", path_, {{"Transport", transport_header}}, ec);
+    // send the setup request (no response is expected)
+    send_request("SETUP", path_, {{"Transport", transport_header}}, ec);
     if (ec) {
       return;
     }
@@ -315,7 +315,7 @@ protected:
     //   std::regex response_regex("RTSP/1.0 (\\d+) (.*)\r\n(.*)\r\n\r\n");
     // parse the response but don't use regex since it may be slow on embedded platforms
     // make sure it matches the expected response format
-    if (response_data.find("RTSP/1.0") != 0) {
+    if (response_data.starts_with("RTSP/1.0") != 0) {
       ec = std::make_error_code(std::errc::protocol_error);
       logger_.error("Invalid response");
       return false;
@@ -460,7 +460,7 @@ protected:
   std::optional<std::vector<uint8_t>> handle_rtcp_packet(std::vector<uint8_t> &data,
                                                          const espp::Socket::Info &sender_info) {
     // receive the rtcp packet
-    std::string_view packet(reinterpret_cast<char *>(data.data()), data.size());
+    [[maybe_unused]] std::string_view packet(reinterpret_cast<char *>(data.data()), data.size());
     // TODO: parse the rtcp packet
     // return an empty vector to indicate that we don't want to send a response
     return {};

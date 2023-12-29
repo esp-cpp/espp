@@ -93,7 +93,7 @@ public:
   /**
    * @brief Construct the As5600 and start the update task.
    */
-  As5600(const Config &config)
+  explicit As5600(const Config &config)
       : address_(config.device_address), write_(config.write), read_(config.read),
         velocity_filter_(config.velocity_filter), update_period_(config.update_period),
         logger_({.tag = "As5600", .level = config.log_level}) {

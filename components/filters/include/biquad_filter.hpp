@@ -30,11 +30,11 @@ class BiquadFilterDf1 {
 public:
   BiquadFilterDf1() {}
 
-  BiquadFilterDf1(const TransferFunction<3> &tf)
+  explicit BiquadFilterDf1(const TransferFunction<3> &tf)
       : BiquadFilterDf1(tf.b, std::array<float, 2>{{tf.a[1], tf.a[2]}}, tf.a[0]) {}
 
-  BiquadFilterDf1(const std::array<float, 3> &b, const std::array<float, 2> &a, const float &a0,
-                  const float &gain = 1.0f) {
+  explicit BiquadFilterDf1(const std::array<float, 3> &b, const std::array<float, 2> &a,
+                           const float &a0, const float &gain = 1.0f) {
     b_[0] = b[0] * gain / a0;
     b_[1] = b[1] * gain / a0;
     b_[2] = b[2] * gain / a0;
@@ -95,11 +95,11 @@ class BiquadFilterDf2 {
 public:
   BiquadFilterDf2() {}
 
-  BiquadFilterDf2(const TransferFunction<3> &tf)
+  explicit BiquadFilterDf2(const TransferFunction<3> &tf)
       : BiquadFilterDf2(tf.b, std::array<float, 2>{{tf.a[1], tf.a[2]}}, tf.a[0]) {}
 
-  BiquadFilterDf2(const std::array<float, 3> &b, const std::array<float, 2> &a, const float &a0,
-                  const float &gain = 1.0f) {
+  explicit BiquadFilterDf2(const std::array<float, 3> &b, const std::array<float, 2> &a,
+                           const float &a0, const float &gain = 1.0f) {
     b_[0] = b[0] * gain / a0;
     b_[1] = b[1] * gain / a0;
     b_[2] = b[2] * gain / a0;
@@ -122,7 +122,7 @@ public:
    * @param length Number of samples, should be >= length of input & output memory.
    */
   void update(const float *input, float *output, size_t length) {
-    dsps_biquad_f32(input, output, length, coeffs_, w_.data());
+    dsps_biquad_f32(input, output, length, coeffs_.data(), w_.data());
   }
 
   /**
@@ -133,14 +133,14 @@ public:
    */
   float update(const float input) {
     float result;
-    dsps_biquad_f32(&input, &result, 1, coeffs_, w_.data());
+    dsps_biquad_f32(&input, &result, 1, coeffs_.data(), w_.data());
     return result;
   }
 
   friend struct fmt::formatter<BiquadFilterDf2>;
 
 protected:
-  float coeffs_[5];
+  std::array<float, 5> coeffs_ = {{0}};
 
   std::array<float, 3> b_ = {{0}};
   std::array<float, 2> a_ = {{0}};

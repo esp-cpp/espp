@@ -300,8 +300,8 @@ protected:
     return false;
   }
 
-  int terminal_width_;
-  int terminal_height_;
+  int terminal_width_{80};
+  int terminal_height_{24};
   size_t history_size_ = 0;
   History input_history_;
   std::atomic<bool> should_handle_resize_{true};

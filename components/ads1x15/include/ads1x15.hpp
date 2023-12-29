@@ -34,8 +34,7 @@ public:
    * @param data_len Number of data bytes to read.
    * @return True if the read was successful.
    */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)>
-      read_fn;
+  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> read_fn;
 
   /**
    *  @brief Gain values for the ADC conversion.
@@ -104,7 +103,7 @@ public:
    * @brief Construct Ads1x15 specficially for ADS1015.
    * @param config Configuration structure.
    */
-  Ads1x15(const Ads1015Config &config)
+  explicit Ads1x15(const Ads1015Config &config)
       : gain_(config.gain), ads1015rate_(config.sample_rate), bit_shift_(4),
         address_(config.device_address), write_(config.write), read_(config.read),
         logger_({.tag = "Ads1015", .level = config.log_level}) {}
@@ -113,7 +112,7 @@ public:
    * @brief Construct Ads1x15 specficially for ADS1115.
    * @param config Configuration structure.
    */
-  Ads1x15(const Ads1115Config &config)
+  explicit Ads1x15(const Ads1115Config &config)
       : gain_(config.gain), ads1115rate_(config.sample_rate), bit_shift_(0),
         address_(config.device_address), write_(config.write), read_(config.read),
         logger_({.tag = "Ads1115", .level = config.log_level}) {}
@@ -138,7 +137,7 @@ protected:
 
   bool conversion_complete(std::error_code &ec);
 
-  float raw_to_mv(int16_t raw) {
+  float raw_to_mv(int16_t raw) const {
     // see data sheet Table 3
     float fsRange;
     switch (gain_) {
