@@ -290,9 +290,9 @@ protected:
     std::copy_if(gpio_.begin(), gpio_.end(), std::back_inserter(actual_gpios),
                  [](int gpio) { return gpio != -1; });
 
-    uint64_t pin_mask = 0;
-    std::accumulate(actual_gpios.begin(), actual_gpios.end(), pin_mask,
-                    [](uint64_t mask, int gpio) { return mask | (1ULL << gpio); });
+    uint64_t pin_mask =
+        std::accumulate(actual_gpios.begin(), actual_gpios.end(), 0,
+                        [](uint64_t mask, int gpio) { return mask | (1ULL << gpio); });
     gpio_config_t io_config = {
         .pin_bit_mask = pin_mask,
         .mode = GPIO_MODE_INPUT,
