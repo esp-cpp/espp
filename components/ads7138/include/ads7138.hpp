@@ -929,8 +929,8 @@ protected:
     logger_.info("Setting digital mode for outputs {} and inputs {}", digital_outputs_,
                  digital_inputs_);
     uint8_t data = 0;
-    std::accumulate(digital_inputs_.begin(), digital_inputs_.end(), data, bit_pred);
-    std::accumulate(digital_outputs_.begin(), digital_outputs_.end(), data, bit_pred);
+    data = std::accumulate(digital_inputs_.begin(), digital_inputs_.end(), data, bit_pred);
+    data = std::accumulate(digital_outputs_.begin(), digital_outputs_.end(), data, bit_pred);
     // don't have to do anything for analog inputs since they are the default
     // state (0)
     write_one_(Register::PIN_CFG, data, ec);
@@ -939,8 +939,7 @@ protected:
   void set_digital_io_direction(std::error_code &ec) {
     logger_.info("Setting digital output for pins {}", digital_outputs_);
     // default direction is input (0)
-    uint8_t data = 0;
-    std::accumulate(digital_outputs_.begin(), digital_outputs_.end(), data, bit_pred);
+    uint8_t data = std::accumulate(digital_outputs_.begin(), digital_outputs_.end(), 0, bit_pred);
     write_one_(Register::GPIO_CFG, data, ec);
   }
 
@@ -949,8 +948,7 @@ protected:
     if (mode_ == Mode::AUTONOMOUS) {
       logger_.info("Setting analog inputs for autonomous mode");
       // configure the analog inputs for autonomous conversion sequence
-      uint8_t data = 0;
-      std::accumulate(analog_inputs_.begin(), analog_inputs_.end(), data, bit_pred);
+      uint8_t data = std::accumulate(analog_inputs_.begin(), analog_inputs_.end(), 0, bit_pred);
       write_one_(Register::AUTO_SEQ_CH_SEL, data, ec);
     }
   }
