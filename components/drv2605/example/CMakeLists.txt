@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py driver drv2605 logger task"
+  "main esptool_py drv2605 i2c logger task"
   CACHE STRING
   "List of components to include"
   )

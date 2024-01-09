@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py bt nvs_flash filters driver task st25dv"
+  "main esptool_py bt nvs_flash filters i2c task st25dv"
   CACHE STRING
   "List of components to include"
   )

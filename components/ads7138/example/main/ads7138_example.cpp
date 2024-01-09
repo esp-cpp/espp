@@ -1,10 +1,11 @@
 #include <chrono>
+#include <sdkconfig.h>
 #include <vector>
 
 #include "driver/gpio.h"
-#include "driver/i2c.h"
 
 #include "ads7138.hpp"
+#include "i2c.hpp"
 #include "logger.hpp"
 #include "task.hpp"
 
@@ -64,13 +65,6 @@ using namespace std::chrono_literals;
 // active low, so when we set the digital output to 1, the LED should turn off,
 // and when we set the digital output to 0, the LED should turn on. We can
 // change the digital output value by pressing the button on the joystick.
-static constexpr auto ALERT_PIN = (GPIO_NUM_18);
-static constexpr auto I2C_NUM = (I2C_NUM_1);
-static constexpr auto I2C_SCL_IO = (GPIO_NUM_40);
-static constexpr auto I2C_SDA_IO = (GPIO_NUM_41);
-static constexpr auto I2C_FREQ_HZ = (400 * 1000);
-static constexpr auto I2C_TIMEOUT_MS = (10);
-
 static QueueHandle_t gpio_evt_queue;
 
 static void gpio_isr_handler(void *arg) {
@@ -85,34 +79,13 @@ extern "C" void app_main(void) {
     logger.info("Starting example!");
 
     //! [ads7138 example]
+    static constexpr gpio_num_t ALERT_PIN = (gpio_num_t)CONFIG_EXAMPLE_ALERT_GPIO;
     // make the I2C that we'll use to communicate
-    i2c_config_t i2c_cfg;
-    logger.info("initializing i2c driver...");
-    memset(&i2c_cfg, 0, sizeof(i2c_cfg));
-    i2c_cfg.sda_io_num = I2C_SDA_IO;
-    i2c_cfg.scl_io_num = I2C_SCL_IO;
-    i2c_cfg.mode = I2C_MODE_MASTER;
-    i2c_cfg.sda_pullup_en = GPIO_PULLUP_DISABLE;
-    i2c_cfg.scl_pullup_en = GPIO_PULLUP_DISABLE;
-    i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-    auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-    if (err != ESP_OK)
-      logger.error("config i2c failed");
-    err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
-    if (err != ESP_OK)
-      logger.error("install i2c driver failed");
-
-    // make some lambda functions we'll use to read/write to the i2c adc
-    auto ads_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) -> bool {
-      auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
-                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
-    auto ads_read = [](uint8_t dev_addr, uint8_t *data, size_t data_len) -> bool {
-      auto err = i2c_master_read_from_device(I2C_NUM, dev_addr, data, data_len,
-                                             I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
+    espp::I2c i2c({
+        .port = I2C_NUM_1,
+        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+    });
 
     // make the actual ads class
     static int select_bit_mask = (1 << 5);
@@ -127,8 +100,10 @@ extern "C" void app_main(void) {
         .digital_output_values = {{espp::Ads7138::Channel::CH7, 1}}, // start the LED off
         // enable oversampling / averaging
         .oversampling_ratio = espp::Ads7138::OversamplingRatio::OSR_32,
-        .write = ads_write,
-        .read = ads_read,
+        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
+                           std::placeholders::_3),
+        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
+                          std::placeholders::_3),
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
@@ -277,9 +252,6 @@ extern "C" void app_main(void) {
       std::this_thread::sleep_for(100ms);
     }
   }
-  // now clean up the i2c driver (by now the task will have stopped, because we
-  // left its scope.
-  i2c_driver_delete(I2C_NUM);
 
   logger.info("ADS7138 example complete!");
 

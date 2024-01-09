@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py driver tla2528 adc task controller"
+  "main esptool_py i2c task tla2528"
   CACHE STRING
   "List of components to include"
   )

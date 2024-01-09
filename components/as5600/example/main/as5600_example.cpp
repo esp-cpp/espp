@@ -1,19 +1,13 @@
 #include <chrono>
+#include <sdkconfig.h>
 #include <vector>
-
-#include "driver/i2c.h"
 
 #include "as5600.hpp"
 #include "butterworth_filter.hpp"
+#include "i2c.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
-
-#define I2C_NUM (I2C_NUM_1)
-#define I2C_SCL_IO (GPIO_NUM_40)
-#define I2C_SDA_IO (GPIO_NUM_41)
-#define I2C_FREQ_HZ (400 * 1000)
-#define I2C_TIMEOUT_MS (10)
 
 extern "C" void app_main(void) {
   {
@@ -21,33 +15,12 @@ extern "C" void app_main(void) {
     fmt::print("Starting as5600 example, rotate to -720 degrees to quit!\n");
     //! [as5600 example]
     // make the I2C that we'll use to communicate
-    i2c_config_t i2c_cfg;
-    fmt::print("initializing i2c driver...\n");
-    memset(&i2c_cfg, 0, sizeof(i2c_cfg));
-    i2c_cfg.sda_io_num = I2C_SDA_IO;
-    i2c_cfg.scl_io_num = I2C_SCL_IO;
-    i2c_cfg.mode = I2C_MODE_MASTER;
-    i2c_cfg.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-    auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-    if (err != ESP_OK)
-      printf("config i2c failed\n");
-    err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
-    if (err != ESP_OK)
-      printf("install i2c driver failed\n");
-    // make some lambda functions we'll use to read/write to the as5600
-    auto as5600_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
-      auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
-                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
+    espp::I2c i2c({
+        .port = I2C_NUM_1,
+        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+    });
 
-    auto as5600_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len) {
-      auto err = i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, data_len,
-                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
     // make the velocity filter
     static constexpr float filter_cutoff_hz = 4.0f;
     static constexpr float encoder_update_period = 0.01f; // seconds
@@ -56,12 +29,17 @@ extern "C" void app_main(void) {
     // NOTE: we could just as easily disable filtering by simply returning the
     // raw value from this function
     auto filter_fn = [&filter](float raw) -> float { return filter.update(raw); };
+
     // now make the as5600 which decodes the data
-    espp::As5600 as5600({.write = as5600_write,
-                         .read = as5600_read,
-                         .velocity_filter = filter_fn,
-                         .update_period = std::chrono::duration<float>(encoder_update_period),
-                         .log_level = espp::Logger::Verbosity::WARN});
+    espp::As5600 as5600(
+        {.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
+                            std::placeholders::_3),
+         .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                           std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+         .velocity_filter = filter_fn,
+         .update_period = std::chrono::duration<float>(encoder_update_period),
+         .log_level = espp::Logger::Verbosity::WARN});
+
     // and finally, make the task to periodically poll the as5600 and print the
     // state. NOTE: the As5600 runs its own task to maintain state, so we're
     // just polling the current state.
@@ -94,8 +72,6 @@ extern "C" void app_main(void) {
     while (!quit_test) {
       std::this_thread::sleep_for(100ms);
     }
-    // now clean up the i2c driver
-    i2c_driver_delete(I2C_NUM);
   }
 
   fmt::print("As5600 example complete!\n");

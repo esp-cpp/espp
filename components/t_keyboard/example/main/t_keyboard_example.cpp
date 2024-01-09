@@ -1,4 +1,5 @@
 #include <chrono>
+#include <sdkconfig.h>
 #include <vector>
 
 #include <driver/gpio.h>
@@ -16,8 +17,8 @@ extern "C" void app_main(void) {
     // make the I2C that we'll use to communicate
     espp::I2c i2c({
         .port = I2C_NUM_0,
-        .sda_io_num = GPIO_NUM_18,
-        .scl_io_num = GPIO_NUM_8,
+        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
     // now make the tkeyboard which decodes the data
     espp::TKeyboard tkeyboard(

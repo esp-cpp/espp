@@ -1,5 +1,6 @@
 #include <array>
 #include <chrono>
+#include <sdkconfig.h>
 #include <vector>
 
 #include <esp_err.h>
@@ -17,18 +18,11 @@
 #endif
 #include <nvs_flash.h>
 
-#include <driver/i2c.h>
-
+#include "i2c.hpp"
 #include "st25dv.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
-
-static constexpr auto I2C_NUM = I2C_NUM_1;
-static constexpr auto I2C_SCL_IO = GPIO_NUM_40;
-static constexpr auto I2C_SDA_IO = GPIO_NUM_41;
-static constexpr auto I2C_FREQ_HZ = (400 * 1000);
-static constexpr auto I2C_TIMEOUT_MS = 10;
 
 static constexpr auto HIDD_IDLE_MODE = 0x00;
 static constexpr auto HIDD_BLE_MODE = 0x01;
@@ -70,37 +64,18 @@ extern "C" void app_main(void) {
                "quit!\n");
     //! [st25dv example]
     // make the I2C that we'll use to communicate
-    i2c_config_t i2c_cfg;
-    fmt::print("initializing i2c driver...\n");
-    memset(&i2c_cfg, 0, sizeof(i2c_cfg));
-    i2c_cfg.sda_io_num = I2C_SDA_IO;
-    i2c_cfg.scl_io_num = I2C_SCL_IO;
-    i2c_cfg.mode = I2C_MODE_MASTER;
-    i2c_cfg.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-    auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-    if (err != ESP_OK)
-      printf("config i2c failed\n");
-    err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
-    if (err != ESP_OK)
-      printf("install i2c driver failed\n");
-    // make some lambda functions we'll use to read/write to the st25dv
-    auto st25dv_write = [](uint8_t addr, uint8_t *data, uint8_t length) {
-      auto err = i2c_master_write_to_device(I2C_NUM, addr, data, length,
-                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
-
-    auto st25dv_read = [](uint8_t addr, uint16_t reg_addr, uint8_t *data, uint8_t length) {
-      uint8_t reg[2] = {(uint8_t)(reg_addr >> 8), (uint8_t)(reg_addr & 0xFF)};
-      auto err = i2c_master_write_read_device(I2C_NUM, addr, reg, 2, data, length,
-                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
+    espp::I2c i2c({
+        .port = I2C_NUM_0,
+        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+    });
     // now make the st25dv which decodes the data
     espp::St25dv st25dv(
-        {.write = st25dv_write, .read = st25dv_read, .log_level = espp::Logger::Verbosity::DEBUG});
+        {.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
+                            std::placeholders::_3),
+         .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                           std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+         .log_level = espp::Logger::Verbosity::DEBUG});
 
     std::array<uint8_t, 50> programmed_data;
     std::error_code ec;
@@ -180,8 +155,6 @@ extern "C" void app_main(void) {
     while (!quit_test) {
       std::this_thread::sleep_for(100ms);
     }
-    // now clean up the i2c driver
-    i2c_driver_delete(I2C_NUM);
   }
 
   fmt::print("St25dv example complete!\n");

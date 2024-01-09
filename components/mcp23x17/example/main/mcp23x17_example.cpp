@@ -1,18 +1,12 @@
 #include <chrono>
+#include <sdkconfig.h>
 #include <vector>
 
-#include "driver/i2c.h"
-
+#include "i2c.hpp"
 #include "mcp23x17.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
-
-#define I2C_NUM (I2C_NUM_1)
-#define I2C_SCL_IO (GPIO_NUM_40)
-#define I2C_SDA_IO (GPIO_NUM_41)
-#define I2C_FREQ_HZ (400 * 1000)
-#define I2C_TIMEOUT_MS (10)
 
 extern "C" void app_main(void) {
   {
@@ -20,41 +14,22 @@ extern "C" void app_main(void) {
     fmt::print("Starting mcp23x17 example, press button on B7 quit!\n");
     //! [mcp23x17 example]
     // make the I2C that we'll use to communicate
-    i2c_config_t i2c_cfg;
-    fmt::print("initializing i2c driver...\n");
-    memset(&i2c_cfg, 0, sizeof(i2c_cfg));
-    i2c_cfg.sda_io_num = I2C_SDA_IO;
-    i2c_cfg.scl_io_num = I2C_SCL_IO;
-    i2c_cfg.mode = I2C_MODE_MASTER;
-    i2c_cfg.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-    auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-    if (err != ESP_OK)
-      printf("config i2c failed\n");
-    err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
-    if (err != ESP_OK)
-      printf("install i2c driver failed\n");
-    // make some lambda functions we'll use to read/write to the mcp23x17
-    auto mcp23x17_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
-      auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
-                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
-
-    auto mcp23x17_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len) {
-      auto err = i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, data_len,
-                                              I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
+    espp::I2c i2c({
+        .port = I2C_NUM_0,
+        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+    });
     // now make the mcp23x17 which handles GPIO
-    espp::Mcp23x17 mcp23x17({.port_0_direction_mask = (1 << 0), // input on A0
-                             .port_0_interrupt_mask = (1 << 0), // interrupt on A0
-                             .port_1_direction_mask = (1 << 7), // input on B7
-                             .port_1_interrupt_mask = (1 << 7), // interrupt on B7
-                             .write = mcp23x17_write,
-                             .read = mcp23x17_read,
-                             .log_level = espp::Logger::Verbosity::WARN});
+    espp::Mcp23x17 mcp23x17(
+        {.port_0_direction_mask = (1 << 0), // input on A0
+         .port_0_interrupt_mask = (1 << 0), // interrupt on A0
+         .port_1_direction_mask = (1 << 7), // input on B7
+         .port_1_interrupt_mask = (1 << 7), // interrupt on B7
+         .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
+                            std::placeholders::_3),
+         .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                           std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+         .log_level = espp::Logger::Verbosity::WARN});
     // set pull up on the input pins
     std::error_code ec;
     mcp23x17.set_pull_up(espp::Mcp23x17::Port::PORT0, (1 << 0), ec);
@@ -115,8 +90,6 @@ extern "C" void app_main(void) {
     while (!quit_test) {
       std::this_thread::sleep_for(100ms);
     }
-    // now clean up the i2c driver
-    i2c_driver_delete(I2C_NUM);
   }
 
   fmt::print("Mcp23x17 example complete!\n");

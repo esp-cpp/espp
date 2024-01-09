@@ -18,6 +18,13 @@ menu "Example Configuration"
             bool "Custom"
     endchoice
 
+    config EXAMPLE_ALERT_GPIO
+        int "Alert GPIO Num"
+        range 0 50
+        default 18
+        help
+            GPIO number for alert pin.
+
     config EXAMPLE_I2C_SCL_GPIO
         int "SCL GPIO Num"
         range 0 50

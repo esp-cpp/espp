@@ -2,7 +2,7 @@ menu "Example Configuration"
 
     choice EXAMPLE_HARDWARE
         prompt "Hardware"
-        default EXAMPLE_HARDWARE_QTPYS3
+        default EXAMPLE_HARDWARE_QTPYPICO
         help
             Select the hardware to run this example on.
 

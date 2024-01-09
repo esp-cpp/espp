@@ -1,18 +1,12 @@
 #include <chrono>
+#include <sdkconfig.h>
 #include <vector>
 
-#include "driver/i2c.h"
-
 #include "aw9523.hpp"
+#include "i2c.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
-
-static constexpr auto I2C_NUM = I2C_NUM_1;
-static constexpr auto I2C_SCL_IO = GPIO_NUM_19;
-static constexpr auto I2C_SDA_IO = GPIO_NUM_22;
-static constexpr auto I2C_FREQ_HZ = (400 * 1000);
-static constexpr auto I2C_TIMEOUT_MS = 10;
 
 extern "C" void app_main(void) {
 
@@ -26,45 +20,25 @@ extern "C" void app_main(void) {
              "\n");
   //! [aw9523 example]
   // make the I2C that we'll use to communicate
-  i2c_config_t i2c_cfg;
-  fmt::print("initializing i2c driver...\n");
-  memset(&i2c_cfg, 0, sizeof(i2c_cfg));
-  i2c_cfg.sda_io_num = I2C_SDA_IO;
-  i2c_cfg.scl_io_num = I2C_SCL_IO;
-  i2c_cfg.mode = I2C_MODE_MASTER;
-  i2c_cfg.sda_pullup_en = GPIO_PULLUP_ENABLE;
-  i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
-  i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-  auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-  if (err != ESP_OK)
-    printf("config i2c failed\n");
-  err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
-  if (err != ESP_OK)
-    printf("install i2c driver failed\n");
-  // make some lambda functions we'll use to read/write to the aw9523
-  auto aw9523_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) -> bool {
-    auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
-                                          I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-    return err == ESP_OK;
-  };
-
-  auto aw9523_read = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t *data,
-                        size_t data_len) -> bool {
-    auto err = i2c_master_write_read_device(I2C_NUM, dev_addr, &reg_addr, 1, data, data_len,
-                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-    return err == ESP_OK;
-  };
+  espp::I2c i2c({
+      .port = I2C_NUM_1,
+      .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+      .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+  });
   // now make the aw9523 which handles GPIO
-  espp::Aw9523 aw9523({// since this uses LEDs, both of the address pins are pulled up in
-                       // hardware to have the LEDs default to off
-                       .device_address = espp::Aw9523::DEFAULT_ADDRESS | 0b11,
-                       // set P0_0 - P0_5 to be inputs
-                       .port_0_direction_mask = 0b00111111,
-                       // set P1_0 - P1_1 to be inputs
-                       .port_1_direction_mask = 0b00000011,
-                       .write = aw9523_write,
-                       .read = aw9523_read,
-                       .log_level = espp::Logger::Verbosity::WARN});
+  espp::Aw9523 aw9523(
+      {// since this uses LEDs, both of the address pins are pulled up in
+       // hardware to have the LEDs default to off
+       .device_address = espp::Aw9523::DEFAULT_ADDRESS | 0b11,
+       // set P0_0 - P0_5 to be inputs
+       .port_0_direction_mask = 0b00111111,
+       // set P1_0 - P1_1 to be inputs
+       .port_1_direction_mask = 0b00000011,
+       .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
+                          std::placeholders::_3),
+       .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                         std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+       .log_level = espp::Logger::Verbosity::WARN});
   std::error_code ec;
   aw9523.initialize(ec); // Initialized separately from the constructor.
   if (ec) {
@@ -153,8 +127,6 @@ extern "C" void app_main(void) {
   while (true) {
     std::this_thread::sleep_for(100ms);
   }
-  // now clean up the i2c driver
-  i2c_driver_delete(I2C_NUM);
 
   fmt::print("Aw9523 example complete!\n");
 
