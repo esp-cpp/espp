@@ -30,3 +30,5 @@ idf.py -p PORT flash monitor
 See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
 
 ## Example Output
+
+![CleanShot 2024-01-09 at 08 24 25](https://github.com/esp-cpp/espp/assets/213467/13699053-ba1d-4af3-a5e0-dbcbd772b2d7)
