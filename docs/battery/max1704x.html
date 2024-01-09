@@ -142,7 +142,7 @@
           <li><a href="index.html">Battery APIs</a> &raquo;</li>
       <li>MAX1704X</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/23e61e2/docs/en/battery/max1704x.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/add807f/docs/en/battery/max1704x.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -176,7 +176,7 @@ available in a tiny 0.9mm x 1.7mm, 8-bump wafer-level package (WLP), or a 2mm x
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/23e61e2/components/max1704x/include/max1704x.hpp">components/max1704x/include/max1704x.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/add807f/components/max1704x/include/max1704x.hpp">components/max1704x/include/max1704x.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -197,17 +197,15 @@ available in a tiny 0.9mm x 1.7mm, 8-bump wafer-level package (WLP), or a 2mm x
 <span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;initializing i2c driver...&quot;</span><span class="p">);</span>
 <span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
 <span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
-<span class="w">      </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_22</span><span class="p">,</span><span class="w"> </span><span class="c1">// qwiic sda on the qtpy</span>
-<span class="w">      </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_19</span><span class="p">,</span><span class="w"> </span><span class="c1">// qwiic scl on the qtpy</span>
-<span class="w">    </span><span class="p">});</span>
+<span class="w">      </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
 <span class="w">  </span><span class="c1">// now make the max1704x which handles GPIO</span>
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Max1704x</span><span class="w"> </span><span class="nf">max1704x</span><span class="p">({</span>
-<span class="w">      </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
-<span class="w">                         </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">      </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span>
-<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
-<span class="w">                        </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">      </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Max1704x</span><span class="w"> </span><span class="nf">max1704x</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                                              </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">                           </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                                             </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">                           </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// and finally, make the task to periodically poll the max1704x and print</span>
@@ -237,8 +235,7 @@ available in a tiny 0.9mm x 1.7mm, 8-bump wafer-level package (WLP), or a 2mm x
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ec</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:0.2f}, {:0.2f}, {:0.2f}, {:0.2f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span>
-<span class="w">               </span><span class="n">seconds</span><span class="p">,</span><span class="w"> </span><span class="n">voltage</span><span class="p">,</span><span class="w"> </span><span class="n">soc</span><span class="p">,</span><span class="w"> </span><span class="n">charge_rate</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:0.2f}, {:0.2f}, {:0.2f}, {:0.2f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">seconds</span><span class="p">,</span><span class="w"> </span><span class="n">voltage</span><span class="p">,</span><span class="w"> </span><span class="n">soc</span><span class="p">,</span><span class="w"> </span><span class="n">charge_rate</span><span class="p">);</span>
 <span class="w">    </span><span class="c1">// don&#39;t want to stop the task</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="w">  </span><span class="p">};</span>
@@ -476,7 +473,7 @@ available in a tiny 0.9mm x 1.7mm, 8-bump wafer-level package (WLP), or a 2mm x
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022 - 2023, William Emfinger.</p>
+    <p>&#169; Copyright 2022 - 2024, William Emfinger.</p>
   </div>
 
   <ul class="footer">
