@@ -21,10 +21,10 @@ extern "C" void app_main(void) {
     auto task_fn = [&i2c](std::mutex &m, std::condition_variable &cv) {
       static constexpr uint8_t device_address = 0x58;
       static constexpr uint8_t register_address = 0x58;
-      uint8_t read_data[1];
       bool device_found = i2c.probe_device(device_address);
       if (device_found) {
         fmt::print("Found device with address 0x{:#02x}\n", device_address);
+        uint8_t read_data[1];
         bool success = i2c.read_at_register(device_address, register_address, read_data, 1);
         if (success) {
           fmt::print("read data: {:#04x}\n", read_data[0]);
