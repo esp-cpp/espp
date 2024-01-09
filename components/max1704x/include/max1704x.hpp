@@ -169,7 +169,7 @@ public:
    */
   float get_battery_charge_rate(std::error_code &ec) {
     std::scoped_lock lock(mutex_);
-    uint16_t data = read_register(Register::CRATE, ec);
+    int16_t data = read_register(Register::CRATE, ec);
     if (ec) {
       return 0;
     }
