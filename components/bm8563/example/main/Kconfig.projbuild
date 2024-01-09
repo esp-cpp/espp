@@ -8,7 +8,7 @@ menu "Example Configuration"
 
         config EXAMPLE_HARDWARE_TIMERCAM
             depends on IDF_TARGET_ESP32
-            bool "ESP32 TimerCam
+            bool "ESP32 TimerCam"
 
         config EXAMPLE_HARDWARE_CUSTOM
             bool "Custom"
