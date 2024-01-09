@@ -1,0 +1,33 @@
+menu "Example Configuration"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_TIMERCAM
+        help
+            Select the hardware to run this example on.
+
+        config EXAMPLE_HARDWARE_TIMERCAM
+            depends on IDF_TARGET_ESP32
+            bool "ESP32 TimerCam"
+
+        config EXAMPLE_HARDWARE_CUSTOM
+            bool "Custom"
+    endchoice
+
+    config EXAMPLE_I2C_SCL_GPIO
+        int "SCL GPIO Num"
+        range 0 50
+        default 14 if EXAMPLE_HARDWARE_TIMERCAM
+        default 19 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master clock line.
+
+    config EXAMPLE_I2C_SDA_GPIO
+        int "SDA GPIO Num"
+        range 0 50
+        default 12 if EXAMPLE_HARDWARE_TIMERCAM
+        default 22 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master data line.
+
+endmenu

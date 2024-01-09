@@ -1,20 +1,14 @@
 #include <chrono>
+#include <sdkconfig.h>
 #include <vector>
-
-#include "driver/i2c.h"
 
 #include "ads1x15.hpp"
 #include "controller.hpp"
+#include "i2c.hpp"
 #include "oneshot_adc.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
-
-#define I2C_NUM (I2C_NUM_1)
-#define I2C_SCL_IO (GPIO_NUM_40)
-#define I2C_SDA_IO (GPIO_NUM_41)
-#define I2C_FREQ_HZ (400 * 1000)
-#define I2C_TIMEOUT_MS (10)
 
 extern "C" void app_main(void) {
   // This example shows creating a digital controller without specifying all the
@@ -177,34 +171,17 @@ extern "C" void app_main(void) {
         "Starting i2c adc joystick controller example, press start & select together to quit!\n");
     //! [i2c analog controller example]
     // make the I2C that we'll use to communicate
-    i2c_config_t i2c_cfg;
-    fmt::print("initializing i2c driver...\n");
-    memset(&i2c_cfg, 0, sizeof(i2c_cfg));
-    i2c_cfg.sda_io_num = I2C_SDA_IO; // pin 3 on the joybonnet
-    i2c_cfg.scl_io_num = I2C_SCL_IO; // pin 5 on the joybonnet
-    i2c_cfg.mode = I2C_MODE_MASTER;
-    i2c_cfg.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-    auto err = i2c_param_config(I2C_NUM, &i2c_cfg);
-    if (err != ESP_OK)
-      printf("config i2c failed\n");
-    err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER, 0, 0, 0);
-    if (err != ESP_OK)
-      printf("install i2c driver failed\n");
-    // make some lambda functions we'll use to read/write to the i2c adc
-    auto ads_write = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
-      auto err = i2c_master_write_to_device(I2C_NUM, dev_addr, data, data_len,
-                                            I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
-    auto ads_read = [](uint8_t dev_addr, uint8_t *data, size_t data_len) {
-      auto err = i2c_master_read_from_device(I2C_NUM, dev_addr,
-                                              data, data_len, I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
-      return err == ESP_OK;
-    };
+    espp::I2c i2c({
+        .port = I2C_NUM_1,
+        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+    });
     // make the actual ads class
-    espp::Ads1x15 ads(espp::Ads1x15::Ads1015Config{.write = ads_write, .read = ads_read});
+    espp::Ads1x15 ads(espp::Ads1x15::Ads1015Config{
+        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
+                           std::placeholders::_3),
+        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
+                          std::placeholders::_3)});
     // make the task which will get the raw data from the I2C ADC and convert to
     // uncalibrated [-1,1]
     std::atomic<float> joystick_x{0};
@@ -308,9 +285,6 @@ extern "C" void app_main(void) {
       std::this_thread::sleep_for(100ms);
     }
   }
-  // now clean up the i2c driver (by now the task will have stopped, because we
-  // left its scope.
-  i2c_driver_delete(I2C_NUM);
 
   fmt::print("Controller example complete!\n");
 
