@@ -129,7 +129,7 @@ public:
         read_(config.read), logger_({.tag = "Drv2605", .level = config.log_level}) {
     if (config.auto_init) {
       std::error_code ec;
-      initalize(ec);
+      initialize(ec);
       if (ec) {
         logger_.error("Failed to initialize: {}", ec.message());
       }
@@ -140,7 +140,7 @@ public:
    * @brief Initialize the DRV2605.
    * @param ec Error code to set if there is an error.
    */
-  void initalize(std::error_code &ec) { init(ec); }
+  void initialize(std::error_code &ec) { init(ec); }
 
   /**
    * @brief Start playing the configured waveform / sequence.
