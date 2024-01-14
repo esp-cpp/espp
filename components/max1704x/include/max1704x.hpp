@@ -75,11 +75,6 @@ public:
   }
 
   /**
-   * @brief Delete the Max1704x object.
-   */
-  ~Max1704x();
-
-  /**
    * @brief Initialize the MAX1704x.
    */
   void initalize(std::error_code &ec) {
