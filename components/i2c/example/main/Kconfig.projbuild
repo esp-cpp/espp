@@ -36,4 +36,25 @@ menu "Example Configuration"
         help
             GPIO number for I2C Master data line.
 
+    config EXAMPLE_I2C_DEVICE_ADDR
+        hex "I2C Device Address"
+        range 0x00 0x7F
+        default 0x3C
+        help
+            I2C device address of the device.
+
+    config EXAMPLE_I2C_DEVICE_REG_ADDR
+        hex "I2C Device Register Address"
+        range 0x00 0xFF
+        default 0x00
+        help
+            I2C device register address of the device.
+
+    config EXAMPLE_I2C_DEVICE_REG_SIZE
+        int "I2C Device Register Size"
+        range 1 100
+        default 1
+        help
+            I2C device register size of the device.
+
 endmenu

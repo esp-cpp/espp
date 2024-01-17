@@ -3,11 +3,17 @@
 This example shows how to use the `I2C` component to communicate with
 peripherals on the I2C bus.
 
-It is currently designed to run on a QtPy ESP32, but (by changing the I2C pin
-definitions in the main file) can be reconfigured to run on any of the ESP32
-chips.
+It supports using `menuconfig` to configure
+* i2c pins (sda /scl), with configuration pre-selected for QtPy ESP32 PICO and QtPy ESP32s3
+* i2c device address
+* i2c device register address
+* Number of bytes to read from the i2c device register (register size)
 
 ## How to use example
+
+Configure the example via `menuconfig`:
+
+![CleanShot 2024-01-17 at 13 36 51](https://github.com/esp-cpp/espp/assets/213467/3ade0226-cf09-47cf-b601-22569a6da346)
 
 ### Hardware Required
 
@@ -29,3 +35,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+![CleanShot 2024-01-17 at 13 40 38](https://github.com/esp-cpp/espp/assets/213467/3865e661-eee4-4917-8460-25e7a0b87ae7)
