@@ -16,6 +16,18 @@ extern "C" void app_main(void) {
       .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
       .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
+
+  // probe the bus for all addresses and store the ones that were found /
+  // responded
+  std::vector<uint8_t> found_addresses;
+  for (uint8_t address = 0; address < 128; address++) {
+    if (i2c.probe_device(address)) {
+      found_addresses.push_back(address);
+    }
+  }
+  // print out the addresses that were found
+  logger.info("Found devices at addresses: {::#02x}", found_addresses);
+
   static constexpr uint8_t device_address = CONFIG_EXAMPLE_I2C_DEVICE_ADDR;
   static constexpr uint8_t register_address = CONFIG_EXAMPLE_I2C_DEVICE_REG_ADDR;
   bool device_found = i2c.probe_device(device_address);
