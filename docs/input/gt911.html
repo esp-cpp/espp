@@ -148,7 +148,7 @@
           <li><a href="index.html">Input APIs</a> &raquo;</li>
       <li>GT911 Touch Controller</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7cdf5bb/docs/en/input/gt911.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/8bb04df/docs/en/input/gt911.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -164,7 +164,7 @@
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7cdf5bb/components/gt911/include/gt911.hpp">components/gt911/include/gt911.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/8bb04df/components/gt911/include/gt911.hpp">components/gt911/include/gt911.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -184,10 +184,9 @@
 <span class="w">    </span><span class="c1">// now make the gt911 which decodes the data</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Gt911</span><span class="w"> </span><span class="nf">gt911</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
 <span class="w">                                          </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">                       </span><span class="p">.</span><span class="n">write_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write_read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
-<span class="w">                                               </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span>
-<span class="w">                                               </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_5</span><span class="p">),</span>
-<span class="w">                       </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">        </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
 <span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the gt911 and print</span>
 <span class="w">    </span><span class="c1">// the state</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">gt911</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -230,10 +229,10 @@
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp5Gt9118write_fnE">
 <span id="_CPPv3N4espp5Gt9118write_fnE"></span><span id="_CPPv2N4espp5Gt9118write_fnE"></span><span id="espp::Gt911::write_fn"></span><span class="target" id="classespp_1_1_gt911_1a9c59e1065adcf144698459018105beca"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp5Gt9118write_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Function for writing to the GT911 chip. </p>
+<dd><p>Function for writing to the i2c device. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param address</dt>
-<dd class="field-odd"><p>The address of the GT911 chip </p>
+<dd class="field-odd"><p>The address of the i2c device </p>
 </dd>
 <dt class="field-even">Param data</dt>
 <dd class="field-even"><p>The data to write to the chip </p>
@@ -245,23 +244,17 @@
 </dd></dl>
 
 <dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp5Gt91113write_read_fnE">
-<span id="_CPPv3N4espp5Gt91113write_read_fnE"></span><span id="_CPPv2N4espp5Gt91113write_read_fnE"></span><span id="espp::Gt911::write_read_fn"></span><span class="target" id="classespp_1_1_gt911_1a0410a8f2eff4af42a065a5e32859bb1e"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp5Gt91113write_read_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Function for writing to and reading from the GT911 chip. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp5Gt9117read_fnE">
+<span id="_CPPv3N4espp5Gt9117read_fnE"></span><span id="_CPPv2N4espp5Gt9117read_fnE"></span><span id="espp::Gt911::read_fn"></span><span class="target" id="classespp_1_1_gt911_1a12a5d3bcd11b39fbe6da95f824399c89"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp5Gt9117read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function signature for reading from the i2c device. </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param address</dt>
-<dd class="field-odd"><p>The address of the GT911 chip </p>
+<dt class="field-odd">Param dev_addr</dt>
+<dd class="field-odd"><p>The device address </p>
 </dd>
-<dt class="field-even">Param write_data</dt>
-<dd class="field-even"><p>The data to write to the chip </p>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The data to read </p>
 </dd>
-<dt class="field-odd">Param write_len</dt>
-<dd class="field-odd"><p>The length of the data to write </p>
-</dd>
-<dt class="field-even">Param read_data</dt>
-<dd class="field-even"><p>The data to read from the chip </p>
-</dd>
-<dt class="field-odd">Param read_len</dt>
+<dt class="field-odd">Param data_len</dt>
 <dd class="field-odd"><p>The length of the data to read </p>
 </dd>
 </dl>
@@ -373,9 +366,9 @@
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp5Gt9116Config10write_readE">
-<span id="_CPPv3N4espp5Gt9116Config10write_readE"></span><span id="_CPPv2N4espp5Gt9116Config10write_readE"></span><span id="espp::Gt911::Config::write_read__write_read_fn"></span><span class="target" id="structespp_1_1_gt911_1_1_config_1aea846336edb87b570c28179e40a158dd"></span><a class="reference internal" href="#_CPPv4N4espp5Gt91113write_read_fnE" title="espp::Gt911::write_read_fn"><span class="n"><span class="pre">write_read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read</span></span></span><a class="headerlink" href="#_CPPv4N4espp5Gt9116Config10write_readE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Function for writing to and reading from the GT911 chip. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp5Gt9116Config4readE">
+<span id="_CPPv3N4espp5Gt9116Config4readE"></span><span id="_CPPv2N4espp5Gt9116Config4readE"></span><span id="espp::Gt911::Config::read__read_fn"></span><span class="target" id="structespp_1_1_gt911_1_1_config_1a831f7b81d88ba04950808122c3bf0155"></span><a class="reference internal" href="#_CPPv4N4espp5Gt9117read_fnE" title="espp::Gt911::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp5Gt9116Config4readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function for reading from the GT911 chip. </p>
 </dd></dl>
 
 <dl class="cpp var">
