@@ -246,7 +246,8 @@ protected:
     uint8_t d[d_len];
     d[0] = reg_addr >> 8;
     d[1] = reg_addr & 0xFF;
-    memcpy(&d[2], data, len);
+    if (len > 0 && data != nullptr)
+      memcpy(&d[2], data, len);
     bool success = write_(address_, d, d_len);
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
