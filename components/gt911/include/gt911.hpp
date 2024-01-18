@@ -16,24 +16,22 @@ public:
   /// Alternate address for the GT911 chip
   static constexpr uint8_t DEFAULT_ADDRESS_2 = 0x14;
 
-  /// @brief Function for writing to the GT911 chip
-  /// @param address The address of the GT911 chip
+  /// @brief Function for writing to the i2c device
+  /// @param address The address of the i2c device
   /// @param data The data to write to the chip
   /// @param len The length of the data to write
   typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
 
-  /// @brief Function for writing to and reading from the GT911 chip
-  /// @param address The address of the GT911 chip
-  /// @param write_data The data to write to the chip
-  /// @param write_len The length of the data to write
-  /// @param read_data The data to read from the chip
-  /// @param read_len The length of the data to read
-  typedef std::function<bool(uint8_t, uint8_t *, size_t, uint8_t *, size_t)> write_read_fn;
+  /// @brief Function signature for reading from the i2c device
+  /// @param dev_addr The device address
+  /// @param data The data to read
+  /// @param data_len The length of the data to read
+  typedef std::function<bool(uint8_t, uint8_t *, size_t)> read_fn;
 
   /// @brief Configuration for the GT911 driver
   struct Config {
     write_fn write;           ///< Function for writing to the GT911 chip
-    write_read_fn write_read; ///< Function for writing to and reading from the GT911 chip
+    read_fn read;             ///< Function for reading from the GT911 chip
     uint8_t address = DEFAULT_ADDRESS_1; ///< Which address to use for this chip?
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; ///< Log verbosity for the input driver.
@@ -42,7 +40,7 @@ public:
   /// @brief Constructor for the GT911 driver
   /// @param config The configuration for the driver
   explicit Gt911(const Config &config)
-      : write_read_(config.write_read), write_(config.write), address_(config.address),
+      : write_(config.write), read_(config.read), address_(config.address),
         logger_({.tag = "Gt911", .level = config.log_level}) {}
 
   /// @brief Update the state of the GT911 driver
@@ -265,19 +263,16 @@ protected:
   }
 
   void read(Registers reg, uint8_t *data, size_t len, std::error_code &ec) {
-    uint16_t reg_addr = (uint16_t)reg;
-    uint8_t reg_data[2] = {
-        (uint8_t)(reg_addr >> 8),
-        (uint8_t)(reg_addr & 0xFF),
-    };
-    bool success = write_read_(address_, reg_data, 2, data, len);
+    write(reg, nullptr, 0, ec);
+    if (ec) return;
+    bool success = read_(address_, data, len);
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
     }
   }
 
-  write_read_fn write_read_;
   write_fn write_;
+  read_fn read_;
   uint8_t address_;
   std::atomic<bool> home_button_pressed_{false};
   std::atomic<uint8_t> num_touch_points_;
