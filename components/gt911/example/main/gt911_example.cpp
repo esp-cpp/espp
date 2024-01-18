@@ -22,10 +22,9 @@ extern "C" void app_main(void) {
     // now make the gt911 which decodes the data
     espp::Gt911 gt911({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
                                           std::placeholders::_2, std::placeholders::_3),
-                       .write_read = std::bind(&espp::I2c::write_read, &i2c, std::placeholders::_1,
-                                               std::placeholders::_2, std::placeholders::_3,
-                                               std::placeholders::_4, std::placeholders::_5),
-                       .log_level = espp::Logger::Verbosity::WARN});
+        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
+                          std::placeholders::_2, std::placeholders::_3),
+        .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the gt911 and print
     // the state
     auto task_fn = [&gt911](std::mutex &m, std::condition_variable &cv) {

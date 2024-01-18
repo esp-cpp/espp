@@ -14,6 +14,12 @@ public:
   /// @brief The default i2c address
   static constexpr uint8_t DEFAULT_ADDRESS = (0x24);
 
+  /// @brief Function for writing to the i2c device
+  /// @param address The address of the i2c device
+  /// @param data The data to write to the chip
+  /// @param len The length of the data to write
+  typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
+
   /// @brief Function signature for reading from the i2c device
   /// @param dev_addr The device address
   /// @param data The data to read
@@ -22,7 +28,8 @@ public:
 
   /// @brief Configuration for the Tt21100 driver
   struct Config {
-    read_fn read; ///< Function for reading from the i2c device
+    write_fn write = nullptr;           ///< Function for writing to the i2c device (unused)
+    read_fn read;             ///< Function for reading from the i2c device
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log level
   };
 
