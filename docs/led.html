@@ -139,7 +139,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>LED APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/8bb04df/docs/en/led.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/97fac41/docs/en/led.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -161,7 +161,7 @@ floating point percent [0,100]).</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/8bb04df/components/led/include/led.hpp">components/led/include/led.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/97fac41/components/led/include/led.hpp">components/led/include/led.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -226,6 +226,7 @@ floating point percent [0,100]).</p>
 <span class="w">        </span><span class="p">.</span><span class="n">frequency_hz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">channels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">led_channels</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">duty_resolution</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LEDC_TIMER_10_BIT</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">clock_config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LEDC_USE_RC_FAST_CLK</span><span class="p">,</span>
 <span class="w">    </span><span class="p">});</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Gaussian</span><span class="w"> </span><span class="nf">gaussian</span><span class="p">({.</span><span class="n">gamma</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">alpha</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">beta</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5f</span><span class="p">});</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">breathe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">gaussian</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">breathing_period</span><span class="p">]()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="p">{</span>
@@ -416,6 +417,12 @@ floating point percent [0,100]).</p>
 <p class="admonition-title">Note</p>
 <p>this is inversely related to the frequency configuration. </p>
 </div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3Led6Config12clock_configE">
+<span id="_CPPv3N4espp3Led6Config12clock_configE"></span><span id="_CPPv2N4espp3Led6Config12clock_configE"></span><span id="espp::Led::Config::clock_config__ledc_clk_cfg_t"></span><span class="target" id="structespp_1_1_led_1_1_config_1a78d84ff1c915c67c8b52b3d91ea93a00"></span><span class="n"><span class="pre">ledc_clk_cfg_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clock_config</span></span></span><span class="p"><span class="pre">{</span></span><span class="n"><span class="pre">LEDC_AUTO_CLK</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp3Led6Config12clock_configE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The LEDC clock configuration you want for these LED channels. </p>
 </dd></dl>
 
 <dl class="cpp var">
