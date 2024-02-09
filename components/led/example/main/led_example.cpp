@@ -67,6 +67,7 @@ extern "C" void app_main(void) {
         .frequency_hz = 5000,
         .channels = led_channels,
         .duty_resolution = LEDC_TIMER_10_BIT,
+        .clock_config = LEDC_USE_RC_FAST_CLK,
     });
     espp::Gaussian gaussian({.gamma = 0.1f, .alpha = 1.0f, .beta = 0.5f});
     auto breathe = [&gaussian, &breathing_period]() -> float {

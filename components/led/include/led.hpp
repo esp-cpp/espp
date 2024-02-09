@@ -49,6 +49,8 @@ public:
     ledc_timer_bit_t duty_resolution{
         LEDC_TIMER_13_BIT}; /**< The resolution of the duty cycle for these LEDs. @note this is
                                inversely related to the frequency configuration. */
+    ledc_clk_cfg_t clock_config{
+        LEDC_AUTO_CLK}; /**< The LEDC clock configuration you want for these LED channels. */
     ledc_mode_t speed_mode{
         LEDC_LOW_SPEED_MODE}; /**< The LEDC speed mode you want for these LED channels. */
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
@@ -70,7 +72,7 @@ public:
     ledc_timer.freq_hz = config.frequency_hz;
     ledc_timer.speed_mode = config.speed_mode;
     ledc_timer.timer_num = config.timer;
-    ledc_timer.clk_cfg = LEDC_AUTO_CLK;
+    ledc_timer.clk_cfg = config.clock_config;
     ledc_timer_config(&ledc_timer);
 
     logger_.info("Initializing channels");
