@@ -140,7 +140,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Monitoring APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/c29ab4c/docs/en/monitor.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/7416906/docs/en/monitor.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -165,14 +165,14 @@ or into a table for visualization.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c29ab4c/components/monitor/include/task_monitor.hpp">components/monitor/include/task_monitor.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7416906/components/monitor/include/task_monitor.hpp">components/monitor/include/task_monitor.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitorE">
-<span id="_CPPv3N4espp11TaskMonitorE"></span><span id="_CPPv2N4espp11TaskMonitorE"></span><span id="espp::TaskMonitor"></span><span class="target" id="classespp_1_1_task_monitor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TaskMonitor</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitorE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitorE"></span><span id="_CPPv2N4espp11TaskMonitorE"></span><span id="espp::TaskMonitor"></span><span class="target" id="classespp_1_1_task_monitor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TaskMonitor</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp11TaskMonitorE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class which monitors the currently running tasks in the system and periodically logs their states. See also <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html#_CPPv412vTaskGetInfo12TaskHandle_tP12TaskStatus_t10BaseType_t10eTaskState">FreeRTOS::vTaskGetInfo()</a>. </p>
 <section id="classespp_1_1_task_monitor_1task_monitor_ex1">
 <h4>Basic Task Monitor Example<a class="headerlink" href="#classespp_1_1_task_monitor_1task_monitor_ex1" title="Permalink to this headline"></a></h4>
@@ -250,6 +250,85 @@ or into a table for visualization.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You can use the static <a class="reference internal" href="#classespp_1_1_task_monitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"><span class="std std-ref">TaskMonitor::get_latest_info()</span></a> to get a string with the latest info without needing to construct a class / start the task.</p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE"></span><span id="espp::TaskMonitor::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1_base_component_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE">
+<span id="_CPPv3N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE"></span><span id="espp::TaskMonitor::set_log_level__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE">
+<span id="_CPPv3N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE"></span><span id="espp::TaskMonitor::set_log_verbosity__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ac47205e43174fe6f8655b777d3fdfa06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="wifi/wifi_sta.html#classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"><span class="std std-ref">set_log_level</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::TaskMonitor::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1_base_component_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a> </p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>

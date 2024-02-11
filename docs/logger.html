@@ -141,7 +141,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Logging APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/c29ab4c/docs/en/logger.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/7416906/docs/en/logger.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -168,7 +168,7 @@ runtime.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c29ab4c/components/logger/include/logger.hpp">components/logger/include/logger.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7416906/components/logger/include/logger.hpp">components/logger/include/logger.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -321,6 +321,21 @@ runtime.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>tag</strong> – The new tag. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Logger14set_rate_limitEKNSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6Logger14set_rate_limitEKNSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6Logger14set_rate_limitEKNSt6chrono8durationIfEE"></span><span id="espp::Logger::set_rate_limit__std::chrono::duration:float:C"></span><span class="target" id="classespp_1_1_logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_rate_limit</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Logger14set_rate_limitEKNSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Change the rate limit for the logger. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls that have _rate_limited suffixed will be rate limited. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The new rate limit. </p>
 </dd>
 </dl>
 </dd></dl>
