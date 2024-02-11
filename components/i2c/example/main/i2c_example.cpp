@@ -5,45 +5,72 @@
 #include "i2c.hpp"
 #include "logger.hpp"
 
+#include "i2c_menu.hpp"
+
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "I2C Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting");
-  //! [i2c example]
-  espp::I2c i2c({
-      .port = I2C_NUM_0,
-      .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
-      .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+
+  {
+    //! [i2c menu example]
+    espp::I2c i2c({
+        .port = I2C_NUM_0,
+        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+        .log_level = espp::Logger::Verbosity::INFO,
+    });
+    // now make a menu for the auth object
+    I2cMenu i2c_menu(i2c);
+    cli::Cli cli(i2c_menu.get());
+    cli::SetColor();
+    cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
+    espp::Cli input(cli);
+    input.SetInputHistorySize(10);
+
+    input.Start(); // As this is in the primary thread, we hold here until cli is complete.
+    //! [i2c menu example]
+  }
+
+  {
+    //! [i2c example]
+    espp::I2c i2c({
+        .port = I2C_NUM_0,
+        .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
+        .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
 
-  // probe the bus for all addresses and store the ones that were found /
-  // responded
-  std::vector<uint8_t> found_addresses;
-  for (uint8_t address = 0; address < 128; address++) {
-    if (i2c.probe_device(address)) {
-      found_addresses.push_back(address);
+    // probe the bus for all addresses and store the ones that were found /
+    // responded
+    std::vector<uint8_t> found_addresses;
+    for (uint8_t address = 0; address < 128; address++) {
+      if (i2c.probe_device(address)) {
+        found_addresses.push_back(address);
+      }
     }
-  }
-  // print out the addresses that were found
-  logger.info("Found devices at addresses: {::#02x}", found_addresses);
+    // print out the addresses that were found
+    logger.info("Found devices at addresses: {::#02x}", found_addresses);
 
-  static constexpr uint8_t device_address = CONFIG_EXAMPLE_I2C_DEVICE_ADDR;
-  static constexpr uint8_t register_address = CONFIG_EXAMPLE_I2C_DEVICE_REG_ADDR;
-  bool device_found = i2c.probe_device(device_address);
-  if (device_found) {
-    logger.info("Found device with address {:#02x}", device_address);
-    std::vector<uint8_t> read_data(CONFIG_EXAMPLE_I2C_DEVICE_REG_SIZE, 0);
-    bool success = i2c.read_at_register(device_address, register_address, read_data.data(), read_data.size());
-    if (success) {
-      logger.info("read data: {::#02x}", read_data);
+    static constexpr uint8_t device_address = CONFIG_EXAMPLE_I2C_DEVICE_ADDR;
+    static constexpr uint8_t register_address = CONFIG_EXAMPLE_I2C_DEVICE_REG_ADDR;
+    bool device_found = i2c.probe_device(device_address);
+    if (device_found) {
+      logger.info("Found device with address {:#02x}", device_address);
+      std::vector<uint8_t> read_data(CONFIG_EXAMPLE_I2C_DEVICE_REG_SIZE, 0);
+      bool success = i2c.read_at_register(device_address, register_address, read_data.data(),
+                                          read_data.size());
+      if (success) {
+        logger.info("read data: {::#02x}", read_data);
+      } else {
+        logger.error("read failed");
+      }
     } else {
-      logger.error("read failed");
+      logger.error("Could not find device with address {:#02x}", device_address);
     }
-  } else {
-    logger.error("Could not find device with address {:#02x}", device_address);
+    //! [i2c example]
   }
-  //! [i2c example]
+
   logger.info("I2C example complete!");
 
   while (true) {

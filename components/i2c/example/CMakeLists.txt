@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py i2c logger"
+  "main esptool_py cli i2c logger"
   CACHE STRING
   "List of components to include"
   )
