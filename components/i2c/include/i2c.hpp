@@ -114,7 +114,7 @@ public:
   /// \param data Data to write
   /// \param data_len Length of data to write
   /// \return True if successful
-  bool write(uint8_t dev_addr, uint8_t *data, size_t data_len) {
+  bool write(const uint8_t dev_addr, const uint8_t *data, const size_t data_len) {
     if (!initialized_) {
       logger_.error("not initialized");
       return false;
@@ -136,7 +136,7 @@ public:
   /// \param dev_addr I2C device address
   /// \param data Data to write
   /// \return True if successful
-  bool write(uint8_t dev_addr, std::vector<uint8_t> &data) {
+  bool write_vector(const uint8_t dev_addr, const std::vector<uint8_t> &data) {
     return write(dev_addr, data.data(), data.size());
   }
 
@@ -147,8 +147,8 @@ public:
   /// \param read_data Data to read
   /// \param read_size Length of data to read
   /// \return True if successful
-  bool write_read(uint8_t dev_addr, uint8_t *write_data, size_t write_size, uint8_t *read_data,
-                  size_t read_size) {
+  bool write_read(const uint8_t dev_addr, const uint8_t *write_data, const size_t write_size,
+                  uint8_t *read_data, size_t read_size) {
     if (!initialized_) {
       logger_.error("not initialized");
       return false;
@@ -173,8 +173,8 @@ public:
   /// \param write_data Data to write
   /// \param read_data Data to read
   /// \return True if successful
-  bool write_read(uint8_t dev_addr, std::vector<uint8_t> &write_data,
-                  std::vector<uint8_t> &read_data) {
+  bool write_read_vector(const uint8_t dev_addr, const std::vector<uint8_t> &write_data,
+                         std::vector<uint8_t> &read_data) {
     return write_read(dev_addr, write_data.data(), write_data.size(), read_data.data(),
                       read_data.size());
   }
@@ -185,7 +185,8 @@ public:
   /// \param data Data to read
   /// \param data_len Length of data to read
   /// \return True if successful
-  bool read_at_register(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len) {
+  bool read_at_register(const uint8_t dev_addr, const uint8_t reg_addr, uint8_t *data,
+                        size_t data_len) {
     if (!initialized_) {
       logger_.error("not initialized");
       return false;
@@ -210,7 +211,8 @@ public:
   /// \param reg_addr Register address
   /// \param data Data to read
   /// \return True if successful
-  bool read_at_register(uint8_t dev_addr, uint8_t reg_addr, std::vector<uint8_t> &data) {
+  bool read_at_register_vector(const uint8_t dev_addr, const uint8_t reg_addr,
+                               std::vector<uint8_t> &data) {
     return read_at_register(dev_addr, reg_addr, data.data(), data.size());
   }
 
@@ -219,7 +221,7 @@ public:
   /// \param data Data to read
   /// \param data_len Length of data to read
   /// \return True if successful
-  bool read(uint8_t dev_addr, uint8_t *data, size_t data_len) {
+  bool read(const uint8_t dev_addr, uint8_t *data, size_t data_len) {
     if (!initialized_) {
       logger_.error("not initialized");
       return false;
@@ -241,7 +243,7 @@ public:
   /// \param dev_addr I2C device address
   /// \param data Data to read
   /// \return True if successful
-  bool read(uint8_t dev_addr, std::vector<uint8_t> &data) {
+  bool read_vector(const uint8_t dev_addr, std::vector<uint8_t> &data) {
     return read(dev_addr, data.data(), data.size());
   }
 
@@ -252,7 +254,7 @@ public:
   /// This function sends a start condition, writes the device address, and then
   /// sends a stop condition. If the device acknowledges the address, then it is
   /// present on the bus.
-  bool probe_device(uint8_t dev_addr) {
+  bool probe_device(const uint8_t dev_addr) {
     bool success = false;
     logger_.debug("probe device {:#02x}", dev_addr);
     std::lock_guard<std::mutex> lock(mutex_);

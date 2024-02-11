@@ -100,7 +100,7 @@ public:
           uint8_t address = std::stoi(address_string, nullptr, 16);
           std::vector<uint8_t> data(len);
           std::string log;
-          if (i2c_.get().read_at_register(address, reg, data)) {
+          if (i2c_.get().read_at_register_vector(address, reg, data)) {
             log = fmt::format("Read {} bytes from address {:#02x} at register {:#02x}: {::#02x}",
                               data.size(), address, reg, data);
           } else {
@@ -120,7 +120,7 @@ public:
           uint8_t address = std::stoi(address_string, nullptr, 16);
           std::vector<uint8_t> data_vec = {reg, data};
           std::string log;
-          if (i2c_.get().write(address, data_vec)) {
+          if (i2c_.get().write_vector(address, data_vec)) {
             log = fmt::format("Wrote data {:#02x} to address {:#02x} at register {:#02x}", data,
                               address, reg);
           } else {
@@ -149,7 +149,7 @@ public:
                          [](const std::string &s) -> uint8_t { return std::stoi(s, nullptr, 0); });
           uint8_t reg = data[0];
           std::string log;
-          if (i2c_.get().write(address, data)) {
+          if (i2c_.get().write_vector(address, data)) {
             log = fmt::format("Wrote {} bytes to address {:#02x} at register {:#02x}: {::#02x}",
                               data.size(), address, reg, data);
           } else {
