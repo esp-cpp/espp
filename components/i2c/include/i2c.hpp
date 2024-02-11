@@ -91,7 +91,8 @@ public:
   void deinit(std::error_code &ec) {
     if (!initialized_) {
       logger_.warn("not initialized");
-      ec = std::make_error_code(std::errc::protocol_error);
+      // dont make this an error
+      ec.clear();
       return;
     }
 
@@ -103,6 +104,8 @@ public:
       return;
     }
 
+    ec.clear();
+    logger_.info("I2C deinitialized on port {}", config_.port);
     initialized_ = false;
   }
 
