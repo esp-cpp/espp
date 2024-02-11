@@ -6,14 +6,14 @@
 #include "lvgl.h"
 #include "sdkconfig.h"
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
  *  @brief Light wrapper around LVGL input device driver, specifically
  *         designed for encoders with optional home buttons.
  */
-class EncoderInput {
+class EncoderInput : public BaseComponent {
 public:
   typedef std::function<void(int *enc_diff, bool button_pressed)> read_fn;
 
@@ -33,7 +33,8 @@ public:
    * @param config Configuration structure for the EncoderInput.
    */
   explicit EncoderInput(const Config &config)
-      : read_(config.read), logger_({.tag = "EncoderInput", .level = config.log_level}) {
+      : BaseComponent("EncoderInput", config.log_level)
+      , read_(config.read) {
     init();
   }
 
@@ -118,6 +119,5 @@ protected:
   lv_indev_t *indev_encoder_;
   lv_indev_drv_t indev_drv_btn_;
   lv_indev_t *indev_button_;
-  Logger logger_;
 };
 } // namespace espp

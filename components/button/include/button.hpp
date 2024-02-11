@@ -8,7 +8,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -19,7 +19,7 @@ namespace espp {
 ///
 /// \section button_ex1 Button Example
 /// \snippet button_example.cpp button example
-class Button {
+class Button : public BaseComponent {
 public:
   /// \brief The event for the button
   struct Event {
@@ -65,9 +65,11 @@ public:
   /// \brief Construct a button
   /// \param config The configuration for the button
   explicit Button(const Config &config)
-      : gpio_num_(config.gpio_num), callback_(config.callback), active_level_(config.active_level),
-        event_queue_(xQueueCreate(10, sizeof(EventData))),
-        logger_({.tag = config.name, .level = config.log_level}) {
+      : BaseComponent(config.name, config.log_level)
+      , gpio_num_(config.gpio_num)
+      , callback_(config.callback)
+      , active_level_(config.active_level)
+      , event_queue_(xQueueCreate(10, sizeof(EventData))) {
     // configure the GPIO for an interrupt
     gpio_config_t io_conf;
     memset(&io_conf, 0, sizeof(io_conf));
@@ -178,6 +180,5 @@ protected:
   HandlerArgs handler_args_;
   std::atomic<bool> pressed_{false};
   std::unique_ptr<espp::Task> task_;
-  espp::Logger logger_;
 };
 } // namespace espp

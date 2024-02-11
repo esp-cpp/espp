@@ -11,7 +11,7 @@
 #include <random>
 #endif
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
 #include "udp_socket.hpp"
@@ -22,7 +22,7 @@
 namespace espp {
 /// Class that reepresents an RTSP session, which is uniquely identified by a
 /// session id and sends frame data over RTP and RTCP to the client
-class RtspSession {
+class RtspSession : public BaseComponent {
 public:
   /// Configuration for the RTSP session
   struct Config {
@@ -35,12 +35,14 @@ public:
   /// @param control_socket The control socket of the session
   /// @param config The configuration of the session
   explicit RtspSession(std::unique_ptr<TcpSocket> control_socket, const Config &config)
-      : control_socket_(std::move(control_socket)),
-        rtp_socket_({.log_level = Logger::Verbosity::WARN}),
-        rtcp_socket_({.log_level = Logger::Verbosity::WARN}), session_id_(generate_session_id()),
-        server_address_(config.server_address), rtsp_path_(config.rtsp_path),
-        client_address_(control_socket_->get_remote_info().address),
-        logger_({.tag = "RtspSession " + std::to_string(session_id_), .level = config.log_level}) {
+      : BaseComponent("RtspSession " + std::to_string(session_id_), config.log_level)
+      , control_socket_(std::move(control_socket))
+      , rtp_socket_({.log_level = Logger::Verbosity::WARN})
+      , rtcp_socket_({.log_level = Logger::Verbosity::WARN})
+      , session_id_(generate_session_id())
+      , server_address_(config.server_address)
+      , rtsp_path_(config.rtsp_path)
+      , client_address_(control_socket_->get_remote_info().address) {
     // start the session task to handle RTSP commands
     using namespace std::placeholders;
     control_task_ = std::make_unique<Task>(Task::Config{
@@ -515,7 +517,5 @@ protected:
   int client_rtcp_port_;
 
   std::unique_ptr<Task> control_task_;
-
-  Logger logger_;
 };
 } // namespace espp

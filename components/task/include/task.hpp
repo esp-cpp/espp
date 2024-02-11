@@ -12,7 +12,7 @@
 #include <freertos/task.h>
 #endif
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 
@@ -32,7 +32,7 @@ namespace espp {
  * \section task_ex5 Task Request Stop Example
  * \snippet task_example.cpp Task Request Stop example
  */
-class Task {
+class Task : public BaseComponent {
 public:
   /**
    * @brief Task callback function signature.
@@ -104,18 +104,24 @@ public:
    * @param config Config struct to initialize the Task with.
    */
   explicit Task(const Config &config)
-      : name_(config.name), callback_(config.callback), stack_size_bytes_(config.stack_size_bytes),
-        priority_(config.priority), core_id_(config.core_id),
-        logger_({.tag = name_, .level = config.log_level}) {}
+      : BaseComponent(config.name, config.log_level)
+      , name_(config.name)
+      , callback_(config.callback)
+      , stack_size_bytes_(config.stack_size_bytes)
+      , priority_(config.priority)
+      , core_id_(config.core_id) {}
 
   /**
    *  @brief Construct a new Task object using the SimpleConfig struct.
    *  @param config SimpleConfig struct to initialize the Task with.
    */
   explicit Task(const SimpleConfig &config)
-      : name_(config.name), simple_callback_(config.callback),
-        stack_size_bytes_(config.stack_size_bytes), priority_(config.priority),
-        core_id_(config.core_id), logger_({.tag = name_, .level = config.log_level}) {}
+      : BaseComponent(config.name, config.log_level)
+      , name_(config.name)
+      , simple_callback_(config.callback)
+      , stack_size_bytes_(config.stack_size_bytes)
+      , priority_(config.priority)
+      , core_id_(config.core_id) {}
 
   /**
    * @brief Get a unique pointer to a new task created with \p config.
@@ -323,8 +329,6 @@ protected:
    * then the task is not pinned to a core.
    */
   int core_id_;
-
-  Logger logger_;
 
   std::atomic<bool> started_{false};
   std::condition_variable cv_;

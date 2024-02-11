@@ -10,7 +10,7 @@
 #include "esp_adc/adc_oneshot.h"
 
 #include "adc_types.hpp"
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
@@ -22,7 +22,7 @@ namespace espp {
  * \section adc_oneshot_ex1 Oneshot ADC Example
  * \snippet adc_example.cpp oneshot adc example
  */
-class OneshotAdc {
+class OneshotAdc : public BaseComponent {
 public:
   /**
    *  @brief Configure the unit for which to read adc values from the provided
@@ -44,7 +44,7 @@ public:
    * @param config Config used to initialize the reader.
    */
   explicit OneshotAdc(const Config &config)
-      : logger_({.tag = "Oneshot Adc", .level = config.log_level}) {
+      : BaseComponent("OneShotAdc", config.log_level) {
     init(config);
   }
 
@@ -185,6 +185,5 @@ protected:
   adc_oneshot_unit_handle_t adc_handle_;
   adc_cali_handle_t adc_cali_handle_;
   std::atomic<bool> calibrated_{false};
-  Logger logger_;
 };
 } // namespace espp

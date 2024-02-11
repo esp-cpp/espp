@@ -6,8 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "base_component.hpp"
 #include "event_map.hpp"
-#include "logger.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -34,7 +34,7 @@ namespace espp {
  * \section event_manager_ex1 Event Manager Example
  * \snippet event_manager_example.cpp event manager example
  */
-class EventManager {
+class EventManager : public BaseComponent {
 public:
   /**
    * @brief Function definition for function prototypes to be called when
@@ -110,14 +110,9 @@ public:
    */
   bool remove_subscriber(const std::string &topic, const std::string &component);
 
-  /**
-   * @brief Set the logger verbosity for the EventManager.
-   * @param level new Logger::Verbosity level to use.
-   */
-  void set_log_level(Logger::Verbosity level) { logger_.set_verbosity(level); }
-
 protected:
-  EventManager() : logger_({.tag = "Event Manager", .level = Logger::Verbosity::WARN}) {}
+  EventManager()
+      : BaseComponent("Event Manager") {}
 
   struct SubscriberData {
     std::mutex m;
@@ -139,7 +134,5 @@ protected:
 
   std::recursive_mutex data_mutex_;
   std::unordered_map<std::string, SubscriberData> subscriber_data_;
-
-  Logger logger_;
 };
 } // namespace espp

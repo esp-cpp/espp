@@ -7,7 +7,7 @@
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
@@ -23,7 +23,7 @@ namespace espp {
  * \section wifiap_ex1 WiFi Access Point Example
  * \snippet wifi_example.cpp wifi ap example
  */
-class WifiAp {
+class WifiAp : public BaseComponent {
 public:
   struct Config {
     std::string ssid;     /**< SSID for the access point. */
@@ -38,7 +38,8 @@ public:
    * @brief Initialize the WiFi Access Point (AP)
    * @param config WifiAp::Config structure with initialization information.
    */
-  explicit WifiAp(const Config &config) : logger_({.tag = "WifiAp", .level = config.log_level}) {
+  explicit WifiAp(const Config &config)
+      : BaseComponent("WifiAp", config.log_level) {
     // Code below is modified from:
     // https://github.com/espressif/esp-idf/blob/master/examples/wifi/getting_started/softAP/main/softap_example_main.c
     // NOTE: Init phase
@@ -149,7 +150,6 @@ protected:
     }
   }
 
-  Logger logger_;
   esp_event_handler_instance_t *event_handler_instance_{nullptr};
 };
 } // namespace espp

@@ -8,6 +8,7 @@
 
 #include <driver/gpio.h>
 
+#include "base_component.hpp"
 #include "led.hpp"
 #include "task.hpp"
 
@@ -23,7 +24,7 @@ namespace espp {
  *  For more information, see
  *  https://docs.lvgl.io/8.3/porting/display.html#display-interface
  */
-class Display {
+class Display : public BaseComponent {
 public:
   /**
    * @brief Callback for lvgl to flush segments of pixel data from the pixel
@@ -57,8 +58,7 @@ public:
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    size_t stack_size_bytes{
-        4096}; /**< Size of the display task stack in bytes. */
+    size_t stack_size_bytes{4096}; /**< Size of the display task stack in bytes. */
     std::chrono::duration<float> update_period{
         0.01}; /**< How frequently to run the update function. */
     bool double_buffered{
@@ -87,8 +87,7 @@ public:
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    size_t stack_size_bytes{
-        4096}; /**< Size of the display task stack in bytes. */
+    size_t stack_size_bytes{4096}; /**< Size of the display task stack in bytes. */
     std::chrono::duration<float> update_period{
         0.01};                              /**< How frequently to run the update function. */
     Rotation rotation{Rotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
@@ -104,19 +103,20 @@ public:
    *        callback.
    */
   explicit Display(const AllocatingConfig &config)
-      : width_(config.width), height_(config.height),
-        display_buffer_px_size_(config.pixel_buffer_size),
-        led_channel_configs_(
+      : BaseComponent("Display", config.log_level)
+      , width_(config.width)
+      , height_(config.height)
+      , display_buffer_px_size_(config.pixel_buffer_size)
+      , led_channel_configs_(
             std::vector<Led::ChannelConfig>{{.gpio = (size_t)config.backlight_pin,
                                              .channel = LEDC_CHANNEL_0,
                                              .timer = LEDC_TIMER_0,
-                                             .output_invert = !config.backlight_on_value}}),
-        backlight_(Led::Config{.timer = LEDC_TIMER_0,
+                                             .output_invert = !config.backlight_on_value}})
+      , backlight_(Led::Config{.timer = LEDC_TIMER_0,
                                .frequency_hz = 5000,
                                .channels = led_channel_configs_,
-                               .duty_resolution = LEDC_TIMER_10_BIT}),
-        update_period_(config.update_period),
-        logger_({.tag = "Display", .level = config.log_level}) {
+                               .duty_resolution = LEDC_TIMER_10_BIT})
+      , update_period_(config.update_period) {
     logger_.debug("Initializing with allocating config!");
     // create the display buffers
     vram_0_ = (lv_color_t *)heap_caps_malloc(vram_size_bytes(), config.allocation_flags);
@@ -126,7 +126,8 @@ public:
       assert(vram_1_ != NULL);
     }
     created_vram_ = true;
-    init(config.flush_callback, config.software_rotation_enabled, config.rotation, config.stack_size_bytes);
+    init(config.flush_callback, config.software_rotation_enabled, config.rotation,
+         config.stack_size_bytes);
     set_brightness(1.0f);
   }
 
@@ -136,21 +137,25 @@ public:
    *        memory, the pixel buffer size and flush callback.
    */
   explicit Display(const NonAllocatingConfig &config)
-      : width_(config.width), height_(config.height),
-        display_buffer_px_size_(config.pixel_buffer_size), vram_0_(config.vram0),
-        vram_1_(config.vram1), led_channel_configs_(std::vector<Led::ChannelConfig>{
-                                   {.gpio = (size_t)config.backlight_pin,
-                                    .channel = LEDC_CHANNEL_0,
-                                    .timer = LEDC_TIMER_0,
-                                    .output_invert = !config.backlight_on_value}}),
-        backlight_(Led::Config{.timer = LEDC_TIMER_0,
+      : BaseComponent("Display", config.log_level)
+      , width_(config.width)
+      , height_(config.height)
+      , display_buffer_px_size_(config.pixel_buffer_size)
+      , vram_0_(config.vram0)
+      , vram_1_(config.vram1)
+      , led_channel_configs_(
+            std::vector<Led::ChannelConfig>{{.gpio = (size_t)config.backlight_pin,
+                                             .channel = LEDC_CHANNEL_0,
+                                             .timer = LEDC_TIMER_0,
+                                             .output_invert = !config.backlight_on_value}})
+      , backlight_(Led::Config{.timer = LEDC_TIMER_0,
                                .frequency_hz = 5000,
                                .channels = led_channel_configs_,
-                               .duty_resolution = LEDC_TIMER_10_BIT}),
-        update_period_(config.update_period),
-        logger_({.tag = "Display", .level = config.log_level}) {
+                               .duty_resolution = LEDC_TIMER_10_BIT})
+      , update_period_(config.update_period) {
     logger_.debug("Initializing with non-allocating config!");
-    init(config.flush_callback, config.software_rotation_enabled, config.rotation, config.stack_size_bytes);
+    init(config.flush_callback, config.software_rotation_enabled, config.rotation,
+         config.stack_size_bytes);
   }
 
   /**
@@ -258,7 +263,8 @@ protected:
    * @param rotation Default / initial rotation of the display.
    * @param stack_size_bytes Size of the task stack in bytes.
    */
-  void init(flush_fn flush_callback, bool sw_rotation_enabled, Rotation rotation, size_t stack_size_bytes = 4096) {
+  void init(flush_fn flush_callback, bool sw_rotation_enabled, Rotation rotation,
+            size_t stack_size_bytes = 4096) {
     lv_init();
 
     // Configure the LVGL display buffer with our pixel buffers
@@ -327,6 +333,5 @@ protected:
   std::chrono::duration<float> update_period_;
   lv_disp_draw_buf_t disp_buffer_;
   lv_disp_drv_t disp_driver_;
-  Logger logger_;
 };
 } // namespace espp

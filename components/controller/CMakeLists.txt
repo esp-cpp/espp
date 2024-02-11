@@ -1,4 +1,4 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES driver joystick
+  REQUIRES driver base_component joystick
   )

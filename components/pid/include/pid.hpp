@@ -4,7 +4,7 @@
 #include <atomic>
 #include <mutex>
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
@@ -19,7 +19,7 @@ namespace espp {
  * \section pid_ex2 Complex PID Example
  * \snippet pid_example.cpp complex pid example
  */
-class Pid {
+class Pid : public BaseComponent {
 public:
   struct Config {
     float kp; /**< Proportional gain. */
@@ -42,8 +42,8 @@ public:
    * @brief Create the PID controller.
    */
   explicit Pid(const Config &config)
-      : prev_ts_(std::chrono::high_resolution_clock::now()),
-        logger_({.tag = "PID", .level = config.log_level}) {
+      : BaseComponent("PID", config.log_level)
+      , prev_ts_(std::chrono::high_resolution_clock::now()) {
     change_gains(config);
   }
 
@@ -157,7 +157,6 @@ protected:
   std::atomic<float> integrator_{0};
   std::chrono::time_point<std::chrono::high_resolution_clock> prev_ts_;
   std::recursive_mutex mutex_; ///< For protecting the config
-  Logger logger_;
 };
 } // namespace espp
 

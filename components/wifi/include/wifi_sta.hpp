@@ -9,7 +9,7 @@
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
@@ -25,7 +25,7 @@ namespace espp {
  * \section wifista_ex1 WiFi Station Example
  * \snippet wifi_example.cpp wifi sta example
  */
-class WifiSta {
+class WifiSta : public BaseComponent {
 public:
   /**
    * @brief called when the WiFi station connects to an access point.
@@ -66,9 +66,11 @@ public:
    * @param config WifiSta::Config structure with initialization information.
    */
   explicit WifiSta(const Config &config)
-      : num_retries_(config.num_connect_retries), connect_callback_(config.on_connected),
-        disconnect_callback_(config.on_disconnected), ip_callback_(config.on_got_ip),
-        logger_({.tag = "WifiSta", .level = config.log_level}) {
+      : BaseComponent("WifiSta", config.log_level)
+      , num_retries_(config.num_connect_retries)
+      , connect_callback_(config.on_connected)
+      , disconnect_callback_(config.on_disconnected)
+      , ip_callback_(config.on_got_ip) {
     // Code below is modified from:
     // https://github.com/espressif/esp-idf/blob/1c84cfde14dcffdc77d086a5204ce8a548dce935/examples/wifi/getting_started/station/main/station_example_main.c
     esp_err_t err;
@@ -215,7 +217,6 @@ protected:
   disconnect_callback disconnect_callback_{nullptr};
   ip_callback ip_callback_{nullptr};
   std::atomic<bool> connected_{false};
-  Logger logger_;
   esp_event_handler_instance_t *event_handler_instance_any_id_{nullptr};
   esp_event_handler_instance_t *event_handler_instance_got_ip_{nullptr};
 };

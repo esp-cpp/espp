@@ -1,4 +1,4 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES logger math pid task bldc_motor
+  REQUIRES base_component math pid task bldc_motor
   )

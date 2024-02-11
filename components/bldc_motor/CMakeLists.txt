@@ -1,4 +1,4 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES logger math pid task
+  REQUIRES base_component math pid task
   )

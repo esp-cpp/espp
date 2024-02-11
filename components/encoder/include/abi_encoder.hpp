@@ -5,8 +5,8 @@
 #include "driver/gpio.h"
 #include "driver/pulse_cnt.h"
 
+#include "base_component.hpp"
 #include "encoder_types.hpp"
-#include "logger.hpp"
 
 namespace espp {
 /**
@@ -20,7 +20,7 @@ namespace espp {
  * \section encoder_ex2 AbiEncoder (LINEAR) Example
  * \snippet encoder_example.cpp abi encoder linear example
  */
-template <EncoderType T = EncoderType::ROTATIONAL> class AbiEncoder {
+template <EncoderType T = EncoderType::ROTATIONAL> class AbiEncoder : public BaseComponent {
 public:
   struct Config {
     int a_gpio;     /**< GPIO number for the a channel pulse. */
@@ -48,7 +48,7 @@ public:
    */
   template <EncoderType type = T>
   explicit AbiEncoder(const Config &config)
-      : logger_({.tag = "AbiEncoder", .level = config.log_level}) {
+      : BaseComponent("AbiEncoder", config.log_level) {
     // we only care about counts_per_revolution if it is EncoderType::ROTATIONAL
     if constexpr (type == EncoderType::ROTATIONAL) {
       if (config.counts_per_revolution == 0) {
@@ -275,6 +275,5 @@ protected:
   pcnt_unit_handle_t pcnt_unit_{nullptr};
   pcnt_channel_handle_t pcnt_channel_a_{nullptr};
   pcnt_channel_handle_t pcnt_channel_b_{nullptr};
-  Logger logger_;
 };
 } // namespace espp

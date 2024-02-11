@@ -5,7 +5,7 @@
 #include <system_error>
 #include <vector>
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "tcp_socket.hpp"
 #include "udp_socket.hpp"
 
@@ -25,7 +25,7 @@ namespace espp {
 ///
 /// \section RtspClient Example
 /// \snippet rtsp_example.cpp rtsp_client_example
-class RtspClient {
+class RtspClient : public BaseComponent {
 public:
   /// Function type for the callback to call when a JPEG frame is received
   using jpeg_frame_callback_t = std::function<void(std::unique_ptr<JpegFrame> jpeg_frame)>;
@@ -45,13 +45,15 @@ public:
   /// Constructor
   /// \param config The configuration for the RTSP client
   explicit RtspClient(const Config &config)
-      : server_address_(config.server_address), rtsp_port_(config.rtsp_port),
-        rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN}),
-        rtp_socket_({.log_level = espp::Logger::Verbosity::WARN}),
-        rtcp_socket_({.log_level = espp::Logger::Verbosity::WARN}),
-        on_jpeg_frame_(config.on_jpeg_frame), cseq_(0),
-        path_("rtsp://" + server_address_ + ":" + std::to_string(rtsp_port_) + config.path),
-        logger_({.tag = "RtspClient", .level = config.log_level}) {}
+      : BaseComponent("RtspClient", config.log_level)
+      , server_address_(config.server_address)
+      , rtsp_port_(config.rtsp_port)
+      , rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN})
+      , rtp_socket_({.log_level = espp::Logger::Verbosity::WARN})
+      , rtcp_socket_({.log_level = espp::Logger::Verbosity::WARN})
+      , on_jpeg_frame_(config.on_jpeg_frame)
+      , cseq_(0)
+      , path_("rtsp://" + server_address_ + ":" + std::to_string(rtsp_port_) + config.path) {}
 
   /// Destructor
   /// Disconnects from the RTSP server
@@ -480,8 +482,6 @@ protected:
   int video_payload_type_ = 0;
   std::string path_;
   std::string session_id_;
-
-  espp::Logger logger_;
 };
 
 } // namespace espp

@@ -7,7 +7,7 @@
 #include "driver/gpio.h"
 #include "driver/mcpwm_prelude.h"
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
@@ -16,7 +16,7 @@ namespace espp {
  *        https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html
  *        peripheral.
  */
-class BldcDriver {
+class BldcDriver : public BaseComponent {
 public:
   static constexpr size_t TIMER_RESOLUTION_HZ = 80 * 1000 * 1000; // 80 MHz
   static constexpr size_t FREQUENCY_HZ = 20 * 1000;               // 20 KHz
@@ -48,11 +48,16 @@ public:
    * @param config Config used to initialize the driver.
    */
   explicit BldcDriver(const Config &config)
-      : gpio_ah_((gpio_num_t)config.gpio_a_h), gpio_al_((gpio_num_t)config.gpio_a_l),
-        gpio_bh_((gpio_num_t)config.gpio_b_h), gpio_bl_((gpio_num_t)config.gpio_b_l),
-        gpio_ch_((gpio_num_t)config.gpio_c_h), gpio_cl_((gpio_num_t)config.gpio_c_l),
-        gpio_en_(config.gpio_enable), gpio_fault_(config.gpio_fault), dead_zone_(config.dead_zone),
-        logger_({.tag = "BLDC Driver", .level = config.log_level}) {
+      : BaseComponent("BldcDriver", config.log_level)
+      , gpio_ah_((gpio_num_t)config.gpio_a_h)
+      , gpio_al_((gpio_num_t)config.gpio_a_l)
+      , gpio_bh_((gpio_num_t)config.gpio_b_h)
+      , gpio_bl_((gpio_num_t)config.gpio_b_l)
+      , gpio_ch_((gpio_num_t)config.gpio_c_h)
+      , gpio_cl_((gpio_num_t)config.gpio_c_l)
+      , gpio_en_(config.gpio_enable)
+      , gpio_fault_(config.gpio_fault)
+      , dead_zone_(config.dead_zone) {
     configure_power(config.power_supply_voltage, config.limit_voltage);
     init(config);
   }
@@ -411,6 +416,5 @@ protected:
   std::array<mcpwm_oper_handle_t, 3> operators_;
   std::array<mcpwm_cmpr_handle_t, 3> comparators_;
   std::array<mcpwm_gen_handle_t, 6> generators_;
-  Logger logger_;
 };
 } // namespace espp

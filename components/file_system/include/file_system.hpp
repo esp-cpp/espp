@@ -19,7 +19,7 @@
 
 #include <esp_littlefs.h>
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /// @brief File system class
@@ -43,7 +43,7 @@ namespace espp {
 /// \snippet file_system_example.cpp file_system posix example
 /// \section fs_ex3 File System Info std::filesystem Example
 /// \snippet file_system_example.cpp file_system std filesystem example
-class FileSystem {
+class FileSystem : public BaseComponent {
 public:
   /// @brief Access the singleton instance of the file system
   /// @return Reference to the file system instance
@@ -276,7 +276,10 @@ protected:
   /// @brief Constructor
   /// @details
   /// The constructor is private to ensure that the class is a singleton.
-  FileSystem() : logger_({.tag = "FileSystem", .level = Logger::Verbosity::WARN}) { init(); }
+  FileSystem()
+      : BaseComponent("FileSystem") {
+    init();
+  }
 
   /// @brief Initialize the file system
   /// @details
@@ -321,7 +324,5 @@ protected:
       std::filesystem::create_directory(root_path);
     }
   }
-
-  Logger logger_;
 };
 } // namespace espp

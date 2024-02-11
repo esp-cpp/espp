@@ -19,7 +19,7 @@
 #include <random>
 #endif
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
 
@@ -41,15 +41,17 @@ template <typename TP> std::time_t to_time_t(TP tp) {
 namespace espp {
 /// Class representing a client that is connected to the FTP server. This
 /// class is used by the FtpServer class to handle the client's requests.
-class FtpClientSession {
+class FtpClientSession : public BaseComponent {
 public:
   explicit FtpClientSession(int id, std::string_view local_address,
                             std::unique_ptr<TcpSocket> socket,
                             const std::filesystem::path &root_path)
-      : id_(id), local_ip_address_(local_address), current_directory_(root_path),
-        socket_(std::move(socket)), passive_socket_({.log_level = Logger::Verbosity::WARN}),
-        logger_(
-            {.tag = "FtpClientSession " + std::to_string(id), .level = Logger::Verbosity::WARN}) {
+      : BaseComponent("FtpClientSession " + std::to_string(id))
+      , id_(id)
+      , local_ip_address_(local_address)
+      , current_directory_(root_path)
+      , socket_(std::move(socket))
+      , passive_socket_({.log_level = Logger::Verbosity::WARN}) {
     logger_.debug("Client session {} created", id_);
     send_welcome_message();
     using namespace std::placeholders;
@@ -1163,7 +1165,6 @@ private:
   uint16_t data_port_{0};
 
   std::unique_ptr<Task> task_;
-  Logger logger_;
 };
 
 } // namespace espp

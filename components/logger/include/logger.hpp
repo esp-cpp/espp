@@ -50,7 +50,9 @@ public:
    * @param config configuration for the logger.
    */
   explicit Logger(const Config &config)
-      : tag_(config.tag), rate_limit_(config.rate_limit), level_(config.level) {}
+      : tag_(config.tag)
+      , rate_limit_(config.rate_limit)
+      , level_(config.level) {}
 
   /**
    * @brief Change the verbosity for the logger. \sa Logger::Verbosity
@@ -66,6 +68,13 @@ public:
     std::lock_guard<std::mutex> lock(tag_mutex_);
     tag_ = tag;
   }
+
+  /**
+   * @brief Change the rate limit for the logger.
+   * @param rate_limit The new rate limit.
+   * @note Only calls that have _rate_limited suffixed will be rate limited.
+   */
+  void set_rate_limit(const std::chrono::duration<float> rate_limit) { rate_limit_ = rate_limit; }
 
   /**
    * @brief Format args into string according to format string. From:

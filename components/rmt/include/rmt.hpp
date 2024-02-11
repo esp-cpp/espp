@@ -4,7 +4,7 @@
 
 #include <driver/rmt_tx.h>
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "rmt_encoder.hpp"
 
 namespace espp {
@@ -20,7 +20,7 @@ namespace espp {
 ///
 ///  \section rmt_ex1 Example 1: Transmitting data
 ///  \snippet rmt_example.cpp rmt example
-class Rmt {
+class Rmt : public BaseComponent {
 public:
   /// \brief Configuration for the RMT class
   struct Config {
@@ -39,7 +39,8 @@ public:
 
   /// \brief Constructor
   /// \param config Configuration for this class
-  explicit Rmt(const Config &config) : logger_({.tag = "RMT", .level = config.log_level}) {
+  explicit Rmt(const Config &config)
+      : BaseComponent("RMT", config.log_level) {
     init(config);
   }
 
@@ -118,7 +119,5 @@ protected:
   rmt_channel_handle_t channel_; ///< RMT channel handle
 
   std::unique_ptr<RmtEncoder> encoder_;
-
-  Logger logger_; ///< Logger for this class
 };
 } // namespace espp
