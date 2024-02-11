@@ -73,6 +73,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Compoenent</a></li>
 <li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
@@ -128,7 +129,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/97fac41/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/c29ab4c/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -590,6 +591,14 @@
       <li><a href="io_expander/aw9523.html#_CPPv4N4espp6Aw95238set_pinsE4Port7uint8_tRNSt10error_codeE">espp::Aw9523::set_pins (C++ function)</a>, <a href="io_expander/aw9523.html#_CPPv4N4espp6Aw95238set_pinsE7uint8_t7uint8_tRNSt10error_codeE">[1]</a>, <a href="io_expander/aw9523.html#_CPPv4N4espp6Aw95238set_pinsE8uint16_tRNSt10error_codeE">[2]</a>
 </li>
       <li><a href="io_expander/aw9523.html#_CPPv4N4espp6Aw95238write_fnE">espp::Aw9523::write_fn (C++ type)</a>
+</li>
+      <li><a href="base_component.html#_CPPv4N4espp13BaseComponentE">espp::BaseComponent (C++ class)</a>
+</li>
+      <li><a href="base_component.html#_CPPv4N4espp13BaseComponent13set_log_levelEN6Logger9VerbosityE">espp::BaseComponent::set_log_level (C++ function)</a>
+</li>
+      <li><a href="base_component.html#_CPPv4N4espp13BaseComponent11set_log_tagERKNSt11string_viewE">espp::BaseComponent::set_log_tag (C++ function)</a>
+</li>
+      <li><a href="base_component.html#_CPPv4N4espp13BaseComponent17set_log_verbosityEN6Logger9VerbosityE">espp::BaseComponent::set_log_verbosity (C++ function)</a>
 </li>
       <li><a href="math/bezier.html#_CPPv4I0EN4espp6BezierE">espp::Bezier (C++ class)</a>
 </li>
@@ -1517,15 +1526,31 @@
 </li>
       <li><a href="i2c.html#_CPPv4N4espp3I2c4initERNSt10error_codeE">espp::I2c::init (C++ function)</a>
 </li>
-      <li><a href="i2c.html#_CPPv4N4espp3I2c12probe_deviceE7uint8_t">espp::I2c::probe_device (C++ function)</a>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c12probe_deviceEK7uint8_t">espp::I2c::probe_device (C++ function)</a>
 </li>
-      <li><a href="i2c.html#_CPPv4N4espp3I2c4readE7uint8_tP7uint8_t6size_t">espp::I2c::read (C++ function)</a>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c4readEK7uint8_tP7uint8_t6size_t">espp::I2c::read (C++ function)</a>
 </li>
-      <li><a href="i2c.html#_CPPv4N4espp3I2c16read_at_registerE7uint8_t7uint8_tP7uint8_t6size_t">espp::I2c::read_at_register (C++ function)</a>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c16read_at_registerEK7uint8_tK7uint8_tP7uint8_t6size_t">espp::I2c::read_at_register (C++ function)</a>
 </li>
-      <li><a href="i2c.html#_CPPv4N4espp3I2c5writeE7uint8_tP7uint8_t6size_t">espp::I2c::write (C++ function)</a>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c23read_at_register_vectorEK7uint8_tK7uint8_tRNSt6vectorI7uint8_tEE">espp::I2c::read_at_register_vector (C++ function)</a>
 </li>
-      <li><a href="i2c.html#_CPPv4N4espp3I2c10write_readE7uint8_tP7uint8_t6size_tP7uint8_t6size_t">espp::I2c::write_read (C++ function)</a>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c11read_vectorEK7uint8_tRNSt6vectorI7uint8_tEE">espp::I2c::read_vector (C++ function)</a>
+</li>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c13set_log_levelEN6Logger9VerbosityE">espp::I2c::set_log_level (C++ function)</a>
+</li>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c11set_log_tagERKNSt11string_viewE">espp::I2c::set_log_tag (C++ function)</a>
+</li>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c17set_log_verbosityEN6Logger9VerbosityE">espp::I2c::set_log_verbosity (C++ function)</a>
+</li>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c5writeEK7uint8_tPK7uint8_tK6size_t">espp::I2c::write (C++ function)</a>
+</li>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c10write_readEK7uint8_tPK7uint8_tK6size_tP7uint8_t6size_t">espp::I2c::write_read (C++ function)</a>
+</li>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c17write_read_vectorEK7uint8_tRKNSt6vectorI7uint8_tEERNSt6vectorI7uint8_tEE">espp::I2c::write_read_vector (C++ function)</a>
+</li>
+      <li><a href="i2c.html#_CPPv4N4espp3I2c12write_vectorEK7uint8_tRKNSt6vectorI7uint8_tEE">espp::I2c::write_vector (C++ function)</a>
+</li>
+      <li><a href="i2c.html#_CPPv4N4espp3I2cD0Ev">espp::I2c::~I2c (C++ function)</a>
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp7Ili9341E">espp::Ili9341 (C++ class)</a>
 </li>
@@ -1751,6 +1776,8 @@
 </li>
       <li><a href="cli.html#_CPPv4N4espp9LineInput16set_history_sizeE6size_t">espp::LineInput::set_history_size (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="cli.html#_CPPv4N4espp9LineInputD0Ev">espp::LineInput::~LineInput (C++ function)</a>
 </li>
       <li><a href="logger.html#_CPPv4N4espp6LoggerE">espp::Logger (C++ class)</a>
@@ -1763,8 +1790,6 @@
 </li>
       <li><a href="logger.html#_CPPv4N4espp6Logger6Config3tagE">espp::Logger::Config::tag (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger5debugEvNSt11string_viewEDpRR4Args">espp::Logger::debug (C++ function)</a>
 </li>
       <li><a href="logger.html#_CPPv4IDpEN4espp6Logger18debug_rate_limitedEvNSt11string_viewEDpRR4Args">espp::Logger::debug_rate_limited (C++ function)</a>

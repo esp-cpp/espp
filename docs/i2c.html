@@ -76,6 +76,7 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Compoenent</a></li>
 <li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
@@ -138,7 +139,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>I2C</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/97fac41/docs/en/i2c.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/c29ab4c/docs/en/i2c.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -155,50 +156,51 @@ around the esp-idf I2C driver.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/97fac41/components/i2c/include/i2c.hpp">components/i2c/include/i2c.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c29ab4c/components/i2c/include/i2c.hpp">components/i2c/include/i2c.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3I2cE">
-<span id="_CPPv3N4espp3I2cE"></span><span id="_CPPv2N4espp3I2cE"></span><span id="espp::I2c"></span><span class="target" id="classespp_1_1_i2c"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">I2c</span></span></span><a class="headerlink" href="#_CPPv4N4espp3I2cE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp3I2cE"></span><span id="_CPPv2N4espp3I2cE"></span><span id="espp::I2c"></span><span class="target" id="classespp_1_1_i2c"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">I2c</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp3I2cE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>I2C driver. </p>
 <p>This class is a wrapper around the ESP-IDF I2C driver.</p>
 <section id="classespp_1_1_tt21100_1Example">
 <h4>Example<a class="headerlink" href="#classespp_1_1_tt21100_1Example" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
-<span class="w">      </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
-<span class="w">      </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
-<span class="w">      </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<p id="classespp_1_1_tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
 <span class="w">    </span><span class="p">});</span>
 
-<span class="w">  </span><span class="c1">// probe the bus for all addresses and store the ones that were found /</span>
-<span class="w">  </span><span class="c1">// responded</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">found_addresses</span><span class="p">;</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">128</span><span class="p">;</span><span class="w"> </span><span class="n">address</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">address</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">found_addresses</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">address</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// probe the bus for all addresses and store the ones that were found /</span>
+<span class="w">    </span><span class="c1">// responded</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">found_addresses</span><span class="p">;</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">128</span><span class="p">;</span><span class="w"> </span><span class="n">address</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">address</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">found_addresses</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">address</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="w">  </span><span class="c1">// print out the addresses that were found</span>
-<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Found devices at addresses: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">found_addresses</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// print out the addresses that were found</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Found devices at addresses: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">found_addresses</span><span class="p">);</span>
 
-<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_DEVICE_ADDR</span><span class="p">;</span>
-<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">register_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_DEVICE_REG_ADDR</span><span class="p">;</span>
-<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">device_found</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">device_address</span><span class="p">);</span>
-<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">device_found</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Found device with address {:#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">device_address</span><span class="p">);</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">read_data</span><span class="p">(</span><span class="n">CONFIG_EXAMPLE_I2C_DEVICE_REG_SIZE</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c</span><span class="p">.</span><span class="n">read_at_register</span><span class="p">(</span><span class="n">device_address</span><span class="p">,</span><span class="w"> </span><span class="n">register_address</span><span class="p">,</span><span class="w"> </span><span class="n">read_data</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">read_data</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;read data: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">read_data</span><span class="p">);</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_DEVICE_ADDR</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">register_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CONFIG_EXAMPLE_I2C_DEVICE_REG_ADDR</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">device_found</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">device_address</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">device_found</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Found device with address {:#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">device_address</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">read_data</span><span class="p">(</span><span class="n">CONFIG_EXAMPLE_I2C_DEVICE_REG_SIZE</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">      </span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">i2c</span><span class="p">.</span><span class="n">read_at_register</span><span class="p">(</span><span class="n">device_address</span><span class="p">,</span><span class="w"> </span><span class="n">register_address</span><span class="p">,</span><span class="w"> </span><span class="n">read_data</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span>
+<span class="w">                                          </span><span class="n">read_data</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">success</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;read data: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">read_data</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;read failed&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
 <span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;read failed&quot;</span><span class="p">);</span>
+<span class="w">      </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not find device with address {:#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">device_address</span><span class="p">);</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Could not find device with address {:#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">device_address</span><span class="p">);</span>
-<span class="w">  </span><span class="p">}</span>
 </pre></div>
 </div>
  </p>
@@ -217,6 +219,12 @@ around the esp-idf I2C driver.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2cD0Ev">
+<span id="_CPPv3N4espp3I2cD0Ev"></span><span id="_CPPv2N4espp3I2cD0Ev"></span><span id="espp::I2c::~I2c"></span><span class="target" id="classespp_1_1_i2c_1a046e7e5b0be97693c21b855547348968"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~I2c</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2cD0Ev" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Destructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c4initERNSt10error_codeE">
 <span id="_CPPv3N4espp3I2c4initERNSt10error_codeE"></span><span id="_CPPv2N4espp3I2c4initERNSt10error_codeE"></span><span id="espp::I2c::init__std::error_codeR"></span><span class="target" id="classespp_1_1_i2c_1a997c1f6fa8c968e5414a919df121184f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c4initERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize I2C driver. </p>
@@ -229,8 +237,8 @@ around the esp-idf I2C driver.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c5writeE7uint8_tP7uint8_t6size_t">
-<span id="_CPPv3N4espp3I2c5writeE7uint8_tP7uint8_t6size_t"></span><span id="_CPPv2N4espp3I2c5writeE7uint8_tP7uint8_t6size_t"></span><span id="espp::I2c::write__uint8_t.uint8_tP.s"></span><span class="target" id="classespp_1_1_i2c_1a60aeef52906156369ddb4314469b3c80"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c5writeE7uint8_tP7uint8_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c5writeEK7uint8_tPK7uint8_tK6size_t">
+<span id="_CPPv3N4espp3I2c5writeEK7uint8_tPK7uint8_tK6size_t"></span><span id="_CPPv2N4espp3I2c5writeEK7uint8_tPK7uint8_tK6size_t"></span><span id="espp::I2c::write__uint8_tC.uint8_tCP.sC"></span><span class="target" id="classespp_1_1_i2c_1a124d7b256adb5e2ab2df892cb72d405b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c5writeEK7uint8_tPK7uint8_tK6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Write data to I2C device </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -247,8 +255,25 @@ around the esp-idf I2C driver.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c10write_readE7uint8_tP7uint8_t6size_tP7uint8_t6size_t">
-<span id="_CPPv3N4espp3I2c10write_readE7uint8_tP7uint8_t6size_tP7uint8_t6size_t"></span><span id="_CPPv2N4espp3I2c10write_readE7uint8_tP7uint8_t6size_tP7uint8_t6size_t"></span><span id="espp::I2c::write_read__uint8_t.uint8_tP.s.uint8_tP.s"></span><span class="target" id="classespp_1_1_i2c_1a17cc0de6ec3e1148a72f27f376547eb3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">write_data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">write_size</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">read_data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">read_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c10write_readE7uint8_tP7uint8_t6size_tP7uint8_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c12write_vectorEK7uint8_tRKNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp3I2c12write_vectorEK7uint8_tRKNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp3I2c12write_vectorEK7uint8_tRKNSt6vectorI7uint8_tEE"></span><span id="espp::I2c::write_vector__uint8_tC.std::vector:uint8_t:CR"></span><span class="target" id="classespp_1_1_i2c_1a23c0a01e8b9eb4bc6277b876c38a8432"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_vector</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c12write_vectorEK7uint8_tRKNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write data to I2C device </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dev_addr</strong> – I2C device address </p></li>
+<li><p><strong>data</strong> – Data to write </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c10write_readEK7uint8_tPK7uint8_tK6size_tP7uint8_t6size_t">
+<span id="_CPPv3N4espp3I2c10write_readEK7uint8_tPK7uint8_tK6size_tP7uint8_t6size_t"></span><span id="_CPPv2N4espp3I2c10write_readEK7uint8_tPK7uint8_tK6size_tP7uint8_t6size_t"></span><span id="espp::I2c::write_read__uint8_tC.uint8_tCP.sC.uint8_tP.s"></span><span class="target" id="classespp_1_1_i2c_1a01a62e044c9e1d9e836202052cf527a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">write_data</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">write_size</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">read_data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">read_size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c10write_readEK7uint8_tPK7uint8_tK6size_tP7uint8_t6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Write to and read data from I2C device </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -267,8 +292,26 @@ around the esp-idf I2C driver.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c16read_at_registerE7uint8_t7uint8_tP7uint8_t6size_t">
-<span id="_CPPv3N4espp3I2c16read_at_registerE7uint8_t7uint8_tP7uint8_t6size_t"></span><span id="_CPPv2N4espp3I2c16read_at_registerE7uint8_t7uint8_tP7uint8_t6size_t"></span><span id="espp::I2c::read_at_register__uint8_t.uint8_t.uint8_tP.s"></span><span class="target" id="classespp_1_1_i2c_1a3fa2500974ee1a41d585b4a98dd6a8ce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_at_register</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg_addr</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c16read_at_registerE7uint8_t7uint8_tP7uint8_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c17write_read_vectorEK7uint8_tRKNSt6vectorI7uint8_tEERNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp3I2c17write_read_vectorEK7uint8_tRKNSt6vectorI7uint8_tEERNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp3I2c17write_read_vectorEK7uint8_tRKNSt6vectorI7uint8_tEERNSt6vectorI7uint8_tEE"></span><span id="espp::I2c::write_read_vector__uint8_tC.std::vector:uint8_t:CR.std::vector:uint8_t:R"></span><span class="target" id="classespp_1_1_i2c_1a1a0037da84af4ac65dcb9e186275e352"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read_vector</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">write_data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">read_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c17write_read_vectorEK7uint8_tRKNSt6vectorI7uint8_tEERNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Write data to and read data from I2C device </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dev_addr</strong> – I2C device address </p></li>
+<li><p><strong>write_data</strong> – Data to write </p></li>
+<li><p><strong>read_data</strong> – Data to read </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c16read_at_registerEK7uint8_tK7uint8_tP7uint8_t6size_t">
+<span id="_CPPv3N4espp3I2c16read_at_registerEK7uint8_tK7uint8_tP7uint8_t6size_t"></span><span id="_CPPv2N4espp3I2c16read_at_registerEK7uint8_tK7uint8_tP7uint8_t6size_t"></span><span id="espp::I2c::read_at_register__uint8_tC.uint8_tC.uint8_tP.s"></span><span class="target" id="classespp_1_1_i2c_1aa8ea951d5def5ef3c1892eb5ed1d50a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_at_register</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg_addr</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c16read_at_registerEK7uint8_tK7uint8_tP7uint8_t6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read data from I2C device at register </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -286,8 +329,26 @@ around the esp-idf I2C driver.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c4readE7uint8_tP7uint8_t6size_t">
-<span id="_CPPv3N4espp3I2c4readE7uint8_tP7uint8_t6size_t"></span><span id="_CPPv2N4espp3I2c4readE7uint8_tP7uint8_t6size_t"></span><span id="espp::I2c::read__uint8_t.uint8_tP.s"></span><span class="target" id="classespp_1_1_i2c_1a6fbdfc94d675f0e2cfe64b6ff333f038"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c4readE7uint8_tP7uint8_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c23read_at_register_vectorEK7uint8_tK7uint8_tRNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp3I2c23read_at_register_vectorEK7uint8_tK7uint8_tRNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp3I2c23read_at_register_vectorEK7uint8_tK7uint8_tRNSt6vectorI7uint8_tEE"></span><span id="espp::I2c::read_at_register_vector__uint8_tC.uint8_tC.std::vector:uint8_t:R"></span><span class="target" id="classespp_1_1_i2c_1af70c69223088dc42d03c559bb595a5e7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_at_register_vector</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reg_addr</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c23read_at_register_vectorEK7uint8_tK7uint8_tRNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read data from I2C device at register </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dev_addr</strong> – I2C device address </p></li>
+<li><p><strong>reg_addr</strong> – Register address </p></li>
+<li><p><strong>data</strong> – Data to read </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c4readEK7uint8_tP7uint8_t6size_t">
+<span id="_CPPv3N4espp3I2c4readEK7uint8_tP7uint8_t6size_t"></span><span id="_CPPv2N4espp3I2c4readEK7uint8_tP7uint8_t6size_t"></span><span id="espp::I2c::read__uint8_tC.uint8_tP.s"></span><span class="target" id="classespp_1_1_i2c_1a6ff4e2178e481edc028df59c28014cae"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data_len</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c4readEK7uint8_tP7uint8_t6size_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read data from I2C device </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -304,8 +365,25 @@ around the esp-idf I2C driver.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c12probe_deviceE7uint8_t">
-<span id="_CPPv3N4espp3I2c12probe_deviceE7uint8_t"></span><span id="_CPPv2N4espp3I2c12probe_deviceE7uint8_t"></span><span id="espp::I2c::probe_device__uint8_t"></span><span class="target" id="classespp_1_1_i2c_1a08d710321c65f00360f8f7b238c5dd68"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_device</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c12probe_deviceE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c11read_vectorEK7uint8_tRNSt6vectorI7uint8_tEE">
+<span id="_CPPv3N4espp3I2c11read_vectorEK7uint8_tRNSt6vectorI7uint8_tEE"></span><span id="_CPPv2N4espp3I2c11read_vectorEK7uint8_tRNSt6vectorI7uint8_tEE"></span><span id="espp::I2c::read_vector__uint8_tC.std::vector:uint8_t:R"></span><span class="target" id="classespp_1_1_i2c_1a56cf90e26010704c5141e74abf85737a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_vector</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c11read_vectorEK7uint8_tRNSt6vectorI7uint8_tEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Read data from I2C device </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dev_addr</strong> – I2C device address </p></li>
+<li><p><strong>data</strong> – Data to read </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c12probe_deviceEK7uint8_t">
+<span id="_CPPv3N4espp3I2c12probe_deviceEK7uint8_t"></span><span id="_CPPv2N4espp3I2c12probe_deviceEK7uint8_t"></span><span id="espp::I2c::probe_device__uint8_tC"></span><span class="target" id="classespp_1_1_i2c_1aa46ddb1511e817d84502af3c7391bcde"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_device</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">dev_addr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c12probe_deviceEK7uint8_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p><p>Probe I2C device</p>
 <p>This function sends a start condition, writes the device address, and then sends a stop condition. If the device acknowledges the address, then it is present on the bus.</p>
 </p>
@@ -315,6 +393,47 @@ around the esp-idf I2C driver.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>True if successful</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp3I2c11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp3I2c11set_log_tagERKNSt11string_viewE"></span><span id="espp::I2c::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1_base_component_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c13set_log_levelEN6Logger9VerbosityE">
+<span id="_CPPv3N4espp3I2c13set_log_levelEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp3I2c13set_log_levelEN6Logger9VerbosityE"></span><span id="espp::I2c::set_log_level__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c13set_log_levelEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp3I2c17set_log_verbosityEN6Logger9VerbosityE">
+<span id="_CPPv3N4espp3I2c17set_log_verbosityEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp3I2c17set_log_verbosityEN6Logger9VerbosityE"></span><span id="espp::I2c::set_log_verbosity__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ac47205e43174fe6f8655b777d3fdfa06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp3I2c17set_log_verbosityEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"><span class="std std-ref">set_log_level</span></a> </p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
 </dd>
 </dl>
 </dd></dl>
