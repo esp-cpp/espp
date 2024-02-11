@@ -12,8 +12,9 @@ class I2cMenu {
 public:
   explicit I2cMenu(std::reference_wrapper<espp::I2c> i2c) : i2c_(i2c) {}
 
-  std::unique_ptr<cli::Menu> get() {
-    auto i2c_menu = std::make_unique<cli::Menu>("i2c", "I2c menu");
+  std::unique_ptr<cli::Menu> get(std::string_view name = "i2c",
+                                 std::string_view description = "I2c menu") {
+    auto i2c_menu = std::make_unique<cli::Menu>(std::string(name), std::string(description));
 
     // set the log verbosity for the i2c bus
     i2c_menu->Insert(
