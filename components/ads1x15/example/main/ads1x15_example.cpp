@@ -24,10 +24,11 @@ extern "C" void app_main(void) {
     // make the actual ads class
     espp::Ads1x15 ads(espp::Ads1x15::Ads1015Config{
         .device_address = espp::Ads1x15::DEFAULT_ADDRESS,
-        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                           std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1, std::placeholders::_2,
-                          std::placeholders::_3)});
+        .write = [&i2c](uint8_t addr, const uint8_t *data,
+                        size_t len) { return i2c.write(addr, data, len); },
+        .read = [&i2c](uint8_t addr, uint8_t *data,
+                       size_t len) { return i2c.read(addr, data, len); },
+    });
     // make the task which will get the raw data from the I2C ADC
     auto ads_read_task_fn = [&ads](std::mutex &m, std::condition_variable &cv) {
       static auto start = std::chrono::high_resolution_clock::now();

@@ -36,8 +36,9 @@ extern "C" void app_main(void) {
        .port_1_direction_mask = 0b00000011,
        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
                           std::placeholders::_3),
-       .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                         std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+       .write_then_read =
+           std::bind(&espp::I2c::write_read, &i2c, std::placeholders::_1, std::placeholders::_2,
+                     std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
        .log_level = espp::Logger::Verbosity::WARN});
   std::error_code ec;
   aw9523.initialize(ec); // Initialized separately from the constructor.

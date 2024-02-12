@@ -69,13 +69,13 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
+
     // now make the st25dv which decodes the data
-    espp::St25dv st25dv(
-        {.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                            std::placeholders::_3),
-         .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                           std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-         .log_level = espp::Logger::Verbosity::DEBUG});
+    espp::St25dv st25dv({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
+                                            std::placeholders::_2, std::placeholders::_3),
+                         .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
+                                           std::placeholders::_2, std::placeholders::_3),
+                         .log_level = espp::Logger::Verbosity::DEBUG});
 
     std::array<uint8_t, 50> programmed_data;
     std::error_code ec;
@@ -130,10 +130,17 @@ extern "C" void app_main(void) {
     // and finally, make the task to periodically poll the st25dv and print the
     // state. The task will trigger sample quit when the phone reads the tag.
     auto task_fn = [&quit_test, &st25dv](std::mutex &m, std::condition_variable &cv) {
+      {
+        std::unique_lock<std::mutex> lock(m);
+        cv.wait_for(lock, 30ms);
+      }
       std::error_code ec;
       auto it_sts = st25dv.get_interrupt_status(ec);
       if (ec) {
         fmt::print("Failed to get interrupt status: {}\n", ec.message());
+        // wait a bit before trying again
+        std::unique_lock<std::mutex> lock(m);
+        cv.wait_for(lock, 300ms);
         return false;
       }
       static auto last_it_sts = it_sts;
@@ -141,8 +148,6 @@ extern "C" void app_main(void) {
         fmt::print("[{:.3f}] IT STS: {:02x}\n", elapsed(), it_sts);
       }
       last_it_sts = it_sts;
-      std::unique_lock<std::mutex> lock(m);
-      cv.wait_for(lock, 10ms);
       // we don't want to stop the task, so return false
       return false;
     };

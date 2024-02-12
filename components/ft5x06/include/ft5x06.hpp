@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /// @brief The FT5x06 touch controller.
@@ -10,25 +10,10 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet ft5x06_example.cpp ft5x06 example
-class Ft5x06 {
+class Ft5x06 : public BasePeripheral {
 public:
   /// @brief The default I2C address for the FT5x06.
   static constexpr uint8_t DEFAULT_ADDRESS = (0x38);
-
-  /// @brief The function to write data to the I2C bus.
-  /// @param address The I2C address of the device.
-  /// @param data The data to write to the I2C bus.
-  /// @param data_len The length of the data to write to the I2C bus.
-  /// @return true if the function succeeds.
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
-
-  /// @brief The function to read data starting at a register from the I2C bus.
-  /// @param address The I2C address of the device.
-  /// @param register The register to write to the I2C bus.
-  /// @param data The data to read from the I2C bus.
-  /// @param data_len The length of the data to read from the I2C bus.
-  /// @return true if the function succeeds.
-  typedef std::function<bool(uint8_t, uint8_t, uint8_t *, size_t)> read_at_register_fn;
 
   /// @brief The gesture that was detected.
   enum class Gesture : uint8_t {
@@ -43,17 +28,19 @@ public:
 
   /// @brief The configuration for the FT5x06.
   struct Config {
-    write_fn write; ///< The function to write data to the I2C bus.
-    read_at_register_fn
-        read_at_register; ///< The function to write then read data from the I2C bus.
+    BasePeripheral::write_fn write; ///< The function to write data to the I2C bus.
+    BasePeripheral::read_register_fn
+        read_register; ///< The function to write then read data from the I2C bus.
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< The log level.
   };
 
   /// @brief Construct a new FT5x06.
   /// @param config The configuration for the FT5x06.
   explicit Ft5x06(const Config &config)
-      : write_(config.write), read_at_register_(config.read_at_register),
-        logger_({.tag = "Ft5x06", .level = config.log_level}) {
+      : BasePeripheral({.address = DEFAULT_ADDRESS,
+                        .write = config.write,
+                        .read_register = config.read_register},
+                       "Ft5x06", config.log_level) {
     std::error_code ec;
     init(ec);
     if (ec) {
@@ -65,7 +52,7 @@ public:
   /// @param ec The error code if the function fails.
   /// @return The number of touch points.
   uint8_t get_num_touch_points(std::error_code &ec) {
-    return read_register(Registers::TOUCH_POINTS, ec);
+    return read_u8_from_register((uint8_t)Registers::TOUCH_POINTS, ec);
   }
 
   /// @brief Get the touch point.
@@ -81,7 +68,7 @@ public:
     *num_touch_points = tp;
     if (*num_touch_points != 0) {
       uint8_t data[4];
-      read(Registers::TOUCH1_XH, data, 4, ec);
+      read_many_from_register((uint8_t)Registers::TOUCH1_XH, data, 4, ec);
       if (ec) {
         return;
       }
@@ -95,45 +82,45 @@ public:
   /// @param ec The error code if the function fails.
   /// @return The gesture that was detected.
   Gesture read_gesture(std::error_code &ec) {
-    return (Gesture)read_register(Registers::GESTURE_ID, ec);
+    return (Gesture)read_u8_from_register((uint8_t)Registers::GESTURE_ID, ec);
   }
 
 protected:
   void init(std::error_code &ec) {
     // Valid touching detect threshold
-    write_register(Registers::ID_G_THGROUP, 70, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_THGROUP, 70, ec);
     if (ec)
       return;
     // valid touching peak detect threshold
-    write_register(Registers::ID_G_THPEAK, 60, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_THPEAK, 60, ec);
     if (ec)
       return;
     // Touch focus threshold
-    write_register(Registers::ID_G_THCAL, 16, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_THCAL, 16, ec);
     if (ec)
       return;
     // threshold when there is surface water
-    write_register(Registers::ID_G_THWATER, 60, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_THWATER, 60, ec);
     if (ec)
       return;
     // threshold of temperature compensation
-    write_register(Registers::ID_G_THTEMP, 10, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_THTEMP, 10, ec);
     if (ec)
       return;
     // Touch difference threshold
-    write_register(Registers::ID_G_THDIFF, 20, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_THDIFF, 20, ec);
     if (ec)
       return;
     // Delay to enter 'Monitor' status (s)
-    write_register(Registers::ID_G_TIME_ENTER_MONITOR, 2, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_TIME_ENTER_MONITOR, 2, ec);
     if (ec)
       return;
     // Period of 'Active' status (ms)
-    write_register(Registers::ID_G_PERIODACTIVE, 12, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_PERIODACTIVE, 12, ec);
     if (ec)
       return;
     // Timer to enter 'idle' when in 'Monitor' (ms)
-    write_register(Registers::ID_G_PERIODMONITOR, 40, ec);
+    write_u8_to_register((uint8_t)Registers::ID_G_PERIODMONITOR, 40, ec);
   }
 
   enum class Registers : uint8_t {
@@ -192,37 +179,5 @@ protected:
     ID_G_FT5201ID = 0xA8,
     ID_G_ERR = 0xA9,
   };
-
-  uint8_t read_register(Registers reg, std::error_code &ec) {
-    uint8_t data = 0;
-    bool success = read_at_register_(DEFAULT_ADDRESS, (uint8_t)reg, &data, 1);
-    if (!success) {
-      logger_.error("Failed to read register {}", (uint8_t)reg);
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    return data;
-  }
-
-  void read(Registers reg, uint8_t *data, size_t data_len, std::error_code &ec) {
-    bool success = read_at_register_(DEFAULT_ADDRESS, (uint8_t)reg, data, data_len);
-    if (!success) {
-      logger_.error("Failed to read register {}", (uint8_t)reg);
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  void write_register(Registers reg, uint8_t data, std::error_code &ec) {
-    uint8_t buf[2] = {(uint8_t)reg, data};
-    bool success = write_(DEFAULT_ADDRESS, buf, 2);
-    if (!success) {
-      logger_.error("Failed to write register {}", (uint8_t)reg);
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  write_fn write_;
-  read_at_register_fn read_at_register_;
-  espp::Logger logger_;
 };
 } // namespace espp

@@ -4,7 +4,7 @@
 #include <cmath>
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -28,29 +28,9 @@ namespace espp {
  * \section as5600_ex1 As5600 Example
  * \snippet as5600_example.cpp as5600 example
  */
-class As5600 {
+class As5600 : public BasePeripheral {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = (0b0110110); ///< I2C address of the AS5600
-
-  /**
-   * @brief Function to write bytes to the device.
-   * @param dev_addr Address of the device to write to.
-   * @param data Pointer to array of bytes to write.
-   * @param data_len Number of data bytes to write.
-   * @return True if the write was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
-
-  /**
-   * @brief Function to read bytes from the device.
-   * @param dev_addr Address of the device to write to.
-   * @param reg_addr Register address to read from.
-   * @param data Pointer to array of bytes to read into.
-   * @param data_len Number of data bytes to read.
-   * @return True if the read was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
-      read_fn;
 
   /**
    * @brief Filter the input raw velocity and return it.
@@ -76,9 +56,9 @@ public:
    * @brief Configuration information for the As5600.
    */
   struct Config {
-    uint8_t device_address = DEFAULT_ADDRESS;    ///< I2C address for this device.
-    write_fn write;                              ///< Function to write to the device.
-    read_fn read;                                ///< Function to read from the device.
+    uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address for this device.
+    BasePeripheral::write_then_read_fn
+        write_then_read;                         ///< Function to write then read from the device.
     velocity_filter_fn velocity_filter{nullptr}; ///< Function to filter the veolcity. @note Will be
                                                  ///< called once every update_period seconds.
     std::chrono::duration<float> update_period{
@@ -94,9 +74,11 @@ public:
    * @brief Construct the As5600 and start the update task.
    */
   explicit As5600(const Config &config)
-      : address_(config.device_address), write_(config.write), read_(config.read),
-        velocity_filter_(config.velocity_filter), update_period_(config.update_period),
-        logger_({.tag = "As5600", .level = config.log_level}) {
+      : BasePeripheral(
+            {.address = config.device_address, .write_then_read = config.write_then_read}, "As5600",
+            config.log_level)
+      , velocity_filter_(config.velocity_filter)
+      , update_period_(config.update_period) {
     logger_.info("Initializing. Fastest measurable velocity will be {:.3f} RPM",
                  // half a rotation in one update period is the fastest we can
                  // measure
@@ -180,11 +162,11 @@ protected:
   int read_count(std::error_code &ec) {
     logger_.info("read_count");
     // read the angle count registers
-    uint8_t angle_h = read_one_((uint8_t)Registers::ANGLE_H, ec);
+    uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
     if (ec) {
       return 0;
     }
-    uint8_t angle_l = read_one_((uint8_t)Registers::ANGLE_L, ec) >> 2;
+    uint8_t angle_l = read_u8_from_register((uint8_t)Registers::ANGLE_L, ec) >> 2;
     if (ec) {
       return 0;
     }
@@ -304,25 +286,11 @@ protected:
   static constexpr int MAGNET_LOW = (1 << 4);      ///< For use with the STATUS register
   static constexpr int MAGNET_DETECTED = (1 << 5); ///< For use with the STATUS register
 
-  uint8_t read_one_(uint8_t reg_addr, std::error_code &ec) {
-    uint8_t data;
-    bool success = read_(address_, reg_addr, &data, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    return data;
-  }
-
-  uint8_t address_;
-  write_fn write_;
-  read_fn read_;
   velocity_filter_fn velocity_filter_{nullptr};
   std::chrono::duration<float> update_period_;
   std::atomic<int> count_{0};
   std::atomic<int> accumulator_{0};
   std::atomic<float> velocity_rpm_{0};
   std::unique_ptr<Task> task_;
-  Logger logger_;
 };
 } // namespace espp

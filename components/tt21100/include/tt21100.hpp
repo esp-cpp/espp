@@ -2,41 +2,30 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /// @brief Driver for the Tt21100 touch controller
 ///
 /// \section Example
 /// \snippet tt21100_example.cpp tt21100 example
-class Tt21100 {
+class Tt21100 : public BasePeripheral {
 public:
   /// @brief The default i2c address
   static constexpr uint8_t DEFAULT_ADDRESS = (0x24);
 
-  /// @brief Function for writing to the i2c device
-  /// @param address The address of the i2c device
-  /// @param data The data to write to the chip
-  /// @param len The length of the data to write
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
-
-  /// @brief Function signature for reading from the i2c device
-  /// @param dev_addr The device address
-  /// @param data The data to read
-  /// @param data_len The length of the data to read
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> read_fn;
-
   /// @brief Configuration for the Tt21100 driver
   struct Config {
-    write_fn write = nullptr;           ///< Function for writing to the i2c device (unused)
-    read_fn read;             ///< Function for reading from the i2c device
+    BasePeripheral::write_fn write = nullptr; ///< Function for writing to the i2c device (unused)
+    BasePeripheral::read_fn read;             ///< Function for reading from the i2c device
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Log level
   };
 
   /// @brief Constructor
   /// @param config The configuration for the driver
   explicit Tt21100(const Config &config)
-      : read_(config.read), logger_({.tag = "Tt21100", .level = config.log_level}) {
+      : BasePeripheral({.address = DEFAULT_ADDRESS, .read = config.read}, "Tt21100",
+                       config.log_level) {
     std::error_code ec;
     init(ec);
     if (ec) {
@@ -51,25 +40,28 @@ public:
     static uint16_t data_len;
     static uint8_t data[256];
 
-    bool success = read_(DEFAULT_ADDRESS, (uint8_t *)&data_len, sizeof(data_len));
-    if (!success) {
-      logger_.error("Failed to read data length");
-      ec = std::make_error_code(std::errc::io_error);
+    // NOTE: this chip is weird, and even though we're reading a u16, we can't
+    //       use the read_u16 since that function assumes the data is in little
+    //       endian format, but this chip sends the data in big endian format meaning
+    //       the bytes are swapped
+
+    read_many((uint8_t *)&data_len, 2, ec);
+    if (ec) {
+      logger_.error("Failed to read data length: {}", ec.message());
       return false;
     }
 
     logger_.debug("Data length: {}", data_len);
 
-    if (data_len == 0xff) {
+    if (data_len >= 0xff) {
       logger_.error("Invalid data length");
       ec = std::make_error_code(std::errc::io_error);
       return false;
     }
 
-    success = read_(DEFAULT_ADDRESS, data, data_len);
-    if (!success) {
+    read_many(data, data_len, ec);
+    if (ec) {
       logger_.error("Failed to read data");
-      ec = std::make_error_code(std::errc::io_error);
       return false;
     }
 
@@ -137,17 +129,21 @@ protected:
   void init(std::error_code &ec) {
     logger_.debug("Initializing...");
     uint16_t reg_val = 0;
+    static constexpr int max_tries = 10;
+    int num_tries = 0;
     do {
       using namespace std::chrono_literals;
-      bool success = read_(DEFAULT_ADDRESS, (uint8_t *)&reg_val, 2);
-      if (!success) {
+      read_many((uint8_t *)&reg_val, 2, ec);
+      if (ec) {
         logger_.error("Failed to read...");
-        ec = std::make_error_code(std::errc::io_error);
         return;
       }
       logger_.debug("reg_val: {:#04x}", reg_val);
       std::this_thread::sleep_for(20ms);
-    } while (0x0002 != reg_val);
+    } while (0x0002 != reg_val && ++num_tries < max_tries);
+    if (num_tries >= max_tries) {
+      logger_.warn("Reached max tries trying to read...");
+    }
   }
 
   enum class Registers : uint8_t {
@@ -190,11 +186,9 @@ protected:
     uint16_t btn_signal[4];
   } __attribute__((packed));
 
-  read_fn read_;
   std::atomic<bool> home_button_pressed_{false};
   std::atomic<uint8_t> num_touch_points_;
   std::atomic<uint16_t> x_;
   std::atomic<uint16_t> y_;
-  espp::Logger logger_;
 };
 } // namespace espp

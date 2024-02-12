@@ -2,36 +2,24 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /// @brief Driver for the GT911 touch controller
 ///
 /// \section Example
 /// \snippet gt911_example.cpp gt911 example
-class Gt911 {
+class Gt911 : public BasePeripheral {
 public:
   /// Default address for the GT911 chip
   static constexpr uint8_t DEFAULT_ADDRESS_1 = 0x5D;
   /// Alternate address for the GT911 chip
   static constexpr uint8_t DEFAULT_ADDRESS_2 = 0x14;
 
-  /// @brief Function for writing to the i2c device
-  /// @param address The address of the i2c device
-  /// @param data The data to write to the chip
-  /// @param len The length of the data to write
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
-
-  /// @brief Function signature for reading from the i2c device
-  /// @param dev_addr The device address
-  /// @param data The data to read
-  /// @param data_len The length of the data to read
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> read_fn;
-
   /// @brief Configuration for the GT911 driver
   struct Config {
-    write_fn write;           ///< Function for writing to the GT911 chip
-    read_fn read;             ///< Function for reading from the GT911 chip
+    BasePeripheral::write_fn write;      ///< Function for writing to the GT911 chip
+    BasePeripheral::read_fn read;        ///< Function for reading from the GT911 chip
     uint8_t address = DEFAULT_ADDRESS_1; ///< Which address to use for this chip?
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; ///< Log verbosity for the input driver.
@@ -40,8 +28,8 @@ public:
   /// @brief Constructor for the GT911 driver
   /// @param config The configuration for the driver
   explicit Gt911(const Config &config)
-      : write_(config.write), read_(config.read), address_(config.address),
-        logger_({.tag = "Gt911", .level = config.log_level}) {}
+      : BasePeripheral({.address = config.address, .write = config.write, .read = config.read},
+                       "Gt911", config.log_level) {}
 
   /// @brief Update the state of the GT911 driver
   /// @param ec Error code to set if an error occurs
@@ -49,14 +37,15 @@ public:
   bool update(std::error_code &ec) {
     static constexpr size_t DATA_LEN = CONTACT_SIZE * MAX_CONTACTS;
     static uint8_t data[DATA_LEN];
-    read(Registers::POINT_INFO, data, 1, ec);
+    read_many_from_register((uint8_t)Registers::POINT_INFO, data, 1, ec);
     if (ec) {
       return false;
     }
     num_touch_points_ = data[0] & 0x0f;
     if (num_touch_points_ > 0) {
       logger_.debug("Got {} touch points", num_touch_points_);
-      read(Registers::POINTS, data, CONTACT_SIZE * num_touch_points_, ec);
+      read_many_from_register((uint8_t)Registers::POINTS, data, CONTACT_SIZE * num_touch_points_,
+                              ec);
       if (ec) {
         return false;
       }
@@ -66,7 +55,7 @@ public:
       y_ = point->y;
       logger_.debug("Touch at ({}, {})", x_, y_);
     }
-    write(Registers::POINT_INFO, 0x00, ec); // sync signal
+    write_u8_to_register((uint8_t)Registers::POINT_INFO, 0x00, ec); // sync signal
     if (ec) {
       return false;
     }
@@ -238,47 +227,9 @@ protected:
     GTKeyConfig keys;
   } __attribute__((packed));
 
-  void write(Registers reg, uint8_t val, std::error_code &ec) { write(reg, &val, 1, ec); }
-
-  void write(Registers reg, const uint8_t *data, size_t len, std::error_code &ec) {
-    uint16_t reg_addr = (uint16_t)reg;
-    size_t d_len = 2 + len;
-    uint8_t d[d_len];
-    d[0] = reg_addr >> 8;
-    d[1] = reg_addr & 0xFF;
-    if (len > 0 && data != nullptr)
-      memcpy(&d[2], data, len);
-    bool success = write_(address_, d, d_len);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  uint8_t read(Registers reg, std::error_code &ec) {
-    uint8_t val = 0;
-    read(reg, &val, 1, ec);
-    if (ec) {
-      return 0;
-    }
-    return val;
-  }
-
-  void read(Registers reg, uint8_t *data, size_t len, std::error_code &ec) {
-    write(reg, nullptr, 0, ec);
-    if (ec) return;
-    bool success = read_(address_, data, len);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  write_fn write_;
-  read_fn read_;
-  uint8_t address_;
   std::atomic<bool> home_button_pressed_{false};
   std::atomic<uint8_t> num_touch_points_;
   std::atomic<uint16_t> x_;
   std::atomic<uint16_t> y_;
-  espp::Logger logger_;
 };
 } // namespace espp

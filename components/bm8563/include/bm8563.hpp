@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /// @brief The BM8563 RTC driver.
@@ -10,25 +10,10 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet bm8563_example.cpp bm8563 example
-class Bm8563 {
+class Bm8563 : public BasePeripheral {
 public:
   /// @brief The default I2C address for the BM8563.
   static constexpr uint8_t DEFAULT_ADDRESS = (0x51);
-
-  /// @brief Function prototype for the I2C write function.
-  /// @param address The I2C address to write to.
-  /// @param data The data to write.
-  /// @param size The number of bytes to write.
-  /// @return True if the write was successful, false otherwise.
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
-
-  /// @brief Function prototype for the I2C read function.
-  /// @param address The I2C address to read from.
-  /// @param register_address The register address to read from.
-  /// @param data The data to read into.
-  /// @param size The number of bytes to read.
-  /// @return True if the read was successful, false otherwise.
-  typedef std::function<bool(uint8_t, uint8_t, uint8_t *, size_t)> read_fn;
 
   /// @brief The date structure.
   struct Date {
@@ -53,8 +38,8 @@ public:
 
   /// @brief The configuration structure.
   struct Config {
-    write_fn write; ///< The I2C write function.
-    read_fn read;   ///< The I2C read function.
+    BasePeripheral::write_fn write;                     ///< The I2C write function.
+    BasePeripheral::write_then_read_fn write_then_read; ///< The I2C write then read function.
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; ///< Log verbosity for the input driver.
   };
@@ -62,8 +47,10 @@ public:
   /// @brief Constructor.
   /// @param config The configuration.
   explicit Bm8563(const Config &config)
-      : write_(config.write), read_(config.read),
-        logger_({.tag = "Bm8563", .level = config.log_level}) {
+      : BasePeripheral({.address = DEFAULT_ADDRESS,
+                        .write = config.write,
+                        .write_then_read = config.write_then_read},
+                       "Bm8563", config.log_level) {
     std::error_code ec;
     init(ec);
     if (ec) {
@@ -108,7 +95,7 @@ public:
   Date get_date(std::error_code &ec) {
     logger_.info("getting date");
     uint8_t data[4];
-    read_register(Registers::DATE, data, 4, ec);
+    read_many_from_register((uint8_t)Registers::DATE, data, 4, ec);
     if (ec) {
       return {};
     }
@@ -128,7 +115,7 @@ public:
     const uint8_t data[] = {byte2bcd(d.day), byte2bcd(d.weekday),
                             (uint8_t)(byte2bcd(d.month) | ((d.year < 2000) ? 0x80 : 0x00)),
                             byte2bcd(d.year % 100)};
-    write_register(Registers::DATE, data, 4, ec);
+    write_many_to_register((uint8_t)Registers::DATE, data, 4, ec);
   }
 
   /// @brief Get the time.
@@ -136,7 +123,7 @@ public:
   Time get_time(std::error_code &ec) {
     logger_.info("getting time");
     uint8_t data[3];
-    read_register(Registers::TIME, data, 3, ec);
+    read_many_from_register((uint8_t)Registers::TIME, data, 3, ec);
     if (ec) {
       return {};
     }
@@ -152,14 +139,14 @@ public:
   void set_time(const Time &t, std::error_code &ec) {
     logger_.info("Setting time");
     const uint8_t data[] = {byte2bcd(t.second), byte2bcd(t.minute), byte2bcd(t.hour)};
-    write_register(Registers::TIME, data, 3, ec);
+    write_many_to_register((uint8_t)Registers::TIME, data, 3, ec);
   }
 
 protected:
   void init(std::error_code &ec) {
     logger_.info("initializing");
     const uint8_t data[] = {0, 0};
-    write_register(Registers::CONTROL_STATUS1, data, 2, ec);
+    write_many_to_register((uint8_t)Registers::CONTROL_STATUS1, data, 2, ec);
   }
 
   static constexpr int CENTURY_BIT = 0b10000000;
@@ -184,27 +171,6 @@ protected:
     TIMER_CONTROL = 0x0e,
     TIMER = 0x0f,
   };
-
-  void read_register(Registers reg, uint8_t *data, size_t size, std::error_code &ec) {
-    bool success = read_(DEFAULT_ADDRESS, (uint8_t)reg, data, size);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  void write_register(Registers reg, const uint8_t *data, size_t size, std::error_code &ec) {
-    uint8_t buf[size + 1];
-    buf[0] = (uint8_t)reg;
-    memcpy(buf + 1, data, size);
-    bool success = write_(DEFAULT_ADDRESS, buf, size + 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  write_fn write_;
-  read_fn read_;
-  espp::Logger logger_;
 };
 } // namespace espp
 

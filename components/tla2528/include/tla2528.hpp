@@ -8,7 +8,7 @@
 #include <thread>
 #include <unordered_map>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /**
@@ -25,29 +25,11 @@ namespace espp {
  * \section tla2528_ex1 TLA2528 Example
  * \snippet tla2528_example.cpp tla2528 example
  */
-class Tla2528 {
+class Tla2528 : public BasePeripheral {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS =
       (0x10); ///< Default I2C address of the device (when both R1 and R2 are DNP) (see data sheet
               ///< Table 2, p. 16)
-
-  /**
-   * @brief Function to write bytes to the device.
-   * @param dev_addr Address of the device to write to.
-   * @param data Pointer to array of bytes to write.
-   * @param data_len Number of data bytes to write.
-   * @return True if the write was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
-
-  /**
-   * @brief Function to read bytes from the device.
-   * @param dev_addr Address of the device to write to.
-   * @param data Pointer to array of bytes to read into.
-   * @param data_len Number of data bytes to read.
-   * @return True if the read was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> read_fn;
 
   /// @brief Possible oversampling ratios, see data sheet Table 15 (p. 34)
   enum class OversamplingRatio : uint8_t {
@@ -144,11 +126,11 @@ public:
             ///< the default value is false in open-drain
             ///< mode.
     OversamplingRatio oversampling_ratio = OversamplingRatio::NONE; ///< Oversampling ratio to use.
-    Append append = Append::NONE; ///< What data to append to samples when reading analog inputs.
-    write_fn write;               ///< Function to write to the ADC
-    read_fn read;                 ///< Function to read from the ADC
-    bool auto_init = true;        ///< Automatically initialize the ADC on construction. If false,
-                                  ///< initialize() must be called before any other functions.
+    Append append = Append::NONE;   ///< What data to append to samples when reading analog inputs.
+    BasePeripheral::write_fn write; ///< Function to write to the ADC
+    BasePeripheral::read_fn read;   ///< Function to read from the ADC
+    bool auto_init = true;          ///< Automatically initialize the ADC on construction. If false,
+                                    ///< initialize() must be called before any other functions.
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Verbosity for the logger.
   };
 
@@ -157,15 +139,19 @@ public:
    * @param config Configuration structure.
    */
   explicit Tla2528(const Config &config)
-      : config_(config), mode_(config.mode), avdd_mv_(config.avdd_volts * 1000.0f) // Convert to mV
-        ,
-        data_format_(config.oversampling_ratio == OversamplingRatio::NONE ? DataFormat::RAW
-                                                                          : DataFormat::AVERAGED),
-        append_(config.append), analog_inputs_(config.analog_inputs),
-        digital_inputs_(config.digital_inputs), digital_outputs_(config.digital_outputs),
-        oversampling_ratio_(config.oversampling_ratio), address_(config.device_address),
-        write_(config.write), read_(config.read),
-        logger_({.tag = "Tla2528", .level = config.log_level}) {
+      : BasePeripheral(
+            {.address = config.device_address, .write = config.write, .read = config.read},
+            "Tla2528", config.log_level)
+      , config_(config)
+      , mode_(config.mode)
+      , avdd_mv_(config.avdd_volts * 1000.0f)
+      , data_format_(config.oversampling_ratio == OversamplingRatio::NONE ? DataFormat::RAW
+                                                                          : DataFormat::AVERAGED)
+      , append_(config.append)
+      , analog_inputs_(config.analog_inputs)
+      , digital_inputs_(config.digital_inputs)
+      , digital_outputs_(config.digital_outputs)
+      , oversampling_ratio_(config.oversampling_ratio) {
     num_bytes_per_sample_ = 2;
     if (data_format_ == DataFormat::AVERAGED && append_ == Append::CHANNEL_ID) {
       num_bytes_per_sample_ = 3;
@@ -205,16 +191,15 @@ public:
    *       configured as an analog input.
    */
   float get_mv(Channel channel, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // we need to trigger a conversion and then read the result
     trigger_conversion(channel, ec);
     if (ec) {
       return 0.0f;
     }
     uint8_t data[num_bytes_per_sample_];
-    bool success = read_(address_, data, num_bytes_per_sample_);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    read_many(data, num_bytes_per_sample_, ec);
+    if (ec) {
       return 0.0f;
     }
     uint16_t raw = parse_frame(data);
@@ -237,7 +222,7 @@ public:
    *       ADC's buffer (blocking until conversion is complete).
    */
   std::vector<float> get_all_mv(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // TODO: handle the non-autonomous case
     auto raw_values = read_all(ec);
     if (ec) {
@@ -263,7 +248,7 @@ public:
    *       ADC's buffer (blocking until conversion is complete).
    */
   std::unordered_map<Channel, float> get_all_mv_map(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     std::unordered_map<Channel, float> values;
     // TODO: handle the non-autonomous case
     auto raw_values = read_all_map(ec);
@@ -283,7 +268,7 @@ public:
   /// @param ec Error code to set if an error occurs.
   /// @note The channel must have been configured as a digital output.
   void set_digital_output_mode(Channel channel, OutputMode output_mode, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (!is_digital_output(channel)) {
       logger_.error("Channel {} is not configured as a digital output", channel);
       ec = std::make_error_code(std::errc::invalid_argument);
@@ -306,7 +291,7 @@ public:
    * @note The channel must have been configured as a digital output.
    */
   void set_digital_output_value(Channel channel, bool value, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (!is_digital_output(channel)) {
       logger_.error("Channel {} is not configured as a digital output", channel);
       ec = std::make_error_code(std::errc::invalid_argument);
@@ -327,7 +312,7 @@ public:
    * @note The channel must have been configured as a digital input.
    */
   bool get_digital_input_value(Channel channel, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (!is_digital_input(channel)) {
       logger_.error("Channel {} is not configured as a digital input", channel);
       ec = std::make_error_code(std::errc::invalid_argument);
@@ -357,7 +342,7 @@ public:
   /// @note This will reset all registers to their default values (converting
   ///       all channels to analog inputs and disabling all events).
   void reset(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // reset the device
     write_one_(Register::GENERAL_CFG, SW_RST, ec);
     if (ec) {
@@ -685,9 +670,8 @@ protected:
     if (ec) {
       return {};
     }
-    bool success = read_(address_, raw_values, num_bytes);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    read_many(raw_values, num_bytes, ec);
+    if (ec) {
       return {};
     }
     // stop the auto conversion sequence
@@ -841,29 +825,15 @@ protected:
     return std::find(analog_inputs_.begin(), analog_inputs_.end(), channel) != analog_inputs_.end();
   }
 
-  uint8_t read_only_(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    uint8_t val;
-    bool success = read_(address_, &val, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    return val;
-  }
+  // NOTE: this chip has specific read and write operation commands that are
+  // used, so we don't use the subclass's read_* and write_* methods directly
 
   uint8_t read_one_(Register reg, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data = 0;
     uint8_t read_one_command[] = {OP_READ_ONE, (uint8_t)reg};
-    bool success = write_(address_, read_one_command, sizeof(read_one_command));
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    uint8_t data;
-    success = read_(address_, &data, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    write_then_read(read_one_command, sizeof(read_one_command), &data, 1, ec);
+    if (ec) {
       return 0;
     }
     return data;
@@ -871,7 +841,7 @@ protected:
 
   uint16_t read_two_(Register reg, std::error_code &ec) {
     uint8_t data[2];
-    read_many_(reg, data, 2, ec);
+    read_block_(reg, data, 2, ec);
     if (ec) {
       return 0;
     }
@@ -881,67 +851,42 @@ protected:
     return (data[1] << 8) | data[0];
   }
 
-  void read_many_(Register reg, uint8_t *data, uint8_t len, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+  void read_block_(Register reg, uint8_t *data, uint8_t len, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t read_block_command[] = {OP_READ_BLOCK, (uint8_t)reg};
-    bool success = write_(address_, read_block_command, sizeof(read_block_command));
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
-    success = read_(address_, data, len);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
+    write_then_read(read_block_command, sizeof(read_block_command), data, len, ec);
   }
 
   void set_bits_(Register reg, uint8_t bit, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t data[] = {OP_SET_BITS, (uint8_t)reg, bit};
-    bool success = write_(address_, data, sizeof(data));
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
+    write_many(data, sizeof(data), ec);
   }
 
   void clear_bits_(Register reg, uint8_t bit, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t data[] = {OP_CLR_BITS, (uint8_t)reg, bit};
-    bool success = write_(address_, data, sizeof(data));
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
+    write_many(data, sizeof(data), ec);
   }
 
   void write_one_(Register reg, uint8_t value, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t data[] = {OP_WRITE_ONE, (uint8_t)reg, value};
-    bool success = write_(address_, data, sizeof(data));
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
+    write_many(data, sizeof(data), ec);
   }
 
   void write_two_(Register reg, uint16_t value, std::error_code &ec) {
-    write_many_(reg, (uint8_t *)&value, 2, ec);
+    write_block_(reg, (uint8_t *)&value, 2, ec);
   }
 
-  void write_many_(Register reg, const uint8_t *data, uint8_t len, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+  void write_block_(Register reg, const uint8_t *data, uint8_t len, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t total_len = len + 2;
     uint8_t data_with_header[total_len];
     data_with_header[0] = OP_WRITE_BLOCK;
     data_with_header[1] = (uint8_t)reg;
     memcpy(data_with_header + 2, data, len);
-    bool success = write_(address_, data_with_header, total_len);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
+    write_many(data_with_header, total_len, ec);
   }
 
   Config config_;
@@ -955,11 +900,6 @@ protected:
   std::vector<Channel> digital_inputs_;
   std::vector<Channel> digital_outputs_;
   OversamplingRatio oversampling_ratio_;
-  uint8_t address_;
-  write_fn write_;
-  read_fn read_;
-  std::recursive_mutex mutex_; ///< mutex for thread safety
-  espp::Logger logger_;
 };
 } // namespace espp
 

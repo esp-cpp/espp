@@ -245,7 +245,9 @@ public:
    * @param payload The payload data for the packet
    */
   explicit Ndef(TNF tnf, std::string_view type, std::string_view payload)
-      : tnf_(tnf), type_(type), payload_(payload) {}
+      : tnf_(tnf)
+      , type_(type)
+      , payload_(payload) {}
 
   /**
    * @brief Static function to make an NDEF record for transmitting english
@@ -656,7 +658,7 @@ protected:
         uint8_t ME : 1;
         uint8_t MB : 1;
       };
-      uint8_t raw;
+      uint8_t raw = 0;
     };
   };
 
@@ -760,7 +762,7 @@ protected:
   }
 
   TNF tnf_;
-  Flags flags_{0};
+  Flags flags_{};
   int id_{-1};
   std::string type_{""};
   std::string payload_{""};

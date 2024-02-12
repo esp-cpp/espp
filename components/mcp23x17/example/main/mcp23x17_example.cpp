@@ -27,8 +27,9 @@ extern "C" void app_main(void) {
          .port_1_interrupt_mask = (1 << 7), // interrupt on B7
          .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
                             std::placeholders::_3),
-         .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                           std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+         .read_register =
+             std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                       std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
          .log_level = espp::Logger::Verbosity::WARN});
     // set pull up on the input pins
     std::error_code ec;

@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /// @brief A class to interface with the Qwiic NES controller.
@@ -13,25 +13,10 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet qwiicnes_example.cpp qwiicnes example
-class QwiicNes {
+class QwiicNes : public BasePeripheral {
 public:
   /// @brief The default I2C address of the device.
   static constexpr uint8_t DEFAULT_ADDRESS = (0x54);
-
-  /// @brief The function to write data to the I2C bus.
-  /// @param address The I2C address of the device.
-  /// @param data The data to write to the I2C bus.
-  /// @param data_len The length of the data to write to the I2C bus.
-  /// @return true if the function succeeds.
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
-
-  /// @brief The function to write then read data from the I2C bus.
-  /// @param address The I2C address of the device.
-  /// @param register The register to write to the I2C bus.
-  /// @param data The data to read from the I2C bus.
-  /// @param data_len The length of the data to read from the I2C bus.
-  /// @return true if the function succeeds.
-  typedef std::function<bool(uint8_t, uint8_t, uint8_t *, size_t)> write_read_fn;
 
   /// @brief The buttons on the NES controller.
   /// @deftails The values in this enum match the button's corresponding bit
@@ -53,14 +38,15 @@ public:
         uint8_t left : 1;
         uint8_t right : 1;
       };
-      uint8_t raw;
+      uint8_t raw = 0;
     };
   };
 
   /// @brief The configuration for the QwiicNes class.
   struct Config {
-    write_fn write;           ///< The function to write data to the I2C bus.
-    write_read_fn write_read; ///< The function to write then read data from the I2C bus.
+    BasePeripheral::write_fn write; ///< The function to write data to the I2C bus.
+    BasePeripheral::read_register_fn
+        read_register; ///< The function to write then read data from the I2C bus.
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; ///< The log level for the class.
   };
@@ -68,8 +54,10 @@ public:
   /// @brief Construct a new QwiicNes object.
   /// @param config The configuration for the QwiicNes class.
   explicit QwiicNes(const Config &config)
-      : write_(config.write), write_read_(config.write_read),
-        logger_({.tag = "QwiicNes", .level = config.log_level}) {}
+      : BasePeripheral({.address = DEFAULT_ADDRESS,
+                        .write = config.write,
+                        .read_register = config.read_register},
+                       "QwiicNes", config.log_level) {}
 
   /// @brief Return true if the given button is pressed.
   /// @param state The byte returned by read_current_state().
@@ -126,8 +114,8 @@ public:
   ///         function.
   ///         The current state represents the buttons which are currently
   ///         pressed.
-  uint8_t read_current_state(std::error_code &ec) const {
-    return read_register(Registers::CURRENT_STATE, ec);
+  uint8_t read_current_state(std::error_code &ec) {
+    return read_u8_from_register((uint8_t)Registers::CURRENT_STATE, ec);
   }
 
   /// @brief Read the current I2C address of the device.
@@ -140,7 +128,9 @@ public:
   ///        significant bit is set to 0.
   ///        For example, if the I2C address is 0x54, then the value returned
   ///        by this function will be 0xA8.
-  uint8_t read_address(std::error_code &ec) const { return read_register(Registers::ADDRESS, ec); }
+  uint8_t read_address(std::error_code &ec) {
+    return read_u8_from_register((uint8_t)Registers::ADDRESS, ec);
+  }
 
   /// @brief Update the I2C address of the device.
   /// @param new_address The new I2C address of the device.
@@ -151,14 +141,13 @@ public:
   ///         The 7-bit I2C address is shifted left by 1 bit and the least
   ///         significant bit is set to 0.
   void update_address(uint8_t new_address, std::error_code &ec) {
-    uint8_t data[2] = {(uint8_t)Registers::CHANGE_ADDRESS, new_address};
-    bool success = write_(address_, data, 2);
-    if (!success) {
-      logger_.error("failed to update address");
-      ec = std::make_error_code(std::errc::io_error);
+    write_u8_to_register((uint8_t)Registers::CHANGE_ADDRESS, new_address, ec);
+    if (ec) {
+      logger_.error("failed to update address: {}", ec.message());
       return;
     }
-    address_ = new_address;
+    // update the address in the class
+    base_config_.address = new_address;
   }
 
 protected:
@@ -177,26 +166,12 @@ protected:
   ///         The button accumulator represents all buttons which have been
   ///         pressed since the last time the accumulator was read - which is
   ///         the last time the update() function or this function was called.
-  uint8_t read_button_accumulator(std::error_code &ec) const {
-    return read_register(Registers::ACCUMULATOR, ec);
+  uint8_t read_button_accumulator(std::error_code &ec) {
+    return read_u8_from_register((uint8_t)Registers::ACCUMULATOR, ec);
   }
 
-  uint8_t read_register(Registers reg, std::error_code &ec) const {
-    uint8_t data;
-    bool success = write_read_(address_, (uint8_t)reg, &data, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    return data;
-  }
-
-  write_fn write_;
-  write_read_fn write_read_;
   uint8_t accumulated_states_{0};
-  ButtonState button_state_{0};
-  uint8_t address_{DEFAULT_ADDRESS};
-  espp::Logger logger_;
+  ButtonState button_state_{};
 };
 } // namespace espp
 
