@@ -35,7 +35,7 @@ public:
   /// @param control_socket The control socket of the session
   /// @param config The configuration of the session
   explicit RtspSession(std::unique_ptr<TcpSocket> control_socket, const Config &config)
-      : BaseComponent("RtspSession " + std::to_string(session_id_), config.log_level)
+      : BaseComponent("RtspSession", config.log_level)
       , control_socket_(std::move(control_socket))
       , rtp_socket_({.log_level = Logger::Verbosity::WARN})
       , rtcp_socket_({.log_level = Logger::Verbosity::WARN})
@@ -43,6 +43,8 @@ public:
       , server_address_(config.server_address)
       , rtsp_path_(config.rtsp_path)
       , client_address_(control_socket_->get_remote_info().address) {
+    // set the logger tag to include the session id
+    logger_.set_tag("RtspSession " + std::to_string(session_id_));
     // start the session task to handle RTSP commands
     using namespace std::placeholders;
     control_task_ = std::make_unique<Task>(Task::Config{
