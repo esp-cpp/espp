@@ -77,6 +77,7 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Compoenent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
@@ -144,7 +145,7 @@
           <li><a href="index.html">IO Expander APIs</a> &raquo;</li>
       <li>AW9523 I/O Expander</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/1a30ff7/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9588fa7/docs/en/io_expander/aw9523.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -163,14 +164,14 @@ are configured into a special LED mode.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1a30ff7/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9588fa7/components/aw9523/include/aw9523.hpp">components/aw9523/include/aw9523.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw9523E">
-<span id="_CPPv3N4espp6Aw9523E"></span><span id="_CPPv2N4espp6Aw9523E"></span><span id="espp::Aw9523"></span><span class="target" id="classespp_1_1_aw9523"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Aw9523</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw9523E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6Aw9523E"></span><span id="_CPPv2N4espp6Aw9523E"></span><span id="espp::Aw9523"></span><span class="target" id="classespp_1_1_aw9523"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Aw9523</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4N4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Aw9523E" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class for communicating with and controlling a AW9523 GPIO expander including interrupt configuration and LED drive capability. Datasheet hosted by adafruit.com here: <a class="reference external" href="https://cdn-shop.adafruit.com/product-files/4886/AW9523+English+Datasheet.pdf">https://cdn-shop.adafruit.com/product-files/4886/AW9523+English+Datasheet.pdf</a></p>
 <section id="classespp_1_1_aw9523_1aw9523_ex1">
 <h4>AW9523 Example<a class="headerlink" href="#classespp_1_1_aw9523_1aw9523_ex1" title="Permalink to this headline"></a></h4>
@@ -191,8 +192,9 @@ are configured into a special LED mode.</p>
 <span class="w">       </span><span class="p">.</span><span class="n">port_1_direction_mask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mb">0b00000011</span><span class="p">,</span>
 <span class="w">       </span><span class="p">.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
 <span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">       </span><span class="p">.</span><span class="n">read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read_at_register</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
-<span class="w">                         </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">),</span>
+<span class="w">       </span><span class="p">.</span><span class="n">write_then_read</span><span class="w"> </span><span class="o">=</span>
+<span class="w">           </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write_read</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                     </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_5</span><span class="p">),</span>
 <span class="w">       </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">error_code</span><span class="w"> </span><span class="n">ec</span><span class="p">;</span>
 <span class="w">  </span><span class="n">aw9523</span><span class="p">.</span><span class="n">initialize</span><span class="p">(</span><span class="n">ec</span><span class="p">);</span><span class="w"> </span><span class="c1">// Initialized separately from the constructor.</span>
@@ -354,44 +356,104 @@ are configured into a special LED mode.</p>
 </dd></dl>
 
 <dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238write_fnE">
-<span id="_CPPv3N4espp6Aw95238write_fnE"></span><span id="_CPPv2N4espp6Aw95238write_fnE"></span><span id="espp::Aw9523::write_fn"></span><span class="target" id="classespp_1_1_aw9523_1a34f89954d7726f9b04897a0b7812c4cb"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95238write_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Function to write bytes to the device. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238probe_fnE">
+<span id="_CPPv3N4espp6Aw95238probe_fnE"></span><span id="_CPPv2N4espp6Aw95238probe_fnE"></span><span id="espp::Aw9523::probe_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1ac9d7ed2c1ae074f05df3ce213bb4531b"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95238probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param dev_addr</dt>
-<dd class="field-odd"><p>Address of the device to write to. </p>
-</dd>
-<dt class="field-even">Param data</dt>
-<dd class="field-even"><p>Pointer to array of bytes to write. </p>
-</dd>
-<dt class="field-odd">Param data_len</dt>
-<dd class="field-odd"><p>Number of data bytes to write. </p>
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address to probe </p>
 </dd>
 <dt class="field-even">Return</dt>
-<dd class="field-even"><p>True if successful, false otherwise. </p>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95238write_fnE">
+<span id="_CPPv3N4espp6Aw95238write_fnE"></span><span id="_CPPv2N4espp6Aw95238write_fnE"></span><span id="espp::Aw9523::write_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1ac02652bae3c608d1d0dc139066009b99"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95238write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write data to the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address of the peripheral to write to </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The data to write </p>
+</dd>
+<dt class="field-odd">Param length</dt>
+<dd class="field-odd"><p>The length of the data to write </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the write was successful </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95237read_fnE">
-<span id="_CPPv3N4espp6Aw95237read_fnE"></span><span id="_CPPv2N4espp6Aw95237read_fnE"></span><span id="espp::Aw9523::read_fn"></span><span class="target" id="classespp_1_1_aw9523_1a2e6dbfdd10442fbb37a384d5cc7a3160"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">dev_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n"><span class="pre">reg_addr</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n"><span class="pre">data_len</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95237read_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Function to read bytes from the device. </p>
+<span id="_CPPv3N4espp6Aw95237read_fnE"></span><span id="_CPPv2N4espp6Aw95237read_fnE"></span><span id="espp::Aw9523::read_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1ab6dd083fd110438862c7ae90c821d076"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95237read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read data from the peripheral </p>
 <dl class="field-list simple">
-<dt class="field-odd">Param dev_addr</dt>
-<dd class="field-odd"><p>Address of the device to write to. </p>
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address of the peripheral to read from </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The buffer to read into </p>
+</dd>
+<dt class="field-odd">Param length</dt>
+<dd class="field-odd"><p>The length of the buffer </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the read was successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952316read_register_fnE">
+<span id="_CPPv3N4espp6Aw952316read_register_fnE"></span><span id="_CPPv2N4espp6Aw952316read_register_fnE"></span><span id="espp::Aw9523::read_register_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1a440ef15b5cc6b7ba8b50191fe2e488a8"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_register_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw952316read_register_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read data at a specific address from the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address of the peripheral to read from </p>
 </dd>
 <dt class="field-even">Param reg_addr</dt>
-<dd class="field-even"><p>Register address to read from. </p>
+<dd class="field-even"><p>The address of the register to read from </p>
 </dd>
 <dt class="field-odd">Param data</dt>
-<dd class="field-odd"><p>Pointer to array of bytes to read into. </p>
+<dd class="field-odd"><p>The buffer to read into </p>
 </dd>
-<dt class="field-even">Param data_len</dt>
-<dd class="field-even"><p>Number of data bytes to read. </p>
+<dt class="field-even">Param length</dt>
+<dd class="field-even"><p>The length of the buffer </p>
 </dd>
 <dt class="field-odd">Return</dt>
-<dd class="field-odd"><p>True if successful, false otherwise. </p>
+<dd class="field-odd"><p>True if the read was successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952318write_then_read_fnE">
+<span id="_CPPv3N4espp6Aw952318write_then_read_fnE"></span><span id="_CPPv2N4espp6Aw952318write_then_read_fnE"></span><span id="espp::Aw9523::write_then_read_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1ab1b824db2cb2b4b6935f8d8d96dd2470"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_then_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw952318write_then_read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write then read data from the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address of the peripheral to write to </p>
+</dd>
+<dt class="field-even">Param write_data</dt>
+<dd class="field-even"><p>The data to write </p>
+</dd>
+<dt class="field-odd">Param write_length</dt>
+<dd class="field-odd"><p>The length of the data to write </p>
+</dd>
+<dt class="field-even">Param read_data</dt>
+<dd class="field-even"><p>The buffer to read into </p>
+</dd>
+<dt class="field-odd">Param read_length</dt>
+<dd class="field-odd"><p>The length of the buffer </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the write then read was successful </p>
 </dd>
 </dl>
 </dd></dl>
@@ -767,6 +829,82 @@ are configured into a special LED mode.</p>
 </dl>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952311set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp6Aw952311set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp6Aw952311set_log_tagERKNSt11string_viewE"></span><span id="espp::Aw9523::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1_base_component_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952311set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952313set_log_levelEN6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Aw952313set_log_levelEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Aw952313set_log_levelEN6Logger9VerbosityE"></span><span id="espp::Aw9523::set_log_level__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952313set_log_levelEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952317set_log_verbosityEN6Logger9VerbosityE">
+<span id="_CPPv3N4espp6Aw952317set_log_verbosityEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp6Aw952317set_log_verbosityEN6Logger9VerbosityE"></span><span id="espp::Aw9523::set_log_verbosity__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ac47205e43174fe6f8655b777d3fdfa06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="../logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952317set_log_verbosityEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../wifi/wifi_sta.html#classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"><span class="std std-ref">set_log_level</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw952318set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp6Aw952318set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp6Aw952318set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::Aw9523::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1_base_component_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Aw952318set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../logger.html#classespp_1_1_logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a> </p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
@@ -827,14 +965,14 @@ are configured into a special LED mode.</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236Config5writeE">
-<span id="_CPPv3N4espp6Aw95236Config5writeE"></span><span id="_CPPv2N4espp6Aw95236Config5writeE"></span><span id="espp::Aw9523::Config::write__write_fn"></span><span class="target" id="structespp_1_1_aw9523_1_1_config_1a66d6232d70e0462d44fdd7f448b41bb0"></span><a class="reference internal" href="#_CPPv4N4espp6Aw95238write_fnE" title="espp::Aw9523::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95236Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6Aw95236Config5writeE"></span><span id="_CPPv2N4espp6Aw95236Config5writeE"></span><span id="espp::Aw9523::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1_aw9523_1_1_config_1a9ea6abe83b6d23e23edeca233ccd148c"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4N4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4N4espp14BasePeripheral8write_fnE" title="espp::BasePeripheral::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95236Config5writeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to write to the device. </p>
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236Config4readE">
-<span id="_CPPv3N4espp6Aw95236Config4readE"></span><span id="_CPPv2N4espp6Aw95236Config4readE"></span><span id="espp::Aw9523::Config::read__read_fn"></span><span class="target" id="structespp_1_1_aw9523_1_1_config_1a69b9ed777760b63ff765cae27555bcec"></span><a class="reference internal" href="#_CPPv4N4espp6Aw95237read_fnE" title="espp::Aw9523::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95236Config4readE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Function to read from the device. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Aw95236Config15write_then_readE">
+<span id="_CPPv3N4espp6Aw95236Config15write_then_readE"></span><span id="_CPPv2N4espp6Aw95236Config15write_then_readE"></span><span id="espp::Aw9523::Config::write_then_read__BasePeripheral::write_then_read_fn"></span><span class="target" id="structespp_1_1_aw9523_1_1_config_1ad8f04cc1df5ac0404d6925a4190c25df"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4N4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4N4espp14BasePeripheral18write_then_read_fnE" title="espp::BasePeripheral::write_then_read_fn"><span class="n"><span class="pre">write_then_read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_then_read</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Aw95236Config15write_then_readE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write then read from the device. </p>
 </dd></dl>
 
 <dl class="cpp var">
