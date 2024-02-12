@@ -83,7 +83,7 @@ public:
    */
   uint16_t get_version(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    uint16_t data = read_u18_from_register((uint8_t)Register::VERSION, ec);
+    uint16_t data = read_u16_from_register((uint8_t)Register::VERSION, ec);
     if (ec) {
       return 0;
     }
