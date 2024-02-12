@@ -39,10 +39,10 @@ public:
 protected:
   BaseComponent() = default;
 
-  BaseComponent(std::string_view tag, Logger::Verbosity level = Logger::Verbosity::WARN)
+  explicit BaseComponent(std::string_view tag, Logger::Verbosity level = Logger::Verbosity::WARN)
       : logger_({.tag = tag, .level = level}) {}
 
-  BaseComponent(const Logger::Config &logger_config)
+  explicit BaseComponent(const Logger::Config &logger_config)
       : logger_(logger_config) {}
 
   /// The logger for this component
