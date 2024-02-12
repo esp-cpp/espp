@@ -20,12 +20,13 @@ extern "C" void app_main(void) {
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
     // now make the qwiicnes which decodes the data
-    espp::QwiicNes qwiicnes({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
-                                                std::placeholders::_2, std::placeholders::_3),
-                             .write_read = std::bind(&espp::I2c::read_at_register, &i2c,
-                                                     std::placeholders::_1, std::placeholders::_2,
-                                                     std::placeholders::_3, std::placeholders::_4),
-                             .log_level = espp::Logger::Verbosity::WARN});
+    espp::QwiicNes qwiicnes(
+        {.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
+                            std::placeholders::_3),
+         .read_register =
+             std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                       std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+         .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the qwiicnes and print
     // the state
     auto task_fn = [&quit_test, &qwiicnes](std::mutex &m, std::condition_variable &cv) {

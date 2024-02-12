@@ -3,7 +3,7 @@
 #include <functional>
 #include <mutex>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /**
@@ -17,27 +17,9 @@ namespace espp {
  * @section max1704x_ex1 MAX1704X Example
  * @snippet max1704x_example.cpp max1704x example
  */
-class Max1704x {
+class Max1704x : public BasePeripheral {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = 0x36; ///< Default address of the MAX1704x.
-
-  /**
-   * @brief Function to write bytes to the device.
-   * @param dev_addr Address of the device to write to.
-   * @param data Pointer to array of bytes to write.
-   * @param data_len Number of data bytes to write.
-   * @return True if successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
-
-  /**
-   * @brief Function to read bytes from the device.
-   * @param dev_addr Address of the device to write to.
-   * @param data Pointer to array of bytes to read into.
-   * @param data_len Number of data bytes to read.
-   * @return True if successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> read_fn;
 
   enum class AlertStatus {
     SOC_CHANGE = 0x20,    ///< Alert for state of charge change
@@ -52,8 +34,8 @@ public:
    */
   struct Config {
     uint8_t device_address{DEFAULT_ADDRESS}; ///< Address of the MAX1704x.
-    write_fn write;                          //< Function to write bytes to the device.
-    read_fn read;                            //< Function to read bytes from the device.
+    BasePeripheral::write_fn write;          //< Function to write bytes to the device.
+    BasePeripheral::read_fn read;            //< Function to read bytes from the device.
     bool auto_init{true};                    ///< Whether to automatically initialize the MAX1704x.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log level for the MAX1704x.
   };
@@ -63,8 +45,9 @@ public:
    * @param config Configuration for the MAX1704x.
    */
   explicit Max1704x(const Config &config)
-      : address_(config.device_address), write_(config.write), read_(config.read),
-        logger_({.tag = "Max1704x", .level = config.log_level}) {
+      : BasePeripheral(
+            {.address = config.device_address, .write = config.write, .read = config.read},
+            "Max1704x", config.log_level) {
     if (config.auto_init) {
       std::error_code ec;
       initalize(ec);
@@ -78,7 +61,7 @@ public:
    * @brief Initialize the MAX1704x.
    */
   void initalize(std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // Get the IC version
     version_ = get_version(ec);
     if (ec) {
@@ -99,8 +82,8 @@ public:
    * @return The IC version.
    */
   uint16_t get_version(std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    uint16_t data = read_register(Register::VERSION, ec);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint16_t data = read_u16_from_register((uint8_t)Register::VERSION, ec);
     if (ec) {
       return 0;
     }
@@ -114,8 +97,8 @@ public:
    * @return The chip ID.
    */
   uint8_t get_chip_id(std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    uint16_t data = read_register(Register::CHIPID, ec);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint16_t data = read_u16_from_register((uint8_t)Register::CHIPID, ec);
     if (ec) {
       return 0;
     }
@@ -129,8 +112,8 @@ public:
    * @return The battery voltage in V.
    */
   float get_battery_voltage(std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    uint16_t data = read_register(Register::VCELL, ec);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint16_t data = read_u16_from_register((uint8_t)Register::VCELL, ec);
     if (ec) {
       return 0;
     }
@@ -145,8 +128,8 @@ public:
    * @return The battery state of charge in %.
    */
   float get_battery_percentage(std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    uint16_t data = read_register(Register::SOC, ec);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint16_t data = read_u16_from_register((uint8_t)Register::SOC, ec);
     if (ec) {
       return 0;
     }
@@ -163,8 +146,8 @@ public:
    * @return The battery charge or discharge rate in %/hr.
    */
   float get_battery_charge_rate(std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    int16_t data = read_register(Register::CRATE, ec);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    int16_t data = read_u16_from_register((uint8_t)Register::CRATE, ec);
     if (ec) {
       return 0;
     }
@@ -179,8 +162,8 @@ public:
    * @return The battery alert status as an AlertStatus.
    */
   AlertStatus get_alert_status(std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    uint16_t data = read_register(Register::STATUS, ec);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint16_t data = read_u16_from_register((uint8_t)Register::STATUS, ec);
     if (ec) {
       return AlertStatus::SOC_CHANGE;
     }
@@ -195,13 +178,7 @@ public:
    * @param ec Error code set if an error occurs.
    */
   void clear_alert_status(uint8_t flags_to_clear, std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    uint8_t data = read_register(Register::STATUS, ec);
-    if (ec) {
-      return;
-    }
-    data &= ~flags_to_clear;
-    write_register(Register::STATUS, data, ec);
+    clear_bits_in_register((uint8_t)Register::STATUS, flags_to_clear, ec);
   }
 
 protected:
@@ -235,45 +212,7 @@ protected:
     VOLTAGE_HIGH = 0x02,  ///< Alert for voltage high
   };
 
-  void write_register(const Register reg, const uint8_t data, std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    uint8_t buf[2];
-    buf[0] = (uint8_t)reg;
-    buf[1] = (uint8_t)data;
-    if (!write_(address_, buf, sizeof(buf))) {
-      logger_.error("Failed to write register 0x{:02X}", (uint8_t)reg);
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
-    ec.clear();
-  }
-
-  uint16_t read_register(const Register reg, std::error_code &ec) {
-    std::scoped_lock lock(mutex_);
-    // write the address
-    if (!write_(address_, (uint8_t *)&reg, 1)) {
-      ec = std::make_error_code(std::errc::io_error);
-      logger_.error("Failed to write register 0x{:02X}", (uint8_t)reg);
-      return 0;
-    }
-    // and read the data
-    uint8_t data[2];
-    if (!read_(address_, data, 2)) {
-      ec = std::make_error_code(std::errc::io_error);
-      logger_.error("Failed to read register 0x{:02X}", (uint8_t)reg);
-      return 0;
-    }
-    ec.clear();
-    return (data[0] << 8) | data[1];
-  }
-
   uint16_t version_{0}; ///< IC version
   uint8_t chip_id_{0};  ///< Chip ID
-
-  uint8_t address_;
-  write_fn write_;
-  read_fn read_;
-  std::recursive_mutex mutex_;
-  Logger logger_;
 };
 } // namespace espp

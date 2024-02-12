@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /**
@@ -12,29 +12,10 @@ namespace espp {
  * \section mcp23x17_ex1 MCP23x17 Example
  * \snippet mcp23x17_example.cpp mcp23x17 example
  */
-class Mcp23x17 {
+class Mcp23x17 : public BasePeripheral {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS =
       0b0100000; ///< Lower 3 bits are A2, A2, A0 pins on the chip.
-
-  /**
-   * @brief Function to write bytes to the device
-   * @param dev_addr Address of the device to write to.
-   * @param data Pointer to array of bytes to write.
-   * @param data_len Number of data bytes to write.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
-
-  /**
-   * @brief Function to read bytes from the device.
-   * @param dev_addr Address of the device to write to.
-   * @param reg_addr Register address to read from.
-   * @param data Pointer to array of bytes to read into.
-   * @param data_len Number of data bytes to read.
-   * @return True if the read was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
-      read_fn;
 
   /**
    * The two GPIO ports the MCP23x17 has.
@@ -53,10 +34,11 @@ public:
     uint8_t port_0_interrupt_mask = 0x00;     ///< Interrupt mask (1 = interrupt) for port 0 / A
     uint8_t port_1_direction_mask = 0x00;     ///< Direction mask (1 = input) for port 1 / B
     uint8_t port_1_interrupt_mask = 0x00;     ///< Interrupt mask (1 = interrupt) for port 1 / B
-    write_fn write;                           ///< Function to write to the device.
-    read_fn read;                             ///< Function to read from the device.
-    bool auto_init = true;                    ///< True if the device should be initialized on
-                                              ///< construction.
+    BasePeripheral::write_fn write;           ///< Function to write to the device.
+    BasePeripheral::read_register_fn
+        read_register;     ///< Function to read bytes at a register address from the device.
+    bool auto_init = true; ///< True if the device should be initialized on
+                           ///< construction.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log verbosity for the component.
   };
 
@@ -65,11 +47,14 @@ public:
    * @param config Config structure for configuring the MCP23X17
    */
   explicit Mcp23x17(const Config &config)
-      : address_(config.device_address), port_0_direction_mask_(config.port_0_direction_mask),
-        port_0_interrupt_mask_(config.port_0_interrupt_mask),
-        port_1_direction_mask_(config.port_1_direction_mask),
-        port_1_interrupt_mask_(config.port_1_interrupt_mask), write_(config.write),
-        read_(config.read), logger_({.tag = "Mcp23x17", .level = config.log_level}) {
+      : BasePeripheral({.address = config.device_address,
+                        .write = config.write,
+                        .read_register = config.read_register},
+                       "Mcp23x17", config.log_level)
+      , port_0_direction_mask_(config.port_0_direction_mask)
+      , port_0_interrupt_mask_(config.port_0_interrupt_mask)
+      , port_1_direction_mask_(config.port_1_direction_mask)
+      , port_1_interrupt_mask_(config.port_1_interrupt_mask) {
     if (config.auto_init) {
       std::error_code ec;
       init(ec);
@@ -95,7 +80,7 @@ public:
    */
   uint8_t get_pins(Port port, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::GPIOA : Registers::GPIOB;
-    auto val = read_one_((uint8_t)addr, ec);
+    auto val = read_u8_from_register((uint8_t)addr, ec);
     if (ec) {
       logger_.error("Failed to read pins: {}", ec.message());
       return 0;
@@ -109,10 +94,10 @@ public:
    * @return The pin values as a 16 bit mask (PA_0 lsb, PB_7 msb).
    */
   uint16_t get_pins(std::error_code &ec) {
-    uint16_t p0 = read_one_((uint8_t)Registers::GPIOA, ec);
+    uint16_t p0 = read_u8_from_register((uint8_t)Registers::GPIOA, ec);
     if (ec)
       return 0;
-    uint16_t p1 = read_one_((uint8_t)Registers::GPIOB, ec);
+    uint16_t p1 = read_u8_from_register((uint8_t)Registers::GPIOB, ec);
     if (ec)
       return 0;
     return (p1 << 8) | p0;
@@ -126,7 +111,7 @@ public:
    */
   void set_pins(Port port, uint8_t output, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::GPIOA : Registers::GPIOB;
-    write_one_((uint8_t)addr, output, ec);
+    write_u8_to_register((uint8_t)addr, output, ec);
   }
 
   /**
@@ -137,7 +122,7 @@ public:
    */
   uint8_t get_interrupt_capture(Port port, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::INTCAPA : Registers::INTCAPB;
-    auto val = read_one_((uint8_t)addr, ec);
+    auto val = read_u8_from_register((uint8_t)addr, ec);
     if (ec) {
       logger_.error("Failed to read interrupt capture: {}", ec.message());
       return 0;
@@ -154,7 +139,7 @@ public:
   void set_interrupt_on_change(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting interrupt on change for {} pins {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::GPINTENA : Registers::GPINTENB;
-    write_one_((uint8_t)addr, mask, ec);
+    write_u8_to_register((uint8_t)addr, mask, ec);
   }
 
   /**
@@ -169,7 +154,7 @@ public:
                   val_mask);
     // set the pin to enable interrupt
     auto addr = port == Port::PORT0 ? Registers::GPINTENA : Registers::GPINTENB;
-    write_one_((uint8_t)addr, pin_mask, ec);
+    write_u8_to_register((uint8_t)addr, pin_mask, ec);
     if (ec) {
       logger_.error("Failed to enable interrupt: {}", ec.message());
       return;
@@ -177,7 +162,7 @@ public:
 
     // set the pin to interrupt on comparison to defval register
     addr = port == Port::PORT0 ? Registers::INTCONA : Registers::INTCONB;
-    write_one_((uint8_t)addr, pin_mask, ec);
+    write_u8_to_register((uint8_t)addr, pin_mask, ec);
     if (ec) {
       logger_.error("Failed to set pin interrupt on comparison: {}", ec.message());
       return;
@@ -185,7 +170,7 @@ public:
 
     // set the defval register to be the value to compare against
     addr = port == Port::PORT0 ? Registers::DEFVALA : Registers::DEFVALB;
-    write_one_((uint8_t)addr, val_mask, ec);
+    write_u8_to_register((uint8_t)addr, val_mask, ec);
     if (ec) {
       logger_.error("Failed to set defval: {}", ec.message());
       return;
@@ -201,7 +186,7 @@ public:
   void set_direction(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting direction for {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::IODIRA : Registers::IODIRB;
-    write_one_((uint8_t)addr, mask, ec);
+    write_u8_to_register((uint8_t)addr, mask, ec);
   }
 
   /**
@@ -213,7 +198,7 @@ public:
   void set_input_polarity(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting input polarity for {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::IOPOLA : Registers::IOPOLB;
-    write_one_((uint8_t)addr, mask, ec);
+    write_u8_to_register((uint8_t)addr, mask, ec);
   }
 
   /**
@@ -225,7 +210,7 @@ public:
   void set_pull_up(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting pull-up for {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::GPPUA : Registers::GPPUB;
-    write_one_((uint8_t)addr, mask, ec);
+    write_u8_to_register((uint8_t)addr, mask, ec);
   }
 
   /**
@@ -237,7 +222,7 @@ public:
   void set_interrupt_mirror(bool mirror, std::error_code &ec) {
     logger_.debug("Setting interrupt mirror: {}", mirror);
     auto addr = (uint8_t)Registers::IOCON;
-    auto config = read_one_(addr, ec);
+    auto config = read_u8_from_register(addr, ec);
     if (ec) {
       logger_.error("Failed to read config: {}", ec.message());
       return;
@@ -250,7 +235,7 @@ public:
     }
     // now write it back
     logger_.debug("Writing new config: {}", config);
-    write_one_(addr, config, ec);
+    write_u8_to_register(addr, config, ec);
   }
 
   /**
@@ -262,7 +247,7 @@ public:
   void set_interrupt_polarity(bool active_high, std::error_code &ec) {
     logger_.debug("Setting interrupt polarity: {}", active_high);
     auto addr = (uint8_t)Registers::IOCON;
-    auto config = read_one_(addr, ec);
+    auto config = read_u8_from_register(addr, ec);
     if (ec) {
       logger_.error("Failed to read config: {}", ec.message());
       return;
@@ -275,7 +260,7 @@ public:
     }
     // now write it back
     logger_.debug("Writing new config: {}", config);
-    write_one_(addr, config, ec);
+    write_u8_to_register(addr, config, ec);
   }
 
 protected:
@@ -343,31 +328,9 @@ protected:
     set_interrupt_on_change(Port::PORT1, port_1_interrupt_mask_, ec);
   }
 
-  void write_one_(uint8_t reg_addr, uint8_t write_data, std::error_code &ec) {
-    uint8_t data[2] = {reg_addr, write_data};
-    bool success = write_(address_, data, 2);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  uint8_t read_one_(uint8_t reg_addr, std::error_code &ec) {
-    uint8_t data;
-    bool success = read_(address_, reg_addr, &data, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    return data;
-  }
-
-  uint8_t address_;
   uint8_t port_0_direction_mask_;
   uint8_t port_0_interrupt_mask_;
   uint8_t port_1_direction_mask_;
   uint8_t port_1_interrupt_mask_;
-  write_fn write_;
-  read_fn read_;
-  Logger logger_;
 };
 } // namespace espp

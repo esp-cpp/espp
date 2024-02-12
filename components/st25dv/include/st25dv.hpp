@@ -6,9 +6,8 @@
 #include <span>
 #include <vector>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 #include "ndef.hpp"
-#include "task.hpp"
 
 namespace espp {
 /**
@@ -24,7 +23,7 @@ namespace espp {
  * \section st25dv_ex1 St25dv Example
  * \snippet st25dv_example.cpp st25dv example
  */
-class St25dv {
+class St25dv : public BasePeripheral {
 public:
   // NOTE: when the datasheet mentions E2 device select, they are talking
   // about Bit 4 of the address which selects between the data (user memory,
@@ -55,42 +54,21 @@ public:
   };
 
   /**
-   * @brief Function to write bytes to St25dv.
-   * @param addr I2C address to write to
-   * @param data Data to be written.
-   * @param length Number of bytes to write.
-   * @return True if the write was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t addr, uint8_t *data, uint8_t length)> write_fn;
-
-  /**
-   * @brief Function to read a sequence of bytes from St25dv.
-   * @param addr I2C address to read from
-   * @param reg_addr Start register address to read from.
-   * @param data Pointer to memory which will be filled with data read
-   *        from St25dv.
-   * @param length Number of bytes to read
-   * @return True if the read was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t addr, uint16_t reg_addr, uint8_t *data, uint8_t length)>
-      read_fn;
-
-  /**
    * @brief Configuration information for the St25dv.
    */
   struct Config {
-    write_fn write;                                       ///< Function to write to the device.
-    read_fn read;                                         ///< Function to read from the device.
+    BasePeripheral::write_fn write;                       ///< Function to write to the device.
+    BasePeripheral::read_fn read;                         ///< Function to read from the device.
     bool auto_init{true};                                 ///< Automatically initialize the device.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the component.  */
   };
 
   /**
-   * @brief Construct the St25dv and start the update task.
+   * @brief Construct the St25dv with the provided configuration.
    */
   explicit St25dv(const Config &config)
-      : write_(config.write), read_(config.read),
-        logger_({.tag = "St25dv", .level = config.log_level}) {
+      : BasePeripheral({.address = DATA_ADDRESS, .write = config.write, .read = config.read},
+                       "St25dv", config.log_level) {
     if (config.auto_init) {
       std::error_code ec;
       initialize(ec);
@@ -115,9 +93,11 @@ public:
    */
   uint8_t get_interrupt_status(std::error_code &ec) {
     uint8_t it_sts = 0;
-    bool success = read_(DATA_ADDRESS, (uint16_t)Registers::IT_STS, &it_sts, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    // NOTE: we have to use the underlying peripheral's functions since we
+    // have to use different device addresses for the different types of
+    // registers
+    read_syst_register(Registers::IT_STS, &it_sts, 1, ec);
+    if (ec) {
       return 0;
     }
     return it_sts;
@@ -227,9 +207,11 @@ public:
     data[0] = (uint8_t)(AREA_1_START_ADDR >> 8);
     data[1] = (uint8_t)(AREA_1_START_ADDR & 0xFF);
     memcpy(&data[2], payload.data(), payload_size);
-    bool success = write_(DATA_ADDRESS, data, sizeof(data));
+    bool success = base_config_.write(DATA_ADDRESS, data, sizeof(data));
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
+    } else {
+      ec.clear();
     }
   }
 
@@ -254,10 +236,8 @@ public:
    *            reading.
    */
   void read(uint8_t *data, uint8_t length, uint16_t offset, std::error_code &ec) {
-    bool success = read_(DATA_ADDRESS, AREA_1_START_ADDR + offset, data, length);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
+    uint16_t reg = AREA_1_START_ADDR + offset;
+    read_data_register((Registers)reg, data, length, ec);
   }
 
   /**
@@ -278,9 +258,11 @@ public:
         // data
         MB_CTRL::EN,
     };
-    bool success = write_(DATA_ADDRESS, data, sizeof(data));
+    bool success = base_config_.write(DATA_ADDRESS, data, sizeof(data));
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
+    } else {
+      ec.clear();
     }
   }
 
@@ -300,9 +282,11 @@ public:
         // data
         0,
     };
-    bool success = write_(DATA_ADDRESS, data, sizeof(data));
+    bool success = base_config_.write(DATA_ADDRESS, data, sizeof(data));
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
+    } else {
+      ec.clear();
     }
   }
 
@@ -315,9 +299,8 @@ public:
    */
   uint8_t get_ftm_length(std::error_code &ec) {
     uint8_t len = 0;
-    bool success = read_(DATA_ADDRESS, (uint16_t)Registers::MB_LEN, &len, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    read_data_register(Registers::MB_LEN, &len, 1, ec);
+    if (ec) {
       return 0;
     }
     return len;
@@ -378,7 +361,7 @@ protected:
     all_data[0] = (uint8_t)(FTM_START_ADDR >> 8);
     all_data[1] = (uint8_t)(FTM_START_ADDR & 0xFF);
     memcpy(&all_data[2], data, length);
-    bool success = write_(DATA_ADDRESS, all_data, length + 2);
+    bool success = base_config_.write(DATA_ADDRESS, all_data, length + 2);
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
     }
@@ -390,17 +373,14 @@ protected:
 
   void read_ftm(uint8_t *data, uint8_t length, uint8_t offset, std::error_code &ec) {
     // read can start from any byte offset within the FTM mailbox.
-    bool success = read_(DATA_ADDRESS, FTM_START_ADDR + offset, data, length);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
+    uint16_t reg = FTM_START_ADDR + offset;
+    read_data_register((Registers)reg, data, length, ec);
   }
 
   uint64_t read_uuid(std::error_code &ec) {
     uint8_t uuid[8];
-    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::UID, uuid, sizeof(uuid));
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    read_syst_register(Registers::UID, uuid, sizeof(uuid), ec);
+    if (ec) {
       return 0;
     }
     memcpy(&uuid_, uuid, sizeof(uuid));
@@ -410,9 +390,8 @@ protected:
 
   uint8_t read_block_size_bytes(std::error_code &ec) {
     uint8_t block_size_bytes = 0;
-    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::MEM_SIZE, &block_size_bytes, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    read_syst_register(Registers::MEM_SIZE, &block_size_bytes, 1, ec);
+    if (ec) {
       return 0;
     }
     logger_.debug("Block size (B): {}", block_size_bytes);
@@ -420,22 +399,21 @@ protected:
   }
 
   uint16_t read_memory_size_blocks(std::error_code &ec) {
-    uint16_t memory_size_blocks = 0;
-    bool success =
-        read_(SYST_ADDRESS, (uint16_t)Registers::BLK_SIZE, (uint8_t *)&memory_size_blocks, 2);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    uint8_t buffer[2];
+    read_syst_register(Registers::BLK_SIZE, buffer, 2, ec);
+    if (ec) {
       return 0;
     }
+    uint16_t memory_size_blocks = 0;
+    memory_size_blocks = (buffer[0] << 8) | buffer[1];
     logger_.debug("Memory size (blocks): {}", memory_size_blocks);
     return memory_size_blocks;
   }
 
   uint64_t read_password(std::error_code &ec) {
     uint8_t pswds[8];
-    bool success = read_(SYST_ADDRESS, (uint16_t)Registers::I2C_PWD, pswds, sizeof(pswds));
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
+    read_syst_register(Registers::I2C_PWD, pswds, sizeof(pswds), ec);
+    if (ec) {
       return 0;
     }
     memcpy(&password_, pswds, sizeof(pswds));
@@ -458,7 +436,7 @@ protected:
       data[2 + i + 13] = data[2 + i + 4];
     }
     logger_.debug("Presenting password: {}\n", data);
-    bool success = write_(SYST_ADDRESS, data, sizeof(data));
+    bool success = base_config_.write(SYST_ADDRESS, data, sizeof(data));
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
     }
@@ -595,11 +573,42 @@ protected:
       0x2008;                           /**< Start address of the Fast Transfer Mode Mailbox. */
   static constexpr int FTM_SIZE = 0xFF; /**< Number of bytes in the Fast Transfer Mode Mailbox. */
 
-  write_fn write_;
-  read_fn read_;
+  void read_syst_register(Registers reg, uint8_t *data, uint8_t length, std::error_code &ec) {
+    uint8_t reg_addr[2];
+    reg_addr[0] = (uint16_t)reg >> 8;
+    reg_addr[1] = (uint16_t)reg & 0xFF;
+    bool success = base_config_.write(SYST_ADDRESS, reg_addr, 2);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return;
+    }
+    success = base_config_.read(SYST_ADDRESS, data, length);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    } else {
+      ec.clear();
+    }
+  }
+
+  void read_data_register(Registers reg, uint8_t *data, uint8_t length, std::error_code &ec) {
+    uint8_t reg_addr[2];
+    reg_addr[0] = (uint16_t)reg >> 8;
+    reg_addr[1] = (uint16_t)reg & 0xFF;
+    bool success = base_config_.write(DATA_ADDRESS, reg_addr, 2);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+      return;
+    }
+    success = base_config_.read(DATA_ADDRESS, data, length);
+    if (!success) {
+      ec = std::make_error_code(std::errc::io_error);
+    } else {
+      ec.clear();
+    }
+  }
+
   uint32_t memory_size_bytes_;
   uint64_t uuid_;
   uint64_t password_;
-  Logger logger_;
 };
 } // namespace espp

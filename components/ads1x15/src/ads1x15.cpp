@@ -51,10 +51,6 @@ static constexpr uint16_t REG_CONFIG_CQUE_NONE =
     (0x0003); ///< Disable the comparator and put ALERT/RDY in high state (default)
 
 int16_t Ads1x15::sample_raw(int channel, std::error_code &ec) {
-  if (!write_ || !read_) {
-    logger_.error("Write / read functions not properly configured, cannot sample!");
-    return 0;
-  }
   // Start with default values
   uint16_t config = REG_CONFIG_MODE_SINGLE;
   // This is equivalent to the below (since the rest are 0x0000):
@@ -72,17 +68,17 @@ int16_t Ads1x15::sample_raw(int channel, std::error_code &ec) {
   config |= REG_CONFIG_OS_SINGLE;
   // configure to read from mux 0
   logger_.debug("configuring conversion for channel {}", channel);
-  write_two_((uint8_t)Register::POINTER_CONFIG, config, ec);
+  write_u16_to_register((uint8_t)Register::POINTER_CONFIG, config, ec);
   if (ec) {
     logger_.error("error configuring conversion for channel {}", channel);
     return 0;
   }
-  write_two_((uint8_t)Register::POINTER_HITHRESH, 0x8000, ec);
+  write_u16_to_register((uint8_t)Register::POINTER_HITHRESH, 0x8000, ec);
   if (ec) {
     logger_.error("error configuring hi threshold for channel {}", channel);
     return 0;
   }
-  write_two_((uint8_t)Register::POINTER_LOWTHRESH, 0x0000, ec);
+  write_u16_to_register((uint8_t)Register::POINTER_LOWTHRESH, 0x0000, ec);
   if (ec) {
     logger_.error("error configuring low threshold for channel {}", channel);
     return 0;
@@ -97,7 +93,7 @@ int16_t Ads1x15::sample_raw(int channel, std::error_code &ec) {
     return 0;
   }
   logger_.debug("reading conversion result for channel {}", channel);
-  uint16_t val = read_two_((uint8_t)Register::POINTER_CONVERT, ec) >> bit_shift_;
+  uint16_t val = read_u16_from_register((uint8_t)Register::POINTER_CONVERT, ec) >> bit_shift_;
   if (ec) {
     logger_.error("error reading conversion result for channel {}", channel);
     return 0;
@@ -112,7 +108,7 @@ int16_t Ads1x15::sample_raw(int channel, std::error_code &ec) {
 }
 
 bool Ads1x15::conversion_complete(std::error_code &ec) {
-  auto val = read_two_((uint8_t)Register::POINTER_CONFIG, ec);
+  auto val = read_u16_from_register((uint8_t)Register::POINTER_CONFIG, ec);
   if (ec) {
     logger_.error("error reading config register");
     return false;

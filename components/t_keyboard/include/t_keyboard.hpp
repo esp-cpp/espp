@@ -4,7 +4,7 @@
 #include <chrono>
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -16,26 +16,10 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet t_keyboard_example.cpp tkeyboard example
-class TKeyboard {
+class TKeyboard : public BasePeripheral {
 public:
   /// The default address of the keyboard.
   static constexpr uint8_t DEFAULT_ADDRESS = 0x55;
-
-  /// \brief The function signature for the write function.
-  /// \details This function is used to write data to the keyboard.
-  /// \param address The address to write to.
-  /// \param data The data to write.
-  /// \param size The size of the data to write.
-  /// \return True if the write was successful, false otherwise.
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
-
-  /// \brief The function signature for the read function.
-  /// \details This function is used to read data from the keyboard.
-  /// \param address The address to read from.
-  /// \param data The data to read into.
-  /// \param size The size of the data to read.
-  /// \return True if the read was successful, false otherwise.
-  typedef std::function<bool(uint8_t, uint8_t *, size_t)> read_fn;
 
   /// \brief The function signature for the key callback function.
   /// \details This function is called when a key is pressed.
@@ -45,10 +29,10 @@ public:
   /// The configuration structure for the keyboard.
   struct Config {
     /// The write function to use.
-    write_fn write;
+    BasePeripheral::write_fn write;
 
     /// The read function to use.
-    read_fn read;
+    BasePeripheral::read_fn read;
 
     /// The key callback function to use. This function will be called when a
     /// key is pressed if it is not null and the keyboard task is running.
@@ -70,9 +54,10 @@ public:
   /// \brief Constructor for the TKeyboard class.
   /// \param config The configuration to use.
   explicit TKeyboard(const Config &config)
-      : write_(config.write), read_(config.read), key_cb_(config.key_cb), address_(config.address),
-        polling_interval_(config.polling_interval),
-        logger_({.tag = "TKeyboard", .level = config.log_level}) {
+      : BasePeripheral({.address = config.address, .write = config.write, .read = config.read},
+                       "TKeyboard", config.log_level)
+      , key_cb_(config.key_cb)
+      , polling_interval_(config.polling_interval) {
     logger_.info("TKeyboard created");
     task_ = std::make_shared<espp::Task>(espp::Task::Config{
         .name = "tkeyboard_task",
@@ -105,7 +90,7 @@ public:
       ec = std::make_error_code(std::errc::operation_in_progress);
       return 0;
     }
-    return read_char(ec);
+    return read_u8(ec);
   }
 
   /// \brief Start the keyboard task.
@@ -126,7 +111,7 @@ protected:
   bool key_task(std::mutex &m, std::condition_variable &cv) {
     std::error_code ec;
     auto start_time = std::chrono::steady_clock::now();
-    auto key = read_char(ec);
+    auto key = read_u8(ec);
     if (!ec) {
       pressed_key_ = key;
       if (key != 0 && key_cb_) {
@@ -143,35 +128,9 @@ protected:
     return false;
   }
 
-  uint8_t read_char(std::error_code &ec) {
-    uint8_t data = 0;
-    read(&data, 1, ec);
-    if (ec) {
-      logger_.error("Failed to read char: {}", ec.message());
-      return 0;
-    }
-    return data;
-  }
-
-  void write(uint8_t *data, size_t size, std::error_code &ec) {
-    if (!write_(address_, data, size)) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  void read(uint8_t *data, size_t size, std::error_code &ec) {
-    if (!read_(address_, data, size)) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
-  write_fn write_;
-  read_fn read_;
   key_cb_fn key_cb_;
-  uint8_t address_;
   std::atomic<uint8_t> pressed_key_{0};
   std::chrono::milliseconds polling_interval_;
   std::shared_ptr<espp::Task> task_;
-  espp::Logger logger_;
 };
 } // namespace espp

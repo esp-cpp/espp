@@ -24,9 +24,9 @@ extern "C" void app_main(void) {
     // now make the ft5x06 which decodes the data
     espp::Ft5x06 ft5x06({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
                                             std::placeholders::_2, std::placeholders::_3),
-                         .read_at_register = std::bind(
-                             &espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                             std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+                         .read_register = std::bind(&espp::I2c::read_at_register, &i2c,
+                                                    std::placeholders::_1, std::placeholders::_2,
+                                                    std::placeholders::_3, std::placeholders::_4),
                          .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the ft5x06 and print
     // the state

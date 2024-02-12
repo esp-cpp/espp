@@ -23,9 +23,10 @@ extern "C" void app_main(void) {
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
 
-    static auto NTC_CHANNEL = espp::Tla2528::Channel::CH1;
-    static auto X_CHANNEL = espp::Tla2528::Channel::CH6;
-    static auto Y_CHANNEL = espp::Tla2528::Channel::CH7;
+    static std::vector<espp::Tla2528::Channel> channels = {
+        espp::Tla2528::Channel::CH0, espp::Tla2528::Channel::CH1, espp::Tla2528::Channel::CH2,
+        espp::Tla2528::Channel::CH3, espp::Tla2528::Channel::CH4, espp::Tla2528::Channel::CH5,
+        espp::Tla2528::Channel::CH6, espp::Tla2528::Channel::CH7};
 
     // make the actual tla class
     espp::Tla2528 tla(espp::Tla2528::Config{
@@ -33,7 +34,7 @@ extern "C" void app_main(void) {
         // of 0x10 becomes 0x16
         .device_address = espp::Tla2528::DEFAULT_ADDRESS | 0x06,
         .mode = espp::Tla2528::Mode::AUTO_SEQ,
-        .analog_inputs = {NTC_CHANNEL, X_CHANNEL, Y_CHANNEL},
+        .analog_inputs = channels,
         .digital_inputs = {},
         .digital_outputs = {},
         // enable oversampling / averaging
@@ -54,16 +55,16 @@ extern "C" void app_main(void) {
 
       // get the analog input data individually; NOTE: this only works if you have configured the
       // TLA2528 to use MANUAL mode
-      // auto ntc_mv = tla.get_mv(NTC_CHANNEL);
-      // auto x_mv = tla.get_mv(X_CHANNEL);
-      // auto y_mv = tla.get_mv(Y_CHANNEL);
+      // auto ch0_mv = tla.get_mv(channels[0]);
+      // auto ch1_mv = tla.get_mv(channels[1]);
+      // auto ch2_mv = tla.get_mv(channels[2]);
 
       // Could also read them all at once; NOTE: this only works if you have configured the
       // TLA2528 to use AUTO_SEQ mode (which is more efficient)
       // auto all_mv = tla.get_all_mv();
-      // auto ntc_mv = all_mv[0];
-      // auto x_mv = all_mv[1];
-      // auto y_mv = all_mv[2];
+      // auto ch0_mv = all_mv[0];
+      // auto ch1_mv = all_mv[1];
+      // auto ch2_mv = all_mv[2];
 
       // Could also use the mapped version; NOTE: this only works if you have configured the
       // TLA2528 to use AUTO_SEQ mode (which is more efficient)
@@ -73,13 +74,15 @@ extern "C" void app_main(void) {
         logger.error("error reading TLA2528: {}", ec.message());
         return false;
       }
-      auto ntc_mv = all_mv_map[NTC_CHANNEL];
-      auto x_mv = all_mv_map[X_CHANNEL];
-      auto y_mv = all_mv_map[Y_CHANNEL];
 
       // use fmt to print so it doesn't have the prefix and can be used more
       // easily as CSV (for plotting using uart_serial_plotter)
-      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}\n", elapsed, ntc_mv, x_mv, y_mv);
+      fmt::print("{:.3f}", elapsed);
+      for (auto &[ch, mv] : all_mv_map) {
+        fmt::print(", {:.1f}", mv);
+      }
+      fmt::print("\n");
+
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {

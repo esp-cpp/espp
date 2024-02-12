@@ -19,12 +19,14 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
+
     // now make the gt911 which decodes the data
     espp::Gt911 gt911({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
                                           std::placeholders::_2, std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
-                          std::placeholders::_2, std::placeholders::_3),
-        .log_level = espp::Logger::Verbosity::WARN});
+                       .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
+                                         std::placeholders::_2, std::placeholders::_3),
+                       .log_level = espp::Logger::Verbosity::WARN});
+
     // and finally, make the task to periodically poll the gt911 and print
     // the state
     auto task_fn = [&gt911](std::mutex &m, std::condition_variable &cv) {
@@ -51,7 +53,7 @@ extern "C" void app_main(void) {
       // task is being stopped / destroyed
       {
         std::unique_lock<std::mutex> lk(m);
-        cv.wait_for(lk, 500ms);
+        cv.wait_for(lk, 100ms);
       }
       return false; // don't stop the task
     };

@@ -12,6 +12,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
 
    adc/index
    base_component
+   base_peripheral
    battery/index
    bldc/index
    button

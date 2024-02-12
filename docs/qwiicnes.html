@@ -77,6 +77,7 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="adc/index.html">ADC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="base_component.html">Base Compoenent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="base_peripheral.html">Base Peripheral</a></li>
 <li class="toctree-l1"><a class="reference internal" href="battery/index.html">Battery APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="bldc/index.html">BLDC APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="button.html">Button APIs</a></li>
@@ -141,7 +142,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>QwiicNES</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/1a30ff7/docs/en/qwiicnes.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/8efc4b6/docs/en/qwiicnes.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -157,7 +158,7 @@
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1a30ff7/components/qwiicnes/include/qwiicnes.hpp">components/qwiicnes/include/qwiicnes.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/8efc4b6/components/qwiicnes/include/qwiicnes.hpp">components/qwiicnes/include/qwiicnes.hpp</a></p></li>
 </ul>
 </section>
 <section id="functions">
@@ -205,7 +206,7 @@ Potential matches:
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNesE">
-<span id="_CPPv3N4espp8QwiicNesE"></span><span id="_CPPv2N4espp8QwiicNesE"></span><span id="espp::QwiicNes"></span><span class="target" id="classespp_1_1_qwiic_nes"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">QwiicNes</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp8QwiicNesE"></span><span id="_CPPv2N4espp8QwiicNesE"></span><span id="espp::QwiicNes"></span><span class="target" id="classespp_1_1_qwiic_nes"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">QwiicNes</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_peripheral.html#_CPPv4N4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><a class="headerlink" href="#_CPPv4N4espp8QwiicNesE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>A class to interface with the Qwiic NES controller. </p>
 <p>This class is used to interface with the Qwiic NES controller. The Qwiic NES controller is a breakout board for the NES controller. The Qwiic NES controller uses the I2C bus to communicate.</p>
 <section id="classespp_1_1_tt21100_1Example">
@@ -217,12 +218,13 @@ Potential matches:
 <span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
 <span class="w">    </span><span class="p">});</span>
 <span class="w">    </span><span class="c1">// now make the qwiicnes which decodes the data</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">QwiicNes</span><span class="w"> </span><span class="nf">qwiicnes</span><span class="p">({.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
-<span class="w">                                                </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
-<span class="w">                             </span><span class="p">.</span><span class="n">write_read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read_at_register</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span>
-<span class="w">                                                     </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
-<span class="w">                                                     </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">),</span>
-<span class="w">                             </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">QwiicNes</span><span class="w"> </span><span class="nf">qwiicnes</span><span class="p">(</span>
+<span class="w">        </span><span class="p">{.</span><span class="n">write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">write</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span>
+<span class="w">                            </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">),</span>
+<span class="w">         </span><span class="p">.</span><span class="n">read_register</span><span class="w"> </span><span class="o">=</span>
+<span class="w">             </span><span class="n">std</span><span class="o">::</span><span class="n">bind</span><span class="p">(</span><span class="o">&amp;</span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="o">::</span><span class="n">read_at_register</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">i2c</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_1</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_2</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_3</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">placeholders</span><span class="o">::</span><span class="n">_4</span><span class="p">),</span>
+<span class="w">         </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">});</span>
 <span class="w">    </span><span class="c1">// and finally, make the task to periodically poll the qwiicnes and print</span>
 <span class="w">    </span><span class="c1">// the state</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">quit_test</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">qwiicnes</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -259,7 +261,7 @@ Potential matches:
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6ButtonE">
 <span id="_CPPv3N4espp8QwiicNes6ButtonE"></span><span id="_CPPv2N4espp8QwiicNes6ButtonE"></span><span class="target" id="classespp_1_1_qwiic_nes_1a13d80313852a6c1673b10d6c5168cd70"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Button</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6ButtonE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The buttons on the NES controller. &#64;deftails The values in this enum match the button’s corresponding bit field in the byte returned by <a class="reference internal" href="#classespp_1_1_qwiic_nes_1a0fc17dc5e4657c3c42385b84ead9b467"><span class="std std-ref">read_current_state()</span></a> and read_button_accumulator(). </p>
+<dd><p>The buttons on the NES controller. &#64;deftails The values in this enum match the button’s corresponding bit field in the byte returned by <a class="reference internal" href="#classespp_1_1_qwiic_nes_1a65c0bffb0908d74500f9440ca0af16c9"><span class="std std-ref">read_current_state()</span></a> and read_button_accumulator(). </p>
 <p><em>Values:</em></p>
 <dl class="cpp enumerator">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Button1AE">
@@ -304,44 +306,104 @@ Potential matches:
 </dd></dl>
 
 <dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes8write_fnE">
-<span id="_CPPv3N4espp8QwiicNes8write_fnE"></span><span id="_CPPv2N4espp8QwiicNes8write_fnE"></span><span id="espp::QwiicNes::write_fn"></span><span class="target" id="classespp_1_1_qwiic_nes_1a01fa3c4bf404e848f07a39d1b34a37cd"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes8write_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The function to write data to the I2C bus. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes8probe_fnE">
+<span id="_CPPv3N4espp8QwiicNes8probe_fnE"></span><span id="_CPPv2N4espp8QwiicNes8probe_fnE"></span><span id="espp::QwiicNes::probe_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1ac9d7ed2c1ae074f05df3ce213bb4531b"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">probe_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes8probe_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to probe the peripheral </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param address</dt>
-<dd class="field-odd"><p>The I2C address of the device. </p>
-</dd>
-<dt class="field-even">Param data</dt>
-<dd class="field-even"><p>The data to write to the I2C bus. </p>
-</dd>
-<dt class="field-odd">Param data_len</dt>
-<dd class="field-odd"><p>The length of the data to write to the I2C bus. </p>
+<dd class="field-odd"><p>The address to probe </p>
 </dd>
 <dt class="field-even">Return</dt>
-<dd class="field-even"><p>true if the function succeeds. </p>
+<dd class="field-even"><p>True if the peripheral is found at the given address </p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes13write_read_fnE">
-<span id="_CPPv3N4espp8QwiicNes13write_read_fnE"></span><span id="_CPPv2N4espp8QwiicNes13write_read_fnE"></span><span id="espp::QwiicNes::write_read_fn"></span><span class="target" id="classespp_1_1_qwiic_nes_1a8ee5f7ce1284bcd4fad301e715a7e032"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes13write_read_fnE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The function to write then read data from the I2C bus. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes8write_fnE">
+<span id="_CPPv3N4espp8QwiicNes8write_fnE"></span><span id="_CPPv2N4espp8QwiicNes8write_fnE"></span><span id="espp::QwiicNes::write_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1ac02652bae3c608d1d0dc139066009b99"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes8write_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write data to the peripheral </p>
 <dl class="field-list simple">
 <dt class="field-odd">Param address</dt>
-<dd class="field-odd"><p>The I2C address of the device. </p>
+<dd class="field-odd"><p>The address of the peripheral to write to </p>
 </dd>
-<dt class="field-even">Param register</dt>
-<dd class="field-even"><p>The register to write to the I2C bus. </p>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The data to write </p>
+</dd>
+<dt class="field-odd">Param length</dt>
+<dd class="field-odd"><p>The length of the data to write </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the write was successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes7read_fnE">
+<span id="_CPPv3N4espp8QwiicNes7read_fnE"></span><span id="_CPPv2N4espp8QwiicNes7read_fnE"></span><span id="espp::QwiicNes::read_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1ab6dd083fd110438862c7ae90c821d076"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes7read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read data from the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address of the peripheral to read from </p>
+</dd>
+<dt class="field-even">Param data</dt>
+<dd class="field-even"><p>The buffer to read into </p>
+</dd>
+<dt class="field-odd">Param length</dt>
+<dd class="field-odd"><p>The length of the buffer </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the read was successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes16read_register_fnE">
+<span id="_CPPv3N4espp8QwiicNes16read_register_fnE"></span><span id="_CPPv2N4espp8QwiicNes16read_register_fnE"></span><span id="espp::QwiicNes::read_register_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1a440ef15b5cc6b7ba8b50191fe2e488a8"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_register_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes16read_register_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to read data at a specific address from the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address of the peripheral to read from </p>
+</dd>
+<dt class="field-even">Param reg_addr</dt>
+<dd class="field-even"><p>The address of the register to read from </p>
 </dd>
 <dt class="field-odd">Param data</dt>
-<dd class="field-odd"><p>The data to read from the I2C bus. </p>
+<dd class="field-odd"><p>The buffer to read into </p>
 </dd>
-<dt class="field-even">Param data_len</dt>
-<dd class="field-even"><p>The length of the data to read from the I2C bus. </p>
+<dt class="field-even">Param length</dt>
+<dd class="field-even"><p>The length of the buffer </p>
 </dd>
 <dt class="field-odd">Return</dt>
-<dd class="field-odd"><p>true if the function succeeds. </p>
+<dd class="field-odd"><p>True if the read was successful </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes18write_then_read_fnE">
+<span id="_CPPv3N4espp8QwiicNes18write_then_read_fnE"></span><span id="_CPPv2N4espp8QwiicNes18write_then_read_fnE"></span><span id="espp::QwiicNes::write_then_read_fn"></span><span class="target" id="classespp_1_1_base_peripheral_1ab1b824db2cb2b4b6935f8d8d96dd2470"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_then_read_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes18write_then_read_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Function to write then read data from the peripheral </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address of the peripheral to write to </p>
+</dd>
+<dt class="field-even">Param write_data</dt>
+<dd class="field-even"><p>The data to write </p>
+</dd>
+<dt class="field-odd">Param write_length</dt>
+<dd class="field-odd"><p>The length of the data to write </p>
+</dd>
+<dt class="field-even">Param read_data</dt>
+<dd class="field-even"><p>The buffer to read into </p>
+</dd>
+<dt class="field-odd">Param read_length</dt>
+<dd class="field-odd"><p>The length of the buffer </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>True if the write then read was successful </p>
 </dd>
 </dl>
 </dd></dl>
@@ -411,8 +473,8 @@ This function reads the current state of the buttons and updates the accumulated
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK4espp8QwiicNes18read_current_stateERNSt10error_codeE">
-<span id="_CPPv3NK4espp8QwiicNes18read_current_stateERNSt10error_codeE"></span><span id="_CPPv2NK4espp8QwiicNes18read_current_stateERNSt10error_codeE"></span><span id="espp::QwiicNes::read_current_state__std::error_codeRC"></span><span class="target" id="classespp_1_1_qwiic_nes_1a0fc17dc5e4657c3c42385b84ead9b467"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_current_state</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes18read_current_stateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes18read_current_stateERNSt10error_codeE">
+<span id="_CPPv3N4espp8QwiicNes18read_current_stateERNSt10error_codeE"></span><span id="_CPPv2N4espp8QwiicNes18read_current_stateERNSt10error_codeE"></span><span id="espp::QwiicNes::read_current_state__std::error_codeR"></span><span class="target" id="classespp_1_1_qwiic_nes_1a65c0bffb0908d74500f9440ca0af16c9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_current_state</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes18read_current_stateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read the current state of the buttons. </p>
 <p>
 This function will log an error if it fails to read the current state of the buttons. This function does not update the accumulated button states. To update the accumulated button states, call the <a class="reference internal" href="#classespp_1_1_qwiic_nes_1ac9dde8708b9ac39ff4419065136999c4"><span class="std std-ref">update()</span></a> function. The current state represents the buttons which are currently pressed. </p>
@@ -427,8 +489,8 @@ This function will log an error if it fails to read the current state of the but
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK4espp8QwiicNes12read_addressERNSt10error_codeE">
-<span id="_CPPv3NK4espp8QwiicNes12read_addressERNSt10error_codeE"></span><span id="_CPPv2NK4espp8QwiicNes12read_addressERNSt10error_codeE"></span><span id="espp::QwiicNes::read_address__std::error_codeRC"></span><span class="target" id="classespp_1_1_qwiic_nes_1a2b7cf87cc571ab55f4cdcf8d724a5c3f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes12read_addressERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes12read_addressERNSt10error_codeE">
+<span id="_CPPv3N4espp8QwiicNes12read_addressERNSt10error_codeE"></span><span id="_CPPv2N4espp8QwiicNes12read_addressERNSt10error_codeE"></span><span id="espp::QwiicNes::read_address__std::error_codeR"></span><span class="target" id="classespp_1_1_qwiic_nes_1a78fd6d456ed00393694fe88b91f2e448"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_address</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes12read_addressERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read the current I2C address of the device. </p>
 <p>
 This function will log an error if it fails to read the current I2C address of the device. The I2C address is a 7-bit value. The 7-bit I2C address is shifted left by 1 bit and the least significant bit is set to 0. For example, if the I2C address is 0x54, then the value returned by this function will be 0xA8. </p>
@@ -458,6 +520,82 @@ This function will log an error if it fails to update the I2C address of the dev
 </dl>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes11set_log_tagERKNSt11string_viewE">
+<span id="_CPPv3N4espp8QwiicNes11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp8QwiicNes11set_log_tagERKNSt11string_viewE"></span><span id="espp::QwiicNes::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1_base_component_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the tag for the logger </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tag</strong> – The tag to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes13set_log_levelEN6Logger9VerbosityE">
+<span id="_CPPv3N4espp8QwiicNes13set_log_levelEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp8QwiicNes13set_log_levelEN6Logger9VerbosityE"></span><span id="espp::QwiicNes::set_log_level__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes13set_log_levelEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log level for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
+</div>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes17set_log_verbosityEN6Logger9VerbosityE">
+<span id="_CPPv3N4espp8QwiicNes17set_log_verbosityEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp8QwiicNes17set_log_verbosityEN6Logger9VerbosityE"></span><span id="espp::QwiicNes::set_log_verbosity__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ac47205e43174fe6f8655b777d3fdfa06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes17set_log_verbosityEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the log verbosity for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="wifi/wifi_sta.html#classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"><span class="std std-ref">set_log_level</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a convenience method that calls set_log_level </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>level</strong> – The verbosity level to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes18set_log_rate_limitENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp8QwiicNes18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp8QwiicNes18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::QwiicNes::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1_base_component_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the rate limit for the logger <div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a> </p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only calls to the logger that have _rate_limit suffix will be rate limited </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>rate_limit</strong> – The rate limit to use for the logger </p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
@@ -468,7 +606,7 @@ This function will log an error if it fails to update the I2C address of the dev
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>state</strong> – The byte returned by <a class="reference internal" href="#classespp_1_1_qwiic_nes_1a0fc17dc5e4657c3c42385b84ead9b467"><span class="std std-ref">read_current_state()</span></a>. </p></li>
+<li><p><strong>state</strong> – The byte returned by <a class="reference internal" href="#classespp_1_1_qwiic_nes_1a65c0bffb0908d74500f9440ca0af16c9"><span class="std std-ref">read_current_state()</span></a>. </p></li>
 <li><p><strong>button</strong> – The button to check. </p></li>
 </ul>
 </dd>
@@ -513,13 +651,13 @@ This function will log an error if it fails to update the I2C address of the dev
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Config5writeE">
-<span id="_CPPv3N4espp8QwiicNes6Config5writeE"></span><span id="_CPPv2N4espp8QwiicNes6Config5writeE"></span><span id="espp::QwiicNes::Config::write__write_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1aba6436effa674ed74623e0d087a413ca"></span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes8write_fnE" title="espp::QwiicNes::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp8QwiicNes6Config5writeE"></span><span id="_CPPv2N4espp8QwiicNes6Config5writeE"></span><span id="espp::QwiicNes::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1aeb74c1b3eabbe032ab4f0a7c2df4f105"></span><a class="reference internal" href="base_peripheral.html#_CPPv4N4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_peripheral.html#_CPPv4N4espp14BasePeripheral8write_fnE" title="espp::BasePeripheral::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config5writeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The function to write data to the I2C bus. </p>
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Config10write_readE">
-<span id="_CPPv3N4espp8QwiicNes6Config10write_readE"></span><span id="_CPPv2N4espp8QwiicNes6Config10write_readE"></span><span id="espp::QwiicNes::Config::write_read__write_read_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1acdadb2ed91ec6427e00d5edaccf88590"></span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes13write_read_fnE" title="espp::QwiicNes::write_read_fn"><span class="n"><span class="pre">write_read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_read</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config10write_readE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Config13read_registerE">
+<span id="_CPPv3N4espp8QwiicNes6Config13read_registerE"></span><span id="_CPPv2N4espp8QwiicNes6Config13read_registerE"></span><span id="espp::QwiicNes::Config::read_register__BasePeripheral::read_register_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1a5d3c670cccda00dcb2afb136918a0092"></span><a class="reference internal" href="base_peripheral.html#_CPPv4N4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_peripheral.html#_CPPv4N4espp14BasePeripheral16read_register_fnE" title="espp::BasePeripheral::read_register_fn"><span class="n"><span class="pre">read_register_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_register</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config13read_registerE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The function to write then read data from the I2C bus. </p>
 </dd></dl>
 

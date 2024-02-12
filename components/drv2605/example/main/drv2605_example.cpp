@@ -26,8 +26,9 @@ extern "C" void app_main(void) {
         .device_address = espp::Drv2605::DEFAULT_ADDRESS,
         .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
                            std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                          std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+        .read_register =
+            std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                      std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
         .motor_type = espp::Drv2605::MotorType::LRA});
     std::error_code ec;
     // we're using an ERM motor, so select an ERM library (1-5).
@@ -44,6 +45,11 @@ extern "C" void app_main(void) {
       auto elapsed = std::chrono::duration<float>(now - start).count();
       static uint8_t waveform = 0;
       std::error_code ec;
+      drv2605.stop(ec);
+      if (ec) {
+        logger.error("stop failed: {}", ec.message());
+        return false;
+      }
       drv2605.set_waveform(0, (espp::Drv2605::Waveform)waveform, ec);
       if (ec) {
         logger.error("set waveform failed: {}", ec.message());

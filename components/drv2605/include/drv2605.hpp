@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /**
@@ -15,29 +15,9 @@ namespace espp {
  * \section drv2605_ex1 DRV2605 Example
  * \snippet drv2605_example.cpp drv2605 example
  */
-class Drv2605 {
+class Drv2605 : public BasePeripheral {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = (0x5A);
-
-  /**
-   * @brief Function to write bytes to the device.
-   * @param dev_addr Address of the device to write to.
-   * @param data Pointer to array of bytes to write.
-   * @param data_len Number of data bytes to write.
-   * @return True if the write was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
-
-  /**
-   * @brief Function to read bytes from the device.
-   * @param dev_addr Address of the device to write to.
-   * @param reg_addr Register address to read from.
-   * @param data Pointer to array of bytes to read into.
-   * @param data_len Number of data bytes to read.
-   * @return True if the read was successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
-      read_fn;
 
   /**
    * @brief The mode of the vibration.
@@ -113,8 +93,10 @@ public:
    */
   struct Config {
     uint8_t device_address = DEFAULT_ADDRESS; /**< I2C address of the device. */
-    write_fn write; /**< Function for writing a byte to a register on the Drv2605. */
-    read_fn read;   /**< Function for reading a byte from a register on the Drv2605. */
+    BasePeripheral::write_fn
+        write; /**< Function for writing a byte to a register on the Drv2605. */
+    BasePeripheral::read_register_fn
+        read_register;                    /**< Function for reading a register from the Drv2605. */
     MotorType motor_type{MotorType::ERM}; /**< MotorType that this driver is driving. */
     bool auto_init{true}; /**< If true, the driver will initialize the DRV2605 on construction. */
     espp::Logger::Verbosity log_level{
@@ -125,8 +107,11 @@ public:
    * @brief Construct and initialize the DRV2605.
    */
   explicit Drv2605(const Config &config)
-      : motor_type_(config.motor_type), address_(config.device_address), write_(config.write),
-        read_(config.read), logger_({.tag = "Drv2605", .level = config.log_level}) {
+      : BasePeripheral({.address = config.device_address,
+                        .write = config.write,
+                        .read_register = config.read_register},
+                       "Drv2605", config.log_level)
+      , motor_type_(config.motor_type) {
     if (config.auto_init) {
       std::error_code ec;
       initialize(ec);
@@ -148,7 +133,7 @@ public:
    */
   void start(std::error_code &ec) {
     logger_.info("Starting");
-    write_one_((uint8_t)Register::START, 1, ec);
+    write_u8_to_register((uint8_t)Register::START, 1, ec);
   }
 
   /**
@@ -157,7 +142,7 @@ public:
    */
   void stop(std::error_code &ec) {
     logger_.info("Stopping");
-    write_one_((uint8_t)Register::START, 0, ec);
+    write_u8_to_register((uint8_t)Register::START, 0, ec);
   }
 
   /**
@@ -167,7 +152,7 @@ public:
    */
   void set_mode(Mode mode, std::error_code &ec) {
     logger_.info("Setting mode {}", (uint8_t)mode);
-    write_one_((uint8_t)Register::MODE, (uint8_t)mode, ec);
+    write_u8_to_register((uint8_t)Register::MODE, (uint8_t)mode, ec);
   }
 
   /**
@@ -182,7 +167,7 @@ public:
    */
   void set_waveform(uint8_t slot, Waveform w, std::error_code &ec) {
     logger_.info("Setting waveform {}", (uint8_t)w);
-    write_one_((uint8_t)Register::WAVESEQ1 + slot, (uint8_t)w, ec);
+    write_u8_to_register((uint8_t)Register::WAVESEQ1 + slot, (uint8_t)w, ec);
   }
 
   /**
@@ -195,16 +180,16 @@ public:
     if (motor_type_ == MotorType::LRA && lib != Library::LRA) {
       logger_.warn("LRA motor selected, but library {} is not an LRA library", lib);
     }
-    write_one_((uint8_t)Register::LIBRARY, (uint8_t)lib, ec);
+    write_u8_to_register((uint8_t)Register::LIBRARY, (uint8_t)lib, ec);
   }
 
 protected:
   void init(std::error_code &ec) {
     logger_.info("Initializing motor");
-    write_one_((uint8_t)Register::MODE, 0, ec); // out of standby
+    write_u8_to_register((uint8_t)Register::MODE, 0, ec); // out of standby
     if (ec)
       return;
-    write_one_((uint8_t)Register::RTPIN, 0, ec); // no real-time playback
+    write_u8_to_register((uint8_t)Register::RTPIN, 0, ec); // no real-time playback
     if (ec)
       return;
     set_waveform(0, Waveform::STRONG_CLICK, ec); // Strong Click
@@ -213,19 +198,19 @@ protected:
     set_waveform(1, Waveform::END, ec); // end sequence
     if (ec)
       return;
-    write_one_((uint8_t)Register::OVERDRIVE, 0, ec); // no overdrive
+    write_u8_to_register((uint8_t)Register::OVERDRIVE, 0, ec); // no overdrive
     if (ec)
       return;
-    write_one_((uint8_t)Register::SUSTAINPOS, 0, ec);
+    write_u8_to_register((uint8_t)Register::SUSTAINPOS, 0, ec);
     if (ec)
       return;
-    write_one_((uint8_t)Register::SUSTAINNEG, 0, ec);
+    write_u8_to_register((uint8_t)Register::SUSTAINNEG, 0, ec);
     if (ec)
       return;
-    write_one_((uint8_t)Register::BREAK, 0, ec);
+    write_u8_to_register((uint8_t)Register::BREAK, 0, ec);
     if (ec)
       return;
-    write_one_((uint8_t)Register::AUDIOMAX, 0x64, ec);
+    write_u8_to_register((uint8_t)Register::AUDIOMAX, 0x64, ec);
     if (ec)
       return;
     // set the motor type based on the config
@@ -233,20 +218,20 @@ protected:
     if (ec)
       return;
     // turn on ERM OPEN LOOP
-    auto current_control3 = read_one_((uint8_t)Register::CONTROL3, ec);
+    auto current_control3 = read_u8_from_register((uint8_t)Register::CONTROL3, ec);
     if (ec)
       return;
-    write_one_((uint8_t)Register::CONTROL3, current_control3 | 0x20, ec);
+    write_u8_to_register((uint8_t)Register::CONTROL3, current_control3 | 0x20, ec);
   }
 
   void set_motor_type(MotorType motor_type, std::error_code &ec) {
     logger_.info("Setting motor type {}", motor_type == MotorType::ERM ? "ERM" : "LRA");
     motor_type_ = motor_type;
-    auto current_feedback = read_one_((uint8_t)Register::FEEDBACK, ec);
+    auto current_feedback = read_u8_from_register((uint8_t)Register::FEEDBACK, ec);
     if (ec)
       return;
     uint8_t motor_config = (motor_type_ == MotorType::ERM) ? 0x7F : 0x80;
-    write_one_((uint8_t)Register::FEEDBACK, current_feedback | motor_config, ec);
+    write_u8_to_register((uint8_t)Register::FEEDBACK, current_feedback | motor_config, ec);
   }
 
   enum class Register : uint8_t {
@@ -285,37 +270,7 @@ protected:
     LRARSON = 0x22,     ///< LRA resonance-period
   };
 
-  uint8_t read_one_(uint8_t reg_addr, std::error_code &ec) {
-    uint8_t data;
-    bool success = read_(address_, reg_addr, &data, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    return data;
-  }
-
-  void write_one_(uint8_t reg_addr, uint8_t data, std::error_code &ec) {
-    write_many_(reg_addr, &data, 1, ec);
-  }
-
-  void write_many_(uint8_t reg_addr, const uint8_t *write_data, size_t write_data_len,
-                   std::error_code &ec) {
-    uint8_t total_len = 1 + write_data_len;
-    uint8_t data[total_len];
-    data[0] = reg_addr;
-    memcpy(&data[1], write_data, write_data_len);
-    bool success = write_(address_, data, total_len);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
   MotorType motor_type_;
-  uint8_t address_;
-  write_fn write_;
-  read_fn read_;
-  espp::Logger logger_;
 };
 } // namespace espp
 

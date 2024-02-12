@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_peripheral.hpp"
 
 namespace espp {
 /**
@@ -14,29 +14,9 @@ namespace espp {
  * \section aw9523_ex1 AW9523 Example
  * \snippet aw9523_example.cpp aw9523 example
  */
-class Aw9523 {
+class Aw9523 : public BasePeripheral {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = 0x58; ///< Lower 2 bits are AD1, AD0 pins on the chip.
-
-  /**
-   * @brief Function to write bytes to the device.
-   * @param dev_addr Address of the device to write to.
-   * @param data Pointer to array of bytes to write.
-   * @param data_len Number of data bytes to write.
-   * @return True if successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t *data, size_t data_len)> write_fn;
-
-  /**
-   * @brief Function to read bytes from the device.
-   * @param dev_addr Address of the device to write to.
-   * @param reg_addr Register address to read from.
-   * @param data Pointer to array of bytes to read into.
-   * @param data_len Number of data bytes to read.
-   * @return True if successful, false otherwise.
-   */
-  typedef std::function<bool(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len)>
-      read_fn;
 
   /**
    * The two GPIO ports the Aw9523 has.
@@ -74,11 +54,12 @@ public:
     uint8_t port_1_direction_mask = 0x00; ///< Direction mask (1 = input) for port 1.
     uint8_t port_1_interrupt_mask = 0x00; ///< Interrupt mask (1 = disable interrupt) for port 1.
     OutputDriveModeP0 output_drive_mode_p0 =
-        OutputDriveModeP0::OPEN_DRAIN;                    ///< Output drive mode for Port 0
-    MaxLedCurrent max_led_current = MaxLedCurrent::IMAX;  ///< Max current allowed on each LED.
-    write_fn write;                                       ///< Function to write to the device.
-    read_fn read;                                         ///< Function to read from the device.
-    bool auto_init = true;                                ///< Automatically initialize the device.
+        OutputDriveModeP0::OPEN_DRAIN;                   ///< Output drive mode for Port 0
+    MaxLedCurrent max_led_current = MaxLedCurrent::IMAX; ///< Max current allowed on each LED.
+    BasePeripheral::write_fn write;                      ///< Function to write to the device.
+    BasePeripheral::write_then_read_fn
+        write_then_read;   ///< Function to write then read from the device.
+    bool auto_init = true; ///< Automatically initialize the device.
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log verbosity for the component.
   };
 
@@ -87,8 +68,11 @@ public:
    * @param config Config structure for configuring the AW9523
    */
   explicit Aw9523(const Config &config)
-      : config_(config), address_(config.device_address), write_(config.write), read_(config.read),
-        logger_({.tag = "Aw9523", .level = config.log_level}) {
+      : BasePeripheral({.address = config.device_address,
+                        .write = config.write,
+                        .write_then_read = config.write_then_read},
+                       "Aw9523", config.log_level)
+      , config_(config) {
     if (config.auto_init) {
       std::error_code ec;
       initialize(ec);
@@ -112,7 +96,7 @@ public:
    */
   uint8_t get_pins(Port port, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::INPORT0 : Registers::INPORT1;
-    return read_one_((uint8_t)addr, ec);
+    return read_u8_from_register((uint8_t)addr, ec);
   }
 
   /**
@@ -121,10 +105,10 @@ public:
    * @return The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb).
    */
   uint16_t get_pins(std::error_code &ec) {
-    uint16_t p0 = read_one_((uint8_t)Registers::INPORT0, ec);
+    uint16_t p0 = read_u8_from_register((uint8_t)Registers::INPORT0, ec);
     if (ec)
       return 0;
-    uint16_t p1 = read_one_((uint8_t)Registers::INPORT1, ec);
+    uint16_t p1 = read_u8_from_register((uint8_t)Registers::INPORT1, ec);
     if (ec)
       return 0;
     return (p1 << 8) | p0;
@@ -140,7 +124,7 @@ public:
    */
   void output(Port port, uint8_t value, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    write_one_((uint8_t)addr, value, ec);
+    write_u8_to_register((uint8_t)addr, value, ec);
   }
 
   /**
@@ -181,11 +165,11 @@ public:
    */
   void clear_pins(Port port, uint8_t mask, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    auto data = read_one_((uint8_t)addr, ec);
+    auto data = read_u8_from_register((uint8_t)addr, ec);
     if (ec)
       return;
     data &= ~mask;
-    write_one_((uint8_t)addr, data, ec);
+    write_u8_to_register((uint8_t)addr, data, ec);
   }
 
   /**
@@ -224,11 +208,11 @@ public:
    */
   void set_pins(Port port, uint8_t mask, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    auto data = read_one_((uint8_t)addr, ec);
+    auto data = read_u8_from_register((uint8_t)addr, ec);
     if (ec)
       return;
     data |= mask;
-    write_one_((uint8_t)addr, data, ec);
+    write_u8_to_register((uint8_t)addr, data, ec);
   }
 
   /**
@@ -266,7 +250,7 @@ public:
    */
   uint8_t get_output(Port port, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
-    return read_one_((uint8_t)addr, ec);
+    return read_u8_from_register((uint8_t)addr, ec);
   }
 
   /**
@@ -275,10 +259,10 @@ public:
    * @return The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb).
    */
   uint16_t get_output(std::error_code &ec) {
-    uint16_t p0 = read_one_((uint8_t)Registers::OUTPORT0, ec);
+    uint16_t p0 = read_u8_from_register((uint8_t)Registers::OUTPORT0, ec);
     if (ec)
       return 0;
-    uint16_t p1 = read_one_((uint8_t)Registers::OUTPORT1, ec);
+    uint16_t p1 = read_u8_from_register((uint8_t)Registers::OUTPORT1, ec);
     if (ec)
       return 0;
     return (p1 << 8) | p0;
@@ -293,7 +277,7 @@ public:
   void set_interrupt(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting interrupt on change for Port {} pins {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::INTPORT0 : Registers::INTPORT1;
-    write_one_((uint8_t)addr, mask, ec);
+    write_u8_to_register((uint8_t)addr, mask, ec);
   }
 
   /**
@@ -306,7 +290,7 @@ public:
     logger_.debug("Setting interrupt on change p0:{}, p1:{}", p0, p1);
     auto addr = Registers::INTPORT0;
     const uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2, ec);
+    write_many_to_register((uint8_t)addr, data, 2, ec);
   }
 
   /**
@@ -318,7 +302,7 @@ public:
   void set_direction(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Setting direction for Port {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::DIRPORT0 : Registers::DIRPORT1;
-    write_one_((uint8_t)addr, mask, ec);
+    write_u8_to_register((uint8_t)addr, mask, ec);
   }
 
   /**
@@ -331,7 +315,7 @@ public:
     logger_.debug("Setting direction  p0:{}, p1:{}", p0, p1);
     auto addr = Registers::DIRPORT0;
     const uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2, ec);
+    write_many_to_register((uint8_t)addr, data, 2, ec);
   }
 
   /**
@@ -343,7 +327,7 @@ public:
   void configure_led(Port port, uint8_t mask, std::error_code &ec) {
     logger_.debug("Configuring LED function for Port {} to {}", (uint8_t)port, mask);
     auto addr = port == Port::PORT0 ? Registers::LEDMODE0 : Registers::LEDMODE1;
-    write_one_((uint8_t)addr, mask, ec);
+    write_u8_to_register((uint8_t)addr, mask, ec);
   }
 
   /**
@@ -356,7 +340,7 @@ public:
     logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
     auto addr = Registers::LEDMODE0;
     const uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2, ec);
+    write_many_to_register((uint8_t)addr, data, 2, ec);
   }
 
   /**
@@ -371,7 +355,7 @@ public:
     logger_.debug("Configuring LED function p0:{}, p1:{}", p0, p1);
     auto addr = Registers::LEDMODE0;
     const uint8_t data[] = {p0, p1};
-    write_many_((uint8_t)addr, data, 2, ec);
+    write_many_to_register((uint8_t)addr, data, 2, ec);
   }
 
   /**
@@ -436,7 +420,7 @@ public:
       return; // bad mask, don't do anything!
       break;
     }
-    write_one_(addr, brightness, ec);
+    write_u8_to_register(addr, brightness, ec);
   }
 
   /**
@@ -455,7 +439,7 @@ public:
     uint8_t data = 0;
     data |= ((uint8_t)output_drive_mode_p0) << (int)ControlBit::GPOMD;
     data |= ((uint8_t)max_led_current) << (int)ControlBit::ISEL;
-    write_one_((uint8_t)addr, data, ec);
+    write_u8_to_register((uint8_t)addr, data, ec);
   }
 
 protected:
@@ -516,46 +500,6 @@ protected:
     set_interrupt(Port::PORT1, config.port_1_interrupt_mask, ec);
   }
 
-  uint8_t read_one_(uint8_t reg_addr, std::error_code &ec) {
-    uint8_t data;
-    bool success = read_(address_, reg_addr, &data, 1);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    return data;
-  }
-
-  uint16_t read_two_(uint8_t reg_addr, std::error_code &ec) {
-    uint8_t data[2] = {0};
-    bool success = read_(address_, reg_addr, data, 2);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return 0;
-    }
-    return (data[1] << 8) | data[0];
-  }
-
-  void write_one_(uint8_t reg_addr, uint8_t data, std::error_code &ec) {
-    write_many_(reg_addr, &data, 1, ec);
-  }
-
-  void write_many_(uint8_t reg_addr, const uint8_t *write_data, size_t write_data_len,
-                   std::error_code &ec) {
-    uint8_t total_len = 1 + write_data_len;
-    uint8_t data[total_len];
-    data[0] = reg_addr;
-    memcpy(&data[1], write_data, write_data_len);
-    bool success = write_(address_, data, total_len);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    }
-  }
-
   Config config_;
-  uint8_t address_;
-  write_fn write_;
-  read_fn read_;
-  Logger logger_;
 };
 } // namespace espp

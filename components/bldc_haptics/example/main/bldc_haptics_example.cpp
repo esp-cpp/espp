@@ -53,8 +53,9 @@ extern "C" void app_main(void) {
     std::shared_ptr<espp::Mt6701> mt6701 = std::make_shared<espp::Mt6701>(espp::Mt6701::Config{
         .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
                            std::placeholders::_3),
-        .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                          std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+        .read_register =
+            std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
+                      std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
         .velocity_filter = filter_fn,
         .update_period = std::chrono::duration<float>(core_update_period),
         .log_level = espp::Logger::Verbosity::WARN});

@@ -27,14 +27,14 @@ extern "C" void app_main(void) {
         {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * encoder_update_period});
     auto filter_fn = [&filter](float raw) -> float { return filter.update(raw); };
     // now make the mt6701 which decodes the data
-    espp::Mt6701 mt6701(
-        {.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                            std::placeholders::_3),
-         .read = std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                           std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-         .velocity_filter = filter_fn,
-         .update_period = std::chrono::duration<float>(encoder_update_period),
-         .log_level = espp::Logger::Verbosity::WARN});
+    espp::Mt6701 mt6701({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
+                                            std::placeholders::_2, std::placeholders::_3),
+                         .read_register = std::bind(&espp::I2c::read_at_register, &i2c,
+                                                    std::placeholders::_1, std::placeholders::_2,
+                                                    std::placeholders::_3, std::placeholders::_4),
+                         .velocity_filter = filter_fn,
+                         .update_period = std::chrono::duration<float>(encoder_update_period),
+                         .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the mt6701 and print the
     // state. NOTE: the Mt6701 runs its own task to maintain state, so we're
     // just polling the current state.
