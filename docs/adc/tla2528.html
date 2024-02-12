@@ -149,7 +149,7 @@
           <li><a href="index.html">ADC APIs</a> &raquo;</li>
       <li>TLA2528 I2C ADC</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/9588fa7/docs/en/adc/tla2528.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/8efc4b6/docs/en/adc/tla2528.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -171,7 +171,7 @@ sequenced basis.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9588fa7/components/tla2528/include/tla2528.hpp">components/tla2528/include/tla2528.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/8efc4b6/components/tla2528/include/tla2528.hpp">components/tla2528/include/tla2528.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -194,9 +194,10 @@ sequenced basis.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
 <span class="w">    </span><span class="p">});</span>
 
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">NTC_CHANNEL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH1</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">X_CHANNEL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH6</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">Y_CHANNEL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">&gt;</span><span class="w"> </span><span class="n">channels</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH0</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH1</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH2</span><span class="p">,</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH3</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH4</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH5</span><span class="p">,</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH6</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Channel</span><span class="o">::</span><span class="n">CH7</span><span class="p">};</span>
 
 <span class="w">    </span><span class="c1">// make the actual tla class</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="w"> </span><span class="nf">tla</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span>
@@ -204,7 +205,7 @@ sequenced basis.</p>
 <span class="w">        </span><span class="c1">// of 0x10 becomes 0x16</span>
 <span class="w">        </span><span class="p">.</span><span class="n">device_address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">DEFAULT_ADDRESS</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="mh">0x06</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Tla2528</span><span class="o">::</span><span class="n">Mode</span><span class="o">::</span><span class="n">AUTO_SEQ</span><span class="p">,</span>
-<span class="w">        </span><span class="p">.</span><span class="n">analog_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">NTC_CHANNEL</span><span class="p">,</span><span class="w"> </span><span class="n">X_CHANNEL</span><span class="p">,</span><span class="w"> </span><span class="n">Y_CHANNEL</span><span class="p">},</span>
+<span class="w">        </span><span class="p">.</span><span class="n">analog_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">channels</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">digital_inputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
 <span class="w">        </span><span class="p">.</span><span class="n">digital_outputs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
 <span class="w">        </span><span class="c1">// enable oversampling / averaging</span>
@@ -225,16 +226,16 @@ sequenced basis.</p>
 
 <span class="w">      </span><span class="c1">// get the analog input data individually; NOTE: this only works if you have configured the</span>
 <span class="w">      </span><span class="c1">// TLA2528 to use MANUAL mode</span>
-<span class="w">      </span><span class="c1">// auto ntc_mv = tla.get_mv(NTC_CHANNEL);</span>
-<span class="w">      </span><span class="c1">// auto x_mv = tla.get_mv(X_CHANNEL);</span>
-<span class="w">      </span><span class="c1">// auto y_mv = tla.get_mv(Y_CHANNEL);</span>
+<span class="w">      </span><span class="c1">// auto ch0_mv = tla.get_mv(channels[0]);</span>
+<span class="w">      </span><span class="c1">// auto ch1_mv = tla.get_mv(channels[1]);</span>
+<span class="w">      </span><span class="c1">// auto ch2_mv = tla.get_mv(channels[2]);</span>
 
 <span class="w">      </span><span class="c1">// Could also read them all at once; NOTE: this only works if you have configured the</span>
 <span class="w">      </span><span class="c1">// TLA2528 to use AUTO_SEQ mode (which is more efficient)</span>
 <span class="w">      </span><span class="c1">// auto all_mv = tla.get_all_mv();</span>
-<span class="w">      </span><span class="c1">// auto ntc_mv = all_mv[0];</span>
-<span class="w">      </span><span class="c1">// auto x_mv = all_mv[1];</span>
-<span class="w">      </span><span class="c1">// auto y_mv = all_mv[2];</span>
+<span class="w">      </span><span class="c1">// auto ch0_mv = all_mv[0];</span>
+<span class="w">      </span><span class="c1">// auto ch1_mv = all_mv[1];</span>
+<span class="w">      </span><span class="c1">// auto ch2_mv = all_mv[2];</span>
 
 <span class="w">      </span><span class="c1">// Could also use the mapped version; NOTE: this only works if you have configured the</span>
 <span class="w">      </span><span class="c1">// TLA2528 to use AUTO_SEQ mode (which is more efficient)</span>
@@ -244,13 +245,15 @@ sequenced basis.</p>
 <span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;error reading TLA2528: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ec</span><span class="p">.</span><span class="n">message</span><span class="p">());</span>
 <span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="w">      </span><span class="p">}</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">ntc_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv_map</span><span class="p">[</span><span class="n">NTC_CHANNEL</span><span class="p">];</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">x_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv_map</span><span class="p">[</span><span class="n">X_CHANNEL</span><span class="p">];</span>
-<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">y_mv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_mv_map</span><span class="p">[</span><span class="n">Y_CHANNEL</span><span class="p">];</span>
 
 <span class="w">      </span><span class="c1">// use fmt to print so it doesn&#39;t have the prefix and can be used more</span>
 <span class="w">      </span><span class="c1">// easily as CSV (for plotting using uart_serial_plotter)</span>
-<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}, {:.3f}, {:.3f}, {:.3f}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">,</span><span class="w"> </span><span class="n">ntc_mv</span><span class="p">,</span><span class="w"> </span><span class="n">x_mv</span><span class="p">,</span><span class="w"> </span><span class="n">y_mv</span><span class="p">);</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{:.3f}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">);</span>
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">ch</span><span class="p">,</span><span class="w"> </span><span class="n">mv</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">all_mv_map</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;, {:.1f}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">mv</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+
 <span class="w">      </span><span class="c1">// NOTE: sleeping in this way allows the sleep to exit early when the</span>
 <span class="w">      </span><span class="c1">// task is being stopped / destroyed</span>
 <span class="w">      </span><span class="p">{</span>
