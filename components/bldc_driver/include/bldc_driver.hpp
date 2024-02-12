@@ -274,6 +274,7 @@ protected:
   void configure_operators() {
     logger_.info("Create MCPWM operator");
     mcpwm_operator_config_t operator_config;
+    memset(&operator_config, 0, sizeof(operator_config));
     operator_config.group_id = 0;
     for (int i = 0; i < 3; i++) {
       ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &operators_[i]));
@@ -322,6 +323,7 @@ protected:
   void configure_comparators() {
     logger_.info("Create comparators");
     mcpwm_comparator_config_t compare_config;
+    memset(&compare_config, 0, sizeof(compare_config));
     compare_config.flags.update_cmp_on_tez = true;
     for (int i = 0; i < 3; i++) {
       ESP_ERROR_CHECK(mcpwm_new_comparator(operators_[i], &compare_config, &comparators_[i]));
