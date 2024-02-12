@@ -83,7 +83,7 @@ public:
    */
   uint16_t get_version(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    uint16_t data = read_u8_from_register((uint8_t)Register::VERSION, ec);
+    uint16_t data = read_u18_from_register((uint8_t)Register::VERSION, ec);
     if (ec) {
       return 0;
     }
@@ -98,7 +98,7 @@ public:
    */
   uint8_t get_chip_id(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    uint16_t data = read_u8_from_register((uint8_t)Register::CHIPID, ec);
+    uint16_t data = read_u16_from_register((uint8_t)Register::CHIPID, ec);
     if (ec) {
       return 0;
     }
@@ -113,7 +113,7 @@ public:
    */
   float get_battery_voltage(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    uint16_t data = read_u8_from_register((uint8_t)Register::VCELL, ec);
+    uint16_t data = read_u16_from_register((uint8_t)Register::VCELL, ec);
     if (ec) {
       return 0;
     }
@@ -129,7 +129,7 @@ public:
    */
   float get_battery_percentage(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    uint16_t data = read_u8_from_register((uint8_t)Register::SOC, ec);
+    uint16_t data = read_u16_from_register((uint8_t)Register::SOC, ec);
     if (ec) {
       return 0;
     }
@@ -147,7 +147,7 @@ public:
    */
   float get_battery_charge_rate(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    int16_t data = read_u8_from_register((uint8_t)Register::CRATE, ec);
+    int16_t data = read_u16_from_register((uint8_t)Register::CRATE, ec);
     if (ec) {
       return 0;
     }
@@ -163,7 +163,7 @@ public:
    */
   AlertStatus get_alert_status(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    uint16_t data = read_u8_from_register((uint8_t)Register::STATUS, ec);
+    uint16_t data = read_u16_from_register((uint8_t)Register::STATUS, ec);
     if (ec) {
       return AlertStatus::SOC_CHANGE;
     }
