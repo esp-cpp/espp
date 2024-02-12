@@ -205,7 +205,7 @@ protected:
 #if !CONFIG_IDF_TARGET_ESP32
       if (output_format_ == ADC_DIGI_OUTPUT_FORMAT_TYPE2) {
         if (check_valid_data(p)) {
-          auto unit = p->type2.unit;
+          auto unit = (adc_unit_t)p->type2.unit;
           auto channel = (adc_channel_t)p->type2.channel;
           auto data = p->type2.data;
           auto id = get_id(unit, channel);
