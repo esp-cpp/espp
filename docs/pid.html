@@ -140,7 +140,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>PID APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7416906/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1a30ff7/docs/en/pid.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -162,7 +162,7 @@ have its gains change dynamically.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7416906/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1a30ff7/components/pid/include/pid.hpp">components/pid/include/pid.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -170,7 +170,7 @@ have its gains change dynamically.</p>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp3PidE">
 <span id="_CPPv3N4espp3PidE"></span><span id="_CPPv2N4espp3PidE"></span><span id="espp::Pid"></span><span class="target" id="classespp_1_1_pid"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Pid</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp3PidE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Simple PID (proportional, integral, derivative) controller class with integrator clamping, output clamping, and prevention of integrator windup during output saturation. This class is thread-safe, so you can update(), <a class="reference internal" href="#classespp_1_1_pid_1af0a2c66aa72fa8c7a1300b5856a05a39"><span class="std std-ref">clear()</span></a>, and <a class="reference internal" href="#classespp_1_1_pid_1a929a99fb790c2aee3666e6d92e6e9c9f"><span class="std std-ref">change_gains()</span></a> from multiple threads if needed. </p>
+<dd><p>Simple PID (proportional, integral, derivative) controller class with integrator clamping, output clamping, and prevention of integrator windup during output saturation. This class is thread-safe, so you can <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a>, <a class="reference internal" href="#classespp_1_1_pid_1af0a2c66aa72fa8c7a1300b5856a05a39"><span class="std std-ref">clear()</span></a>, and <a class="reference internal" href="#classespp_1_1_pid_1a929a99fb790c2aee3666e6d92e6e9c9f"><span class="std std-ref">change_gains()</span></a> from multiple threads if needed. </p>
 <section id="classespp_1_1_pid_1pid_ex1">
 <h4>Basic PID Example<a class="headerlink" href="#classespp_1_1_pid_1pid_ex1" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1_pid_1pid_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Pid</span><span class="w"> </span><span class="nf">pid</span><span class="p">({.</span><span class="n">kp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span>
@@ -311,7 +311,7 @@ have its gains change dynamically.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK4espp3Pid9get_errorEv">
 <span id="_CPPv3NK4espp3Pid9get_errorEv"></span><span id="_CPPv2NK4espp3Pid9get_errorEv"></span><span id="espp::Pid::get_errorC"></span><span class="target" id="classespp_1_1_pid_1a9dae443ab315752a3010c3bf85e2b9ac"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_error</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Pid9get_errorEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Get the current error (as of the last time update() or operator() were called) </p>
+<dd><p>Get the current error (as of the last time <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a> or operator() were called) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>Most recent error. </p>
@@ -322,7 +322,7 @@ have its gains change dynamically.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK4espp3Pid14get_integratorEv">
 <span id="_CPPv3NK4espp3Pid14get_integratorEv"></span><span id="_CPPv2NK4espp3Pid14get_integratorEv"></span><span id="espp::Pid::get_integratorC"></span><span class="target" id="classespp_1_1_pid_1ae414a3c31762c66f322f46546f9a0198"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_integrator</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp3Pid14get_integratorEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Get the current integrator (as of the last time update() or operator() were called) </p>
+<dd><p>Get the current integrator (as of the last time <a class="reference internal" href="#classespp_1_1_pid_1abb88914df0f7e22b53da9fb0985a30ff"><span class="std std-ref">update()</span></a> or operator() were called) </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>Most recent integrator value. </p>

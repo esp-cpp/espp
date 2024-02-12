@@ -141,7 +141,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>QwiicNES</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7416906/docs/en/qwiicnes.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/1a30ff7/docs/en/qwiicnes.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -157,7 +157,7 @@
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7416906/components/qwiicnes/include/qwiicnes.hpp">components/qwiicnes/include/qwiicnes.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/1a30ff7/components/qwiicnes/include/qwiicnes.hpp">components/qwiicnes/include/qwiicnes.hpp</a></p></li>
 </ul>
 </section>
 <section id="functions">
@@ -365,7 +365,7 @@ Potential matches:
 <span id="_CPPv3NK4espp8QwiicNes10is_pressedE6Button"></span><span id="_CPPv2NK4espp8QwiicNes10is_pressedE6Button"></span><span id="espp::QwiicNes::is_pressed__ButtonC"></span><span class="target" id="classespp_1_1_qwiic_nes_1afe49f9bbbd9dd5c794b46c4c2179bc23"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_pressed</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes6ButtonE" title="espp::QwiicNes::Button"><span class="n"><span class="pre">Button</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">button</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes10is_pressedE6Button" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Return true if the given button is pressed. </p>
 <p>
-This function uses the accumulated button states which are updated by the update() function. </p>
+This function uses the accumulated button states which are updated by the <a class="reference internal" href="#classespp_1_1_qwiic_nes_1ac9dde8708b9ac39ff4419065136999c4"><span class="std std-ref">update()</span></a> function. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>button</strong> – The button to check. </p>
@@ -381,7 +381,7 @@ This function uses the accumulated button states which are updated by the update
 <span id="_CPPv3NK4espp8QwiicNes16get_button_stateEv"></span><span id="_CPPv2NK4espp8QwiicNes16get_button_stateEv"></span><span id="espp::QwiicNes::get_button_stateC"></span><span class="target" id="classespp_1_1_qwiic_nes_1a59d4a6a6af1f20095f905e5e110dbc7f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes11ButtonStateE" title="espp::QwiicNes::ButtonState"><span class="n"><span class="pre">ButtonState</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_button_state</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes16get_button_stateEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Return the current state of the buttons. </p>
 <p>
-This function uses the accumulated button states which are updated by the update() function. </p>
+This function uses the accumulated button states which are updated by the <a class="reference internal" href="#classespp_1_1_qwiic_nes_1ac9dde8708b9ac39ff4419065136999c4"><span class="std std-ref">update()</span></a> function. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>The current state of the buttons.</p>
@@ -415,7 +415,7 @@ This function reads the current state of the buttons and updates the accumulated
 <span id="_CPPv3NK4espp8QwiicNes18read_current_stateERNSt10error_codeE"></span><span id="_CPPv2NK4espp8QwiicNes18read_current_stateERNSt10error_codeE"></span><span id="espp::QwiicNes::read_current_state__std::error_codeRC"></span><span class="target" id="classespp_1_1_qwiic_nes_1a0fc17dc5e4657c3c42385b84ead9b467"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_current_state</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">error_code</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ec</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp8QwiicNes18read_current_stateERNSt10error_codeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Read the current state of the buttons. </p>
 <p>
-This function will log an error if it fails to read the current state of the buttons. This function does not update the accumulated button states. To update the accumulated button states, call the update() function. The current state represents the buttons which are currently pressed. </p>
+This function will log an error if it fails to read the current state of the buttons. This function does not update the accumulated button states. To update the accumulated button states, call the <a class="reference internal" href="#classespp_1_1_qwiic_nes_1ac9dde8708b9ac39ff4419065136999c4"><span class="std std-ref">update()</span></a> function. The current state represents the buttons which are currently pressed. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>ec</strong> – The error code if the function fails. </p>
