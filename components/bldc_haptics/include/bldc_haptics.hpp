@@ -4,10 +4,10 @@
 #include <deque>
 #include <vector>
 
+#include "base_component.hpp"
 #include "bldc_motor.hpp"
 #include "detent_config.hpp"
 #include "haptic_config.hpp"
-#include "logger.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -93,7 +93,7 @@ concept MotorConcept = requires {
 /// \snippet bldc_haptics_example.cpp bldc_haptics_example_1
 /// \section bldc_haptics_ex2 Example 2: Playing a haptic click / buzz
 /// \snippet bldc_haptics_example.cpp bldc_haptics_example_2
-template <MotorConcept M> class BldcHaptics {
+template <MotorConcept M> class BldcHaptics : public BaseComponent {
 public:
   /// @brief Configuration for the haptic motor
   struct Config {
@@ -113,19 +113,19 @@ public:
   /// @brief Constructor for the haptic motor
   /// @param config Configuration for the haptic motor
   explicit BldcHaptics(const Config &config)
-      : detent_pid_({.kp = 0,             // will be set later (motor_task)
+      : BaseComponent("BldcHaptics", config.log_level)
+      , detent_pid_({.kp = 0,             // will be set later (motor_task)
                      .ki = 0,             // not configurable for now
                      .kd = 0,             // will be set later (update_detent_config)
                      .integrator_min = 0, // not configurable for now
                      .integrator_max = 0, // not configurable for now
                      .output_min = -1,    // go ahead and set some bounds (operates on current)
                      .output_max = 1})    // go ahead and set some bounds (operates on current)
-        ,
-        kp_factor_(config.kp_factor), kd_factor_min_(config.kd_factor_min),
-        kd_factor_max_(config.kd_factor_max), motor_(config.motor),
-        logger_({.tag = "BldcHaptics",
-                 .rate_limit = std::chrono::milliseconds(100),
-                 .level = config.log_level}) {
+      , kp_factor_(config.kp_factor)
+      , kd_factor_min_(config.kd_factor_min)
+      , kd_factor_max_(config.kd_factor_max)
+      , motor_(config.motor) {
+    logger_.set_rate_limit(std::chrono::milliseconds(100));
     logger_.info("Initializing haptic motor\n"
                  "\tkp_factor: {}\n"
                  "\tkd_factor_min: {}\n"
@@ -432,7 +432,5 @@ protected:
   std::reference_wrapper<M> motor_; ///< Pointer to the motor to use for haptics
 
   std::unique_ptr<Task> motor_task_; ///< Task which runs the haptic motor
-
-  Logger logger_; ///< Logger for the haptics
 };
 } // namespace espp

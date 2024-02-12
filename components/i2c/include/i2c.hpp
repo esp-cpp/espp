@@ -1,10 +1,13 @@
 #pragma once
 
 #include <mutex>
+#include <vector>
 
 #include <driver/i2c.h>
 
-#include "logger.hpp"
+#include "base_component.hpp"
+
+#include "i2c_format_helpers.hpp"
 
 namespace espp {
 /// @brief I2C driver
@@ -13,7 +16,7 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet i2c_example.cpp i2c example
-class I2c {
+class I2c : public espp::BaseComponent {
 public:
   /// Configuration for I2C
   struct Config {
@@ -30,14 +33,22 @@ public:
 
   /// Construct I2C driver
   /// \param config Configuration for I2C
-  explicit I2c(const Config &config)
-      : config_(config), logger_({.tag = "I2C", .level = config.log_level}) {
+  explicit I2c(const Config &config) : BaseComponent("I2C", config.log_level), config_(config) {
     if (config.auto_init) {
       std::error_code ec;
       init(ec);
       if (ec) {
         logger_.error("auto init failed");
       }
+    }
+  }
+
+  /// Destructor
+  ~I2c() {
+    std::error_code ec;
+    deinit(ec);
+    if (ec) {
+      logger_.error("deinit failed");
     }
   }
 
@@ -71,6 +82,8 @@ public:
       return;
     }
 
+    logger_.info("I2C initialized on port {}", config_.port);
+
     initialized_ = true;
   }
 
@@ -78,7 +91,8 @@ public:
   void deinit(std::error_code &ec) {
     if (!initialized_) {
       logger_.warn("not initialized");
-      ec = std::make_error_code(std::errc::protocol_error);
+      // dont make this an error
+      ec.clear();
       return;
     }
 
@@ -90,6 +104,8 @@ public:
       return;
     }
 
+    ec.clear();
+    logger_.info("I2C deinitialized on port {}", config_.port);
     initialized_ = false;
   }
 
@@ -98,12 +114,13 @@ public:
   /// \param data Data to write
   /// \param data_len Length of data to write
   /// \return True if successful
-  bool write(uint8_t dev_addr, uint8_t *data, size_t data_len) {
+  bool write(const uint8_t dev_addr, const uint8_t *data, const size_t data_len) {
     if (!initialized_) {
       logger_.error("not initialized");
       return false;
     }
 
+    logger_.debug("write {} bytes to address {:#02x}", data_len, dev_addr);
     std::lock_guard<std::mutex> lock(mutex_);
     auto err = i2c_master_write_to_device(config_.port, dev_addr, data, data_len,
                                           config_.timeout_ms / portTICK_PERIOD_MS);
@@ -115,6 +132,14 @@ public:
     return true;
   }
 
+  /// Write data to I2C device
+  /// \param dev_addr I2C device address
+  /// \param data Data to write
+  /// \return True if successful
+  bool write_vector(const uint8_t dev_addr, const std::vector<uint8_t> &data) {
+    return write(dev_addr, data.data(), data.size());
+  }
+
   /// Write to and read data from I2C device
   /// \param dev_addr I2C device address
   /// \param write_data Data to write
@@ -122,13 +147,15 @@ public:
   /// \param read_data Data to read
   /// \param read_size Length of data to read
   /// \return True if successful
-  bool write_read(uint8_t dev_addr, uint8_t *write_data, size_t write_size, uint8_t *read_data,
-                  size_t read_size) {
+  bool write_read(const uint8_t dev_addr, const uint8_t *write_data, const size_t write_size,
+                  uint8_t *read_data, size_t read_size) {
     if (!initialized_) {
       logger_.error("not initialized");
       return false;
     }
 
+    logger_.debug("write {} bytes and read {} bytes from address {:#02x}", write_size, read_size,
+                  dev_addr);
     std::lock_guard<std::mutex> lock(mutex_);
     auto err =
         i2c_master_write_read_device(config_.port, dev_addr, write_data, write_size, read_data,
@@ -141,18 +168,32 @@ public:
     return true;
   }
 
+  /// Write data to and read data from I2C device
+  /// \param dev_addr I2C device address
+  /// \param write_data Data to write
+  /// \param read_data Data to read
+  /// \return True if successful
+  bool write_read_vector(const uint8_t dev_addr, const std::vector<uint8_t> &write_data,
+                         std::vector<uint8_t> &read_data) {
+    return write_read(dev_addr, write_data.data(), write_data.size(), read_data.data(),
+                      read_data.size());
+  }
+
   /// Read data from I2C device at register
   /// \param dev_addr I2C device address
   /// \param reg_addr Register address
   /// \param data Data to read
   /// \param data_len Length of data to read
   /// \return True if successful
-  bool read_at_register(uint8_t dev_addr, uint8_t reg_addr, uint8_t *data, size_t data_len) {
+  bool read_at_register(const uint8_t dev_addr, const uint8_t reg_addr, uint8_t *data,
+                        size_t data_len) {
     if (!initialized_) {
       logger_.error("not initialized");
       return false;
     }
 
+    logger_.debug("read {} bytes from address {:#02x} at register {}", data_len, dev_addr,
+                  reg_addr);
     std::lock_guard<std::mutex> lock(mutex_);
     auto err = i2c_master_write_read_device(config_.port, dev_addr, &reg_addr, 1, data, data_len,
                                             config_.timeout_ms / portTICK_PERIOD_MS);
@@ -165,17 +206,28 @@ public:
     return true;
   }
 
+  /// Read data from I2C device at register
+  /// \param dev_addr I2C device address
+  /// \param reg_addr Register address
+  /// \param data Data to read
+  /// \return True if successful
+  bool read_at_register_vector(const uint8_t dev_addr, const uint8_t reg_addr,
+                               std::vector<uint8_t> &data) {
+    return read_at_register(dev_addr, reg_addr, data.data(), data.size());
+  }
+
   /// Read data from I2C device
   /// \param dev_addr I2C device address
   /// \param data Data to read
   /// \param data_len Length of data to read
   /// \return True if successful
-  bool read(uint8_t dev_addr, uint8_t *data, size_t data_len) {
+  bool read(const uint8_t dev_addr, uint8_t *data, size_t data_len) {
     if (!initialized_) {
       logger_.error("not initialized");
       return false;
     }
 
+    logger_.debug("read {} bytes from address {:#02x}", data_len, dev_addr);
     std::lock_guard<std::mutex> lock(mutex_);
     auto err = i2c_master_read_from_device(config_.port, dev_addr, data, data_len,
                                            config_.timeout_ms / portTICK_PERIOD_MS);
@@ -187,6 +239,14 @@ public:
     return true;
   }
 
+  /// Read data from I2C device
+  /// \param dev_addr I2C device address
+  /// \param data Data to read
+  /// \return True if successful
+  bool read_vector(const uint8_t dev_addr, std::vector<uint8_t> &data) {
+    return read(dev_addr, data.data(), data.size());
+  }
+
   /// Probe I2C device
   /// \param dev_addr I2C device address
   /// \return True if successful
@@ -194,8 +254,9 @@ public:
   /// This function sends a start condition, writes the device address, and then
   /// sends a stop condition. If the device acknowledges the address, then it is
   /// present on the bus.
-  bool probe_device(uint8_t dev_addr) {
+  bool probe_device(const uint8_t dev_addr) {
     bool success = false;
+    logger_.debug("probe device {:#02x}", dev_addr);
     std::lock_guard<std::mutex> lock(mutex_);
     auto cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
@@ -212,6 +273,5 @@ protected:
   Config config_;
   bool initialized_ = false;
   std::mutex mutex_;
-  espp::Logger logger_;
 };
 } // namespace espp

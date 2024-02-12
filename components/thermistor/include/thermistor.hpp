@@ -2,8 +2,8 @@
 
 #include <functional>
 
+#include "base_component.hpp"
 #include "fast_math.hpp"
-#include "logger.hpp"
 
 namespace espp {
 /// @brief Thermistor class
@@ -19,7 +19,7 @@ namespace espp {
 ///
 /// \section thermistor_ex2 ADC Example
 /// \snippet thermistor_example.cpp thermistor adc example
-class Thermistor {
+class Thermistor : public BaseComponent {
 public:
   /// @brief Function type for reading voltage
   /// @return Voltage in millivolts
@@ -46,10 +46,13 @@ public:
   /// @brief Constructor
   /// @param config Configuration struct
   explicit Thermistor(const Config &config)
-      : divider_config_(config.divider_config), b_(config.beta),
-        r0_(config.nominal_resistance_ohms), r2_(config.fixed_resistance_ohms),
-        supply_mv_(config.supply_mv), read_mv_(config.read_mv),
-        logger_({.tag = "Thermistor", .level = config.log_level}) {
+      : BaseComponent("Thermistor", config.log_level)
+      , divider_config_(config.divider_config)
+      , b_(config.beta)
+      , r0_(config.nominal_resistance_ohms)
+      , r2_(config.fixed_resistance_ohms)
+      , supply_mv_(config.supply_mv)
+      , read_mv_(config.read_mv) {
     if (b_ == 0.0f) {
       logger_.error("b_ is 0");
     } else {
@@ -138,6 +141,5 @@ protected:
   float r2_;                    ///< Resistance of the fixed resistor in the voltage divider
   float supply_mv_;             ///< Supply voltage of the voltage divider (in mv)
   read_mv_fn read_mv_{nullptr}; ///< Function for reading voltage (in mv)
-  Logger logger_;
 };
 } // namespace espp

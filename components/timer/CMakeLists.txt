@@ -1,3 +1,3 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES logger task)
+  REQUIRES base_component task)

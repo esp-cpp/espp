@@ -6,14 +6,14 @@
 #include <string>
 #include <vector>
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
 #include "udp_socket.hpp"
 
 namespace espp {
 /// \brief A class which implements a simple FTP client.
-class FtpClient {
+class FtpClient : public BaseComponent {
 public:
   /// \brief A struct which represents an FTP response.
   struct Response {
@@ -38,7 +38,8 @@ public:
   };
 
   /// \brief Constructs a new FtpClient object.
-  FtpClient() : logger_({.tag = "FtpClient", .level = Logger::Verbosity::WARN}) {}
+  FtpClient()
+      : BaseComponent("FtpClient") {}
 
   /// \brief Connects to the FTP server.
   /// \param host The hostname or IP address of the FTP server.
@@ -291,6 +292,5 @@ protected:
   std::string response_;
   std::string message_;
   std::unique_ptr<Task> task_;
-  Logger logger_;
 };
 } // namespace espp

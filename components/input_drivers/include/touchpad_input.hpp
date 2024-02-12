@@ -6,14 +6,14 @@
 #include "lvgl.h"
 #include "sdkconfig.h"
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
  *  @brief Light wrapper around LVGL input device driver, specifically
  *         designed for touchpads with optional home buttons.
  */
-class TouchpadInput {
+class TouchpadInput : public BaseComponent {
 public:
   /**
    * @brief Function prototype for getting the latest input data from the
@@ -48,8 +48,11 @@ public:
    * @param config Configuration structure for the TouchpadInput.
    */
   explicit TouchpadInput(const Config &config)
-      : touchpad_read_(config.touchpad_read), swap_xy_(config.swap_xy), invert_x_(config.invert_x),
-        invert_y_(config.invert_y), logger_({.tag = "TouchpadInput", .level = config.log_level}) {
+      : BaseComponent("TouchpadInput", config.log_level)
+      , touchpad_read_(config.touchpad_read)
+      , swap_xy_(config.swap_xy)
+      , invert_x_(config.invert_x)
+      , invert_y_(config.invert_y) {
     init();
   }
 
@@ -155,6 +158,5 @@ protected:
   lv_indev_t *indev_touchpad_;
   lv_indev_drv_t indev_drv_btn_;
   lv_indev_t *indev_button_;
-  Logger logger_;
 };
 } // namespace espp

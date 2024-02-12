@@ -16,15 +16,15 @@
 
 #include <math.h>
 
+#include "base_component.hpp"
 #include "format.hpp"
-#include "logger.hpp"
 
 namespace espp {
 /**
  *   @brief Class for a generic socket with some helper functions for
  *          configuring the socket.
  */
-class Socket {
+class Socket : public BaseComponent {
 public:
   enum class Type : int {
     RAW = SOCK_RAW,      /**< Only IP headers, no TCP or UDP headers as well. */
@@ -156,7 +156,8 @@ public:
    * @param logger_config configuration for the logger associated with the
    *        socket.
    */
-  explicit Socket(int socket_fd, const Logger::Config &logger_config) : logger_(logger_config) {
+  explicit Socket(int socket_fd, const Logger::Config &logger_config)
+      : BaseComponent(logger_config) {
     socket_ = socket_fd;
   }
 
@@ -166,7 +167,8 @@ public:
    * @param logger_config configuration for the logger associated with the
    *        socket.
    */
-  explicit Socket(Type type, const Logger::Config &logger_config) : logger_(logger_config) {
+  explicit Socket(Type type, const Logger::Config &logger_config)
+      : BaseComponent(logger_config) {
     init(type);
   }
 
@@ -416,7 +418,6 @@ protected:
   static constexpr int ip_protocol_{IPPROTO_IP};
 
   int socket_;
-  Logger logger_;
 };
 } // namespace espp
 

@@ -9,7 +9,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
@@ -21,7 +21,7 @@ namespace espp {
  * \section led_ex2 Breathing LED Example
  * \snippet led_example.cpp breathing led example
  */
-class Led {
+class Led : public BaseComponent {
 public:
   /**
    *  Represents one LED channel.
@@ -61,9 +61,10 @@ public:
    * @param config The configuration structure for the LEDC subsystem.
    */
   explicit Led(const Config &config)
-      : duty_resolution_(config.duty_resolution),
-        max_raw_duty_((uint32_t)(std::pow(2, (int)duty_resolution_) - 1)),
-        channels_(config.channels), logger_({.tag = "Led", .level = config.log_level}) {
+      : BaseComponent("Led", config.log_level)
+      , duty_resolution_(config.duty_resolution)
+      , max_raw_duty_((uint32_t)(std::pow(2, (int)duty_resolution_) - 1))
+      , channels_(config.channels) {
 
     logger_.info("Initializing timer");
     ledc_timer_config_t ledc_timer;
@@ -242,6 +243,5 @@ protected:
   uint32_t max_raw_duty_;
   std::vector<SemaphoreHandle_t> fade_semaphores_;
   std::vector<ChannelConfig> channels_;
-  Logger logger_;
 };
 } // namespace espp

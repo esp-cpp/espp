@@ -2,8 +2,8 @@
 
 #include <atomic>
 
+#include "base_component.hpp"
 #include "fast_math.hpp"
-#include "logger.hpp"
 #include "pid.hpp"
 #include "task.hpp"
 
@@ -65,7 +65,7 @@ struct DummyCurrentSense {
  * @snippet bldc_motor_example.cpp bldc_motor example
  */
 template <DriverConcept D, SensorConcept S, CurrentSensorConcept CS = DummyCurrentSense>
-class BldcMotor {
+class BldcMotor : public BaseComponent {
 public:
   /**
    * @brief Filter the raw input sample and return it.
@@ -130,17 +130,27 @@ public:
    *        necessary sensor calibration.
    */
   explicit BldcMotor(const Config &config)
-      : num_pole_pairs_(config.num_pole_pairs), phase_resistance_(config.phase_resistance),
-        phase_inductance_(config.phase_inductance), kv_rating_(config.kv_rating * _SQRT2),
-        current_limit_(config.current_limit), velocity_limit_(config.velocity_limit),
-        sensor_direction_(config.sensor_direction), foc_type_(config.foc_type),
-        torque_control_type_(config.torque_controller), driver_(config.driver),
-        sensor_(config.sensor), current_sense_(config.current_sense),
-        pid_current_q_(config.current_pid_config), pid_current_d_(config.current_pid_config),
-        pid_velocity_(config.current_pid_config), pid_angle_(config.current_pid_config),
-        q_current_filter_(config.q_current_filter), d_current_filter_(config.d_current_filter),
-        velocity_filter_(config.velocity_filter), angle_filter_(config.angle_filter),
-        logger_({.tag = "BldcMotor", .level = config.log_level}) {
+      : BaseComponent("BldcMotor", config.log_level)
+      , num_pole_pairs_(config.num_pole_pairs)
+      , phase_resistance_(config.phase_resistance)
+      , phase_inductance_(config.phase_inductance)
+      , kv_rating_(config.kv_rating * _SQRT2)
+      , current_limit_(config.current_limit)
+      , velocity_limit_(config.velocity_limit)
+      , sensor_direction_(config.sensor_direction)
+      , foc_type_(config.foc_type)
+      , torque_control_type_(config.torque_controller)
+      , driver_(config.driver)
+      , sensor_(config.sensor)
+      , current_sense_(config.current_sense)
+      , pid_current_q_(config.current_pid_config)
+      , pid_current_d_(config.current_pid_config)
+      , pid_velocity_(config.current_pid_config)
+      , pid_angle_(config.current_pid_config)
+      , q_current_filter_(config.q_current_filter)
+      , d_current_filter_(config.d_current_filter)
+      , velocity_filter_(config.velocity_filter)
+      , angle_filter_(config.angle_filter) {
     // initialize the voltage limit
     voltage_limit_ = driver_->get_voltage_limit();
     voltage_sensor_align_ = voltage_limit_ / 4.0f;
@@ -948,7 +958,6 @@ protected:
   filter_fn angle_filter_{nullptr};
   std::atomic<bool> enabled_{false};
   Status status_{Status::UNINITIALIZED};
-  Logger logger_;
 };
 
 } // namespace espp

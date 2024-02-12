@@ -6,14 +6,14 @@
 #include "lvgl.h"
 #include "sdkconfig.h"
 
-#include "logger.hpp"
+#include "base_component.hpp"
 
 namespace espp {
 /**
  *  @brief Light wrapper around LVGL input device driver, specifically
  *         designed for keypads.
  */
-class KeypadInput {
+class KeypadInput : public BaseComponent {
 public:
   typedef std::function<void(bool *up, bool *down, bool *left, bool *right, bool *enter,
                              bool *escape)>
@@ -35,7 +35,8 @@ public:
    * @param config Configuration structure for the KeypadInput.
    */
   explicit KeypadInput(const Config &config)
-      : read_(config.read), logger_({.tag = "KeypadInput", .level = config.log_level}) {
+      : BaseComponent("KeypadInput", config.log_level)
+      , read_(config.read) {
     init();
   }
 
@@ -104,6 +105,5 @@ protected:
   read_fn read_;
   lv_indev_drv_t indev_drv_keypad_;
   lv_indev_t *indev_keypad_;
-  Logger logger_;
 };
 } // namespace espp

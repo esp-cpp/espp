@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
+#include "base_component.hpp"
 #include "color.hpp"
-#include "logger.hpp"
 
 namespace espp {
 /// \brief Class to control LED strips
@@ -31,7 +31,7 @@ namespace espp {
 ///
 /// \section led_strip_ex1 Example 1: APA102 via SPI
 /// \snippet led_strip_example.cpp led strip ex1
-class LedStrip {
+class LedStrip : public BaseComponent {
 public:
   /// \brief Function to write data to the strip
   /// \details This function is used to write data to the strip. It
@@ -75,9 +75,11 @@ public:
   /// \brief Constructor
   /// \param config Configuration for the LedStrip class
   explicit LedStrip(const Config &config)
-      : num_leds_(config.num_leds), send_brightness_(config.send_brightness),
-        byte_order_(config.byte_order), write_(config.write),
-        logger_({.tag = "LedStrip", .level = config.log_level}) {
+      : BaseComponent("LedStrip", config.log_level)
+      , num_leds_(config.num_leds)
+      , send_brightness_(config.send_brightness)
+      , byte_order_(config.byte_order)
+      , write_(config.write) {
     // set the color data size
     pixel_size_ = send_brightness_ ? 4 : 3;
     data_.resize(num_leds_ * pixel_size_ + config.start_frame.size() + config.end_frame.size());
@@ -254,6 +256,5 @@ protected:
   size_t end_offset_{0};
   std::vector<uint8_t> data_;
   write_fn write_;
-  Logger logger_;
 };
 } // namespace espp

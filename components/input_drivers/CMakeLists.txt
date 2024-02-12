@@ -1,3 +1,3 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES logger )
+  REQUIRES base_component )

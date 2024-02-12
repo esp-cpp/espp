@@ -84,6 +84,7 @@ INPUT += $(PROJECT_PATH)/components/ads1x15/include/ads1x15.hpp
 INPUT += $(PROJECT_PATH)/components/ads7138/include/ads7138.hpp
 INPUT += $(PROJECT_PATH)/components/as5600/include/as5600.hpp
 INPUT += $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp
+INPUT += $(PROJECT_PATH)/components/base_component/include/base_component.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_driver/include/bldc_driver.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/bldc_haptics.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/detent_config.hpp

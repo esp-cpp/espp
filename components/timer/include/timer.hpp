@@ -4,7 +4,7 @@
 #include <functional>
 #include <string>
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -45,7 +45,7 @@ namespace espp {
 /// \snippet timer_example.cpp timer cancel itself example
 /// \section timer_ex5 Oneshot Timer Cancel Itself Then Start again with Delay Example
 /// \snippet timer_example.cpp timer oneshot restart example
-class Timer {
+class Timer : public BaseComponent {
 public:
   typedef std::function<bool()>
       callback_fn; ///< The callback function type. Return true to cancel the timer.
@@ -69,11 +69,12 @@ public:
   /// @brief Construct a new Timer object
   /// @param config The configuration for the timer.
   explicit Timer(const Config &config)
-      : period_(std::chrono::duration_cast<std::chrono::microseconds>(config.period)),
-        delay_(std::chrono::duration_cast<std::chrono::microseconds>(config.delay)),
-        callback_(config.callback), logger_({.tag = config.name,
-                                             .rate_limit = std::chrono::milliseconds(100),
-                                             .level = config.log_level}) {
+      : BaseComponent(config.name, config.log_level)
+      , period_(std::chrono::duration_cast<std::chrono::microseconds>(config.period))
+      , delay_(std::chrono::duration_cast<std::chrono::microseconds>(config.delay))
+      , callback_(config.callback) {
+    // set the logger rate limit
+    logger_.set_rate_limit(std::chrono::milliseconds(100));
     // make the task
     task_ = espp::Task::make_unique({
         .name = std::string(config.name) + "_task",
@@ -211,6 +212,5 @@ protected:
   float delay_float;
   callback_fn callback_;             ///< The callback function to call when the timer expires.
   std::unique_ptr<espp::Task> task_; ///< The task that runs the timer.
-  espp::Logger logger_;              ///< The logger for the timer.
 };
 } // namespace espp

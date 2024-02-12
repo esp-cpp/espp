@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "range_mapper.hpp"
 #include "vector2d.hpp"
 
@@ -13,7 +13,7 @@ namespace espp {
  * \section joystick_ex1 ADC Joystick Example
  * \snippet joystick_example.cpp adc joystick example
  */
-class Joystick {
+class Joystick : public BaseComponent {
 public:
   /**
    * @brief Types of deadzones the joystick can have.
@@ -61,9 +61,12 @@ public:
    *  @param config Config structure with initialization information.
    */
   explicit Joystick(const Config &config)
-      : x_mapper_(config.x_calibration), y_mapper_(config.y_calibration),
-        deadzone_(config.deadzone), deadzone_radius_(config.deadzone_radius),
-        get_values_(config.get_values), logger_({.tag = "Joystick", .level = config.log_level}) {}
+      : BaseComponent("Joystick", config.log_level)
+      , x_mapper_(config.x_calibration)
+      , y_mapper_(config.y_calibration)
+      , deadzone_(config.deadzone)
+      , deadzone_radius_(config.deadzone_radius)
+      , get_values_(config.get_values) {}
 
   /**
    * @brief Sets the deadzone type and radius.
@@ -164,7 +167,6 @@ protected:
   Deadzone deadzone_;
   float deadzone_radius_;
   get_values_fn get_values_;
-  Logger logger_;
 };
 } // namespace espp
 

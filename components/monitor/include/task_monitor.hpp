@@ -4,7 +4,7 @@
 
 #include "sdkconfig.h"
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 
 #include "esp_freertos_hooks.h"
@@ -34,7 +34,7 @@ namespace espp {
  * \section task_monitor_ex2 get_latest_info() Example
  * \snippet monitor_example.cpp get_latest_info example
  */
-class TaskMonitor {
+class TaskMonitor : public BaseComponent {
 public:
   struct Config {
     std::chrono::duration<float> period; /**< Period (s) the TaskMonitor::task_callback runs at. */
@@ -43,7 +43,8 @@ public:
   };
 
   explicit TaskMonitor(const Config &config)
-      : period_(config.period), logger_({.tag = "TaskMonitor"}) {
+      : BaseComponent("TaskMonitor")
+      , period_(config.period) {
 #if CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS
     using namespace std::placeholders;
     task_ = Task::make_unique({.name = "TaskMonitor Task",
@@ -164,7 +165,6 @@ protected:
   }
 
   std::chrono::duration<float> period_;
-  Logger logger_;
   std::unique_ptr<Task> task_;
 };
 } // namespace espp

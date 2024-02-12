@@ -7,8 +7,8 @@
 #include "driver/dedic_gpio.h"
 #include "driver/gpio.h"
 
+#include "base_component.hpp"
 #include "joystick.hpp"
-#include "logger.hpp"
 
 namespace espp {
 /**
@@ -31,7 +31,7 @@ namespace espp {
  * \section controller_ex3 I2C Analog Controller Example
  * \snippet controller_example.cpp i2c analog controller example
  */
-class Controller {
+class Controller : public BaseComponent {
 public:
   /**
    * @brief The buttons that the controller supports.
@@ -137,7 +137,7 @@ public:
    * @brief Create a Digital controller.
    */
   explicit Controller(const DigitalConfig &config)
-      : logger_({.tag = "Digital Controller", .level = config.log_level}) {
+      : BaseComponent("Digital Controller", config.log_level) {
     gpio_.assign((int)Button::LAST_UNUSED, -1);
     input_state_.assign((int)Button::LAST_UNUSED, false);
     gpio_[(int)Button::A] = config.gpio_a;
@@ -157,8 +157,8 @@ public:
    * @brief Create an analog joystick controller.
    */
   explicit Controller(const AnalogJoystickConfig &config)
-      : joystick_(std::make_unique<espp::Joystick>(config.joystick_config)),
-        logger_({.tag = "Analog Joystick Controller", .level = config.log_level}) {
+      : BaseComponent("Analog Joystick Controller", config.log_level)
+      , joystick_(std::make_unique<espp::Joystick>(config.joystick_config)) {
     gpio_.assign((int)Button::LAST_UNUSED, -1);
     input_state_.assign((int)Button::LAST_UNUSED, false);
     gpio_[(int)Button::A] = config.gpio_a;
@@ -175,7 +175,7 @@ public:
    * @brief Create a dual d-pad + analog joystick controller.
    */
   explicit Controller(const DualConfig &config)
-      : logger_({.tag = "Dual Digital Controller", .level = config.log_level}) {
+      : BaseComponent("Dual Digital Controller", config.log_level) {
     gpio_.assign((int)Button::LAST_UNUSED, -1);
     input_state_.assign((int)Button::LAST_UNUSED, false);
     gpio_[(int)Button::A] = config.gpio_a;
@@ -322,6 +322,5 @@ protected:
   std::vector<bool> input_state_;
   dedic_gpio_bundle_handle_t gpio_bundle_{NULL};
   std::unique_ptr<espp::Joystick> joystick_;
-  espp::Logger logger_;
 };
 } // namespace espp

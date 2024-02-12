@@ -15,7 +15,7 @@
 #include <random>
 #endif
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
 
@@ -23,7 +23,7 @@
 
 namespace espp {
 /// \brief A class that implements a FTP server.
-class FtpServer {
+class FtpServer : public BaseComponent {
 public:
   /// \brief A class that implements a FTP server.
   /// \note The IP Address is not currently used to select the right
@@ -33,8 +33,11 @@ public:
   /// \param port The port to listen on.
   /// \param root The root directory of the FTP server.
   FtpServer(std::string_view ip_address, uint16_t port, const std::filesystem::path &root)
-      : ip_address_(ip_address), port_(port), server_({.log_level = Logger::Verbosity::WARN}),
-        root_(root), logger_({.tag = "FtpServer", .level = Logger::Verbosity::WARN}) {}
+      : BaseComponent("FtpServer")
+      , ip_address_(ip_address)
+      , port_(port)
+      , server_({.log_level = Logger::Verbosity::WARN})
+      , root_(root) {}
 
   /// \brief Destroy the FTP server.
   ~FtpServer() { stop(); }
@@ -154,7 +157,5 @@ protected:
 
   std::mutex clients_mutex_;
   std::unordered_map<int, std::unique_ptr<FtpClientSession>> clients_;
-
-  Logger logger_;
 };
 } // namespace espp

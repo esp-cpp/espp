@@ -11,7 +11,7 @@
 #include <random>
 #endif
 
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
 #include "udp_socket.hpp"
@@ -32,7 +32,7 @@ namespace espp {
 ///
 /// \section RtspServer example
 /// \snippet rtsp_example.cpp rtsp_server_example
-class RtspServer {
+class RtspServer : public BaseComponent {
 public:
   /// @brief Configuration for the RTSP server
   struct Config {
@@ -50,10 +50,12 @@ public:
   /// @brief Construct an RTSP server
   /// @param config The configuration for the RTSP server
   explicit RtspServer(const Config &config)
-      : server_address_(config.server_address), port_(config.port), path_(config.path),
-        rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN}),
-        max_data_size_(config.max_data_size),
-        logger_({.tag = "RTSP Server", .level = config.log_level}) {
+      : BaseComponent("RTSP Server", config.log_level)
+      , server_address_(config.server_address)
+      , port_(config.port)
+      , path_(config.path)
+      , rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN})
+      , max_data_size_(config.max_data_size) {
     // generate a random ssrc
 #if defined(ESP_PLATFORM)
     ssrc_ = esp_random();
@@ -327,7 +329,6 @@ protected:
   std::mutex session_mutex_;
   std::unordered_map<int, std::unique_ptr<RtspSession>> sessions_;
 
-  Logger logger_;
   std::unique_ptr<Task> accept_task_;
   std::unique_ptr<Task> session_task_;
 };

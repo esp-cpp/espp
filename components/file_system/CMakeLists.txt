@@ -1,3 +1,3 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES logger esp_littlefs spi_flash)
+  REQUIRES base_component esp_littlefs spi_flash)

@@ -10,7 +10,7 @@
 #include "esp_adc/adc_continuous.h"
 
 #include "adc_types.hpp"
-#include "logger.hpp"
+#include "base_component.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -27,7 +27,7 @@ namespace espp {
  * \section adc_continuous_ex1 Continuous ADC Example
  * \snippet adc_example.cpp continuous adc example
  */
-class ContinuousAdc {
+class ContinuousAdc : public espp::BaseComponent {
 public:
   /**
    *  @brief Configure the sample rate (globally applied to each channel),
@@ -50,12 +50,14 @@ public:
    * @param config Config used to initialize the reader.
    */
   explicit ContinuousAdc(const Config &config)
-      : sample_rate_hz_(config.sample_rate_hz), window_size_bytes_(config.window_size_bytes),
-        num_channels_(config.channels.size()), conv_mode_(config.convert_mode),
-        result_data_(window_size_bytes_, 0xcc),
-        logger_({.tag = "Continuous Adc",
-                 .rate_limit = std::chrono::milliseconds(100),
-                 .level = config.log_level}) {
+      : BaseComponent("ContinuousAdc", config.log_level)
+      , sample_rate_hz_(config.sample_rate_hz)
+      , window_size_bytes_(config.window_size_bytes)
+      , num_channels_(config.channels.size())
+      , conv_mode_(config.convert_mode)
+      , result_data_(window_size_bytes_, 0xcc) {
+    // set the rate limit for the logger
+    logger_.set_rate_limit(std::chrono::milliseconds(100));
     // initialize the adc continuous subsystem
     init(config.channels);
     // and start the task
@@ -203,7 +205,7 @@ protected:
 #if !CONFIG_IDF_TARGET_ESP32
       if (output_format_ == ADC_DIGI_OUTPUT_FORMAT_TYPE2) {
         if (check_valid_data(p)) {
-          auto unit = p->type2.unit;
+          auto unit = (adc_unit_t)p->type2.unit;
           auto channel = (adc_channel_t)p->type2.channel;
           auto data = p->type2.data;
           auto id = get_id(unit, channel);
@@ -398,7 +400,6 @@ protected:
   adc_digi_convert_mode_t conv_mode_;
   adc_digi_output_format_t output_format_;
   std::vector<uint8_t> result_data_;
-  Logger logger_;
   std::unique_ptr<Task> task_;
   TaskHandle_t task_handle_{NULL};
   std::mutex data_mutex_;
