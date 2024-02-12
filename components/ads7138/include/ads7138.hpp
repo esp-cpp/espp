@@ -25,7 +25,7 @@ namespace espp {
  * @section ads7138_ex1 ADS7138 Example
  * @snippet ads7138_example.cpp ads7138 example
  */
-class Ads7138 : public BasePeripheral {
+class Ads7138 : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS =
       (0x10); ///< Default I2C address of the device (when both R1 and R2 are DNP) (see data sheet

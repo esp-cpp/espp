@@ -16,7 +16,7 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet t_keyboard_example.cpp tkeyboard example
-class TKeyboard : public BasePeripheral {
+class TKeyboard : public BasePeripheral<> {
 public:
   /// The default address of the keyboard.
   static constexpr uint8_t DEFAULT_ADDRESS = 0x55;

@@ -23,7 +23,7 @@ namespace espp {
  * \section st25dv_ex1 St25dv Example
  * \snippet st25dv_example.cpp st25dv example
  */
-class St25dv : public BasePeripheral {
+class St25dv : public BasePeripheral<> {
 public:
   // NOTE: when the datasheet mentions E2 device select, they are talking
   // about Bit 4 of the address which selects between the data (user memory,

@@ -25,7 +25,7 @@ namespace espp {
  * \section tla2528_ex1 TLA2528 Example
  * \snippet tla2528_example.cpp tla2528 example
  */
-class Tla2528 : public BasePeripheral {
+class Tla2528 : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS =
       (0x10); ///< Default I2C address of the device (when both R1 and R2 are DNP) (see data sheet

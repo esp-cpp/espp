@@ -26,7 +26,7 @@ namespace espp {
  * \section mt6701_ex1 Mt6701 Example
  * \snippet mt6701_example.cpp mt6701 example
  */
-class Mt6701 : public BasePeripheral {
+class Mt6701 : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = (0b0000110); ///< I2C address of the MT6701
 

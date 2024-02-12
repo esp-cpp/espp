@@ -9,7 +9,7 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet tt21100_example.cpp tt21100 example
-class Tt21100 : public BasePeripheral {
+class Tt21100 : public BasePeripheral<> {
 public:
   /// @brief The default i2c address
   static constexpr uint8_t DEFAULT_ADDRESS = (0x24);

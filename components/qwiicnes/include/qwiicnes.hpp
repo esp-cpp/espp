@@ -13,7 +13,7 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet qwiicnes_example.cpp qwiicnes example
-class QwiicNes : public BasePeripheral {
+class QwiicNes : public BasePeripheral<> {
 public:
   /// @brief The default I2C address of the device.
   static constexpr uint8_t DEFAULT_ADDRESS = (0x54);

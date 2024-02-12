@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -16,6 +17,7 @@ namespace espp {
 ///
 /// The peripheral is protected by a mutex to ensure that only one
 /// operation can be performed at a time.
+template <std::integral RegisterAddressType = std::uint8_t>
 class BasePeripheral : public BaseComponent {
 public:
   /// Function to probe the peripheral
@@ -43,7 +45,7 @@ public:
   /// \param data The buffer to read into
   /// \param length The length of the buffer
   /// \return True if the read was successful
-  typedef std::function<bool(uint8_t, uint8_t, uint8_t *, size_t)> read_register_fn;
+  typedef std::function<bool(uint8_t, RegisterAddressType, uint8_t *, size_t)> read_register_fn;
 
   /// Function to write then read data from the peripheral
   /// \param address The address of the peripheral to write to
@@ -227,11 +229,18 @@ protected:
   /// \param reg_addr The address of the register to write to
   /// \param data The data to write
   /// \param ec The error code to set if there is an error
-  void write_u8_to_register(uint8_t reg_addr, uint8_t data, std::error_code &ec) {
+  void write_u8_to_register(RegisterAddressType reg_addr, uint8_t data, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
-      uint8_t buffer[2] = {reg_addr, data};
-      if (!base_config_.write(base_config_.address, buffer, 2)) {
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      uint8_t buffer[reg_addr_size + 1];
+      for (size_t i = 0; i < reg_addr_size; i++) {
+        buffer[i] = (reg_addr >> (i * 8)) & 0xff;
+      }
+      buffer[reg_addr_size] = data;
+      if (!base_config_.write(base_config_.address, buffer, reg_addr_size + 1)) {
         ec = std::make_error_code(std::errc::io_error);
       } else {
         ec.clear();
@@ -245,11 +254,19 @@ protected:
   /// \param reg_addr The address of the register to write to
   /// \param data The data to write
   /// \param ec The error code to set if there is an error
-  void write_u16_to_register(uint8_t reg_addr, uint16_t data, std::error_code &ec) {
+  void write_u16_to_register(RegisterAddressType reg_addr, uint16_t data, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
-      uint8_t buffer[3] = {reg_addr, uint8_t((data >> 8) & 0xff), uint8_t(data & 0xff)};
-      if (!base_config_.write(base_config_.address, buffer, 3)) {
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      uint8_t buffer[reg_addr_size + 2];
+      for (size_t i = 0; i < reg_addr_size; i++) {
+        buffer[i] = (reg_addr >> (i * 8)) & 0xff;
+      }
+      buffer[reg_addr_size] = (data >> 8) & 0xff;
+      buffer[reg_addr_size + 1] = data & 0xff;
+      if (!base_config_.write(base_config_.address, buffer, reg_addr_size + 2)) {
         ec = std::make_error_code(std::errc::io_error);
       } else {
         ec.clear();
@@ -264,14 +281,19 @@ protected:
   /// \param data The data to write
   /// \param length The length of the data to write
   /// \param ec The error code to set if there is an error
-  void write_many_to_register(uint8_t reg_addr, const uint8_t *data, size_t length,
+  void write_many_to_register(RegisterAddressType reg_addr, const uint8_t *data, size_t length,
                               std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
-      uint8_t buffer[length + 1];
-      buffer[0] = reg_addr;
-      std::copy(data, data + length, buffer + 1);
-      if (!base_config_.write(base_config_.address, buffer, length + 1)) {
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      uint8_t buffer[length + reg_addr_size];
+      for (size_t i = 0; i < reg_addr_size; i++) {
+        buffer[i] = (reg_addr >> (i * 8)) & 0xff;
+      }
+      std::copy(data, data + length, buffer + reg_addr_size);
+      if (!base_config_.write(base_config_.address, buffer, length + reg_addr_size)) {
         ec = std::make_error_code(std::errc::io_error);
       } else {
         ec.clear();

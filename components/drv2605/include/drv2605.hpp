@@ -15,7 +15,7 @@ namespace espp {
  * \section drv2605_ex1 DRV2605 Example
  * \snippet drv2605_example.cpp drv2605 example
  */
-class Drv2605 : public BasePeripheral {
+class Drv2605 : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = (0x5A);
 

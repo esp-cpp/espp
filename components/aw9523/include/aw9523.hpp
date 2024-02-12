@@ -14,7 +14,7 @@ namespace espp {
  * \section aw9523_ex1 AW9523 Example
  * \snippet aw9523_example.cpp aw9523 example
  */
-class Aw9523 : public BasePeripheral {
+class Aw9523 : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = 0x58; ///< Lower 2 bits are AD1, AD0 pins on the chip.
 

@@ -10,7 +10,7 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet bm8563_example.cpp bm8563 example
-class Bm8563 : public BasePeripheral {
+class Bm8563 : public BasePeripheral<> {
 public:
   /// @brief The default I2C address for the BM8563.
   static constexpr uint8_t DEFAULT_ADDRESS = (0x51);

@@ -10,7 +10,7 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet gt911_example.cpp gt911 example
-class Gt911 : public BasePeripheral {
+class Gt911 : public BasePeripheral<> {
 public:
   /// Default address for the GT911 chip
   static constexpr uint8_t DEFAULT_ADDRESS_1 = 0x5D;
