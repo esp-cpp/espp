@@ -9,7 +9,10 @@ class RtpJpegPacket : public RtpPacket {
 public:
   /// Construct an RTP packet from a buffer.
   /// @param data The buffer containing the RTP packet.
-  explicit RtpJpegPacket(std::string_view data) : RtpPacket(data) { parse_mjpeg_header(); }
+  explicit RtpJpegPacket(std::string_view data)
+      : RtpPacket(data) {
+    parse_mjpeg_header();
+  }
 
   /// Construct an RTP packet from fields
   /// @details This will construct a packet with quantization tables, so it
@@ -25,8 +28,13 @@ public:
   explicit RtpJpegPacket(const int type_specific, const int frag_type, const int q, const int width,
                          const int height, std::string_view q0, std::string_view q1,
                          std::string_view scan_data)
-      : RtpPacket(PAYLOAD_OFFSET_WITH_QUANT + scan_data.size()), type_specific_(type_specific),
-        offset_(0), frag_type_(frag_type), q_(q), width_(width), height_(height) {
+      : RtpPacket(PAYLOAD_OFFSET_WITH_QUANT + scan_data.size())
+      , type_specific_(type_specific)
+      , offset_(0)
+      , frag_type_(frag_type)
+      , q_(q)
+      , width_(width)
+      , height_(height) {
 
     jpeg_data_start_ = PAYLOAD_OFFSET_WITH_QUANT;
     jpeg_data_size_ = scan_data.size();
@@ -51,8 +59,13 @@ public:
   /// @param scan_data The scan data.
   explicit RtpJpegPacket(const int type_specific, const int offset, const int frag_type,
                          const int q, const int width, const int height, std::string_view scan_data)
-      : RtpPacket(PAYLOAD_OFFSET_NO_QUANT + scan_data.size()), type_specific_(type_specific),
-        offset_(offset), frag_type_(frag_type), q_(q), width_(width), height_(height) {
+      : RtpPacket(PAYLOAD_OFFSET_NO_QUANT + scan_data.size())
+      , type_specific_(type_specific)
+      , offset_(offset)
+      , frag_type_(frag_type)
+      , q_(q)
+      , width_(width)
+      , height_(height) {
     jpeg_data_start_ = PAYLOAD_OFFSET_NO_QUANT;
     jpeg_data_size_ = scan_data.size();
 

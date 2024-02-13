@@ -10,7 +10,9 @@ namespace espp {
 template <size_t N> struct TransferFunction {
   TransferFunction() = default;
 
-  TransferFunction(const std::array<float, N> &b, const std::array<float, N> &a) : b(b), a(a) {}
+  TransferFunction(const std::array<float, N> &b, const std::array<float, N> &a)
+      : b(b)
+      , a(a) {}
 
   std::array<float, N> b = {}; /**< B coefficients. */
   std::array<float, N> a = {}; /**< A coefficients. */

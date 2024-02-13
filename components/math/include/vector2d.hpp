@@ -17,13 +17,17 @@ public:
    * @param x The starting X value.
    * @param y The starting Y value.
    */
-  explicit Vector2d(T x = T(0), T y = T(0)) : x_(x), y_(y) {}
+  explicit Vector2d(T x = T(0), T y = T(0))
+      : x_(x)
+      , y_(y) {}
 
   /**
    * @brief Vector copy constructor.
    * @param other Vector to copy.
    */
-  Vector2d(const Vector2d &other) : x_(other.x_), y_(other.y_) {}
+  Vector2d(const Vector2d &other)
+      : x_(other.x_)
+      , y_(other.y_) {}
 
   /**
    * @brief Assignment operator

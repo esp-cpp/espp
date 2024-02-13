@@ -35,7 +35,8 @@ public:
    * @param config Unweighted Config structure containing the control points.
    */
   explicit Bezier(const Config &config)
-      : weighted_(false), control_points_(config.control_points) {}
+      : weighted_(false)
+      , control_points_(config.control_points) {}
 
   /**
    * @brief Construct a rational / weighted cubic bezier curve for evaluation.
@@ -43,7 +44,9 @@ public:
    *        control points and their weights.
    */
   explicit Bezier(const WeightedConfig &config)
-      : weighted_(true), control_points_(config.control_points), weights_(config.weights) {}
+      : weighted_(true)
+      , control_points_(config.control_points)
+      , weights_(config.weights) {}
 
   /**
    * @brief Evaluate the bezier at \p t.

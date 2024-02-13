@@ -373,8 +373,8 @@ protected:
    * @param remote_info The remote endpoint info.
    */
   explicit TcpSocket(int socket_fd, const Socket::Info &remote_info)
-      : Socket(socket_fd, Logger::Config{.tag = "TcpSocket", .level = Logger::Verbosity::WARN}),
-        remote_info_(remote_info) {
+      : Socket(socket_fd, Logger::Config{.tag = "TcpSocket", .level = Logger::Verbosity::WARN})
+      , remote_info_(remote_info) {
     connected_ = true;
     set_keepalive();
   }

@@ -27,7 +27,9 @@ public:
    * @param config Config structure for the gaussian.
    */
   explicit Gaussian(const Config &config)
-      : gamma_(config.gamma), alpha_(config.alpha), beta_(config.beta) {}
+      : gamma_(config.gamma)
+      , alpha_(config.alpha)
+      , beta_(config.beta) {}
 
   /**
    * @brief Get the currently configured gamma (shape).
