@@ -13,7 +13,7 @@ namespace espp {
  * \section ads1x15_ex1 ADS1X15 Example
  * \snippet ads1x15_example.cpp ads1x15 example
  */
-class Ads1x15 : public espp::BasePeripheral {
+class Ads1x15 : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = (0x48); ///< I2C address of the ADS1x15 chips.
 

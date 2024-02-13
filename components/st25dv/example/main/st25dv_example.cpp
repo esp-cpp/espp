@@ -68,6 +68,7 @@ extern "C" void app_main(void) {
         .port = I2C_NUM_0,
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+        .clk_speed = 1000 * 1000,
     });
 
     // now make the st25dv which decodes the data
@@ -75,7 +76,7 @@ extern "C" void app_main(void) {
                                             std::placeholders::_2, std::placeholders::_3),
                          .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
                                            std::placeholders::_2, std::placeholders::_3),
-                         .log_level = espp::Logger::Verbosity::DEBUG});
+                         .log_level = espp::Logger::Verbosity::INFO});
 
     std::array<uint8_t, 50> programmed_data;
     std::error_code ec;
@@ -145,7 +146,7 @@ extern "C" void app_main(void) {
       }
       static auto last_it_sts = it_sts;
       if (it_sts != last_it_sts) {
-        fmt::print("[{:.3f}] IT STS: {:02x}\n", elapsed(), it_sts);
+        fmt::print("[{:.3f}] IT STS: {}\n", elapsed(), it_sts);
       }
       last_it_sts = it_sts;
       // we don't want to stop the task, so return false

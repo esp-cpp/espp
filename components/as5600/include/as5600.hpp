@@ -28,7 +28,7 @@ namespace espp {
  * \section as5600_ex1 As5600 Example
  * \snippet as5600_example.cpp as5600 example
  */
-class As5600 : public BasePeripheral {
+class As5600 : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = (0b0110110); ///< I2C address of the AS5600
 

@@ -10,7 +10,7 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet ft5x06_example.cpp ft5x06 example
-class Ft5x06 : public BasePeripheral {
+class Ft5x06 : public BasePeripheral<> {
 public:
   /// @brief The default I2C address for the FT5x06.
   static constexpr uint8_t DEFAULT_ADDRESS = (0x38);

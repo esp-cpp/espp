@@ -12,7 +12,7 @@ namespace espp {
  * \section mcp23x17_ex1 MCP23x17 Example
  * \snippet mcp23x17_example.cpp mcp23x17 example
  */
-class Mcp23x17 : public BasePeripheral {
+class Mcp23x17 : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS =
       0b0100000; ///< Lower 3 bits are A2, A2, A0 pins on the chip.

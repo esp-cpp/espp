@@ -17,7 +17,7 @@ namespace espp {
  * @section max1704x_ex1 MAX1704X Example
  * @snippet max1704x_example.cpp max1704x example
  */
-class Max1704x : public BasePeripheral {
+class Max1704x : public BasePeripheral<> {
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = 0x36; ///< Default address of the MAX1704x.
 
