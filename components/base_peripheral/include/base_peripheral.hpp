@@ -108,6 +108,7 @@ protected:
   /// \param length The length of the data to write
   /// \param ec The error code to set if there is an error
   void write_many(const uint8_t *data, size_t length, std::error_code &ec) {
+    logger_.debug("write {} bytes", length);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
       if (!base_config_.write(base_config_.address, data, length)) {
@@ -124,6 +125,7 @@ protected:
   /// \param data The data to write
   /// \param ec The error code to set if there is an error
   void write_u8(uint8_t data, std::error_code &ec) {
+    logger_.debug("write u8");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
       if (!base_config_.write(base_config_.address, &data, 1)) {
@@ -140,6 +142,7 @@ protected:
   /// \param data The data to write
   /// \param ec The error code to set if there is an error
   void write_u16(uint16_t data, std::error_code &ec) {
+    logger_.debug("write u16");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
       uint8_t buffer[2];
@@ -160,6 +163,7 @@ protected:
   /// \param length The length of the buffer
   /// \param ec The error code to set if there is an error
   void read_many(uint8_t *data, size_t length, std::error_code &ec) {
+    logger_.debug("read {} bytes", length);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read) {
       if (!base_config_.read(base_config_.address, data, length)) {
@@ -176,6 +180,7 @@ protected:
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
   uint8_t read_u8(std::error_code &ec) {
+    logger_.debug("read u8");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t data = 0;
     if (base_config_.read) {
@@ -195,6 +200,7 @@ protected:
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
   uint16_t read_u16(std::error_code &ec) {
+    logger_.debug("read u16");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t data = 0;
     if (base_config_.read) {
@@ -222,7 +228,7 @@ protected:
                        size_t read_length, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write_then_read) {
-      logger_.debug("write_then_read {} bytes", write_length);
+      logger_.debug("write_then_read write: {}, read: {} bytes", write_length, read_length);
       if (!base_config_.write_then_read(base_config_.address, write_data, write_length, read_data,
                                         read_length)) {
         ec = std::make_error_code(std::errc::io_error);
@@ -252,9 +258,9 @@ protected:
   /// \param data The data to write
   /// \param ec The error code to set if there is an error
   void write_u8_to_register(RegisterAddressType reg_addr, uint8_t data, std::error_code &ec) {
+    logger_.debug("write u8 to register 0x{:x}", reg_addr);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
-      logger_.debug("write 1 byte to register 0x{:x}", reg_addr);
       // use the size of the register address to determine how many bytes the
       // register address is
       static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
@@ -276,9 +282,9 @@ protected:
   /// \param data The data to write
   /// \param ec The error code to set if there is an error
   void write_u16_to_register(RegisterAddressType reg_addr, uint16_t data, std::error_code &ec) {
+    logger_.debug("write u16 to register 0x{:x}", reg_addr);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
-      logger_.debug("write 2 bytes to register 0x{:x}", reg_addr);
       // use the size of the register address to determine how many bytes the
       // register address is
       static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
@@ -303,9 +309,9 @@ protected:
   /// \param ec The error code to set if there is an error
   void write_many_to_register(RegisterAddressType reg_addr, const uint8_t *data, size_t length,
                               std::error_code &ec) {
+    logger_.debug("write {} bytes to register 0x{:x}", length, reg_addr);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
-      logger_.debug("write {} bytes to register 0x{:x}", length, reg_addr);
       // use the size of the register address to determine how many bytes the
       // register address is
       static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
@@ -327,9 +333,10 @@ protected:
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
   uint8_t read_u8_from_register(RegisterAddressType register_address, std::error_code &ec) {
+    logger_.debug("read u8 from register 0x{:x}", register_address);
     uint8_t data = 0;
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read_register) {
-      logger_.debug("read_register 1 byte from register 0x{:x}", register_address);
       if (!base_config_.read_register(base_config_.address, register_address, &data, 1)) {
         ec = std::make_error_code(std::errc::io_error);
         return 0;
@@ -355,9 +362,10 @@ protected:
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
   uint16_t read_u16_from_register(RegisterAddressType register_address, std::error_code &ec) {
+    logger_.debug("read u16 from register 0x{:x}", register_address);
     uint8_t data[2];
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read_register) {
-      logger_.debug("read_register 2 bytes from register 0x{:x}", register_address);
       if (!base_config_.read_register(base_config_.address, register_address, data, 2)) {
         ec = std::make_error_code(std::errc::io_error);
         return 0;
@@ -385,9 +393,10 @@ protected:
   /// \param ec The error code to set if there is an error
   void read_many_from_register(RegisterAddressType register_address, uint8_t *data, size_t length,
                                std::error_code &ec) {
+    logger_.debug("read_many_from_register {} bytes from register 0x{:x}", length,
+                  register_address);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read_register) {
-      logger_.debug("read_register {} bytes from register 0x{:x}", length, register_address);
       if (!base_config_.read_register(base_config_.address, register_address, data, length)) {
         ec = std::make_error_code(std::errc::io_error);
       } else {
@@ -411,6 +420,7 @@ protected:
   ///       back to the peripheral
   void set_bits_in_register(RegisterAddressType register_address, uint8_t mask,
                             std::error_code &ec) {
+    logger_.debug("set_bits_in_register 0x{:x} with mask 0x{:x}", register_address, mask);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t data = read_u8_from_register(register_address, ec);
     if (ec) {
@@ -428,6 +438,7 @@ protected:
   ///       back to the peripheral
   void clear_bits_in_register(RegisterAddressType register_address, uint8_t mask,
                               std::error_code &ec) {
+    logger_.debug("clear_bits_in_register 0x{:x} with mask 0x{:x}", register_address, mask);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t data = read_u8_from_register(register_address, ec);
     if (ec) {
