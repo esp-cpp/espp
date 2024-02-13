@@ -23,7 +23,7 @@ namespace espp {
  * \section st25dv_ex1 St25dv Example
  * \snippet st25dv_example.cpp st25dv example
  */
-class St25dv : public BasePeripheral<> {
+class St25dv : public BasePeripheral<uint16_t> {
 public:
   // NOTE: when the datasheet mentions E2 device select, they are talking
   // about Bit 4 of the address which selects between the data (user memory,
@@ -575,8 +575,7 @@ protected:
 
   void read_syst_register(Registers reg, uint8_t *data, uint8_t length, std::error_code &ec) {
     uint8_t reg_addr[2];
-    reg_addr[0] = (uint16_t)reg >> 8;
-    reg_addr[1] = (uint16_t)reg & 0xFF;
+    put_register_bytes((uint16_t)reg, reg_addr);
     bool success = base_config_.write(SYST_ADDRESS, reg_addr, 2);
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);
@@ -592,8 +591,7 @@ protected:
 
   void read_data_register(Registers reg, uint8_t *data, uint8_t length, std::error_code &ec) {
     uint8_t reg_addr[2];
-    reg_addr[0] = (uint16_t)reg >> 8;
-    reg_addr[1] = (uint16_t)reg & 0xFF;
+    put_register_bytes((uint16_t)reg, reg_addr);
     bool success = base_config_.write(DATA_ADDRESS, reg_addr, 2);
     if (!success) {
       ec = std::make_error_code(std::errc::io_error);

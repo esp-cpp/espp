@@ -10,7 +10,7 @@ namespace espp {
 ///
 /// \section Example
 /// \snippet gt911_example.cpp gt911 example
-class Gt911 : public BasePeripheral<> {
+class Gt911 : public BasePeripheral<std::uint16_t> {
 public:
   /// Default address for the GT911 chip
   static constexpr uint8_t DEFAULT_ADDRESS_1 = 0x5D;
@@ -38,14 +38,15 @@ public:
   bool update(std::error_code &ec) {
     static constexpr size_t DATA_LEN = CONTACT_SIZE * MAX_CONTACTS;
     static uint8_t data[DATA_LEN];
-    read_register(Registers::POINT_INFO, data, 1, ec);
+    read_many_from_register((uint16_t)Registers::POINT_INFO, data, 1, ec);
     if (ec) {
       return false;
     }
     num_touch_points_ = data[0] & 0x0f;
     logger_.debug("Got {} touch points", num_touch_points_);
     if (num_touch_points_ > 0) {
-      read_register(Registers::POINTS, data, CONTACT_SIZE * num_touch_points_, ec);
+      read_many_from_register((uint16_t)Registers::POINTS, data, CONTACT_SIZE * num_touch_points_,
+                              ec);
       if (ec) {
         return false;
       }
@@ -55,7 +56,7 @@ public:
       y_ = point->y;
       logger_.debug("Touch at ({}, {})", x_, y_);
     }
-    write_register(Registers::POINT_INFO, 0x00, ec); // sync signal
+    write_u8_to_register((uint16_t)Registers::POINT_INFO, 0x00, ec); // sync signal
     if (ec) {
       return false;
     }
@@ -226,23 +227,6 @@ protected:
     uint8_t NC_5[2];
     GTKeyConfig keys;
   } __attribute__((packed));
-
-  // we use write_then_read since we have to write the u16 register address and
-  // then read the data
-  void read_register(Registers reg, uint8_t *data, size_t len, std::error_code &ec) {
-    uint16_t reg16 = static_cast<uint16_t>(reg);
-    uint8_t reg_buf[2] = {static_cast<uint8_t>(reg16 >> 8), static_cast<uint8_t>(reg16 & 0xff)};
-    write_then_read(reg_buf, 2, data, len, ec);
-  }
-
-  void write_register(Registers reg, const uint8_t value, std::error_code &ec) {
-    uint16_t reg16 = static_cast<uint16_t>(reg);
-    uint8_t write_buf[3];
-    write_buf[0] = static_cast<uint8_t>(reg16 >> 8);
-    write_buf[1] = static_cast<uint8_t>(reg16 & 0xff);
-    write_buf[2] = value;
-    write_many(write_buf, 3, ec);
-  }
 
   std::atomic<bool> home_button_pressed_{false};
   std::atomic<uint8_t> num_touch_points_;

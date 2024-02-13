@@ -202,6 +202,7 @@ protected:
                        size_t read_length, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write_then_read) {
+      logger_.debug("write_then_read {} bytes", write_length);
       if (!base_config_.write_then_read(base_config_.address, write_data, write_length, read_data,
                                         read_length)) {
         ec = std::make_error_code(std::errc::io_error);
@@ -209,6 +210,7 @@ protected:
         ec.clear();
       }
     } else if (base_config_.write && base_config_.read) {
+      logger_.debug("write {} bytes then read {} bytes", write_length, read_length);
       // write the data
       if (!base_config_.write(base_config_.address, write_data, write_length)) {
         ec = std::make_error_code(std::errc::io_error);
@@ -232,13 +234,12 @@ protected:
   void write_u8_to_register(RegisterAddressType reg_addr, uint8_t data, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
+      logger_.debug("write 1 byte to register 0x{:x}", reg_addr);
       // use the size of the register address to determine how many bytes the
       // register address is
       static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
       uint8_t buffer[reg_addr_size + 1];
-      for (size_t i = 0; i < reg_addr_size; i++) {
-        buffer[i] = (reg_addr >> (i * 8)) & 0xff;
-      }
+      put_register_bytes(reg_addr, buffer);
       buffer[reg_addr_size] = data;
       if (!base_config_.write(base_config_.address, buffer, reg_addr_size + 1)) {
         ec = std::make_error_code(std::errc::io_error);
@@ -257,13 +258,12 @@ protected:
   void write_u16_to_register(RegisterAddressType reg_addr, uint16_t data, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
+      logger_.debug("write 2 bytes to register 0x{:x}", reg_addr);
       // use the size of the register address to determine how many bytes the
       // register address is
       static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
       uint8_t buffer[reg_addr_size + 2];
-      for (size_t i = 0; i < reg_addr_size; i++) {
-        buffer[i] = (reg_addr >> (i * 8)) & 0xff;
-      }
+      put_register_bytes(reg_addr, buffer);
       buffer[reg_addr_size] = (data >> 8) & 0xff;
       buffer[reg_addr_size + 1] = data & 0xff;
       if (!base_config_.write(base_config_.address, buffer, reg_addr_size + 2)) {
@@ -285,13 +285,12 @@ protected:
                               std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.write) {
+      logger_.debug("write {} bytes to register 0x{:x}", length, reg_addr);
       // use the size of the register address to determine how many bytes the
       // register address is
       static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
       uint8_t buffer[length + reg_addr_size];
-      for (size_t i = 0; i < reg_addr_size; i++) {
-        buffer[i] = (reg_addr >> (i * 8)) & 0xff;
-      }
+      put_register_bytes(reg_addr, buffer);
       std::copy(data, data + length, buffer + reg_addr_size);
       if (!base_config_.write(base_config_.address, buffer, length + reg_addr_size)) {
         ec = std::make_error_code(std::errc::io_error);
@@ -307,9 +306,10 @@ protected:
   /// \param register_address The address of the register to read from
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
-  uint8_t read_u8_from_register(uint8_t register_address, std::error_code &ec) {
+  uint8_t read_u8_from_register(RegisterAddressType register_address, std::error_code &ec) {
     uint8_t data = 0;
     if (base_config_.read_register) {
+      logger_.debug("read_register 1 byte from register 0x{:x}", register_address);
       if (!base_config_.read_register(base_config_.address, register_address, &data, 1)) {
         ec = std::make_error_code(std::errc::io_error);
         return 0;
@@ -317,7 +317,12 @@ protected:
         ec.clear();
       }
     } else {
-      write_then_read(&register_address, 1, &data, 1, ec);
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      uint8_t buffer[reg_addr_size];
+      put_register_bytes(register_address, buffer);
+      write_then_read(buffer, reg_addr_size, &data, 1, ec);
       if (ec) {
         return 0;
       }
@@ -329,9 +334,10 @@ protected:
   /// \param register_address The address of the register to read from
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
-  uint16_t read_u16_from_register(uint8_t register_address, std::error_code &ec) {
+  uint16_t read_u16_from_register(RegisterAddressType register_address, std::error_code &ec) {
     uint8_t data[2];
     if (base_config_.read_register) {
+      logger_.debug("read_register 2 bytes from register 0x{:x}", register_address);
       if (!base_config_.read_register(base_config_.address, register_address, data, 2)) {
         ec = std::make_error_code(std::errc::io_error);
         return 0;
@@ -339,7 +345,12 @@ protected:
         ec.clear();
       }
     } else {
-      write_then_read(&register_address, 1, (uint8_t *)&data, 2, ec);
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      uint8_t buffer[reg_addr_size];
+      put_register_bytes(register_address, buffer);
+      write_then_read(buffer, reg_addr_size, (uint8_t *)&data, 2, ec);
       if (ec) {
         return 0;
       }
@@ -352,17 +363,23 @@ protected:
   /// \param data The buffer to read into
   /// \param length The length of the buffer
   /// \param ec The error code to set if there is an error
-  void read_many_from_register(uint8_t register_address, uint8_t *data, size_t length,
+  void read_many_from_register(RegisterAddressType register_address, uint8_t *data, size_t length,
                                std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read_register) {
+      logger_.debug("read_register {} bytes from register 0x{:x}", length, register_address);
       if (!base_config_.read_register(base_config_.address, register_address, data, length)) {
         ec = std::make_error_code(std::errc::io_error);
       } else {
         ec.clear();
       }
     } else {
-      write_then_read(&register_address, 1, data, length, ec);
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      uint8_t buffer[reg_addr_size];
+      put_register_bytes(register_address, buffer);
+      write_then_read(buffer, reg_addr_size, data, length, ec);
     }
   }
 
@@ -372,7 +389,8 @@ protected:
   /// \param ec The error code to set if there is an error
   /// \note This function reads the register, sets the bits, and then writes the register
   ///       back to the peripheral
-  void set_bits_in_register(uint8_t register_address, uint8_t mask, std::error_code &ec) {
+  void set_bits_in_register(RegisterAddressType register_address, uint8_t mask,
+                            std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t data = read_u8_from_register(register_address, ec);
     if (ec) {
@@ -388,7 +406,8 @@ protected:
   /// \param ec The error code to set if there is an error
   /// \note This function reads the register, clears the bits, and then writes the register
   ///       back to the peripheral
-  void clear_bits_in_register(uint8_t register_address, uint8_t mask, std::error_code &ec) {
+  void clear_bits_in_register(RegisterAddressType register_address, uint8_t mask,
+                              std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint8_t data = read_u8_from_register(register_address, ec);
     if (ec) {
@@ -396,6 +415,22 @@ protected:
     }
     data &= ~mask;
     write_u8_to_register(register_address, data, ec);
+  }
+
+  // Set the bytes of the register address in the buffer
+  void put_register_bytes(RegisterAddressType register_address, uint8_t *data) {
+    if constexpr (std::is_same_v<RegisterAddressType, uint8_t>) {
+      data[0] = register_address;
+    } else {
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      // encode the address as big endian (MSB first)
+      for (size_t i = 0; i < reg_addr_size; i++) {
+        int shift = (reg_addr_size - i - 1) * 8;
+        data[i] = (register_address >> shift) & 0xff;
+      }
+    }
   }
 
   Config base_config_;              ///< The configuration for the peripheral
