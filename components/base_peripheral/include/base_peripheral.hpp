@@ -1,9 +1,11 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <mutex>
 #include <string>
+#include <thread>
 
 #include "base_component.hpp"
 
@@ -67,6 +69,10 @@ public:
         nullptr}; ///< Function to read data at a specific address from the peripheral
     write_then_read_fn write_then_read{
         nullptr}; ///< Function to write then read data from the peripheral
+    std::chrono::milliseconds separate_write_then_read_delay{
+        0}; ///< The delay between the write and read operations in write_then_read in
+            ///< milliseconds if the write_then_read function is not set to a custom function
+            ///< and the write and read functions are separate
   };
 
   /// Probe the peripheral
@@ -144,6 +150,21 @@ public:
   void set_write_then_read(write_then_read_fn write_then_read) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     base_config_.write_then_read = write_then_read;
+  }
+
+  /// Set the delay between the write and read operations in write_then_read
+  /// \param delay The delay between the write and read operations in
+  ///             write_then_read
+  /// \note This function is thread safe
+  /// \note This should rarely be used, as the delay is usually set in the
+  ///      constructor. If you need to change the delay, consider using the
+  ///      set_config function instead.
+  /// \note This delay is only used if the write_then_read function is not set to
+  ///      a custom function and the write and read functions are separate
+  ///      functions.
+  void set_separate_write_then_read_delay(std::chrono::milliseconds delay) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    base_config_.separate_write_then_read_delay = delay;
   }
 
   /// Set the configuration for the peripheral
@@ -322,6 +343,10 @@ protected:
       if (!base_config_.write(base_config_.address, write_data, write_length)) {
         ec = std::make_error_code(std::errc::io_error);
       } else {
+        // if there is a delay, wait for it
+        if (base_config_.separate_write_then_read_delay.count() > 0) {
+          std::this_thread::sleep_for(base_config_.separate_write_then_read_delay);
+        }
         // read the data
         if (!base_config_.read(base_config_.address, read_data, read_length)) {
           ec = std::make_error_code(std::errc::io_error);
