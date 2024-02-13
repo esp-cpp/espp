@@ -142,7 +142,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>QwiicNES</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/37f664e/docs/en/qwiicnes.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ff46ee8/docs/en/qwiicnes.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -158,14 +158,14 @@
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/37f664e/components/qwiicnes/include/qwiicnes.hpp">components/qwiicnes/include/qwiicnes.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ff46ee8/components/qwiicnes/include/qwiicnes.hpp">components/qwiicnes/include/qwiicnes.hpp</a></p></li>
 </ul>
 </section>
 <section id="functions">
 <h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline"></a></h3>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>doxygenfunction: Unable to resolve function “operator==” with arguments None in doxygen xml output for project “esp-docs” from directory: /Users/bob/esp-cpp/espp/doc/_build/en/esp32/xml_in/.
+<p>doxygenfunction: Unable to resolve function “operator==” with arguments None in doxygen xml output for project “esp-docs” from directory: /Users/bob/backbone/niji/components/espp/doc/_build/en/esp32/xml_in/.
 Potential matches:
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="nb">bool</span> <span class="n">operator</span><span class="o">==</span><span class="p">(</span><span class="n">const</span> <span class="n">AdcConfig</span> <span class="o">&amp;</span><span class="n">lhs</span><span class="p">,</span> <span class="n">const</span> <span class="n">AdcConfig</span> <span class="o">&amp;</span><span class="n">rhs</span><span class="p">)</span>
@@ -207,7 +207,7 @@ Potential matches:
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNesE">
-<span id="_CPPv3N4espp8QwiicNesE"></span><span id="_CPPv2N4espp8QwiicNesE"></span><span id="espp::QwiicNes"></span><span class="target" id="classespp_1_1_qwiic_nes"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">QwiicNes</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">BasePeripheral</span></span><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp8QwiicNesE"></span><span id="_CPPv2N4espp8QwiicNesE"></span><span id="espp::QwiicNes"></span><span class="target" id="classespp_1_1_qwiic_nes"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">QwiicNes</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_peripheral.html#_CPPv4I_NSt8integralEEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNesE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>A class to interface with the Qwiic NES controller. </p>
 <p>This class is used to interface with the Qwiic NES controller. The Qwiic NES controller is a breakout board for the NES controller. The Qwiic NES controller uses the I2C bus to communicate.</p>
 <section id="classespp_1_1_tt21100_1Example">
@@ -654,6 +654,29 @@ This function will log an error if it fails to update the I2C address of the dev
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes34set_separate_write_then_read_delayENSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp8QwiicNes34set_separate_write_then_read_delayENSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp8QwiicNes34set_separate_write_then_read_delayENSt6chrono12millisecondsE"></span><span id="espp::QwiicNes::set_separate_write_then_read_delay__std::chrono::milliseconds"></span><span class="target" id="classespp_1_1_base_peripheral_1a1a04f84a0cba679ba0b7ab0a2aabf611"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes34set_separate_write_then_read_delayENSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes10set_configERK6Config">
 <span id="_CPPv3N4espp8QwiicNes10set_configERK6Config"></span><span id="_CPPv2N4espp8QwiicNes10set_configERK6Config"></span><span id="espp::QwiicNes::set_config__ConfigCR"></span><span class="target" id="classespp_1_1_base_peripheral_1a3df4d5f24494ee8d60699f9a7f6e6c51"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp8QwiicNes6ConfigE" title="espp::QwiicNes::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes10set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the configuration for the peripheral </p>
@@ -822,13 +845,13 @@ This function will log an error if it fails to update the I2C address of the dev
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Config5writeE">
-<span id="_CPPv3N4espp8QwiicNes6Config5writeE"></span><span id="_CPPv2N4espp8QwiicNes6Config5writeE"></span><span id="espp::QwiicNes::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1aeb74c1b3eabbe032ab4f0a7c2df4f105"></span><span class="n"><span class="pre">BasePeripheral</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp8QwiicNes6Config5writeE"></span><span id="_CPPv2N4espp8QwiicNes6Config5writeE"></span><span id="espp::QwiicNes::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1aeb74c1b3eabbe032ab4f0a7c2df4f105"></span><a class="reference internal" href="base_peripheral.html#_CPPv4I_NSt8integralEEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_peripheral.html#_CPPv4N4espp14BasePeripheral8write_fnE" title="espp::BasePeripheral::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config5writeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The function to write data to the I2C bus. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp8QwiicNes6Config13read_registerE">
-<span id="_CPPv3N4espp8QwiicNes6Config13read_registerE"></span><span id="_CPPv2N4espp8QwiicNes6Config13read_registerE"></span><span id="espp::QwiicNes::Config::read_register__BasePeripheral::read_register_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1a5d3c670cccda00dcb2afb136918a0092"></span><span class="n"><span class="pre">BasePeripheral</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">read_register_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_register</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config13read_registerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp8QwiicNes6Config13read_registerE"></span><span id="_CPPv2N4espp8QwiicNes6Config13read_registerE"></span><span id="espp::QwiicNes::Config::read_register__BasePeripheral::read_register_fn"></span><span class="target" id="structespp_1_1_qwiic_nes_1_1_config_1a5d3c670cccda00dcb2afb136918a0092"></span><a class="reference internal" href="base_peripheral.html#_CPPv4I_NSt8integralEEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_peripheral.html#_CPPv4N4espp14BasePeripheral16read_register_fnE" title="espp::BasePeripheral::read_register_fn"><span class="n"><span class="pre">read_register_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read_register</span></span></span><a class="headerlink" href="#_CPPv4N4espp8QwiicNes6Config13read_registerE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The function to write then read data from the I2C bus. </p>
 </dd></dl>
 

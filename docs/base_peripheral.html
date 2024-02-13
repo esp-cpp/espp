@@ -140,7 +140,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Base Peripheral</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/37f664e/docs/en/base_peripheral.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ff46ee8/docs/en/base_peripheral.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -164,7 +164,7 @@ values from / to a register.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/37f664e/components/base_peripheral/include/base_peripheral.hpp">components/base_peripheral/include/base_peripheral.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ff46ee8/components/base_peripheral/include/base_peripheral.hpp">components/base_peripheral/include/base_peripheral.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -417,6 +417,29 @@ values from / to a register.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BasePeripheral34set_separate_write_then_read_delayENSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp14BasePeripheral34set_separate_write_then_read_delayENSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp14BasePeripheral34set_separate_write_then_read_delayENSt6chrono12millisecondsE"></span><span id="espp::BasePeripheral::set_separate_write_then_read_delay__std::chrono::milliseconds"></span><span class="target" id="classespp_1_1_base_peripheral_1a1a04f84a0cba679ba0b7ab0a2aabf611"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BasePeripheral34set_separate_write_then_read_delayENSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp14BasePeripheral10set_configERK6Config">
 <span id="_CPPv3N4espp14BasePeripheral10set_configERK6Config"></span><span id="_CPPv2N4espp14BasePeripheral10set_configERK6Config"></span><span id="espp::BasePeripheral::set_config__ConfigCR"></span><span class="target" id="classespp_1_1_base_peripheral_1a3df4d5f24494ee8d60699f9a7f6e6c51"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp14BasePeripheral6ConfigE" title="espp::BasePeripheral::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BasePeripheral10set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the configuration for the peripheral </p>
@@ -571,6 +594,12 @@ values from / to a register.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp14BasePeripheral6Config15write_then_readE">
 <span id="_CPPv3N4espp14BasePeripheral6Config15write_then_readE"></span><span id="_CPPv2N4espp14BasePeripheral6Config15write_then_readE"></span><span id="espp::BasePeripheral::Config::write_then_read__write_then_read_fn"></span><span class="target" id="structespp_1_1_base_peripheral_1_1_config_1a908b53e83086a340194ccf475596531a"></span><a class="reference internal" href="#_CPPv4N4espp14BasePeripheral18write_then_read_fnE" title="espp::BasePeripheral::write_then_read_fn"><span class="n"><span class="pre">write_then_read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write_then_read</span></span></span><span class="p"><span class="pre">{</span></span><span class="k"><span class="pre">nullptr</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14BasePeripheral6Config15write_then_readE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function to write then read data from the peripheral. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BasePeripheral6Config30separate_write_then_read_delayE">
+<span id="_CPPv3N4espp14BasePeripheral6Config30separate_write_then_read_delayE"></span><span id="_CPPv2N4espp14BasePeripheral6Config30separate_write_then_read_delayE"></span><span id="espp::BasePeripheral::Config::separate_write_then_read_delay__std::chrono::milliseconds"></span><span class="target" id="structespp_1_1_base_peripheral_1_1_config_1a1532a4451ee838470aa703f8c5983d81"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">separate_write_then_read_delay</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp14BasePeripheral6Config30separate_write_then_read_delayE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The delay between the write and read operations in write_then_read in milliseconds if the write_then_read function is not set to a custom function and the write and read functions are separate </p>
 </dd></dl>
 
 </div>

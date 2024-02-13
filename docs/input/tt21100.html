@@ -150,7 +150,7 @@
           <li><a href="index.html">Input APIs</a> &raquo;</li>
       <li>TT21100 Touch Controller</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/37f664e/docs/en/input/tt21100.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ff46ee8/docs/en/input/tt21100.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -168,14 +168,14 @@ touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/37f664e/components/tt21100/include/tt21100.hpp">components/tt21100/include/tt21100.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ff46ee8/components/tt21100/include/tt21100.hpp">components/tt21100/include/tt21100.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Tt21100E">
-<span id="_CPPv3N4espp7Tt21100E"></span><span id="_CPPv2N4espp7Tt21100E"></span><span id="espp::Tt21100"></span><span class="target" id="classespp_1_1_tt21100"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Tt21100</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">BasePeripheral</span></span><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp7Tt21100E" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Tt21100E"></span><span id="_CPPv2N4espp7Tt21100E"></span><span id="espp::Tt21100"></span><span class="target" id="classespp_1_1_tt21100"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Tt21100</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralEEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N4espp7Tt21100E" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Driver for the <a class="reference internal" href="#classespp_1_1_tt21100"><span class="std std-ref">Tt21100</span></a> touch controller. </p>
 <section id="classespp_1_1_tt21100_1Example">
 <h4>Example<a class="headerlink" href="#classespp_1_1_tt21100_1Example" title="Permalink to this headline"></a></h4>
@@ -549,6 +549,29 @@ touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7Tt2110034set_separate_write_then_read_delayENSt6chrono12millisecondsE">
+<span id="_CPPv3N4espp7Tt2110034set_separate_write_then_read_delayENSt6chrono12millisecondsE"></span><span id="_CPPv2N4espp7Tt2110034set_separate_write_then_read_delayENSt6chrono12millisecondsE"></span><span id="espp::Tt21100::set_separate_write_then_read_delay__std::chrono::milliseconds"></span><span class="target" id="classespp_1_1_base_peripheral_1a1a04f84a0cba679ba0b7ab0a2aabf611"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_separate_write_then_read_delay</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">milliseconds</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">delay</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tt2110034set_separate_write_then_read_delayENSt6chrono12millisecondsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the delay between the write and read operations in write_then_read </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function is thread safe </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should rarely be used, as the delay is usually set in the constructor. If you need to change the delay, consider using the set_config function instead. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This delay is only used if the write_then_read function is not set to a custom function and the write and read functions are separate functions. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>delay</strong> – The delay between the write and read operations in write_then_read </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Tt2110010set_configERK6Config">
 <span id="_CPPv3N4espp7Tt2110010set_configERK6Config"></span><span id="_CPPv2N4espp7Tt2110010set_configERK6Config"></span><span id="espp::Tt21100::set_config__ConfigCR"></span><span class="target" id="classespp_1_1_base_peripheral_1a3df4d5f24494ee8d60699f9a7f6e6c51"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_config</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp7Tt211006ConfigE" title="espp::Tt21100::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7Tt2110010set_configERK6Config" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the configuration for the peripheral </p>
@@ -680,13 +703,13 @@ touchpad sensor. This touch controller can be found in the ESP32-S3-BOX.</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Tt211006Config5writeE">
-<span id="_CPPv3N4espp7Tt211006Config5writeE"></span><span id="_CPPv2N4espp7Tt211006Config5writeE"></span><span id="espp::Tt21100::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1_tt21100_1_1_config_1a525a738ce9f6d7f19c7f19cb2e105c86"></span><span class="n"><span class="pre">BasePeripheral</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">write_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp7Tt211006Config5writeE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Tt211006Config5writeE"></span><span id="_CPPv2N4espp7Tt211006Config5writeE"></span><span id="espp::Tt21100::Config::write__BasePeripheral::write_fn"></span><span class="target" id="structespp_1_1_tt21100_1_1_config_1a525a738ce9f6d7f19c7f19cb2e105c86"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralEEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4N4espp14BasePeripheral8write_fnE" title="espp::BasePeripheral::write_fn"><span class="n"><span class="pre">write_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">write</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp7Tt211006Config5writeE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function for writing to the i2c device (unused) </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Tt211006Config4readE">
-<span id="_CPPv3N4espp7Tt211006Config4readE"></span><span id="_CPPv2N4espp7Tt211006Config4readE"></span><span id="espp::Tt21100::Config::read__BasePeripheral::read_fn"></span><span class="target" id="structespp_1_1_tt21100_1_1_config_1a3ff088d60877c5408beac8330480f8b7"></span><span class="n"><span class="pre">BasePeripheral</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">read_fn</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tt211006Config4readE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp7Tt211006Config4readE"></span><span id="_CPPv2N4espp7Tt211006Config4readE"></span><span id="espp::Tt21100::Config::read__BasePeripheral::read_fn"></span><span class="target" id="structespp_1_1_tt21100_1_1_config_1a3ff088d60877c5408beac8330480f8b7"></span><a class="reference internal" href="../base_peripheral.html#_CPPv4I_NSt8integralEEN4espp14BasePeripheralE" title="espp::BasePeripheral"><span class="n"><span class="pre">BasePeripheral</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_peripheral.html#_CPPv4N4espp14BasePeripheral7read_fnE" title="espp::BasePeripheral::read_fn"><span class="n"><span class="pre">read_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">read</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Tt211006Config4readE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Function for reading from the i2c device. </p>
 </dd></dl>
 
