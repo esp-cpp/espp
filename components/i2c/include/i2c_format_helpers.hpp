@@ -19,3 +19,28 @@ template <> struct fmt::formatter<i2c_port_t> {
     }
   }
 };
+
+// for printing gpio_num_t with libfmt
+template <> struct fmt::formatter<gpio_num_t> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext> auto format(const gpio_num_t &g, FormatContext &ctx) {
+    return fmt::format_to(ctx.out(), "{:d}", (int)g);
+  }
+};
+
+// for printing gpio_pullup_t with libfmt
+template <> struct fmt::formatter<gpio_pullup_t> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext> auto format(const gpio_pullup_t &p, FormatContext &ctx) {
+    switch (p) {
+    case GPIO_PULLUP_DISABLE:
+      return fmt::format_to(ctx.out(), "GPIO_PULLUP_DISABLE");
+    case GPIO_PULLUP_ENABLE:
+      return fmt::format_to(ctx.out(), "GPIO_PULLUP_ENABLE");
+    default:
+      return fmt::format_to(ctx.out(), "Unknown");
+    }
+  }
+};

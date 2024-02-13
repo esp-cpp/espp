@@ -33,7 +33,9 @@ public:
 
   /// Construct I2C driver
   /// \param config Configuration for I2C
-  explicit I2c(const Config &config) : BaseComponent("I2C", config.log_level), config_(config) {
+  explicit I2c(const Config &config)
+      : BaseComponent("I2C", config.log_level)
+      , config_(config) {
     if (config.auto_init) {
       std::error_code ec;
       init(ec);
@@ -59,6 +61,8 @@ public:
       ec = std::make_error_code(std::errc::protocol_error);
       return;
     }
+
+    logger_.debug("Initializing I2C with config: {}", config_);
 
     std::lock_guard<std::mutex> lock(mutex_);
     i2c_config_t i2c_cfg;
@@ -275,3 +279,29 @@ protected:
   std::mutex mutex_;
 };
 } // namespace espp
+
+// for printing the I2C::Config using fmt
+template <> struct fmt::formatter<espp::I2c::Config> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext> auto format(const espp::I2c::Config &c, FormatContext &ctx) {
+    // print the clock speed in khz
+    auto clk_speed_khz = c.clk_speed / 1000;
+    // if it's MHz, print it as such
+    if (clk_speed_khz >= 1000) {
+      clk_speed_khz = c.clk_speed / 1000000;
+      return fmt::format_to(
+          ctx.out(),
+          "I2c::Config{{I2C port: {}, SDA: {}, SCL: {}, SDA pullup: {}, SCL pullup: {}, "
+          "timeout: {}ms, clock speed: {}MHz}}",
+          c.port, c.sda_io_num, c.scl_io_num, c.sda_pullup_en, c.scl_pullup_en, c.timeout_ms,
+          clk_speed_khz);
+    }
+    return fmt::format_to(
+        ctx.out(),
+        "I2c::Config{{I2C port: {}, SDA: {}, SCL: {}, SDA pullup: {}, SCL pullup: {}, "
+        "timeout: {}ms, clock speed: {}kHz}}",
+        c.port, c.sda_io_num, c.scl_io_num, c.sda_pullup_en, c.scl_pullup_en, c.timeout_ms,
+        clk_speed_khz);
+  }
+};
