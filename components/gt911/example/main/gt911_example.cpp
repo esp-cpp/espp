@@ -53,7 +53,7 @@ extern "C" void app_main(void) {
       // task is being stopped / destroyed
       {
         std::unique_lock<std::mutex> lk(m);
-        cv.wait_for(lk, 100ms);
+        cv.wait_for(lk, 50ms);
       }
       return false; // don't stop the task
     };
