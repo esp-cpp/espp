@@ -115,7 +115,9 @@ public:
    * @param _out The output stream to which to write characters.
    */
   explicit Cli(cli::Cli &_cli, std::istream &_in = std::cin, std::ostream &_out = std::cout)
-      : CliSession(_cli, _out, 1), exit(false), in(_in) {
+      : CliSession(_cli, _out, 1)
+      , exit(false)
+      , in(_in) {
     if (!_in.good())
       throw std::invalid_argument("istream invalid");
     if (!_out.good())

@@ -11,17 +11,32 @@ public:
   /// Construct an empty RtpPacket.
   /// The packet_ vector is empty and the header fields are set to 0.
   RtpPacket()
-      : version_(2), padding_(false), extension_(false), csrc_count_(0), marker_(false),
-        payload_type_(0), sequence_number_(0), timestamp_(0), ssrc_(0), payload_size_(0) {
+      : version_(2)
+      , padding_(false)
+      , extension_(false)
+      , csrc_count_(0)
+      , marker_(false)
+      , payload_type_(0)
+      , sequence_number_(0)
+      , timestamp_(0)
+      , ssrc_(0)
+      , payload_size_(0) {
     // ensure that the packet_ vector is at least RTP_HEADER_SIZE bytes long
     packet_.resize(RTP_HEADER_SIZE);
   }
 
   /// Construct an RtpPacket with a payload of size payload_size.
   explicit RtpPacket(size_t payload_size)
-      : version_(2), padding_(false), extension_(false), csrc_count_(0), marker_(false),
-        payload_type_(0), sequence_number_(0), timestamp_(0), ssrc_(0),
-        payload_size_(payload_size) {
+      : version_(2)
+      , padding_(false)
+      , extension_(false)
+      , csrc_count_(0)
+      , marker_(false)
+      , payload_type_(0)
+      , sequence_number_(0)
+      , timestamp_(0)
+      , ssrc_(0)
+      , payload_size_(payload_size) {
     // ensure that the packet_ vector is at least RTP_HEADER_SIZE + payload_size bytes long
     packet_.resize(RTP_HEADER_SIZE + payload_size);
   }

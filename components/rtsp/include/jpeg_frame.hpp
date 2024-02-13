@@ -29,7 +29,8 @@ public:
   /// @param data The buffer containing the jpeg data.
   /// @param size The size of the buffer.
   explicit JpegFrame(const char *data, size_t size)
-      : data_(data, data + size), header_(std::string_view((const char *)data_.data(), size)) {}
+      : data_(data, data + size)
+      , header_(std::string_view((const char *)data_.data(), size)) {}
 
   /// Get a reference to the header.
   /// @return A reference to the header.

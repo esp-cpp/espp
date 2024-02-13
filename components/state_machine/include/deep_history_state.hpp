@@ -11,8 +11,10 @@ namespace espp::state_machine {
  */
 class DeepHistoryState : public StateBase {
 public:
-  DeepHistoryState() : StateBase() {}
-  explicit DeepHistoryState(StateBase *_parent) : StateBase(_parent) {}
+  DeepHistoryState()
+      : StateBase() {}
+  explicit DeepHistoryState(StateBase *_parent)
+      : StateBase(_parent) {}
 
   /**
    * @brief Calls _parentState->setDeepHistory()
