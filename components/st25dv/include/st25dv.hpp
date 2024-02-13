@@ -93,9 +93,6 @@ public:
    */
   uint8_t get_interrupt_status(std::error_code &ec) {
     uint8_t it_sts = 0;
-    // NOTE: we have to use the underlying peripheral's functions since we
-    // have to use different device addresses for the different types of
-    // registers
     read_syst_register(Registers::IT_STS, &it_sts, 1, ec);
     if (ec) {
       return 0;
