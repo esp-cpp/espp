@@ -36,21 +36,26 @@ public:
    * @brief Encapsulates the different flags / bit fields that the IT_STS
    * dynamic register holds for the different states it represents. Reading
    * this register clears it to 0x00.
-
+   *
    * @note RF events are reported in the IT_STS register even if GPO output is
    * disabled.
    */
-  class IT_STS {
-  public:
-    static constexpr int RF_USER = 0b00000001;       ///< Manage GPO (set / reset GPO)
-    static constexpr int RF_ACTIVITY = 0b00000010;   ///< Indicates RF Access
-    static constexpr int RF_INTTERUPT = 0b00000100;  ///< GPO Interrupt request
-    static constexpr int FIELD_FALLING = 0b00001000; ///< RF field is falling
-    static constexpr int FIELD_RISING = 0b00010000;  ///< RF field is rising
-    static constexpr int RF_PUT_MSG = 0b00100000;    ///< Message put by RF into FTM mailbox
-    static constexpr int RF_GET_MSG =
-        0b01000000; ///< Message read by RF from FTM mailbox, and end of message has been reached.
-    static constexpr int RF_WRITE = 0b10000000; ///< Write in eeprom
+  struct IT_STS {
+    union {
+      struct {
+        uint8_t RF_USER : 1;       ///< Manage GPO (set / reset GPO)
+        uint8_t RF_ACTIVITY : 1;   ///< Indicates RF Access
+        uint8_t RF_INTTERUPT : 1;  ///< GPO Interrupt request
+        uint8_t FIELD_FALLING : 1; ///< RF field is falling
+        uint8_t FIELD_RISING : 1;  ///< RF field is rising
+        uint8_t RF_PUT_MSG : 1;    ///< Message put by RF into FTM mailbox
+        uint8_t
+            RF_GET_MSG : 1; ///< Message read by RF from FTM mailbox, and end of message has been
+        ///< reached.
+        uint8_t RF_WRITE : 1; ///< Write in eeprom
+      };
+      uint8_t raw = 0;
+    };
   };
 
   /**
@@ -89,15 +94,15 @@ public:
    * @note Reading the interrupt status register clears it.
    * @note The available states / flags in the register are available in \c
    *       St25dv::IT_STS.
-   * @return The raw interrupt status register value read from the chip.
+   * @return The interrupt status register.
    */
-  uint8_t get_interrupt_status(std::error_code &ec) {
+  IT_STS get_interrupt_status(std::error_code &ec) {
     uint8_t it_sts = 0;
-    read_syst_register(Registers::IT_STS, &it_sts, 1, ec);
+    read_data_register(Registers::IT_STS, &it_sts, 1, ec);
     if (ec) {
-      return 0;
+      return IT_STS{};
     }
-    return it_sts;
+    return IT_STS{.raw = it_sts};
   }
 
   /**
@@ -585,3 +590,25 @@ protected:
   uint64_t password_;
 };
 } // namespace espp
+
+// comparison operators for IT_STS
+[[maybe_unused]] inline bool operator==(const espp::St25dv::IT_STS &lhs,
+                                        const espp::St25dv::IT_STS &rhs) {
+  return lhs.raw == rhs.raw;
+}
+
+// For printing out the IT_STS register using libfmt
+template <> struct fmt::formatter<espp::St25dv::IT_STS> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const espp::St25dv::IT_STS &it_sts, FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(),
+        "IT_STS(raw: {:#02x}){{RF_USER: {}, RF_ACTIVITY: {}, RF_INTTERUPT: {}, FIELD_FALLING: {}, "
+        "FIELD_RISING: {}, RF_PUT_MSG: {}, RF_GET_MSG: {}, RF_WRITE: {}}}",
+        it_sts.raw, (bool)it_sts.RF_USER, (bool)it_sts.RF_ACTIVITY, (bool)it_sts.RF_INTTERUPT,
+        (bool)it_sts.FIELD_FALLING, (bool)it_sts.FIELD_RISING, (bool)it_sts.RF_PUT_MSG,
+        (bool)it_sts.RF_GET_MSG, (bool)it_sts.RF_WRITE);
+  }
+};
