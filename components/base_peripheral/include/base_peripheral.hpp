@@ -69,6 +69,26 @@ public:
         nullptr}; ///< Function to write then read data from the peripheral
   };
 
+  /// Probe the peripheral
+  /// \return True if the peripheral is found
+  /// \note This function is thread safe
+  /// \note If the probe function is not set, this function will return false
+  bool probe() {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    if (base_config_.probe) {
+      return base_config_.probe(base_config_.address);
+    }
+    return false;
+  }
+
+  /// Set the address of the peripheral
+  /// \param address The address of the peripheral
+  /// \note This function is thread safe
+  void set_address(uint8_t address) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    base_config_.address = address;
+  }
+
 protected:
   /// Constructor
   /// \param config The configuration for the peripheral
