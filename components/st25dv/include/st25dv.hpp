@@ -574,35 +574,13 @@ protected:
   static constexpr int FTM_SIZE = 0xFF; /**< Number of bytes in the Fast Transfer Mode Mailbox. */
 
   void read_syst_register(Registers reg, uint8_t *data, uint8_t length, std::error_code &ec) {
-    uint8_t reg_addr[2];
-    put_register_bytes((uint16_t)reg, reg_addr);
-    bool success = base_config_.write(SYST_ADDRESS, reg_addr, 2);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
-    success = base_config_.read(SYST_ADDRESS, data, length);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    } else {
-      ec.clear();
-    }
+    set_address(SYST_ADDRESS);
+    read_many_from_register((uint16_t)reg, data, length, ec);
   }
 
   void read_data_register(Registers reg, uint8_t *data, uint8_t length, std::error_code &ec) {
-    uint8_t reg_addr[2];
-    put_register_bytes((uint16_t)reg, reg_addr);
-    bool success = base_config_.write(DATA_ADDRESS, reg_addr, 2);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-      return;
-    }
-    success = base_config_.read(DATA_ADDRESS, data, length);
-    if (!success) {
-      ec = std::make_error_code(std::errc::io_error);
-    } else {
-      ec.clear();
-    }
+    set_address(DATA_ADDRESS);
+    read_many_from_register((uint16_t)reg, data, length, ec);
   }
 
   uint32_t memory_size_bytes_;
