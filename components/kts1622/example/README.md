@@ -12,7 +12,10 @@ chips.
 ### Hardware Required
 
 This example requires a connection (via I2C) to a dev board which has an KTS1622.
-To that chip should be attached some digial inputs (such as buttons).
+To that chip should be attached some digital inputs (such as buttons).
+
+It has been tested on a `QtPy ESP32S3` connected to a `KTS1622EUAA-MMEV01`
+kts1622 evaluation kit via a qwiic / stemma qt cable.
 
 ### Build and Flash
 
@@ -30,8 +33,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-![example output](https://user-images.githubusercontent.com/213467/225363770-77a52ba7-c8ad-4c12-a416-f9718eca3db2.png)
-
-An example video:
-
-https://user-images.githubusercontent.com/213467/225365600-5ad600e9-68d6-4ddc-96d6-f56b72ec1a0e.mp4
+![CleanShot 2024-02-14 at 17 07 57](https://github.com/esp-cpp/espp/assets/213467/4a1c15fb-bcf7-43cd-bc75-3e9f22624301)
