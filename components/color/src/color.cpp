@@ -2,7 +2,10 @@
 
 namespace espp {
 
-Rgb::Rgb(const float &_r, const float &_g, const float &_b) : r(_r), g(_g), b(_b) {
+Rgb::Rgb(const float &_r, const float &_g, const float &_b)
+    : r(_r)
+    , g(_g)
+    , b(_b) {
   if (r > 1.0 || g > 1.0 || b > 1.0) {
     r /= 255.;
     g /= 255.;
@@ -13,9 +16,13 @@ Rgb::Rgb(const float &_r, const float &_g, const float &_b) : r(_r), g(_g), b(_b
   b = std::clamp(b, 0.0f, 1.0f);
 }
 
-Rgb::Rgb(const Rgb &rgb) : r(rgb.r), g(rgb.g), b(rgb.b) {}
+Rgb::Rgb(const Rgb &rgb)
+    : r(rgb.r)
+    , g(rgb.g)
+    , b(rgb.b) {}
 
-Rgb::Rgb(const Hsv &hsv) : Rgb(hsv.rgb()) {}
+Rgb::Rgb(const Hsv &hsv)
+    : Rgb(hsv.rgb()) {}
 
 Rgb Rgb::operator+(const Rgb &rhs) const {
   // divide by number of elements that went into it (blending) instead of just
@@ -71,15 +78,22 @@ Hsv Rgb::hsv() const {
   return HSV;
 }
 
-Hsv::Hsv(const float &_h, const float &_s, const float &_v) : h(_h), s(_s), v(_v) {
+Hsv::Hsv(const float &_h, const float &_s, const float &_v)
+    : h(_h)
+    , s(_s)
+    , v(_v) {
   h = std::clamp(h, 0.0f, 360.0f);
   s = std::clamp(s, 0.0f, 1.0f);
   v = std::clamp(v, 0.0f, 1.0f);
 }
 
-Hsv::Hsv(const Hsv &hsv) : h(hsv.h), s(hsv.s), v(hsv.v) {}
+Hsv::Hsv(const Hsv &hsv)
+    : h(hsv.h)
+    , s(hsv.s)
+    , v(hsv.v) {}
 
-Hsv::Hsv(const Rgb &rgb) : Hsv(rgb.hsv()) {}
+Hsv::Hsv(const Rgb &rgb)
+    : Hsv(rgb.hsv()) {}
 
 Rgb Hsv::rgb() const {
   Rgb RGB;

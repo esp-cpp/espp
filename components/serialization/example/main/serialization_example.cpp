@@ -1,3 +1,4 @@
+#include <bitset>
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -6,6 +7,21 @@
 #include "serialization.hpp"
 
 using namespace std::chrono_literals;
+
+#include "esp_heap_caps.h"
+void print_heap_state() {
+  fmt::print(
+      "          Biggest /     Free /    Total\n"
+      "DRAM  : [{:8d} / {:8d} / {:8d}]\n"
+      "PSRAM : [{:8d} / {:8d} / {:8d}]\n"
+      "DMA   : [{:8d} / {:8d} / {:8d}]\n",
+      heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+      heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_total_size(MALLOC_CAP_INTERNAL),
+      heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+      heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_total_size(MALLOC_CAP_SPIRAM),
+      heap_caps_get_largest_free_block(MALLOC_CAP_DMA), heap_caps_get_free_size(MALLOC_CAP_DMA),
+      heap_caps_get_total_size(MALLOC_CAP_DMA));
+}
 
 extern "C" void app_main(void) {
   {
@@ -99,6 +115,39 @@ extern "C" void app_main(void) {
       fmt::print("Deserialization failed: {}\n", ec.message());
     }
     //! [complex serialization example]
+  }
+
+  {
+    fmt::print("Starting bitfield serialization example!\n");
+    //! [bitfield serialization example]
+    struct MyBits {
+      std::vector<bool> bits; // testing to see if std::vector<bool> space-efficient bitfield
+                              // serialization works
+      std::bitset<4> bitset;  // testing to see if std::bitset space-efficient bitfield
+                              // serialization works
+    };
+    std::error_code ec;
+    // here we try to make 4 bits followed by 4 bits
+    MyBits object{{true, false, true, false}, 0b1010};
+    fmt::print("object.bits:   {}\n", object.bits);
+    fmt::print("object.bitset: {}\n", object.bitset);
+    std::vector<uint8_t> buffer;
+    auto bytes_written = alpaca::serialize<alpaca::options::none>(object, buffer);
+    fmt::print("Serialized {}B to std::vector\n", bytes_written);
+    fmt::print("Serialized buffer: {::x}\n", buffer);
+    auto new_object = alpaca::deserialize<alpaca::options::none, MyBits>(buffer, ec);
+    if (!ec && new_object.bits == object.bits && new_object.bitset == object.bitset) {
+      fmt::print("Deserialized successfully!\n");
+      fmt::print("\tbits:   {}\n"
+                 "\tbitset: {}\n",
+                 new_object.bits, new_object.bitset);
+    } else {
+      fmt::print("Deserialization failed: {}\n", ec.message());
+      fmt::print("\tbits:   {}\n"
+                 "\tbitset: {}\n",
+                 new_object.bits, new_object.bitset);
+    }
+    //! [bitfield serialization example]
   }
 
   fmt::print("Serialization example complete!\n");

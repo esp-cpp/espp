@@ -17,12 +17,16 @@ public:
   /// @param q0_table The quantization table for the Y channel.
   /// @param q1_table The quantization table for the Cb and Cr channels.
   explicit JpegHeader(int width, int height, std::string_view q0_table, std::string_view q1_table)
-      : width_(width), height_(height), q0_table_(q0_table), q1_table_(q1_table) {
+      : width_(width)
+      , height_(height)
+      , q0_table_(q0_table)
+      , q1_table_(q1_table) {
     serialize();
   }
 
   /// Create a JPEG header from a given JPEG header data.
-  explicit JpegHeader(std::string_view data) : data_(data.data(), data.data() + data.size()) {
+  explicit JpegHeader(std::string_view data)
+      : data_(data.data(), data.data() + data.size()) {
     parse();
   }
 

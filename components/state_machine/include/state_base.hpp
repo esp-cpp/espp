@@ -26,8 +26,12 @@ public:
  */
 class StateBase {
 public:
-  StateBase() : _activeState(this), _parentState(nullptr) {}
-  explicit StateBase(StateBase *parent) : _activeState(this), _parentState(parent) {}
+  StateBase()
+      : _activeState(this)
+      , _parentState(nullptr) {}
+  explicit StateBase(StateBase *parent)
+      : _activeState(this)
+      , _parentState(parent) {}
   virtual ~StateBase(void) {}
 
   /**

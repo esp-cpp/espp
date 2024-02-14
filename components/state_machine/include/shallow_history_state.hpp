@@ -11,8 +11,10 @@ namespace espp::state_machine {
  */
 class ShallowHistoryState : public StateBase {
 public:
-  ShallowHistoryState() : StateBase() {}
-  explicit ShallowHistoryState(StateBase *_parent) : StateBase(_parent) {}
+  ShallowHistoryState()
+      : StateBase() {}
+  explicit ShallowHistoryState(StateBase *_parent)
+      : StateBase(_parent) {}
 
   /**
    * @brief Calls _parentState->setShallowHistory().

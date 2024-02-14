@@ -38,7 +38,8 @@ protected:
   EventType type;
 
 public:
-  explicit GeneratedEventBase(const EventType &t) : type(t) {}
+  explicit GeneratedEventBase(const EventType &t)
+      : type(t) {}
   virtual ~GeneratedEventBase() {}
   EventType get_type() const { return type; }
   virtual std::string to_string() const { return std::string(magic_enum::enum_name(type)); }
@@ -53,7 +54,9 @@ template <typename T> class Event : public GeneratedEventBase {
   T data;
 
 public:
-  explicit Event(const EventType &t, const T &d) : GeneratedEventBase(t), data(d) {}
+  explicit Event(const EventType &t, const T &d)
+      : GeneratedEventBase(t)
+      , data(d) {}
   virtual ~Event() {}
   T get_data() const { return data; }
 }; // Class Event
@@ -232,23 +235,26 @@ public:
 
   // Constructors
   Root()
-      : StateBase(), COMPLEX_OBJ__STATE_1_OBJ(this, this),
-        COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE_OBJ(this, &COMPLEX_OBJ__STATE_2_OBJ),
-        COMPLEX_OBJ__STATE_2_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ(&COMPLEX_OBJ__STATE_2_OBJ),
-        COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE2_OBJ(this, &COMPLEX_OBJ__STATE_2_OBJ),
-        COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND_OBJ(
-            this, &COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ),
-        COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ(
-            this, &COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ),
-        COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ(this, &COMPLEX_OBJ__STATE_2_OBJ),
-        COMPLEX_OBJ__STATE_2_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ(&COMPLEX_OBJ__STATE_2_OBJ),
-        COMPLEX_OBJ__STATE_2_OBJ(this, this),
-        COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE2_OBJ(this, &COMPLEX_OBJ__STATE3_OBJ),
-        COMPLEX_OBJ__STATE3_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ(&COMPLEX_OBJ__STATE3_OBJ),
-        COMPLEX_OBJ__STATE3_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ(&COMPLEX_OBJ__STATE3_OBJ),
-        COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE_OBJ(this, &COMPLEX_OBJ__STATE3_OBJ),
-        COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE3_OBJ(this, &COMPLEX_OBJ__STATE3_OBJ),
-        COMPLEX_OBJ__STATE3_OBJ(this, this), COMPLEX_OBJ__END_STATE_OBJ(this), _root(this) {}
+      : StateBase()
+      , COMPLEX_OBJ__STATE_1_OBJ(this, this)
+      , COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE_OBJ(this, &COMPLEX_OBJ__STATE_2_OBJ)
+      , COMPLEX_OBJ__STATE_2_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ(&COMPLEX_OBJ__STATE_2_OBJ)
+      , COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE2_OBJ(this, &COMPLEX_OBJ__STATE_2_OBJ)
+      , COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND_OBJ(
+            this, &COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ)
+      , COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ__GRAND2_OBJ(
+            this, &COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ)
+      , COMPLEX_OBJ__STATE_2_OBJ__CHILDSTATE3_OBJ(this, &COMPLEX_OBJ__STATE_2_OBJ)
+      , COMPLEX_OBJ__STATE_2_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ(&COMPLEX_OBJ__STATE_2_OBJ)
+      , COMPLEX_OBJ__STATE_2_OBJ(this, this)
+      , COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE2_OBJ(this, &COMPLEX_OBJ__STATE3_OBJ)
+      , COMPLEX_OBJ__STATE3_OBJ__SHALLOW_HISTORY_PSEUDOSTATE_OBJ(&COMPLEX_OBJ__STATE3_OBJ)
+      , COMPLEX_OBJ__STATE3_OBJ__DEEP_HISTORY_PSEUDOSTATE_OBJ(&COMPLEX_OBJ__STATE3_OBJ)
+      , COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE_OBJ(this, &COMPLEX_OBJ__STATE3_OBJ)
+      , COMPLEX_OBJ__STATE3_OBJ__CHILDSTATE3_OBJ(this, &COMPLEX_OBJ__STATE3_OBJ)
+      , COMPLEX_OBJ__STATE3_OBJ(this, this)
+      , COMPLEX_OBJ__END_STATE_OBJ(this)
+      , _root(this) {}
   ~Root(void) {}
 
   /**
@@ -337,7 +343,9 @@ public:
     Root *_root;
 
     // Constructors
-    State_1(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+    State_1(Root *root, StateBase *parent)
+        : StateBase(parent)
+        , _root(root) {}
     ~State_1(void) {}
 
     // StateBase Interface
@@ -362,7 +370,9 @@ public:
     Root *_root;
 
     // Constructors
-    State_2(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+    State_2(Root *root, StateBase *parent)
+        : StateBase(parent)
+        , _root(root) {}
     ~State_2(void) {}
 
     // StateBase Interface
@@ -387,7 +397,9 @@ public:
       Root *_root;
 
       // Constructors
-      ChildState(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+      ChildState(Root *root, StateBase *parent)
+          : StateBase(parent)
+          , _root(root) {}
       ~ChildState(void) {}
 
       // StateBase Interface
@@ -412,7 +424,9 @@ public:
       Root *_root;
 
       // Constructors
-      ChildState2(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+      ChildState2(Root *root, StateBase *parent)
+          : StateBase(parent)
+          , _root(root) {}
       ~ChildState2(void) {}
 
       // StateBase Interface
@@ -437,7 +451,9 @@ public:
       Root *_root;
 
       // Constructors
-      ChildState3(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+      ChildState3(Root *root, StateBase *parent)
+          : StateBase(parent)
+          , _root(root) {}
       ~ChildState3(void) {}
 
       // StateBase Interface
@@ -462,7 +478,9 @@ public:
         Root *_root;
 
         // Constructors
-        Grand(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+        Grand(Root *root, StateBase *parent)
+            : StateBase(parent)
+            , _root(root) {}
         ~Grand(void) {}
 
         // StateBase Interface
@@ -487,7 +505,9 @@ public:
         Root *_root;
 
         // Constructors
-        Grand2(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+        Grand2(Root *root, StateBase *parent)
+            : StateBase(parent)
+            , _root(root) {}
         ~Grand2(void) {}
 
         // StateBase Interface
@@ -514,7 +534,9 @@ public:
     Root *_root;
 
     // Constructors
-    State3(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+    State3(Root *root, StateBase *parent)
+        : StateBase(parent)
+        , _root(root) {}
     ~State3(void) {}
 
     // StateBase Interface
@@ -539,7 +561,9 @@ public:
       Root *_root;
 
       // Constructors
-      ChildState2(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+      ChildState2(Root *root, StateBase *parent)
+          : StateBase(parent)
+          , _root(root) {}
       ~ChildState2(void) {}
 
       // StateBase Interface
@@ -564,7 +588,9 @@ public:
       Root *_root;
 
       // Constructors
-      ChildState(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+      ChildState(Root *root, StateBase *parent)
+          : StateBase(parent)
+          , _root(root) {}
       ~ChildState(void) {}
 
       // StateBase Interface
@@ -589,7 +615,9 @@ public:
       Root *_root;
 
       // Constructors
-      ChildState3(Root *root, StateBase *parent) : StateBase(parent), _root(root) {}
+      ChildState3(Root *root, StateBase *parent)
+          : StateBase(parent)
+          , _root(root) {}
       ~ChildState3(void) {}
 
       // StateBase Interface
@@ -612,7 +640,8 @@ public:
    */
   class End_State : public StateBase {
   public:
-    explicit End_State(StateBase *parent) : StateBase(parent) {}
+    explicit End_State(StateBase *parent)
+        : StateBase(parent) {}
     void entry(void) {}
     void exit(void) {}
     void tick(void) {}

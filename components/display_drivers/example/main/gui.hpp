@@ -15,7 +15,8 @@ public:
   };
 
   explicit Gui(const Config &config)
-      : display_(config.display), logger_({.tag = "Gui", .level = config.log_level}) {
+      : display_(config.display)
+      , logger_({.tag = "Gui", .level = config.log_level}) {
     init_ui();
     // now start the gui updater task
     using namespace std::placeholders;

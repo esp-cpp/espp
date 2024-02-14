@@ -10,7 +10,8 @@
 
 class I2cMenu {
 public:
-  explicit I2cMenu(std::reference_wrapper<espp::I2c> i2c) : i2c_(i2c) {}
+  explicit I2cMenu(std::reference_wrapper<espp::I2c> i2c)
+      : i2c_(i2c) {}
 
   std::unique_ptr<cli::Menu> get(std::string_view name = "i2c",
                                  std::string_view description = "I2c menu") {
