@@ -664,7 +664,7 @@ protected:
     size_t num_inputs = analog_inputs_.size();
     std::vector<uint16_t> values(num_inputs);
     size_t num_bytes = num_inputs * num_bytes_per_sample_;
-    uint8_t raw_values[num_bytes] = {0};
+    uint8_t raw_values[num_bytes];
     // start the auto conversion sequence
     start_auto_conversion(ec);
     if (ec) {
