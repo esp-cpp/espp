@@ -121,7 +121,6 @@ extern "C" void app_main(void) {
   uint8_t battery_level = 99;
   // change the gamepad inputs every second
   int button_index = 1;
-  int hat_value = 1;
   while (true) {
     auto start = std::chrono::steady_clock::now();
 
@@ -130,8 +129,7 @@ extern "C" void app_main(void) {
     battery_level = (battery_level % 100) + 1;
 
     // cycle through the possible d-pad states
-    Gamepad::Hat hat = (Gamepad::Hat)hat_value;
-    hat_value = hat_value % 8 + 1;
+    Gamepad::Hat hat = (Gamepad::Hat)button_index;
     // use the button index to set the position of the right joystick
     float angle = 2.0f * M_PI * button_index / num_buttons;
 
