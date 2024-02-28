@@ -80,6 +80,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
@@ -148,7 +149,7 @@
           <li><a href="index.html">Math APIs</a> &raquo;</li>
       <li>Range Mapper</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7407783/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/761b524/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -165,7 +166,7 @@ input range to a standardized output range of [-1,1].</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7407783/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/761b524/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -184,6 +185,12 @@ The <a class="reference internal" href="#classespp_1_1_range_mapper"><span class
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper11RangeMapperEv">
+<span id="_CPPv3N4espp11RangeMapper11RangeMapperEv"></span><span id="_CPPv2N4espp11RangeMapper11RangeMapperEv"></span><span id="espp::RangeMapper::RangeMapper"></span><span class="target" id="classespp_1_1_range_mapper_1a34a3d857199a5f441b4f63b5661e8745"></span><span class="sig-name descname"><span class="n"><span class="pre">RangeMapper</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper11RangeMapperEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Initialize the range mapper with no config. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper11RangeMapperERK6Config">
 <span id="_CPPv3N4espp11RangeMapper11RangeMapperERK6Config"></span><span id="_CPPv2N4espp11RangeMapper11RangeMapperERK6Config"></span><span id="espp::RangeMapper::RangeMapper__ConfigCR"></span><span class="target" id="classespp_1_1_range_mapper_1a263673ae03de79304ee87060e68f124b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RangeMapper</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11RangeMapper6ConfigE" title="espp::RangeMapper::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper11RangeMapperERK6Config" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize the <a class="reference internal" href="#classespp_1_1_range_mapper"><span class="std std-ref">RangeMapper</span></a>. </p>
@@ -198,6 +205,14 @@ The <a class="reference internal" href="#classespp_1_1_range_mapper"><span class
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper9configureERK6Config">
 <span id="_CPPv3N4espp11RangeMapper9configureERK6Config"></span><span id="_CPPv2N4espp11RangeMapper9configureERK6Config"></span><span id="espp::RangeMapper::configure__ConfigCR"></span><span class="target" id="classespp_1_1_range_mapper_1a657df92a602ae9c22fd6b79ac38f5ab5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configure</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp11RangeMapper6ConfigE" title="espp::RangeMapper::Config"><span class="n"><span class="pre">Config</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper9configureERK6Config" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update the input / output distribution with the new configuration. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The output range will be passed through std::abs() to ensure it is positive. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The output range must be non-zero. If it is zero, the configuration will be ignored. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>config</strong> – New configuration to use. </p>
@@ -254,8 +269,8 @@ The <a class="reference internal" href="#classespp_1_1_range_mapper"><span class
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper3mapERK1T">
-<span id="_CPPv3N4espp11RangeMapper3mapERK1T"></span><span id="_CPPv2N4espp11RangeMapper3mapERK1T"></span><span id="espp::RangeMapper::map__TCR"></span><span class="target" id="classespp_1_1_range_mapper_1abbdd196672edea16fedeec2d5ca9e742"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper3mapERK1T" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11RangeMapper3mapERK1T">
+<span id="_CPPv3NK4espp11RangeMapper3mapERK1T"></span><span id="_CPPv2NK4espp11RangeMapper3mapERK1T"></span><span id="espp::RangeMapper::map__TCRC"></span><span class="target" id="classespp_1_1_range_mapper_1ad636c700da13f0ba36807483ff271ff9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11RangeMapper3mapERK1T" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Map a value <code class="docutils literal notranslate"><span class="pre">v</span></code> from the input distribution into the configured output range (centered, default [-1,1]). </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -263,6 +278,20 @@ The <a class="reference internal" href="#classespp_1_1_range_mapper"><span class
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Value within the centered output distribution. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp11RangeMapper5unmapERK1T">
+<span id="_CPPv3NK4espp11RangeMapper5unmapERK1T"></span><span id="_CPPv2NK4espp11RangeMapper5unmapERK1T"></span><span id="espp::RangeMapper::unmap__TCRC"></span><span class="target" id="classespp_1_1_range_mapper_1a08d35d1fcc64f41e4341289e197b5716"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unmap</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">v</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp11RangeMapper5unmapERK1T" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Unmap a value <code class="docutils literal notranslate"><span class="pre">v</span></code> from the configured output range (centered, default [-1,1]) back into the input distribution. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>T&amp;v</strong> – Value from the centered output distribution. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Value within the input distribution. </p>
 </dd>
 </dl>
 </dd></dl>
