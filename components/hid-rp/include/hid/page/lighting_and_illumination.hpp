@@ -1,0 +1,50 @@
+#ifndef __HID_PAGE_LIGHTING_AND_ILLUMINATION_HPP_
+#define __HID_PAGE_LIGHTING_AND_ILLUMINATION_HPP_
+
+#include "hid/usage.hpp"
+
+namespace hid::page {
+enum class lighting_and_illumination : std::uint8_t;
+template <> struct info<lighting_and_illumination> {
+  constexpr static page_id_t page_id = 0x0059;
+  constexpr static usage_id_t max_usage_id = 0x0071;
+  constexpr static const char *name = "Lighting and Illumination";
+};
+enum class lighting_and_illumination : std::uint8_t {
+  LAMP_ARRAY = 0x0001,
+  LAMP_ARRAY_ATTRIBUTES_REPORT = 0x0002,
+  LAMP_COUNT = 0x0003,
+  BOUNDING_BOX_WIDTH_UM = 0x0004,
+  BOUNDING_BOX_HEIGHT_UM = 0x0005,
+  BOUNDING_BOX_DEPTH_UM = 0x0006,
+  LAMP_ARRAY_KIND = 0x0007,
+  MINIMAL_UPDATE_INTERVAL_US = 0x0008,
+  LAMP_ATTRIBUTES_REQUEST_REPORT = 0x0020,
+  LAMP_ID = 0x0021,
+  LAMP_ATTRIBUTES_RESPONSE_REPORT = 0x0022,
+  POSITION_X_UM = 0x0023,
+  POSITION_Y_UM = 0x0024,
+  POSITION_Z_UM = 0x0025,
+  LAMP_PURPOSES = 0x0026,
+  UPDATE_LATENCY_US = 0x0027,
+  RED_LEVEL_COUNT = 0x0028,
+  GREEN_LEVEL_COUNT = 0x0029,
+  BLUE_LEVEL_COUNT = 0x002a,
+  INTENSITY_LEVEL_COUNT = 0x002b,
+  PROGRAMMABLE = 0x002c,
+  INPUT_BINDING = 0x002d,
+  LAMP_MULTI_UPDATE_REPORT = 0x0050,
+  RED_UPDATE_CHANNEL = 0x0051,
+  GREEN_UPDATE_CHANNEL = 0x0052,
+  BLUE_UPDATE_CHANNEL = 0x0053,
+  INTENSITY_UPDATE_CHANNEL = 0x0054,
+  LAMP_UPDATE_FLAGS = 0x0055,
+  LAMP_RANGE_UPDATE_REPORT = 0x0060,
+  LAMP_ID_START = 0x0061,
+  LAMP_ID_END = 0x0062,
+  LAMP_ARRAY_CONTROL_REPORT = 0x0070,
+  AUTONOMOUS_MODE = 0x0071,
+};
+} // namespace hid::page
+
+#endif // __HID_PAGE_LIGHTING_AND_ILLUMINATION_HPP_
