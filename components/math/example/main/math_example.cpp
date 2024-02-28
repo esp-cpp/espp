@@ -142,22 +142,24 @@ extern "C" void app_main(void) {
         .maximum = 255,
         .invert_output = true,
     });
-    auto vals = std::array<float, 13>{-10, 0, 10, 50, 100, 120, 127, 135, 150, 200, 250, 255, 275};
+    auto vals =
+        std::array<float, 14>{-10, 0, 10, 50, 100, 120, 127, 135, 150, 200, 240, 250, 255, 275};
+    // test the mapping and unmapping
     fmt::print("Mapping [0, 255] -> [-1, 1]\n");
     for (const auto &v : vals) {
-      fmt::print("{} -> {}\n", v, rm.map(v));
+      fmt::print("{} -> {} -> {} \n", v, rm.map(v), rm.unmap(rm.map(v)));
     }
     fmt::print("Mapping [0, 255] -> [0, 1024]\n");
     for (const auto &v : vals) {
-      fmt::print("{} -> {}\n", v, rm2.map(v));
+      fmt::print("{} -> {} -> {} \n", v, rm2.map(v), rm2.unmap(rm2.map(v)));
     }
     fmt::print("Mapping Inverted [0, 255] -> [1024, 0]\n");
     for (const auto &v : vals) {
-      fmt::print("{} -> {}\n", v, rm3.map(v));
+      fmt::print("{} -> {} -> {} \n", v, rm3.map(v), rm3.unmap(rm3.map(v)));
     }
     fmt::print("Mapping [0, 255] -> Inverted [1, -1]\n");
     for (const auto &v : vals) {
-      fmt::print("{} -> {}\n", v, rm4.map(v));
+      fmt::print("{} -> {} -> {} \n", v, rm4.map(v), rm4.unmap(rm4.map(v)));
     }
     //! [range_mapper example]
   }
