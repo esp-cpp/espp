@@ -1,0 +1,41 @@
+CONFIG_IDF_TARGET="esp32s3"
+
+# on the ESP32S3, which has native USB, we need to set the console so that the
+# CLI can be configured correctly:
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# Common ESP-related
+#
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+CONFIG_FREERTOS_HZ=1000
+
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
+#
+# BT config
+#
+CONFIG_BT_ENABLED=y
+CONFIG_BT_BLUEDROID_ENABLED=n
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_BT_NIMBLE_LOG_LEVEL_NONE=y
+CONFIG_BT_NIMBLE_NVS_PERSIST=y
+CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN=100
+CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192
+
+# NOTE: we can support extended advertising (longer advertisement packets) by
+#       enabling the following:
+# CONFIG_BT_NIMBLE_EXT_ADV=y
+#
+#   HOWEVER: we don't currently support this as the API to ble_gatt_server will
+#            need to support this compile-time definition.
+
+# Set the default Tx power level (P9 = +9dBm = the default)
+# CONFIG_BT_CTRL_DFT_TX_POWER_LEVEL_P9=y
+
+# Support modem sleep (low power mode)
+# CONFIG_BT_CTRL_MODEM_SLEEP=y
+
+# Set the ESP-NIMBLE-CPP Config
+CONFIG_NIMBLE_CPP_LOG_LEVEL_NONE=y
