@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "hid-rp.hpp"
 
 namespace espp {
@@ -57,12 +59,8 @@ protected:
 public:
   /// Reset the gamepad inputs
   constexpr void reset() {
-    for (auto &axis : joystick_axes) {
-      axis = joystick_center;
-    }
-    for (auto &axis : trigger_axes) {
-      axis = trigger_center;
-    }
+    std::fill(joystick_axes.begin(), joystick_axes.end(), joystick_center);
+    std::fill(trigger_axes.begin(), trigger_axes.end(), trigger_center);
     set_hat(Hat::CENTERED);
     buttons.reset();
   }

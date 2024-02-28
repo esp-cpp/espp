@@ -13,7 +13,7 @@ template <> struct info<button> {
 class button {
 public:
   constexpr operator usage_id_t() const { return id; }
-  constexpr button(std::uint8_t value)
+  explicit constexpr button(std::uint8_t value)
       : id(value) {}
   std::uint8_t id{};
 };
