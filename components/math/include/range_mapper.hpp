@@ -54,6 +54,11 @@ public:
   };
 
   /**
+   * Initialize the range mapper with no config.
+   */
+  RangeMapper() = default;
+
+  /**
    * @brief Initialize the RangeMapper.
    * @param config Configuration describing the input distribution.
    */
@@ -62,9 +67,16 @@ public:
   /**
    * @brief Update the input / output distribution with the new configuration.
    * @param config New configuration to use.
+   * @note The output range will be passed through std::abs() to ensure it is
+   *       positive.
+   * @note The output range must be non-zero. If it is zero, the configuration
+   *       will be ignored.
    */
   void configure(const Config &config) {
-    assert(config.output_range != T(0));
+    if (config.output_range == T(0)) {
+      return;
+    }
+
     center_ = config.center;
     deadband_ = config.deadband;
     minimum_ = config.minimum;
@@ -111,7 +123,7 @@ public:
    *        defined by the previously configured Config) input distribution
    * @return Value within the centered output distribution.
    */
-  T map(const T &v) {
+  T map(const T &v) const {
     T clamped = std::clamp(v, minimum_, maximum_);
     T calibrated{0};
     if (invert_input_) {
@@ -132,19 +144,38 @@ public:
     return output;
   }
 
+  /**
+   * @brief Unmap a value \p v from the configured output range (centered,
+   *        default [-1,1]) back into the input distribution.
+   * @param T&v Value from the centered output distribution.
+   * @return Value within the input distribution.
+   */
+  T unmap(const T &v) const {
+    T calibrated =
+        v >= T(0) ? (v - output_center_) * pos_range_ : (v - output_center_) * neg_range_;
+    if (invert_output_) {
+      calibrated = -calibrated;
+    }
+    T clamped = calibrated + center_;
+    if (invert_input_) {
+      clamped = calibrated >= T(0) ? maximum_ - calibrated : minimum_ - calibrated;
+    }
+    return std::clamp(clamped, minimum_, maximum_);
+  }
+
 protected:
-  T center_;
-  T deadband_;
-  T minimum_;
-  T maximum_;
-  bool invert_input_;
-  T pos_range_;
-  T neg_range_;
-  T output_center_;
-  T output_range_;
-  T output_min_;
-  T output_max_;
-  bool invert_output_;
+  T center_{0};
+  T deadband_{0};
+  T minimum_{0};
+  T maximum_{0};
+  bool invert_input_{false};
+  T pos_range_{1};
+  T neg_range_{1};
+  T output_center_{0};
+  T output_range_{0};
+  T output_min_{0};
+  T output_max_{0};
+  bool invert_output_{false};
 };
 
 /**
