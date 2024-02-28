@@ -15,6 +15,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    base_peripheral
    battery/index
    bldc/index
+   ble/index
    button
    controller
    cli

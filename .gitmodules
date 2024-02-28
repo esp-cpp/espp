@@ -28,3 +28,6 @@
 [submodule "external/magic_enum"]
 	path = external/magic_enum
 	url = git@github.com:neargye/magic_enum
+[submodule "components/esp-nimble-cpp"]
+	path = components/esp-nimble-cpp
+	url = git@github.com:esp-cpp/esp-nimble-cpp
