@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#if CONFIG_BT_NIMBLE_ENABLED
+#if CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
 
 #include "NimBLEDevice.h"
 
@@ -210,4 +210,4 @@ protected:
 };
 } // namespace espp
 
-#endif // CONFIG_BT_NIMBLE_ENABLED
+#endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
