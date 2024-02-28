@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HID-RP - ESP32 -  &mdash; ESPP latest documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/theme_overrides.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/clipboard.min.js"></script>
+        <script src="../_static/copybutton.js"></script>
+    <script src="../_static/js/theme.js"></script>
+
+    
+        
+
+    <script type="text/javascript">
+        DOCUMENTATION_OPTIONS.PAGENAME = 'hid/hid-rp';
+        DOCUMENTATION_OPTIONS.PROJECT_SLUG = 'esp-cpp';
+        DOCUMENTATION_OPTIONS.LATEST_BRANCH_NAME = 'master';
+        DOCUMENTATION_OPTIONS.VERSIONS_URL = 'https://dl.espressif.com/dl/esp-idf/idf_versions.js';
+        DOCUMENTATION_OPTIONS.LANGUAGES = ["en"];
+        DOCUMENTATION_OPTIONS.IDF_TARGET = 'esp32';
+        DOCUMENTATION_OPTIONS.HAS_IDF_TARGETS = ["esp32", "esp32s2", "esp32c3"]
+        DOCUMENTATION_OPTIONS.RELEASE = 'latest';
+    </script>
+
+    <script type="text/javascript" src="https://dl.espressif.com/dl/esp-idf/idf_versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="I2C" href="../i2c.html" />
+    <link rel="prev" title="HID APIs" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPP
+            <img src="../_static/espressif-logo.svg" class="logo" alt="Logo"/>
+          </a>
+
+          
+            <div class="selectors">
+              <select id="target-select" style="width: 150px;" hidden>
+                <option value="" disabled selected>Choose target...</option>
+              </select>
+            </div>
+          
+
+          <div class="selectors">
+            <select id="version-select" style="width: 150px;" hidden>
+              <option value="" disabled selected>Choose version...</option>
+            </select>
+          </div>
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../adc/index.html">ADC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_component.html">Base Compoenent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../base_peripheral.html">Base Peripheral</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../battery/index.html">Battery APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../bldc/index.html">BLDC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ble/index.html">BLE APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../button.html">Button APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../controller.html">Controller APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command Line Interface (CLI) APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../color.html">Color APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../csv.html">CSV APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../display/index.html">Display APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../encoder/index.html">Encoder APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../event_manager.html">Event Manager APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../file_system.html">File System APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../filters/index.html">Filter APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ftp/index.html">FTP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../haptics/index.html">Haptics APIs</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">HID APIs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">HID-RP</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../input/index.html">Input APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../io_expander/index.html">IO Expander APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../joystick.html">Joystick APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led.html">LED APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../led_strip.html">LED Strip APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../logger.html">Logging APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../monitor.html">Monitoring APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../math/index.html">Math APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../network/index.html">Network APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nfc/index.html">NFC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../pid.html">PID APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../qwiicnes.html">QwiicNES</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rmt.html">Remote Control Transceiver (RMT)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtc/index.html">RTC APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../rtsp.html">RTSP APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialization.html">Serialization APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../state_machine.html">State Machine APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tabulate.html">Tabulate APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../task.html">Task APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../thermistor.html">Thermistor APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../timer.html">Timer APIs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wifi/index.html">WiFi APIs</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">HID APIs</a> &raquo;</li>
+      <li>HID-RP</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/esp-cpp/espp/blob/80d8ba0/docs/en/hid/hid-rp.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="hid-rp">
+<h1>HID-RP<a class="headerlink" href="#hid-rp" title="Permalink to this headline"></a></h1>
+<p>The <cite>hid-rp</cite> component provides a wrapper around
+<a class="reference external" href="https://github.com/intergatedcircuits/hid-rp">https://github.com/intergatedcircuits/hid-rp</a> and also provides an example
+implementation of a configurable HID Gamepad using hid-rp.</p>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
+<section id="header-file">
+<h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/80d8ba0/components/hid-rp/include/hid-rp.hpp">components/hid-rp/include/hid-rp.hpp</a></p></li>
+</ul>
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/80d8ba0/components/hid-rp/include/hid-rp-gamepad.hpp">components/hid-rp/include/hid-rp-gamepad.hpp</a></p></li>
+</ul>
+</section>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I_6size_t_8uint16_t_8uint16_t_8uint16_t_8uint16_t_7uint8_tEN4espp13GamepadReportE">
+<span id="_CPPv3I_6size_t_8uint16_t_8uint16_t_8uint16_t_8uint16_t_7uint8_tEN4espp13GamepadReportE"></span><span id="_CPPv2I_6size_t_8uint16_t_8uint16_t_8uint16_t_8uint16_t_7uint8_tEN4espp13GamepadReportE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BUTTON_COUNT</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">JOYSTICK_MIN</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">JOYSTICK_MAX</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">65535</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TRIGGER_MIN</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TRIGGER_MAX</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1023</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">REPORT_ID</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classespp_1_1_gamepad_report"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">GamepadReport</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">hid</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">report</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">base</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">hid</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">report</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">INPUT</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I_6size_t_8uint16_t_8uint16_t_8uint16_t_8uint16_t_7uint8_tEN4espp13GamepadReportE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>HID Gamepad Report This class implements a HID Gamepad with a configurable number of buttons, a hat switch, 4 joystick axes and two trigger axes. It supports setting the buttons, hat switch, joysticks, and triggers, as well as serializing the input report and getting the report descriptor.</p>
+<section id="classespp_1_1_gamepad_report_1hid_rp_ex1">
+<h4>HID-RP Example<a class="headerlink" href="#classespp_1_1_gamepad_report_1hid_rp_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1_gamepad_report_1hid_rp_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">report_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_buttons</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">15</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">joystick_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">joystick_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">65535</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">trigger_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">trigger_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Gamepad</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">GamepadReport</span><span class="o">&lt;</span><span class="n">num_buttons</span><span class="p">,</span><span class="w"> </span><span class="n">joystick_min</span><span class="p">,</span><span class="w"> </span><span class="n">joystick_max</span><span class="p">,</span><span class="w"> </span><span class="n">trigger_min</span><span class="p">,</span>
+<span class="w">                                      </span><span class="n">trigger_max</span><span class="p">,</span><span class="w"> </span><span class="n">report_id</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Gamepad</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Generate the report descriptor for the gamepad</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">descriptor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">get_descriptor</span><span class="p">();</span>
+
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Report Descriptor:&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  Size: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">descriptor</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  Data: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">descriptor</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">Gamepad</span><span class="o">::</span><span class="n">Hat</span><span class="w"> </span><span class="n">hat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Gamepad</span><span class="o">::</span><span class="n">Hat</span><span class="o">::</span><span class="n">UP_RIGHT</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">button_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">button_index</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">num_buttons</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">  </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_hat</span><span class="p">(</span><span class="n">hat</span><span class="p">);</span>
+<span class="w">  </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_button</span><span class="p">(</span><span class="n">button_index</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// joystick inputs are in the range [-1, 1] float</span>
+<span class="w">  </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_right_joystick</span><span class="p">(</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">));</span>
+<span class="w">  </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_left_joystick</span><span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="w"> </span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">));</span>
+<span class="w">  </span><span class="c1">// trigger inputs are in the range [0, 1] float</span>
+<span class="w">  </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_accelerator</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)));</span>
+<span class="w">  </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_brake</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)));</span>
+
+<span class="w">  </span><span class="n">button_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">button_index</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">num_buttons</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// send an input report</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">get_report</span><span class="p">();</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Input report:&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  Size: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  Data: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">);</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3HatE">
+<span id="_CPPv3N4espp13GamepadReport3HatE"></span><span id="_CPPv2N4espp13GamepadReport3HatE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Hat</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3HatE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Possible Hat switch directions. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat8CENTEREDE">
+<span id="_CPPv3N4espp13GamepadReport3Hat8CENTEREDE"></span><span id="_CPPv2N4espp13GamepadReport3Hat8CENTEREDE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362a21c97af368df9b59d1244bd698506814"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CENTERED</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat8CENTEREDE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Centered, no direction pressed. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat2UPE">
+<span id="_CPPv3N4espp13GamepadReport3Hat2UPE"></span><span id="_CPPv2N4espp13GamepadReport3Hat2UPE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362afbaedde498cdead4f2780217646e9ba1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UP</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat2UPE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat8UP_RIGHTE">
+<span id="_CPPv3N4espp13GamepadReport3Hat8UP_RIGHTE"></span><span id="_CPPv2N4espp13GamepadReport3Hat8UP_RIGHTE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362aec3f5819018217397fc7f587a3b4ae78"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UP_RIGHT</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat8UP_RIGHTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat5RIGHTE">
+<span id="_CPPv3N4espp13GamepadReport3Hat5RIGHTE"></span><span id="_CPPv2N4espp13GamepadReport3Hat5RIGHTE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362a21507b40c80068eda19865706fdc2403"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RIGHT</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat5RIGHTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat10DOWN_RIGHTE">
+<span id="_CPPv3N4espp13GamepadReport3Hat10DOWN_RIGHTE"></span><span id="_CPPv2N4espp13GamepadReport3Hat10DOWN_RIGHTE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362adf0f3ca01992a950b7906128467ae934"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DOWN_RIGHT</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat10DOWN_RIGHTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat4DOWNE">
+<span id="_CPPv3N4espp13GamepadReport3Hat4DOWNE"></span><span id="_CPPv2N4espp13GamepadReport3Hat4DOWNE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362ac4e0e4e3118472beeb2ae75827450f1f"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DOWN</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat4DOWNE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat9DOWN_LEFTE">
+<span id="_CPPv3N4espp13GamepadReport3Hat9DOWN_LEFTE"></span><span id="_CPPv2N4espp13GamepadReport3Hat9DOWN_LEFTE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362aa6145f009f6f653615f0c197b6154028"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">DOWN_LEFT</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat9DOWN_LEFTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat4LEFTE">
+<span id="_CPPv3N4espp13GamepadReport3Hat4LEFTE"></span><span id="_CPPv2N4espp13GamepadReport3Hat4LEFTE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362a684d325a7303f52e64011467ff5c5758"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LEFT</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat4LEFTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport3Hat7UP_LEFTE">
+<span id="_CPPv3N4espp13GamepadReport3Hat7UP_LEFTE"></span><span id="_CPPv2N4espp13GamepadReport3Hat7UP_LEFTE"></span><span class="target" id="classespp_1_1_gamepad_report_1a02501fff74f661bbb36e35bf7e786362a5af977eba745c40e537dc0418e7f3206"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">UP_LEFT</span></span></span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport3Hat7UP_LEFTE" title="Permalink to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport5resetEv">
+<span id="_CPPv3N4espp13GamepadReport5resetEv"></span><span id="_CPPv2N4espp13GamepadReport5resetEv"></span><span id="espp::GamepadReport::resetCE"></span><span class="target" id="classespp_1_1_gamepad_report_1ac759b2b66142326859739b1bc2f15b5d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport5resetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reset the gamepad inputs. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport17set_left_joystickEff">
+<span id="_CPPv3N4espp13GamepadReport17set_left_joystickEff"></span><span id="_CPPv2N4espp13GamepadReport17set_left_joystickEff"></span><span id="espp::GamepadReport::set_left_joystick__float.floatCE"></span><span class="target" id="classespp_1_1_gamepad_report_1a678eb70c665f94a68bb2093a6765b898"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_left_joystick</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">lx</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ly</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport17set_left_joystickEff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the left joystick X and Y axis values </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lx</strong> – left joystick x axis value, in the range [-1, 1] </p></li>
+<li><p><strong>ly</strong> – left joystick y axis value, in the range [-1, 1] </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport18set_right_joystickEff">
+<span id="_CPPv3N4espp13GamepadReport18set_right_joystickEff"></span><span id="_CPPv2N4espp13GamepadReport18set_right_joystickEff"></span><span id="espp::GamepadReport::set_right_joystick__float.floatCE"></span><span class="target" id="classespp_1_1_gamepad_report_1a2d94edbe5cbf6576a5d21eb301ba964e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_right_joystick</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rx</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ry</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport18set_right_joystickEff" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the right joystick X and Y axis values </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rx</strong> – right joystick x axis value, in the range [-1, 1] </p></li>
+<li><p><strong>ry</strong> – right joystick y axis value, in the range [-1, 1] </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport9set_brakeEf">
+<span id="_CPPv3N4espp13GamepadReport9set_brakeEf"></span><span id="_CPPv2N4espp13GamepadReport9set_brakeEf"></span><span id="espp::GamepadReport::set_brake__floatCE"></span><span class="target" id="classespp_1_1_gamepad_report_1a75d43ce0f7c087c36da66210004e1fd4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_brake</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport9set_brakeEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the brake trigger value </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – brake trigger value, in the range [0, 1] </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport15set_acceleratorEf">
+<span id="_CPPv3N4espp13GamepadReport15set_acceleratorEf"></span><span id="_CPPv2N4espp13GamepadReport15set_acceleratorEf"></span><span id="espp::GamepadReport::set_accelerator__floatCE"></span><span class="target" id="classespp_1_1_gamepad_report_1ad94c6206234e7dfcd16730e6ca4e2b95"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_accelerator</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport15set_acceleratorEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the accelerator trigger value </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>value</strong> – accelerator trigger value, in the range [0, 1] </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport7set_hatE3Hat">
+<span id="_CPPv3N4espp13GamepadReport7set_hatE3Hat"></span><span id="_CPPv2N4espp13GamepadReport7set_hatE3Hat"></span><span id="espp::GamepadReport::set_hat__HatCE"></span><span class="target" id="classespp_1_1_gamepad_report_1aa0409778eb945cd71e9904749ad83cc9"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_hat</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp13GamepadReport3HatE" title="espp::GamepadReport::Hat"><span class="n"><span class="pre">Hat</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">hat</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport7set_hatE3Hat" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the hat switch (d-pad) value </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>hat</strong> – Hat enum / direction to set </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport10set_buttonEib">
+<span id="_CPPv3N4espp13GamepadReport10set_buttonEib"></span><span id="_CPPv2N4espp13GamepadReport10set_buttonEib"></span><span id="espp::GamepadReport::set_button__i.bCE"></span><span class="target" id="classespp_1_1_gamepad_report_1ada80a82995653357dde9a87fb8a6cde1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_button</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">button_index</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport10set_buttonEib" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the button value </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>button_index</strong> – The button for which you want to set the value. Should be between 1 and BUTTON_COUNT </p></li>
+<li><p><strong>value</strong> – The true/false value you want to se the button to. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport10get_reportEv">
+<span id="_CPPv3N4espp13GamepadReport10get_reportEv"></span><span id="_CPPv2N4espp13GamepadReport10get_reportEv"></span><span id="espp::GamepadReport::get_reportCE"></span><span class="target" id="classespp_1_1_gamepad_report_1a749f8d03f17f25d49f9a325dcaaa836b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_report</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport10get_reportEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the input report as a vector of bytes </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The input report as a vector of bytes. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13GamepadReport14get_descriptorEv">
+<span id="_CPPv3N4espp13GamepadReport14get_descriptorEv"></span><span id="_CPPv2N4espp13GamepadReport14get_descriptorEv"></span><span id="espp::GamepadReport::get_descriptorCE"></span><span class="target" id="classespp_1_1_gamepad_report_1aa534d572fc3f2d151d541acfc815b3f8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_descriptor</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13GamepadReport14get_descriptorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the report descriptor as a vector of bytes </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The report descriptor as a vector of bytes. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="HID APIs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../i2c.html" class="btn btn-neutral float-right" title="I2C" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022 - 2024, William Emfinger.</p>
+  </div>
+
+  <ul class="footer">
+        <li>
+	    
+            
+            Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/espressif/sphinx_idf_theme">theme</a>  based on <a href="https://github.com/readthedocs/sphinx_rtd_theme">Read the Docs Sphinx Theme</a>.
+         </li>
+
+  </ul> 
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -28,6 +28,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    filters/index
    ftp/index
    haptics/index
+   hid/index
    i2c
    input/index
    io_expander/index

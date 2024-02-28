@@ -52,5 +52,5 @@ extern "C" void app_main(void) {
   logger.info("Input report:");
   logger.info("  Size: {}", report.size());
   logger.info("  Data: {::#02x}", report);
-  //! [hid report example]
+  //! [hid rp example]
 }

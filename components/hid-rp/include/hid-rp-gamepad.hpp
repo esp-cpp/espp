@@ -5,12 +5,20 @@
 namespace espp {
 
 /// HID Gamepad Report
+/// This class implements a HID Gamepad with a configurable number of buttons, a
+/// hat switch, 4 joystick axes and two trigger axes. It supports setting the
+/// buttons, hat switch, joysticks, and triggers, as well as serializing the
+/// input report and getting the report descriptor.
 ///
+/// \section hid_rp_ex1 HID-RP Example
+/// \snippet hid_rp_example.cpp hid rp example
 template <size_t BUTTON_COUNT, uint16_t JOYSTICK_MIN = 0, uint16_t JOYSTICK_MAX = 65535,
           uint16_t TRIGGER_MIN = 0, uint16_t TRIGGER_MAX = 1023, uint8_t REPORT_ID = 0>
-struct GamepadReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
+class GamepadReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
+public:
+  /// Possible Hat switch directions
   enum class Hat {
-    CENTERED = 0x0f,
+    CENTERED = 0x0f, ///< Centered, no direction pressed.
     UP = 1,
     UP_RIGHT,
     RIGHT,
@@ -21,6 +29,7 @@ struct GamepadReport : public hid::report::base<hid::report::type::INPUT, REPORT
     UP_LEFT
   };
 
+protected:
   static constexpr size_t button_count = BUTTON_COUNT;
   static constexpr size_t num_button_padding = BUTTON_COUNT % 8 ? 8 - (BUTTON_COUNT % 8) : 0;
   static constexpr uint16_t joystick_min = JOYSTICK_MIN;
@@ -45,6 +54,7 @@ struct GamepadReport : public hid::report::base<hid::report::type::INPUT, REPORT
   hid::report_bitset<hid::page::button, hid::page::button(1), hid::page::button(BUTTON_COUNT)>
       buttons;
 
+public:
   /// Reset the gamepad inputs
   constexpr void reset() {
     for (auto &axis : joystick_axes) {
