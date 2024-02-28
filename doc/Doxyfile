@@ -188,8 +188,26 @@ WARN_IF_DOC_ERROR = NO
 ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
-PREDEFINED             = \
-    $(ENV_DOXYGEN_DEFINES)
+
+# The PREDEFINED tag can be used to specify one or more macro names that are
+# defined before the preprocessor is started (similar to the -D option of e.g.
+# gcc). The argument of the tag is a list of macros of the form: name or
+# name=definition (no spaces). If the definition and the "=" are omitted, "=1"
+# is assumed. To prevent a macro definition from being undefined via #undef or
+# recursively expanded use the := operator instead of the = operator.
+# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
+
+PREDEFINED             = _DOXYGEN_ \
+                         CONFIG_BT_ENABLED \
+                         CONFIG_BT_NIMBLE_ENABLED \
+                         CONFIG_BT_NIMBLE_ROLE_CENTRAL \
+                         CONFIG_BT_NIMBLE_ROLE_OBSERVER \
+                         CONFIG_BT_NIMBLE_ROLE_PERIPHERAL \
+                         CONFIG_BT_NIMBLE_ROLE_BROADCASTER \
+                         CONFIG_BT_NIMBLE_EXT_ADV \
+                         CONFIG_COMPILER_CXX_EXCEPTIONS \
+                         $(ENV_DOXYGEN_DEFINES)
+
 
 ## Generate XML that is required for Breathe
 ##
