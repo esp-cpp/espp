@@ -34,3 +34,6 @@
 [submodule "external/hid-rp"]
 	path = external/hid-rp
 	url = https://github.com/intergatedcircuits/hid-rp
+[submodule "external/nearby"]
+	path = external/nearby
+	url = git@github.com:google/nearby

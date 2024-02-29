@@ -1,0 +1,13 @@
+menu "GFPS Configuration"
+    config GFPS_MODEL_ID
+        hex "GFPS Model ID"
+        default 0x0
+        help
+            Set the model id (24 bit) used for Google Fast Pair Service (GFPS)
+
+    config GFPS_ANTISPOOFING_PRIVATE_KEY
+        string "GFPS Anti-Spoofing Private Key"
+        default ""
+        help
+            Set the GFPS anti-spoofing private key, as a base64 uncompressed string.
+endmenu

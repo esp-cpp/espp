@@ -39,7 +39,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Button APIs" href="../button.html" />
-    <link rel="prev" title="Device Info Service" href="device_info_service.html" /> 
+    <link rel="prev" title="Google Fast Pair Service (GFPS) Service" href="gfps_service.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -84,6 +84,7 @@
 <li class="toctree-l2"><a class="reference internal" href="battery_service.html">Battery Service</a></li>
 <li class="toctree-l2"><a class="reference internal" href="ble_gatt_server.html">BLE GATT Server</a></li>
 <li class="toctree-l2"><a class="reference internal" href="device_info_service.html">Device Info Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gfps_service.html">Google Fast Pair Service (GFPS) Service</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">HID Service</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
@@ -149,7 +150,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>HID Service</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/ca6182f2/docs/en/ble/hid_service.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/a104339b/docs/en/ble/hid_service.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -167,7 +168,7 @@ BLE central.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ca6182f2/components/hid_service/include/hid_service.hpp">components/hid_service/include/hid_service.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a104339b/components/hid_service/include/hid_service.hpp">components/hid_service/include/hid_service.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -176,8 +177,8 @@ BLE central.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10HidServiceE">
 <span id="_CPPv3N4espp10HidServiceE"></span><span id="_CPPv2N4espp10HidServiceE"></span><span id="espp::HidService"></span><span class="target" id="classespp_1_1_hid_service"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">HidService</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp10HidServiceE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>HID Service This class is responsible for creating and managing the HID service. It is responsible for creating and managing the required characteristics per the HID specification. It allows arbitrary input/output/feature HID reports.</p>
-<p>NOTE: this is a simplified version of NimBLEHIDDevice, which does not include the DeviceInformationService and <a class="reference internal" href="battery_service.html#classespp_1_1_battery_service"><span class="std std-ref">BatteryService</span></a> internally, as <a class="reference internal" href="ble_gatt_server.html#classespp_1_1_ble_gatt_server"><span class="std std-ref">espp::BleGattServer</span></a> already provides the DeviceInformationService and <a class="reference internal" href="battery_service.html#classespp_1_1_battery_service"><span class="std std-ref">BatteryService</span></a>.</p>
-<p>If you need the DeviceInformationService and <a class="reference internal" href="battery_service.html#classespp_1_1_battery_service"><span class="std std-ref">BatteryService</span></a>, you can access them through <a class="reference internal" href="ble_gatt_server.html#classespp_1_1_ble_gatt_server"><span class="std std-ref">espp::BleGattServer</span></a>.</p>
+<p>NOTE: this is a simplified version of NimBLEHIDDevice, which does not include the <a class="reference internal" href="device_info_service.html#classespp_1_1_device_info_service"><span class="std std-ref">DeviceInfoService</span></a> and <a class="reference internal" href="battery_service.html#classespp_1_1_battery_service"><span class="std std-ref">BatteryService</span></a> internally, as <a class="reference internal" href="ble_gatt_server.html#classespp_1_1_ble_gatt_server"><span class="std std-ref">espp::BleGattServer</span></a> already provides the <a class="reference internal" href="device_info_service.html#classespp_1_1_device_info_service"><span class="std std-ref">DeviceInfoService</span></a> and <a class="reference internal" href="battery_service.html#classespp_1_1_battery_service"><span class="std std-ref">BatteryService</span></a>.</p>
+<p>If you need the <a class="reference internal" href="device_info_service.html#classespp_1_1_device_info_service"><span class="std std-ref">DeviceInfoService</span></a> and <a class="reference internal" href="battery_service.html#classespp_1_1_battery_service"><span class="std std-ref">BatteryService</span></a>, you can access them through <a class="reference internal" href="ble_gatt_server.html#classespp_1_1_ble_gatt_server"><span class="std std-ref">espp::BleGattServer</span></a>.</p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="ble_gatt_server.html#classespp_1_1_ble_gatt_server"><span class="std std-ref">BleGattServer</span></a></p>
@@ -185,147 +186,145 @@ BLE central.</p>
 </p>
 <section id="classespp_1_1_hid_service_1hid_service_ex1">
 <h4>HID Service Example<a class="headerlink" href="#classespp_1_1_hid_service_1hid_service_ex1" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_hid_service_1hid_service_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// NOTE: esp-nimble-cpp already depends on nvs_flash and initializes</span>
-<span class="w">    </span><span class="c1">//       nvs_flash in the NimBLEDevice::init(), so we don&#39;t have to do that</span>
-<span class="w">    </span><span class="c1">//       to store bonding info</span>
+<p id="classespp_1_1_hid_service_1hid_service_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// NOTE: esp-nimble-cpp already depends on nvs_flash and initializes</span>
+<span class="w">  </span><span class="c1">//       nvs_flash in the NimBLEDevice::init(), so we don&#39;t have to do that</span>
+<span class="w">  </span><span class="c1">//       to store bonding info</span>
 
-<span class="w">    </span><span class="c1">// create the GATT server</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">device_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ESP++ HID&quot;</span><span class="p">;</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_callbacks</span><span class="p">({</span>
-<span class="w">        </span><span class="p">.</span><span class="n">connect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device connected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
-<span class="w">        </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span>
-<span class="w">            </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
-<span class="w">        </span><span class="p">.</span><span class="n">authentication_complete_callback</span><span class="w"> </span><span class="o">=</span>
-<span class="w">            </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
-<span class="w">    </span><span class="p">});</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// create the GATT server</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">device_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ESP++ HID&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_callbacks</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">connect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device connected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">authentication_complete_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// for HID we need to set some security</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">bonding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">mitm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">secure_connections</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_security</span><span class="p">(</span><span class="n">bonding</span><span class="p">,</span><span class="w"> </span><span class="n">mitm</span><span class="p">,</span><span class="w"> </span><span class="n">secure_connections</span><span class="p">);</span>
-<span class="w">    </span><span class="c1">// and some i/o and key config</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_io_capabilities</span><span class="p">(</span><span class="n">BLE_HS_IO_NO_INPUT_OUTPUT</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_init_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_resp_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// for HID we need to set some security</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">bonding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">mitm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">secure_connections</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_security</span><span class="p">(</span><span class="n">bonding</span><span class="p">,</span><span class="w"> </span><span class="n">mitm</span><span class="p">,</span><span class="w"> </span><span class="n">secure_connections</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// and some i/o and key config</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_io_capabilities</span><span class="p">(</span><span class="n">BLE_HS_IO_NO_INPUT_OUTPUT</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_init_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_resp_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// let&#39;s create a HID service</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">HidService</span><span class="w"> </span><span class="n">hid_service</span><span class="p">;</span>
-<span class="w">    </span><span class="n">hid_service</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">server</span><span class="p">());</span>
+<span class="w">  </span><span class="c1">// let&#39;s create a HID service</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">HidService</span><span class="w"> </span><span class="n">hid_service</span><span class="p">;</span>
+<span class="w">  </span><span class="n">hid_service</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">server</span><span class="p">());</span>
 
-<span class="w">    </span><span class="c1">// configure it some</span>
-<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">country_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x00</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">hid_info_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x01</span><span class="p">;</span>
-<span class="w">    </span><span class="n">hid_service</span><span class="p">.</span><span class="n">set_info</span><span class="p">(</span><span class="n">country_code</span><span class="p">,</span><span class="w"> </span><span class="n">hid_info_flags</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// configure it some</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">country_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x00</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">hid_info_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x01</span><span class="p">;</span>
+<span class="w">  </span><span class="n">hid_service</span><span class="p">.</span><span class="n">set_info</span><span class="p">(</span><span class="n">country_code</span><span class="p">,</span><span class="w"> </span><span class="n">hid_info_flags</span><span class="p">);</span>
 
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">report_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_buttons</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">15</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">joystick_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">joystick_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">65535</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">trigger_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">trigger_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">report_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_buttons</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">15</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">joystick_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">joystick_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">65535</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">trigger_min</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">trigger_max</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1024</span><span class="p">;</span>
 
-<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Gamepad</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">GamepadReport</span><span class="o">&lt;</span><span class="n">num_buttons</span><span class="p">,</span><span class="w"> </span><span class="n">joystick_min</span><span class="p">,</span><span class="w"> </span><span class="n">joystick_max</span><span class="p">,</span><span class="w"> </span><span class="n">trigger_min</span><span class="p">,</span><span class="w"> </span><span class="n">trigger_max</span><span class="p">,</span><span class="w"> </span><span class="n">report_id</span><span class="o">&gt;</span><span class="p">;</span>
-<span class="w">    </span><span class="n">Gamepad</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Gamepad</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">GamepadReport</span><span class="o">&lt;</span><span class="n">num_buttons</span><span class="p">,</span><span class="w"> </span><span class="n">joystick_min</span><span class="p">,</span><span class="w"> </span><span class="n">joystick_max</span><span class="p">,</span><span class="w"> </span><span class="n">trigger_min</span><span class="p">,</span>
+<span class="w">                                      </span><span class="n">trigger_max</span><span class="p">,</span><span class="w"> </span><span class="n">report_id</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Gamepad</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">;</span>
 
-<span class="w">    </span><span class="c1">// Generate the report descriptor for the gamepad</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">descriptor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">get_descriptor</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// Generate the report descriptor for the gamepad</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">descriptor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">get_descriptor</span><span class="p">();</span>
 
-<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Report Descriptor:&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  Size: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">descriptor</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
-<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  Data: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">descriptor</span><span class="p">);</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Report Descriptor:&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  Size: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">descriptor</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">  </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;  Data: {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">descriptor</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// set the report map (vector of bytes)</span>
-<span class="w">    </span><span class="n">hid_service</span><span class="p">.</span><span class="n">set_report_map</span><span class="p">(</span><span class="n">descriptor</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// set the report map (vector of bytes)</span>
+<span class="w">  </span><span class="n">hid_service</span><span class="p">.</span><span class="n">set_report_map</span><span class="p">(</span><span class="n">descriptor</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// use the HID service to make an input report characteristic</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">input_report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hid_service</span><span class="p">.</span><span class="n">input_report</span><span class="p">(</span><span class="n">report_id</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// use the HID service to make an input report characteristic</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">input_report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hid_service</span><span class="p">.</span><span class="n">input_report</span><span class="p">(</span><span class="n">report_id</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// now that we&#39;ve made the input characteristic, we can start the service</span>
-<span class="w">    </span><span class="n">hid_service</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
-<span class="w">    </span><span class="c1">// starts the device info service and battery service, see</span>
-<span class="w">    </span><span class="c1">// hid_service_example for more info</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_services</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// now that we&#39;ve made the input characteristic, we can start the service</span>
+<span class="w">  </span><span class="n">hid_service</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// starts the device info service and battery service, see</span>
+<span class="w">  </span><span class="c1">// hid_service_example for more info</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_services</span><span class="p">();</span>
 
-<span class="w">    </span><span class="c1">// now start the gatt server</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// now start the gatt server</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
 
-<span class="w">    </span><span class="c1">// let&#39;s set some of the service data</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">battery_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">battery_service</span><span class="p">();</span>
-<span class="w">    </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="mi">99</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// let&#39;s set some of the service data</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">battery_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">battery_service</span><span class="p">();</span>
+<span class="w">  </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="mi">99</span><span class="p">);</span>
 
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">device_info_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">device_info_service</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">vendor_source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02</span><span class="p">;</span><span class="w"> </span><span class="c1">// USB</span>
-<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x045E</span><span class="p">;</span><span class="w">         </span><span class="c1">// Microsoft</span>
-<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02FD</span><span class="p">;</span><span class="w">         </span><span class="c1">// Xbox One Controller</span>
-<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">product_version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0100</span><span class="p">;</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_pnp_id</span><span class="p">(</span><span class="n">vendor_source</span><span class="p">,</span><span class="w"> </span><span class="n">vid</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="n">product_version</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_manufacturer_name</span><span class="p">(</span><span class="s">&quot;ESP-CPP&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_model_number</span><span class="p">(</span><span class="s">&quot;esp-hid-01&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_serial_number</span><span class="p">(</span><span class="s">&quot;1234567890&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_software_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_firmware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_hardware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">device_info_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">device_info_service</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">vendor_source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02</span><span class="p">;</span><span class="w"> </span><span class="c1">// USB</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x045E</span><span class="p">;</span><span class="w">        </span><span class="c1">// Microsoft</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02FD</span><span class="p">;</span><span class="w">        </span><span class="c1">// Xbox One Controller</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">product_version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0100</span><span class="p">;</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_pnp_id</span><span class="p">(</span><span class="n">vendor_source</span><span class="p">,</span><span class="w"> </span><span class="n">vid</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="n">product_version</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_manufacturer_name</span><span class="p">(</span><span class="s">&quot;ESP-CPP&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_model_number</span><span class="p">(</span><span class="s">&quot;esp-hid-01&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_serial_number</span><span class="p">(</span><span class="s">&quot;1234567890&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_software_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_firmware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_hardware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// now lets start advertising</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingData</span><span class="w"> </span><span class="n">adv_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device_name</span><span class="p">,</span>
-<span class="w">        </span><span class="p">.</span><span class="n">appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x03C4</span><span class="p">,</span><span class="w"> </span><span class="c1">// Gamepad</span>
-<span class="w">        </span><span class="p">.</span><span class="n">services</span><span class="w"> </span><span class="o">=</span>
-<span class="w">            </span><span class="p">{</span>
-<span class="w">                </span><span class="c1">// these are the services that we want to advertise</span>
-<span class="w">                </span><span class="n">hid_service</span><span class="p">.</span><span class="n">uuid</span><span class="p">(),</span><span class="w"> </span><span class="c1">// hid service</span>
-<span class="w">            </span><span class="p">},</span>
-<span class="w">        </span><span class="p">.</span><span class="n">service_data</span><span class="w"> </span><span class="o">=</span>
-<span class="w">            </span><span class="p">{</span>
-<span class="w">                </span><span class="c1">// these are the service data that we want to advertise</span>
-<span class="w">            </span><span class="p">},</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingParameters</span><span class="w"> </span><span class="n">adv_params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">(</span><span class="n">adv_data</span><span class="p">,</span><span class="w"> </span><span class="n">adv_params</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// now lets start advertising</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingData</span><span class="w"> </span><span class="n">adv_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device_name</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x03C4</span><span class="p">,</span><span class="w"> </span><span class="c1">// Gamepad</span>
+<span class="w">      </span><span class="p">.</span><span class="n">services</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">              </span><span class="c1">// these are the services that we want to advertise</span>
+<span class="w">              </span><span class="n">hid_service</span><span class="p">.</span><span class="n">uuid</span><span class="p">(),</span><span class="w"> </span><span class="c1">// hid service</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">service_data</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">{</span>
+<span class="w">              </span><span class="c1">// these are the service data that we want to advertise</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingParameters</span><span class="w"> </span><span class="n">adv_params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">(</span><span class="n">adv_data</span><span class="p">,</span><span class="w"> </span><span class="n">adv_params</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// now lets update the battery level and send an input report every second</span>
-<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
-<span class="w">    </span><span class="c1">// change the gamepad inputs every second</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">button_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
-<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">hat_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
-<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// now lets update the battery level and send an input report every second</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// change the gamepad inputs every second</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">button_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 
-<span class="w">        </span><span class="c1">// update the battery level</span>
-<span class="w">        </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="n">battery_level</span><span class="p">);</span>
-<span class="w">        </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">battery_level</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// update the battery level</span>
+<span class="w">    </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="n">battery_level</span><span class="p">);</span>
+<span class="w">    </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">battery_level</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 
-<span class="w">        </span><span class="c1">// cycle through the possible d-pad states</span>
-<span class="w">        </span><span class="n">Gamepad</span><span class="o">::</span><span class="n">Hat</span><span class="w"> </span><span class="n">hat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">Gamepad</span><span class="o">::</span><span class="n">Hat</span><span class="p">)</span><span class="n">hat_value</span><span class="p">;</span>
-<span class="w">        </span><span class="n">hat_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">hat_value</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
-<span class="w">        </span><span class="c1">// use the button index to set the position of the right joystick</span>
-<span class="w">        </span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">button_index</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">num_buttons</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// cycle through the possible d-pad states</span>
+<span class="w">    </span><span class="n">Gamepad</span><span class="o">::</span><span class="n">Hat</span><span class="w"> </span><span class="n">hat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">Gamepad</span><span class="o">::</span><span class="n">Hat</span><span class="p">)</span><span class="n">button_index</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// use the button index to set the position of the right joystick</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">button_index</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">num_buttons</span><span class="p">;</span>
 
-<span class="w">        </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
-<span class="w">        </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_hat</span><span class="p">(</span><span class="n">hat</span><span class="p">);</span>
-<span class="w">        </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_button</span><span class="p">(</span><span class="n">button_index</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
-<span class="w">        </span><span class="c1">// joystick inputs are in the range [-1, 1] float</span>
-<span class="w">        </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_right_joystick</span><span class="p">(</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">));</span>
-<span class="w">        </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_left_joystick</span><span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="w"> </span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">));</span>
-<span class="w">        </span><span class="c1">// trigger inputs are in the range [0, 1] float</span>
-<span class="w">        </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_accelerator</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)));</span>
-<span class="w">        </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_brake</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)));</span>
+<span class="w">    </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">reset</span><span class="p">();</span>
+<span class="w">    </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_hat</span><span class="p">(</span><span class="n">hat</span><span class="p">);</span>
+<span class="w">    </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_button</span><span class="p">(</span><span class="n">button_index</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// joystick inputs are in the range [-1, 1] float</span>
+<span class="w">    </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_right_joystick</span><span class="p">(</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">));</span>
+<span class="w">    </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_left_joystick</span><span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">),</span><span class="w"> </span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">));</span>
+<span class="w">    </span><span class="c1">// trigger inputs are in the range [0, 1] float</span>
+<span class="w">    </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_accelerator</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">sin</span><span class="p">(</span><span class="n">angle</span><span class="p">)));</span>
+<span class="w">    </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">set_brake</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">)));</span>
 
-<span class="w">        </span><span class="n">button_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">button_index</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">num_buttons</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">button_index</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">button_index</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">num_buttons</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 
-<span class="w">        </span><span class="c1">// send an input report</span>
-<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">get_report</span><span class="p">();</span>
-<span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Sending report data ({}): {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">report</span><span class="p">);</span>
-<span class="w">        </span><span class="n">input_report</span><span class="o">-&gt;</span><span class="n">notify</span><span class="p">(</span><span class="n">report</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// send an input report</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gamepad_input_report</span><span class="p">.</span><span class="n">get_report</span><span class="p">();</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Sending report data ({}): {::#02x}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">report</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span><span class="w"> </span><span class="n">report</span><span class="p">);</span>
+<span class="w">    </span><span class="n">input_report</span><span class="o">-&gt;</span><span class="n">notify</span><span class="p">(</span><span class="n">report</span><span class="p">);</span>
 
-<span class="w">        </span><span class="c1">// sleep</span>
-<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_until</span><span class="p">(</span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// sleep</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_until</span><span class="p">(</span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
 </pre></div>
 </div>
  </p>
@@ -602,7 +601,7 @@ BLE central.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="device_info_service.html" class="btn btn-neutral float-left" title="Device Info Service" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="gfps_service.html" class="btn btn-neutral float-left" title="Google Fast Pair Service (GFPS) Service" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../button.html" class="btn btn-neutral float-right" title="Button APIs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
