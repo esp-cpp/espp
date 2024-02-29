@@ -153,7 +153,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>Google Fast Pair Service (GFPS) Service</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/a104339b/docs/en/ble/gfps_service.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/fb7442bb/docs/en/ble/gfps_service.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -173,7 +173,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a104339b/components/gfps_service/include/gfps_service.hpp">components/gfps_service/include/gfps_service.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/fb7442bb/components/gfps_service/include/gfps_service.hpp">components/gfps_service/include/gfps_service.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -199,85 +199,81 @@ account’s google devices and personalizing the name of the device.</p>
 </p>
 <section id="classespp_1_1_gfps_service_1gfps_service_ex1">
 <h4>GFPS Service Example<a class="headerlink" href="#classespp_1_1_gfps_service_1gfps_service_ex1" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_gfps_service_1gfps_service_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// NOTE: esp-nimble-cpp already depends on nvs_flash and initializes</span>
-<span class="w">    </span><span class="c1">//       nvs_flash in the NimBLEDevice::init(), so we don&#39;t have to do that</span>
-<span class="w">    </span><span class="c1">//       to store bonding info</span>
+<p id="classespp_1_1_gfps_service_1gfps_service_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// NOTE: esp-nimble-cpp already depends on nvs_flash and initializes</span>
+<span class="w">  </span><span class="c1">//       nvs_flash in the NimBLEDevice::init(), so we don&#39;t have to do that</span>
+<span class="w">  </span><span class="c1">//       to store bonding info</span>
 
-<span class="w">    </span><span class="c1">// create the GATT server</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">device_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ESP++ GFPS Example&quot;</span><span class="p">;</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_callbacks</span><span class="p">({</span>
-<span class="w">        </span><span class="p">.</span><span class="n">connect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device connected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
-<span class="w">        </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span>
-<span class="w">            </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
-<span class="w">        </span><span class="p">.</span><span class="n">authentication_complete_callback</span><span class="w"> </span><span class="o">=</span>
-<span class="w">            </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
-<span class="w">    </span><span class="p">});</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// create the GATT server</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">device_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ESP++ GFPS Example&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_callbacks</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">connect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device connected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">authentication_complete_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// let&#39;s create a GFPS service</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">GfpsService</span><span class="w"> </span><span class="n">gfps_service</span><span class="p">;</span>
-<span class="w">    </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">server</span><span class="p">());</span>
+<span class="w">  </span><span class="c1">// let&#39;s create a GFPS service</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">GfpsService</span><span class="w"> </span><span class="n">gfps_service</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">server</span><span class="p">());</span>
 
-<span class="w">    </span><span class="c1">// now that we&#39;ve made the input characteristic, we can start the service</span>
-<span class="w">    </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_services</span><span class="p">();</span><span class="w"> </span><span class="c1">// starts the device info service and battery service</span>
-<span class="w">    </span><span class="c1">// NOTE: we could also directly start them ourselves if we wanted to</span>
-<span class="w">    </span><span class="c1">//      control the order of starting the services</span>
-<span class="w">    </span><span class="c1">// e.g.:</span>
-<span class="w">    </span><span class="c1">// ble_gatt_server.battery_service().start();</span>
-<span class="w">    </span><span class="c1">// ble_gatt_server.device_info_service().start();</span>
+<span class="w">  </span><span class="c1">// now that we&#39;ve made the input characteristic, we can start the service</span>
+<span class="w">  </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_services</span><span class="p">();</span><span class="w"> </span><span class="c1">// starts the device info service and battery service</span>
+<span class="w">  </span><span class="c1">// NOTE: we could also directly start them ourselves if we wanted to</span>
+<span class="w">  </span><span class="c1">//      control the order of starting the services</span>
+<span class="w">  </span><span class="c1">// e.g.:</span>
+<span class="w">  </span><span class="c1">// ble_gatt_server.battery_service().start();</span>
+<span class="w">  </span><span class="c1">// ble_gatt_server.device_info_service().start();</span>
 
-<span class="w">    </span><span class="c1">// now start the gatt server</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// now start the gatt server</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
 
-<span class="w">    </span><span class="c1">// let&#39;s set some of the service data</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">battery_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">battery_service</span><span class="p">();</span>
-<span class="w">    </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="mi">99</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// let&#39;s set some of the service data</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">battery_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">battery_service</span><span class="p">();</span>
+<span class="w">  </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="mi">99</span><span class="p">);</span>
 
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">device_info_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">device_info_service</span><span class="p">();</span>
-<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">vendor_source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02</span><span class="p">;</span><span class="w"> </span><span class="c1">// USB</span>
-<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x045E</span><span class="p">;</span><span class="w">         </span><span class="c1">// Microsoft</span>
-<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02FD</span><span class="p">;</span><span class="w">         </span><span class="c1">// Xbox One Controller</span>
-<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">product_version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0100</span><span class="p">;</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_pnp_id</span><span class="p">(</span><span class="n">vendor_source</span><span class="p">,</span><span class="w"> </span><span class="n">vid</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="n">product_version</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_manufacturer_name</span><span class="p">(</span><span class="s">&quot;ESP-CPP&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="c1">// NOTE: this is NOT required to be the same as the GFPS SKU Name</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_model_number</span><span class="p">(</span><span class="s">&quot;espp-gfps-01&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_serial_number</span><span class="p">(</span><span class="s">&quot;1234567890&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_software_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_firmware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_hardware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">device_info_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">device_info_service</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">vendor_source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02</span><span class="p">;</span><span class="w"> </span><span class="c1">// USB</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x045E</span><span class="p">;</span><span class="w">        </span><span class="c1">// Microsoft</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02FD</span><span class="p">;</span><span class="w">        </span><span class="c1">// Xbox One Controller</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">product_version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0100</span><span class="p">;</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_pnp_id</span><span class="p">(</span><span class="n">vendor_source</span><span class="p">,</span><span class="w"> </span><span class="n">vid</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="n">product_version</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_manufacturer_name</span><span class="p">(</span><span class="s">&quot;ESP-CPP&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// NOTE: this is NOT required to be the same as the GFPS SKU Name</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_model_number</span><span class="p">(</span><span class="s">&quot;espp-gfps-01&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_serial_number</span><span class="p">(</span><span class="s">&quot;1234567890&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_software_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_firmware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_hardware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// now lets start advertising</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingData</span><span class="w"> </span><span class="n">adv_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device_name</span><span class="p">,</span>
-<span class="w">        </span><span class="p">.</span><span class="n">appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x03C4</span><span class="p">,</span><span class="w"> </span><span class="c1">// Gamepad</span>
-<span class="w">        </span><span class="p">.</span><span class="n">services</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">        </span><span class="p">.</span><span class="n">service_data</span><span class="w"> </span><span class="o">=</span>
-<span class="w">            </span><span class="p">{</span>
-<span class="w">                </span><span class="c1">// these are the service data that we want to advertise</span>
-<span class="w">                </span><span class="p">{</span><span class="n">gfps_service</span><span class="p">.</span><span class="n">uuid</span><span class="p">(),</span>
-<span class="w">                 </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">get_service_data</span><span class="p">()}</span>
-<span class="w">            </span><span class="p">},</span>
-<span class="w">    </span><span class="p">};</span>
-<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingParameters</span><span class="w"> </span><span class="n">adv_params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
-<span class="w">    </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">(</span><span class="n">adv_data</span><span class="p">,</span><span class="w"> </span><span class="n">adv_params</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// now lets start advertising</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingData</span><span class="w"> </span><span class="n">adv_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device_name</span><span class="p">,</span>
+<span class="w">      </span><span class="p">.</span><span class="n">appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x03C4</span><span class="p">,</span><span class="w"> </span><span class="c1">// Gamepad</span>
+<span class="w">      </span><span class="p">.</span><span class="n">services</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">service_data</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">{</span><span class="c1">// these are the service data that we want to advertise</span>
+<span class="w">           </span><span class="p">{</span><span class="n">gfps_service</span><span class="p">.</span><span class="n">uuid</span><span class="p">(),</span><span class="w"> </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">get_service_data</span><span class="p">()}},</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingParameters</span><span class="w"> </span><span class="n">adv_params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">(</span><span class="n">adv_data</span><span class="p">,</span><span class="w"> </span><span class="n">adv_params</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// now lets update the battery level every second</span>
-<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
-<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// now lets update the battery level every second</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 
-<span class="w">        </span><span class="c1">// update the battery level</span>
-<span class="w">        </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="n">battery_level</span><span class="p">);</span>
-<span class="w">        </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">battery_level</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// update the battery level</span>
+<span class="w">    </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="n">battery_level</span><span class="p">);</span>
+<span class="w">    </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">battery_level</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 
-<span class="w">        </span><span class="c1">// sleep</span>
-<span class="w">        </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_until</span><span class="p">(</span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// sleep</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_until</span><span class="p">(</span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
 </pre></div>
 </div>
  </p>
@@ -551,7 +547,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a104339b/components/gfps_service/include/gfps_characteristic_callbacks.hpp">components/gfps_service/include/gfps_characteristic_callbacks.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/fb7442bb/components/gfps_service/include/gfps_characteristic_callbacks.hpp">components/gfps_service/include/gfps_characteristic_callbacks.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -910,7 +906,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="id3">
 <h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a104339b/components/gfps_service/include/gfps.hpp">components/gfps_service/include/gfps.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/fb7442bb/components/gfps_service/include/gfps.hpp">components/gfps_service/include/gfps.hpp</a></p></li>
 </ul>
 </section>
 </section>
