@@ -21,11 +21,11 @@ namespace espp {
 /// It allows arbitrary input/output/feature HID reports.
 ///
 /// NOTE: this is a simplified version of NimBLEHIDDevice, which does not
-/// include the DeviceInformationService and BatteryService internally, as
-/// espp::BleGattServer already provides the DeviceInformationService and
+/// include the DeviceInfoService and BatteryService internally, as
+/// espp::BleGattServer already provides the DeviceInfoService and
 /// BatteryService.
 ///
-/// If you need the DeviceInformationService and BatteryService, you can access
+/// If you need the DeviceInfoService and BatteryService, you can access
 /// them through espp::BleGattServer.
 ///
 /// @see BleGattServer
