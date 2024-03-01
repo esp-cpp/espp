@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Monitoring APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/fb7442bb/docs/en/monitor.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/a3878d6f/docs/en/monitor.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -168,18 +168,18 @@ or into a table for visualization.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/fb7442bb/components/monitor/include/task_monitor.hpp">components/monitor/include/task_monitor.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a3878d6f/components/monitor/include/task_monitor.hpp">components/monitor/include/task_monitor.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitorE">
-<span id="_CPPv3N4espp11TaskMonitorE"></span><span id="_CPPv2N4espp11TaskMonitorE"></span><span id="espp::TaskMonitor"></span><span class="target" id="classespp_1_1_task_monitor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TaskMonitor</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp11TaskMonitorE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitorE"></span><span id="_CPPv2N4espp11TaskMonitorE"></span><span id="espp::TaskMonitor"></span><span class="target" id="classespp_1_1TaskMonitor"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TaskMonitor</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp11TaskMonitorE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Class which monitors the currently running tasks in the system and periodically logs their states. See also <a class="reference external" href="https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/freertos.html#_CPPv412vTaskGetInfo12TaskHandle_tP12TaskStatus_t10BaseType_t10eTaskState">FreeRTOS::vTaskGetInfo()</a>. </p>
-<section id="classespp_1_1_task_monitor_1task_monitor_ex1">
-<h4>Basic Task Monitor Example<a class="headerlink" href="#classespp_1_1_task_monitor_1task_monitor_ex1" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_task_monitor_1task_monitor_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create the monitor</span>
+<section id="classespp_1_1TaskMonitor_1task_monitor_ex1">
+<h4>Basic Task Monitor Example<a class="headerlink" href="#classespp_1_1TaskMonitor_1task_monitor_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1TaskMonitor_1task_monitor_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create the monitor</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">TaskMonitor</span><span class="w"> </span><span class="nf">tm</span><span class="p">({.</span><span class="n">period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">});</span>
 <span class="w">    </span><span class="c1">// create threads</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
@@ -211,9 +211,9 @@ or into a table for visualization.</p>
 </div>
 </p>
 </section>
-<section id="classespp_1_1_task_monitor_1task_monitor_ex2">
-<h4>get_latest_info() Example<a class="headerlink" href="#classespp_1_1_task_monitor_1task_monitor_ex2" title="Permalink to this headline"></a></h4>
-<p id="classespp_1_1_task_monitor_1task_monitor_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create threads</span>
+<section id="classespp_1_1TaskMonitor_1task_monitor_ex2">
+<h4>get_latest_info() Example<a class="headerlink" href="#classespp_1_1TaskMonitor_1task_monitor_ex2" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1TaskMonitor_1task_monitor_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create threads</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">start</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">task_id</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
@@ -252,13 +252,13 @@ or into a table for visualization.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You can use the static <a class="reference internal" href="#classespp_1_1_task_monitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"><span class="std std-ref">TaskMonitor::get_latest_info()</span></a> to get a string with the latest info without needing to construct a class / start the task.</p>
+<p>You can use the static <a class="reference internal" href="#classespp_1_1TaskMonitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"><span class="std std-ref">TaskMonitor::get_latest_info()</span></a> to get a string with the latest info without needing to construct a class / start the task.</p>
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE">
-<span id="_CPPv3N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE"></span><span id="espp::TaskMonitor::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1_base_component_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE"></span><span id="espp::TaskMonitor::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the tag for the logger </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -269,14 +269,14 @@ or into a table for visualization.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE">
-<span id="_CPPv3N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE"></span><span id="espp::TaskMonitor::set_log_level__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE"></span><span id="espp::TaskMonitor::set_log_level__Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1ad0598ab47581c332783309d131628ecb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_level</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor13set_log_levelEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the log level for the logger <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
 </div>
 </p>
 <dl class="field-list simple">
@@ -288,18 +288,18 @@ or into a table for visualization.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE">
-<span id="_CPPv3N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE"></span><span id="espp::TaskMonitor::set_log_verbosity__Logger::Verbosity"></span><span class="target" id="classespp_1_1_base_component_1ac47205e43174fe6f8655b777d3fdfa06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE"></span><span id="_CPPv2N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE"></span><span id="espp::TaskMonitor::set_log_verbosity__Logger::Verbosity"></span><span class="target" id="classespp_1_1BaseComponent_1ac47205e43174fe6f8655b777d3fdfa06"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_verbosity</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">level</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor17set_log_verbosityEN6Logger9VerbosityE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the log verbosity for the logger <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="wifi/wifi_sta.html#classespp_1_1_base_component_1ad0598ab47581c332783309d131628ecb"><span class="std std-ref">set_log_level</span></a> </p>
+<p><a class="reference internal" href="wifi/wifi_sta.html#classespp_1_1BaseComponent_1ad0598ab47581c332783309d131628ecb"><span class="std std-ref">set_log_level</span></a> </p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1ac6c63313236b0ae6ff44f3f94a6f99cb"><span class="std std-ref">Logger::Verbosity</span></a> </p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a61783ed034f092e27449c939cbd2b91d"><span class="std std-ref">Logger::set_verbosity</span></a> </p>
 </div>
 </p>
 <div class="admonition note">
@@ -315,10 +315,10 @@ or into a table for visualization.</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE">
-<span id="_CPPv3N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::TaskMonitor::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1_base_component_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE"></span><span id="espp::TaskMonitor::set_log_rate_limit__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1BaseComponent_1a8b95d7a8a87f22a989f3654a238774a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_rate_limit</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rate_limit</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor18set_log_rate_limitENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the rate limit for the logger <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="logger.html#classespp_1_1_logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a> </p>
+<p><a class="reference internal" href="logger.html#classespp_1_1Logger_1a9ce0c51e1bf43e63235c6ddf3280b15d"><span class="std std-ref">Logger::set_rate_limit</span></a> </p>
 </div>
 </p>
 <div class="admonition note">
@@ -337,7 +337,7 @@ or into a table for visualization.</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor15get_latest_infoEv">
-<span id="_CPPv3N4espp11TaskMonitor15get_latest_infoEv"></span><span id="_CPPv2N4espp11TaskMonitor15get_latest_infoEv"></span><span id="espp::TaskMonitor::get_latest_info"></span><span class="target" id="classespp_1_1_task_monitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_latest_info</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor15get_latest_infoEv" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitor15get_latest_infoEv"></span><span id="_CPPv2N4espp11TaskMonitor15get_latest_infoEv"></span><span id="espp::TaskMonitor::get_latest_info"></span><span class="target" id="classespp_1_1TaskMonitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_latest_info</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor15get_latest_infoEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get information about all the tasks running. Will provide for each task the following information: </p>
 <p><ul class="simple">
 <li><p>name</p></li>
@@ -348,7 +348,7 @@ or into a table for visualization.</p>
 </p>
 <p>Where each entry is separated by ‘,’ and each set of task data is separated by ‘;’.</p>
 <p>
-This is a static function, so it can be called without having to instantiate a <a class="reference internal" href="#classespp_1_1_task_monitor"><span class="std std-ref">TaskMonitor</span></a> object.</p>
+This is a static function, so it can be called without having to instantiate a <a class="reference internal" href="#classespp_1_1TaskMonitor"><span class="std std-ref">TaskMonitor</span></a> object.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>There is no newline returned.</p>
@@ -366,18 +366,18 @@ This is a static function, so it can be called without having to instantiate a <
 </div>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor6ConfigE">
-<span id="_CPPv3N4espp11TaskMonitor6ConfigE"></span><span id="_CPPv2N4espp11TaskMonitor6ConfigE"></span><span id="espp::TaskMonitor::Config"></span><span class="target" id="structespp_1_1_task_monitor_1_1_config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitor6ConfigE"></span><span id="_CPPv2N4espp11TaskMonitor6ConfigE"></span><span id="espp::TaskMonitor::Config"></span><span class="target" id="structespp_1_1TaskMonitor_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor6ConfigE" title="Permalink to this definition"></a><br /></dt>
 <dd><div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor6Config6periodE">
-<span id="_CPPv3N4espp11TaskMonitor6Config6periodE"></span><span id="_CPPv2N4espp11TaskMonitor6Config6periodE"></span><span id="espp::TaskMonitor::Config::period__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1_task_monitor_1_1_config_1af20d8faec7933d2d8fcce4f7b1bed0a0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">period</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor6Config6periodE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitor6Config6periodE"></span><span id="_CPPv2N4espp11TaskMonitor6Config6periodE"></span><span id="espp::TaskMonitor::Config::period__std::chrono::duration:float:"></span><span class="target" id="structespp_1_1TaskMonitor_1_1Config_1af20d8faec7933d2d8fcce4f7b1bed0a0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">period</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor6Config6periodE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Period (s) the TaskMonitor::task_callback runs at. </p>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor6Config21task_stack_size_bytesE">
-<span id="_CPPv3N4espp11TaskMonitor6Config21task_stack_size_bytesE"></span><span id="_CPPv2N4espp11TaskMonitor6Config21task_stack_size_bytesE"></span><span id="espp::TaskMonitor::Config::task_stack_size_bytes__s"></span><span class="target" id="structespp_1_1_task_monitor_1_1_config_1a59383e3d8dd3036446b9093ae05dbc7b"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_stack_size_bytes</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">8</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor6Config21task_stack_size_bytesE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp11TaskMonitor6Config21task_stack_size_bytesE"></span><span id="_CPPv2N4espp11TaskMonitor6Config21task_stack_size_bytesE"></span><span id="espp::TaskMonitor::Config::task_stack_size_bytes__s"></span><span class="target" id="structespp_1_1TaskMonitor_1_1Config_1a59383e3d8dd3036446b9093ae05dbc7b"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_stack_size_bytes</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">8</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor6Config21task_stack_size_bytesE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Stack size (B) allocated to the TaskMonitor::task_callback. </p>
 </dd></dl>
 
