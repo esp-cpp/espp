@@ -46,8 +46,8 @@ extern "C" void app_main(void) {
         // convert [0, 3300]mV to approximately [-1.0f, 1.0f]
         .x_calibration = {.center = 1700.0f, .deadband = 0.0f, .minimum = 0.0f, .maximum = 3300.0f},
         .y_calibration = {.center = 1700.0f, .deadband = 0.0f, .minimum = 0.0f, .maximum = 3300.0f},
-        .deadzone = espp::Joystick::Deadzone::CIRCULAR,
-        .deadzone_radius = 0.1f,
+        .type = espp::Joystick::Type::CIRCULAR,
+        .center_deadzone_radius = 0.1f,
         .get_values = read_joystick,
     });
     auto task_fn = [&js1, &js2](std::mutex &m, std::condition_variable &cv) {

@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Joystick APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/626472a6/docs/en/joystick.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ddf99a57/docs/en/joystick.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -166,7 +166,7 @@ axis according to the configuration provided.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/626472a6/components/joystick/include/joystick.hpp">components/joystick/include/joystick.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ddf99a57/components/joystick/include/joystick.hpp">components/joystick/include/joystick.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -212,8 +212,8 @@ axis according to the configuration provided.</p>
 <span class="w">        </span><span class="c1">// convert [0, 3300]mV to approximately [-1.0f, 1.0f]</span>
 <span class="w">        </span><span class="p">.</span><span class="n">x_calibration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">center</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1700.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">deadband</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">minimum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">maximum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3300.0f</span><span class="p">},</span>
 <span class="w">        </span><span class="p">.</span><span class="n">y_calibration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{.</span><span class="n">center</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1700.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">deadband</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">minimum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">maximum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3300.0f</span><span class="p">},</span>
-<span class="w">        </span><span class="p">.</span><span class="n">deadzone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Joystick</span><span class="o">::</span><span class="n">Deadzone</span><span class="o">::</span><span class="n">CIRCULAR</span><span class="p">,</span>
-<span class="w">        </span><span class="p">.</span><span class="n">deadzone_radius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Joystick</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">CIRCULAR</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">center_deadzone_radius</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.1f</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">get_values</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">read_joystick</span><span class="p">,</span>
 <span class="w">    </span><span class="p">});</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">js1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">js2</span><span class="p">](</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w"> </span><span class="o">&amp;</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">condition_variable</span><span class="w"> </span><span class="o">&amp;</span><span class="n">cv</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -240,28 +240,24 @@ axis according to the configuration provided.</p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
 <dl class="cpp enum-class">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick8DeadzoneE">
-<span id="_CPPv3N4espp8Joystick8DeadzoneE"></span><span id="_CPPv2N4espp8Joystick8DeadzoneE"></span><span class="target" id="classespp_1_1Joystick_1aea7f59eca009a0da4e21a5d880c5ae38"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Deadzone</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick8DeadzoneE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Types of deadzones the joystick can have. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick4TypeE">
+<span id="_CPPv3N4espp8Joystick4TypeE"></span><span id="_CPPv2N4espp8Joystick4TypeE"></span><span class="target" id="classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Type</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick4TypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Type of the joystick. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>When using a <a class="reference internal" href="#classespp_1_1Joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Deadzone::CIRCULAR</span></a> deadzone, it’s recommended to set the individual x/y deadzones to be 0 and to only use the deadzone_radius field to set the deadzone. </p>
+<p>When using a <a class="reference internal" href="#classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Type::CIRCULAR</span></a> joystick, it’s recommended to set the individual x/y calibration deadzones to be 0 and to only use the deadzone_radius field to set the deadzone around the center. </p>
 </div>
 <p><em>Values:</em></p>
 <dl class="cpp enumerator">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick8Deadzone11RECTANGULARE">
-<span id="_CPPv3N4espp8Joystick8Deadzone11RECTANGULARE"></span><span id="_CPPv2N4espp8Joystick8Deadzone11RECTANGULARE"></span><span class="target" id="classespp_1_1Joystick_1aea7f59eca009a0da4e21a5d880c5ae38a47428d834e54119100c608d0d1448e51"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RECTANGULAR</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick8Deadzone11RECTANGULARE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Independent deadzones for the x and y axes utilizing a <a class="reference internal" href="math/range_mapper.html#classespp_1_1RangeMapper"><span class="std std-ref">RangeMapper</span></a> for each axis. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick4Type11RECTANGULARE">
+<span id="_CPPv3N4espp8Joystick4Type11RECTANGULARE"></span><span id="_CPPv2N4espp8Joystick4Type11RECTANGULARE"></span><span class="target" id="classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03a47428d834e54119100c608d0d1448e51"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RECTANGULAR</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick4Type11RECTANGULARE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The default type of joystick. Uses the rangemappers for each axis (to convert raw values from input range to be [-1,1]) independently which results in x/y deadzones and output that are rectangular. </p>
 </dd></dl>
 
 <dl class="cpp enumerator">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick8Deadzone8CIRCULARE">
-<span id="_CPPv3N4espp8Joystick8Deadzone8CIRCULARE"></span><span id="_CPPv2N4espp8Joystick8Deadzone8CIRCULARE"></span><span class="target" id="classespp_1_1Joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CIRCULAR</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick8Deadzone8CIRCULARE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Coupled deadzone for both x and y axes. Still uses the rangemappers for each axis (to convert raw values from input range to be [-1,1]) but applies a circularization &amp; circular deadzone after the conversion. </p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>With this configuration, it is recommended to set the deadzones for each axis to be 0. </p>
-</div>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick4Type8CIRCULARE">
+<span id="_CPPv3N4espp8Joystick4Type8CIRCULARE"></span><span id="_CPPv2N4espp8Joystick4Type8CIRCULARE"></span><span class="target" id="classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03a93c8d295bb538cdb3302604512828d68"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CIRCULAR</span></span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick4Type8CIRCULARE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The joystick is configured to have a circular output. This means that the x/y &lt; deadzones are circular around the input and the output is clamped to be on or within the unit circle. </p>
 </dd></dl>
 
 </dd></dl>
@@ -298,36 +294,66 @@ axis according to the configuration provided.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick12set_deadzoneE8Deadzonef">
-<span id="_CPPv3N4espp8Joystick12set_deadzoneE8Deadzonef"></span><span id="_CPPv2N4espp8Joystick12set_deadzoneE8Deadzonef"></span><span id="espp::Joystick::set_deadzone__Deadzone.float"></span><span class="target" id="classespp_1_1Joystick_1aa534249c1c09fd95761b1cbde3b2e747"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_deadzone</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8Joystick8DeadzoneE" title="espp::Joystick::Deadzone"><span class="n"><span class="pre">Deadzone</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">deadzone</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">radius</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Joystick12set_deadzoneE8Deadzonef" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Sets the deadzone type and radius. </p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Radius is only applied when <code class="docutils literal notranslate"><span class="pre">deadzone</span></code> is <a class="reference internal" href="#classespp_1_1Joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Deadzone::CIRCULAR</span></a>. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick8set_typeE4Typef">
+<span id="_CPPv3N4espp8Joystick8set_typeE4Typef"></span><span id="_CPPv2N4espp8Joystick8set_typeE4Typef"></span><span id="espp::Joystick::set_type__Type.float"></span><span class="target" id="classespp_1_1Joystick_1a99eb6a76de34f555cbe36b4aefe89e72"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_type</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N4espp8Joystick4TypeE" title="espp::Joystick::Type"><span class="n"><span class="pre">Type</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">type</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">radius</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Joystick8set_typeE4Typef" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the type of the joystick. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Joystick_1a75776c0c795860e6ef82d704894305f5"><span class="std std-ref">set_center_deadzone_radius</span></a> </p>
 </div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Joystick_1ad1a186b1f703e2e08b4521dbe3292b5d"><span class="std std-ref">set_calibration</span></a> </p>
+</div>
+</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Radius &lt;= 0 means no additional deadzone is applied regardless of deadzone type. </p>
+<p>If the <a class="reference internal" href="#classespp_1_1Joystick"><span class="std std-ref">Joystick</span></a> is <a class="reference internal" href="#classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Type::CIRCULAR</span></a>, the actual calibrations that are saved into the joystick will have 0 deadzone around the center value, so that only the center deadzone radius is applied. </p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>deadzone</strong> – The Deadzone type to use with this joystick. </p></li>
-<li><p><strong>radius</strong> – Optional radius parameter used when <code class="docutils literal notranslate"><span class="pre">deadzone</span></code> is <a class="reference internal" href="#classespp_1_1Joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Deadzone::CIRCULAR</span></a>. When the magnitude of the joystick’s mapped position vector is less than this value, the vector is set to (0,0). </p></li>
+<li><p><strong>type</strong> – The Type of the joystick. </p></li>
+<li><p><strong>radius</strong> – Optional radius parameter used when <code class="docutils literal notranslate"><span class="pre">type</span></code> is <a class="reference internal" href="#classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Type::CIRCULAR</span></a>. When the magnitude of the joystick’s mapped position vector is less than this value, the vector is set to (0,0). </p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigE">
-<span id="_CPPv3N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigE"></span><span id="_CPPv2N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigE"></span><span id="espp::Joystick::set_calibration__FloatRangeMapper::ConfigCR.FloatRangeMapper::ConfigCR"></span><span class="target" id="classespp_1_1Joystick_1a82d0ca5a43609512abd91de3e977f464"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_calibration</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">FloatRangeMapper</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">x_calibration</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">FloatRangeMapper</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">y_calibration</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick26set_center_deadzone_radiusEf">
+<span id="_CPPv3N4espp8Joystick26set_center_deadzone_radiusEf"></span><span id="_CPPv2N4espp8Joystick26set_center_deadzone_radiusEf"></span><span id="espp::Joystick::set_center_deadzone_radius__float"></span><span class="target" id="classespp_1_1Joystick_1a75776c0c795860e6ef82d704894305f5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_center_deadzone_radius</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">radius</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Joystick26set_center_deadzone_radiusEf" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sets the center deadzone radius. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Radius is only applied when <code class="docutils literal notranslate"><span class="pre">deadzone</span></code> is Deadzone::CIRCULAR. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>radius</strong> – Optional radius parameter used when <code class="docutils literal notranslate"><span class="pre">deadzone</span></code> is Deadzone::CIRCULAR. When the magnitude of the joystick’s mapped position vector is less than this value, the vector is set to (0,0). </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigEf">
+<span id="_CPPv3N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigEf"></span><span id="_CPPv2N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigEf"></span><span id="espp::Joystick::set_calibration__FloatRangeMapper::ConfigCR.FloatRangeMapper::ConfigCR.float"></span><span class="target" id="classespp_1_1Joystick_1ad1a186b1f703e2e08b4521dbe3292b5d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_calibration</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">FloatRangeMapper</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">x_calibration</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">FloatRangeMapper</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">y_calibration</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">center_deadzone_radius</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigEf" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Update the x and y axis mapping. </p>
+<p><div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#classespp_1_1Joystick_1a75776c0c795860e6ef82d704894305f5"><span class="std std-ref">set_center_deadzone_radius</span></a> </p>
+</div>
+</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the <a class="reference internal" href="#classespp_1_1Joystick"><span class="std std-ref">Joystick</span></a> is <a class="reference internal" href="#classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Type::CIRCULAR</span></a>, the actual calibrations that are saved into the joystick will have 0 deadzone around the center value, so that only the center deadzone radius is applied. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_calibration</strong> – New x-axis range mapping configuration to use. </p></li>
 <li><p><strong>y_calibration</strong> – New y-axis range mapping configuration to use. </p></li>
+<li><p><strong>center_deadzone_radius</strong> – The radius of the unit circle’s deadzone [0, 1.0f] around the center, only used when the joystick is configured as <a class="reference internal" href="#classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Type::CIRCULAR</span></a>. </p></li>
 </ul>
 </dd>
 </dl>
@@ -479,15 +505,15 @@ axis according to the configuration provided.</p>
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick6Config8deadzoneE">
-<span id="_CPPv3N4espp8Joystick6Config8deadzoneE"></span><span id="_CPPv2N4espp8Joystick6Config8deadzoneE"></span><span id="espp::Joystick::Config::deadzone__Deadzone"></span><span class="target" id="structespp_1_1Joystick_1_1Config_1ad107ffd5be457dea76ab8739be4331a1"></span><a class="reference internal" href="#_CPPv4N4espp8Joystick8DeadzoneE" title="espp::Joystick::Deadzone"><span class="n"><span class="pre">Deadzone</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deadzone</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp8Joystick8DeadzoneE" title="espp::Joystick::Deadzone"><span class="n"><span class="pre">Deadzone</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp8Joystick8Deadzone11RECTANGULARE" title="espp::Joystick::Deadzone::RECTANGULAR"><span class="n"><span class="pre">RECTANGULAR</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick6Config8deadzoneE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The type of deadzone the joystick should use. See Deadzone structure for more information. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick6Config4typeE">
+<span id="_CPPv3N4espp8Joystick6Config4typeE"></span><span id="_CPPv2N4espp8Joystick6Config4typeE"></span><span id="espp::Joystick::Config::type__Type"></span><span class="target" id="structespp_1_1Joystick_1_1Config_1a6e11581b63c0b146a05e472fde1273af"></span><a class="reference internal" href="#_CPPv4N4espp8Joystick4TypeE" title="espp::Joystick::Type"><span class="n"><span class="pre">Type</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="#_CPPv4N4espp8Joystick4TypeE" title="espp::Joystick::Type"><span class="n"><span class="pre">Type</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp8Joystick4Type11RECTANGULARE" title="espp::Joystick::Type::RECTANGULAR"><span class="n"><span class="pre">RECTANGULAR</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick6Config4typeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type of the joystick. See Type enum for more information. </p>
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick6Config15deadzone_radiusE">
-<span id="_CPPv3N4espp8Joystick6Config15deadzone_radiusE"></span><span id="_CPPv2N4espp8Joystick6Config15deadzone_radiusE"></span><span id="espp::Joystick::Config::deadzone_radius__float"></span><span class="target" id="structespp_1_1Joystick_1_1Config_1ae66c4cfc8c642432900e64fa24ae9ffe"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deadzone_radius</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick6Config15deadzone_radiusE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The radius of the unit circle’s deadzone [0, 1.0f], only used when the joystick is configured with <a class="reference internal" href="#classespp_1_1Joystick_1aea7f59eca009a0da4e21a5d880c5ae38a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Deadzone::CIRCULAR</span></a>. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp8Joystick6Config22center_deadzone_radiusE">
+<span id="_CPPv3N4espp8Joystick6Config22center_deadzone_radiusE"></span><span id="_CPPv2N4espp8Joystick6Config22center_deadzone_radiusE"></span><span id="espp::Joystick::Config::center_deadzone_radius__float"></span><span class="target" id="structespp_1_1Joystick_1_1Config_1af3072364613d2e517335079dc5dfbf1b"></span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">center_deadzone_radius</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp8Joystick6Config22center_deadzone_radiusE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The radius of the unit circle’s deadzone [0, 1.0f] around the center, only used when the joystick is configured as <a class="reference internal" href="#classespp_1_1Joystick_1afb4f001d598eaa2492677cf28ff42d03a93c8d295bb538cdb3302604512828d68"><span class="std std-ref">Type::CIRCULAR</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp var">
