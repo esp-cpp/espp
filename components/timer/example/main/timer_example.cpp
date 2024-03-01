@@ -122,6 +122,7 @@ extern "C" void app_main(void) {
     auto timer = espp::Timer({.name = "Timer 1",
                               .period = 500ms,
                               .callback = timer_fn,
+                              .stack_size_bytes = 6192,
                               .log_level = espp::Logger::Verbosity::DEBUG});
     //! [timer cancel itself example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -135,18 +136,42 @@ extern "C" void app_main(void) {
       static size_t iterations{0};
       fmt::print("[{:.3f}] #iterations = {}\n", elapsed(), iterations);
       iterations++;
-      // we don't want to stop, so return false
+      // we want to stop, so return true
       return true;
     };
     auto timer = espp::Timer({.name = "Timer 1",
                               .period = 0ms, // one shot timer
                               .delay = 500ms,
                               .callback = timer_fn,
+                              .stack_size_bytes = 4096,
                               .log_level = espp::Logger::Verbosity::DEBUG});
     std::this_thread::sleep_for(2s);
     timer.cancel();  // it will have already been cancelled by here, but this should be harmless
     timer.start(1s); // restart the timer with a 1 second delay
     //! [timer oneshot restart example]
+    std::this_thread::sleep_for(num_seconds_to_run * 1s);
+  }
+
+  // timer example update period while running
+  {
+    logger.info("[{:.3f}] Starting timer update period while running example", elapsed());
+    //! [timer update period example]
+    auto timer_fn = []() {
+      static size_t iterations{0};
+      fmt::print("[{:.3f}] #iterations = {}\n", elapsed(), iterations);
+      iterations++;
+      // we don't want to stop, so return false
+      return false;
+    };
+    auto timer = espp::Timer({.name = "Timer 1",
+                              .period = 500ms,
+                              .callback = timer_fn,
+                              .stack_size_bytes = 4096,
+                              .log_level = espp::Logger::Verbosity::DEBUG});
+    std::this_thread::sleep_for(2s);
+    logger.info("[{:.3f}] Updating period to 100ms", elapsed());
+    timer.set_period(100ms);
+    //! [timer update period example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
 

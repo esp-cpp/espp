@@ -4,8 +4,9 @@ CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 
 # Enable support for power management
-CONFIG_PM_ENABLE=y
+# NOTE: if you enable this the USB serial will not work in light sleep mode
+# CONFIG_PM_ENABLE=y
 # auto configure dynamic frequency scaling on boot (using default freq as max)
 # CONFIG_PM_DFS_INIT_AUTO=y
 # Enable tickless idle mode (NOTE: this is required for PM_ENABLE)
-CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+# CONFIG_FREERTOS_USE_TICKLESS_IDLE=y

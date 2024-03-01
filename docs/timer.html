@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Timer APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/a3878d6f/docs/en/timer.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/626472a6/docs/en/timer.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -168,7 +168,7 @@ is executed in the context of the timer task.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/a3878d6f/components/timer/include/timer.hpp">components/timer/include/timer.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/626472a6/components/timer/include/timer.hpp">components/timer/include/timer.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -262,6 +262,7 @@ is executed in the context of the timer task.</p>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Timer</span><span class="p">({.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Timer 1&quot;</span><span class="p">,</span>
 <span class="w">                              </span><span class="p">.</span><span class="n">period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">,</span>
 <span class="w">                              </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">timer_fn</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
 <span class="w">                              </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
 </pre></div>
 </div>
@@ -273,17 +274,39 @@ is executed in the context of the timer task.</p>
 <span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">iterations</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
 <span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;[{:.3f}] #iterations = {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">(),</span><span class="w"> </span><span class="n">iterations</span><span class="p">);</span>
 <span class="w">      </span><span class="n">iterations</span><span class="o">++</span><span class="p">;</span>
-<span class="w">      </span><span class="c1">// we don&#39;t want to stop, so return false</span>
+<span class="w">      </span><span class="c1">// we want to stop, so return true</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Timer</span><span class="p">({.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Timer 1&quot;</span><span class="p">,</span>
 <span class="w">                              </span><span class="p">.</span><span class="n">period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="n">ms</span><span class="p">,</span><span class="w"> </span><span class="c1">// one shot timer</span>
 <span class="w">                              </span><span class="p">.</span><span class="n">delay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">,</span>
 <span class="w">                              </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">timer_fn</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
 <span class="w">                              </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
 <span class="w">    </span><span class="n">timer</span><span class="p">.</span><span class="n">cancel</span><span class="p">();</span><span class="w">  </span><span class="c1">// it will have already been cancelled by here, but this should be harmless</span>
 <span class="w">    </span><span class="n">timer</span><span class="p">.</span><span class="n">start</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span><span class="w"> </span><span class="c1">// restart the timer with a 1 second delay</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<section id="classespp_1_1Timer_1timer_ex6">
+<h4>Timer Update Period Example<a class="headerlink" href="#classespp_1_1Timer_1timer_ex6" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1Timer_1timer_ex6"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">timer_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">static</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">iterations</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;[{:.3f}] #iterations = {}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">(),</span><span class="w"> </span><span class="n">iterations</span><span class="p">);</span>
+<span class="w">      </span><span class="n">iterations</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="c1">// we don&#39;t want to stop, so return false</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Timer</span><span class="p">({.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Timer 1&quot;</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">.</span><span class="n">period</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="n">ms</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">timer_fn</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4096</span><span class="p">,</span>
+<span class="w">                              </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">});</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">2</span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;[{:.3f}] Updating period to 100ms&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">elapsed</span><span class="p">());</span>
+<span class="w">    </span><span class="n">timer</span><span class="p">.</span><span class="n">set_period</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
 </pre></div>
 </div>
  </p>
@@ -352,6 +375,30 @@ is executed in the context of the timer task.</p>
 <span id="_CPPv3N4espp5Timer6cancelEv"></span><span id="_CPPv2N4espp5Timer6cancelEv"></span><span id="espp::Timer::cancel"></span><span class="target" id="classespp_1_1Timer_1a4a7aa285bce014f60b36de93fab94135"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cancel</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp5Timer6cancelEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Cancel the timer. </p>
 <p>Cancels the timer. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp5Timer10set_periodENSt6chrono8durationIfEE">
+<span id="_CPPv3N4espp5Timer10set_periodENSt6chrono8durationIfEE"></span><span id="_CPPv2N4espp5Timer10set_periodENSt6chrono8durationIfEE"></span><span id="espp::Timer::set_period__std::chrono::duration:float:"></span><span class="target" id="classespp_1_1Timer_1ae8ade85de9c0b1a393775ede441b3cc6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_period</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">chrono</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">duration</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">period</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp5Timer10set_periodENSt6chrono8durationIfEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the period of the timer. </p>
+<p>Sets the period of the timer. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the period is 0, the timer will run once. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the period is negative, the period will not be set / updated. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the timer is running, the period will be updated after the current period has elapsed. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>period</strong> – The period of the timer. </p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
