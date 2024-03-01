@@ -22,14 +22,26 @@ extern "C" void app_main(void) {
         .channels = channels,
     });
     auto task_fn = [&adc, &channels](std::mutex &m, std::condition_variable &cv) {
-      for (auto &conf : channels) {
-        auto maybe_mv = adc.read_mv(conf);
-        if (maybe_mv.has_value()) {
-          fmt::print("{}: {} mV\n", conf, maybe_mv.value());
-        } else {
-          fmt::print("{}: no value!\n", conf);
+      static bool use_individual_functions = false;
+      if (use_individual_functions) {
+        // this iteration, we'll use the read_mv function for each channel
+        for (auto &conf : channels) {
+          auto maybe_mv = adc.read_mv(conf);
+          if (maybe_mv.has_value()) {
+            fmt::print("{}: {} mV\n", conf, maybe_mv.value());
+          } else {
+            fmt::print("{}: no value!\n", conf);
+          }
+        }
+      } else {
+        // this iteration, we'll use the read_all_mv function to read all
+        // configured channels
+        auto voltages = adc.read_all_mv();
+        for (const auto &mv : voltages) {
+          fmt::print("{} mV\n", mv);
         }
       }
+      use_individual_functions = !use_individual_functions;
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {
