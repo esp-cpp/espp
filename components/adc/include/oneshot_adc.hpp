@@ -66,6 +66,30 @@ public:
   }
 
   /**
+   * @brief Take a new ADC reading for all configured channels and convert it to
+   *        voltage (mV) if the unit was properly calibrated. If it was not
+   *        properly calibrated, then it will return the same value as \c
+   *        read_raw().
+   * @return std::vector<float> Voltage in mV for all configured channels (if
+   *         they were configured).
+   */
+  std::vector<int> read_all_mv() {
+    std::vector<int> values;
+    values.reserve(configs_.size());
+    for (const auto &config : configs_) {
+      int raw = 0;
+      auto err = adc_oneshot_read(adc_handle_, config.channel, &raw);
+      if (err != ESP_OK) {
+        logger_.error("Couldn't read oneshot: {} - '{}'", err, esp_err_to_name(err));
+        values.push_back(0);
+      } else {
+        values.push_back(raw_to_mv(raw));
+      }
+    }
+    return values;
+  }
+
+  /**
    * @brief Take a new ADC reading for the provided \p config.
    * @param config The channel configuration to take a reading from.
    * @return std::optional<float> raw value for the provided channel config (if
