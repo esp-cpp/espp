@@ -45,6 +45,8 @@ namespace espp {
 /// \snippet timer_example.cpp timer cancel itself example
 /// \section timer_ex5 Oneshot Timer Cancel Itself Then Start again with Delay Example
 /// \snippet timer_example.cpp timer oneshot restart example
+/// \section timer_ex6 Timer Update Period Example
+/// \snippet timer_example.cpp timer update period example
 class Timer : public BaseComponent {
 public:
   typedef std::function<bool()>
@@ -137,6 +139,23 @@ public:
     running_ = false;
     // cancel the task
     task_->stop();
+  }
+
+  /// @brief Set the period of the timer.
+  /// @details Sets the period of the timer.
+  /// @param period The period of the timer.
+  /// @note If the period is 0, the timer will run once.
+  /// @note If the period is negative, the period will not be set / updated.
+  /// @note If the timer is running, the period will be updated after the
+  ///       current period has elapsed.
+  void set_period(std::chrono::duration<float> period) {
+    if (period.count() < 0) {
+      logger_.warn("period cannot be negative, not setting");
+      return;
+    }
+    period_ = std::chrono::duration_cast<std::chrono::microseconds>(period);
+    period_float = std::chrono::duration<float>(period_).count();
+    logger_.info("setting period to {:.3f} s", period_float);
   }
 
   /// @brief Check if the timer is running.
