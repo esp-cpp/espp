@@ -132,7 +132,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/626472a6/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ddf99a57/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -2321,23 +2321,17 @@
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick6ConfigE">espp::Joystick::Config (C++ struct)</a>
 </li>
-      <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config8deadzoneE">espp::Joystick::Config::deadzone (C++ member)</a>
-</li>
-      <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config15deadzone_radiusE">espp::Joystick::Config::deadzone_radius (C++ member)</a>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config22center_deadzone_radiusE">espp::Joystick::Config::center_deadzone_radius (C++ member)</a>
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config10get_valuesE">espp::Joystick::Config::get_values (C++ member)</a>
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config9log_levelE">espp::Joystick::Config::log_level (C++ member)</a>
 </li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config4typeE">espp::Joystick::Config::type (C++ member)</a>
+</li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config13x_calibrationE">espp::Joystick::Config::x_calibration (C++ member)</a>
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick6Config13y_calibrationE">espp::Joystick::Config::y_calibration (C++ member)</a>
-</li>
-      <li><a href="joystick.html#_CPPv4N4espp8Joystick8DeadzoneE">espp::Joystick::Deadzone (C++ enum)</a>
-</li>
-      <li><a href="joystick.html#_CPPv4N4espp8Joystick8Deadzone8CIRCULARE">espp::Joystick::Deadzone::CIRCULAR (C++ enumerator)</a>
-</li>
-      <li><a href="joystick.html#_CPPv4N4espp8Joystick8Deadzone11RECTANGULARE">espp::Joystick::Deadzone::RECTANGULAR (C++ enumerator)</a>
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick13get_values_fnE">espp::Joystick::get_values_fn (C++ type)</a>
 </li>
@@ -2347,9 +2341,9 @@
 </li>
       <li><a href="joystick.html#_CPPv4NK4espp8Joystick3rawEv">espp::Joystick::raw (C++ function)</a>
 </li>
-      <li><a href="joystick.html#_CPPv4N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigE">espp::Joystick::set_calibration (C++ function)</a>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick15set_calibrationERKN16FloatRangeMapper6ConfigERKN16FloatRangeMapper6ConfigEf">espp::Joystick::set_calibration (C++ function)</a>
 </li>
-      <li><a href="joystick.html#_CPPv4N4espp8Joystick12set_deadzoneE8Deadzonef">espp::Joystick::set_deadzone (C++ function)</a>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick26set_center_deadzone_radiusEf">espp::Joystick::set_center_deadzone_radius (C++ function)</a>
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick13set_log_levelEN6Logger9VerbosityE">espp::Joystick::set_log_level (C++ function)</a>
 </li>
@@ -2358,6 +2352,14 @@
       <li><a href="joystick.html#_CPPv4N4espp8Joystick11set_log_tagERKNSt11string_viewE">espp::Joystick::set_log_tag (C++ function)</a>
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick17set_log_verbosityEN6Logger9VerbosityE">espp::Joystick::set_log_verbosity (C++ function)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick8set_typeE4Typef">espp::Joystick::set_type (C++ function)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick4TypeE">espp::Joystick::Type (C++ enum)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick4Type8CIRCULARE">espp::Joystick::Type::CIRCULAR (C++ enumerator)</a>
+</li>
+      <li><a href="joystick.html#_CPPv4N4espp8Joystick4Type11RECTANGULARE">espp::Joystick::Type::RECTANGULAR (C++ enumerator)</a>
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick6updateEv">espp::Joystick::update (C++ function)</a>
 </li>
@@ -3440,6 +3442,8 @@
       <li><a href="math/range_mapper.html#_CPPv4NK4espp11RangeMapper3mapERK1T">espp::RangeMapper::map (C++ function)</a>
 </li>
       <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper11RangeMapperERK6Config">espp::RangeMapper::RangeMapper (C++ function)</a>, <a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper11RangeMapperEv">[1]</a>
+</li>
+      <li><a href="math/range_mapper.html#_CPPv4N4espp11RangeMapper12set_deadbandE1T">espp::RangeMapper::set_deadband (C++ function)</a>
 </li>
       <li><a href="math/range_mapper.html#_CPPv4NK4espp11RangeMapper5unmapERK1T">espp::RangeMapper::unmap (C++ function)</a>
 </li>

@@ -117,6 +117,15 @@ public:
   T get_output_max() const { return output_max_; }
 
   /**
+   * @brief Set the deadband for the input distribution.
+   * @param deadband The deadband to use for the input distribution.
+   * @note The deadband must be non-negative.
+   * @note The deadband is applied around the center value of the input
+   *       distribution.
+   */
+  void set_deadband(T deadband) { deadband_ = deadband; }
+
+  /**
    * @brief Map a value \p v from the input distribution into the configured
    *        output range (centered, default [-1,1]).
    * @param v Value from the (possibly uncentered and possibly inverted -

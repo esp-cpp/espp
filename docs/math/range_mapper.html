@@ -150,7 +150,7 @@
           <li><a href="index.html">Math APIs</a> &raquo;</li>
       <li>Range Mapper</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/626472a6/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ddf99a57/docs/en/math/range_mapper.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -167,7 +167,7 @@ input range to a standardized output range of [-1,1].</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/626472a6/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ddf99a57/components/math/include/range_mapper.hpp">components/math/include/range_mapper.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -265,6 +265,25 @@ The <a class="reference internal" href="#classespp_1_1RangeMapper"><span class="
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>Maximum of the output distribution for this range mapper. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11RangeMapper12set_deadbandE1T">
+<span id="_CPPv3N4espp11RangeMapper12set_deadbandE1T"></span><span id="_CPPv2N4espp11RangeMapper12set_deadbandE1T"></span><span id="espp::RangeMapper::set_deadband__T"></span><span class="target" id="classespp_1_1RangeMapper_1adb958310719b67c6961b79cb03bad3e7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_deadband</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN4espp11RangeMapperE" title="espp::RangeMapper::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">deadband</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11RangeMapper12set_deadbandE1T" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the deadband for the input distribution. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The deadband must be non-negative. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The deadband is applied around the center value of the input distribution. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>deadband</strong> – The deadband to use for the input distribution. </p>
 </dd>
 </dl>
 </dd></dl>
