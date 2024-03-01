@@ -9,4 +9,7 @@ For more information please see [ESP Docs](https://github.com/espressif/esp-docs
  - [API Documentation Template](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/template.html)
  - [ESP-DOCS Add-Ons and Extensions Reference](https://github.com/espressif/esp-docs/blob/master/docs/add-ons-reference.md) 
 
-to build the documentation, simply run `./build_docs.sh`.
+
+1. To ensure you can build the documentation, create a docker image for building the documentation  `docker build -t esp-docs .` (from within this directory) or `docker build -t esp-docs doc` from within the top-level project / espp directory.
+
+2. To build the documentation, simply run `./build_docs.sh` from within the top-level project / espp directory.
