@@ -124,6 +124,7 @@ public:
 			{0x8F, {0xFF}, 1},
 			{0xB6, {0x00, 0x20}, 2},
 			//call orientation
+			{0x36, {0x28}, 1},
 			{0x3A, {0x05}, 1},
 			{0x90, {0x08, 0x08, 0X08, 0X08}, 4},
 			{0xBD, {0x06}, 1},
@@ -158,17 +159,16 @@ public:
 			{0, {0}, 0xff},
 		};
 
-		//todo: figure out what to do with these
-//		// NOTE: these configurations operates on the MADCTL command / register
-//		if (config.mirror_x) {
-//			gc_init_cmds[10].data[0] |= LCD_CMD_MX_BIT;
-//		}
-//		if (config.mirror_y) {
-//			gc_init_cmds[10].data[0] |= LCD_CMD_MY_BIT;
-//		}
-//		if (config.swap_xy) {
-//			gc_init_cmds[10].data[0] |= LCD_CMD_MV_BIT;
-//		}
+		// NOTE: these configurations operates on the MADCTL command / register
+		if (config.mirror_x) {
+			gc_init_cmds[18].data[0] |= LCD_CMD_MX_BIT;
+		}
+		if (config.mirror_y) {
+			gc_init_cmds[18].data[0] |= LCD_CMD_MY_BIT;
+		}
+		if (config.swap_xy) {
+			gc_init_cmds[18].data[0] |= LCD_CMD_MV_BIT;
+		}
 
 		// send the init commands
 		send_commands(gc_init_cmds);
