@@ -11,11 +11,6 @@ namespace espp {
  *
  *   See also:
  *   https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_gc9a01/esp_lcd_gc9a01.c
- *
- * \section ili9341_wrover_cfg WROVER-KIT ILI9341 Config
- * \snippet display_drivers_example.cpp wrover_kit_config example
- * \section ili9341_ex1 ili9341 Example
- * \snippet display_drivers_example.cpp display_drivers example
  */
 class Gc9a01 {
 public:
