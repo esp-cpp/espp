@@ -175,9 +175,9 @@ public:
 
 		// configure the display color configuration
 		if (config.invert_colors) {
-			send_command(0x21);
+			send_command(Command::invon);
 		} else {
-			send_command(0x20);
+			send_command(Command::invoff);
 		}
 	}
 
@@ -248,7 +248,7 @@ public:
 			                area->y2 + offset_y_, (uint8_t *)color_map, flags);
 		} else {
 			set_drawing_area(area);
-			send_command((uint8_t)Command::ramwr);
+			send_command(Command::ramwr);
 			uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
 			send_data((uint8_t *)color_map, size * 2, flags);
 		}
@@ -266,7 +266,7 @@ public:
 		set_drawing_area(x, y, x + width, y + height);
 
 		// Write the color data to controller RAM
-		send_command((uint8_t)Command::ramwr);
+		send_command(Command::ramwr);
 		uint32_t size = width * height;
 		static constexpr int max_bytes_to_send = 1024 * 2;
 		uint16_t color_data[max_bytes_to_send];
@@ -285,6 +285,17 @@ public:
 	static void send_command(uint8_t command) {
 		uint16_t flags = 0;
 		lcd_write_(&command, 1, flags);
+	}
+
+	/**
+	 * @brief Sends the command, sets flags such that the pre-cb should set the
+	 *        DC pin to command mode.
+	 * @param command Command code to send
+	 */
+	static void send_command(Command command) {
+		uint16_t flags = 0;
+		auto command_ = static_cast<uint8_t >(command);
+		lcd_write_(&command_, 1, flags);
 	}
 
 	/**
