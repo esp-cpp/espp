@@ -18,7 +18,7 @@ extern "C" void app_main(void) {
 
   // create the GATT server
   espp::BleGattServer ble_gatt_server;
-  std::string device_name = "ESP++ GFPS Example";
+  std::string device_name = "ESP++ GFPS";
   ble_gatt_server.set_log_level(espp::Logger::Verbosity::INFO);
   ble_gatt_server.set_callbacks({
       .connect_callback = [&](NimBLEConnInfo &conn_info) { logger.info("Device connected"); },
@@ -28,6 +28,16 @@ extern "C" void app_main(void) {
   });
   ble_gatt_server.init(device_name);
   ble_gatt_server.set_advertise_on_disconnect(true);
+
+  // let's set some security
+  bool bonding = true;
+  bool mitm = false;
+  bool secure_connections = true;
+  ble_gatt_server.set_security(bonding, mitm, secure_connections);
+  // and some i/o and key config
+  ble_gatt_server.set_io_capabilities(BLE_HS_IO_NO_INPUT_OUTPUT);
+  ble_gatt_server.set_init_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+  ble_gatt_server.set_resp_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
 
   // let's create a GFPS service
   espp::GfpsService gfps_service;
@@ -72,7 +82,9 @@ extern "C" void app_main(void) {
           {// these are the service data that we want to advertise
            {gfps_service.uuid(), gfps_service.get_service_data()}},
   };
-  espp::BleGattServer::AdvertisingParameters adv_params = {};
+  espp::BleGattServer::AdvertisingParameters adv_params = {
+      .include_tx_power = true, // needed for gfps
+  };
   ble_gatt_server.start_advertising(adv_data, adv_params);
 
   // now lets update the battery level every second
