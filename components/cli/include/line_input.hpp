@@ -238,7 +238,7 @@ public:
           std::cout << std::endl;
           // make sure to clear to the end of the line
           clear_to_end_of_line();
-          for (auto &completion : completions) {
+          for (const auto &completion : completions) {
             std::cout << completion << " ";
           }
           // need to handle the case where we were at the bottom of the screen,
