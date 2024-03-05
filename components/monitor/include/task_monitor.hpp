@@ -1,10 +1,12 @@
 #pragma once
 
 #include <chrono>
+#include <iostream>
 
 #include "sdkconfig.h"
 
 #include "base_component.hpp"
+#include "tabulate.hpp"
 #include "task.hpp"
 
 #include "esp_freertos_hooks.h"
@@ -33,6 +35,9 @@ namespace espp {
  *
  * \section task_monitor_ex2 get_latest_info() Example
  * \snippet monitor_example.cpp get_latest_info example
+ *
+ * \section task_monitor_ex3 get_latest_info_table() Example
+ * \snippet monitor_example.cpp get_latest_info_table example
  */
 class TaskMonitor : public BaseComponent {
 public:
@@ -148,6 +153,38 @@ public:
 #else
     return "";
 #endif
+  }
+
+  /**
+   * @brief Print the latest task information in a nice table format.
+   *        This is a static function, so it can be called without having to
+   *        instantiate a TaskMonitor object.
+   * @param os std::ostream to write the table to.
+   * @note This function calls TaskMonitor::get_latest_info() and then formats
+   *       the data into a table using the tabulate library, and then writes
+   *       the table to the provided std::ostream.
+   */
+  static void get_latest_info_table(std::ostream &os) {
+    std::string info = get_latest_info();
+    using namespace tabulate;
+    using Row_t = Table::Row_t;
+    Table table;
+    table.add_row({"Task Name", "CPU %", "High Water Mark", "Priority"});
+
+    std::string task_info;
+    std::istringstream iss(info);
+    while (std::getline(iss, task_info, ';')) {
+      std::istringstream task_iss(task_info);
+      std::string task_data;
+      Row_t row;
+      while (std::getline(task_iss, task_data, ',')) {
+        row.push_back(task_data);
+      }
+      if (row.size() == 4) {
+        table.add_row(row);
+      }
+    }
+    os << table << std::endl;
   }
 
 protected:
