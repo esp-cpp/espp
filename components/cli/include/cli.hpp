@@ -164,7 +164,8 @@ public:
       Prompt();
       if (!in.good())
         Exit();
-      auto line = line_input_.get_user_input(in, [this]() { Prompt(); });
+      auto line = line_input_.get_user_input(
+          in, [this]() { Prompt(); }, [this](auto line) { return GetCompletions(line); });
       if (in.eof()) {
         Exit();
       } else {
