@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Monitoring APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/d5ae840d/docs/en/monitor.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/75fe6700/docs/en/monitor.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -168,7 +168,7 @@ or into a table for visualization.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/d5ae840d/components/monitor/include/task_monitor.hpp">components/monitor/include/task_monitor.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/75fe6700/components/monitor/include/task_monitor.hpp">components/monitor/include/task_monitor.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -188,9 +188,8 @@ or into a table for visualization.</p>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds_since_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
 <span class="w">      </span><span class="c1">// do some work</span>
 <span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">exp</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">seconds_since_start</span><span class="p">);</span>
-<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;[Task {}]: {:.03}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">task_id</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">);</span>
 <span class="w">      </span><span class="c1">// sleep</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">((</span><span class="mi">10</span><span class="n">ms</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">ms</span><span class="p">);</span>
 <span class="w">      </span><span class="c1">// don&#39;t want to stop the task</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
@@ -212,7 +211,7 @@ or into a table for visualization.</p>
 </p>
 </section>
 <section id="classespp_1_1TaskMonitor_1task_monitor_ex2">
-<h4>get_latest_info() Example<a class="headerlink" href="#classespp_1_1TaskMonitor_1task_monitor_ex2" title="Permalink to this headline"></a></h4>
+<h4>get_latest_info_vector() Example<a class="headerlink" href="#classespp_1_1TaskMonitor_1task_monitor_ex2" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1TaskMonitor_1task_monitor_ex2"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create threads</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">start</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">task_id</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -220,9 +219,8 @@ or into a table for visualization.</p>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds_since_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
 <span class="w">      </span><span class="c1">// do some work</span>
 <span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">exp</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">seconds_since_start</span><span class="p">);</span>
-<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;[Task {}]: {:.03}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">task_id</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">);</span>
 <span class="w">      </span><span class="c1">// sleep</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">((</span><span class="mi">10</span><span class="n">ms</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">ms</span><span class="p">);</span>
 <span class="w">      </span><span class="c1">// don&#39;t want to stop the task</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
@@ -238,25 +236,26 @@ or into a table for visualization.</p>
 <span class="w">      </span><span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">    </span><span class="c1">// now sleep for a while to let the monitor do its thing</span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TaskMonitor</span><span class="o">::</span><span class="n">get_latest_info</span><span class="p">());</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TaskMonitor</span><span class="o">::</span><span class="n">get_latest_info_vector</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">info</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">task_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">info</span><span class="p">);</span>
 <span class="w">    </span><span class="p">}</span>
 </pre></div>
 </div>
 </p>
 </section>
 <section id="classespp_1_1TaskMonitor_1task_monitor_ex3">
-<h4>get_latest_info_table() Example<a class="headerlink" href="#classespp_1_1TaskMonitor_1task_monitor_ex3" title="Permalink to this headline"></a></h4>
+<h4>get_latest_info_*() Example<a class="headerlink" href="#classespp_1_1TaskMonitor_1task_monitor_ex3" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1TaskMonitor_1task_monitor_ex3"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create threads</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_fn</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="n">start</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">task_id</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 <span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">seconds_since_start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">duration</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">start</span><span class="p">).</span><span class="n">count</span><span class="p">();</span>
-<span class="w">      </span><span class="c1">// do some work, but don&#39;t print it so that the table is easier to read</span>
-<span class="w">      </span><span class="k">volatile</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">exp</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">seconds_since_start</span><span class="p">);</span>
+<span class="w">      </span><span class="c1">// do some work</span>
+<span class="w">      </span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2.0f</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sin</span><span class="p">(</span><span class="n">exp</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">seconds_since_start</span><span class="p">);</span>
 <span class="w">      </span><span class="c1">// sleep</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">((</span><span class="mi">10</span><span class="n">ms</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">abs</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">ms</span><span class="p">);</span>
 <span class="w">      </span><span class="c1">// don&#39;t want to stop the task</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="w">    </span><span class="p">};</span>
@@ -272,10 +271,19 @@ or into a table for visualization.</p>
 <span class="w">      </span><span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-&gt;</span><span class="n">start</span><span class="p">();</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">    </span><span class="c1">// now sleep for a while to let the monitor do its thing</span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">espp</span><span class="o">::</span><span class="n">TaskMonitor</span><span class="o">::</span><span class="n">get_latest_info_table</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="p">);</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// single line string</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Task Monitor Info (single line):</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;{}</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TaskMonitor</span><span class="o">::</span><span class="n">get_latest_info_string</span><span class="p">());</span>
+<span class="w">    </span><span class="c1">// pretty table</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Task Monitor Info (pretty table):</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">task_table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">TaskMonitor</span><span class="o">::</span><span class="n">get_latest_info_table</span><span class="p">();</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">task_table</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// markdown table</span>
+<span class="w">    </span><span class="n">fmt</span><span class="o">::</span><span class="n">print</span><span class="p">(</span><span class="s">&quot;Converting the table above to markdown:</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">tabulate</span><span class="o">::</span><span class="n">MarkdownExporter</span><span class="w"> </span><span class="n">exporter</span><span class="p">;</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">markdown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">exporter</span><span class="p">.</span><span class="n">dump</span><span class="p">(</span><span class="n">task_table</span><span class="p">);</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">markdown</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
 </pre></div>
 </div>
  </p>
@@ -283,10 +291,6 @@ or into a table for visualization.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>you must enable CONFIG_FREERTOS_USE_TRACE_FACILITY and CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS for this class to do anything. This means that you can always instantiate this class in your app_main, and then based on those two config settings it will either do nothing (default) or print out the stats for you to analyze. Finally, the monitoring period can be configured as well.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>You can use the static <a class="reference internal" href="#classespp_1_1TaskMonitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"><span class="std std-ref">TaskMonitor::get_latest_info()</span></a> to get a string with the latest info without needing to construct a class / start the task.</p>
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
@@ -370,8 +374,26 @@ or into a table for visualization.</p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor15get_latest_infoEv">
-<span id="_CPPv3N4espp11TaskMonitor15get_latest_infoEv"></span><span id="_CPPv2N4espp11TaskMonitor15get_latest_infoEv"></span><span id="espp::TaskMonitor::get_latest_info"></span><span class="target" id="classespp_1_1TaskMonitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_latest_info</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor15get_latest_infoEv" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor22get_latest_info_vectorEv">
+<span id="_CPPv3N4espp11TaskMonitor22get_latest_info_vectorEv"></span><span id="_CPPv2N4espp11TaskMonitor22get_latest_info_vectorEv"></span><span id="espp::TaskMonitor::get_latest_info_vector"></span><span class="target" id="classespp_1_1TaskMonitor_1a05614d5cf9dce6b87901b265c4a2558f"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp11TaskMonitor8TaskInfoE" title="espp::TaskMonitor::TaskInfo"><span class="n"><span class="pre">TaskInfo</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_latest_info_vector</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor22get_latest_info_vectorEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get information about all the tasks running. Will provide for each task the following information: </p>
+<p><ul class="simple">
+<li><p>name</p></li>
+<li><p>% CPU run time the task has used</p></li>
+<li><p>stack high water mark (bytes)</p></li>
+<li><p>current priority of the task </p></li>
+</ul>
+</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>std::vector&lt;TaskInfo&gt; vector containing info for each task. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor22get_latest_info_stringEv">
+<span id="_CPPv3N4espp11TaskMonitor22get_latest_info_stringEv"></span><span id="_CPPv2N4espp11TaskMonitor22get_latest_info_stringEv"></span><span id="espp::TaskMonitor::get_latest_info_string"></span><span class="target" id="classespp_1_1TaskMonitor_1a2478b51f8ea2cabe35e2ef795369d9cf"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_latest_info_string</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor22get_latest_info_stringEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get information about all the tasks running. Will provide for each task the following information: </p>
 <p><ul class="simple">
 <li><p>name</p></li>
@@ -387,6 +409,10 @@ This is a static function, so it can be called without having to instantiate a <
 <p class="admonition-title">Note</p>
 <p>There is no newline returned.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function calls <a class="reference internal" href="#classespp_1_1TaskMonitor_1a05614d5cf9dce6b87901b265c4a2558f"><span class="std std-ref">TaskMonitor::get_latest_info_vector()</span></a> and then formats the data into a single line string separated by , and ;. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>std::string containing sequence of entries, formatted: <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">name</span><span class="p">,</span> <span class="n">cpu</span><span class="o">%</span><span class="p">,</span> <span class="n">high_water_mark</span><span class="p">,</span> <span class="n">priority</span><span class="p">;;</span>
@@ -398,16 +424,19 @@ This is a static function, so it can be called without having to instantiate a <
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor21get_latest_info_tableERNSt7ostreamE">
-<span id="_CPPv3N4espp11TaskMonitor21get_latest_info_tableERNSt7ostreamE"></span><span id="_CPPv2N4espp11TaskMonitor21get_latest_info_tableERNSt7ostreamE"></span><span id="espp::TaskMonitor::get_latest_info_table__osR"></span><span class="target" id="classespp_1_1TaskMonitor_1a7b3c6bf83ef38989a1287d9a8c398950"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_latest_info_table</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">os</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor21get_latest_info_tableERNSt7ostreamE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor21get_latest_info_tableEv">
+<span id="_CPPv3N4espp11TaskMonitor21get_latest_info_tableEv"></span><span id="_CPPv2N4espp11TaskMonitor21get_latest_info_tableEv"></span><span id="espp::TaskMonitor::get_latest_info_table"></span><span class="target" id="classespp_1_1TaskMonitor_1a52b93679ee08e5338ed69d8f2e8f1f6d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_latest_info_table</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor21get_latest_info_tableEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Print the latest task information in a nice table format. This is a static function, so it can be called without having to instantiate a <a class="reference internal" href="#classespp_1_1TaskMonitor"><span class="std std-ref">TaskMonitor</span></a> object. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This function calls <a class="reference internal" href="#classespp_1_1TaskMonitor_1af1a9fd23777f9cc1eb0dc5906f597d8d"><span class="std std-ref">TaskMonitor::get_latest_info()</span></a> and then formats the data into a table using the tabulate library, and then writes the table to the provided std::ostream. </p>
+<p>This function calls <a class="reference internal" href="#classespp_1_1TaskMonitor_1a05614d5cf9dce6b87901b265c4a2558f"><span class="std std-ref">TaskMonitor::get_latest_info_vector()</span></a> and then formats the data into a table using the tabulate library. </p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>os</strong> – std::ostream to write the table to. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tabulate::Table object which can be streamed to a std::ostream. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -416,7 +445,8 @@ This is a static function, so it can be called without having to instantiate a <
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor6ConfigE">
 <span id="_CPPv3N4espp11TaskMonitor6ConfigE"></span><span id="_CPPv2N4espp11TaskMonitor6ConfigE"></span><span id="espp::TaskMonitor::Config"></span><span class="target" id="structespp_1_1TaskMonitor_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor6ConfigE" title="Permalink to this definition"></a><br /></dt>
-<dd><div class="breathe-sectiondef docutils container">
+<dd><p><a class="reference internal" href="#structespp_1_1TaskMonitor_1_1Config"><span class="std std-ref">Config</span></a> structure for <a class="reference internal" href="#classespp_1_1TaskMonitor"><span class="std std-ref">TaskMonitor</span></a> object. </p>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor6Config6periodE">
@@ -428,6 +458,39 @@ This is a static function, so it can be called without having to instantiate a <
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor6Config21task_stack_size_bytesE">
 <span id="_CPPv3N4espp11TaskMonitor6Config21task_stack_size_bytesE"></span><span id="_CPPv2N4espp11TaskMonitor6Config21task_stack_size_bytesE"></span><span id="espp::TaskMonitor::Config::task_stack_size_bytes__s"></span><span class="target" id="structespp_1_1TaskMonitor_1_1Config_1a59383e3d8dd3036446b9093ae05dbc7b"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_stack_size_bytes</span></span></span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">8</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor6Config21task_stack_size_bytesE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Stack size (B) allocated to the TaskMonitor::task_callback. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor8TaskInfoE">
+<span id="_CPPv3N4espp11TaskMonitor8TaskInfoE"></span><span id="_CPPv2N4espp11TaskMonitor8TaskInfoE"></span><span id="espp::TaskMonitor::TaskInfo"></span><span class="target" id="structespp_1_1TaskMonitor_1_1TaskInfo"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TaskInfo</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor8TaskInfoE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Info structure for each task monitored. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor8TaskInfo4nameE">
+<span id="_CPPv3N4espp11TaskMonitor8TaskInfo4nameE"></span><span id="_CPPv2N4espp11TaskMonitor8TaskInfo4nameE"></span><span id="espp::TaskMonitor::TaskInfo::name__ss"></span><span class="target" id="structespp_1_1TaskMonitor_1_1TaskInfo_1a265848fca3c0f3182579d57688742864"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor8TaskInfo4nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Name of the task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor8TaskInfo11cpu_percentE">
+<span id="_CPPv3N4espp11TaskMonitor8TaskInfo11cpu_percentE"></span><span id="_CPPv2N4espp11TaskMonitor8TaskInfo11cpu_percentE"></span><span id="espp::TaskMonitor::TaskInfo::cpu_percent__uint32_t"></span><span class="target" id="structespp_1_1TaskMonitor_1_1TaskInfo_1a0d5fe5b9568129bcd7a6fe2f47195043"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cpu_percent</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor8TaskInfo11cpu_percentE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>% CPU run time the task has used. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor8TaskInfo15high_water_markE">
+<span id="_CPPv3N4espp11TaskMonitor8TaskInfo15high_water_markE"></span><span id="_CPPv2N4espp11TaskMonitor8TaskInfo15high_water_markE"></span><span id="espp::TaskMonitor::TaskInfo::high_water_mark__uint32_t"></span><span class="target" id="structespp_1_1TaskMonitor_1_1TaskInfo_1a54d8882d0426a672e7a1656d3d4fd502"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">high_water_mark</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor8TaskInfo15high_water_markE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stack high water mark (bytes). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11TaskMonitor8TaskInfo8priorityE">
+<span id="_CPPv3N4espp11TaskMonitor8TaskInfo8priorityE"></span><span id="_CPPv2N4espp11TaskMonitor8TaskInfo8priorityE"></span><span id="espp::TaskMonitor::TaskInfo::priority__uint32_t"></span><span class="target" id="structespp_1_1TaskMonitor_1_1TaskInfo_1a736c42780d80d66529fe3a003f2440f8"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">priority</span></span></span><a class="headerlink" href="#_CPPv4N4espp11TaskMonitor8TaskInfo8priorityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Current priority of the task. </p>
 </dd></dl>
 
 </div>

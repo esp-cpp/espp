@@ -26,21 +26,30 @@ namespace espp {
  *     (default) or print out the stats for you to analyze. Finally, the
  *     monitoring period can be configured as well.
  *
- *  @note You can use the static TaskMonitor::get_latest_info() to get a
- *     string with the latest info without needing to construct a class /
- *     start the task.
- *
  * \section task_monitor_ex1 Basic Task Monitor Example
  * \snippet monitor_example.cpp TaskMonitor example
  *
- * \section task_monitor_ex2 get_latest_info() Example
- * \snippet monitor_example.cpp get_latest_info example
+ * \section task_monitor_ex2 get_latest_info_vector() Example
+ * \snippet monitor_example.cpp get_latest_info_vector example
  *
- * \section task_monitor_ex3 get_latest_info_table() Example
- * \snippet monitor_example.cpp get_latest_info_table example
+ * \section task_monitor_ex3 get_latest_info_*() Example
+ * \snippet monitor_example.cpp get_latest_info example
  */
 class TaskMonitor : public BaseComponent {
 public:
+  /**
+   * Info structure for each task monitored.
+   */
+  struct TaskInfo {
+    std::string name;         /**< Name of the task. */
+    uint32_t cpu_percent;     /**< % CPU run time the task has used. */
+    uint32_t high_water_mark; /**< Stack high water mark (bytes). */
+    uint32_t priority;        /**< Current priority of the task. */
+  };
+
+  /**
+   * Config structure for TaskMonitor object.
+   */
   struct Config {
     std::chrono::duration<float> period; /**< Period (s) the TaskMonitor::task_callback runs at. */
     size_t task_stack_size_bytes{
@@ -70,34 +79,14 @@ public:
    *          * % CPU run time the task has used
    *          * stack high water mark (bytes)
    *          * current priority of the task
-   *
-   *        Where each entry is separated by ',' and each set of task data is
-   *        separated by ';'.
-   *
-   *        @note There is no newline returned.
-   *
-   *        This is a static function, so it can be called without having to
-   *        instantiate a TaskMonitor object.
-   *
-   * @return std::string containing sequence of entries, formatted:
-   *
-   *     name, cpu%, high_water_mark, priority;;
+   * @return std::vector<TaskInfo> vector containing info for each task.
    */
-  static std::string get_latest_info() {
+  static std::vector<TaskInfo> get_latest_info_vector() {
+    std::vector<TaskInfo> task_info;
 #if CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS
-    // make this static so that we don't allocate on the stack each time we
-    // call this function (and then deallocate later). NOTE(WARN): doing this
-    // makes this function non-reentrant and not thread-safe.
-    static char info_str[1024] = {0};
-
     TaskStatus_t *pxTaskStatusArray;
     volatile UBaseType_t uxArraySize;
     uint32_t ulTotalRunTime, ulStatsAsPercentage;
-
-    char *pcWriteBuffer = &info_str[0];
-
-    // Make sure the write buffer does not contain a string.
-    *pcWriteBuffer = 0x00;
 
     // Take a snapshot of the number of tasks in case it changes while this
     // function is executing.
@@ -134,25 +123,56 @@ public:
           ulStatsAsPercentage = pxTaskStatusArray[x].ulRunTimeCounter / ulTotalRunTime;
 
           if (ulStatsAsPercentage > 0UL) {
-            sprintf(pcWriteBuffer, "%s,%lu%%,%ld,%d;;", pxTaskStatusArray[x].pcTaskName,
-                    ulStatsAsPercentage, high_water_mark, priority);
+            task_info.push_back(
+                {pxTaskStatusArray[x].pcTaskName, ulStatsAsPercentage, high_water_mark, priority});
           } else {
             // If the percentage is zero here then the task has
             // consumed less than 1% of the total run time.
-            sprintf(pcWriteBuffer, "%s,<1%%,%ld,%d;;", pxTaskStatusArray[x].pcTaskName,
-                    high_water_mark, priority);
+            task_info.push_back({pxTaskStatusArray[x].pcTaskName, 0, high_water_mark, priority});
           }
-
-          pcWriteBuffer += strlen((char *)pcWriteBuffer);
         }
       }
       // The array is no longer needed, free the memory it consumes.
       vPortFree(pxTaskStatusArray);
     }
-    return std::string{info_str};
-#else
-    return "";
 #endif
+    return task_info;
+  }
+
+  /**
+   * @brief Get information about all the tasks running.
+   *        Will provide for each task the following information:
+   *          * name
+   *          * % CPU run time the task has used
+   *          * stack high water mark (bytes)
+   *          * current priority of the task
+   *
+   *        Where each entry is separated by ',' and each set of task data is
+   *        separated by ';'.
+   *
+   *        @note There is no newline returned.
+   *
+   *        This is a static function, so it can be called without having to
+   *        instantiate a TaskMonitor object.
+   *
+   * @return std::string containing sequence of entries, formatted:
+   *
+   *     name, cpu%, high_water_mark, priority;;
+   *
+   * @note This function calls TaskMonitor::get_latest_info_vector() and then
+   *       formats the data into a single line string separated by , and ;.
+   */
+  static std::string get_latest_info_string() {
+    std::string info = "";
+    auto task_info = get_latest_info_vector();
+    for (const auto &t : task_info) {
+      if (t.cpu_percent > 0.0f) {
+        info += fmt::format("{},{},{},{};", t.name, t.cpu_percent, t.high_water_mark, t.priority);
+      } else {
+        info += fmt::format("{},<1%,{},{};", t.name, 0, t.high_water_mark, t.priority);
+      }
+    }
+    return info;
   }
 
   /**
@@ -160,38 +180,28 @@ public:
    *        This is a static function, so it can be called without having to
    *        instantiate a TaskMonitor object.
    * @param os std::ostream to write the table to.
-   * @note This function calls TaskMonitor::get_latest_info() and then formats
-   *       the data into a table using the tabulate library, and then writes
-   *       the table to the provided std::ostream.
+   * @return A tabulate::Table object which can be streamed to a std::ostream.
+   * @note This function calls TaskMonitor::get_latest_info_vector() and then
+   *       formats the data into a table using the tabulate library.
    */
-  static void get_latest_info_table(std::ostream &os) {
-    std::string info = get_latest_info();
+  static auto get_latest_info_table() {
     using namespace tabulate;
-    using Row_t = Table::Row_t;
     Table table;
     table.add_row({"Task Name", "CPU %", "High Water Mark", "Priority"});
-
-    std::string task_info;
-    std::istringstream iss(info);
-    while (std::getline(iss, task_info, ';')) {
-      std::istringstream task_iss(task_info);
-      std::string task_data;
-      Row_t row;
-      while (std::getline(task_iss, task_data, ',')) {
-        row.push_back(task_data);
-      }
-      if (row.size() == 4) {
-        table.add_row(row);
-      }
+    auto task_info = get_latest_info_vector();
+    for (const auto &t : task_info) {
+      std::string percent = t.cpu_percent > 0 ? fmt::format("{} %", t.cpu_percent) : "<1%";
+      table.add_row(
+          {t.name, percent, fmt::format("{} B", t.high_water_mark), fmt::format("{}", t.priority)});
     }
-    os << table << std::endl;
+    return table;
   }
 
 protected:
   bool task_callback(std::mutex &m, std::condition_variable &cv) {
     auto start = std::chrono::high_resolution_clock::now();
     // print out the monitor information
-    fmt::print("[TM]{}\n", get_latest_info());
+    fmt::print("[TM]{}\n", get_latest_info_string());
     // sleep until our period is up
     {
       std::unique_lock<std::mutex> lk(m);
@@ -205,3 +215,14 @@ protected:
   std::unique_ptr<Task> task_;
 };
 } // namespace espp
+
+// for printing TaskMonitor::TaskInfo using libfmt
+template <> struct fmt::formatter<espp::TaskMonitor::TaskInfo> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(const espp::TaskMonitor::TaskInfo &t, FormatContext &ctx) {
+    return fmt::format_to(ctx.out(),
+                          "TaskInfo(name={}, cpu_percent={}, high_water_mark={}, priority={})",
+                          t.name, t.cpu_percent, t.high_water_mark, t.priority);
+  }
+};
