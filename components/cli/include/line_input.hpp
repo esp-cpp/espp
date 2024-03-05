@@ -45,6 +45,9 @@ public:
   /// function for printing the prompt if there is one
   typedef std::function<void(void)> prompt_fn;
 
+  /// function for getting completions for a given input
+  typedef std::function<std::vector<std::string>(const std::string &)> get_completions_fn;
+
   /// Storage for the input history as a double-ended queue of strings
   typedef std::deque<std::string> History;
 
@@ -115,9 +118,13 @@ public:
    * @brief Get user input with arrow key and backspace support
    * @param is Reference to a std::istream from which to read input
    * @param prompt Function to show prompt at the beginning of the line
+   *        (optional)
+   * @param get_completions Function to get completions for the current input
+   *        (optional)
    * @return User input as a std::string
    */
-  std::string get_user_input(std::istream &is, prompt_fn prompt = nullptr) {
+  std::string get_user_input(std::istream &is, prompt_fn prompt = nullptr,
+                             get_completions_fn get_completions = nullptr) {
     int start_pos_x, start_pos_y;
     get_cursor_position(start_pos_x, start_pos_y);
 
@@ -212,10 +219,41 @@ public:
           redraw(start_pos_x, input, prompt);
           pos_x--;
         }
+      } else if (ch == '\t') {
+        // handle tab key for completions, printing them all in one line if there are multiple
+        // or just inserting the completion if there is only one
+        auto current_line = input;
+        auto completions =
+            get_completions ? get_completions(current_line) : std::vector<std::string>();
+        if (completions.size() == 1) {
+          // need to clear the line and redraw the prompt and input, and move
+          // the cursor to the end
+          clear_line();
+          input = completions[0];
+          redraw(start_pos_x, input, prompt);
+          pos_x = start_pos_x + input.size();
+        } else if (completions.size() > 1) {
+          // print all the completions in one line below the current input,
+          // then move the cursor back to the input line
+          std::cout << std::endl;
+          // make sure to clear to the end of the line
+          clear_to_end_of_line();
+          for (const auto &completion : completions) {
+            std::cout << completion << " ";
+          }
+          // need to handle the case where we were at the bottom of the screen,
+          // so we need to move the cursor up one line before printing the
+          // completions and then move it back down after
+          if (pos_y == terminal_height_) {
+            pos_y--;
+          }
+        }
       } else if (ch == '\n') { // Enter
         // print a new line to move to the next line, since this was the end
         // of input
         fmt::print("\n");
+        // and clear the line from the cursor to the end
+        clear_to_end_of_line();
         break;
       } else { // Regular character
         input.insert(input.begin() + pos_x - start_pos_x, ch);

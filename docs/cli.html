@@ -145,7 +145,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Command Line Interface (CLI) APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/0cb92927/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/82a5c3ce/docs/en/cli.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -188,7 +188,7 @@ beyond the examples provided here.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/0cb92927/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/82a5c3ce/components/cli/include/cli.hpp">components/cli/include/cli.hpp</a></p></li>
 </ul>
 </section>
 <section id="macros">
@@ -352,7 +352,7 @@ beyond the examples provided here.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/0cb92927/components/cli/include/line_input.hpp">components/cli/include/line_input.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/82a5c3ce/components/cli/include/line_input.hpp">components/cli/include/line_input.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -383,6 +383,12 @@ beyond the examples provided here.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput9prompt_fnE">
 <span id="_CPPv3N4espp9LineInput9prompt_fnE"></span><span id="_CPPv2N4espp9LineInput9prompt_fnE"></span><span id="espp::LineInput::prompt_fn"></span><span class="target" id="classespp_1_1LineInput_1aee752778605aa51cc2f25c99a27c0bdc"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prompt_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9LineInput9prompt_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>function for printing the prompt if there is one </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput18get_completions_fnE">
+<span id="_CPPv3N4espp9LineInput18get_completions_fnE"></span><span id="_CPPv2N4espp9LineInput18get_completions_fnE"></span><span id="espp::LineInput::get_completions_fn"></span><span class="target" id="classespp_1_1LineInput_1a499d363f1008e036929476ac7d7f55b4"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_completions_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp9LineInput18get_completions_fnE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>function for getting completions for a given input </p>
 </dd></dl>
 
 <dl class="cpp type">
@@ -489,14 +495,15 @@ beyond the examples provided here.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn">
-<span id="_CPPv3N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn"></span><span id="_CPPv2N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn"></span><span id="espp::LineInput::get_user_input__isR.prompt_fn"></span><span class="target" id="classespp_1_1LineInput_1ae733c9cfa705852c3d1666c3c69ea193"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_user_input</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">istream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">is</span></span>, <a class="reference internal" href="#_CPPv4N4espp9LineInput9prompt_fnE" title="espp::LineInput::prompt_fn"><span class="n"><span class="pre">prompt_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">prompt</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn18get_completions_fn">
+<span id="_CPPv3N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn18get_completions_fn"></span><span id="_CPPv2N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn18get_completions_fn"></span><span id="espp::LineInput::get_user_input__isR.prompt_fn.get_completions_fn"></span><span class="target" id="classespp_1_1LineInput_1a20822797062ced7bd4563d6b62a962f1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_user_input</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">istream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">is</span></span>, <a class="reference internal" href="#_CPPv4N4espp9LineInput9prompt_fnE" title="espp::LineInput::prompt_fn"><span class="n"><span class="pre">prompt_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">prompt</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span>, <a class="reference internal" href="#_CPPv4N4espp9LineInput18get_completions_fnE" title="espp::LineInput::get_completions_fn"><span class="n"><span class="pre">get_completions_fn</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">get_completions</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp9LineInput14get_user_inputERNSt7istreamE9prompt_fn18get_completions_fn" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Get user input with arrow key and backspace support. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>is</strong> – Reference to a std::istream from which to read input </p></li>
-<li><p><strong>prompt</strong> – Function to show prompt at the beginning of the line </p></li>
+<li><p><strong>prompt</strong> – Function to show prompt at the beginning of the line (optional) </p></li>
+<li><p><strong>get_completions</strong> – Function to get completions for the current input (optional) </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
