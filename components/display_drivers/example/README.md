@@ -12,6 +12,7 @@ This example can be configured to run on the following dev boards:
 * ESP32-WROVER-Kit
 * TTGO T-Display
 * ESP32-S3-BOX
+* Smartknob-HA
 
 ### Configure the project
 
@@ -20,7 +21,7 @@ idf.py menuconfig
 ```
 
 When configuring the project, select the `Display Drivers Example Configuration`
-value that matches the board you've selected (must be one of the 3 boards
+value that matches the board you've selected (must be one of the 4 boards
 mentioned above.)
 
 ### Build and Flash
