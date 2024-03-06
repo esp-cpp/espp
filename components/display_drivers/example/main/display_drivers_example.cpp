@@ -16,6 +16,9 @@ static constexpr int DC_PIN_NUM = 16;
 #elif CONFIG_HARDWARE_BOX
 #include "st7789.hpp"
 static constexpr int DC_PIN_NUM = 4;
+#elif CONFIG_SMARTKNOB_HA
+#include "gc9a01.hpp"
+static constexpr int DC_PIN_NUM = 16;
 #else
 #error "Misconfigured hardware!"
 #endif
@@ -118,9 +121,10 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
   size_t length = (xe - xs + 1) * (ye - ys + 1) * 2;
 #if CONFIG_HARDWARE_WROVER_KIT
   trans[0].tx_data[0] = (uint8_t)espp::Ili9341::Command::caset;
-#endif
-#if CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
+#elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
   trans[0].tx_data[0] = (uint8_t)espp::St7789::Command::caset;
+#elif CONFIG_SMARTKNOB_HA
+  trans[0].tx_data[0] = (uint8_t)espp::Gc9a01::Command::caset;
 #endif
   trans[1].tx_data[0] = (xs) >> 8;
   trans[1].tx_data[1] = (xs)&0xff;
@@ -128,9 +132,10 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
   trans[1].tx_data[3] = (xe)&0xff;
 #if CONFIG_HARDWARE_WROVER_KIT
   trans[2].tx_data[0] = (uint8_t)espp::Ili9341::Command::raset;
-#endif
-#if CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
+#elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
   trans[2].tx_data[0] = (uint8_t)espp::St7789::Command::raset;
+#elif CONFIG_SMARTKNOB_HA
+  trans[2].tx_data[0] = (uint8_t)espp::Gc9a01::Command::raset;
 #endif
   trans[3].tx_data[0] = (ys) >> 8;
   trans[3].tx_data[1] = (ys)&0xff;
@@ -138,9 +143,10 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
   trans[3].tx_data[3] = (ye)&0xff;
 #if CONFIG_HARDWARE_WROVER_KIT
   trans[4].tx_data[0] = (uint8_t)espp::Ili9341::Command::ramwr;
-#endif
-#if CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
+#elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
   trans[4].tx_data[0] = (uint8_t)espp::St7789::Command::ramwr;
+#elif CONFIG_SMARTKNOB_HA
+  trans[4].tx_data[0] = (uint8_t)espp::Gc9a01::Command::ramwr;
 #endif
   trans[5].tx_buffer = data;
   trans[5].length = length * 8;
@@ -199,8 +205,7 @@ extern "C" void app_main(void) {
   using DisplayDriver = espp::Ili9341;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
   //! [wrover_kit_config example]
-#endif
-#if CONFIG_HARDWARE_TTGO
+#elif CONFIG_HARDWARE_TTGO
   //! [ttgo_config example]
   static constexpr std::string_view dev_kit = "TTGO T-Display";
   int clock_speed = 60 * 1000 * 1000;
@@ -224,8 +229,7 @@ extern "C" void app_main(void) {
   using DisplayDriver = espp::St7789;
   auto rotation = espp::Display::Rotation::PORTRAIT;
   //! [ttgo_config example]
-#endif
-#if CONFIG_HARDWARE_BOX
+#elif CONFIG_HARDWARE_BOX
   //! [box_config example]
   static constexpr std::string_view dev_kit = "ESP32-S3-BOX";
   int clock_speed = 60 * 1000 * 1000;
@@ -249,6 +253,30 @@ extern "C" void app_main(void) {
   using DisplayDriver = espp::St7789;
   auto rotation = espp::Display::Rotation::LANDSCAPE;
   //! [box_config example]
+#elif CONFIG_SMARTKNOB_HA
+  //! [smartknob_config example]
+  static constexpr std::string_view dev_kit = "Smartknob-HA";
+  int clock_speed = 80 * 1000 * 1000;
+  auto spi_num = SPI2_HOST;
+  gpio_num_t mosi = GPIO_NUM_6;
+  gpio_num_t sclk = GPIO_NUM_5;
+  gpio_num_t spics = GPIO_NUM_15;
+  gpio_num_t reset = GPIO_NUM_4;
+  gpio_num_t dc_pin = (gpio_num_t)DC_PIN_NUM;
+  gpio_num_t backlight = GPIO_NUM_7;
+  size_t width = 240;
+  size_t height = 240;
+  size_t pixel_buffer_size = width * 50;
+  bool backlight_on_value = true;
+  bool reset_value = false;
+  bool invert_colors = true;
+  int offset_x = 0;
+  int offset_y = 0;
+  bool mirror_x = true;
+  bool mirror_y = true;
+  using DisplayDriver = espp::Gc9a01;
+  auto rotation = espp::Display::Rotation::LANDSCAPE;
+  //! [smartknob_config example]
 #endif
 
   fmt::print("Starting display_drivers example for {}\n", dev_kit);

@@ -11,6 +11,8 @@ menu "Display Drivers Example Configuration"
             bool "TTGO T-DISPLAY"
         config HARDWARE_BOX
             bool "ESP BOX"
+        config SMARTKNOB_HA
+            bool "SMARTKNOB-HA"
     endchoice
 
 endmenu
