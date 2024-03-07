@@ -27,11 +27,15 @@ extern "C" void app_main(void) {
       .disconnect_callback = [&](NimBLEConnInfo &conn_info) { logger.info("Device disconnected"); },
       .authentication_complete_callback =
           [&](NimBLEConnInfo &conn_info) { logger.info("Device authenticated"); },
+      // NOTE: this is optional, if you don't provide this callback, it will
+      // perform the exactly function as below:
       .get_passkey_callback =
           [&]() {
             logger.info("Getting passkey");
             return NimBLEDevice::getSecurityPasskey();
           },
+      // NOTE: this is optional, if you don't provide this callback, it will
+      // perform the exactly function as below:
       .confirm_passkey_callback =
           [&](uint32_t passkey) {
             logger.info("Confirming passkey: {}", passkey);
