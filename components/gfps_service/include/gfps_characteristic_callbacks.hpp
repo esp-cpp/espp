@@ -31,7 +31,7 @@ public:
     auto status =
         gfps_ble_interface->on_gatt_read(addr_64, characteristic, output.data(), &output_size);
     if (status != kNearbyStatusOK) {
-      logger_.error("on_gatt_read returned status {}", (int)status);
+      logger_.error("on_gatt_read returned status {} for {}", (int)status, characteristic);
       return {};
     }
     output.resize(output_size);
@@ -55,7 +55,7 @@ public:
     logger_.debug("  with value: {::#02x}", std::vector<uint8_t>(value, value + length));
     auto status = gfps_ble_interface->on_gatt_write(addr_64, characteristic, value, length);
     if (status != kNearbyStatusOK) {
-      logger_.error("on_gatt_write returned status {}", (int)status);
+      logger_.error("on_gatt_write returned status {} for {}", (int)status, characteristic);
     }
   }
 
@@ -65,7 +65,7 @@ public:
 
 protected:
   espp::Logger logger_ =
-      espp::Logger({.tag = "GfpsCharacteristicCallback", .level = espp::Logger::Verbosity::WARN});
+      espp::Logger({.tag = "GfpsCharacteristicCallback", .level = espp::gfps::LOG_LEVEL});
 };
 
 class GfpsModelIdCharacteristicCallbacks : public NimBLECharacteristicCallbacks,

@@ -25,22 +25,26 @@ extern "C" void app_main(void) {
       .disconnect_callback = [&](NimBLEConnInfo &conn_info) { logger.info("Device disconnected"); },
       .authentication_complete_callback =
           [&](NimBLEConnInfo &conn_info) { logger.info("Device authenticated"); },
+      .get_passkey_callback = [&]() { return NimBLEDevice::getSecurityPasskey(); },
+      .confirm_passkey_callback =
+          [&](uint32_t passkey) {
+            // NOTE: right now we have no way to do asynchronous passkey injection
+            // (see: https://github.com/h2zero/esp-nimble-cpp/pull/117), so we
+            // have to blindly return true here AND set the passkey since it will
+            // be used by the GFPS BLE stack through the side channel.
+            NimBLEDevice::setSecurityPasskey(passkey);
+            return true;
+          },
   });
   ble_gatt_server.init(device_name);
   ble_gatt_server.set_advertise_on_disconnect(true);
 
-  // let's set some security
-  bool bonding = true;
-  bool mitm = false;
-  bool secure_connections = true;
-  ble_gatt_server.set_security(bonding, mitm, secure_connections);
-  // and some i/o and key config
-  ble_gatt_server.set_io_capabilities(BLE_HS_IO_NO_INPUT_OUTPUT);
-  ble_gatt_server.set_init_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
-  ble_gatt_server.set_resp_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+  // NOTE: we don't have to set security, since GFPS internally will set it to
+  // what is required by the spec.
 
   // let's create a GFPS service
   espp::GfpsService gfps_service;
+  gfps_service.set_log_level(espp::Logger::Verbosity::DEBUG);
   gfps_service.init(ble_gatt_server.server());
 
   // now that we've made the input characteristic, we can start the service
@@ -61,8 +65,8 @@ extern "C" void app_main(void) {
 
   auto &device_info_service = ble_gatt_server.device_info_service();
   uint8_t vendor_source = 0x02; // USB
-  uint16_t vid = 0x045E;        // Microsoft
-  uint16_t pid = 0x02FD;        // Xbox One Controller
+  uint16_t vid = 0xCafe;
+  uint16_t pid = 0xBabe;
   uint16_t product_version = 0x0100;
   device_info_service.set_pnp_id(vendor_source, vid, pid, product_version);
   device_info_service.set_manufacturer_name("ESP-CPP");
