@@ -43,6 +43,20 @@ public:
   /// \param server The BLE server to add the service to
   void init(NimBLEServer *server) { make_service(server); }
 
+  /// Deinitialize the Device Information Service
+  /// \note This should only be called after NimBLEDevice::deinit(true) has been
+  ///       called, since that will free the memory used by the service
+  void deinit() {
+    service_ = nullptr;
+    pnp_ = nullptr;
+    manufacturer_name_ = nullptr;
+    model_number_ = nullptr;
+    serial_number_ = nullptr;
+    software_version_ = nullptr;
+    firmware_version_ = nullptr;
+    hardware_version_ = nullptr;
+  }
+
   /// Start the service
   /// \note This must be called after the service has been initialized
   void start() {
