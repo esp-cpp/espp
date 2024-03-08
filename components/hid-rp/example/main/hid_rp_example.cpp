@@ -13,25 +13,36 @@ extern "C" void app_main(void) {
   logger.info("Starting");
 
   //! [hid rp example]
-  static constexpr uint8_t report_id = 1;
+  static constexpr uint8_t input_report_id = 1;
   static constexpr size_t num_buttons = 15;
   static constexpr int joystick_min = 0;
-  static constexpr int joystick_max = 65535;
+  static constexpr int joystick_max = 65534;
   static constexpr int trigger_min = 0;
-  static constexpr int trigger_max = 1024;
+  static constexpr int trigger_max = 1023;
 
-  using Gamepad = espp::GamepadReport<num_buttons, joystick_min, joystick_max, trigger_min,
-                                      trigger_max, report_id>;
-  Gamepad gamepad_input_report;
+  using GamepadInput = espp::GamepadInputReport<num_buttons, joystick_min, joystick_max,
+                                                trigger_min, trigger_max, input_report_id>;
+  GamepadInput gamepad_input_report;
+
+  static constexpr uint8_t output_report_id = 2;
+  static constexpr size_t num_leds = 4;
+  using GamepadLeds = espp::GamepadLedOutputReport<num_leds, output_report_id>;
+  GamepadLeds gamepad_leds_report;
+
+  using namespace hid::page;
+  using namespace hid::rdf;
+  auto raw_descriptor = descriptor(usage_page<generic_desktop>(), usage(generic_desktop::GAMEPAD),
+                                   collection::application(gamepad_input_report.get_descriptor(),
+                                                           gamepad_leds_report.get_descriptor()));
 
   // Generate the report descriptor for the gamepad
-  auto descriptor = gamepad_input_report.get_descriptor();
+  auto descriptor = std::vector<uint8_t>(raw_descriptor.begin(), raw_descriptor.end());
 
   logger.info("Report Descriptor:");
   logger.info("  Size: {}", descriptor.size());
   logger.info("  Data: {::#02x}", descriptor);
 
-  Gamepad::Hat hat = Gamepad::Hat::UP_RIGHT;
+  GamepadInput::Hat hat = GamepadInput::Hat::UP_RIGHT;
   int button_index = 5;
   float angle = 2.0f * M_PI * button_index / num_buttons;
 

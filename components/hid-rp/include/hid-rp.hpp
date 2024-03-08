@@ -8,8 +8,13 @@
 #include <vector>
 
 // generated from intergatedcircuits/hid-usage-tables
+#include "hid/page/battery_system.hpp"
 #include "hid/page/button.hpp"
+#include "hid/page/consumer.hpp"
 #include "hid/page/generic_desktop.hpp"
+#include "hid/page/generic_device.hpp"
+#include "hid/page/leds.hpp"
+#include "hid/page/physical_input_device.hpp"
 #include "hid/page/simulation.hpp"
 
 // from intergatedcircuits/hid-rp library

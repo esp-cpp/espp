@@ -5,7 +5,10 @@ This example shows how to use the `espp::HidService` class together with the
 an HID service. It uses the `hid-rp` component's `espp::GamepadReport<>` to
 define a HID gamepad report descriptor and generate input reports.
 
-https://github.com/esp-cpp/espp/assets/213467/20ff49e3-42e2-4e69-9c91-d1926071f665
+https://github.com/esp-cpp/espp/assets/213467/36d3d04d-1d8e-4b1d-9661-4ce115c7e9cc
+
+https://github.com/esp-cpp/espp/assets/213467/fd64e526-8c63-4456-8235-056edb418135
+
 
 ## How to use example
 
