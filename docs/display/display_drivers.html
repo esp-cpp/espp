@@ -94,6 +94,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id2">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Classes</a></li>
 </ul>
 </li>
 </ul>
@@ -149,7 +151,7 @@
           <li><a href="index.html">Display APIs</a> &raquo;</li>
       <li>Display Drivers</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/bfa883f3/docs/en/display/display_drivers.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/c6cafffd/docs/en/display/display_drivers.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -167,11 +169,284 @@ boards.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/bfa883f3/components/display_drivers/include/ili9341.hpp">components/display_drivers/include/ili9341.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c6cafffd/components/display_drivers/include/gc9a01.hpp">components/display_drivers/include/gc9a01.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a01E">
+<span id="_CPPv3N4espp6Gc9a01E"></span><span id="_CPPv2N4espp6Gc9a01E"></span><span id="espp::Gc9a01"></span><span class="target" id="classespp_1_1Gc9a01"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Gc9a01</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Gc9a01E" title="Permalink to this definition"></a><br /></dt>
+<dd><p><a class="reference internal" href="display.html#classespp_1_1Display"><span class="std std-ref">Display</span></a> driver for the GC9A01 display controller. </p>
+<p>This code is modified from <a class="reference external" href="https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/GC9A01.c">https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/GC9A01.c</a></p>
+<p>See also: <a class="reference external" href="https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_gc9a01/esp_lcd_gc9a01.c">https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_gc9a01/esp_lcd_gc9a01.c</a></p>
+<section id="classespp_1_1Gc9a01_1smartknob_ha_cfg">
+<h4>SmartKnob Config<a class="headerlink" href="#classespp_1_1Gc9a01_1smartknob_ha_cfg" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1Gc9a01_1smartknob_ha_cfg"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string_view</span><span class="w"> </span><span class="n">dev_kit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Smartknob-HA&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">clock_speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">80</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1000</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">spi_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SPI2_HOST</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">mosi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_6</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">sclk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_5</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">spics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_15</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">reset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_4</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">dc_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">DC_PIN_NUM</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gpio_num_t</span><span class="w"> </span><span class="n">backlight</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_7</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">240</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">240</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">width</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">reset_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">offset_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">offset_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">mirror_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">mirror_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">DisplayDriver</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Gc9a01</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Display</span><span class="o">::</span><span class="n">Rotation</span><span class="o">::</span><span class="n">LANDSCAPE</span><span class="p">;</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<section id="classespp_1_1Gc9a01_1gc9a01_ex1">
+<h4>Gc9a01 Example<a class="headerlink" href="#classespp_1_1Gc9a01_1gc9a01_ex1" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1Gc9a01_1gc9a01_ex1"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// create the spi host</span>
+<span class="w">    </span><span class="n">spi_bus_config_t</span><span class="w"> </span><span class="n">buscfg</span><span class="p">;</span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">buscfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">buscfg</span><span class="p">));</span>
+<span class="w">    </span><span class="n">buscfg</span><span class="p">.</span><span class="n">mosi_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mosi</span><span class="p">;</span>
+<span class="w">    </span><span class="n">buscfg</span><span class="p">.</span><span class="n">miso_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">buscfg</span><span class="p">.</span><span class="n">sclk_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sclk</span><span class="p">;</span>
+<span class="w">    </span><span class="n">buscfg</span><span class="p">.</span><span class="n">quadwp_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">buscfg</span><span class="p">.</span><span class="n">quadhd_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">buscfg</span><span class="p">.</span><span class="n">max_transfer_sz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="p">)(</span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">lv_color_t</span><span class="p">));</span>
+<span class="w">    </span><span class="c1">// create the spi device</span>
+<span class="w">    </span><span class="n">spi_device_interface_config_t</span><span class="w"> </span><span class="n">devcfg</span><span class="p">;</span>
+<span class="w">    </span><span class="n">memset</span><span class="p">(</span><span class="o">&amp;</span><span class="n">devcfg</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">devcfg</span><span class="p">));</span>
+<span class="w">    </span><span class="n">devcfg</span><span class="p">.</span><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">devcfg</span><span class="p">.</span><span class="n">clock_speed_hz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">clock_speed</span><span class="p">;</span>
+<span class="w">    </span><span class="n">devcfg</span><span class="p">.</span><span class="n">input_delay_ns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="n">devcfg</span><span class="p">.</span><span class="n">spics_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spics</span><span class="p">;</span>
+<span class="w">    </span><span class="n">devcfg</span><span class="p">.</span><span class="n">queue_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spi_queue_size</span><span class="p">;</span>
+<span class="w">    </span><span class="n">devcfg</span><span class="p">.</span><span class="n">pre_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lcd_spi_pre_transfer_callback</span><span class="p">;</span>
+<span class="w">    </span><span class="n">devcfg</span><span class="p">.</span><span class="n">post_cb</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lcd_spi_post_transfer_callback</span><span class="p">;</span>
+<span class="w">    </span><span class="n">esp_err_t</span><span class="w"> </span><span class="n">ret</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Initialize the SPI bus</span>
+<span class="w">    </span><span class="n">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spi_bus_initialize</span><span class="p">(</span><span class="n">spi_num</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">buscfg</span><span class="p">,</span><span class="w"> </span><span class="n">SPI_DMA_CH_AUTO</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ESP_ERROR_CHECK</span><span class="p">(</span><span class="n">ret</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Attach the LCD to the SPI bus</span>
+<span class="w">    </span><span class="n">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spi_bus_add_device</span><span class="p">(</span><span class="n">spi_num</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">devcfg</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">spi</span><span class="p">);</span>
+<span class="w">    </span><span class="n">ESP_ERROR_CHECK</span><span class="p">(</span><span class="n">ret</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// initialize the controller</span>
+<span class="w">    </span><span class="n">DisplayDriver</span><span class="o">::</span><span class="n">initialize</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">display_drivers</span><span class="o">::</span><span class="n">Config</span><span class="p">{</span>
+<span class="w">        </span><span class="p">.</span><span class="n">lcd_write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lcd_write</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">lcd_send_lines</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lcd_send_lines</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">reset_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reset</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">data_command_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dc_pin</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">reset_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">reset_value</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">invert_colors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">invert_colors</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">offset_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">offset_x</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">offset_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">offset_y</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">mirror_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mirror_x</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">mirror_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mirror_y</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// initialize the display / lvgl</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">display</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">espp</span><span class="o">::</span><span class="n">Display</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Display</span><span class="o">::</span><span class="n">AllocatingConfig</span><span class="p">{.</span><span class="n">width</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">width</span><span class="p">,</span>
+<span class="w">                                        </span><span class="p">.</span><span class="n">height</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">height</span><span class="p">,</span>
+<span class="w">                                        </span><span class="p">.</span><span class="n">pixel_buffer_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pixel_buffer_size</span><span class="p">,</span>
+<span class="w">                                        </span><span class="p">.</span><span class="n">flush_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DisplayDriver</span><span class="o">::</span><span class="n">flush</span><span class="p">,</span>
+<span class="w">                                        </span><span class="p">.</span><span class="n">backlight_pin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backlight</span><span class="p">,</span>
+<span class="w">                                        </span><span class="p">.</span><span class="n">backlight_on_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">backlight_on_value</span><span class="p">,</span>
+<span class="w">                                        </span><span class="p">.</span><span class="n">rotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rotation</span><span class="p">,</span>
+<span class="w">                                        </span><span class="p">.</span><span class="n">software_rotation_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">});</span>
+
+<span class="w">    </span><span class="c1">// initialize the gui</span>
+<span class="w">    </span><span class="n">Gui</span><span class="w"> </span><span class="nf">gui</span><span class="p">({.</span><span class="n">display</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">display</span><span class="p">});</span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">iterations</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="n">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fmt</span><span class="o">::</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;Iterations: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">iterations</span><span class="p">);</span>
+<span class="w">      </span><span class="n">gui</span><span class="p">.</span><span class="n">set_label</span><span class="p">(</span><span class="n">label</span><span class="p">);</span>
+<span class="w">      </span><span class="n">gui</span><span class="p">.</span><span class="n">set_meter</span><span class="p">(</span><span class="n">iterations</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">100</span><span class="p">);</span>
+<span class="w">      </span><span class="n">iterations</span><span class="o">++</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="mi">100</span><span class="n">ms</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a0110initializeERKN15display_drivers6ConfigE">
+<span id="_CPPv3N4espp6Gc9a0110initializeERKN15display_drivers6ConfigE"></span><span id="_CPPv2N4espp6Gc9a0110initializeERKN15display_drivers6ConfigE"></span><span id="espp::Gc9a01::initialize__display_drivers::ConfigCR"></span><span class="target" id="classespp_1_1Gc9a01_1a0896fcdbd5cc1c9f30670fbf7ee59887"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">display_drivers</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Config</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a0110initializeERKN15display_drivers6ConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Store the config data and send the initialization commands to the display controller. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – display_drivers::Config structure </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a015flushEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t">
+<span id="_CPPv3N4espp6Gc9a015flushEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t"></span><span id="_CPPv2N4espp6Gc9a015flushEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t"></span><span id="espp::Gc9a01::flush__lv_disp_drv_tP.lv_area_tCP.lv_color_tP"></span><span class="target" id="classespp_1_1Gc9a01_1ae03b369d9b780dfe3e89304079dce539"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flush</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">lv_disp_drv_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">drv</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">area</span></span>, <span class="n"><span class="pre">lv_color_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">color_map</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a015flushEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Flush the pixel data for the provided area to the display. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*drv</strong> – Pointer to the LVGL display driver. </p></li>
+<li><p><strong>*area</strong> – Pointer to the structure describing the pixel area. </p></li>
+<li><p><strong>*color_map</strong> – Pointer to array of colors to flush to the display. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a0116set_drawing_areaEPK9lv_area_t">
+<span id="_CPPv3N4espp6Gc9a0116set_drawing_areaEPK9lv_area_t"></span><span id="_CPPv2N4espp6Gc9a0116set_drawing_areaEPK9lv_area_t"></span><span id="espp::Gc9a01::set_drawing_area__lv_area_tCP"></span><span class="target" id="classespp_1_1Gc9a01_1a645ee2ba86bfed66d22bd3afec41c0fc"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_drawing_area</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">area</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a0116set_drawing_areaEPK9lv_area_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the drawing area for the display, resets the cursor to the starting position of the area. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>*area</strong> – Pointer to lv_area_t strcuture with start/end x/y coordinates. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a0116set_drawing_areaE6size_t6size_t6size_t6size_t">
+<span id="_CPPv3N4espp6Gc9a0116set_drawing_areaE6size_t6size_t6size_t6size_t"></span><span id="_CPPv2N4espp6Gc9a0116set_drawing_areaE6size_t6size_t6size_t6size_t"></span><span id="espp::Gc9a01::set_drawing_area__s.s.s.s"></span><span class="target" id="classespp_1_1Gc9a01_1a8b762cfb2d7a4e6e1ee08089e41c335d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_drawing_area</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xs</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ys</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">xe</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ye</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a0116set_drawing_areaE6size_t6size_t6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the drawing area for the display, resets the cursor to the starting position of the area. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> – Starting x coordinate of the area. </p></li>
+<li><p><strong>ys</strong> – Starting y coordinate of the area. </p></li>
+<li><p><strong>xe</strong> – Ending x coordinate of the area. </p></li>
+<li><p><strong>ye</strong> – Ending y coordinate of the area. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a014fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t">
+<span id="_CPPv3N4espp6Gc9a014fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t"></span><span id="_CPPv2N4espp6Gc9a014fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t"></span><span id="espp::Gc9a01::fill__lv_disp_drv_tP.lv_area_tCP.lv_color_tP.uint32_t"></span><span class="target" id="classespp_1_1Gc9a01_1a1c13b1be20187fddeb935c1abc6f6eac"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fill</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">lv_disp_drv_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">drv</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">lv_area_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">area</span></span>, <span class="n"><span class="pre">lv_color_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">color_map</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a014fillEP13lv_disp_drv_tPK9lv_area_tP10lv_color_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Flush the pixel data for the provided area to the display. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>*drv</strong> – Pointer to the LVGL display driver. </p></li>
+<li><p><strong>*area</strong> – Pointer to the structure describing the pixel area. </p></li>
+<li><p><strong>*color_map</strong> – Pointer to array of colors to flush to the display. </p></li>
+<li><p><strong>flags</strong> – uint32_t user data / flags to pass to the lcd_write transfer function. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a015clearE6size_t6size_t6size_t6size_t8uint16_t">
+<span id="_CPPv3N4espp6Gc9a015clearE6size_t6size_t6size_t6size_t8uint16_t"></span><span id="_CPPv2N4espp6Gc9a015clearE6size_t6size_t6size_t6size_t8uint16_t"></span><span id="espp::Gc9a01::clear__s.s.s.s.uint16_t"></span><span class="target" id="classespp_1_1Gc9a01_1ab6fb3cb5082a6e6c84409bea8263179e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">width</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">height</span></span>, <span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">color</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x0000</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a015clearE6size_t6size_t6size_t6size_t8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Clear the display area, filling it with the provided color. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – X coordinate of the upper left corner of the display area. </p></li>
+<li><p><strong>y</strong> – Y coordinate of the upper left corner of the display area. </p></li>
+<li><p><strong>width</strong> – Width of the display area to clear. </p></li>
+<li><p><strong>height</strong> – Height of the display area to clear. </p></li>
+<li><p><strong>color</strong> – 16 bit color (default 0x0000) to fill with. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a0112send_commandE7uint8_t">
+<span id="_CPPv3N4espp6Gc9a0112send_commandE7uint8_t"></span><span id="_CPPv2N4espp6Gc9a0112send_commandE7uint8_t"></span><span id="espp::Gc9a01::send_command__uint8_t"></span><span class="target" id="classespp_1_1Gc9a01_1aede18c4be32c5702bd2328876f78a3cd"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_command</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">command</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a0112send_commandE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sends the command, sets flags such that the pre-cb should set the DC pin to command mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>command</strong> – Command code to send </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a0112send_commandE7Command">
+<span id="_CPPv3N4espp6Gc9a0112send_commandE7Command"></span><span id="_CPPv2N4espp6Gc9a0112send_commandE7Command"></span><span id="espp::Gc9a01::send_command__Command"></span><span class="target" id="classespp_1_1Gc9a01_1a759f82358c66cc6559c7d8f06b7b0dee"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_command</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">Command</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">command</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a0112send_commandE7Command" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Sends the command, sets flags such that the pre-cb should set the DC pin to command mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>command</strong> – Command code to send </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a019send_dataEPK7uint8_t6size_t8uint32_t">
+<span id="_CPPv3N4espp6Gc9a019send_dataEPK7uint8_t6size_t8uint32_t"></span><span id="_CPPv2N4espp6Gc9a019send_dataEPK7uint8_t6size_t8uint32_t"></span><span id="espp::Gc9a01::send_data__uint8_tCP.s.uint32_t"></span><span class="target" id="classespp_1_1Gc9a01_1a815a0442cf9c7c12ace1ddac56893d42"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">send_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">length</span></span>, <span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">flags</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a019send_dataEPK7uint8_t6size_t8uint32_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Send data to the display. Adds (1&lt;&lt;DC_LEVEL_BIT) to the flags so that the pre-cb receives it in user data and can configure the DC pin to data mode. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Pointer to array of bytes to be sent </p></li>
+<li><p><strong>length</strong> – Number of bytes of data to send. </p></li>
+<li><p><strong>flags</strong> – Optional (default = 0) flags associated with transfer. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a0110set_offsetEii">
+<span id="_CPPv3N4espp6Gc9a0110set_offsetEii"></span><span id="_CPPv2N4espp6Gc9a0110set_offsetEii"></span><span id="espp::Gc9a01::set_offset__i.i"></span><span class="target" id="classespp_1_1Gc9a01_1a555bb72c20b5dc79cde27518cd3a0390"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_offset</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a0110set_offsetEii" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the offset (upper left starting coordinate) of the display. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This modifies internal variables that are used when sending coordinates / filling parts of the display. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – New starting x coordinate (so writing to x address 0 later will actually write to this offset). </p></li>
+<li><p><strong>y</strong> – New starting y coordinate (so writing to y address 0 later will actually write to this offset). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Gc9a0110get_offsetERiRi">
+<span id="_CPPv3N4espp6Gc9a0110get_offsetERiRi"></span><span id="_CPPv2N4espp6Gc9a0110get_offsetERiRi"></span><span id="espp::Gc9a01::get_offset__iR.iR"></span><span class="target" id="classespp_1_1Gc9a01_1a28580a58275dab5a474aee6bee41eaaa"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_offset</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">y</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Gc9a0110get_offsetERiRi" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the offset (upper left starting coordinate) of the display. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This returns internal variables that are used when sending coordinates / filling parts of the display. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Reference variable that will be filled with the currently configured starting x coordinate that was provided in the config or set by <a class="reference internal" href="#classespp_1_1Gc9a01_1a555bb72c20b5dc79cde27518cd3a0390"><span class="std std-ref">set_offset()</span></a>. </p></li>
+<li><p><strong>y</strong> – Reference variable that will be filled with the currently configured starting y coordinate that was provided in the config or set by <a class="reference internal" href="#classespp_1_1Gc9a01_1a555bb72c20b5dc79cde27518cd3a0390"><span class="std std-ref">set_offset()</span></a>. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c6cafffd/components/display_drivers/include/ili9341.hpp">components/display_drivers/include/ili9341.hpp</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp7Ili9341E">
 <span id="_CPPv3N4espp7Ili9341E"></span><span id="_CPPv2N4espp7Ili9341E"></span><span id="espp::Ili9341"></span><span class="target" id="classespp_1_1Ili9341"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">Ili9341</span></span></span><a class="headerlink" href="#_CPPv4N4espp7Ili9341E" title="Permalink to this definition"></a><br /></dt>
@@ -426,14 +701,14 @@ boards.</p>
 </dd></dl>
 
 </section>
-<section id="id1">
-<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<section id="id3">
+<h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/bfa883f3/components/display_drivers/include/st7789.hpp">components/display_drivers/include/st7789.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/c6cafffd/components/display_drivers/include/st7789.hpp">components/display_drivers/include/st7789.hpp</a></p></li>
 </ul>
 </section>
-<section id="id2">
-<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
+<section id="id4">
+<h3>Classes<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6St7789E">
 <span id="_CPPv3N4espp6St7789E"></span><span id="_CPPv2N4espp6St7789E"></span><span id="espp::St7789"></span><span class="target" id="classespp_1_1St7789"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">St7789</span></span></span><a class="headerlink" href="#_CPPv4N4espp6St7789E" title="Permalink to this definition"></a><br /></dt>
