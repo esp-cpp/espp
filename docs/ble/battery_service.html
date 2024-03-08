@@ -150,7 +150,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>Battery Service</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/75fe6700/docs/en/ble/battery_service.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f3f15a27/docs/en/ble/battery_service.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -167,7 +167,7 @@ battery state information from a BLE peripheral to a BLE central.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/75fe6700/components/ble_gatt_server/include/battery_service.hpp">components/ble_gatt_server/include/battery_service.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f3f15a27/components/ble_gatt_server/include/battery_service.hpp">components/ble_gatt_server/include/battery_service.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -203,6 +203,16 @@ battery state information from a BLE peripheral to a BLE central.</p>
 <dd class="field-odd"><p><strong>server</strong> – The BLE server to add the service to </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp14BatteryService6deinitEv">
+<span id="_CPPv3N4espp14BatteryService6deinitEv"></span><span id="_CPPv2N4espp14BatteryService6deinitEv"></span><span id="espp::BatteryService::deinit"></span><span class="target" id="classespp_1_1BatteryService_1aa6a928f7397dfb5c2bdb75b70a45f85c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp14BatteryService6deinitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deinitialize the Battery Service </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should only be called after NimBLEDevice::deinit(true) has been called, since that will free the memory used by the service </p>
+</div>
 </dd></dl>
 
 <dl class="cpp function">

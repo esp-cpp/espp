@@ -1,6 +1,6 @@
 #include "gfps.hpp"
 
-static espp::Logger logger({.tag = "GFPS OS", .level = espp::Logger::Verbosity::WARN});
+static espp::Logger logger({.tag = "GFPS OS", .level = espp::gfps::LOG_LEVEL});
 
 static std::chrono::system_clock::time_point s_start_time;
 

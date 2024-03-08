@@ -13,6 +13,7 @@
 #include "base_component.hpp"
 
 #include "battery_service.hpp"
+#include "ble_gatt_server_callbacks.hpp"
 #include "device_info_service.hpp"
 
 namespace espp {
@@ -24,10 +25,8 @@ namespace espp {
 ///
 /// \section ble_gatt_server_ex1 BLE GATT Server Example
 /// \snippet ble_gatt_server_example.cpp ble gatt server example
-class BleGattServer : public NimBLEServerCallbacks, public BaseComponent {
+class BleGattServer : public BaseComponent {
 public:
-  //////////////// BleGattServer //////////////////
-
   /// @brief Callback for when a device connects to the GATT server.
   typedef std::function<void(NimBLEConnInfo &)> connect_callback_t;
 
@@ -38,6 +37,15 @@ public:
   /// @param conn_info The connection information for the device.
   typedef std::function<void(NimBLEConnInfo &)> authentication_complete_callback_t;
 
+  /// @brief Callback for the passkey.
+  /// @return The passkey for the device.
+  typedef std::function<uint32_t(void)> get_passkey_callback_t;
+
+  /// @brief Callback for confirming the passkey.
+  /// @param passkey The passkey for the device.
+  /// @return Whether the passkey is confirmed.
+  typedef std::function<bool(uint32_t)> confirm_passkey_callback_t;
+
   /// @brief Callbacks for the GATT server.
   struct Callbacks {
     connect_callback_t connect_callback =
@@ -46,6 +54,12 @@ public:
         nullptr; ///< Callback for when a device disconnects from the GATT server.
     authentication_complete_callback_t authentication_complete_callback =
         nullptr; ///< Callback for when a device completes authentication.
+    get_passkey_callback_t get_passkey_callback =
+        nullptr; ///< Callback for getting the passkey. If not set, will simply
+                 ///  return NimBLEDevice::getSecurityPasskey().
+    confirm_passkey_callback_t confirm_passkey_callback =
+        nullptr; ///< Callback for confirming the passkey. If not set, will
+                 ///  simply compare the passkey to NimBLEDevice::getSecurityPasskey().
   };
 
   /// @brief Configuration for the GATT server.
@@ -139,14 +153,15 @@ public:
       logger_.error("Failed to create server");
       return;
     }
-    // set the server callbacks to this class
-    server_->setCallbacks(this);
+
+    // set the server callbacks
+    server_->setCallbacks(new BleGattServerCallbacks(this));
 
     logger_.info("Creating device info service");
     // create the device info service
     device_info_service_.init(server_);
 
-    logger_.info("Creating device info service");
+    logger_.info("Creating battery service");
     // create the battery service
     battery_service_.init(server_);
   }
@@ -156,11 +171,18 @@ public:
   /// It also invalidates any references/pointers to the server.
   /// @note After calling this method, any references/pointers to the server
   ///       and any created services/characteristics will be invalid.
+  /// @note This method should only be called after NimBLEDevice::deinit(true)
+  ///       has been called, since that will free the memory used by the server.
+  /// @note This method will also deinitialize the device info and battery
+  ///       services.
   void deinit() {
     // if true, deletes all server/advertising/scan/client objects which
     // invalidates any references/pointers to them
     bool clear_all = true;
     NimBLEDevice::deinit(clear_all);
+    // now deinitialize the services
+    device_info_service_.deinit();
+    battery_service_.deinit();
   }
 
   /// Start the services
@@ -306,55 +328,9 @@ public:
     NimBLEDevice::setSecurityRespKey(key_distribution);
   }
 
-  //////////////// NimBLEServerCallbacks //////////////////
-
-  // Connection callback for NimBLEServerCallbacks subclass
-  /// @param server The server that the client connected to.
-  /// @param conn_info The connection information for the client.
-  void onConnect(NimBLEServer *server, NimBLEConnInfo &conn_info) override {
-    logger_.info("Client connected");
-    if (callbacks_.connect_callback) {
-      callbacks_.connect_callback(conn_info);
-    }
-  }
-
-  // Disconnection callback for NimBLEServerCallbacks subclass
-  /// @param server The server that the client disconnected from.
-  /// @param conn_info The connection information for the client.
-  /// @param reason The reason for the disconnection.
-  void onDisconnect(NimBLEServer *server, NimBLEConnInfo &conn_info, int reason) override {
-    logger_.info("Client disconnected");
-    if (callbacks_.disconnect_callback) {
-      callbacks_.disconnect_callback(conn_info);
-    }
-  }
-
-  // security
-  // Passkey request callback for NimBLEServerCallbacks subclass
-  /// @return The passkey for the device.
-  uint32_t onPassKeyRequest() override {
-    logger_.info("Passkey requested");
-    return NimBLEDevice::getSecurityPasskey();
-  }
-
-  // Passkey display callback for NimBLEServerCallbacks subclass
-  /// @param pass_key The passkey for the device.
-  bool onConfirmPIN(uint32_t pass_key) override {
-    logger_.info("Confirm PIN: {}", pass_key);
-    NimBLEDevice::setSecurityPasskey(pass_key);
-    return pass_key == NimBLEDevice::getSecurityPasskey();
-  }
-
-  // Pairing complete callback for NimBLEServerCallbacks subclass
-  /// @param conn_info The connection information for the client.
-  void onAuthenticationComplete(NimBLEConnInfo &conn_info) override {
-    logger_.info("Authentication complete");
-    if (callbacks_.authentication_complete_callback) {
-      callbacks_.authentication_complete_callback(conn_info);
-    }
-  }
-
 protected:
+  friend class BleGattServerCallbacks;
+
   Callbacks callbacks_{};                 ///< The callbacks for the GATT server.
   NimBLEServer *server_{nullptr};         ///< The GATT server.
   DeviceInfoService device_info_service_; ///< The device info service.

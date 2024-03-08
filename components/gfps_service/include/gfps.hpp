@@ -81,6 +81,19 @@ const nearby_platform_BtInterface *get_bt_interface();
 int ble_gap_event_handler(ble_gap_event *event, void *arg);
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
 
+static constexpr espp::Logger::Verbosity LOG_LEVEL =
+#if CONFIG_GFPS_TRACE_LEVEL <= 2
+    espp::Logger::Verbosity::DEBUG;
+#elif CONFIG_GFPS_TRACE_LEVEL == 3
+    espp::Logger::Verbosity::INFO;
+#elif CONFIG_GFPS_TRACE_LEVEL == 4
+    espp::Logger::Verbosity::WARN;
+#elif CONFIG_GFPS_TRACE_LEVEL == 5
+    espp::Logger::Verbosity::ERROR;
+#else
+    espp::Logger::Verbosity::NONE;
+#endif
+
 } // namespace gfps
 } // namespace espp
 

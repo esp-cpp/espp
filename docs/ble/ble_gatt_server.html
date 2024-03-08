@@ -151,7 +151,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>BLE GATT Server</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/75fe6700/docs/en/ble/ble_gatt_server.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f3f15a27/docs/en/ble/ble_gatt_server.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -169,14 +169,14 @@ adds standard battery service and device information service.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/75fe6700/components/ble_gatt_server/include/ble_gatt_server.hpp">components/ble_gatt_server/include/ble_gatt_server.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f3f15a27/components/ble_gatt_server/include/ble_gatt_server.hpp">components/ble_gatt_server/include/ble_gatt_server.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
 <h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline"></a></h3>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServerE">
-<span id="_CPPv3N4espp13BleGattServerE"></span><span id="_CPPv2N4espp13BleGattServerE"></span><span id="espp::BleGattServer"></span><span class="target" id="classespp_1_1BleGattServer"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">BleGattServer</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">NimBLEServerCallbacks</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp13BleGattServerE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp13BleGattServerE"></span><span id="_CPPv2N4espp13BleGattServerE"></span><span id="espp::BleGattServer"></span><span class="target" id="classespp_1_1BleGattServer"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">BleGattServer</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="../base_component.html#_CPPv4N4espp13BaseComponentE" title="espp::BaseComponent"><span class="n"><span class="pre">BaseComponent</span></span></a><a class="headerlink" href="#_CPPv4N4espp13BleGattServerE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>BLE GATT Server This class is responsible for creating and managing the BLE GATT server. It is responsible for handling the connection and disconnection of clients. It is also responsible for handling the pairing process. It also manages the different services that are part of the GATT server.</p>
 <section id="classespp_1_1BleGattServer_1ble_gatt_server_ex1">
 <h4>BLE GATT Server Example<a class="headerlink" href="#classespp_1_1BleGattServer_1ble_gatt_server_ex1" title="Permalink to this headline"></a></h4>
@@ -189,11 +189,24 @@ adds standard battery service and device information service.</p>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">device_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Espp BLE GATT Server&quot;</span><span class="p">;</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_callbacks</span><span class="p">({</span>
-<span class="w">      </span><span class="p">.</span><span class="n">connect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Device connected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
-<span class="w">      </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span>
-<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">connect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device connected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
 <span class="w">      </span><span class="p">.</span><span class="n">authentication_complete_callback</span><span class="w"> </span><span class="o">=</span>
-<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="c1">// NOTE: this is optional, if you don&#39;t provide this callback, it will</span>
+<span class="w">      </span><span class="c1">// perform the exactly function as below:</span>
+<span class="w">      </span><span class="p">.</span><span class="n">get_passkey_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Getting passkey&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">getSecurityPasskey</span><span class="p">();</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="c1">// NOTE: this is optional, if you don&#39;t provide this callback, it will</span>
+<span class="w">      </span><span class="c1">// perform the exactly function as below:</span>
+<span class="w">      </span><span class="p">.</span><span class="n">confirm_passkey_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">passkey</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Confirming passkey: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">passkey</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">passkey</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">getSecurityPasskey</span><span class="p">();</span>
+<span class="w">          </span><span class="p">},</span>
 <span class="w">  </span><span class="p">});</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
@@ -204,6 +217,7 @@ adds standard battery service and device information service.</p>
 <span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">secure_connections</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_security</span><span class="p">(</span><span class="n">bonding</span><span class="p">,</span><span class="w"> </span><span class="n">mitm</span><span class="p">,</span><span class="w"> </span><span class="n">secure_connections</span><span class="p">);</span>
 <span class="w">  </span><span class="c1">// and some i/o and key config</span>
+<span class="w">  </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">setSecurityPasskey</span><span class="p">(</span><span class="mi">123456</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_io_capabilities</span><span class="p">(</span><span class="n">BLE_HS_IO_NO_INPUT_OUTPUT</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_init_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_resp_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
@@ -296,6 +310,31 @@ adds standard battery service and device information service.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Param conn_info</dt>
 <dd class="field-odd"><p>The connection information for the device. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22get_passkey_callback_tE">
+<span id="_CPPv3N4espp13BleGattServer22get_passkey_callback_tE"></span><span id="_CPPv2N4espp13BleGattServer22get_passkey_callback_tE"></span><span id="espp::BleGattServer::get_passkey_callback_t"></span><span class="target" id="classespp_1_1BleGattServer_1abf5c3783b0928feccffc23899b3ef341"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_passkey_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22get_passkey_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for the passkey. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Return</dt>
+<dd class="field-odd"><p>The passkey for the device. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer26confirm_passkey_callback_tE">
+<span id="_CPPv3N4espp13BleGattServer26confirm_passkey_callback_tE"></span><span id="_CPPv2N4espp13BleGattServer26confirm_passkey_callback_tE"></span><span id="espp::BleGattServer::confirm_passkey_callback_t"></span><span class="target" id="classespp_1_1BleGattServer_1ac9aca34c198790cd19c4abaaa38ec8be"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">uint32_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">confirm_passkey_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer26confirm_passkey_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for confirming the passkey. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Param passkey</dt>
+<dd class="field-odd"><p>The passkey for the device. </p>
+</dd>
+<dt class="field-even">Return</dt>
+<dd class="field-even"><p>Whether the passkey is confirmed. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -406,6 +445,14 @@ adds standard battery service and device information service.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>After calling this method, any references/pointers to the server and any created services/characteristics will be invalid. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method should only be called after NimBLEDevice::deinit(true) has been called, since that will free the memory used by the server. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method will also deinitialize the device info and battery services. </p>
 </div>
 </dd></dl>
 
@@ -570,63 +617,6 @@ adds standard battery service and device information service.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>key_distribution</strong> – The response key distribution for the device. </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9onConnectEP12NimBLEServerR14NimBLEConnInfo">
-<span id="_CPPv3N4espp13BleGattServer9onConnectEP12NimBLEServerR14NimBLEConnInfo"></span><span id="_CPPv2N4espp13BleGattServer9onConnectEP12NimBLEServerR14NimBLEConnInfo"></span><span id="espp::BleGattServer::onConnect__NimBLEServerP.NimBLEConnInfoR"></span><span class="target" id="classespp_1_1BleGattServer_1ab500dadeb34915af6d486ed90b4b3716"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onConnect</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">NimBLEServer</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">server</span></span>, <span class="n"><span class="pre">NimBLEConnInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">conn_info</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9onConnectEP12NimBLEServerR14NimBLEConnInfo" title="Permalink to this definition"></a><br /></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>server</strong> – The server that the client connected to. </p></li>
-<li><p><strong>conn_info</strong> – The connection information for the client. </p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer12onDisconnectEP12NimBLEServerR14NimBLEConnInfoi">
-<span id="_CPPv3N4espp13BleGattServer12onDisconnectEP12NimBLEServerR14NimBLEConnInfoi"></span><span id="_CPPv2N4espp13BleGattServer12onDisconnectEP12NimBLEServerR14NimBLEConnInfoi"></span><span id="espp::BleGattServer::onDisconnect__NimBLEServerP.NimBLEConnInfoR.i"></span><span class="target" id="classespp_1_1BleGattServer_1abe51a413d9c06cec87ca9f1a063ec8fe"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onDisconnect</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">NimBLEServer</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">server</span></span>, <span class="n"><span class="pre">NimBLEConnInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">conn_info</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reason</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer12onDisconnectEP12NimBLEServerR14NimBLEConnInfoi" title="Permalink to this definition"></a><br /></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>server</strong> – The server that the client disconnected from. </p></li>
-<li><p><strong>conn_info</strong> – The connection information for the client. </p></li>
-<li><p><strong>reason</strong> – The reason for the disconnection. </p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer16onPassKeyRequestEv">
-<span id="_CPPv3N4espp13BleGattServer16onPassKeyRequestEv"></span><span id="_CPPv2N4espp13BleGattServer16onPassKeyRequestEv"></span><span id="espp::BleGattServer::onPassKeyRequest"></span><span class="target" id="classespp_1_1BleGattServer_1a64cbd4d68435a98a1430436bbc066df3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onPassKeyRequest</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer16onPassKeyRequestEv" title="Permalink to this definition"></a><br /></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>The passkey for the device. </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer12onConfirmPINE8uint32_t">
-<span id="_CPPv3N4espp13BleGattServer12onConfirmPINE8uint32_t"></span><span id="_CPPv2N4espp13BleGattServer12onConfirmPINE8uint32_t"></span><span id="espp::BleGattServer::onConfirmPIN__uint32_t"></span><span class="target" id="classespp_1_1BleGattServer_1a3149f5d75902e97ef9622eacb47b8fce"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onConfirmPIN</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pass_key</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer12onConfirmPINE8uint32_t" title="Permalink to this definition"></a><br /></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>pass_key</strong> – The passkey for the device. </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer24onAuthenticationCompleteER14NimBLEConnInfo">
-<span id="_CPPv3N4espp13BleGattServer24onAuthenticationCompleteER14NimBLEConnInfo"></span><span id="_CPPv2N4espp13BleGattServer24onAuthenticationCompleteER14NimBLEConnInfo"></span><span id="espp::BleGattServer::onAuthenticationComplete__NimBLEConnInfoR"></span><span class="target" id="classespp_1_1BleGattServer_1a3629f486ed1e27bd65bb63df099f544a"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onAuthenticationComplete</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">NimBLEConnInfo</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">conn_info</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">override</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer24onAuthenticationCompleteER14NimBLEConnInfo" title="Permalink to this definition"></a><br /></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>conn_info</strong> – The connection information for the client. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -820,6 +810,18 @@ adds standard battery service and device information service.</p>
 <dd><p>Callback for when a device completes authentication. </p>
 </dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks20get_passkey_callbackE">
+<span id="_CPPv3N4espp13BleGattServer9Callbacks20get_passkey_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks20get_passkey_callbackE"></span><span id="espp::BleGattServer::Callbacks::get_passkey_callback__get_passkey_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1afac3f601deb4ec0d569abe9a51d79e75"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer22get_passkey_callback_tE" title="espp::BleGattServer::get_passkey_callback_t"><span class="n"><span class="pre">get_passkey_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_passkey_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks20get_passkey_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for getting the passkey. If not set, will simply return NimBLEDevice::getSecurityPasskey(). </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks24confirm_passkey_callbackE">
+<span id="_CPPv3N4espp13BleGattServer9Callbacks24confirm_passkey_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks24confirm_passkey_callbackE"></span><span id="espp::BleGattServer::Callbacks::confirm_passkey_callback__confirm_passkey_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1aa6de30987326e511c84d15286d1bc5dc"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer26confirm_passkey_callback_tE" title="espp::BleGattServer::confirm_passkey_callback_t"><span class="n"><span class="pre">confirm_passkey_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">confirm_passkey_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks24confirm_passkey_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for confirming the passkey. If not set, will simply compare the passkey to NimBLEDevice::getSecurityPasskey(). </p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -850,7 +852,7 @@ adds standard battery service and device information service.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/75fe6700/components/ble_gatt_server/include/ble_gatt_server_menu.hpp">components/ble_gatt_server/include/ble_gatt_server_menu.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f3f15a27/components/ble_gatt_server/include/ble_gatt_server_menu.hpp">components/ble_gatt_server/include/ble_gatt_server_menu.hpp</a></p></li>
 </ul>
 </section>
 </section>

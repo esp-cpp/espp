@@ -1,6 +1,6 @@
 #include "gfps.hpp"
 
-static espp::Logger logger({.tag = "GFPS BLE", .level = espp::Logger::Verbosity::WARN});
+static espp::Logger logger({.tag = "GFPS BLE", .level = espp::gfps::LOG_LEVEL});
 
 static std::vector<uint8_t> REMOTE_PUBLIC_KEY(64, 0);
 
@@ -77,6 +77,16 @@ int espp::gfps::ble_gap_event_handler(ble_gap_event *event, void *arg) {
     // devices that pair later to show a passkey. We don't want this, and
     // ensuring we set the mode to IO_CAP_NONE fixes that)
     NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
+    break;
+  }
+  case BLE_GAP_EVENT_PASSKEY_ACTION: {
+    logger.info("BLE_GAP_EVENT_PASSKEY_ACTION");
+    if (event->passkey.params.action == BLE_SM_IOACT_NUMCMP) {
+      // this is the kind of event that GFPS should expect but for some reason
+      // it doesn't seem to be triggering (no BLE_GAP_EVENT_PASSKEY_ACTION
+      // events are being triggered, only the ones in the NimBLEServer class are
+      // triggered...)
+    }
     break;
   }
   default:
@@ -267,6 +277,8 @@ void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   // here, but our current esp-nimble-cpp NimBLEServer doesn't have a
   // mechanism right now which would allow us to respond success/failure here
   // without responding within the onConfirmPIN callback.
+  logger.info("TODO: implement pairing success/failure here after esp-nimble-ble adds support for "
+              "asynchronous pin injections");
 #endif // CONFIG_BT_NIMBLE_ENABLED
 }
 
@@ -289,6 +301,8 @@ nearby_platform_status nearby_platform_SetDefaultCapabilities() {
   bool secure = true;
   NimBLEDevice::setSecurityAuth(bonding, mitm, secure);
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
+  NimBLEDevice::setSecurityInitKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+  NimBLEDevice::setSecurityRespKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
 #endif // CONFIG_BT_NIMBLE_ENABLED
   return kNearbyStatusOK;
 }
@@ -303,6 +317,8 @@ nearby_platform_status nearby_platform_SetFastPairCapabilities() {
   bool secure = true;
   NimBLEDevice::setSecurityAuth(bonding, mitm, secure);
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_YESNO);
+  NimBLEDevice::setSecurityInitKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
+  NimBLEDevice::setSecurityRespKey(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
 #endif // CONFIG_BT_NIMBLE_ENABLED
   return kNearbyStatusOK;
 }

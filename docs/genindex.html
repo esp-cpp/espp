@@ -132,7 +132,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/75fe6700/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f3f15a27/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -797,6 +797,8 @@
 </li>
       <li><a href="ble/battery_service.html#_CPPv4N4espp14BatteryService14BatteryServiceEN4espp6Logger9VerbosityE">espp::BatteryService::BatteryService (C++ function)</a>
 </li>
+      <li><a href="ble/battery_service.html#_CPPv4N4espp14BatteryService6deinitEv">espp::BatteryService::deinit (C++ function)</a>
+</li>
       <li><a href="ble/battery_service.html#_CPPv4N4espp14BatteryService17get_battery_levelEv">espp::BatteryService::get_battery_level (C++ function)</a>
 </li>
       <li><a href="ble/battery_service.html#_CPPv4N4espp14BatteryService11get_serviceEv">espp::BatteryService::get_service (C++ function)</a>
@@ -1047,15 +1049,21 @@
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer9Callbacks32authentication_complete_callbackE">espp::BleGattServer::Callbacks::authentication_complete_callback (C++ member)</a>
 </li>
+      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer9Callbacks24confirm_passkey_callbackE">espp::BleGattServer::Callbacks::confirm_passkey_callback (C++ member)</a>
+</li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer9Callbacks16connect_callbackE">espp::BleGattServer::Callbacks::connect_callback (C++ member)</a>
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer9Callbacks19disconnect_callbackE">espp::BleGattServer::Callbacks::disconnect_callback (C++ member)</a>
+</li>
+      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer9Callbacks20get_passkey_callbackE">espp::BleGattServer::Callbacks::get_passkey_callback (C++ member)</a>
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer6ConfigE">espp::BleGattServer::Config (C++ struct)</a>
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer6Config9callbacksE">espp::BleGattServer::Config::callbacks (C++ member)</a>
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer6Config9log_levelE">espp::BleGattServer::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer26confirm_passkey_callback_tE">espp::BleGattServer::confirm_passkey_callback_t (C++ type)</a>
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer18connect_callback_tE">espp::BleGattServer::connect_callback_t (C++ type)</a>
 </li>
@@ -1065,19 +1073,11 @@
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer21disconnect_callback_tE">espp::BleGattServer::disconnect_callback_t (C++ type)</a>
 </li>
+      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer22get_passkey_callback_tE">espp::BleGattServer::get_passkey_callback_t (C++ type)</a>
+</li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer4initERKNSt6stringE">espp::BleGattServer::init (C++ function)</a>
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4NK4espp13BleGattServer12is_connectedEv">espp::BleGattServer::is_connected (C++ function)</a>
-</li>
-      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer24onAuthenticationCompleteER14NimBLEConnInfo">espp::BleGattServer::onAuthenticationComplete (C++ function)</a>
-</li>
-      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer12onConfirmPINE8uint32_t">espp::BleGattServer::onConfirmPIN (C++ function)</a>
-</li>
-      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer9onConnectEP12NimBLEServerR14NimBLEConnInfo">espp::BleGattServer::onConnect (C++ function)</a>
-</li>
-      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer12onDisconnectEP12NimBLEServerR14NimBLEConnInfoi">espp::BleGattServer::onDisconnect (C++ function)</a>
-</li>
-      <li><a href="ble/ble_gatt_server.html#_CPPv4N4espp13BleGattServer16onPassKeyRequestEv">espp::BleGattServer::onPassKeyRequest (C++ function)</a>
 </li>
       <li><a href="ble/ble_gatt_server.html#_CPPv4NK4espp13BleGattServer6serverEv">espp::BleGattServer::server (C++ function)</a>
 </li>
@@ -1486,6 +1486,8 @@
       <li><a href="controller.html#_CPPv4N4espp10ControllerD0Ev">espp::Controller::~Controller (C++ function)</a>
 </li>
       <li><a href="ble/device_info_service.html#_CPPv4N4espp17DeviceInfoServiceE">espp::DeviceInfoService (C++ class)</a>
+</li>
+      <li><a href="ble/device_info_service.html#_CPPv4N4espp17DeviceInfoService6deinitEv">espp::DeviceInfoService::deinit (C++ function)</a>
 </li>
       <li><a href="ble/device_info_service.html#_CPPv4N4espp17DeviceInfoService17DeviceInfoServiceEN4espp6Logger9VerbosityE">espp::DeviceInfoService::DeviceInfoService (C++ function)</a>
 </li>
@@ -2195,6 +2197,8 @@
 </li>
       <li><a href="ble/hid_service.html#_CPPv4N4espp10HidServiceE">espp::HidService (C++ class)</a>
 </li>
+      <li><a href="ble/hid_service.html#_CPPv4N4espp10HidService6deinitEv">espp::HidService::deinit (C++ function)</a>
+</li>
       <li><a href="ble/hid_service.html#_CPPv4N4espp10HidService14feature_reportE7uint8_t">espp::HidService::feature_report (C++ function)</a>
 </li>
       <li><a href="ble/hid_service.html#_CPPv4N4espp10HidService11get_controlEv">espp::HidService::get_control (C++ function)</a>
@@ -2433,10 +2437,10 @@
 </li>
       <li><a href="io_expander/kts1622.html#_CPPv4N4espp7Kts16226Config9auto_initE">espp::Kts1622::Config::auto_init (C++ member)</a>
 </li>
-      <li><a href="io_expander/kts1622.html#_CPPv4N4espp7Kts16226Config14device_addressE">espp::Kts1622::Config::device_address (C++ member)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="io_expander/kts1622.html#_CPPv4N4espp7Kts16226Config14device_addressE">espp::Kts1622::Config::device_address (C++ member)</a>
+</li>
       <li><a href="io_expander/kts1622.html#_CPPv4N4espp7Kts16226Config9log_levelE">espp::Kts1622::Config::log_level (C++ member)</a>
 </li>
       <li><a href="io_expander/kts1622.html#_CPPv4N4espp7Kts16226Config17output_drive_modeE">espp::Kts1622::Config::output_drive_mode (C++ member)</a>

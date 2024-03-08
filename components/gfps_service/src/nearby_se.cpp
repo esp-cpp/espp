@@ -1,6 +1,6 @@
 #include "gfps.hpp"
 
-static espp::Logger logger({.tag = "GFPS SE", .level = espp::Logger::Verbosity::WARN});
+static espp::Logger logger({.tag = "GFPS SE", .level = espp::gfps::LOG_LEVEL});
 
 static constexpr char *kAntiSpoofingPrivateKey = CONFIG_GFPS_ANTISPOOFING_PRIVATE_KEY;
 static std::string decoded_anti_spoofing_private_key;

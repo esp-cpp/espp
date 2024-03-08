@@ -150,7 +150,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>HID Service</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/75fe6700/docs/en/ble/hid_service.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f3f15a27/docs/en/ble/hid_service.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -168,7 +168,7 @@ BLE central.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/75fe6700/components/hid_service/include/hid_service.hpp">components/hid_service/include/hid_service.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f3f15a27/components/hid_service/include/hid_service.hpp">components/hid_service/include/hid_service.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -199,6 +199,20 @@ BLE central.</p>
 <span class="w">      </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
 <span class="w">      </span><span class="p">.</span><span class="n">authentication_complete_callback</span><span class="w"> </span><span class="o">=</span>
 <span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="c1">// NOTE: this is optional, if you don&#39;t provide this callback, it will</span>
+<span class="w">      </span><span class="c1">// perform the exactly function as below:</span>
+<span class="w">      </span><span class="p">.</span><span class="n">get_passkey_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Getting passkey&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">getSecurityPasskey</span><span class="p">();</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="c1">// NOTE: this is optional, if you don&#39;t provide this callback, it will</span>
+<span class="w">      </span><span class="c1">// perform the exactly function as below:</span>
+<span class="w">      </span><span class="p">.</span><span class="n">confirm_passkey_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">passkey</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Confirming passkey: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">passkey</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">passkey</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">getSecurityPasskey</span><span class="p">();</span>
+<span class="w">          </span><span class="p">},</span>
 <span class="w">  </span><span class="p">});</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
@@ -209,6 +223,7 @@ BLE central.</p>
 <span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">secure_connections</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_security</span><span class="p">(</span><span class="n">bonding</span><span class="p">,</span><span class="w"> </span><span class="n">mitm</span><span class="p">,</span><span class="w"> </span><span class="n">secure_connections</span><span class="p">);</span>
 <span class="w">  </span><span class="c1">// and some i/o and key config</span>
+<span class="w">  </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">setSecurityPasskey</span><span class="p">(</span><span class="mi">123456</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_io_capabilities</span><span class="p">(</span><span class="n">BLE_HS_IO_NO_INPUT_OUTPUT</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_init_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_resp_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
@@ -366,6 +381,16 @@ BLE central.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp10HidService4initEP12NimBLEServer">
 <span id="_CPPv3N4espp10HidService4initEP12NimBLEServer"></span><span id="_CPPv2N4espp10HidService4initEP12NimBLEServer"></span><span id="espp::HidService::init__NimBLEServerP"></span><span class="target" id="classespp_1_1HidService_1a3592aa07f1e953a74e910a1166aff9b6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">NimBLEServer</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">server</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10HidService4initEP12NimBLEServer" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize the HID service. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp10HidService6deinitEv">
+<span id="_CPPv3N4espp10HidService6deinitEv"></span><span id="_CPPv2N4espp10HidService6deinitEv"></span><span id="espp::HidService::deinit"></span><span class="target" id="classespp_1_1HidService_1af98597a46ab548d60d9af33cc39be064"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp10HidService6deinitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deinitialize the HID service. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This should only be called after NimBLEDevice::deinit(true) has been called, since that will free the memory used by the service. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp function">

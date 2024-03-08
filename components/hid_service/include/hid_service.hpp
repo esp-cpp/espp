@@ -57,6 +57,17 @@ public:
   /// @brief Initialize the HID service.
   void init(NimBLEServer *server) { make_service(server); }
 
+  /// @brief Deinitialize the HID service.
+  /// @note This should only be called after NimBLEDevice::deinit(true) has been
+  ///       called, since that will free the memory used by the service.
+  void deinit() {
+    service_ = nullptr;
+    hid_info_ = nullptr;
+    report_map_ = nullptr;
+    control_ = nullptr;
+    protocol_mode_ = nullptr;
+  }
+
   /// @brief Start the HID service.
   void start() {
     if (service_) {

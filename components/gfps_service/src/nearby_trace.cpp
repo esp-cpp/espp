@@ -1,6 +1,6 @@
 #include "gfps.hpp"
 
-static espp::Logger logger({.tag = "embedded", .level = espp::Logger::Verbosity::WARN});
+static espp::Logger logger({.tag = "embedded", .level = espp::gfps::LOG_LEVEL});
 
 // Generates conditional trace line. This is usually wrapped in a macro to
 // provide compiler parameters.

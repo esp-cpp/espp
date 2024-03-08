@@ -123,13 +123,13 @@ public:
       logger_.error("Service not created");
       return false;
     }
-    if (characteristic == kKeyBasedPairing) {
+    if (characteristic == kKeyBasedPairing && kb_pairing_) {
       kb_pairing_->notify(value, length);
       return true;
-    } else if (characteristic == kPasskey) {
+    } else if (characteristic == kPasskey && passkey_) {
       passkey_->notify(value, length);
       return true;
-    } else if (characteristic == kAccountKey) {
+    } else if (characteristic == kAccountKey && account_key_) {
       account_key_->notify(value, length);
       return true;
     } else {
@@ -157,6 +157,21 @@ public:
     NimBLEDevice::setCustomGapHandler(gfps::ble_gap_event_handler);
   }
 
+  /// Deinitialize the service
+  /// \note This function will deinitialize the service
+  /// \note This function will also deinitialize the nearby framework
+  /// \note This function should only be called after NimBLEDevice::deinit(true)
+  ///       has been called, since that will free the memory used by the service
+  ///       and the nearby framework
+  void deinit() {
+    gfps::deinit();
+    service_ = nullptr;
+    model_id_ = nullptr;
+    kb_pairing_ = nullptr;
+    passkey_ = nullptr;
+    account_key_ = nullptr;
+  }
+
   /// Start the service
   /// \note This function will start the service
   /// \note This function will also set the advertisement mode for the nearby
@@ -177,9 +192,6 @@ public:
     // set the advertisement mode
     nearby_fp_client_SetAdvertisement(advertisement_mode);
   }
-
-  /// Deinitialize the service
-  void deinit() { gfps::deinit(); }
 
 protected:
   static constexpr uint16_t SERVICE_UUID = 0xFE2C;

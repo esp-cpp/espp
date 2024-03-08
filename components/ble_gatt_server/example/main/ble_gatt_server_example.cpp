@@ -23,11 +23,24 @@ extern "C" void app_main(void) {
   std::string device_name = "Espp BLE GATT Server";
   ble_gatt_server.set_log_level(espp::Logger::Verbosity::INFO);
   ble_gatt_server.set_callbacks({
-      .connect_callback = [&](NimBLEConnInfo &conn_info) { logger.debug("Device connected"); },
-      .disconnect_callback =
-          [&](NimBLEConnInfo &conn_info) { logger.debug("Device disconnected"); },
+      .connect_callback = [&](NimBLEConnInfo &conn_info) { logger.info("Device connected"); },
+      .disconnect_callback = [&](NimBLEConnInfo &conn_info) { logger.info("Device disconnected"); },
       .authentication_complete_callback =
-          [&](NimBLEConnInfo &conn_info) { logger.debug("Device authenticated"); },
+          [&](NimBLEConnInfo &conn_info) { logger.info("Device authenticated"); },
+      // NOTE: this is optional, if you don't provide this callback, it will
+      // perform the exactly function as below:
+      .get_passkey_callback =
+          [&]() {
+            logger.info("Getting passkey");
+            return NimBLEDevice::getSecurityPasskey();
+          },
+      // NOTE: this is optional, if you don't provide this callback, it will
+      // perform the exactly function as below:
+      .confirm_passkey_callback =
+          [&](uint32_t passkey) {
+            logger.info("Confirming passkey: {}", passkey);
+            return passkey == NimBLEDevice::getSecurityPasskey();
+          },
   });
   ble_gatt_server.init(device_name);
   ble_gatt_server.set_advertise_on_disconnect(true);
@@ -38,6 +51,7 @@ extern "C" void app_main(void) {
   bool secure_connections = true;
   ble_gatt_server.set_security(bonding, mitm, secure_connections);
   // and some i/o and key config
+  NimBLEDevice::setSecurityPasskey(123456);
   ble_gatt_server.set_io_capabilities(BLE_HS_IO_NO_INPUT_OUTPUT);
   ble_gatt_server.set_init_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   ble_gatt_server.set_resp_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);

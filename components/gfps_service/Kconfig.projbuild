@@ -10,4 +10,13 @@ menu "GFPS Configuration"
         default ""
         help
             Set the GFPS anti-spoofing private key, as a base64 uncompressed string.
+
+    config GFPS_TRACE_LEVEL
+        int "GFPS Trace Level"
+        default 6
+        range 1 6
+        help
+            Set the trace level for GFPS. 1 is VERBOSE, 2 is DEBUG, 3 is INFO, 4
+            is WARNING, 5 is ERROR, 6 is OFF.
+
 endmenu

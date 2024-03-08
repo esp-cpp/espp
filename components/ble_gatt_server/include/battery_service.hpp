@@ -35,6 +35,14 @@ public:
   /// \param server The BLE server to add the service to
   void init(NimBLEServer *server) { make_service(server); }
 
+  /// Deinitialize the Battery Service
+  /// \note This should only be called after NimBLEDevice::deinit(true) has been
+  ///       called, since that will free the memory used by the service
+  void deinit() {
+    service_ = nullptr;
+    battery_level_ = nullptr;
+  }
+
   /// Start the service
   /// \note This must be called after the service has been initialized
   void start() {
@@ -66,6 +74,10 @@ public:
   /// \note The level is clamped to the range [0, 100]
   /// \note This must be called after the service has been initialized
   void set_battery_level(uint8_t level) {
+    if (!service_) {
+      logger_.error("Service not created");
+      return;
+    }
     if (!battery_level_) {
       logger_.error("Battery level characteristic not created");
       return;
@@ -79,6 +91,10 @@ public:
   /// Get the battery level
   /// \return The battery level
   uint8_t get_battery_level() {
+    if (!service_) {
+      logger_.error("Service not created");
+      return 0;
+    }
     if (!battery_level_) {
       logger_.error("Battery level characteristic not created");
       return 0;

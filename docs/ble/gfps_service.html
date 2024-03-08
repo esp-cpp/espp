@@ -153,7 +153,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>Google Fast Pair Service (GFPS) Service</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/75fe6700/docs/en/ble/gfps_service.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f3f15a27/docs/en/ble/gfps_service.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -173,7 +173,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/75fe6700/components/gfps_service/include/gfps_service.hpp">components/gfps_service/include/gfps_service.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f3f15a27/components/gfps_service/include/gfps_service.hpp">components/gfps_service/include/gfps_service.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -212,22 +212,26 @@ account’s google devices and personalizing the name of the device.</p>
 <span class="w">      </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
 <span class="w">      </span><span class="p">.</span><span class="n">authentication_complete_callback</span><span class="w"> </span><span class="o">=</span>
 <span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">get_passkey_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">getSecurityPasskey</span><span class="p">();</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">confirm_passkey_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">passkey</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// NOTE: right now we have no way to do asynchronous passkey injection</span>
+<span class="w">            </span><span class="c1">// (see: https://github.com/h2zero/esp-nimble-cpp/pull/117), so we</span>
+<span class="w">            </span><span class="c1">// have to blindly return true here AND set the passkey since it will</span>
+<span class="w">            </span><span class="c1">// be used by the GFPS BLE stack through the side channel.</span>
+<span class="w">            </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">setSecurityPasskey</span><span class="p">(</span><span class="n">passkey</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">          </span><span class="p">},</span>
 <span class="w">  </span><span class="p">});</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// let&#39;s set some security</span>
-<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">bonding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
-<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">mitm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">secure_connections</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
-<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_security</span><span class="p">(</span><span class="n">bonding</span><span class="p">,</span><span class="w"> </span><span class="n">mitm</span><span class="p">,</span><span class="w"> </span><span class="n">secure_connections</span><span class="p">);</span>
-<span class="w">  </span><span class="c1">// and some i/o and key config</span>
-<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_io_capabilities</span><span class="p">(</span><span class="n">BLE_HS_IO_NO_INPUT_OUTPUT</span><span class="p">);</span>
-<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_init_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
-<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_resp_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// NOTE: we don&#39;t have to set security, since GFPS internally will set it to</span>
+<span class="w">  </span><span class="c1">// what is required by the spec.</span>
 
 <span class="w">  </span><span class="c1">// let&#39;s create a GFPS service</span>
 <span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">GfpsService</span><span class="w"> </span><span class="n">gfps_service</span><span class="p">;</span>
+<span class="w">  </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">DEBUG</span><span class="p">);</span>
 <span class="w">  </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">server</span><span class="p">());</span>
 
 <span class="w">  </span><span class="c1">// now that we&#39;ve made the input characteristic, we can start the service</span>
@@ -248,8 +252,8 @@ account’s google devices and personalizing the name of the device.</p>
 
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">device_info_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">device_info_service</span><span class="p">();</span>
 <span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">vendor_source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02</span><span class="p">;</span><span class="w"> </span><span class="c1">// USB</span>
-<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x045E</span><span class="p">;</span><span class="w">        </span><span class="c1">// Microsoft</span>
-<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x02FD</span><span class="p">;</span><span class="w">        </span><span class="c1">// Xbox One Controller</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xCafe</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xBabe</span><span class="p">;</span>
 <span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">product_version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0100</span><span class="p">;</span>
 <span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_pnp_id</span><span class="p">(</span><span class="n">vendor_source</span><span class="p">,</span><span class="w"> </span><span class="n">vid</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="n">product_version</span><span class="p">);</span>
 <span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_manufacturer_name</span><span class="p">(</span><span class="s">&quot;ESP-CPP&quot;</span><span class="p">);</span>
@@ -457,6 +461,24 @@ account’s google devices and personalizing the name of the device.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp11GfpsService6deinitEv">
+<span id="_CPPv3N4espp11GfpsService6deinitEv"></span><span id="_CPPv2N4espp11GfpsService6deinitEv"></span><span id="espp::GfpsService::deinit"></span><span class="target" id="classespp_1_1GfpsService_1a9777a84d1cf2789d657081b0cbe11284"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11GfpsService6deinitEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Deinitialize the service </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will deinitialize the service </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function will also deinitialize the nearby framework </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function should only be called after NimBLEDevice::deinit(true) has been called, since that will free the memory used by the service and the nearby framework </p>
+</div>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp11GfpsService5startEv">
 <span id="_CPPv3N4espp11GfpsService5startEv"></span><span id="_CPPv2N4espp11GfpsService5startEv"></span><span id="espp::GfpsService::start"></span><span class="target" id="classespp_1_1GfpsService_1a74443fdf87b2b9341decb136e60ba720"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11GfpsService5startEv" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Start the service </p>
@@ -468,12 +490,6 @@ account’s google devices and personalizing the name of the device.</p>
 <p class="admonition-title">Note</p>
 <p>This function will also set the advertisement mode for the nearby framework </p>
 </div>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp11GfpsService6deinitEv">
-<span id="_CPPv3N4espp11GfpsService6deinitEv"></span><span id="_CPPv2N4espp11GfpsService6deinitEv"></span><span id="espp::GfpsService::deinit"></span><span class="target" id="classespp_1_1GfpsService_1a9777a84d1cf2789d657081b0cbe11284"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deinit</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp11GfpsService6deinitEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Deinitialize the service. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -559,7 +575,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/75fe6700/components/gfps_service/include/gfps_characteristic_callbacks.hpp">components/gfps_service/include/gfps_characteristic_callbacks.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f3f15a27/components/gfps_service/include/gfps_characteristic_callbacks.hpp">components/gfps_service/include/gfps_characteristic_callbacks.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -918,7 +934,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="id3">
 <h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/75fe6700/components/gfps_service/include/gfps.hpp">components/gfps_service/include/gfps.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f3f15a27/components/gfps_service/include/gfps.hpp">components/gfps_service/include/gfps.hpp</a></p></li>
 </ul>
 </section>
 </section>

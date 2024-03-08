@@ -165,6 +165,7 @@ public:
   static std::string get_latest_info_string() {
     std::string info = "";
     auto task_info = get_latest_info_vector();
+    // cppcheck-suppress knownEmptyContainer
     for (const auto &t : task_info) {
       if (t.cpu_percent > 0.0f) {
         info += fmt::format("{},{},{},{};", t.name, t.cpu_percent, t.high_water_mark, t.priority);
@@ -189,6 +190,7 @@ public:
     Table table;
     table.add_row({"Task Name", "CPU %", "High Water Mark", "Priority"});
     auto task_info = get_latest_info_vector();
+    // cppcheck-suppress knownEmptyContainer
     for (const auto &t : task_info) {
       std::string percent = t.cpu_percent > 0 ? fmt::format("{} %", t.cpu_percent) : "<1%";
       table.add_row(
