@@ -171,11 +171,18 @@ public:
   /// It also invalidates any references/pointers to the server.
   /// @note After calling this method, any references/pointers to the server
   ///       and any created services/characteristics will be invalid.
+  /// @note This method should only be called after NimBLEDevice::deinit(true)
+  ///       has been called, since that will free the memory used by the server.
+  /// @note This method will also deinitialize the device info and battery
+  ///       services.
   void deinit() {
     // if true, deletes all server/advertising/scan/client objects which
     // invalidates any references/pointers to them
     bool clear_all = true;
     NimBLEDevice::deinit(clear_all);
+    // now deinitialize the services
+    device_info_service_.deinit();
+    battery_service_.deinit();
   }
 
   /// Start the services

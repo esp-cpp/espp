@@ -150,13 +150,9 @@ public:
                                                 // left joystick
                                                 collection::physical(
                                                                      usage(generic_desktop::X),
-                                                                     logical_limits<1, 4>(JOYSTICK_MIN, JOYSTICK_MAX),
-                                                                     report_count(1),
-                                                                     report_size(num_joystick_bits),
-                                                                     input::absolute_variable(),
                                                                      usage(generic_desktop::Y),
                                                                      logical_limits<1, 4>(JOYSTICK_MIN, JOYSTICK_MAX),
-                                                                     report_count(1),
+                                                                     report_count(2),
                                                                      report_size(num_joystick_bits),
                                                                      input::absolute_variable()
                                                                      ),
@@ -165,13 +161,9 @@ public:
                                                 usage(generic_desktop::POINTER),
                                                 collection::physical(
                                                                      usage(generic_desktop::Z),
-                                                                     logical_limits<1, 4>(JOYSTICK_MIN, JOYSTICK_MAX),
-                                                                     report_count(1),
-                                                                     report_size(num_joystick_bits),
-                                                                     input::absolute_variable(),
                                                                      usage(generic_desktop::RZ),
                                                                      logical_limits<1, 4>(JOYSTICK_MIN, JOYSTICK_MAX),
-                                                                     report_count(1),
+                                                                     report_count(2),
                                                                      report_size(num_joystick_bits),
                                                                      input::absolute_variable()
                                                                      ),
