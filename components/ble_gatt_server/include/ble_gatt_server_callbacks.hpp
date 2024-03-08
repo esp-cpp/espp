@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sdkconfig.h>
+
 #if CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
 
 #include "NimBLEDevice.h"

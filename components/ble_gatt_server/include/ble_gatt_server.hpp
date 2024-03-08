@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sdkconfig.h>
+
 #include <ctime>
 #include <functional>
 #include <mutex>
