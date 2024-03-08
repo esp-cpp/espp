@@ -1,5 +1,7 @@
 #pragma once
 
+#if CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
+
 #include "NimBLEDevice.h"
 
 namespace espp {
@@ -22,3 +24,5 @@ protected:
   BleGattServer *server_{nullptr};
 };
 } // namespace espp
+
+#endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)

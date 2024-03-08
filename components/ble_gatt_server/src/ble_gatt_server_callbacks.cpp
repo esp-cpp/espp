@@ -1,6 +1,8 @@
 #include "ble_gatt_server_callbacks.hpp"
 #include "ble_gatt_server.hpp"
 
+#if CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
+
 void espp::BleGattServerCallbacks::onConnect(NimBLEServer *server, NimBLEConnInfo &conn_info) {
   if (server_ && server_->callbacks_.connect_callback) {
     server_->callbacks_.connect_callback(conn_info);
@@ -33,3 +35,5 @@ bool espp::BleGattServerCallbacks::onConfirmPIN(uint32_t pass_key) {
     return pass_key == NimBLEDevice::getSecurityPasskey();
   }
 }
+
+#endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
