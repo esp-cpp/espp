@@ -11,6 +11,11 @@ namespace espp {
  *
  *   See also:
  *   https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_gc9a01/esp_lcd_gc9a01.c
+ *
+ * \section smartknob_ha_cfg SmartKnob Config
+ * \snippet display_drivers_example.cpp smartknob_config example
+ * \section gc9a01_ex1 Gc9a01 Example
+ * \snippet display_drivers_example.cpp display_drivers example
  */
 class Gc9a01 {
 public:
