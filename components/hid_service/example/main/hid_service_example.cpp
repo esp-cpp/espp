@@ -9,7 +9,7 @@
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "Hid Service Example", .level = espp::Logger::Verbosity::INFO});
+  espp::Logger logger({.tag = "Hid Service Example", .level = espp::Logger::Verbosity::DEBUG});
   logger.info("Starting");
 
   //! [hid service example]
@@ -51,7 +51,6 @@ extern "C" void app_main(void) {
   bool secure_connections = true;
   ble_gatt_server.set_security(bonding, mitm, secure_connections);
   // and some i/o and key config
-  NimBLEDevice::setSecurityPasskey(123456);
   ble_gatt_server.set_io_capabilities(BLE_HS_IO_NO_INPUT_OUTPUT);
   ble_gatt_server.set_init_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
   ble_gatt_server.set_resp_key_distribution(BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID);
@@ -65,19 +64,30 @@ extern "C" void app_main(void) {
   uint8_t hid_info_flags = 0x01;
   hid_service.set_info(country_code, hid_info_flags);
 
-  static constexpr uint8_t report_id = 1;
+  static constexpr uint8_t input_report_id = 1;
   static constexpr size_t num_buttons = 15;
   static constexpr int joystick_min = 0;
-  static constexpr int joystick_max = 65535;
+  static constexpr int joystick_max = 65534;
   static constexpr int trigger_min = 0;
-  static constexpr int trigger_max = 1024;
+  static constexpr int trigger_max = 1023;
 
-  using Gamepad = espp::GamepadReport<num_buttons, joystick_min, joystick_max, trigger_min,
-                                      trigger_max, report_id>;
-  Gamepad gamepad_input_report;
+  using GamepadInput = espp::GamepadInputReport<num_buttons, joystick_min, joystick_max,
+                                                trigger_min, trigger_max, input_report_id>;
+  GamepadInput gamepad_input_report;
+
+  static constexpr uint8_t output_report_id = 2;
+  static constexpr size_t num_leds = 4;
+  using GamepadLeds = espp::GamepadLedOutputReport<num_leds, output_report_id>;
+  GamepadLeds gamepad_leds_report;
+
+  using namespace hid::page;
+  using namespace hid::rdf;
+  auto raw_descriptor = descriptor(usage_page<generic_desktop>(), usage(generic_desktop::GAMEPAD),
+                                   collection::application(gamepad_input_report.get_descriptor(),
+                                                           gamepad_leds_report.get_descriptor()));
 
   // Generate the report descriptor for the gamepad
-  auto descriptor = gamepad_input_report.get_descriptor();
+  auto descriptor = std::vector<uint8_t>(raw_descriptor.begin(), raw_descriptor.end());
 
   logger.info("Report Descriptor:");
   logger.info("  Size: {}", descriptor.size());
@@ -87,7 +97,10 @@ extern "C" void app_main(void) {
   hid_service.set_report_map(descriptor);
 
   // use the HID service to make an input report characteristic
-  auto input_report = hid_service.input_report(report_id);
+  auto input_report = hid_service.input_report(input_report_id);
+
+  // use the HID service to make an output report characteristic
+  auto output_report = hid_service.output_report(output_report_id);
 
   // now that we've made the input characteristic, we can start the service
   hid_service.start();
@@ -144,7 +157,7 @@ extern "C" void app_main(void) {
     battery_level = (battery_level % 100) + 1;
 
     // cycle through the possible d-pad states
-    Gamepad::Hat hat = (Gamepad::Hat)button_index;
+    GamepadInput::Hat hat = (GamepadInput::Hat)button_index;
     // use the button index to set the position of the right joystick
     float angle = 2.0f * M_PI * button_index / num_buttons;
 
@@ -157,6 +170,13 @@ extern "C" void app_main(void) {
     // trigger inputs are in the range [0, 1] float
     gamepad_input_report.set_accelerator(std::abs(sin(angle)));
     gamepad_input_report.set_brake(std::abs(cos(angle)));
+
+    logger.debug("Setting left joystick: ({:.1f}, {:.1f})", sin(angle), cos(angle));
+    logger.debug("Setting right joystick: ({:.1f}, {:.1f})", cos(angle), sin(angle));
+    logger.debug("Setting brake: {:.1f}", std::abs(cos(angle)));
+    logger.debug("Setting accelerator: {:.1f}", std::abs(sin(angle)));
+    logger.debug("Setting hat: {}", (int)hat);
+    logger.debug("Setting button: {}", button_index);
 
     button_index = (button_index % num_buttons) + 1;
 

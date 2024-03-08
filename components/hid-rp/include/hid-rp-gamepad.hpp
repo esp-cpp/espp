@@ -6,7 +6,7 @@
 
 namespace espp {
 
-/// HID Gamepad Report
+/// HID Gamepad Input Report
 /// This class implements a HID Gamepad with a configurable number of buttons, a
 /// hat switch, 4 joystick axes and two trigger axes. It supports setting the
 /// buttons, hat switch, joysticks, and triggers, as well as serializing the
@@ -14,9 +14,9 @@ namespace espp {
 ///
 /// \section hid_rp_ex1 HID-RP Example
 /// \snippet hid_rp_example.cpp hid rp example
-template <size_t BUTTON_COUNT, uint16_t JOYSTICK_MIN = 0, uint16_t JOYSTICK_MAX = 65535,
-          uint16_t TRIGGER_MIN = 0, uint16_t TRIGGER_MAX = 1023, uint8_t REPORT_ID = 0>
-class GamepadReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
+template <size_t BUTTON_COUNT = 15, uint16_t JOYSTICK_MIN = 0, uint16_t JOYSTICK_MAX = 65534,
+          uint16_t TRIGGER_MIN = 0, uint16_t TRIGGER_MAX = 1023, uint8_t REPORT_ID = 1>
+class GamepadInputReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
 public:
   /// Possible Hat switch directions
   enum class Hat {
@@ -33,7 +33,6 @@ public:
 
 protected:
   static constexpr size_t button_count = BUTTON_COUNT;
-  static constexpr size_t num_button_padding = BUTTON_COUNT % 8 ? 8 - (BUTTON_COUNT % 8) : 0;
   static constexpr uint16_t joystick_min = JOYSTICK_MIN;
   static constexpr uint16_t joystick_max = JOYSTICK_MAX;
   static constexpr uint16_t joystick_center = (joystick_min + joystick_max) / 2;
@@ -44,11 +43,14 @@ protected:
   static constexpr uint16_t joystick_range = joystick_value_range / 2;
   static constexpr size_t trigger_range = trigger_max - trigger_min;
   static constexpr size_t num_joystick_bits = num_bits(joystick_value_range);
-  static constexpr size_t num_joystick_padding =
-      num_joystick_bits % 8 ? 8 - (num_joystick_bits % 8) : 0;
   static constexpr size_t num_trigger_bits = num_bits(trigger_range);
-  static constexpr size_t num_trigger_padding =
-      num_trigger_bits % 8 ? 8 - (num_trigger_bits % 8) : 0;
+
+  static constexpr size_t num_joystick_bytes = (num_joystick_bits + 7) / 8;
+  static constexpr size_t num_trigger_bytes = (num_trigger_bits + 7) / 8;
+  static constexpr size_t num_hat_bytes = 1;
+  static constexpr size_t num_button_bytes = (BUTTON_COUNT + 7) / 8;
+  static constexpr size_t num_data_bytes =
+      num_joystick_bytes * 4 + num_trigger_bytes * 2 + num_hat_bytes + num_button_bytes;
 
   std::array<std::uint16_t, 4> joystick_axes{0};
   std::array<std::uint16_t, 2> trigger_axes{0};
@@ -90,10 +92,12 @@ public:
   constexpr void set_hat(Hat hat) { set_hat_switch(uint8_t(hat)); }
   /// Set the button value
   /// \param button_index The button for which you want to set the value.
-  ///        Should be between 1 and BUTTON_COUNT
+  ///        Should be between 1 and BUTTON_COUNT, inclusive.
   /// \param value The true/false value you want to se the button to.
   constexpr void set_button(int button_index, bool value) {
-    // buttons[button_index] = value;
+    if (button_index < 1 || button_index > BUTTON_COUNT) {
+      return;
+    }
     buttons.set(hid::page::button(button_index), value);
   }
 
@@ -125,90 +129,174 @@ public:
 
   /// Get the input report as a vector of bytes
   /// \return The input report as a vector of bytes.
+  /// \note The report id is not included in the returned vector.
   constexpr auto get_report() {
-    // the first two bytes are the id and size, which we don't want...
+    // the first two bytes are the id and selector(?), which we don't want...
     size_t offset = 2;
     auto report_data = this->data() + offset;
-    auto report_size = sizeof(*this) - offset;
+    auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
 
-  /// Get the report descriptor as a vector of bytes
-  /// \return The report descriptor as a vector of bytes.
+  /// Get the report descriptor as a hid::rdf::descriptor
+  /// \return The report descriptor as a hid::rdf::descriptor.
+  /// \note This is an incomplete descriptor, you will need to add it to a
+  ///      collection::application descriptor to create a complete report descriptor.
+  ///      \code{.cpp}
+  ///      using namespace hid::page;
+  ///      using namespace hid::rdf;
+  ///      auto gamepad_descriptor = gamepad_input_report.get_descriptor();
+  ///      auto rdf_descriptor = descriptor(
+  ///          usage_page<generic_desktop>(),
+  ///          usage(generic_desktop::GAMEPAD),
+  ///          collection::application(
+  ///              gamepad_descriptor
+  ///          )
+  ///      );
+  ///      auto descriptor = std::vector<uint8_t>(rdf_descriptor.begin(), rdf_descriptor.end());
+  ///      \endcode
   static constexpr auto get_descriptor() {
     using namespace hid::page;
     using namespace hid::rdf;
 
     // clang-format off
-      auto desc = descriptor(
+      return descriptor(
+                        conditional_report_id<REPORT_ID>(),
+                        usage(generic_desktop::POINTER),
+
+                        // left joystick
+                        collection::physical(
+                                             usage(generic_desktop::X),
+                                             usage(generic_desktop::Y),
+                                             logical_limits<1, 4>(JOYSTICK_MIN, JOYSTICK_MAX),
+                                             report_size(num_joystick_bits),
+                                             report_count(2),
+                                             input::absolute_variable()
+                                             ),
+
+                        // right joystick
+                        usage(generic_desktop::POINTER),
+                        collection::physical(
+                                             usage(generic_desktop::Z),
+                                             usage(generic_desktop::RZ),
+                                             logical_limits<1, 4>(JOYSTICK_MIN, JOYSTICK_MAX),
+                                             report_size(num_joystick_bits),
+                                             report_count(2),
+                                             input::absolute_variable()
+                                             ),
+
+                        // left trigger
+                        usage_page<simulation>(),
+                        usage(simulation::BRAKE),
+                        logical_limits<1, 2>(TRIGGER_MIN, TRIGGER_MAX),
+                        report_count(1),
+                        report_size(num_trigger_bits),
+                        input::absolute_variable(),
+                        input::byte_padding<num_trigger_bits>(),
+
+                        // right trigger
+                        usage_page<simulation>(),
+                        usage(simulation::ACCELERATOR),
+                        logical_limits<1, 2>(TRIGGER_MIN, TRIGGER_MAX),
+                        report_count(1),
+                        report_size(num_trigger_bits),
+                        input::absolute_variable(),
+                        input::byte_padding<num_trigger_bits>(),
+
+                        // hat switch
                         usage_page<generic_desktop>(),
-                        usage(generic_desktop::GAMEPAD),
-                        collection::application(
-                                                report_id(REPORT_ID),
-                                                usage(generic_desktop::POINTER),
+                        usage(generic_desktop::HAT_SWITCH),
+                        logical_limits<1, 1>(1, 8),
+                        physical_limits<1, 2>(0, 315),
+                        unit::unit_item<2>(0x0014), // system: english rotation, length: centimeter
+                        report_size(4),
+                        report_count(1),
+                        input::absolute_variable(static_cast<main::field_flags>(main::field_flags::NULL_STATE)),
+                        input::byte_padding<4>(),
 
-                                                // left joystick
-                                                collection::physical(
-                                                                     usage(generic_desktop::X),
-                                                                     usage(generic_desktop::Y),
-                                                                     logical_limits<1, 4>(JOYSTICK_MIN, JOYSTICK_MAX),
-                                                                     report_count(2),
-                                                                     report_size(num_joystick_bits),
-                                                                     input::absolute_variable()
-                                                                     ),
-
-                                                // right joystick
-                                                usage(generic_desktop::POINTER),
-                                                collection::physical(
-                                                                     usage(generic_desktop::Z),
-                                                                     usage(generic_desktop::RZ),
-                                                                     logical_limits<1, 4>(JOYSTICK_MIN, JOYSTICK_MAX),
-                                                                     report_count(2),
-                                                                     report_size(num_joystick_bits),
-                                                                     input::absolute_variable()
-                                                                     ),
-
-                                                // left trigger
-                                                usage_page<simulation>(),
-                                                usage(simulation::BRAKE),
-                                                logical_limits<1, 2>(TRIGGER_MIN, TRIGGER_MAX),
-                                                report_size(num_trigger_bits),
-                                                report_count(1),
-                                                input::absolute_variable(),
-                                                input::padding(num_trigger_padding),
-
-                                                // right trigger
-                                                usage_page<simulation>(),
-                                                usage(simulation::ACCELERATOR),
-                                                logical_limits<1, 2>(TRIGGER_MIN, TRIGGER_MAX),
-                                                report_size(num_trigger_bits),
-                                                report_count(1),
-                                                input::absolute_variable(),
-                                                input::padding(num_trigger_padding),
-
-                                                // hat switch
-                                                usage_page<generic_desktop>(),
-                                                usage(generic_desktop::HAT_SWITCH),
-                                                logical_limits<1, 1>(1, 8),
-                                                physical_limits<2, 2>(0, 315),
-                                                unit::unit_item<2>(0x0014), // system: english rotation, length: centimeter
-                                                report_size(4),
-                                                report_count(1),
-                                                input::absolute_variable(static_cast<main::field_flags>(main::field_flags::NULL_STATE)),
-                                                input::padding(4),
-
-                                                // buttons
-                                                usage_page<button>(),
-                                                usage_limits(button(1), button(BUTTON_COUNT)),
-                                                logical_limits<1, 1>(0, 1),
-                                                report_size(1),
-                                                report_count(BUTTON_COUNT),
-                                                input::absolute_variable(),
-                                                input::padding(num_button_padding)
-                                                )
+                        // buttons
+                        usage_page<button>(),
+                        usage_limits(button(1), button(BUTTON_COUNT)),
+                        logical_limits<1, 1>(0, 1),
+                        report_size(1),
+                        report_count(BUTTON_COUNT),
+                        input::absolute_variable(),
+                        input::byte_padding<BUTTON_COUNT>()
                         );
     // clang-format on
-    return std::vector<uint8_t>(desc.begin(), desc.end());
   }
 };
+
+/// HID Gamepad LED Output Report
+/// This class implements a HID Gamepad with a configurable number of LEDs.
+/// It supports setting the LEDs, as well as serializing the output report and
+/// getting the report descriptor.
+template <size_t LED_COUNT = 4, uint8_t REPORT_ID = 2>
+class GamepadLedOutputReport : public hid::report::base<hid::report::type::OUTPUT, REPORT_ID> {
+protected:
+  static constexpr size_t led_count = LED_COUNT;
+  static constexpr size_t num_led_bits = num_bits(led_count);
+  static constexpr size_t num_led_bytes = (led_count + 7) / 8;
+
+  hid::report_bitset<hid::page::leds, hid::page::leds::PLAYER_1, hid::page::leds::PLAYER_4> leds;
+
+public:
+  /// Set the LED value
+  /// \param led_index The LED for which you want to set the value.
+  ///        Should be between 1 and LED_COUNT, inclusive.
+  /// \param value The true/false value you want to se the LED to.
+  constexpr void set_led(int led_index, bool value) {
+    if (led_index < 1 || led_index > LED_COUNT) {
+      return;
+    }
+    leds.set(hid::page::leds(led_index), value);
+  }
+
+  /// Get the output report as a vector of bytes
+  /// \return The output report as a vector of bytes.
+  /// \note The report id is not included in the returned vector.
+  constexpr auto get_report() {
+    // the first two bytes are the id and size, which we don't want...
+    size_t offset = 2;
+    auto report_data = this->data() + offset;
+    auto report_size = num_led_bytes;
+    return std::vector<uint8_t>(report_data, report_data + report_size);
+  }
+
+  /// Get the report descriptor as a hid::rdf::descriptor
+  /// \return The report descriptor as a hid::rdf::descriptor.
+  /// \note This is an incomplete descriptor, you will need to add it to a
+  ///      collection::application descriptor to create a complete report descriptor.
+  ///      \code{.cpp}
+  ///      using namespace hid::page;
+  ///      using namespace hid::rdf;
+  ///      auto led_descriptor = gamepad_led_report.get_descriptor();
+  ///      auto rdf_descriptor = descriptor(
+  ///          usage_page<generic_desktop>(),
+  ///          usage(generic_desktop::GAMEPAD),
+  ///          collection::application(
+  ///              led_descriptor
+  ///          )
+  ///      );
+  ///      auto descriptor = std::vector<uint8_t>(rdf_descriptor.begin(), rdf_descriptor.end());
+  ///      \endcode
+  static constexpr auto get_descriptor() {
+    using namespace hid::page;
+    using namespace hid::rdf;
+
+    // clang-format off
+      return descriptor(
+                        conditional_report_id<REPORT_ID>(),
+                        usage_page<hid::page::leds>(),
+                        usage_limits(leds::PLAYER_1, leds::PLAYER_4),
+                        logical_limits<1, 1>(0, 1),
+                        report_size(1),
+                        report_count(LED_COUNT),
+                        output::absolute_variable(),
+                        output::byte_padding<LED_COUNT>()
+                        );
+    // clang-format on
+  }
+};
+
 } // namespace espp
