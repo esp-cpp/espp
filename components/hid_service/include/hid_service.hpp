@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sdkconfig.h>
+
 #include <atomic>
 #include <chrono>
 #include <functional>
