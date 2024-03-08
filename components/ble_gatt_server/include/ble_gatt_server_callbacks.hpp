@@ -17,7 +17,7 @@ public:
 
 protected:
   friend class BleGattServer;
-  BleGattServerCallbacks(BleGattServer *server)
+  explicit BleGattServerCallbacks(BleGattServer *server)
       : server_(server) {}
   BleGattServer *server_{nullptr};
 };
