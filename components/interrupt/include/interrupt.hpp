@@ -73,9 +73,9 @@ public:
   /// \param config The configuration for the interrupt
   explicit Interrupt(const Config &config)
       : BaseComponent("Interrupt", config.log_level)
+      , queue_(xQueueCreate(config.event_queue_size, sizeof(EventData)))
       , interrupts_(config.interrupts) {
     // create the event queue
-    queue_ = xQueueCreate(config.event_queue_size, sizeof(EventData));
     if (!queue_) {
       logger_.error("Failed to create event queue");
       return;
@@ -107,13 +107,13 @@ public:
         gpio_isr_handler_remove(static_cast<gpio_num_t>(args->gpio_num));
       }
     }
-    // send to the event queue to wake up the task
-    EventData event_data = {-1};
-    xQueueSend(queue_, &event_data, 0);
-    // stop the task
-    task_->stop();
-    // delete the queue
     if (queue_) {
+      // send to the event queue to wake up the task
+      EventData event_data = {-1};
+      xQueueSend(queue_, &event_data, 0);
+      // stop the task
+      task_->stop();
+      // delete the queue
       vQueueDelete(queue_);
     }
     for (const auto &handle : glitch_filter_handles_) {
