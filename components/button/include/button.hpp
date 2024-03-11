@@ -18,6 +18,11 @@ namespace espp {
 /// \snippet button_example.cpp button example
 class Button : protected Interrupt {
 public:
+  // Expose some types from the Interrupt class for convenience
+  using Event = Interrupt::Event;             ///< The event type for the button
+  using InterruptType = Interrupt::Type;      ///< The type of interrupt for the button
+  using ActiveLevel = Interrupt::ActiveLevel; ///< The active level of the button
+
   /// \brief The configuration for the button
   struct Config {
     std::string_view name{"Button"};  ///< Name of the button
