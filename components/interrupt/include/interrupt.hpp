@@ -51,13 +51,15 @@ public:
   /// \brief The configuration for an interrupt on a GPIO
   /// \details This is used to configure the GPIO interrupt
   struct InterruptConfig {
-    int gpio_num;                          ///< GPIO number to for this interrupt
-    event_callback_fn callback;            ///< Callback for the interrupt event
-    ActiveLevel active_level;              ///< Active level of the GPIO
-    Type interrupt_type = Type::ANY_EDGE;  ///< Interrupt type to use for the GPIO
-    bool pullup_enabled = false;           ///< Whether to enable the pullup resistor
-    bool pulldown_enabled = false;         ///< Whether to enable the pulldown resistor
-    bool enable_pin_glitch_filter = false; ///< Whether to enable the pin glitch filter
+    int gpio_num;                         ///< GPIO number to for this interrupt
+    event_callback_fn callback;           ///< Callback for the interrupt event
+    ActiveLevel active_level;             ///< Active level of the GPIO
+    Type interrupt_type = Type::ANY_EDGE; ///< Interrupt type to use for the GPIO
+    bool pullup_enabled = false;          ///< Whether to enable the pullup resistor
+    bool pulldown_enabled = false;        ///< Whether to enable the pulldown resistor
+    bool enable_pin_glitch_filter =
+        false; ///< Whether to enable the pin glitch filter. NOTE: this
+               ///< is only supported on some chips (-C and -S series chips)
   };
 
   /// \brief The configuration for the interrupt
@@ -116,12 +118,14 @@ public:
       // delete the queue
       vQueueDelete(queue_);
     }
+#if CONFIG_SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER
     for (const auto &handle : glitch_filter_handles_) {
       // disable the glitch filters
       gpio_glitch_filter_disable(handle);
       // and delete the handle
       gpio_del_glitch_filter(handle);
     }
+#endif
     // now delete the handler args
     for (const auto &args : handler_args_) {
       delete args;
@@ -221,6 +225,7 @@ protected:
                            static_cast<void *>(handler_arg));
       // if we need to enable the glitch filter, do so
       if (interrupt.enable_pin_glitch_filter) {
+#if CONFIG_SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER
         logger_.info("Enabling glitch filter for GPIO {}", interrupt.gpio_num);
         gpio_glitch_filter_handle_t handle;
         gpio_pin_glitch_filter_config_t filter_config;
@@ -236,6 +241,9 @@ protected:
         glitch_filter_handles_.push_back(handle);
         // and enable the glitch filter
         gpio_glitch_filter_enable(handle);
+#else
+        logger_.warn("Glitch filter not supported on this chip");
+#endif
       }
     }
   }
