@@ -92,6 +92,7 @@
 <li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
@@ -132,7 +133,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Index</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/c6cafffd/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/06780020/docs/en/genindex" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -1229,51 +1230,21 @@
 </li>
       <li><a href="button.html#_CPPv4N4espp6Button11ActiveLevel3LOWE">espp::Button::ActiveLevel::LOW (C++ enumerator)</a>
 </li>
-      <li><a href="button.html#_CPPv4N4espp6Button6ButtonERK6Config">espp::Button::Button (C++ function)</a>
+      <li><a href="button.html#_CPPv4N4espp6Button13add_interruptERK15InterruptConfig">espp::Button::add_interrupt (C++ function)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button6ButtonERK12SimpleConfig">espp::Button::Button (C++ function)</a>, <a href="button.html#_CPPv4N4espp6Button6ButtonERK6Config">[1]</a>
 </li>
       <li><a href="button.html#_CPPv4N4espp6Button6ConfigE">espp::Button::Config (C++ struct)</a>
 </li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config12active_levelE">espp::Button::Config::active_level (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config8callbackE">espp::Button::Config::callback (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config7core_idE">espp::Button::Config::core_id (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config8gpio_numE">espp::Button::Config::gpio_num (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config14interrupt_typeE">espp::Button::Config::interrupt_type (C++ member)</a>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config16interrupt_configE">espp::Button::Config::interrupt_config (C++ member)</a>
 </li>
       <li><a href="button.html#_CPPv4N4espp6Button6Config9log_levelE">espp::Button::Config::log_level (C++ member)</a>
 </li>
       <li><a href="button.html#_CPPv4N4espp6Button6Config4nameE">espp::Button::Config::name (C++ member)</a>
 </li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config8priorityE">espp::Button::Config::priority (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config16pulldown_enabledE">espp::Button::Config::pulldown_enabled (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config14pullup_enabledE">espp::Button::Config::pullup_enabled (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button6Config21task_stack_size_bytesE">espp::Button::Config::task_stack_size_bytes (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button5EventE">espp::Button::Event (C++ struct)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button5Event8gpio_numE">espp::Button::Event::gpio_num (C++ member)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button5Event7pressedE">espp::Button::Event::pressed (C++ member)</a>
+      <li><a href="button.html#_CPPv4N4espp6Button6Config11task_configE">espp::Button::Config::task_config (C++ member)</a>
 </li>
       <li><a href="button.html#_CPPv4N4espp6Button17event_callback_fnE">espp::Button::event_callback_fn (C++ type)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button13InterruptTypeE">espp::Button::InterruptType (C++ enum)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType8ANY_EDGEE">espp::Button::InterruptType::ANY_EDGE (C++ enumerator)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType12FALLING_EDGEE">espp::Button::InterruptType::FALLING_EDGE (C++ enumerator)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType10HIGH_LEVELE">espp::Button::InterruptType::HIGH_LEVEL (C++ enumerator)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType9LOW_LEVELE">espp::Button::InterruptType::LOW_LEVEL (C++ enumerator)</a>
-</li>
-      <li><a href="button.html#_CPPv4N4espp6Button13InterruptType11RISING_EDGEE">espp::Button::InterruptType::RISING_EDGE (C++ enumerator)</a>
 </li>
       <li><a href="button.html#_CPPv4NK4espp6Button10is_pressedEv">espp::Button::is_pressed (C++ function)</a>
 </li>
@@ -1285,7 +1256,31 @@
 </li>
       <li><a href="button.html#_CPPv4N4espp6Button17set_log_verbosityEN6Logger9VerbosityE">espp::Button::set_log_verbosity (C++ function)</a>
 </li>
-      <li><a href="button.html#_CPPv4N4espp6ButtonD0Ev">espp::Button::~Button (C++ function)</a>
+      <li><a href="button.html#_CPPv4N4espp6Button12SimpleConfigE">espp::Button::SimpleConfig (C++ struct)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button12SimpleConfig12active_levelE">espp::Button::SimpleConfig::active_level (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button12SimpleConfig8gpio_numE">espp::Button::SimpleConfig::gpio_num (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button12SimpleConfig9log_levelE">espp::Button::SimpleConfig::log_level (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button12SimpleConfig4nameE">espp::Button::SimpleConfig::name (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button12SimpleConfig16pulldown_enabledE">espp::Button::SimpleConfig::pulldown_enabled (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button12SimpleConfig14pullup_enabledE">espp::Button::SimpleConfig::pullup_enabled (C++ member)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button4TypeE">espp::Button::Type (C++ enum)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button4Type8ANY_EDGEE">espp::Button::Type::ANY_EDGE (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button4Type12FALLING_EDGEE">espp::Button::Type::FALLING_EDGE (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button4Type10HIGH_LEVELE">espp::Button::Type::HIGH_LEVEL (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button4Type9LOW_LEVELE">espp::Button::Type::LOW_LEVEL (C++ enumerator)</a>
+</li>
+      <li><a href="button.html#_CPPv4N4espp6Button4Type11RISING_EDGEE">espp::Button::Type::RISING_EDGE (C++ enumerator)</a>
 </li>
       <li><a href="cli.html#_CPPv4N4espp3CliE">espp::Cli (C++ class)</a>
 </li>
@@ -2349,6 +2344,74 @@
 </li>
       <li><a href="display/display_drivers.html#_CPPv4N4espp7Ili934110set_offsetEii">espp::Ili9341::set_offset (C++ function)</a>
 </li>
+      <li><a href="interrupt.html#_CPPv4N4espp9InterruptE">espp::Interrupt (C++ class)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt11ActiveLevelE">espp::Interrupt::ActiveLevel (C++ enum)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt11ActiveLevel4HIGHE">espp::Interrupt::ActiveLevel::HIGH (C++ enumerator)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt11ActiveLevel3LOWE">espp::Interrupt::ActiveLevel::LOW (C++ enumerator)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt13add_interruptERK15InterruptConfig">espp::Interrupt::add_interrupt (C++ function)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt6ConfigE">espp::Interrupt::Config (C++ struct)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt6Config16event_queue_sizeE">espp::Interrupt::Config::event_queue_size (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt6Config10interruptsE">espp::Interrupt::Config::interrupts (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt6Config9log_levelE">espp::Interrupt::Config::log_level (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt6Config11task_configE">espp::Interrupt::Config::task_config (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt5EventE">espp::Interrupt::Event (C++ struct)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt5Event6activeE">espp::Interrupt::Event::active (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt5Event8gpio_numE">espp::Interrupt::Event::gpio_num (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt17event_callback_fnE">espp::Interrupt::event_callback_fn (C++ type)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt9InterruptERK6Config">espp::Interrupt::Interrupt (C++ function)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt15InterruptConfigE">espp::Interrupt::InterruptConfig (C++ struct)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt15InterruptConfig12active_levelE">espp::Interrupt::InterruptConfig::active_level (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt15InterruptConfig8callbackE">espp::Interrupt::InterruptConfig::callback (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt15InterruptConfig24enable_pin_glitch_filterE">espp::Interrupt::InterruptConfig::enable_pin_glitch_filter (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt15InterruptConfig8gpio_numE">espp::Interrupt::InterruptConfig::gpio_num (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt15InterruptConfig14interrupt_typeE">espp::Interrupt::InterruptConfig::interrupt_type (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt15InterruptConfig16pulldown_enabledE">espp::Interrupt::InterruptConfig::pulldown_enabled (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt15InterruptConfig14pullup_enabledE">espp::Interrupt::InterruptConfig::pullup_enabled (C++ member)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt13set_log_levelEN6Logger9VerbosityE">espp::Interrupt::set_log_level (C++ function)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt18set_log_rate_limitENSt6chrono8durationIfEE">espp::Interrupt::set_log_rate_limit (C++ function)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt11set_log_tagERKNSt11string_viewE">espp::Interrupt::set_log_tag (C++ function)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt17set_log_verbosityEN6Logger9VerbosityE">espp::Interrupt::set_log_verbosity (C++ function)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt4TypeE">espp::Interrupt::Type (C++ enum)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt4Type8ANY_EDGEE">espp::Interrupt::Type::ANY_EDGE (C++ enumerator)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt4Type12FALLING_EDGEE">espp::Interrupt::Type::FALLING_EDGE (C++ enumerator)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt4Type10HIGH_LEVELE">espp::Interrupt::Type::HIGH_LEVEL (C++ enumerator)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt4Type9LOW_LEVELE">espp::Interrupt::Type::LOW_LEVEL (C++ enumerator)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9Interrupt4Type11RISING_EDGEE">espp::Interrupt::Type::RISING_EDGE (C++ enumerator)</a>
+</li>
+      <li><a href="interrupt.html#_CPPv4N4espp9InterruptD0Ev">espp::Interrupt::~Interrupt (C++ function)</a>
+</li>
       <li><a href="joystick.html#_CPPv4N4espp8JoystickE">espp::Joystick (C++ class)</a>
 </li>
       <li><a href="joystick.html#_CPPv4N4espp8Joystick6ConfigE">espp::Joystick::Config (C++ struct)</a>
@@ -2419,6 +2482,8 @@
 </li>
       <li><a href="rtsp.html#_CPPv4N4espp9JpegFrame9JpegFrameEPKc6size_t">espp::JpegFrame::JpegFrame (C++ function)</a>, <a href="rtsp.html#_CPPv4N4espp9JpegFrame9JpegFrameERK13RtpJpegPacket">[1]</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="rtsp.html#_CPPv4N4espp10JpegHeaderE">espp::JpegHeader (C++ class)</a>
 </li>
       <li><a href="rtsp.html#_CPPv4NK4espp10JpegHeader8get_dataEv">espp::JpegHeader::get_data (C++ function)</a>
@@ -2451,8 +2516,6 @@
 </li>
       <li><a href="input/keypad_input.html#_CPPv4N4espp11KeypadInput17set_log_verbosityEN6Logger9VerbosityE">espp::KeypadInput::set_log_verbosity (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="input/keypad_input.html#_CPPv4N4espp11KeypadInputD0Ev">espp::KeypadInput::~KeypadInput (C++ function)</a>
 </li>
       <li><a href="io_expander/kts1622.html#_CPPv4N4espp7Kts1622E">espp::Kts1622 (C++ class)</a>
