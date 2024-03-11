@@ -71,10 +71,25 @@ public:
   typedef std::function<bool()> simple_callback_fn;
 
   /**
+   * @brief Base configuration struct for the Task.
+   * @note This is designed to be used as a configuration struct in other classes
+   *       that may have a Task as a member.
+   */
+  struct BaseConfig {
+    std::string_view name;             /**< Name of the task */
+    size_t stack_size_bytes{4 * 1024}; /**< Stack Size (B) allocated to the task. */
+    size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
+    int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
+  };
+
+  /**
    * @brief Configuration struct for the Task.
    * @note This is the recommended way to configure the Task, and allows you to
    *       use the condition variable and mutex from the task to wait_for and
    *       wait_until.
+   * @note This is an older configuration struct, and is kept for backwards
+   *       compatibility. It is recommended to use the AdvancedConfig struct
+   *       instead.
    */
   struct Config {
     std::string_view name;             /**< Name of the task */
@@ -96,6 +111,18 @@ public:
     size_t stack_size_bytes{4 * 1024}; /**< Stack Size (B) allocated to the task. */
     size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
     int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
+    Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
+  };
+
+  /**
+   * @brief Advanced configuration struct for the Task.
+   * @note This is the recommended way to configure the Task, and allows you to
+   *       use the condition variable and mutex from the task to wait_for and
+   *       wait_until.
+   */
+  struct AdvancedConfig {
+    callback_fn callback;                                 /**< Callback function  */
+    BaseConfig task_config;                               /**< Base configuration for the task. */
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
 
@@ -123,6 +150,14 @@ public:
       , priority_(config.priority)
       , core_id_(config.core_id) {}
 
+  explicit Task(const AdvancedConfig &config)
+      : BaseComponent(config.task_config.name, config.log_level)
+      , name_(config.task_config.name)
+      , callback_(config.callback)
+      , stack_size_bytes_(config.task_config.stack_size_bytes)
+      , priority_(config.task_config.priority)
+      , core_id_(config.task_config.core_id) {}
+
   /**
    * @brief Get a unique pointer to a new task created with \p config.
    *        Useful to not have to use templated std::make_unique (less typing).
@@ -140,6 +175,16 @@ public:
    * @return std::unique_ptr<Task> pointer to the newly created task.
    */
   static std::unique_ptr<Task> make_unique(const SimpleConfig &config) {
+    return std::make_unique<Task>(config);
+  }
+
+  /**
+   * @brief Get a unique pointer to a new task created with \p config.
+   *        Useful to not have to use templated std::make_unique (less typing).
+   * @param config AdvancedConfig struct to initialize the Task with.
+   * @return std::unique_ptr<Task> pointer to the newly created task.
+   */
+  static std::unique_ptr<Task> make_unique(const AdvancedConfig &config) {
     return std::make_unique<Task>(config);
   }
 
