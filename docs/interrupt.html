@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Interrupt APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/06780020/docs/en/interrupt.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/f902bedb/docs/en/interrupt.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -169,7 +169,7 @@ a subclass of <cite>Interrupt</cite>.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/06780020/components/interrupt/include/interrupt.hpp">components/interrupt/include/interrupt.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/f902bedb/components/interrupt/include/interrupt.hpp">components/interrupt/include/interrupt.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -196,18 +196,18 @@ a subclass of <cite>Interrupt</cite>.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span>
 <span class="w">            </span><span class="p">{</span>
 <span class="w">                </span><span class="p">{</span>
-<span class="w">                    </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_12</span><span class="p">,</span>
+<span class="w">                    </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_0</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
-<span class="w">                    </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">                    </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">enable_pin_glitch_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">                </span><span class="p">},</span>
 <span class="w">            </span><span class="p">},</span>
 <span class="w">        </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
 <span class="w">            </span><span class="p">{</span>
-<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Interrupt 12 task&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Interrupt task&quot;</span><span class="p">,</span>
 <span class="w">                </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
 <span class="w">                </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
 <span class="w">            </span><span class="p">},</span>
@@ -223,18 +223,18 @@ a subclass of <cite>Interrupt</cite>.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span>
 <span class="w">            </span><span class="p">{</span>
 <span class="w">                </span><span class="p">{</span>
-<span class="w">                    </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_12</span><span class="p">,</span>
+<span class="w">                    </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_0</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
-<span class="w">                    </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">                    </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">enable_pin_glitch_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">                </span><span class="p">},</span>
 <span class="w">            </span><span class="p">},</span>
 <span class="w">        </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
 <span class="w">            </span><span class="p">{</span>
-<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Interrupt 12 task&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Interrupt task&quot;</span><span class="p">,</span>
 <span class="w">                </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6192</span><span class="p">,</span>
 <span class="w">                </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
 <span class="w">            </span><span class="p">},</span>
@@ -245,11 +245,11 @@ a subclass of <cite>Interrupt</cite>.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span>
 <span class="w">            </span><span class="p">{</span>
 <span class="w">                </span><span class="p">{</span>
-<span class="w">                    </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_0</span><span class="p">,</span>
+<span class="w">                    </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_12</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
-<span class="w">                    </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">                    </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">enable_pin_glitch_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">                </span><span class="p">},</span>
@@ -269,16 +269,16 @@ a subclass of <cite>Interrupt</cite>.</p>
 <span class="w">  </span><span class="c1">// make a single interrupt for multiple GPIOs</span>
 <span class="w">  </span><span class="c1">// make an interrupt for a single gpio</span>
 <span class="w">  </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Register for interrupts on a few pins (GPIO_NUM_12, GPIO_NUM_0)</span>
+<span class="w">    </span><span class="c1">// Register for interrupts on a few pins (GPIO_NUM_0, GPIO_NUM_12)</span>
 <span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="w"> </span><span class="n">interrupt</span><span class="p">({</span>
 <span class="w">        </span><span class="p">.</span><span class="n">interrupts</span><span class="w"> </span><span class="o">=</span>
 <span class="w">            </span><span class="p">{</span>
 <span class="w">                </span><span class="p">{</span>
-<span class="w">                    </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_12</span><span class="p">,</span>
+<span class="w">                    </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_0</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
-<span class="w">                    </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">                    </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
 <span class="w">                    </span><span class="p">.</span><span class="n">enable_pin_glitch_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">                </span><span class="p">},</span>
@@ -294,11 +294,11 @@ a subclass of <cite>Interrupt</cite>.</p>
 
 <span class="w">    </span><span class="c1">// use the add_interrupt method to add another interrupt</span>
 <span class="w">    </span><span class="n">interrupt</span><span class="p">.</span><span class="n">add_interrupt</span><span class="p">({</span>
-<span class="w">        </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">gpio_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_NUM_12</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">callback</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">active_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">ActiveLevel</span><span class="o">::</span><span class="n">LOW</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
-<span class="w">        </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">enable_pin_glitch_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
 <span class="w">    </span><span class="p">});</span>
@@ -502,7 +502,7 @@ a subclass of <cite>Interrupt</cite>.</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp9Interrupt6Config11task_configE">
-<span id="_CPPv3N4espp9Interrupt6Config11task_configE"></span><span id="_CPPv2N4espp9Interrupt6Config11task_configE"></span><span id="espp::Interrupt::Config::task_config__Task::BaseConfig"></span><span class="target" id="structespp_1_1Interrupt_1_1Config_1a8eb5bd0bbfc4ddf1234cd935f26f69f9"></span><a class="reference internal" href="task.html#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">BaseConfig</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt6Config11task_configE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp9Interrupt6Config11task_configE"></span><span id="_CPPv2N4espp9Interrupt6Config11task_configE"></span><span id="espp::Interrupt::Config::task_config__Task::BaseConfig"></span><span class="target" id="structespp_1_1Interrupt_1_1Config_1a8eb5bd0bbfc4ddf1234cd935f26f69f9"></span><a class="reference internal" href="task.html#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="task.html#_CPPv4N4espp4Task10BaseConfigE" title="espp::Task::BaseConfig"><span class="n"><span class="pre">BaseConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp9Interrupt6Config11task_configE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The configuration for the task. </p>
 </dd></dl>
 
