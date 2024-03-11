@@ -172,18 +172,24 @@ protected:
       }
       logger_.info("Received interrupt for GPIO {}", event_data.gpio_num);
       std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
-      for (const auto &interrupt : interrupts_) {
-        if (interrupt.gpio_num == event_data.gpio_num) {
-          if (interrupt.callback) {
-            logger_.debug("Calling interrupt callback for GPIO {}", event_data.gpio_num);
-            bool active = is_active_level(event_data.gpio_num, interrupt.active_level);
-            logger_.debug("GPIO {} is {}", event_data.gpio_num, active ? "active" : "inactive");
-            Event event = {static_cast<uint8_t>(event_data.gpio_num), active};
-            interrupt.callback(event);
-          }
-          break;
-        }
+      // use std::find_if to find the interrupt with the matching gpio_num
+      auto predicate = [event_data](const InterruptConfig &interrupt) {
+        return interrupt.gpio_num == event_data.gpio_num;
+      };
+      auto interrupt = std::find_if(interrupts_.begin(), interrupts_.end(), predicate);
+      if (interrupt == interrupts_.end()) {
+        logger_.error("No interrupt found for GPIO {}", event_data.gpio_num);
+        return false;
       }
+      if (!interrupt->callback) {
+        logger_.error("No callback registered for GPIO {}", event_data.gpio_num);
+        return false;
+      }
+      logger_.debug("Calling interrupt callback for GPIO {}", event_data.gpio_num);
+      bool active = is_active_level(event_data.gpio_num, interrupt->active_level);
+      logger_.debug("GPIO {} is {}", event_data.gpio_num, active ? "active" : "inactive");
+      Event event = {static_cast<uint8_t>(event_data.gpio_num), active};
+      interrupt->callback(event);
     }
     // we don't want to stop the task, so return false
     return false;
@@ -192,6 +198,11 @@ protected:
   void configure_interrupt(const InterruptConfig &interrupt) {
     logger_.info("Configuring interrupt for GPIO {}", interrupt.gpio_num);
     logger_.debug("Config: {}", interrupt);
+    if (interrupt.callback == nullptr) {
+      logger_.error("No callback provided for GPIO {}, not registering interrupt",
+                    interrupt.gpio_num);
+      return;
+    }
     gpio_config_t io_conf;
     memset(&io_conf, 0, sizeof(io_conf));
     io_conf.pin_bit_mask = 1ULL << interrupt.gpio_num;

@@ -25,18 +25,18 @@ extern "C" void app_main(void) {
         .interrupts =
             {
                 {
-                    .gpio_num = GPIO_NUM_12,
+                    .gpio_num = GPIO_NUM_0,
                     .callback = callback,
                     .active_level = espp::Interrupt::ActiveLevel::LOW,
                     .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                    .pullup_enabled = false,
+                    .pullup_enabled = true,
                     .pulldown_enabled = false,
                     .enable_pin_glitch_filter = true,
                 },
             },
         .task_config =
             {
-                .name = "Interrupt 12 task",
+                .name = "Interrupt task",
                 .stack_size_bytes = 6192,
                 .priority = 5,
             },
@@ -52,18 +52,18 @@ extern "C" void app_main(void) {
         .interrupts =
             {
                 {
-                    .gpio_num = GPIO_NUM_12,
+                    .gpio_num = GPIO_NUM_0,
                     .callback = callback,
                     .active_level = espp::Interrupt::ActiveLevel::LOW,
                     .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                    .pullup_enabled = false,
+                    .pullup_enabled = true,
                     .pulldown_enabled = false,
                     .enable_pin_glitch_filter = true,
                 },
             },
         .task_config =
             {
-                .name = "Interrupt 12 task",
+                .name = "Interrupt task",
                 .stack_size_bytes = 6192,
                 .priority = 5,
             },
@@ -74,11 +74,11 @@ extern "C" void app_main(void) {
         .interrupts =
             {
                 {
-                    .gpio_num = GPIO_NUM_0,
+                    .gpio_num = GPIO_NUM_12,
                     .callback = callback,
                     .active_level = espp::Interrupt::ActiveLevel::LOW,
                     .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                    .pullup_enabled = false,
+                    .pullup_enabled = true,
                     .pulldown_enabled = false,
                     .enable_pin_glitch_filter = true,
                 },
@@ -98,16 +98,16 @@ extern "C" void app_main(void) {
   // make a single interrupt for multiple GPIOs
   // make an interrupt for a single gpio
   {
-    // Register for interrupts on a few pins (GPIO_NUM_12, GPIO_NUM_0)
+    // Register for interrupts on a few pins (GPIO_NUM_0, GPIO_NUM_12)
     espp::Interrupt interrupt({
         .interrupts =
             {
                 {
-                    .gpio_num = GPIO_NUM_12,
+                    .gpio_num = GPIO_NUM_0,
                     .callback = callback,
                     .active_level = espp::Interrupt::ActiveLevel::LOW,
                     .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                    .pullup_enabled = false,
+                    .pullup_enabled = true,
                     .pulldown_enabled = false,
                     .enable_pin_glitch_filter = true,
                 },
@@ -123,11 +123,11 @@ extern "C" void app_main(void) {
 
     // use the add_interrupt method to add another interrupt
     interrupt.add_interrupt({
-        .gpio_num = GPIO_NUM_0,
+        .gpio_num = GPIO_NUM_12,
         .callback = callback,
         .active_level = espp::Interrupt::ActiveLevel::LOW,
         .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-        .pullup_enabled = false,
+        .pullup_enabled = true,
         .pulldown_enabled = false,
         .enable_pin_glitch_filter = true,
     });
