@@ -141,7 +141,13 @@ extern "C" void app_main(void) {
         return false;
       };
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({.name = task_name, .callback = task_fn});
+      auto task = espp::Task::make_unique({
+          .callback = task_fn,
+          .task_config =
+              {
+                  .name = task_name,
+              },
+      });
       tasks[i] = std::move(task);
       tasks[i]->start();
     }

@@ -1,19 +1,18 @@
 Button APIs
 ***********
 
-The `Button` class provides a simple wrapper around the ESP-IDF gpio API to
-provide a simple interface for reading the state of a button. The class sets the
-GPIO pin to input mode and installs an ISR to detect button presses. The ISR
-sends data to the `Button`'s queue which is read by the `Button`'s task. The
-task periodically checks the queue for new data and updates the button state
-accordingly, additionally calling the provided callback function if one was
-registered.
+The `Button` class provides a simple way to read the state of a button. There
+are two ways to configure the functionality of the button.
 
-Note: the data passed to the callback function is a `espp::Button::Event` object
-which contains the button's state and the gpio associated with the button.
+The first uses `Button::Config` to configure the button to call a function when
+the button is pressed or released and uses the `Interrupt` class' task and ISR
+for signaling. At any time, a user may also call the `is_pressed` method to read
+the current state of the button's input pin.
 
-Additionally, users can check the state of the button by calling the
-`is_pressed` method.
+The second uses `Button::SimpleConfig` to simply configure the button as an
+input with configurable pull-up or pull-down resistors and a configurable active
+state (high or low). In this configuration, the input is read manually any time
+the user calls the `is_pressed` method.
 
 .. ---------------------------- API Reference ----------------------------------
 

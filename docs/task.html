@@ -95,6 +95,7 @@
 <li class="toctree-l1"><a class="reference internal" href="haptics/index.html">Haptics APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="hid/index.html">HID APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="i2c.html">I2C</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interrupt.html">Interrupt APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="input/index.html">Input APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="io_expander/index.html">IO Expander APIs</a></li>
 <li class="toctree-l1"><a class="reference internal" href="joystick.html">Joystick APIs</a></li>
@@ -143,7 +144,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Task APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/c6cafffd/docs/en/task.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/e9ac3475/docs/en/task.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -166,7 +167,7 @@ sleeps and termination of the task.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/2b7c5c1d/components/task/include/task.hpp">components/task/include/task.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e9ac3475/components/task/include/task.hpp">components/task/include/task.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -400,6 +401,17 @@ sleeps and termination of the task.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task4TaskERK14AdvancedConfig">
+<span id="_CPPv3N4espp4Task4TaskERK14AdvancedConfig"></span><span id="_CPPv2N4espp4Task4TaskERK14AdvancedConfig"></span><span id="espp::Task::Task__AdvancedConfigCR"></span><span class="target" id="classespp_1_1Task_1a7497e7d78c11a54f2ab5ce1754216ee2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Task</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Task14AdvancedConfigE" title="espp::Task::AdvancedConfig"><span class="n"><span class="pre">AdvancedConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Task4TaskERK14AdvancedConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1Task"><span class="std std-ref">Task</span></a> object using the <a class="reference internal" href="#structespp_1_1Task_1_1AdvancedConfig"><span class="std std-ref">AdvancedConfig</span></a> struct. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1Task_1_1AdvancedConfig"><span class="std std-ref">AdvancedConfig</span></a> struct to initialize the <a class="reference internal" href="#classespp_1_1Task"><span class="std std-ref">Task</span></a> with. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4TaskD0Ev">
 <span id="_CPPv3N4espp4TaskD0Ev"></span><span id="_CPPv2N4espp4TaskD0Ev"></span><span id="espp::Task::~Task"></span><span class="target" id="classespp_1_1Task_1ab008a053adcc0c93cc0cfcb2fe2396b7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~Task</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4TaskD0Ev" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Destroy the task, stopping it if it was started. </p>
@@ -556,7 +568,89 @@ sleeps and termination of the task.</p>
 </dl>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task11make_uniqueERK14AdvancedConfig">
+<span id="_CPPv3N4espp4Task11make_uniqueERK14AdvancedConfig"></span><span id="_CPPv2N4espp4Task11make_uniqueERK14AdvancedConfig"></span><span id="espp::Task::make_unique__AdvancedConfigCR"></span><span class="target" id="classespp_1_1Task_1ae933920a655437d9b37ac5afdf83bd63"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">make_unique</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp4Task14AdvancedConfigE" title="espp::Task::AdvancedConfig"><span class="n"><span class="pre">AdvancedConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp4Task11make_uniqueERK14AdvancedConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get a unique pointer to a new task created with <code class="docutils literal notranslate"><span class="pre">config</span></code>. Useful to not have to use templated std::make_unique (less typing). </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config</strong> – <a class="reference internal" href="#structespp_1_1Task_1_1AdvancedConfig"><span class="std std-ref">AdvancedConfig</span></a> struct to initialize the <a class="reference internal" href="#classespp_1_1Task"><span class="std std-ref">Task</span></a> with. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>std::unique_ptr&lt;Task&gt; pointer to the newly created task. </p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task14AdvancedConfigE">
+<span id="_CPPv3N4espp4Task14AdvancedConfigE"></span><span id="_CPPv2N4espp4Task14AdvancedConfigE"></span><span id="espp::Task::AdvancedConfig"></span><span class="target" id="structespp_1_1Task_1_1AdvancedConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AdvancedConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task14AdvancedConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Advanced configuration struct for the <a class="reference internal" href="#classespp_1_1Task"><span class="std std-ref">Task</span></a>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the recommended way to configure the <a class="reference internal" href="#classespp_1_1Task"><span class="std std-ref">Task</span></a>, and allows you to use the condition variable and mutex from the task to wait_for and wait_until. </p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task14AdvancedConfig8callbackE">
+<span id="_CPPv3N4espp4Task14AdvancedConfig8callbackE"></span><span id="_CPPv2N4espp4Task14AdvancedConfig8callbackE"></span><span id="espp::Task::AdvancedConfig::callback__callback_fn"></span><span class="target" id="structespp_1_1Task_1_1AdvancedConfig_1a37c3295b298f105efaf9bfff04117d2c"></span><a class="reference internal" href="#_CPPv4N4espp4Task11callback_fnE" title="espp::Task::callback_fn"><span class="n"><span class="pre">callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task14AdvancedConfig8callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback function </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task14AdvancedConfig11task_configE">
+<span id="_CPPv3N4espp4Task14AdvancedConfig11task_configE"></span><span id="_CPPv2N4espp4Task14AdvancedConfig11task_configE"></span><span id="espp::Task::AdvancedConfig::task_config__BaseConfig"></span><span class="target" id="structespp_1_1Task_1_1AdvancedConfig_1ae0699c950ff0eedab097198edc53e92a"></span><a class="reference internal" href="#_CPPv4N4espp4Task10BaseConfigE" title="espp::Task::BaseConfig"><span class="n"><span class="pre">BaseConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task14AdvancedConfig11task_configE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Base configuration for the task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task14AdvancedConfig9log_levelE">
+<span id="_CPPv3N4espp4Task14AdvancedConfig9log_levelE"></span><span id="_CPPv2N4espp4Task14AdvancedConfig9log_levelE"></span><span id="espp::Task::AdvancedConfig::log_level__Logger::Verbosity"></span><span class="target" id="structespp_1_1Task_1_1AdvancedConfig_1a2ff65b3e46ad140da389fd1a4ee11d2e"></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">log_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6LoggerE" title="espp::Logger"><span class="n"><span class="pre">Logger</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9VerbosityE" title="espp::Logger::Verbosity"><span class="n"><span class="pre">Verbosity</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="logger.html#_CPPv4N4espp6Logger9Verbosity4WARNE" title="espp::Logger::Verbosity::WARN"><span class="n"><span class="pre">WARN</span></span></a><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Task14AdvancedConfig9log_levelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Log verbosity for the task. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task10BaseConfigE">
+<span id="_CPPv3N4espp4Task10BaseConfigE"></span><span id="_CPPv2N4espp4Task10BaseConfigE"></span><span id="espp::Task::BaseConfig"></span><span class="target" id="structespp_1_1Task_1_1BaseConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseConfig</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task10BaseConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Base configuration struct for the <a class="reference internal" href="#classespp_1_1Task"><span class="std std-ref">Task</span></a>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is designed to be used as a configuration struct in other classes that may have a <a class="reference internal" href="#classespp_1_1Task"><span class="std std-ref">Task</span></a> as a member. </p>
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task10BaseConfig4nameE">
+<span id="_CPPv3N4espp4Task10BaseConfig4nameE"></span><span id="_CPPv2N4espp4Task10BaseConfig4nameE"></span><span id="espp::Task::BaseConfig::name__std::string_view"></span><span class="target" id="structespp_1_1Task_1_1BaseConfig_1a704f28a6b3642af75813f22bd0265118"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task10BaseConfig4nameE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Name of the task </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task10BaseConfig16stack_size_bytesE">
+<span id="_CPPv3N4espp4Task10BaseConfig16stack_size_bytesE"></span><span id="_CPPv2N4espp4Task10BaseConfig16stack_size_bytesE"></span><span id="espp::Task::BaseConfig::stack_size_bytes__s"></span><span class="target" id="structespp_1_1Task_1_1BaseConfig_1ab9db006c0f01820473bb571c4df785c6"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stack_size_bytes</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">4</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Task10BaseConfig16stack_size_bytesE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stack Size (B) allocated to the task. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task10BaseConfig8priorityE">
+<span id="_CPPv3N4espp4Task10BaseConfig8priorityE"></span><span id="_CPPv2N4espp4Task10BaseConfig8priorityE"></span><span id="espp::Task::BaseConfig::priority__s"></span><span class="target" id="structespp_1_1Task_1_1BaseConfig_1a10c00594ead2477810694964660d13f1"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">priority</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Task10BaseConfig8priorityE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Priority of the task, 0 is lowest priority on ESP / FreeRTOS. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task10BaseConfig7core_idE">
+<span id="_CPPv3N4espp4Task10BaseConfig7core_idE"></span><span id="_CPPv2N4espp4Task10BaseConfig7core_idE"></span><span id="espp::Task::BaseConfig::core_id__i"></span><span class="target" id="structespp_1_1Task_1_1BaseConfig_1a045c74ccd70bc354828c58d92e3279c7"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">core_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Task10BaseConfig7core_idE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Core ID of the task, -1 means it is not pinned to any core. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Task6ConfigE">
 <span id="_CPPv3N4espp4Task6ConfigE"></span><span id="_CPPv2N4espp4Task6ConfigE"></span><span id="espp::Task::Config"></span><span class="target" id="structespp_1_1Task_1_1Config"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Config</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task6ConfigE" title="Permalink to this definition"></a><br /></dt>
@@ -564,6 +658,10 @@ sleeps and termination of the task.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This is the recommended way to configure the <a class="reference internal" href="#classespp_1_1Task"><span class="std std-ref">Task</span></a>, and allows you to use the condition variable and mutex from the task to wait_for and wait_until. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is an older configuration struct, and is kept for backwards compatibility. It is recommended to use the <a class="reference internal" href="#structespp_1_1Task_1_1AdvancedConfig"><span class="std std-ref">AdvancedConfig</span></a> struct instead. </p>
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
@@ -617,33 +715,15 @@ sleeps and termination of the task.</p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task12SimpleConfig4nameE">
-<span id="_CPPv3N4espp4Task12SimpleConfig4nameE"></span><span id="_CPPv2N4espp4Task12SimpleConfig4nameE"></span><span id="espp::Task::SimpleConfig::name__std::string_view"></span><span class="target" id="structespp_1_1Task_1_1SimpleConfig_1a81e919ab3e6ac180e7f1924b4af5dc7e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task12SimpleConfig4nameE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Name of the task </p>
-</dd></dl>
-
-<dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp4Task12SimpleConfig8callbackE">
 <span id="_CPPv3N4espp4Task12SimpleConfig8callbackE"></span><span id="_CPPv2N4espp4Task12SimpleConfig8callbackE"></span><span id="espp::Task::SimpleConfig::callback__simple_callback_fn"></span><span class="target" id="structespp_1_1Task_1_1SimpleConfig_1a1ae0c9d9983ea736d87c9e8d92c4e62c"></span><a class="reference internal" href="#_CPPv4N4espp4Task18simple_callback_fnE" title="espp::Task::simple_callback_fn"><span class="n"><span class="pre">simple_callback_fn</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">callback</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task12SimpleConfig8callbackE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback function </p>
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task12SimpleConfig16stack_size_bytesE">
-<span id="_CPPv3N4espp4Task12SimpleConfig16stack_size_bytesE"></span><span id="_CPPv2N4espp4Task12SimpleConfig16stack_size_bytesE"></span><span id="espp::Task::SimpleConfig::stack_size_bytes__s"></span><span class="target" id="structespp_1_1Task_1_1SimpleConfig_1a8bab93be7bb83815738cdc2eff52cbb8"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stack_size_bytes</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">4</span></span><span class="w"> </span><span class="o"><span class="pre">*</span></span><span class="w"> </span><span class="m"><span class="pre">1024</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Task12SimpleConfig16stack_size_bytesE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Stack Size (B) allocated to the task. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task12SimpleConfig8priorityE">
-<span id="_CPPv3N4espp4Task12SimpleConfig8priorityE"></span><span id="_CPPv2N4espp4Task12SimpleConfig8priorityE"></span><span id="espp::Task::SimpleConfig::priority__s"></span><span class="target" id="structespp_1_1Task_1_1SimpleConfig_1aaa8b19d1bc001d08cdf0a8192e1350a4"></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">priority</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Task12SimpleConfig8priorityE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Priority of the task, 0 is lowest priority on ESP / FreeRTOS. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task12SimpleConfig7core_idE">
-<span id="_CPPv3N4espp4Task12SimpleConfig7core_idE"></span><span id="_CPPv2N4espp4Task12SimpleConfig7core_idE"></span><span id="espp::Task::SimpleConfig::core_id__i"></span><span class="target" id="structespp_1_1Task_1_1SimpleConfig_1a3b24514ee9210a18d23e7cd53039b4d1"></span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">core_id</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="o"><span class="pre">-</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp4Task12SimpleConfig7core_idE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Core ID of the task, -1 means it is not pinned to any core. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp4Task12SimpleConfig11task_configE">
+<span id="_CPPv3N4espp4Task12SimpleConfig11task_configE"></span><span id="_CPPv2N4espp4Task12SimpleConfig11task_configE"></span><span id="espp::Task::SimpleConfig::task_config__BaseConfig"></span><span class="target" id="structespp_1_1Task_1_1SimpleConfig_1afd79a0e8f861f763bbc72f429e2bf797"></span><a class="reference internal" href="#_CPPv4N4espp4Task10BaseConfigE" title="espp::Task::BaseConfig"><span class="n"><span class="pre">BaseConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">task_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp4Task12SimpleConfig11task_configE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Base configuration for the task. </p>
 </dd></dl>
 
 <dl class="cpp var">
