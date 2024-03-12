@@ -37,6 +37,15 @@ namespace espp {
 ///          of interrupts to happen quickly, then you should increase the queue
 ///          size.
 ///
+///          Another way to handle the situation where you have many interrupts
+///          and would like to separate out the processing by priority is to
+///          have different Interrupt objects for the different priority levels,
+///          and assign the interrupt pins/callbacks to the objects according to
+///          the priority levels that you want. This will ensure that interrupts
+///          at different priority levels / in different objects do not starve
+///          the each other, while ensuring that the interupts are still
+///          processed in an orderly fashion.
+///
 /// \section interrupt_ex0 Interrupt Example
 /// \snippet interrupt_example.cpp interrupt example
 class Interrupt : public BaseComponent {

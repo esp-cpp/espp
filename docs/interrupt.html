@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Interrupt APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/5460bb53/docs/en/interrupt.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9d86df97/docs/en/interrupt.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -169,7 +169,7 @@ a subclass of <cite>Interrupt</cite>.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/5460bb53/components/interrupt/include/interrupt.hpp">components/interrupt/include/interrupt.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9d86df97/components/interrupt/include/interrupt.hpp">components/interrupt/include/interrupt.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -181,6 +181,7 @@ a subclass of <cite>Interrupt</cite>.</p>
 <p>This class uses the ESP-IDF GPIO interrupt handler to detect GPIO interrupts. It then calls the callback function with the event. It can handle multiple GPIO interrupts and call the appropriate callback for each GPIO interrupt.</p>
 <p>The class uses a FreeRTOS queue to handle the events. The queue is created in the constructor and deleted in the destructor. The queue is used to wake up the task when an interrupt event occurs. The task then calls the appropriate callback for the interrupt. Since all the GPIO interrupts are handled by the same task, all the callbacks are called from the same task. This means that the callbacks should be fast and not block for long periods of time, otherwise the other interrupts will be delayed.</p>
 <p>Regardless of the callback speed, some interrupts could still be missed if they happen too quickly. For this reason, the queue size can be set in the configuration (default is 10). If the queue is full, then the interrupt event will be missed. If you are expecting a lot of interrupts to happen quickly, then you should increase the queue size.</p>
+<p>Another way to handle the situation where you have many interrupts and would like to separate out the processing by priority is to have different <a class="reference internal" href="#classespp_1_1Interrupt"><span class="std std-ref">Interrupt</span></a> objects for the different priority levels, and assign the interrupt pins/callbacks to the objects according to the priority levels that you want. This will ensure that interrupts at different priority levels / in different objects do not starve the each other, while ensuring that the interupts are still processed in an orderly fashion.</p>
 <section id="classespp_1_1Interrupt_1interrupt_ex0">
 <h4>Interrupt Example<a class="headerlink" href="#classespp_1_1Interrupt_1interrupt_ex0" title="Permalink to this headline"></a></h4>
 <p id="classespp_1_1Interrupt_1interrupt_ex0"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">high_resolution_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
