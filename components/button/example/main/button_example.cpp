@@ -104,7 +104,7 @@ extern "C" void app_main(void) {
               .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
               .pullup_enabled = false,
               .pulldown_enabled = false,
-              .enable_pin_glitch_filter = true,
+              .filter_type = espp::Interrupt::FilterType::PIN_GLITCH_FILTER,
           },
       .task_config =
           {

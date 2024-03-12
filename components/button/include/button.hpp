@@ -25,9 +25,9 @@ public:
 
   /// \brief The configuration for the button
   struct Config {
-    std::string_view name{"Button"};  ///< Name of the button
-    InterruptConfig interrupt_config; ///< Configuration for the GPIO interrupt
-    Task::BaseConfig task_config{};   ///< Configuration for the button task
+    std::string_view name{"Button"};       ///< Name of the button
+    Interrupt::PinConfig interrupt_config; ///< Configuration for the GPIO interrupt
+    Task::BaseConfig task_config{};        ///< Configuration for the button task
     espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN; ///< Log level for this class
   };
 

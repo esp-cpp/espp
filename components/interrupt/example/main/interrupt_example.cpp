@@ -19,21 +19,34 @@ extern "C" void app_main(void) {
                 event.gpio_num, event.active);
   };
 
+  espp::Interrupt::PinConfig io0 = {
+      .gpio_num = GPIO_NUM_0,
+      .callback = callback,
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+      .pullup_enabled = true,
+      .pulldown_enabled = false,
+      // flexible filter requiring configuration (default is provided as 5us
+      // threshold in 10us window), but other configurations can be manually
+      // set as below
+      .filter_type = espp::Interrupt::FilterType::FLEX_GLITCH_FILTER,
+      .filter_config = {.window_width_ns = 10000, .window_threshold_ns = 5000},
+  };
+  espp::Interrupt::PinConfig io12 = {
+      .gpio_num = GPIO_NUM_12,
+      .callback = callback,
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+      .pullup_enabled = true,
+      .pulldown_enabled = false,
+      // pre-configured 2 clock pulse width filter
+      .filter_type = espp::Interrupt::FilterType::PIN_GLITCH_FILTER,
+  };
+
   // make an interrupt for a single gpio
   {
     espp::Interrupt interrupt({
-        .interrupts =
-            {
-                {
-                    .gpio_num = GPIO_NUM_0,
-                    .callback = callback,
-                    .active_level = espp::Interrupt::ActiveLevel::LOW,
-                    .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                    .pullup_enabled = true,
-                    .pulldown_enabled = false,
-                    .enable_pin_glitch_filter = true,
-                },
-            },
+        .interrupts = {io0},
         .task_config =
             {
                 .name = "Interrupt task",
@@ -48,19 +61,8 @@ extern "C" void app_main(void) {
 
   // make multiple interrupts for multiple gpios
   {
-    espp::Interrupt interrupt12({
-        .interrupts =
-            {
-                {
-                    .gpio_num = GPIO_NUM_0,
-                    .callback = callback,
-                    .active_level = espp::Interrupt::ActiveLevel::LOW,
-                    .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                    .pullup_enabled = true,
-                    .pulldown_enabled = false,
-                    .enable_pin_glitch_filter = true,
-                },
-            },
+    espp::Interrupt interrupt0({
+        .interrupts = {io0},
         .task_config =
             {
                 .name = "Interrupt task",
@@ -70,19 +72,8 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::DEBUG,
     });
 
-    espp::Interrupt interrupt0({
-        .interrupts =
-            {
-                {
-                    .gpio_num = GPIO_NUM_12,
-                    .callback = callback,
-                    .active_level = espp::Interrupt::ActiveLevel::LOW,
-                    .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                    .pullup_enabled = true,
-                    .pulldown_enabled = false,
-                    .enable_pin_glitch_filter = true,
-                },
-            },
+    espp::Interrupt interrupt12({
+        .interrupts = {io12},
         .task_config =
             {
                 .name = "Interrupt 0 task",
@@ -92,7 +83,15 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::DEBUG,
     });
 
-    std::this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(2s);
+
+    // now lets read the instantaneous state of the interrupt pins
+    auto is_0_active = interrupt0.is_active(io0);
+    auto is_12_active = interrupt12.is_active(io12);
+    logger.info("Instantaneous state of pin 0: {}", is_0_active);
+    logger.info("Instantaneous state of pin 12: {}", is_12_active);
+
+    std::this_thread::sleep_for(2s);
   }
 
   // make a single interrupt for multiple GPIOs
@@ -100,18 +99,7 @@ extern "C" void app_main(void) {
   {
     // Register for interrupts on a few pins (GPIO_NUM_0, GPIO_NUM_12)
     espp::Interrupt interrupt({
-        .interrupts =
-            {
-                {
-                    .gpio_num = GPIO_NUM_0,
-                    .callback = callback,
-                    .active_level = espp::Interrupt::ActiveLevel::LOW,
-                    .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                    .pullup_enabled = true,
-                    .pulldown_enabled = false,
-                    .enable_pin_glitch_filter = true,
-                },
-            },
+        .interrupts = {io0},
         .task_config =
             {
                 .name = "Interrupt task",
@@ -122,17 +110,15 @@ extern "C" void app_main(void) {
     });
 
     // use the add_interrupt method to add another interrupt
-    interrupt.add_interrupt({
-        .gpio_num = GPIO_NUM_12,
-        .callback = callback,
-        .active_level = espp::Interrupt::ActiveLevel::LOW,
-        .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-        .pullup_enabled = true,
-        .pulldown_enabled = false,
-        .enable_pin_glitch_filter = true,
-    });
+    interrupt.add_interrupt(io12);
 
-    std::this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(2s);
+
+    // now lets read the instantaneous state of the interrupt pins
+    auto active_states = interrupt.get_active_states();
+    logger.info("Instantaneous state of pins: {}", active_states);
+
+    std::this_thread::sleep_for(2s);
   }
 
   //! [interrupt example]
