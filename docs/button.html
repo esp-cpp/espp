@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Button APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/e9ac3475/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/498d24f4/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -168,7 +168,7 @@ the user calls the <cite>is_pressed</cite> method.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/e9ac3475/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/498d24f4/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -294,6 +294,27 @@ the user calls the <cite>is_pressed</cite> method.</p>
  </p>
 </section>
 <div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button5EventE">
+<span id="_CPPv3N4espp6Button5EventE"></span><span id="_CPPv2N4espp6Button5EventE"></span><span class="target" id="classespp_1_1Button_1a7dc77a35419e8d893e3920d477f8d9ee"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Event</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9Interrupt5EventE" title="espp::Interrupt::Event"><span class="n"><span class="pre">Event</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Button5EventE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The event type for the button. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13InterruptTypeE">
+<span id="_CPPv3N4espp6Button13InterruptTypeE"></span><span id="_CPPv2N4espp6Button13InterruptTypeE"></span><span class="target" id="classespp_1_1Button_1a385d81b3103552a9bc452b773666da90"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">InterruptType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9Interrupt4TypeE" title="espp::Interrupt::Type"><span class="n"><span class="pre">Type</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Button13InterruptTypeE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The type of interrupt for the button. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button11ActiveLevelE">
+<span id="_CPPv3N4espp6Button11ActiveLevelE"></span><span id="_CPPv2N4espp6Button11ActiveLevelE"></span><span class="target" id="classespp_1_1Button_1a80d08dbd6b25f5487c104f045b77bb53"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ActiveLevel</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9Interrupt11ActiveLevelE" title="espp::Interrupt::ActiveLevel"><span class="n"><span class="pre">ActiveLevel</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Button11ActiveLevelE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>The active level of the button. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6ButtonERK6Config">
@@ -331,25 +352,6 @@ the user calls the <cite>is_pressed</cite> method.</p>
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-types">Protected Types</p>
-<dl class="cpp enum-class">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button11ActiveLevelE">
-<span id="_CPPv3N4espp6Button11ActiveLevelE"></span><span id="_CPPv2N4espp6Button11ActiveLevelE"></span><span class="target" id="classespp_1_1Interrupt_1aab4616eb11120d204f7a945b4533d9aa"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ActiveLevel</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button11ActiveLevelE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The active level of the GPIO. </p>
-<p><em>Values:</em></p>
-<dl class="cpp enumerator">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button11ActiveLevel3LOWE">
-<span id="_CPPv3N4espp6Button11ActiveLevel3LOWE"></span><span id="_CPPv2N4espp6Button11ActiveLevel3LOWE"></span><span class="target" id="classespp_1_1Interrupt_1aab4616eb11120d204f7a945b4533d9aaa41bc94cbd8eebea13ce0491b2ac11b88"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LOW</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button11ActiveLevel3LOWE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Active low. </p>
-</dd></dl>
-
-<dl class="cpp enumerator">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button11ActiveLevel4HIGHE">
-<span id="_CPPv3N4espp6Button11ActiveLevel4HIGHE"></span><span id="_CPPv2N4espp6Button11ActiveLevel4HIGHE"></span><span class="target" id="classespp_1_1Interrupt_1aab4616eb11120d204f7a945b4533d9aaab89de3b4b81c4facfac906edf29aec8c"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">HIGH</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button11ActiveLevel4HIGHE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Active high. </p>
-</dd></dl>
-
-</dd></dl>
-
 <dl class="cpp enum-class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Button4TypeE">
 <span id="_CPPv3N4espp6Button4TypeE"></span><span id="_CPPv2N4espp6Button4TypeE"></span><span class="target" id="classespp_1_1Interrupt_1a7f6008dfae28763f53c7356f0c4424aa"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Type</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button4TypeE" title="Permalink to this definition"></a><br /></dt>
@@ -389,7 +391,7 @@ the user calls the <cite>is_pressed</cite> method.</p>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Button17event_callback_fnE">
-<span id="_CPPv3N4espp6Button17event_callback_fnE"></span><span id="_CPPv2N4espp6Button17event_callback_fnE"></span><span id="espp::Button::event_callback_fn"></span><span class="target" id="classespp_1_1Interrupt_1a2cf77779b2de2fb315f9d43d314f88dd"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">Event</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">event_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button17event_callback_fnE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6Button17event_callback_fnE"></span><span id="_CPPv2N4espp6Button17event_callback_fnE"></span><span id="espp::Button::event_callback_fn"></span><span class="target" id="classespp_1_1Interrupt_1a2cf77779b2de2fb315f9d43d314f88dd"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Button5EventE" title="espp::Button::Event"><span class="n"><span class="pre">Event</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">event_callback_fn</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button17event_callback_fnE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The callback for the event. </p>
 </dd></dl>
 
@@ -538,7 +540,7 @@ the user calls the <cite>is_pressed</cite> method.</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Button12SimpleConfig12active_levelE">
-<span id="_CPPv3N4espp6Button12SimpleConfig12active_levelE"></span><span id="_CPPv2N4espp6Button12SimpleConfig12active_levelE"></span><span id="espp::Button::SimpleConfig::active_level__ActiveLevel"></span><span class="target" id="structespp_1_1Button_1_1SimpleConfig_1afde97c92504ab5d127256b2715af586e"></span><a class="reference internal" href="#_CPPv4N4espp6Button11ActiveLevelE" title="espp::Button::ActiveLevel"><span class="n"><span class="pre">ActiveLevel</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">active_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Button11ActiveLevelE" title="espp::Button::ActiveLevel"><span class="n"><span class="pre">ActiveLevel</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp6Button11ActiveLevel3LOWE" title="espp::Button::ActiveLevel::LOW"><span class="n"><span class="pre">LOW</span></span></a><a class="headerlink" href="#_CPPv4N4espp6Button12SimpleConfig12active_levelE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6Button12SimpleConfig12active_levelE"></span><span id="_CPPv2N4espp6Button12SimpleConfig12active_levelE"></span><span id="espp::Button::SimpleConfig::active_level__ActiveLevel"></span><span class="target" id="structespp_1_1Button_1_1SimpleConfig_1afde97c92504ab5d127256b2715af586e"></span><a class="reference internal" href="#_CPPv4N4espp6Button11ActiveLevelE" title="espp::Button::ActiveLevel"><span class="n"><span class="pre">ActiveLevel</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">active_level</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp6Button11ActiveLevelE" title="espp::Button::ActiveLevel"><span class="n"><span class="pre">ActiveLevel</span></span></a><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">LOW</span></span><a class="headerlink" href="#_CPPv4N4espp6Button12SimpleConfig12active_levelE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>The active level of the button. </p>
 </dd></dl>
 
