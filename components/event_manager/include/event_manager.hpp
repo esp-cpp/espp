@@ -83,6 +83,22 @@ public:
                       const event_callback_fn &callback, const size_t stack_size_bytes = 8 * 1024);
 
   /**
+   * @brief Register a subscriber for \p component on \p topic.
+   * @param topic Topic name for the data being subscribed to.
+   * @param component Name of the component publishing data.
+   * @param callback The event_callback_fn to be called when receicing data on
+   *        \p topic.
+   * @param task_config The task configuration to use for the subscriber.
+   * @note The task_config is only used if a subscriber is not already
+   *       registered for that topic. If a subscriber is already registered for
+   *       that topic, the task_config is ignored.
+   * @return True if the subscriber was added, false if it was already
+   *         registered for that component.
+   */
+  bool add_subscriber(const std::string &topic, const std::string &component,
+                      const event_callback_fn &callback, const Task::BaseConfig &task_config);
+
+  /**
    * @brief Publish \p data on \p topic.
    * @param topic Topic to publish data on.
    * @param data Data to publish, within a vector container.

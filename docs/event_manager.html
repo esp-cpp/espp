@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Event Manager APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/498d24f4/docs/en/event_manager.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/14a014ab/docs/en/event_manager.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -169,7 +169,7 @@ data structures to/from <cite>std::vector&lt;uint8_t&gt;</cite> for publishing/s
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/498d24f4/components/event_manager/include/event_manager.hpp">components/event_manager/include/event_manager.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/14a014ab/components/event_manager/include/event_manager.hpp">components/event_manager/include/event_manager.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -277,7 +277,17 @@ data structures to/from <cite>std::vector&lt;uint8_t&gt;</cite> for publishing/s
 <span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">em</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">EventManager</span><span class="o">::</span><span class="n">get</span><span class="p">();</span>
 <span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 registering!&quot;</span><span class="p">);</span>
 <span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">did_pub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_publisher</span><span class="p">(</span><span class="n">event2</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 2&quot;</span><span class="p">);</span>
-<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">did_sub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_subscriber</span><span class="p">(</span><span class="n">event1</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 2&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">event1_cb</span><span class="p">);</span>
+<span class="w">        </span><span class="c1">// NOTE: we&#39;re using a custom task config here to show how you can</span>
+<span class="w">        </span><span class="c1">// configure the task that the subscriber callback will run in</span>
+<span class="w">        </span><span class="c1">// (priority, stack size, etc.). Only the first subscription on a topic</span>
+<span class="w">        </span><span class="c1">// will use the task config, any subsequent subscriptions will use the</span>
+<span class="w">        </span><span class="c1">// same task as the first subscription.</span>
+<span class="w">        </span><span class="n">espp</span><span class="o">::</span><span class="n">Task</span><span class="o">::</span><span class="n">BaseConfig</span><span class="w"> </span><span class="n">task_config</span><span class="p">{</span>
+<span class="w">            </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Task 2 subscriber task&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">stack_size_bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8192</span><span class="p">,</span>
+<span class="w">            </span><span class="p">.</span><span class="n">priority</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="c1">// 5 is default, 10 is higher</span>
+<span class="w">        </span><span class="p">};</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">did_sub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">em</span><span class="p">.</span><span class="n">add_subscriber</span><span class="p">(</span><span class="n">event1</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;task 2&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">event1_cb</span><span class="p">,</span><span class="w"> </span><span class="n">task_config</span><span class="p">);</span>
 <span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 publishing:  {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_pub</span><span class="p">);</span>
 <span class="w">        </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Task 2 subscribing: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">did_sub</span><span class="p">);</span>
 <span class="w">      </span><span class="p">});</span>
@@ -372,6 +382,29 @@ data structures to/from <cite>std::vector&lt;uint8_t&gt;</cite> for publishing/s
 <li><p><strong>component</strong> – Name of the component publishing data. </p></li>
 <li><p><strong>callback</strong> – The event_callback_fn to be called when receicing data on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p></li>
 <li><p><strong>stack_size_bytes</strong> – The stack size in bytes to use for the subscriber </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if the subscriber was added, false if it was already registered for that component. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fnRKN4Task10BaseConfigE">
+<span id="_CPPv3N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fnRKN4Task10BaseConfigE"></span><span id="_CPPv2N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fnRKN4Task10BaseConfigE"></span><span id="espp::EventManager::add_subscriber__ssCR.ssCR.event_callback_fnCR.Task::BaseConfigCR"></span><span class="target" id="classespp_1_1EventManager_1ae7899c34a212912b6781bd10fdd8ff81"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_subscriber</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">topic</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">component</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp12EventManager17event_callback_fnE" title="espp::EventManager::event_callback_fn"><span class="n"><span class="pre">event_callback_fn</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">callback</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="task.html#_CPPv4N4espp4TaskE" title="espp::Task"><span class="n"><span class="pre">Task</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="task.html#_CPPv4N4espp4Task10BaseConfigE" title="espp::Task::BaseConfig"><span class="n"><span class="pre">BaseConfig</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">task_config</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp12EventManager14add_subscriberERKNSt6stringERKNSt6stringERK17event_callback_fnRKN4Task10BaseConfigE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Register a subscriber for <code class="docutils literal notranslate"><span class="pre">component</span></code> on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The task_config is only used if a subscriber is not already registered for that topic. If a subscriber is already registered for that topic, the task_config is ignored. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>topic</strong> – Topic name for the data being subscribed to. </p></li>
+<li><p><strong>component</strong> – Name of the component publishing data. </p></li>
+<li><p><strong>callback</strong> – The event_callback_fn to be called when receicing data on <code class="docutils literal notranslate"><span class="pre">topic</span></code>. </p></li>
+<li><p><strong>task_config</strong> – The task configuration to use for the subscriber. </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
