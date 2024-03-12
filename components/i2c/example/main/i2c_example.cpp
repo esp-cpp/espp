@@ -24,7 +24,7 @@ extern "C" void app_main(void) {
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .log_level = espp::Logger::Verbosity::INFO,
     });
-    // now make a menu it
+    // now make a menu for it
     espp::I2cMenu i2c_menu(i2c);
     cli::Cli cli(i2c_menu.get());
     cli::SetColor();
