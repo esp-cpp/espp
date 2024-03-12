@@ -143,7 +143,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>Button APIs</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/14a014ab/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/5460bb53/docs/en/button.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -168,7 +168,7 @@ the user calls the <cite>is_pressed</cite> method.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/14a014ab/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/5460bb53/components/button/include/button.hpp">components/button/include/button.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -275,7 +275,7 @@ the user calls the <cite>is_pressed</cite> method.</p>
 <span class="w">              </span><span class="p">.</span><span class="n">interrupt_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">Type</span><span class="o">::</span><span class="n">ANY_EDGE</span><span class="p">,</span>
 <span class="w">              </span><span class="p">.</span><span class="n">pullup_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
 <span class="w">              </span><span class="p">.</span><span class="n">pulldown_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span>
-<span class="w">              </span><span class="p">.</span><span class="n">enable_pin_glitch_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">              </span><span class="p">.</span><span class="n">filter_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Interrupt</span><span class="o">::</span><span class="n">FilterType</span><span class="o">::</span><span class="n">PIN_GLITCH_FILTER</span><span class="p">,</span>
 <span class="w">          </span><span class="p">},</span>
 <span class="w">      </span><span class="p">.</span><span class="n">task_config</span><span class="w"> </span><span class="o">=</span>
 <span class="w">          </span><span class="p">{</span>
@@ -399,12 +399,39 @@ the user calls the <cite>is_pressed</cite> method.</p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-protected-functions">Protected Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13add_interruptERK15InterruptConfig">
-<span id="_CPPv3N4espp6Button13add_interruptERK15InterruptConfig"></span><span id="_CPPv2N4espp6Button13add_interruptERK15InterruptConfig"></span><span id="espp::Button::add_interrupt__InterruptConfigCR"></span><span class="target" id="classespp_1_1Interrupt_1a6bb7fb283f7d35fad9ac4d0c7bf73af7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_interrupt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">InterruptConfig</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">interrupt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Button13add_interruptERK15InterruptConfig" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button13add_interruptERK9PinConfig">
+<span id="_CPPv3N4espp6Button13add_interruptERK9PinConfig"></span><span id="_CPPv2N4espp6Button13add_interruptERK9PinConfig"></span><span id="espp::Button::add_interrupt__PinConfigCR"></span><span class="target" id="classespp_1_1Interrupt_1ab3dc36f402a314397cd142e4c1456041"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">add_interrupt</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">PinConfig</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">interrupt</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Button13add_interruptERK9PinConfig" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Add an interrupt to the interrupt handler. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>interrupt</strong> – The interrupt to add </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4espp6Button9is_activeERK9PinConfig">
+<span id="_CPPv3NK4espp6Button9is_activeERK9PinConfig"></span><span id="_CPPv2NK4espp6Button9is_activeERK9PinConfig"></span><span id="espp::Button::is_active__PinConfigCRC"></span><span class="target" id="classespp_1_1Interrupt_1a59caf6a7cbe7970a56c6983621a69cd2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_active</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">PinConfig</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">interrupt</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4espp6Button9is_activeERK9PinConfig" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the state of the interrupt. </p>
+<p>
+This will check the raw logic level of the GPIO and return whether the interrupt is active or not according to the active level that was set in the configuration. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>interrupt</strong> – The interrupt to check </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether the interrupt is active</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp6Button17get_active_statesEv">
+<span id="_CPPv3N4espp6Button17get_active_statesEv"></span><span id="_CPPv2N4espp6Button17get_active_statesEv"></span><span id="espp::Button::get_active_states"></span><span class="target" id="classespp_1_1Interrupt_1a20886169833f7e974562563521a10b77"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_active_states</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp6Button17get_active_statesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the state of all the interrupts. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A vector of the states of the interrupts as pairs of the GPIO number and whether the interrupt is active </p>
 </dd>
 </dl>
 </dd></dl>
@@ -500,7 +527,7 @@ the user calls the <cite>is_pressed</cite> method.</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp6Button6Config16interrupt_configE">
-<span id="_CPPv3N4espp6Button6Config16interrupt_configE"></span><span id="_CPPv2N4espp6Button6Config16interrupt_configE"></span><span id="espp::Button::Config::interrupt_config__InterruptConfig"></span><span class="target" id="structespp_1_1Button_1_1Config_1a851bd3479afcb193302c3e4bbc619702"></span><span class="n"><span class="pre">InterruptConfig</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interrupt_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config16interrupt_configE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3N4espp6Button6Config16interrupt_configE"></span><span id="_CPPv2N4espp6Button6Config16interrupt_configE"></span><span id="espp::Button::Config::interrupt_config__Interrupt::PinConfig"></span><span class="target" id="structespp_1_1Button_1_1Config_1a35e030f0aff1cdbe277a9aa3236ef4b2"></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9InterruptE" title="espp::Interrupt"><span class="n"><span class="pre">Interrupt</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="interrupt.html#_CPPv4N4espp9Interrupt9PinConfigE" title="espp::Interrupt::PinConfig"><span class="n"><span class="pre">PinConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interrupt_config</span></span></span><a class="headerlink" href="#_CPPv4N4espp6Button6Config16interrupt_configE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Configuration for the GPIO interrupt. </p>
 </dd></dl>
 
