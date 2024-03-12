@@ -21,6 +21,22 @@ namespace espp {
 ///          It can handle multiple GPIO interrupts and call the appropriate callback
 ///          for each GPIO interrupt.
 ///
+///          The class uses a FreeRTOS queue to handle the events. The queue is
+///          created in the constructor and deleted in the destructor. The queue
+///          is used to wake up the task when an interrupt event occurs. The task
+///          then calls the appropriate callback for the interrupt. Since all the
+///          GPIO interrupts are handled by the same task, all the callbacks are
+///          called from the same task. This means that the callbacks should be
+///          fast and not block for long periods of time, otherwise the other
+///          interrupts will be delayed.
+///
+///          Regardless of the callback speed, some interrupts could still be
+///          missed if they happen too quickly. For this reason, the queue size
+///          can be set in the configuration (default is 10). If the queue is full,
+///          then the interrupt event will be missed. If you are expecting a lot
+///          of interrupts to happen quickly, then you should increase the queue
+///          size.
+///
 /// \section interrupt_ex0 Interrupt Example
 /// \snippet interrupt_example.cpp interrupt example
 class Interrupt : public BaseComponent {
@@ -48,25 +64,52 @@ public:
 
   typedef std::function<void(const Event &)> event_callback_fn; ///< The callback for the event
 
+  enum class FilterType {
+    NONE,              ///< No filter
+    PIN_GLITCH_FILTER, ///< The pin glitch filter
+    FLEX_GLITCH_FILTER ///< The flex glitch filter
+  };
+
+  /// \brief The configuration for the filter
+  /// \note This is only supported on some chips (-C and -S series chips) and is
+  ///       only enabled if CONFIG_SOC_GPIO_FLEX_GLITCH_FILTER_NUM > 0.
+  /// \note This filter config is only supported by the flex_glitch_filter. The
+  ///       pin_glitch_filter is not-configurable.
+  /// \details This is used to configure the GPIO flex glitch filter The filter
+  ///         is used to filter out glitches on the GPIO whose pulses are
+  ///         shorter than window_threshold_ns within the window_width_ns
+  ///         sampling window.
+  ///
+  struct FilterConfig {
+    uint32_t window_width_ns{
+        10000}; ///< The width of the sampling window in nanoseconds. Default is 10us
+    uint32_t window_threshold_ns{5000}; ///< The threshold for the sampling window in
+                                        /// nanoseconds. If the width of the pulse is
+                                        /// less than this, it is filtered out. Default
+                                        /// is 5us
+  };
+
   /// \brief The configuration for an interrupt on a GPIO
   /// \details This is used to configure the GPIO interrupt
-  struct InterruptConfig {
+  struct PinConfig {
     int gpio_num;                         ///< GPIO number to for this interrupt
     event_callback_fn callback;           ///< Callback for the interrupt event
     ActiveLevel active_level;             ///< Active level of the GPIO
     Type interrupt_type = Type::ANY_EDGE; ///< Interrupt type to use for the GPIO
     bool pullup_enabled = false;          ///< Whether to enable the pullup resistor
     bool pulldown_enabled = false;        ///< Whether to enable the pulldown resistor
-    bool enable_pin_glitch_filter =
-        false; ///< Whether to enable the pin glitch filter. NOTE: this
-               ///< is only supported on some chips (-C and -S series chips)
+    FilterType filter_type =
+        FilterType::NONE;         ///< The type of filter to use. If set to FLEX_GLITCH_FILTER, the
+                                  ///< filter_config should be set.
+    FilterConfig filter_config{}; ///< The configuration for the filter. This is only used if
+                                  ///< filter_type is set to FLEX_GLITCH_FILTER
   };
 
   /// \brief The configuration for the interrupt
   struct Config {
-    std::vector<InterruptConfig> interrupts; ///< The configuration for the interrupts
-    size_t event_queue_size = 10;            ///< The size of the event queue
-    Task::BaseConfig task_config;            ///< The configuration for the task
+    std::vector<PinConfig> interrupts; ///< The configuration for the interrupts
+    size_t event_queue_size = 10;      ///< The size of the event queue
+    Task::BaseConfig task_config;      ///< The configuration for the task
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::WARN; ///< The log level for the interrupt
   };
@@ -118,7 +161,7 @@ public:
       // delete the queue
       vQueueDelete(queue_);
     }
-#if CONFIG_SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER
+#if CONFIG_SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER || CONFIG_SOC_GPIO_FLEX_GLITCH_FILTER_NUM > 0
     for (const auto &handle : glitch_filter_handles_) {
       // disable the glitch filters
       gpio_glitch_filter_disable(handle);
@@ -134,11 +177,34 @@ public:
 
   /// \brief Add an interrupt to the interrupt handler
   /// \param interrupt The interrupt to add
-  void add_interrupt(const InterruptConfig &interrupt) {
+  void add_interrupt(const PinConfig &interrupt) {
     logger_.info("Adding interrupt for GPIO {}", interrupt.gpio_num);
     std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
     interrupts_.push_back(interrupt);
     configure_interrupt(interrupt);
+  }
+
+  /// \brief Get the state of the interrupt
+  /// \param interrupt The interrupt to check
+  /// \return Whether the interrupt is active
+  /// \details This will check the raw logic level of the GPIO and return
+  ///          whether the interrupt is active or not according to the active
+  ///          level that was set in the configuration.
+  bool is_active(const PinConfig &interrupt) const {
+    return is_active_level(interrupt.gpio_num, interrupt.active_level);
+  }
+
+  /// \brief Get the state of all the interrupts
+  /// \return A vector of the states of the interrupts as pairs of the GPIO
+  ///         number and whether the interrupt is active
+  std::vector<std::pair<int, bool>> get_active_states() {
+    std::vector<std::pair<int, bool>> states;
+    std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
+    for (const auto &interrupt : interrupts_) {
+      bool active = is_active_level(interrupt.gpio_num, interrupt.active_level);
+      states.push_back({interrupt.gpio_num, active});
+    }
+    return states;
   }
 
 protected:
@@ -177,7 +243,7 @@ protected:
       logger_.info("Received interrupt for GPIO {}", event_data.gpio_num);
       std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
       // use std::find_if to find the interrupt with the matching gpio_num
-      auto predicate = [event_data](const InterruptConfig &interrupt) {
+      auto predicate = [event_data](const PinConfig &interrupt) {
         return interrupt.gpio_num == event_data.gpio_num;
       };
       auto interrupt = std::find_if(interrupts_.begin(), interrupts_.end(), predicate);
@@ -199,7 +265,53 @@ protected:
     return false;
   }
 
-  void configure_interrupt(const InterruptConfig &interrupt) {
+  void configure_filter(const PinConfig &interrupt) {
+    if (interrupt.filter_type == FilterType::PIN_GLITCH_FILTER) {
+#if CONFIG_SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER
+      logger_.info("Enabling pin glitch filter for GPIO {}", interrupt.gpio_num);
+      gpio_glitch_filter_handle_t handle;
+      gpio_pin_glitch_filter_config_t filter_config;
+      memset(&filter_config, 0, sizeof(filter_config));
+      filter_config.gpio_num = static_cast<gpio_num_t>(interrupt.gpio_num);
+      auto err = gpio_new_pin_glitch_filter(&filter_config, &handle);
+      if (err != ESP_OK) {
+        logger_.error("Failed to create pin glitch filter for GPIO {}: {}", interrupt.gpio_num,
+                      esp_err_to_name(err));
+        return;
+      }
+      // save the handle
+      glitch_filter_handles_.push_back(handle);
+      // and enable the glitch filter
+      gpio_glitch_filter_enable(handle);
+#else
+      logger_.warn("Glitch filter not supported on this chip");
+#endif
+    } else if (interrupt.filter_type == FilterType::FLEX_GLITCH_FILTER) {
+#if CONFIG_SOC_GPIO_FLEX_GLITCH_FILTER_NUM > 0
+      logger_.info("Enabling flex glitch filter for GPIO {}", interrupt.gpio_num);
+      gpio_glitch_filter_handle_t handle;
+      gpio_flex_glitch_filter_config_t filter_config;
+      memset(&filter_config, 0, sizeof(filter_config));
+      filter_config.gpio_num = static_cast<gpio_num_t>(interrupt.gpio_num);
+      filter_config.window_width_ns = interrupt.filter_config.window_width_ns;
+      filter_config.window_thres_ns = interrupt.filter_config.window_threshold_ns;
+      auto err = gpio_new_flex_glitch_filter(&filter_config, &handle);
+      if (err != ESP_OK) {
+        logger_.error("Failed to create flex glitch filter for GPIO {}: {}", interrupt.gpio_num,
+                      esp_err_to_name(err));
+        return;
+      }
+      // save the handle
+      glitch_filter_handles_.push_back(handle);
+      // and enable the glitch filter
+      gpio_glitch_filter_enable(handle);
+#else
+      logger_.warn("Flex glitch filter not supported on this chip");
+#endif
+    }
+  }
+
+  void configure_interrupt(const PinConfig &interrupt) {
     logger_.info("Configuring interrupt for GPIO {}", interrupt.gpio_num);
     logger_.debug("Config: {}", interrupt);
     if (interrupt.callback == nullptr) {
@@ -223,28 +335,8 @@ protected:
       handler_args_.push_back(handler_arg);
       gpio_isr_handler_add(static_cast<gpio_num_t>(interrupt.gpio_num), isr_handler,
                            static_cast<void *>(handler_arg));
-      // if we need to enable the glitch filter, do so
-      if (interrupt.enable_pin_glitch_filter) {
-#if CONFIG_SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER
-        logger_.info("Enabling glitch filter for GPIO {}", interrupt.gpio_num);
-        gpio_glitch_filter_handle_t handle;
-        gpio_pin_glitch_filter_config_t filter_config;
-        memset(&filter_config, 0, sizeof(filter_config));
-        filter_config.gpio_num = static_cast<gpio_num_t>(interrupt.gpio_num);
-        auto err = gpio_new_pin_glitch_filter(&filter_config, &handle);
-        if (err != ESP_OK) {
-          logger_.error("Failed to enable glitch filter for GPIO {}: {}", interrupt.gpio_num,
-                        esp_err_to_name(err));
-          return;
-        }
-        // save the handle
-        glitch_filter_handles_.push_back(handle);
-        // and enable the glitch filter
-        gpio_glitch_filter_enable(handle);
-#else
-        logger_.warn("Glitch filter not supported on this chip");
-#endif
-      }
+      // configure the filter if needed
+      configure_filter(interrupt);
     }
   }
 
@@ -252,7 +344,7 @@ protected:
 
   QueueHandle_t queue_{nullptr};
   std::recursive_mutex interrupt_mutex_;
-  std::vector<InterruptConfig> interrupts_;
+  std::vector<PinConfig> interrupts_;
   std::vector<HandlerArgs *> handler_args_;
   std::vector<gpio_glitch_filter_handle_t> glitch_filter_handles_;
   std::unique_ptr<Task> task_;
@@ -294,15 +386,42 @@ template <> struct fmt::formatter<espp::Interrupt::ActiveLevel> {
   }
 };
 
-// for printing the InterruptConfig using libfmt
-template <> struct fmt::formatter<espp::Interrupt::InterruptConfig> {
+// for printing the FilterType using libfmt
+template <> struct fmt::formatter<espp::Interrupt::FilterType> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext> auto format(espp::Interrupt::FilterType t, FormatContext &ctx) {
+    switch (t) {
+    case espp::Interrupt::FilterType::NONE:
+      return fmt::format_to(ctx.out(), "NONE");
+    case espp::Interrupt::FilterType::PIN_GLITCH_FILTER:
+      return fmt::format_to(ctx.out(), "PIN_GLITCH_FILTER");
+    case espp::Interrupt::FilterType::FLEX_GLITCH_FILTER:
+      return fmt::format_to(ctx.out(), "FLEX_GLITCH_FILTER");
+    }
+    return fmt::format_to(ctx.out(), "UNKNOWN");
+  }
+};
+
+// for printing the FilterConfig using libfmt
+template <> struct fmt::formatter<espp::Interrupt::FilterConfig> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(const espp::Interrupt::InterruptConfig &t, FormatContext &ctx) {
-    return fmt::format_to(ctx.out(),
-                          "InterruptConfig{{gpio_num={}, active_level={}, interrupt_type={}, "
-                          "pullup_enabled={}, pulldown_enabled={}, enable_pin_glitch_filter={}}}",
-                          t.gpio_num, t.active_level, t.interrupt_type, t.pullup_enabled,
-                          t.pulldown_enabled, t.enable_pin_glitch_filter);
+  auto format(const espp::Interrupt::FilterConfig &t, FormatContext &ctx) {
+    return fmt::format_to(ctx.out(), "FilterConfig{{window_width_ns={}, window_threshold_ns={}}}",
+                          t.window_width_ns, t.window_threshold_ns);
+  }
+};
+
+// for printing the PinConfig using libfmt
+template <> struct fmt::formatter<espp::Interrupt::PinConfig> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(const espp::Interrupt::PinConfig &t, FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(),
+        "PinConfig{{gpio_num={}, active_level={}, interrupt_type={}, pullup_enabled={}, "
+        "pulldown_enabled={}, filter_type={}, filter_config={}}}",
+        t.gpio_num, t.active_level, t.interrupt_type, t.pullup_enabled, t.pulldown_enabled,
+        t.filter_type, t.filter_config);
   }
 };
