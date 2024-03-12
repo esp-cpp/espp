@@ -14,23 +14,31 @@ extern "C" void app_main(void) {
   logger.info("Starting");
 
   {
+#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
     //! [i2c menu example]
     espp::I2c i2c({
         .port = I2C_NUM_0,
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .log_level = espp::Logger::Verbosity::INFO,
     });
-    // now make a menu for the auth object
-    I2cMenu i2c_menu(i2c);
+    // now make a menu for it
+    espp::I2cMenu i2c_menu(i2c);
     cli::Cli cli(i2c_menu.get());
     cli::SetColor();
     cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
     espp::Cli input(cli);
     input.SetInputHistorySize(10);
 
-    input.Start(); // As this is in the primary thread, we hold here until cli is complete.
-    //! [i2c menu example]
+    input.Start(); // As this is in the primary thread, we hold here until cli
+                   // is complete. This is a blocking call and will not return until
+                   // the user enters the `exit` command.
+                   //! [i2c menu example]
+#else
+    logger.warn("C++ exceptions are not enabled, skipping I2C menu example");
+#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
   }
 
   {
@@ -39,10 +47,15 @@ extern "C" void app_main(void) {
         .port = I2C_NUM_0,
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
     });
 
     // probe the bus for all addresses and store the ones that were found /
-    // responded
+    // responded. NOTE: this will take a while to run, as it will probe all 128
+    // possible addresses and the hard-coded timeout on the I2C (inside ESP-IDF)
+    // is 1 second (I2C_CMD_ALIVE_INTERVAL_TICK within
+    // esp-idf/components/driver/i2c/i2c.c).
     std::vector<uint8_t> found_addresses;
     for (uint8_t address = 0; address < 128; address++) {
       if (i2c.probe_device(address)) {

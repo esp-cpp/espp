@@ -135,6 +135,7 @@ INPUT += $(PROJECT_PATH)/components/hid-rp/include/hid-rp.hpp
 INPUT += $(PROJECT_PATH)/components/hid-rp/include/hid-rp-gamepad.hpp
 INPUT += $(PROJECT_PATH)/components/hid_service/include/hid_service.hpp
 INPUT += $(PROJECT_PATH)/components/i2c/include/i2c.hpp
+INPUT += $(PROJECT_PATH)/components/i2c/include/i2c_menu.hpp
 INPUT += $(PROJECT_PATH)/components/interrupt/include/interrupt.hpp
 INPUT += $(PROJECT_PATH)/components/input_drivers/include/encoder_input.hpp
 INPUT += $(PROJECT_PATH)/components/input_drivers/include/keypad_input.hpp

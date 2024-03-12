@@ -98,6 +98,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#api-reference">API Reference</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#header-file">Header File</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Classes</a></li>
 </ul>
 </li>
 </ul>
@@ -143,7 +145,7 @@
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
       <li>I2C</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/9d86df97/docs/en/i2c.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/b3cedfdd/docs/en/i2c.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -155,12 +157,14 @@
 <h1>I2C<a class="headerlink" href="#i2c" title="Permalink to this headline"></a></h1>
 <p>The <cite>I2C</cite> class provides a simple interface to the I2C bus. It is a wrapper
 around the esp-idf I2C driver.</p>
+<p>A helper <cite>I2cMenu</cite> is also provided which can be used to interactively test
+I2C buses - scanning the bus, probing devices, reading and writing to devices.</p>
 <section id="api-reference">
 <h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline"></a></h2>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9d86df97/components/i2c/include/i2c.hpp">components/i2c/include/i2c.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b3cedfdd/components/i2c/include/i2c.hpp">components/i2c/include/i2c.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -176,10 +180,15 @@ around the esp-idf I2C driver.</p>
 <span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
 <span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
 <span class="w">    </span><span class="p">});</span>
 
 <span class="w">    </span><span class="c1">// probe the bus for all addresses and store the ones that were found /</span>
-<span class="w">    </span><span class="c1">// responded</span>
+<span class="w">    </span><span class="c1">// responded. NOTE: this will take a while to run, as it will probe all 128</span>
+<span class="w">    </span><span class="c1">// possible addresses and the hard-coded timeout on the I2C (inside ESP-IDF)</span>
+<span class="w">    </span><span class="c1">// is 1 second (I2C_CMD_ALIVE_INTERVAL_TICK within</span>
+<span class="w">    </span><span class="c1">// esp-idf/components/driver/i2c/i2c.c).</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">found_addresses</span><span class="p">;</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">128</span><span class="p">;</span><span class="w"> </span><span class="n">address</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">i2c</span><span class="p">.</span><span class="n">probe_device</span><span class="p">(</span><span class="n">address</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
@@ -541,6 +550,78 @@ around the esp-idf I2C driver.</p>
 </div>
 </dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b3cedfdd/components/i2c/include/i2c_menu.hpp">components/i2c/include/i2c_menu.hpp</a></p></li>
+</ul>
+</section>
+<section id="id2">
+<h3>Classes<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7I2cMenuE">
+<span id="_CPPv3N4espp7I2cMenuE"></span><span id="_CPPv2N4espp7I2cMenuE"></span><span id="espp::I2cMenu"></span><span class="target" id="classespp_1_1I2cMenu"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">I2cMenu</span></span></span><a class="headerlink" href="#_CPPv4N4espp7I2cMenuE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A CLI menu for interacting with an <a class="reference internal" href="#classespp_1_1I2c"><span class="std std-ref">I2c</span></a> bus. </p>
+<p>This class provides a CLI menu for interacting with an <a class="reference internal" href="#classespp_1_1I2c"><span class="std std-ref">I2c</span></a> bus. It provides options for setting the log verbosity, scanning the bus for devices, probing for a device at a specific address, reading from a device, and writing to a device.</p>
+<section id="classespp_1_1Tt21100_1Example">
+<h4>Example<a class="headerlink" href="#classespp_1_1Tt21100_1Example" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1Tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2c</span><span class="w"> </span><span class="nf">i2c</span><span class="p">({</span>
+<span class="w">        </span><span class="p">.</span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">I2C_NUM_0</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SDA_GPIO</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_io_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">gpio_num_t</span><span class="p">)</span><span class="n">CONFIG_EXAMPLE_I2C_SCL_GPIO</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">sda_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">scl_pullup_en</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">GPIO_PULLUP_ENABLE</span><span class="p">,</span>
+<span class="w">        </span><span class="p">.</span><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">,</span>
+<span class="w">    </span><span class="p">});</span>
+<span class="w">    </span><span class="c1">// now make a menu for it</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">I2cMenu</span><span class="w"> </span><span class="nf">i2c_menu</span><span class="p">(</span><span class="n">i2c</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cli</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">cli</span><span class="p">(</span><span class="n">i2c_menu</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+<span class="w">    </span><span class="n">cli</span><span class="o">::</span><span class="n">SetColor</span><span class="p">();</span>
+<span class="w">    </span><span class="n">cli</span><span class="p">.</span><span class="n">ExitAction</span><span class="p">([](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Goodbye and thanks for all the fish.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+<span class="w">    </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">input</span><span class="p">(</span><span class="n">cli</span><span class="p">);</span>
+<span class="w">    </span><span class="n">input</span><span class="p">.</span><span class="n">SetInputHistorySize</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">input</span><span class="p">.</span><span class="n">Start</span><span class="p">();</span><span class="w"> </span><span class="c1">// As this is in the primary thread, we hold here until cli</span>
+<span class="w">                   </span><span class="c1">// is complete. This is a blocking call and will not return until</span>
+<span class="w">                   </span><span class="c1">// the user enters the `exit` command.</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7I2cMenu7I2cMenuENSt17reference_wrapperIN4espp3I2cEEE">
+<span id="_CPPv3N4espp7I2cMenu7I2cMenuENSt17reference_wrapperIN4espp3I2cEEE"></span><span id="_CPPv2N4espp7I2cMenu7I2cMenuENSt17reference_wrapperIN4espp3I2cEEE"></span><span id="espp::I2cMenu::I2cMenu__std::reference_wrapper:espp::I2c:"></span><span class="target" id="classespp_1_1I2cMenu_1a98e92e127f1c9ecd29045c1b0086deb5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">I2cMenu</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">reference_wrapper</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp3I2cE" title="espp::I2c"><span class="n"><span class="pre">I2c</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i2c</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7I2cMenu7I2cMenuENSt17reference_wrapperIN4espp3I2cEEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="#classespp_1_1I2cMenu"><span class="std std-ref">I2cMenu</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>i2c</strong> – A reference to the <a class="reference internal" href="#classespp_1_1I2c"><span class="std std-ref">I2c</span></a> bus to interact with. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp7I2cMenu3getENSt11string_viewENSt11string_viewE">
+<span id="_CPPv3N4espp7I2cMenu3getENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp7I2cMenu3getENSt11string_viewENSt11string_viewE"></span><span id="espp::I2cMenu::get__std::string_view.std::string_view"></span><span class="target" id="classespp_1_1I2cMenu_1a10d7886b264164e2d4004375cc2046aa"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">cli</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Menu</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;i2c&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">description</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;I2c</span> <span class="pre">menu&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp7I2cMenu3getENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the <a class="reference internal" href="#classespp_1_1I2c"><span class="std std-ref">I2c</span></a> menu. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The name of the menu. </p></li>
+<li><p><strong>description</strong> – The description of the menu. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A unique pointer to the <a class="reference internal" href="#classespp_1_1I2c"><span class="std std-ref">I2c</span></a> menu that you can use to add to a CLI. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
 </dd></dl>
 
 </section>
