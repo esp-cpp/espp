@@ -109,7 +109,17 @@ extern "C" void app_main(void) {
         auto &em = espp::EventManager::get();
         logger.info("Task 2 registering!");
         auto did_pub = em.add_publisher(event2, "task 2");
-        auto did_sub = em.add_subscriber(event1, "task 2", event1_cb);
+        // NOTE: we're using a custom task config here to show how you can
+        // configure the task that the subscriber callback will run in
+        // (priority, stack size, etc.). Only the first subscription on a topic
+        // will use the task config, any subsequent subscriptions will use the
+        // same task as the first subscription.
+        espp::Task::BaseConfig task_config{
+            .name = "Task 2 subscriber task",
+            .stack_size_bytes = 8192,
+            .priority = 10, // 5 is default, 10 is higher
+        };
+        auto did_sub = em.add_subscriber(event1, "task 2", event1_cb, task_config);
         logger.info("Task 2 publishing:  {}", did_pub);
         logger.info("Task 2 subscribing: {}", did_sub);
       });

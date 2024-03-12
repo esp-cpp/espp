@@ -20,6 +20,12 @@ bool EventManager::add_publisher(const std::string &topic, const std::string &co
 bool EventManager::add_subscriber(const std::string &topic, const std::string &component,
                                   const event_callback_fn &callback,
                                   const size_t stack_size_bytes) {
+  return add_subscriber(topic, component, callback, {.stack_size_bytes = stack_size_bytes});
+}
+
+bool EventManager::add_subscriber(const std::string &topic, const std::string &component,
+                                  const event_callback_fn &callback,
+                                  const Task::BaseConfig &task_config) {
   logger_.info("Adding subscriber '{}' to topic '{}'", component, topic);
   {
     std::lock_guard<std::recursive_mutex> lk(events_mutex_);
@@ -56,10 +62,15 @@ bool EventManager::add_subscriber(const std::string &topic, const std::string &c
       // create new task (using bound subscriber_task_fn) and add to
       // `subscriber_tasks_`
       using namespace std::placeholders;
+      auto config = task_config;
+      if (config.name.empty()) {
+        config.name = topic + " subscriber";
+      }
+      logger_.debug("Creating task for topic '{}'", topic);
+      logger_.debug("  with config: {}", config);
       subscriber_tasks_[topic] = Task::make_unique(
-          {.name = topic + " subscriber",
-           .callback = std::bind(&EventManager::subscriber_task_fn, this, topic, _1, _2),
-           .stack_size_bytes{stack_size_bytes}});
+          {.callback = std::bind(&EventManager::subscriber_task_fn, this, topic, _1, _2),
+           .task_config = config});
       // and start it
       subscriber_tasks_[topic]->start();
     }
