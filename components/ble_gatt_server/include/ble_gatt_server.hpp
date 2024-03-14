@@ -48,6 +48,14 @@ public:
   /// @return Whether the passkey is confirmed.
   typedef std::function<bool(uint32_t)> confirm_passkey_callback_t;
 
+  /// @brief Callback for when advertising is complete.
+  /// This callback is called when advertising is complete.
+  /// @param advertising Pointer to the advertising object.
+  /// @note This is called when advertising is complete, not when the device is
+  ///       actually advertising. It will not be called if the advertisement
+  ///       duration is 0 (i.e. no timeout).
+  typedef std::function<void(NimBLEAdvertising *)> advertisement_complete_callback_t;
+
   /// @brief Callbacks for the GATT server.
   struct Callbacks {
     connect_callback_t connect_callback =
@@ -62,6 +70,11 @@ public:
     confirm_passkey_callback_t confirm_passkey_callback =
         nullptr; ///< Callback for confirming the passkey. If not set, will
                  ///  simply compare the passkey to NimBLEDevice::getSecurityPasskey().
+    advertisement_complete_callback_t advertisement_complete_callback =
+        nullptr; ///< Callback for when advertising is complete. NOTE: this is
+                 ///  called when advertising is complete, not when the device
+                 ///  is actually advertising. It will not be called if
+                 ///  the advertisement duration is 0 (i.e. no timeout)
   };
 
   /// @brief Configuration for the GATT server.
@@ -257,7 +270,7 @@ public:
     }
 
     // now actually start advertising
-    advertising->start(advertising_params.duration_ms);
+    advertising->start(advertising_params.duration_ms, callbacks_.advertisement_complete_callback);
   }
 
   /// Stop the GATT server

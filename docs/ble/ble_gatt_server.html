@@ -152,7 +152,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>BLE GATT Server</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/b3cedfdd/docs/en/ble/ble_gatt_server.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/ac1f3421/docs/en/ble/ble_gatt_server.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -170,7 +170,7 @@ adds standard battery service and device information service.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b3cedfdd/components/ble_gatt_server/include/ble_gatt_server.hpp">components/ble_gatt_server/include/ble_gatt_server.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ac1f3421/components/ble_gatt_server/include/ble_gatt_server.hpp">components/ble_gatt_server/include/ble_gatt_server.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -336,6 +336,21 @@ adds standard battery service and device information service.</p>
 </dd>
 <dt class="field-even">Return</dt>
 <dd class="field-even"><p>Whether the passkey is confirmed. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer33advertisement_complete_callback_tE">
+<span id="_CPPv3N4espp13BleGattServer33advertisement_complete_callback_tE"></span><span id="_CPPv2N4espp13BleGattServer33advertisement_complete_callback_tE"></span><span id="espp::BleGattServer::advertisement_complete_callback_t"></span><span class="target" id="classespp_1_1BleGattServer_1a344a89c5ee458fad2b06111008c141e7"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">NimBLEAdvertising</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_complete_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer33advertisement_complete_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for when advertising is complete. This callback is called when advertising is complete. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is called when advertising is complete, not when the device is actually advertising. It will not be called if the advertisement duration is 0 (i.e. no timeout). </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Param advertising</dt>
+<dd class="field-odd"><p>Pointer to the advertising object. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -823,6 +838,12 @@ adds standard battery service and device information service.</p>
 <dd><p>Callback for confirming the passkey. If not set, will simply compare the passkey to NimBLEDevice::getSecurityPasskey(). </p>
 </dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE">
+<span id="_CPPv3N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE"></span><span id="espp::BleGattServer::Callbacks::advertisement_complete_callback__advertisement_complete_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1aad75eb35cdabe58c0a96f00533cc48aa"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer33advertisement_complete_callback_tE" title="espp::BleGattServer::advertisement_complete_callback_t"><span class="n"><span class="pre">advertisement_complete_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_complete_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for when advertising is complete. NOTE: this is called when advertising is complete, not when the device is actually advertising. It will not be called if the advertisement duration is 0 (i.e. no timeout) </p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -853,7 +874,7 @@ adds standard battery service and device information service.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/b3cedfdd/components/ble_gatt_server/include/ble_gatt_server_menu.hpp">components/ble_gatt_server/include/ble_gatt_server_menu.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ac1f3421/components/ble_gatt_server/include/ble_gatt_server_menu.hpp">components/ble_gatt_server/include/ble_gatt_server_menu.hpp</a></p></li>
 </ul>
 </section>
 </section>
