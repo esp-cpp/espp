@@ -110,11 +110,23 @@ public:
   /// This struct contains the advertising parameters for the device.
   /// @see start_advertising
   struct AdvertisingParameters {
-    uint16_t min_interval = 0x20;  ///< Minimum advertising interval (in 0.625ms units)
-    uint16_t max_interval = 0x40;  ///< Maximum advertising interval (in 0.625ms units)
+    bool connectable = true;       ///< Whether the device should be connectable
+    uint16_t min_interval_ms = 20; ///< Minimum advertising interval. NOTE: this
+                                   ///< is in milliseconds, but will be converted
+                                   ///< to units of 0.625 ms. If the value is
+                                   ///< not a multiple of 0.625 ms, it will be
+                                   ///< rounded to the nearest multiple and a log
+                                   ///< message will be printed.
+    uint16_t max_interval_ms = 40; ///< Maximum advertising interval. NOTE: this
+                                   ///< is in milliseconds, but will be converted
+                                   ///< to units of 0.625 ms. If the value is
+                                   ///< not a multiple of 0.625 ms, it will be
+                                   ///< rounded to the nearest multiple and a log
+                                   ///< message will be printed.
     bool include_tx_power = false; ///< Whether to include the TX power level
     bool scan_response = false;    ///< Whether the device should include scan response data
     uint32_t duration_ms = 0;      ///< Advertising duration (in ms, 0 for no timeout)
+    NimBLEAddress *directed_address = nullptr; ///< Address to direct advertising to, if any
   };
 
   /// Constructor for the GATT server.
@@ -236,6 +248,8 @@ public:
     }
 
     logger_.info("Starting advertising");
+    logger_.debug("Advertising data: {}", advertising_data);
+    logger_.debug("Advertising parameters: {}", advertising_params);
 
     // set the advertising data
     if (advertising_data.name.empty()) {
@@ -260,17 +274,76 @@ public:
       advertising->setManufacturerData(advertising_data.manufacturer_data);
     }
 
+    auto max_interval_units = interval_ms_to_units(advertising_params.max_interval_ms);
+    auto min_interval_units = interval_ms_to_units(advertising_params.min_interval_ms);
+
+    // check if the interval is a multiple of 0.625 ms
+    if (advertising_params.max_interval_ms != interval_units_to_ms(max_interval_units)) {
+      logger_.warn(
+          "Max advertising interval is not a multiple of 0.625 ms, rounding to 0x{:04X} ({} ms)",
+          max_interval_units, interval_units_to_ms(max_interval_units));
+    }
+    if (advertising_params.min_interval_ms != interval_units_to_ms(min_interval_units)) {
+      logger_.warn(
+          "Min advertising interval is not a multiple of 0.625 ms, rounding to 0x{:04X} ({} ms)",
+          min_interval_units, interval_units_to_ms(min_interval_units));
+    }
+
     // configure the advertising parameters
-    advertising->setMinInterval(advertising_params.min_interval);
-    advertising->setMaxInterval(advertising_params.max_interval);
+    advertising->setMinInterval(min_interval_units);
+    advertising->setMaxInterval(max_interval_units);
     advertising->setScanResponse(advertising_params.scan_response);
 
     if (advertising_params.include_tx_power) {
       advertising->addTxPower();
     }
 
+    // set the advertisement type based on the connectable flag and the directed
+    // address
+    if (advertising_params.connectable) {
+      if (advertising_params.directed_address) {
+        // directed, connectable
+        advertising->setAdvertisementType(BLE_GAP_CONN_MODE_DIR);
+      } else {
+        // undirected, connectable
+        advertising->setAdvertisementType(BLE_GAP_CONN_MODE_UND);
+      }
+    } else {
+      // non-connectable
+      advertising->setAdvertisementType(BLE_GAP_CONN_MODE_NON);
+    }
+
     // now actually start advertising
-    advertising->start(advertising_params.duration_ms, callbacks_.advertisement_complete_callback);
+    advertising->start(advertising_params.duration_ms, callbacks_.advertisement_complete_callback,
+                       advertising_params.directed_address);
+  }
+
+  /// Start Advertising using the previously set advertising data
+  /// This method simply starts advertising using the previously set advertising
+  /// data.
+  /// @param duration_ms The duration of the advertising in milliseconds. If 0,
+  ///                    the advertising will not timeout. If non-zero, the
+  ///                    advertising will stop after the specified duration.
+  /// @param directed_address The address to direct advertising to, if any.
+  void start_advertising(uint32_t duration_ms = 0, NimBLEAddress *directed_address = nullptr) {
+    if (!server_) {
+      logger_.error("Server not created");
+      return;
+    }
+    auto advertising = NimBLEDevice::getAdvertising();
+    if (!advertising) {
+      logger_.error("Advertising not created");
+      return;
+    }
+    logger_.info("Starting advertising for {} ms", duration_ms);
+    if (directed_address) {
+      // directed, connectable
+      advertising->setAdvertisementType(BLE_GAP_CONN_MODE_DIR);
+    } else {
+      // undirected, connectable
+      advertising->setAdvertisementType(BLE_GAP_CONN_MODE_UND);
+    }
+    advertising->start(duration_ms, callbacks_.advertisement_complete_callback, directed_address);
   }
 
   /// Stop the GATT server
@@ -343,8 +416,61 @@ public:
     NimBLEDevice::setSecurityRespKey(key_distribution);
   }
 
+  /// Get the paired devices
+  /// @return The paired devices as a vector of Addresses.
+  std::vector<NimBLEAddress> get_paired_devices() {
+    std::vector<NimBLEAddress> paired_devices;
+    auto num_bonds = NimBLEDevice::getNumBonds();
+    for (int i = 0; i < num_bonds; i++) {
+      auto bond_addr = NimBLEDevice::getBondedAddress(i);
+      paired_devices.push_back(bond_addr);
+    }
+    return paired_devices;
+  }
+
+  /// Get the connected devices
+  /// @return The connected devices as a vector of Addresses.
+  std::vector<NimBLEAddress> get_connected_devices() {
+    if (!server_) {
+      logger_.error("Server not created");
+      return {};
+    }
+    std::vector<NimBLEAddress> connected_devices;
+    auto peer_ids = server_->getPeerDevices();
+    for (const auto &peer_id : peer_ids) {
+      auto peer = server_->getPeerIDInfo(peer_id);
+      connected_devices.push_back(peer.getAddress());
+    }
+    return connected_devices;
+  }
+
+  /// Disconnect from all devices
+  /// This method disconnects from all devices that are currently connected.
+  /// @return The Addresses of the devices that were disconnected from.
+  std::vector<NimBLEAddress> disconnect_all() {
+    if (!server_) {
+      logger_.error("Server not created");
+      return {};
+    }
+    std::vector<NimBLEAddress> disconnected_devices;
+    auto peer_ids = server_->getPeerDevices();
+    for (const auto &peer_id : peer_ids) {
+      auto peer = server_->getPeerIDInfo(peer_id);
+      disconnected_devices.push_back(peer.getAddress());
+      server_->disconnect(peer_id);
+    }
+    return disconnected_devices;
+  }
+
 protected:
   friend class BleGattServerCallbacks;
+
+  static constexpr uint16_t interval_ms_to_units(uint16_t interval_ms) {
+    return interval_ms * 8 / 5;
+  }
+  static constexpr uint16_t interval_units_to_ms(uint16_t interval_units) {
+    return interval_units * 5 / 8;
+  }
 
   Callbacks callbacks_{};                 ///< The callbacks for the GATT server.
   NimBLEServer *server_{nullptr};         ///< The GATT server.
@@ -352,5 +478,61 @@ protected:
   BatteryService battery_service_;        ///< The battery service.
 };
 } // namespace espp
+
+// for easy printing of NimBLEAddress using libfmt
+template <> struct fmt::formatter<NimBLEAddress> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext> auto format(const NimBLEAddress &address, FormatContext &ctx) {
+    return fmt::format_to(ctx.out(), "NimBLEAddress{{address: '{}'}}", address.toString());
+  }
+};
+
+// for easy printing of the advertising data using libfmt
+template <> struct fmt::formatter<espp::BleGattServer::AdvertisingData> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(const espp::BleGattServer::AdvertisingData &advertising_data, FormatContext &ctx) {
+    std::string services_str = "";
+    for (const auto &uuid : advertising_data.services) {
+      services_str += fmt::format("Service{{uuid: '{}'}}, ", uuid.toString());
+    }
+    std::string service_data_str = "";
+    for (const auto &service_data : advertising_data.service_data) {
+      const auto &[uuid, data] = service_data;
+      service_data_str +=
+          fmt::format("ServiceData{{uuid: '{}', data: '{}'}}, ", uuid.toString(), data);
+    }
+    return fmt::format_to(ctx.out(),
+                          "AdvertisingData{{name: '{}', appearance: 0x{:04X}, manufacturer_data: "
+                          "{}, services: {}, service_data: {}}}",
+                          advertising_data.name, advertising_data.appearance,
+                          advertising_data.manufacturer_data, services_str, service_data_str);
+  }
+};
+
+// for easy printing of the advertising parameters using libfmt
+template <> struct fmt::formatter<espp::BleGattServer::AdvertisingParameters> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(const espp::BleGattServer::AdvertisingParameters &advertising_params,
+              FormatContext &ctx) {
+    if (advertising_params.directed_address) {
+      return fmt::format_to(
+          ctx.out(),
+          "AdvertisingParameters{{min_interval_ms: {}, max_interval_ms: {}, include_tx_power: {}, "
+          "scan_response: {}, duration_ms: {}, directed_address: {}}}",
+          advertising_params.min_interval_ms, advertising_params.max_interval_ms,
+          advertising_params.include_tx_power, advertising_params.scan_response,
+          advertising_params.duration_ms, advertising_params.directed_address->toString());
+    }
+    return fmt::format_to(
+        ctx.out(),
+        "AdvertisingParameters{{min_interval_ms: {}, max_interval_ms: {}, include_tx_power: {}, "
+        "scan_response: {}, duration_ms: {}, directed_address: {}}}",
+        advertising_params.min_interval_ms, advertising_params.max_interval_ms,
+        advertising_params.include_tx_power, advertising_params.scan_response,
+        advertising_params.duration_ms, fmt::ptr(advertising_params.directed_address));
+  }
+};
 
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
