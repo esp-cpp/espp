@@ -25,6 +25,21 @@ protected:
       : server_(server) {}
   BleGattServer *server_{nullptr};
 };
+
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+class BleGattServerAdvertisingCallbacks : public NimBLEExtAdvertisingCallbacks {
+public:
+  virtual void onStopped(NimBLEExtAdvertising *pAdv, int reason, uint8_t inst_id) override;
+  virtual void onScanRequest(NimBLEExtAdvertising *pAdv, uint8_t inst_id,
+                             NimBLEAddress addr) override;
+
+protected:
+  friend class BleGattServer;
+  explicit BleGattServerAdvertisingCallbacks(BleGattServer *server)
+      : server_(server) {}
+  BleGattServer *server_{nullptr};
+};
+#endif // CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 } // namespace espp
 
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)

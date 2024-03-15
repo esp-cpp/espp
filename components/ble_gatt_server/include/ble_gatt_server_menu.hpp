@@ -75,17 +75,40 @@ public:
         "is_adv", [this](std::ostream &out) -> void { is_advertising(out); },
         "Is the server advertising?");
 
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
     menu->Insert(
         "adv_on_disconnect", {"advertise_on_disconnect"},
         [this](std::ostream &out, bool advertise_on_disconnect) -> void {
           set_advertise_on_disconnect(out, advertise_on_disconnect);
         },
         "Set whether to advertise on disconnect.");
+#endif // !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 
     menu->Insert(
         "adv_stop", [this](std::ostream &out) -> void { stop_advertising(out); },
         "Stop advertising.");
 
+    menu->Insert(
+        "adv_start", [this](std::ostream &out) -> void { start_advertising(out); },
+        "Start advertising.");
+
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+    menu->Insert(
+        "adv_start", {"instance id", "duration (ms)"},
+        [this](std::ostream &out, uint8_t instance_id, uint32_t duration) -> void {
+          start_advertising(out, instance_id, duration);
+        },
+        "Start advertising.");
+
+    menu->Insert(
+        "adv_stop", {"instance id"},
+        [this](std::ostream &out, uint8_t instance_id) -> void {
+          stop_advertising(out, instance_id);
+        },
+        "Stop advertising.");
+#endif // CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
     menu->Insert(
         "adv_start", {"duration (ms)"},
         [this](std::ostream &out, uint32_t duration) -> void { start_advertising(out, duration); },
@@ -97,13 +120,7 @@ public:
           start_advertising(out, duration, directed_address);
         },
         "Start advertising.");
-
-    menu->Insert(
-        "adv_start", {"name", "appearance"},
-        [this](std::ostream &out, const std::string &name, uint16_t appearance) -> void {
-          start_advertising(out, name, appearance);
-        },
-        "Start advertising.");
+#endif // !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 
     menu->Insert(
         "whitelist", {"address"},
@@ -195,6 +212,7 @@ protected:
     out << output;
   }
 
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
   /// @brief Set the advertise on disconnect.
   /// @param out The output stream to write to.
   /// @param advertise_on_disconnect Whether to advertise on disconnect.
@@ -203,26 +221,32 @@ protected:
     out << "Set advertise on disconnect to " << (advertise_on_disconnect ? "true" : "false")
         << "\n";
   }
+#endif // !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 
   /// @brief Start advertising.
   /// @param out The output stream to write to.
-  /// @param name The name to advertise.
-  /// @param appearance The appearance to advertise.
-  void start_advertising(std::ostream &out, const std::string &name = "espp",
-                         uint16_t appearance = 0x0080) {
-    espp::BleGattServer::AdvertisingData data;
-    data.name = name;
-    data.appearance = appearance;
-    espp::BleGattServer::AdvertisingParameters params;
-    server_.get().start_advertising(data, params);
+  void start_advertising(std::ostream &out) {
+    server_.get().start_advertising();
     out << "Started advertising\n";
   }
 
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  /// @brief Start advertising.
+  /// @param out The output stream to write to.
+  /// @param instance_id The instance to advertise on.
+  /// @param duration_ms The duration to advertise for.
+  void start_advertising(std::ostream &out, int instance_id, uint32_t duration_ms = 0) {
+    server_.get().start_advertising(duration_ms, instance_id);
+    out << "Started advertising on instance " << instance_id << "\n";
+  }
+#endif // CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
   /// @brief Start advertising.
   /// @param out The output stream to write to.
   /// @param duration_ms The duration to advertise for.
   /// @param directed_address The address to advertise to.
-  void start_advertising(std::ostream &out, uint32_t duration_ms = 0,
+  void start_advertising(std::ostream &out, uint32_t duration_ms,
                          const std::string &directed_address = "") {
     NimBLEAddress *addr = nullptr;
     if (directed_address.size() > 0) {
@@ -231,6 +255,7 @@ protected:
     server_.get().start_advertising(duration_ms, addr);
     out << "Started advertising\n";
   }
+#endif // CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 
   /// @brief Stop advertising.
   /// @param out The output stream to write to.
@@ -238,6 +263,16 @@ protected:
     server_.get().stop_advertising();
     out << "Stopped advertising\n";
   }
+
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  /// @brief Stop advertising.
+  /// @param out The output stream to write to.
+  /// @param instance_id The instance to stop advertising on.
+  void stop_advertising(std::ostream &out, int instance_id) {
+    server_.get().stop_advertising(instance_id);
+    out << "Stopped advertising on instance " << instance_id << "\n";
+  }
+#endif // CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 
   /// @brief Is the server advertising?
   /// @param out The output stream to write to.

@@ -43,7 +43,11 @@ extern "C" void app_main(void) {
           },
   });
   ble_gatt_server.init(device_name);
+#if !CONFIG_BT_NIMBLE_EXT_ADV
+  // extended advertisement does not support automatically advertising on
+  // disconnect
   ble_gatt_server.set_advertise_on_disconnect(true);
+#endif
 
   // let's configure the security
   bool bonding = true;
@@ -87,6 +91,16 @@ extern "C" void app_main(void) {
   device_info_service.set_firmware_version("1.0.0");
   device_info_service.set_hardware_version("1.0.0");
 
+  // set the advertising data
+  espp::BleGattServer::AdvertisedData adv_data;
+  // uint8_t flags = BLE_HS_ADV_F_DISC_LTD;
+  uint8_t flags = BLE_HS_ADV_F_DISC_GEN;
+  adv_data.setFlags(flags);
+  adv_data.setName(device_name);
+  adv_data.setAppearance((uint16_t)espp::BleAppearance::GENERIC_COMPUTER);
+  adv_data.addTxPower();
+  ble_gatt_server.set_advertisement_data(adv_data);
+
 #if CONFIG_COMPILER_CXX_EXCEPTIONS
   // let's test and use the BLE menu (CLI)
   // turn off some of the logs so that it doesn't clutter up the CLI
@@ -104,11 +118,7 @@ extern "C" void app_main(void) {
 
   // The menu has finished, so let's go into a loop to keep the device running
   // now lets start advertising
-  espp::BleGattServer::AdvertisingData adv_data = {
-      .name = device_name,
-  };
-  espp::BleGattServer::AdvertisingParameters adv_params = {};
-  ble_gatt_server.start_advertising(adv_data, adv_params);
+  ble_gatt_server.start_advertising();
 
   // now lets update the battery level every second for a little while
   uint8_t battery_level = 99;

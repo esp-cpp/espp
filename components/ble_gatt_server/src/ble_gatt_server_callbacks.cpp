@@ -36,4 +36,22 @@ bool espp::BleGattServerCallbacks::onConfirmPIN(uint32_t pass_key) {
   }
 }
 
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+
+void espp::BleGattServerAdvertisingCallbacks::onStopped(NimBLEExtAdvertising *pAdv, int reason,
+                                                        uint8_t inst_id) {
+  if (server_ && server_->callbacks_.advertisement_stopped_callback) {
+    server_->callbacks_.advertisement_stopped_callback(pAdv, reason, inst_id);
+  }
+}
+
+void espp::BleGattServerAdvertisingCallbacks::onScanRequest(NimBLEExtAdvertising *pAdv,
+                                                            uint8_t inst_id, NimBLEAddress addr) {
+  if (server_ && server_->callbacks_.scan_request_callback) {
+    server_->callbacks_.scan_request_callback(pAdv, inst_id, addr);
+  }
+}
+
+#endif // CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)

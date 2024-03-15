@@ -15,6 +15,7 @@
 #include "base_component.hpp"
 
 #include "battery_service.hpp"
+#include "ble_appearances.hpp"
 #include "ble_gatt_server_callbacks.hpp"
 #include "device_info_service.hpp"
 
@@ -29,6 +30,12 @@ namespace espp {
 /// \snippet ble_gatt_server_example.cpp ble gatt server example
 class BleGattServer : public BaseComponent {
 public:
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  typedef NimBLEExtAdvertisement AdvertisedData;
+#else
+  typedef NimBLEAdvertisementData AdvertisedData;
+#endif
+
   /// @brief Callback for when a device connects to the GATT server.
   typedef std::function<void(NimBLEConnInfo &)> connect_callback_t;
 
@@ -48,6 +55,25 @@ public:
   /// @return Whether the passkey is confirmed.
   typedef std::function<bool(uint32_t)> confirm_passkey_callback_t;
 
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  /// @brief Callback for when advertising is stopped.
+  /// This callback is called when advertising is stopped.
+  /// @param advertising Pointer to the advertising object.
+  /// @param reason The reason for stopping advertising.
+  /// @param instance The advertising instance that was stopped.
+  typedef std::function<void(NimBLEExtAdvertising *, int, uint8_t)>
+      advertisement_stopped_callback_t;
+
+  /// @brief Callback for when a scan request is received.
+  /// This callback is called when a scan request is received.
+  /// @param advertising Pointer to the advertising object.
+  /// @param instance The advertising instance that received the scan request.
+  /// @param address The address of the device that sent the scan request.
+  typedef std::function<void(NimBLEExtAdvertising *, uint8_t, NimBLEAddress)>
+      scan_request_callback_t;
+#endif // CONFIG_BT_NIMBLE_EXT_ADV
+
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
   /// @brief Callback for when advertising is complete.
   /// This callback is called when advertising is complete.
   /// @param advertising Pointer to the advertising object.
@@ -55,6 +81,21 @@ public:
   ///       actually advertising. It will not be called if the advertisement
   ///       duration is 0 (i.e. no timeout).
   typedef std::function<void(NimBLEAdvertising *)> advertisement_complete_callback_t;
+#endif // !CONFIG_BT_NIMBLE_EXT_ADV
+
+  /// @brief Convert an interval in milliseconds to units of 0.625 ms.
+  /// @param interval_ms The interval in milliseconds.
+  /// @return The interval in units of 0.625 ms.
+  static constexpr uint16_t interval_ms_to_units(uint16_t interval_ms) {
+    return interval_ms * 8 / 5;
+  }
+
+  /// @brief Convert an interval in units of 0.625 ms to milliseconds.
+  /// @param interval_units The interval in units of 0.625 ms.
+  /// @return The interval in milliseconds.
+  static constexpr uint16_t interval_units_to_ms(uint16_t interval_units) {
+    return interval_units * 5 / 8;
+  }
 
   /// @brief Callbacks for the GATT server.
   struct Callbacks {
@@ -70,11 +111,19 @@ public:
     confirm_passkey_callback_t confirm_passkey_callback =
         nullptr; ///< Callback for confirming the passkey. If not set, will
                  ///  simply compare the passkey to NimBLEDevice::getSecurityPasskey().
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
     advertisement_complete_callback_t advertisement_complete_callback =
         nullptr; ///< Callback for when advertising is complete. NOTE: this is
                  ///  called when advertising is complete, not when the device
                  ///  is actually advertising. It will not be called if
                  ///  the advertisement duration is 0 (i.e. no timeout)
+#endif           // !CONFIG_BT_NIMBLE_EXT_ADV
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+    advertisement_stopped_callback_t advertisement_stopped_callback =
+        nullptr; ///< Callback for when advertising is stopped.
+    scan_request_callback_t scan_request_callback =
+        nullptr; ///< Callback for when a scan request is received.
+#endif           // CONFIG_BT_NIMBLE_EXT_ADV
   };
 
   /// @brief Configuration for the GATT server.
@@ -84,50 +133,37 @@ public:
         espp::Logger::Verbosity::WARN; ///< The verbosity of the logger_.
   };
 
-  /// @brief The type of service data that is part of a Service
-  /// @see Service
-  /// @see AdvertisingData
-  /// @see start_advertising
-  typedef std::string ServiceData;
-
-  /// @brief A service that is part of the advertising data for the device.
-  /// @see start_advertising
-  /// @see AdvertisingData
-  typedef std::pair<NimBLEUUID, ServiceData> Service;
-
-  /// @brief Advertising data for the device.
-  /// This struct contains the advertising data for the device.
-  /// @see start_advertising
-  struct AdvertisingData {
-    std::string name = "";   ///< Name. If empty, the device will not advertise its name.
-    uint16_t appearance = 0; ///< Appearance. If 0, the device will not advertise its appearance.
-    std::vector<uint8_t> manufacturer_data = {}; ///< Manufacturer data
-    std::vector<NimBLEUUID> services = {};       ///< Services
-    std::vector<Service> service_data = {};      ///< Service data
-  };
-
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
   /// @brief Advertising parameters for the device.
   /// This struct contains the advertising parameters for the device.
   /// @see start_advertising
+  /// @note This struct is only used when CONFIG_BT_NIMBLE_EXT_ADV is not
+  ///       enabled, ane legacy advertising is used. Otherwise, use the
+  ///       NimBLEExtAdvertisement class.
   struct AdvertisingParameters {
-    bool connectable = true;       ///< Whether the device should be connectable
-    uint16_t min_interval_ms = 20; ///< Minimum advertising interval. NOTE: this
-                                   ///< is in milliseconds, but will be converted
-                                   ///< to units of 0.625 ms. If the value is
-                                   ///< not a multiple of 0.625 ms, it will be
-                                   ///< rounded to the nearest multiple and a log
-                                   ///< message will be printed.
-    uint16_t max_interval_ms = 40; ///< Maximum advertising interval. NOTE: this
-                                   ///< is in milliseconds, but will be converted
-                                   ///< to units of 0.625 ms. If the value is
-                                   ///< not a multiple of 0.625 ms, it will be
-                                   ///< rounded to the nearest multiple and a log
-                                   ///< message will be printed.
-    bool include_tx_power = false; ///< Whether to include the TX power level
-    bool scan_response = false;    ///< Whether the device should include scan response data
-    uint32_t duration_ms = 0;      ///< Advertising duration (in ms, 0 for no timeout)
+    bool connectable = true;             ///< Whether the device should be connectable
+    uint16_t min_interval_ms = 20;       ///< Minimum advertising interval. NOTE: this
+                                         ///< is in milliseconds, but will be converted
+                                         ///< to units of 0.625 ms. If the value is
+                                         ///< not a multiple of 0.625 ms, it will be
+                                         ///< rounded to the nearest multiple and a log
+                                         ///< message will be printed.
+    uint16_t max_interval_ms = 40;       ///< Maximum advertising interval. NOTE: this
+                                         ///< is in milliseconds, but will be converted
+                                         ///< to units of 0.625 ms. If the value is
+                                         ///< not a multiple of 0.625 ms, it will be
+                                         ///< rounded to the nearest multiple and a log
+                                         ///< message will be printed.
+    bool include_tx_power = false;       ///< Whether to include the TX power level
+    bool scan_response = false;          ///< Whether the device should include scan response data
+    bool scan_request_whitelist = false; ///< Whether the device should use the
+                                         ///< white list when scanning
+    bool connect_whitelist = false;      ///< Whether the device should use the white
+                                         ///< list when connecting
+    uint32_t duration_ms = 0;            ///< Advertising duration (in ms, 0 for no timeout)
     NimBLEAddress *directed_address = nullptr; ///< Address to direct advertising to, if any
   };
+#endif // !CONFIG_BT_NIMBLE_EXT_ADV
 
   /// Constructor for the GATT server.
   BleGattServer()
@@ -154,17 +190,6 @@ public:
   /// Set the callbacks for the GATT server.
   /// @param callbacks The callbacks for the GATT server.
   void set_callbacks(const Callbacks &callbacks) { callbacks_ = callbacks; }
-
-  /// Set whether to advertise on disconnect
-  /// @param advertise_on_disconnect Whether to advertise on disconnect
-  void set_advertise_on_disconnect(bool advertise_on_disconnect) {
-    if (!server_) {
-      logger_.error("Server not created");
-      return;
-    }
-    // set whether to advertise on disconnect
-    server_->advertiseOnDisconnect(advertise_on_disconnect);
-  }
 
   /// Initialize the GATT server
   /// This method creates the GATT server and sets the callbacks to this class.
@@ -231,123 +256,46 @@ public:
     server_->start();
   }
 
-  /// Start the GATT server
-  /// This method starts the GATT server and begins advertising.
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  /// Set whether to advertise on disconnect
+  /// @param advertise_on_disconnect Whether to advertise on disconnect
+  /// @note This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not
+  ///       enabled, ane legacy advertising is used. Otherwise, you will
+  ///       have to manually start advertising after disconnecting.
+  void set_advertise_on_disconnect(bool advertise_on_disconnect) {
+    if (!server_) {
+      logger_.error("Server not created");
+      return;
+    }
+    // set whether to advertise on disconnect
+    server_->advertiseOnDisconnect(advertise_on_disconnect);
+  }
+#endif // !CONFIG_BT_NIMBLE_EXT_ADV
+
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  /// Set the advertisement data for the device.
   /// @param advertising_data The advertising data for the device.
-  /// @param advertising_params The advertising parameters for the device.
-  void start_advertising(const AdvertisingData &advertising_data,
-                         const AdvertisingParameters &advertising_params) {
-    if (!server_) {
-      logger_.error("Server not created");
-      return;
-    }
-    auto advertising = NimBLEDevice::getAdvertising();
-    if (!advertising) {
-      logger_.error("Advertising not created");
-      return;
-    }
+  /// @param instance The advertising instance to set the data for.
+  void set_advertisement_data(const AdvertisedData &advertising_data, uint8_t instance = 0);
 
-    logger_.info("Starting advertising");
-    logger_.debug("Advertising data: {}", advertising_data);
-    logger_.debug("Advertising parameters: {}", advertising_params);
+  /// Set the scan response data for the device.
+  /// @param scan_response_data The scan response data for the device.
+  /// @param instance The advertising instance to set the data for.
+  void set_scan_response_data(const AdvertisedData &scan_response_data, uint8_t instance = 0);
+#endif // CONFIG_BT_NIMBLE_EXT_ADV
 
-    // set the advertising data
-    if (advertising_data.name.empty()) {
-      logger_.info("No name provided, not advertising name");
-    } else {
-      logger_.info("Advertising name: '{}'", advertising_data.name);
-      advertising->setName(advertising_data.name);
-    }
-    if (advertising_data.appearance != 0) {
-      logger_.info("Advertising appearance: 0x{:04X}", advertising_data.appearance);
-      advertising->setAppearance(advertising_data.appearance);
-    }
-    for (const auto &service : advertising_data.services) {
-      advertising->addServiceUUID(service);
-    }
-    for (const auto &[service, service_data] : advertising_data.service_data) {
-      if (!service_data.empty()) {
-        advertising->setServiceData(service, service_data);
-      }
-    }
-    if (!advertising_data.manufacturer_data.empty()) {
-      advertising->setManufacturerData(advertising_data.manufacturer_data);
-    }
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  /// Set the advertisement data for the device.
+  /// @param advertising_data The advertising data for the device.
+  void set_advertisement_data(const AdvertisedData &advertising_data);
 
-    auto max_interval_units = interval_ms_to_units(advertising_params.max_interval_ms);
-    auto min_interval_units = interval_ms_to_units(advertising_params.min_interval_ms);
+  /// Set the scan response data for the device.
+  /// @param scan_response_data The scan response data for the device.
+  void set_scan_response_data(const AdvertisedData &scan_response_data);
+#endif // CONFIG_BT_NIMBLE_EXT_ADV
 
-    // check if the interval is a multiple of 0.625 ms
-    if (advertising_params.max_interval_ms != interval_units_to_ms(max_interval_units)) {
-      logger_.warn(
-          "Max advertising interval is not a multiple of 0.625 ms, rounding to 0x{:04X} ({} ms)",
-          max_interval_units, interval_units_to_ms(max_interval_units));
-    }
-    if (advertising_params.min_interval_ms != interval_units_to_ms(min_interval_units)) {
-      logger_.warn(
-          "Min advertising interval is not a multiple of 0.625 ms, rounding to 0x{:04X} ({} ms)",
-          min_interval_units, interval_units_to_ms(min_interval_units));
-    }
-
-    // configure the advertising parameters
-    advertising->setMinInterval(min_interval_units);
-    advertising->setMaxInterval(max_interval_units);
-    advertising->setScanResponse(advertising_params.scan_response);
-
-    if (advertising_params.include_tx_power) {
-      advertising->addTxPower();
-    }
-
-    // set the advertisement type based on the connectable flag and the directed
-    // address
-    if (advertising_params.connectable) {
-      if (advertising_params.directed_address) {
-        // directed, connectable
-        advertising->setAdvertisementType(BLE_GAP_CONN_MODE_DIR);
-      } else {
-        // undirected, connectable
-        advertising->setAdvertisementType(BLE_GAP_CONN_MODE_UND);
-      }
-    } else {
-      // non-connectable
-      advertising->setAdvertisementType(BLE_GAP_CONN_MODE_NON);
-    }
-
-    // now actually start advertising
-    advertising->start(advertising_params.duration_ms, callbacks_.advertisement_complete_callback,
-                       advertising_params.directed_address);
-  }
-
-  /// Start Advertising using the previously set advertising data
-  /// This method simply starts advertising using the previously set advertising
-  /// data.
-  /// @param duration_ms The duration of the advertising in milliseconds. If 0,
-  ///                    the advertising will not timeout. If non-zero, the
-  ///                    advertising will stop after the specified duration.
-  /// @param directed_address The address to direct advertising to, if any.
-  void start_advertising(uint32_t duration_ms = 0, NimBLEAddress *directed_address = nullptr) {
-    if (!server_) {
-      logger_.error("Server not created");
-      return;
-    }
-    auto advertising = NimBLEDevice::getAdvertising();
-    if (!advertising) {
-      logger_.error("Advertising not created");
-      return;
-    }
-    logger_.info("Starting advertising for {} ms", duration_ms);
-    if (directed_address) {
-      // directed, connectable
-      advertising->setAdvertisementType(BLE_GAP_CONN_MODE_DIR);
-    } else {
-      // undirected, connectable
-      advertising->setAdvertisementType(BLE_GAP_CONN_MODE_UND);
-    }
-    advertising->start(duration_ms, callbacks_.advertisement_complete_callback, directed_address);
-  }
-
-  /// Stop the GATT server
-  /// This method stops the GATT server and stops advertising.
+  /// Stop advertising
+  /// This method stops advertising.
   void stop_advertising() {
     if (!server_) {
       logger_.error("Server not created");
@@ -361,6 +309,45 @@ public:
     logger_.info("Stopping advertising");
     advertising->stop();
   }
+
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  /// Stop advertising
+  /// This method stops advertising.
+  /// @param instance The advertising instance to stop.
+  void stop_advertising(uint8_t instance);
+
+  /// Start Advertising using the previously set advertising data
+  /// This method simply starts advertising using the previously set advertising
+  /// data.
+  /// @param duration_ms The duration of the advertising in milliseconds. If 0,
+  ///                    the advertising will not timeout. If non-zero, the
+  ///                    advertising will stop after the specified duration.
+  /// @param instance The advertising instance to start.
+  void start_advertising(uint32_t duration_ms = 0, uint8_t instance = 0);
+#endif // CONFIG_BT_NIMBLE_EXT_ADV
+
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+  /// Start Advertising using the previously set advertising data
+  /// This method simply starts advertising using the previously set advertising
+  /// data.
+  /// @param params The advertising parameters for the device.
+  /// @note This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not
+  ///       enabled, ane legacy advertising is used. Otherwise, use the
+  ///       NimBLEExtAdvertisement class for advertising and setting the
+  ///       advertising parameters.
+  void start_advertising(const AdvertisingParameters &params);
+
+  /// Start Advertising using the previously set advertising data
+  /// This method simply starts advertising using the previously set advertising
+  /// data.
+  /// @param duration_ms The duration of the advertising in milliseconds.
+  ///                   If 0, the advertising will not timeout. If non-zero,
+  ///                   the advertising will stop after the specified duration.
+  /// @param directed_address The address to direct advertising to, if any.
+  /// @note This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not
+  ///       enabled, ane legacy advertising is used.
+  void start_advertising(uint32_t duration_ms = 0, NimBLEAddress *directed_address = nullptr);
+#endif // CONFIG_BT_NIMBLE_EXT_ADV
 
   /// @brief Get the GATT server.
   /// @return The GATT server.
@@ -464,13 +451,7 @@ public:
 
 protected:
   friend class BleGattServerCallbacks;
-
-  static constexpr uint16_t interval_ms_to_units(uint16_t interval_ms) {
-    return interval_ms * 8 / 5;
-  }
-  static constexpr uint16_t interval_units_to_ms(uint16_t interval_units) {
-    return interval_units * 5 / 8;
-  }
+  friend class BleGattServerAdvertisingCallbacks;
 
   Callbacks callbacks_{};                 ///< The callbacks for the GATT server.
   NimBLEServer *server_{nullptr};         ///< The GATT server.
@@ -479,37 +460,7 @@ protected:
 };
 } // namespace espp
 
-// for easy printing of NimBLEAddress using libfmt
-template <> struct fmt::formatter<NimBLEAddress> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-  template <typename FormatContext> auto format(const NimBLEAddress &address, FormatContext &ctx) {
-    return fmt::format_to(ctx.out(), "NimBLEAddress{{address: '{}'}}", address.toString());
-  }
-};
-
-// for easy printing of the advertising data using libfmt
-template <> struct fmt::formatter<espp::BleGattServer::AdvertisingData> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-  template <typename FormatContext>
-  auto format(const espp::BleGattServer::AdvertisingData &advertising_data, FormatContext &ctx) {
-    std::string services_str = "";
-    for (const auto &uuid : advertising_data.services) {
-      services_str += fmt::format("Service{{uuid: '{}'}}, ", uuid.toString());
-    }
-    std::string service_data_str = "";
-    for (const auto &service_data : advertising_data.service_data) {
-      const auto &[uuid, data] = service_data;
-      service_data_str +=
-          fmt::format("ServiceData{{uuid: '{}', data: '{}'}}, ", uuid.toString(), data);
-    }
-    return fmt::format_to(ctx.out(),
-                          "AdvertisingData{{name: '{}', appearance: 0x{:04X}, manufacturer_data: "
-                          "{}, services: {}, service_data: {}}}",
-                          advertising_data.name, advertising_data.appearance,
-                          advertising_data.manufacturer_data, services_str, service_data_str);
-  }
-};
-
+#if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 // for easy printing of the advertising parameters using libfmt
 template <> struct fmt::formatter<espp::BleGattServer::AdvertisingParameters> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
@@ -534,5 +485,6 @@ template <> struct fmt::formatter<espp::BleGattServer::AdvertisingParameters> {
         advertising_params.duration_ms, fmt::ptr(advertising_params.directed_address));
   }
 };
+#endif // !CONFIG_BT_NIMBLE_EXT_ADV
 
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
