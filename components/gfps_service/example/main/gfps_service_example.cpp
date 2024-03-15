@@ -37,6 +37,10 @@ extern "C" void app_main(void) {
           },
   });
   ble_gatt_server.init(device_name);
+#if CONFIG_BT_NIMBLE_EXT_ADV
+#error                                                                                             \
+    "This example does not support extended advertising, as GFPS does not recognize ext advertisements"
+#endif
 #if !CONFIG_BT_NIMBLE_EXT_ADV
   ble_gatt_server.set_advertise_on_disconnect(true);
 #endif
