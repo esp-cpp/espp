@@ -1,11 +1,11 @@
 #include "ble_gatt_server.hpp"
 #include "ble_gatt_server_callbacks.hpp"
 
-using namespace espp;
-
 #if CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
 
 #if !CONFIG_BT_NIMBLE_EXT_ADV
+
+using namespace espp;
 
 // LEGACY ADV
 
