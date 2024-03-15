@@ -43,7 +43,11 @@ extern "C" void app_main(void) {
           },
   });
   ble_gatt_server.init(device_name);
+#if !CONFIG_BT_NIMBLE_EXT_ADV
+  // extended advertisement does not support automatically advertising on
+  // disconnect
   ble_gatt_server.set_advertise_on_disconnect(true);
+#endif
 
   // let's configure the security
   bool bonding = true;
@@ -87,16 +91,38 @@ extern "C" void app_main(void) {
   device_info_service.set_firmware_version("1.0.0");
   device_info_service.set_hardware_version("1.0.0");
 
+  // set the advertising data
+  espp::BleGattServer::AdvertisedData adv_data;
+  // uint8_t flags = BLE_HS_ADV_F_DISC_LTD;
+  uint8_t flags = BLE_HS_ADV_F_DISC_GEN;
+  adv_data.setFlags(flags);
+  adv_data.setName(device_name);
+  adv_data.setAppearance((uint16_t)espp::BleAppearance::GENERIC_COMPUTER);
+  adv_data.addTxPower();
+  ble_gatt_server.set_advertisement_data(adv_data);
+
+#if CONFIG_COMPILER_CXX_EXCEPTIONS
+  // let's test and use the BLE menu (CLI)
+  // turn off some of the logs so that it doesn't clutter up the CLI
+  ble_gatt_server.set_log_level(espp::Logger::Verbosity::WARN);
+  // and make the CLI
+  auto ble_menu = espp::BleGattServerMenu(ble_gatt_server);
+  cli::SetColor();
+  cli::Cli cli(ble_menu.get());
+  cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
+
+  espp::Cli input(cli);
+  input.SetInputHistorySize(10);
+  input.Start(); // this will not return until the user enters the `exit` command.
+#endif
+
+  // The menu has finished, so let's go into a loop to keep the device running
   // now lets start advertising
-  espp::BleGattServer::AdvertisingData adv_data = {
-      .name = device_name,
-  };
-  espp::BleGattServer::AdvertisingParameters adv_params = {};
-  ble_gatt_server.start_advertising(adv_data, adv_params);
+  ble_gatt_server.start_advertising();
 
   // now lets update the battery level every second for a little while
   uint8_t battery_level = 99;
-  for (int i = 0; i < 200; i++) {
+  while (true) {
     auto start = std::chrono::steady_clock::now();
 
     // update the battery level
@@ -106,18 +132,5 @@ extern "C" void app_main(void) {
     // sleep
     std::this_thread::sleep_until(start + 1s);
   }
-
-  // Now let's test and use the BLE menu (CLI)
-  // turn off some of the logs so that it doesn't clutter up the CLI
-  ble_gatt_server.set_log_level(espp::Logger::Verbosity::WARN);
-  // and make the CLI
-  auto ble_menu = espp::make_ble_gatt_server_menu(ble_gatt_server);
-  cli::SetColor();
-  cli::Cli cli(std::move(ble_menu));
-  cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
-
-  espp::Cli input(cli);
-  input.SetInputHistorySize(10);
-  input.Start(); // this will not return until the user enters the `exit` command.
-                 //! [ble gatt server example]
+  //! [ble gatt server example]
 }

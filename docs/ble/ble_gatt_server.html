@@ -85,8 +85,12 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">BLE GATT Server</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#header-file">Header File</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id1">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Header File</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">Classes</a></li>
 </ul>
 </li>
 </ul>
@@ -152,7 +156,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>BLE GATT Server</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/ac1f3421/docs/en/ble/ble_gatt_server.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/9dc5dedd/docs/en/ble/ble_gatt_server.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -170,7 +174,13 @@ adds standard battery service and device information service.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ac1f3421/components/ble_gatt_server/include/ble_gatt_server.hpp">components/ble_gatt_server/include/ble_gatt_server.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9dc5dedd/components/ble_gatt_server/include/ble_appearances.hpp">components/ble_gatt_server/include/ble_appearances.hpp</a></p></li>
+</ul>
+</section>
+<section id="id1">
+<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9dc5dedd/components/ble_gatt_server/include/ble_gatt_server.hpp">components/ble_gatt_server/include/ble_gatt_server.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -210,7 +220,11 @@ adds standard battery service and device information service.</p>
 <span class="w">          </span><span class="p">},</span>
 <span class="w">  </span><span class="p">});</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
+<span class="cp">#if !CONFIG_BT_NIMBLE_EXT_ADV</span>
+<span class="w">  </span><span class="c1">// extended advertisement does not support automatically advertising on</span>
+<span class="w">  </span><span class="c1">// disconnect</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="cp">#endif</span>
 
 <span class="w">  </span><span class="c1">// let&#39;s configure the security</span>
 <span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">bonding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
@@ -254,16 +268,38 @@ adds standard battery service and device information service.</p>
 <span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_firmware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
 <span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_hardware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
 
+<span class="w">  </span><span class="c1">// set the advertising data</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisedData</span><span class="w"> </span><span class="n">adv_data</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// uint8_t flags = BLE_HS_ADV_F_DISC_LTD;</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BLE_HS_ADV_F_DISC_GEN</span><span class="p">;</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setFlags</span><span class="p">(</span><span class="n">flags</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setName</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setAppearance</span><span class="p">((</span><span class="kt">uint16_t</span><span class="p">)</span><span class="n">espp</span><span class="o">::</span><span class="n">BleAppearance</span><span class="o">::</span><span class="n">GENERIC_COMPUTER</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">addTxPower</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertisement_data</span><span class="p">(</span><span class="n">adv_data</span><span class="p">);</span>
+
+<span class="cp">#if CONFIG_COMPILER_CXX_EXCEPTIONS</span>
+<span class="w">  </span><span class="c1">// let&#39;s test and use the BLE menu (CLI)</span>
+<span class="w">  </span><span class="c1">// turn off some of the logs so that it doesn&#39;t clutter up the CLI</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// and make the CLI</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServerMenu</span><span class="p">(</span><span class="n">ble_gatt_server</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cli</span><span class="o">::</span><span class="n">SetColor</span><span class="p">();</span>
+<span class="w">  </span><span class="n">cli</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">cli</span><span class="p">(</span><span class="n">ble_menu</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+<span class="w">  </span><span class="n">cli</span><span class="p">.</span><span class="n">ExitAction</span><span class="p">([](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Goodbye and thanks for all the fish.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">input</span><span class="p">(</span><span class="n">cli</span><span class="p">);</span>
+<span class="w">  </span><span class="n">input</span><span class="p">.</span><span class="n">SetInputHistorySize</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">  </span><span class="n">input</span><span class="p">.</span><span class="n">Start</span><span class="p">();</span><span class="w"> </span><span class="c1">// this will not return until the user enters the `exit` command.</span>
+<span class="cp">#endif</span>
+
+<span class="w">  </span><span class="c1">// The menu has finished, so let&#39;s go into a loop to keep the device running</span>
 <span class="w">  </span><span class="c1">// now lets start advertising</span>
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingData</span><span class="w"> </span><span class="n">adv_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device_name</span><span class="p">,</span>
-<span class="w">  </span><span class="p">};</span>
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingParameters</span><span class="w"> </span><span class="n">adv_params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
-<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">(</span><span class="n">adv_data</span><span class="p">,</span><span class="w"> </span><span class="n">adv_params</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">();</span>
 
 <span class="w">  </span><span class="c1">// now lets update the battery level every second for a little while</span>
 <span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
-<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">200</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
 
 <span class="w">    </span><span class="c1">// update the battery level</span>
@@ -273,19 +309,6 @@ adds standard battery service and device information service.</p>
 <span class="w">    </span><span class="c1">// sleep</span>
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_until</span><span class="p">(</span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
-
-<span class="w">  </span><span class="c1">// Now let&#39;s test and use the BLE menu (CLI)</span>
-<span class="w">  </span><span class="c1">// turn off some of the logs so that it doesn&#39;t clutter up the CLI</span>
-<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">);</span>
-<span class="w">  </span><span class="c1">// and make the CLI</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">make_ble_gatt_server_menu</span><span class="p">(</span><span class="n">ble_gatt_server</span><span class="p">);</span>
-<span class="w">  </span><span class="n">cli</span><span class="o">::</span><span class="n">SetColor</span><span class="p">();</span>
-<span class="w">  </span><span class="n">cli</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">cli</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">ble_menu</span><span class="p">));</span>
-<span class="w">  </span><span class="n">cli</span><span class="p">.</span><span class="n">ExitAction</span><span class="p">([](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Goodbye and thanks for all the fish.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
-
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">input</span><span class="p">(</span><span class="n">cli</span><span class="p">);</span>
-<span class="w">  </span><span class="n">input</span><span class="p">.</span><span class="n">SetInputHistorySize</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
-<span class="w">  </span><span class="n">input</span><span class="p">.</span><span class="n">Start</span><span class="p">();</span><span class="w"> </span><span class="c1">// this will not return until the user enters the `exit` command.</span>
 </pre></div>
 </div>
  </p>
@@ -341,6 +364,48 @@ adds standard battery service and device information service.</p>
 </dd></dl>
 
 <dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer32advertisement_stopped_callback_tE">
+<span id="_CPPv3N4espp13BleGattServer32advertisement_stopped_callback_tE"></span><span id="_CPPv2N4espp13BleGattServer32advertisement_stopped_callback_tE"></span><span id="espp::BleGattServer::advertisement_stopped_callback_t"></span><span class="target" id="classespp_1_1BleGattServer_1aa58de0fe55a0f3d5ed8e24345fcd1906"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">NimBLEExtAdvertising</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_stopped_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer32advertisement_stopped_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for when advertising is stopped. This callback is called when advertising is stopped. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Param advertising</dt>
+<dd class="field-odd"><p>Pointer to the advertising object. </p>
+</dd>
+<dt class="field-even">Param reason</dt>
+<dd class="field-even"><p>The reason for stopping advertising. </p>
+</dd>
+<dt class="field-odd">Param instance</dt>
+<dd class="field-odd"><p>The advertising instance that was stopped. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer23scan_request_callback_tE">
+<span id="_CPPv3N4espp13BleGattServer23scan_request_callback_tE"></span><span id="_CPPv2N4espp13BleGattServer23scan_request_callback_tE"></span><span id="espp::BleGattServer::scan_request_callback_t"></span><span class="target" id="classespp_1_1BleGattServer_1a1f75eb7f24a7d26a5fe08146fb4d00db"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">NimBLEExtAdvertising</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">NimBLEAddress</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scan_request_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer23scan_request_callback_tE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for when a scan request is received. This callback is called when a scan request is received. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Param advertising</dt>
+<dd class="field-odd"><p>Pointer to the advertising object. </p>
+</dd>
+<dt class="field-even">Param instance</dt>
+<dd class="field-even"><p>The advertising instance that received the scan request. </p>
+</dd>
+<dt class="field-odd">Param address</dt>
+<dd class="field-odd"><p>The address of the device that sent the scan request. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer33advertisement_complete_callback_tE">
 <span id="_CPPv3N4espp13BleGattServer33advertisement_complete_callback_tE"></span><span id="_CPPv2N4espp13BleGattServer33advertisement_complete_callback_tE"></span><span id="espp::BleGattServer::advertisement_complete_callback_t"></span><span class="target" id="classespp_1_1BleGattServer_1a344a89c5ee458fad2b06111008c141e7"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">NimBLEAdvertising</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_complete_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer33advertisement_complete_callback_tE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback for when advertising is complete. This callback is called when advertising is complete. </p>
@@ -348,45 +413,15 @@ adds standard battery service and device information service.</p>
 <p class="admonition-title">Note</p>
 <p>This is called when advertising is complete, not when the device is actually advertising. It will not be called if the advertisement duration is 0 (i.e. no timeout). </p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Param advertising</dt>
 <dd class="field-odd"><p>Pointer to the advertising object. </p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer11ServiceDataE">
-<span id="_CPPv3N4espp13BleGattServer11ServiceDataE"></span><span id="_CPPv2N4espp13BleGattServer11ServiceDataE"></span><span id="espp::BleGattServer::ServiceData"></span><span class="target" id="classespp_1_1BleGattServer_1af70819e6d62476e32b85a142b1963591"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ServiceData</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer11ServiceDataE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>The type of service data that is part of a Service. </p>
-<p><div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#classespp_1_1BleGattServer_1aebadfc730658441461a496118206345c"><span class="std std-ref">Service</span></a> </p>
-</div>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#structespp_1_1BleGattServer_1_1AdvertisingData"><span class="std std-ref">AdvertisingData</span></a> </p>
-</div>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#classespp_1_1BleGattServer_1a1e18f85c436f507b88fd2fb35dd817ac"><span class="std std-ref">start_advertising</span></a> </p>
-</div>
-</p>
-</dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer7ServiceE">
-<span id="_CPPv3N4espp13BleGattServer7ServiceE"></span><span id="_CPPv2N4espp13BleGattServer7ServiceE"></span><span id="espp::BleGattServer::Service"></span><span class="target" id="classespp_1_1BleGattServer_1aebadfc730658441461a496118206345c"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">NimBLEUUID</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer11ServiceDataE" title="espp::BleGattServer::ServiceData"><span class="n"><span class="pre">ServiceData</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Service</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer7ServiceE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>A service that is part of the advertising data for the device. </p>
-<p><div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#classespp_1_1BleGattServer_1a1e18f85c436f507b88fd2fb35dd817ac"><span class="std std-ref">start_advertising</span></a> </p>
-</div>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#structespp_1_1BleGattServer_1_1AdvertisingData"><span class="std std-ref">AdvertisingData</span></a> </p>
-</div>
-</p>
 </dd></dl>
 
 </div>
@@ -438,17 +473,6 @@ adds standard battery service and device information service.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer27set_advertise_on_disconnectEb">
-<span id="_CPPv3N4espp13BleGattServer27set_advertise_on_disconnectEb"></span><span id="_CPPv2N4espp13BleGattServer27set_advertise_on_disconnectEb"></span><span id="espp::BleGattServer::set_advertise_on_disconnect__b"></span><span class="target" id="classespp_1_1BleGattServer_1ab5d5aa9f8f912106206151b75e375da3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_advertise_on_disconnect</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">advertise_on_disconnect</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer27set_advertise_on_disconnectEb" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Set whether to advertise on disconnect </p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>advertise_on_disconnect</strong> – Whether to advertise on disconnect </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer4initERKNSt6stringE">
 <span id="_CPPv3N4espp13BleGattServer4initERKNSt6stringE"></span><span id="_CPPv2N4espp13BleGattServer4initERKNSt6stringE"></span><span id="espp::BleGattServer::init__ssCR"></span><span class="target" id="classespp_1_1BleGattServer_1a12cd6cfef5c8058efd53d4dec92e683f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">device_name</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer4initERKNSt6stringE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Initialize the GATT server This method creates the GATT server and sets the callbacks to this class. </p>
@@ -485,15 +509,82 @@ adds standard battery service and device information service.</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer17start_advertisingERK15AdvertisingDataRK21AdvertisingParameters">
-<span id="_CPPv3N4espp13BleGattServer17start_advertisingERK15AdvertisingDataRK21AdvertisingParameters"></span><span id="_CPPv2N4espp13BleGattServer17start_advertisingERK15AdvertisingDataRK21AdvertisingParameters"></span><span id="espp::BleGattServer::start_advertising__AdvertisingDataCR.AdvertisingParametersCR"></span><span class="target" id="classespp_1_1BleGattServer_1a1e18f85c436f507b88fd2fb35dd817ac"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_advertising</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer15AdvertisingDataE" title="espp::BleGattServer::AdvertisingData"><span class="n"><span class="pre">AdvertisingData</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">advertising_data</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer21AdvertisingParametersE" title="espp::BleGattServer::AdvertisingParameters"><span class="n"><span class="pre">AdvertisingParameters</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">advertising_params</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer17start_advertisingERK15AdvertisingDataRK21AdvertisingParameters" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Start the GATT server This method starts the GATT server and begins advertising. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer27set_advertise_on_disconnectEb">
+<span id="_CPPv3N4espp13BleGattServer27set_advertise_on_disconnectEb"></span><span id="_CPPv2N4espp13BleGattServer27set_advertise_on_disconnectEb"></span><span id="espp::BleGattServer::set_advertise_on_disconnect__b"></span><span class="target" id="classespp_1_1BleGattServer_1ab5d5aa9f8f912106206151b75e375da3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_advertise_on_disconnect</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">advertise_on_disconnect</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer27set_advertise_on_disconnectEb" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set whether to advertise on disconnect </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled, ane legacy advertising is used. Otherwise, you will have to manually start advertising after disconnecting. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>advertise_on_disconnect</strong> – Whether to advertise on disconnect </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData7uint8_t">
+<span id="_CPPv3N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData7uint8_t"></span><span id="_CPPv2N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData7uint8_t"></span><span id="espp::BleGattServer::set_advertisement_data__AdvertisedDataCR.uint8_t"></span><span class="target" id="classespp_1_1BleGattServer_1aaa2672a2825b4028175809af89ace7e6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_advertisement_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AdvertisedData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">advertising_data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the advertisement data for the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>advertising_data</strong> – The advertising data for the device. </p></li>
-<li><p><strong>advertising_params</strong> – The advertising parameters for the device. </p></li>
+<li><p><strong>instance</strong> – The advertising instance to set the data for. </p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData7uint8_t">
+<span id="_CPPv3N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData7uint8_t"></span><span id="_CPPv2N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData7uint8_t"></span><span id="espp::BleGattServer::set_scan_response_data__AdvertisedDataCR.uint8_t"></span><span class="target" id="classespp_1_1BleGattServer_1a9bc15b42f9850516fe75fc7fb5df868d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scan_response_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AdvertisedData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">scan_response_data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the scan response data for the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scan_response_data</strong> – The scan response data for the device. </p></li>
+<li><p><strong>instance</strong> – The advertising instance to set the data for. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData">
+<span id="_CPPv3N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData"></span><span id="_CPPv2N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData"></span><span id="espp::BleGattServer::set_advertisement_data__AdvertisedDataCR"></span><span class="target" id="classespp_1_1BleGattServer_1a6c8e9d2000f9686d36b5b9f18b310bc3"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_advertisement_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AdvertisedData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">advertising_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the advertisement data for the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is disabled. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>advertising_data</strong> – The advertising data for the device. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData">
+<span id="_CPPv3N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData"></span><span id="_CPPv2N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData"></span><span id="espp::BleGattServer::set_scan_response_data__AdvertisedDataCR"></span><span class="target" id="classespp_1_1BleGattServer_1a65e97d75a2bc88dc185a6f656cf01f7a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scan_response_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AdvertisedData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">scan_response_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the scan response data for the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is disabled. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>scan_response_data</strong> – The scan response data for the device. </p>
 </dd>
 </dl>
 </dd></dl>
@@ -501,7 +592,73 @@ adds standard battery service and device information service.</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer16stop_advertisingEv">
 <span id="_CPPv3N4espp13BleGattServer16stop_advertisingEv"></span><span id="_CPPv2N4espp13BleGattServer16stop_advertisingEv"></span><span id="espp::BleGattServer::stop_advertising"></span><span class="target" id="classespp_1_1BleGattServer_1aae92d62842373e3476e473f90b7b201f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_advertising</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer16stop_advertisingEv" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Stop the GATT server This method stops the GATT server and stops advertising. </p>
+<dd><p>Stop advertising This method stops advertising. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer16stop_advertisingE7uint8_t">
+<span id="_CPPv3N4espp13BleGattServer16stop_advertisingE7uint8_t"></span><span id="_CPPv2N4espp13BleGattServer16stop_advertisingE7uint8_t"></span><span id="espp::BleGattServer::stop_advertising__uint8_t"></span><span class="target" id="classespp_1_1BleGattServer_1a0f44cefc5efed39049aca8a96e682814"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_advertising</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instance</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer16stop_advertisingE7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Stop advertising This method stops advertising. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>instance</strong> – The advertising instance to stop. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer17start_advertisingE8uint32_t7uint8_t">
+<span id="_CPPv3N4espp13BleGattServer17start_advertisingE8uint32_t7uint8_t"></span><span id="_CPPv2N4espp13BleGattServer17start_advertisingE8uint32_t7uint8_t"></span><span id="espp::BleGattServer::start_advertising__uint32_t.uint8_t"></span><span class="target" id="classespp_1_1BleGattServer_1a1a67b1db52ae3f76348d51a6ce7fd62c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_advertising</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duration_ms</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer17start_advertisingE8uint32_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start Advertising using the previously set advertising data This method simply starts advertising using the previously set advertising data. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>duration_ms</strong> – The duration of the advertising in milliseconds. If 0, the advertising will not timeout. If non-zero, the advertising will stop after the specified duration. </p></li>
+<li><p><strong>instance</strong> – The advertising instance to start. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer17start_advertisingERK21AdvertisingParameters">
+<span id="_CPPv3N4espp13BleGattServer17start_advertisingERK21AdvertisingParameters"></span><span id="_CPPv2N4espp13BleGattServer17start_advertisingERK21AdvertisingParameters"></span><span id="espp::BleGattServer::start_advertising__AdvertisingParametersCR"></span><span class="target" id="classespp_1_1BleGattServer_1acd1e38e5958fe2fc0880c0707a2b6131"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_advertising</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer21AdvertisingParametersE" title="espp::BleGattServer::AdvertisingParameters"><span class="n"><span class="pre">AdvertisingParameters</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">params</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer17start_advertisingERK21AdvertisingParameters" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start Advertising using the previously set advertising data This method simply starts advertising using the previously set advertising data. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not enabled, ane legacy advertising is used. Otherwise, use the NimBLEExtAdvertisement class for advertising and setting the advertising parameters. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>params</strong> – The advertising parameters for the device. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer17start_advertisingE8uint32_tP13NimBLEAddress">
+<span id="_CPPv3N4espp13BleGattServer17start_advertisingE8uint32_tP13NimBLEAddress"></span><span id="_CPPv2N4espp13BleGattServer17start_advertisingE8uint32_tP13NimBLEAddress"></span><span id="espp::BleGattServer::start_advertising__uint32_t.NimBLEAddressP"></span><span class="target" id="classespp_1_1BleGattServer_1ab21b4c051a568e3e67d9e0c9d51bfd6d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_advertising</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duration_ms</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span>, <span class="n"><span class="pre">NimBLEAddress</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">directed_address</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer17start_advertisingE8uint32_tP13NimBLEAddress" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Start Advertising using the previously set advertising data This method simply starts advertising using the previously set advertising data. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not enabled, ane legacy advertising is used. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>duration_ms</strong> – The duration of the advertising in milliseconds. If 0, the advertising will not timeout. If non-zero, the advertising will stop after the specified duration. </p></li>
+<li><p><strong>directed_address</strong> – The address to direct advertising to, if any. </p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">
@@ -638,6 +795,39 @@ adds standard battery service and device information service.</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer18get_paired_devicesEv">
+<span id="_CPPv3N4espp13BleGattServer18get_paired_devicesEv"></span><span id="_CPPv2N4espp13BleGattServer18get_paired_devicesEv"></span><span id="espp::BleGattServer::get_paired_devices"></span><span class="target" id="classespp_1_1BleGattServer_1a6fa94d3f294cb945fcec002bfdeac118"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">NimBLEAddress</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_paired_devices</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer18get_paired_devicesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the paired devices </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The paired devices as a vector of Addresses. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21get_connected_devicesEv">
+<span id="_CPPv3N4espp13BleGattServer21get_connected_devicesEv"></span><span id="_CPPv2N4espp13BleGattServer21get_connected_devicesEv"></span><span id="espp::BleGattServer::get_connected_devices"></span><span class="target" id="classespp_1_1BleGattServer_1adc0b4fc7ccf97cf576169e11f670d907"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">NimBLEAddress</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_connected_devices</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21get_connected_devicesEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the connected devices </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The connected devices as a vector of Addresses. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer14disconnect_allEv">
+<span id="_CPPv3N4espp13BleGattServer14disconnect_allEv"></span><span id="_CPPv2N4espp13BleGattServer14disconnect_allEv"></span><span id="espp::BleGattServer::disconnect_all"></span><span class="target" id="classespp_1_1BleGattServer_1aad63f27c034decb6fe744fada86b5e52"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">NimBLEAddress</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">disconnect_all</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer14disconnect_allEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Disconnect from all devices This method disconnects from all devices that are currently connected. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The Addresses of the devices that were disconnected from. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer11set_log_tagERKNSt11string_viewE">
 <span id="_CPPv3N4espp13BleGattServer11set_log_tagERKNSt11string_viewE"></span><span id="_CPPv2N4espp13BleGattServer11set_log_tagERKNSt11string_viewE"></span><span id="espp::BleGattServer::set_log_tag__std::string_viewCR"></span><span class="target" id="classespp_1_1BaseComponent_1af83083445936081581ffbddd93634b90"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_log_tag</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">tag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer11set_log_tagERKNSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the tag for the logger </p>
@@ -714,71 +904,68 @@ adds standard battery service and device information service.</p>
 </dd></dl>
 
 </div>
-<dl class="cpp struct">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer15AdvertisingDataE">
-<span id="_CPPv3N4espp13BleGattServer15AdvertisingDataE"></span><span id="_CPPv2N4espp13BleGattServer15AdvertisingDataE"></span><span id="espp::BleGattServer::AdvertisingData"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingData"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AdvertisingData</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer15AdvertisingDataE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Advertising data for the device. This struct contains the advertising data for the device. </p>
-<p><div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#classespp_1_1BleGattServer_1a1e18f85c436f507b88fd2fb35dd817ac"><span class="std std-ref">start_advertising</span></a> </p>
-</div>
-</p>
 <div class="breathe-sectiondef docutils container">
-<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer15AdvertisingData4nameE">
-<span id="_CPPv3N4espp13BleGattServer15AdvertisingData4nameE"></span><span id="_CPPv2N4espp13BleGattServer15AdvertisingData4nameE"></span><span id="espp::BleGattServer::AdvertisingData::name__ss"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingData_1a01592f5b6ec19d32c3936ee551ea8f56"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">name</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;&quot;</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer15AdvertisingData4nameE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Name. If empty, the device will not advertise its name. </p>
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer20interval_ms_to_unitsE8uint16_t">
+<span id="_CPPv3N4espp13BleGattServer20interval_ms_to_unitsE8uint16_t"></span><span id="_CPPv2N4espp13BleGattServer20interval_ms_to_unitsE8uint16_t"></span><span id="espp::BleGattServer::interval_ms_to_units__uint16_tCE"></span><span class="target" id="classespp_1_1BleGattServer_1a584a9788b08141aac73fc8149a07eeb0"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interval_ms_to_units</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">interval_ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer20interval_ms_to_unitsE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Convert an interval in milliseconds to units of 0.625 ms. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>interval_ms</strong> – The interval in milliseconds. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The interval in units of 0.625 ms. </p>
+</dd>
+</dl>
 </dd></dl>
 
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer15AdvertisingData10appearanceE">
-<span id="_CPPv3N4espp13BleGattServer15AdvertisingData10appearanceE"></span><span id="_CPPv2N4espp13BleGattServer15AdvertisingData10appearanceE"></span><span id="espp::BleGattServer::AdvertisingData::appearance__uint16_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingData_1a13b9198a0c873bdeb53f474cdaea0b28"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">appearance</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer15AdvertisingData10appearanceE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Appearance. If 0, the device will not advertise its appearance. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer15AdvertisingData17manufacturer_dataE">
-<span id="_CPPv3N4espp13BleGattServer15AdvertisingData17manufacturer_dataE"></span><span id="_CPPv2N4espp13BleGattServer15AdvertisingData17manufacturer_dataE"></span><span id="espp::BleGattServer::AdvertisingData::manufacturer_data__std::vector:uint8_t:"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingData_1a7f60981a1c8f154fb1b270750898a81e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">manufacturer_data</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer15AdvertisingData17manufacturer_dataE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Manufacturer data. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer15AdvertisingData8servicesE">
-<span id="_CPPv3N4espp13BleGattServer15AdvertisingData8servicesE"></span><span id="_CPPv2N4espp13BleGattServer15AdvertisingData8servicesE"></span><span id="espp::BleGattServer::AdvertisingData::services__std::vector:NimBLEUUID:"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingData_1a6c1de70d6e74298e3d5548d901ad4ec2"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">NimBLEUUID</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">services</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer15AdvertisingData8servicesE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Services. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer15AdvertisingData12service_dataE">
-<span id="_CPPv3N4espp13BleGattServer15AdvertisingData12service_dataE"></span><span id="_CPPv2N4espp13BleGattServer15AdvertisingData12service_dataE"></span><span id="espp::BleGattServer::AdvertisingData::service_data__std::vector:Service:"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingData_1afd8c4a5ececbe25cd238433a50b73b4a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer7ServiceE" title="espp::BleGattServer::Service"><span class="n"><span class="pre">Service</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">service_data</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer15AdvertisingData12service_dataE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Service data. </p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer20interval_units_to_msE8uint16_t">
+<span id="_CPPv3N4espp13BleGattServer20interval_units_to_msE8uint16_t"></span><span id="_CPPv2N4espp13BleGattServer20interval_units_to_msE8uint16_t"></span><span id="espp::BleGattServer::interval_units_to_ms__uint16_tCE"></span><span class="target" id="classespp_1_1BleGattServer_1a94cbc08c066ab1ba6b42ebd0b06f4f46"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">interval_units_to_ms</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">interval_units</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer20interval_units_to_msE8uint16_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Convert an interval in units of 0.625 ms to milliseconds. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>interval_units</strong> – The interval in units of 0.625 ms. </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The interval in milliseconds. </p>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
-</dd></dl>
-
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParametersE">
 <span id="_CPPv3N4espp13BleGattServer21AdvertisingParametersE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParametersE"></span><span id="espp::BleGattServer::AdvertisingParameters"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">AdvertisingParameters</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParametersE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Advertising parameters for the device. This struct contains the advertising parameters for the device. </p>
 <p><div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="#classespp_1_1BleGattServer_1a1e18f85c436f507b88fd2fb35dd817ac"><span class="std std-ref">start_advertising</span></a> </p>
+<p><a class="reference internal" href="#classespp_1_1BleGattServer_1a1a67b1db52ae3f76348d51a6ce7fd62c"><span class="std std-ref">start_advertising</span></a> </p>
 </div>
 </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This struct is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled, ane legacy advertising is used. Otherwise, use the NimBLEExtAdvertisement class. </p>
+</div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters12min_intervalE">
-<span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters12min_intervalE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters12min_intervalE"></span><span id="espp::BleGattServer::AdvertisingParameters::min_interval__uint16_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a935540ce50f781b5a0b62e0a64ca3541"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">min_interval</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x20</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters12min_intervalE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Minimum advertising interval (in 0.625ms units) </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters11connectableE">
+<span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters11connectableE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters11connectableE"></span><span id="espp::BleGattServer::AdvertisingParameters::connectable__b"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a16438703fd2e21266a8ef8c6d228c4e0"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">connectable</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">true</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters11connectableE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the device should be connectable. </p>
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters12max_intervalE">
-<span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters12max_intervalE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters12max_intervalE"></span><span id="espp::BleGattServer::AdvertisingParameters::max_interval__uint16_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a9539176bdfc72edc5025d38d90105fe4"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_interval</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0x40</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters12max_intervalE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Maximum advertising interval (in 0.625ms units) </p>
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters15min_interval_msE">
+<span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters15min_interval_msE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters15min_interval_msE"></span><span id="espp::BleGattServer::AdvertisingParameters::min_interval_ms__uint16_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a901c10e8733c9a5d28d0bc214cd6116d"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">min_interval_ms</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">20</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters15min_interval_msE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Minimum advertising interval. NOTE: this is in milliseconds, but will be converted to units of 0.625 ms. If the value is not a multiple of 0.625 ms, it will be rounded to the nearest multiple and a log message will be printed. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters15max_interval_msE">
+<span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters15max_interval_msE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters15max_interval_msE"></span><span id="espp::BleGattServer::AdvertisingParameters::max_interval_ms__uint16_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a6011ced26e444eaf307f73978eedf45d"></span><span class="n"><span class="pre">uint16_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">max_interval_ms</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">40</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters15max_interval_msE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Maximum advertising interval. NOTE: this is in milliseconds, but will be converted to units of 0.625 ms. If the value is not a multiple of 0.625 ms, it will be rounded to the nearest multiple and a log message will be printed. </p>
 </dd></dl>
 
 <dl class="cpp var">
@@ -794,9 +981,27 @@ adds standard battery service and device information service.</p>
 </dd></dl>
 
 <dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters22scan_request_whitelistE">
+<span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters22scan_request_whitelistE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters22scan_request_whitelistE"></span><span id="espp::BleGattServer::AdvertisingParameters::scan_request_whitelist__b"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a17803fd18d05fdde776b5501a197cd14"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scan_request_whitelist</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters22scan_request_whitelistE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the device should use the white list when scanning </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters17connect_whitelistE">
+<span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters17connect_whitelistE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters17connect_whitelistE"></span><span id="espp::BleGattServer::AdvertisingParameters::connect_whitelist__b"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a640904159a6ca8fb86895d73e5c470f8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">connect_whitelist</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters17connect_whitelistE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Whether the device should use the white list when connecting </p>
+</dd></dl>
+
+<dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters11duration_msE">
 <span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters11duration_msE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters11duration_msE"></span><span id="espp::BleGattServer::AdvertisingParameters::duration_ms__uint32_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a2a42fd63f5d4756da5b313715525796f"></span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">duration_ms</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters11duration_msE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Advertising duration (in ms, 0 for no timeout) </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer21AdvertisingParameters16directed_addressE">
+<span id="_CPPv3N4espp13BleGattServer21AdvertisingParameters16directed_addressE"></span><span id="_CPPv2N4espp13BleGattServer21AdvertisingParameters16directed_addressE"></span><span id="espp::BleGattServer::AdvertisingParameters::directed_address__NimBLEAddressP"></span><span class="target" id="structespp_1_1BleGattServer_1_1AdvertisingParameters_1a310db6bc56a0d230109f116df2153a73"></span><span class="n"><span class="pre">NimBLEAddress</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">directed_address</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer21AdvertisingParameters16directed_addressE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Address to direct advertising to, if any. </p>
 </dd></dl>
 
 </div>
@@ -841,7 +1046,35 @@ adds standard battery service and device information service.</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE">
 <span id="_CPPv3N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE"></span><span id="espp::BleGattServer::Callbacks::advertisement_complete_callback__advertisement_complete_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1aad75eb35cdabe58c0a96f00533cc48aa"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer33advertisement_complete_callback_tE" title="espp::BleGattServer::advertisement_complete_callback_t"><span class="n"><span class="pre">advertisement_complete_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_complete_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Callback for when advertising is complete. NOTE: this is called when advertising is complete, not when the device is actually advertising. It will not be called if the advertisement duration is 0 (i.e. no timeout) </p>
+<dd><p>Callback for when advertising is complete. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is called when advertising is complete, not when the device is actually advertising. It will not be called if the advertisement duration is 0 (i.e. no timeout) </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks30advertisement_stopped_callbackE">
+<span id="_CPPv3N4espp13BleGattServer9Callbacks30advertisement_stopped_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks30advertisement_stopped_callbackE"></span><span id="espp::BleGattServer::Callbacks::advertisement_stopped_callback__advertisement_stopped_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1acd7ea33506fc9aea20b2cd4aa10939a2"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer32advertisement_stopped_callback_tE" title="espp::BleGattServer::advertisement_stopped_callback_t"><span class="n"><span class="pre">advertisement_stopped_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_stopped_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks30advertisement_stopped_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for when advertising is stopped. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks21scan_request_callbackE">
+<span id="_CPPv3N4espp13BleGattServer9Callbacks21scan_request_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks21scan_request_callbackE"></span><span id="espp::BleGattServer::Callbacks::scan_request_callback__scan_request_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1a314e241f2851e4a3346c0577e031db80"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer23scan_request_callback_tE" title="espp::BleGattServer::scan_request_callback_t"><span class="n"><span class="pre">scan_request_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scan_request_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks21scan_request_callbackE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Callback for when a scan request is received. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 </dd></dl>
 
 </div>
@@ -871,11 +1104,209 @@ adds standard battery service and device information service.</p>
 </dd></dl>
 
 </section>
-<section id="id1">
-<h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
+<section id="id2">
+<h3>Header File<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ac1f3421/components/ble_gatt_server/include/ble_gatt_server_menu.hpp">components/ble_gatt_server/include/ble_gatt_server_menu.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9dc5dedd/components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp">components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp</a></p></li>
 </ul>
+</section>
+<section id="id3">
+<h3>Classes<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp22BleGattServerCallbacksE">
+<span id="_CPPv3N4espp22BleGattServerCallbacksE"></span><span id="_CPPv2N4espp22BleGattServerCallbacksE"></span><span id="espp::BleGattServerCallbacks"></span><span class="target" id="classespp_1_1BleGattServerCallbacks"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BleGattServerCallbacks</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">NimBLEServerCallbacks</span></span><a class="headerlink" href="#_CPPv4N4espp22BleGattServerCallbacksE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for handling GATT server callbacks, as required by NimBLE </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is not intended to be used directly by the user </p>
+</div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp33BleGattServerAdvertisingCallbacksE">
+<span id="_CPPv3N4espp33BleGattServerAdvertisingCallbacksE"></span><span id="_CPPv2N4espp33BleGattServerAdvertisingCallbacksE"></span><span id="espp::BleGattServerAdvertisingCallbacks"></span><span class="target" id="classespp_1_1BleGattServerAdvertisingCallbacks"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BleGattServerAdvertisingCallbacks</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">NimBLEExtAdvertisingCallbacks</span></span><a class="headerlink" href="#_CPPv4N4espp33BleGattServerAdvertisingCallbacksE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Class for handling GATT server advertising callbacks, as required by NimBLE </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is not intended to be used directly by the user </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is only available if CONFIG_BT_NIMBLE_EXT_ADV is enabled </p>
+</div>
+</dd></dl>
+
+</section>
+<section id="id4">
+<h3>Header File<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/9dc5dedd/components/ble_gatt_server/include/ble_gatt_server_menu.hpp">components/ble_gatt_server/include/ble_gatt_server_menu.hpp</a></p></li>
+</ul>
+</section>
+<section id="id5">
+<h3>Classes<a class="headerlink" href="#id5" title="Permalink to this headline"></a></h3>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17BleGattServerMenuE">
+<span id="_CPPv3N4espp17BleGattServerMenuE"></span><span id="_CPPv2N4espp17BleGattServerMenuE"></span><span id="espp::BleGattServerMenu"></span><span class="target" id="classespp_1_1BleGattServerMenu"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">BleGattServerMenu</span></span></span><a class="headerlink" href="#_CPPv4N4espp17BleGattServerMenuE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>A CLI menu for interacting with <a class="reference internal" href="#classespp_1_1BleGattServer"><span class="std std-ref">BleGattServer</span></a>. </p>
+<p>This class provides a CLI menu for interacting with a <a class="reference internal" href="#classespp_1_1BleGattServer"><span class="std std-ref">BleGattServer</span></a>. It provides options for setting the log verbosity, viewing the paired devices, viewing the connected devices, disconnecting devices, and more.</p>
+<section id="classespp_1_1Tt21100_1Example">
+<h4>Example<a class="headerlink" href="#classespp_1_1Tt21100_1Example" title="Permalink to this headline"></a></h4>
+<p id="classespp_1_1Tt21100_1Example"><div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// NOTE: esp-nimble-cpp already depends on nvs_flash and initializes</span>
+<span class="w">  </span><span class="c1">//       nvs_flash in the NimBLEDevice::init(), so we don&#39;t have to do that</span>
+<span class="w">  </span><span class="c1">//       to store bonding info</span>
+
+<span class="w">  </span><span class="c1">// create the GATT server</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">device_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Espp BLE GATT Server&quot;</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">INFO</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_callbacks</span><span class="p">({</span>
+<span class="w">      </span><span class="p">.</span><span class="n">connect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device connected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">disconnect_callback</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device disconnected&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">.</span><span class="n">authentication_complete_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="n">NimBLEConnInfo</span><span class="w"> </span><span class="o">&amp;</span><span class="n">conn_info</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Device authenticated&quot;</span><span class="p">);</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="c1">// NOTE: this is optional, if you don&#39;t provide this callback, it will</span>
+<span class="w">      </span><span class="c1">// perform the exactly function as below:</span>
+<span class="w">      </span><span class="p">.</span><span class="n">get_passkey_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Getting passkey&quot;</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">getSecurityPasskey</span><span class="p">();</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">      </span><span class="c1">// NOTE: this is optional, if you don&#39;t provide this callback, it will</span>
+<span class="w">      </span><span class="c1">// perform the exactly function as below:</span>
+<span class="w">      </span><span class="p">.</span><span class="n">confirm_passkey_callback</span><span class="w"> </span><span class="o">=</span>
+<span class="w">          </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">passkey</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">logger</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Confirming passkey: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">passkey</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">passkey</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">getSecurityPasskey</span><span class="p">();</span>
+<span class="w">          </span><span class="p">},</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
+<span class="cp">#if !CONFIG_BT_NIMBLE_EXT_ADV</span>
+<span class="w">  </span><span class="c1">// extended advertisement does not support automatically advertising on</span>
+<span class="w">  </span><span class="c1">// disconnect</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="cp">#endif</span>
+
+<span class="w">  </span><span class="c1">// let&#39;s configure the security</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">bonding</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">mitm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">secure_connections</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_security</span><span class="p">(</span><span class="n">bonding</span><span class="p">,</span><span class="w"> </span><span class="n">mitm</span><span class="p">,</span><span class="w"> </span><span class="n">secure_connections</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// and some i/o and key config</span>
+<span class="w">  </span><span class="n">NimBLEDevice</span><span class="o">::</span><span class="n">setSecurityPasskey</span><span class="p">(</span><span class="mi">123456</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_io_capabilities</span><span class="p">(</span><span class="n">BLE_HS_IO_NO_INPUT_OUTPUT</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_init_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_resp_key_distribution</span><span class="p">(</span><span class="n">BLE_SM_PAIR_KEY_DIST_ENC</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">BLE_SM_PAIR_KEY_DIST_ID</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// you can create a service and add it to the server using</span>
+<span class="w">  </span><span class="c1">// ble_gatt_server.server().addService()</span>
+
+<span class="w">  </span><span class="c1">// now start the services</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_services</span><span class="p">();</span><span class="w"> </span><span class="c1">// starts the device info service and battery service</span>
+<span class="w">  </span><span class="c1">// NOTE: we could also directly start them ourselves if we wanted to</span>
+<span class="w">  </span><span class="c1">//      control the order of starting the services</span>
+<span class="w">  </span><span class="c1">// e.g.:</span>
+<span class="w">  </span><span class="c1">// ble_gatt_server.battery_service().start();</span>
+<span class="w">  </span><span class="c1">// ble_gatt_server.device_info_service().start();</span>
+
+<span class="w">  </span><span class="c1">// now start the gatt server</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// let&#39;s set some of the service data</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">battery_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">battery_service</span><span class="p">();</span>
+<span class="w">  </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="mi">99</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">device_info_service</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">device_info_service</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">vendor_source</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x01</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">vid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xCafe</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">pid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0xFace</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">product_version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x0100</span><span class="p">;</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_pnp_id</span><span class="p">(</span><span class="n">vendor_source</span><span class="p">,</span><span class="w"> </span><span class="n">vid</span><span class="p">,</span><span class="w"> </span><span class="n">pid</span><span class="p">,</span><span class="w"> </span><span class="n">product_version</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_manufacturer_name</span><span class="p">(</span><span class="s">&quot;ESP-CPP&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_model_number</span><span class="p">(</span><span class="s">&quot;esp-ble-01&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_serial_number</span><span class="p">(</span><span class="s">&quot;1234567890&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_software_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_firmware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+<span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_hardware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// set the advertising data</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisedData</span><span class="w"> </span><span class="n">adv_data</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// uint8_t flags = BLE_HS_ADV_F_DISC_LTD;</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BLE_HS_ADV_F_DISC_GEN</span><span class="p">;</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setFlags</span><span class="p">(</span><span class="n">flags</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setName</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setAppearance</span><span class="p">((</span><span class="kt">uint16_t</span><span class="p">)</span><span class="n">espp</span><span class="o">::</span><span class="n">BleAppearance</span><span class="o">::</span><span class="n">GENERIC_COMPUTER</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">addTxPower</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertisement_data</span><span class="p">(</span><span class="n">adv_data</span><span class="p">);</span>
+
+<span class="cp">#if CONFIG_COMPILER_CXX_EXCEPTIONS</span>
+<span class="w">  </span><span class="c1">// let&#39;s test and use the BLE menu (CLI)</span>
+<span class="w">  </span><span class="c1">// turn off some of the logs so that it doesn&#39;t clutter up the CLI</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_log_level</span><span class="p">(</span><span class="n">espp</span><span class="o">::</span><span class="n">Logger</span><span class="o">::</span><span class="n">Verbosity</span><span class="o">::</span><span class="n">WARN</span><span class="p">);</span>
+<span class="w">  </span><span class="c1">// and make the CLI</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">ble_menu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServerMenu</span><span class="p">(</span><span class="n">ble_gatt_server</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cli</span><span class="o">::</span><span class="n">SetColor</span><span class="p">();</span>
+<span class="w">  </span><span class="n">cli</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">cli</span><span class="p">(</span><span class="n">ble_menu</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+<span class="w">  </span><span class="n">cli</span><span class="p">.</span><span class="n">ExitAction</span><span class="p">([](</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">out</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">out</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Goodbye and thanks for all the fish.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">});</span>
+
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">Cli</span><span class="w"> </span><span class="nf">input</span><span class="p">(</span><span class="n">cli</span><span class="p">);</span>
+<span class="w">  </span><span class="n">input</span><span class="p">.</span><span class="n">SetInputHistorySize</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span>
+<span class="w">  </span><span class="n">input</span><span class="p">.</span><span class="n">Start</span><span class="p">();</span><span class="w"> </span><span class="c1">// this will not return until the user enters the `exit` command.</span>
+<span class="cp">#endif</span>
+
+<span class="w">  </span><span class="c1">// The menu has finished, so let&#39;s go into a loop to keep the device running</span>
+<span class="w">  </span><span class="c1">// now lets start advertising</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// now lets update the battery level every second for a little while</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">now</span><span class="p">();</span>
+
+<span class="w">    </span><span class="c1">// update the battery level</span>
+<span class="w">    </span><span class="n">battery_service</span><span class="p">.</span><span class="n">set_battery_level</span><span class="p">(</span><span class="n">battery_level</span><span class="p">);</span>
+<span class="w">    </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">battery_level</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="mi">100</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// sleep</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_until</span><span class="p">(</span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="n">s</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+</pre></div>
+</div>
+ </p>
+</section>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17BleGattServerMenu17BleGattServerMenuENSt17reference_wrapperIN4espp13BleGattServerEEE">
+<span id="_CPPv3N4espp17BleGattServerMenu17BleGattServerMenuENSt17reference_wrapperIN4espp13BleGattServerEEE"></span><span id="_CPPv2N4espp17BleGattServerMenu17BleGattServerMenuENSt17reference_wrapperIN4espp13BleGattServerEEE"></span><span id="espp::BleGattServerMenu::BleGattServerMenu__std::reference_wrapper:espp::BleGattServer:"></span><span class="target" id="classespp_1_1BleGattServerMenu_1a4e2e71b1b203f2b7a86927cde35f8a39"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BleGattServerMenu</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">reference_wrapper</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">espp</span></span><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServerE" title="espp::BleGattServer"><span class="n"><span class="pre">BleGattServer</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">server</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17BleGattServerMenu17BleGattServerMenuENSt17reference_wrapperIN4espp13BleGattServerEEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Construct a new <a class="reference internal" href="../i2c.html#classespp_1_1I2cMenu"><span class="std std-ref">I2cMenu</span></a> object. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>i2c</strong> – A reference to the <a class="reference internal" href="../i2c.html#classespp_1_1I2c"><span class="std std-ref">I2c</span></a> bus to interact with. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4espp17BleGattServerMenu3getENSt11string_viewENSt11string_viewE">
+<span id="_CPPv3N4espp17BleGattServerMenu3getENSt11string_viewENSt11string_viewE"></span><span id="_CPPv2N4espp17BleGattServerMenu3getENSt11string_viewENSt11string_viewE"></span><span id="espp::BleGattServerMenu::get__std::string_view.std::string_view"></span><span class="target" id="classespp_1_1BleGattServerMenu_1ae5dfabb551bd579cc133066412afd45f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">cli</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Menu</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">name</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;ble&quot;</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string_view</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">description</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="s"><span class="pre">&quot;BLE</span> <span class="pre">GATT</span> <span class="pre">Server</span> <span class="pre">menu&quot;</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp17BleGattServerMenu3getENSt11string_viewENSt11string_viewE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Get the <a class="reference internal" href="#classespp_1_1BleGattServer"><span class="std std-ref">BleGattServer</span></a> menu. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The name of the menu. </p></li>
+<li><p><strong>description</strong> – The description of the menu. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A unique pointer to the <a class="reference internal" href="#classespp_1_1BleGattServer"><span class="std std-ref">BleGattServer</span></a> menu that you can use to add to a CLI. </p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</dd></dl>
+
 </section>
 </section>
 </section>

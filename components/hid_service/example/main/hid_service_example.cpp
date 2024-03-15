@@ -43,7 +43,13 @@ extern "C" void app_main(void) {
           },
   });
   ble_gatt_server.init(device_name);
+#if CONFIG_BT_NIMBLE_EXT_ADV
+#error                                                                                             \
+    "This example does not support extended advertising, as iOS does not seem to show ext advertisements in their bluetooth settings menu (even if you turn on legacy advertising)"
+#endif
+#if !CONFIG_BT_NIMBLE_EXT_ADV
   ble_gatt_server.set_advertise_on_disconnect(true);
+#endif
 
   // for HID we need to set some security
   bool bonding = true;
@@ -128,22 +134,21 @@ extern "C" void app_main(void) {
   device_info_service.set_firmware_version("1.0.0");
   device_info_service.set_hardware_version("1.0.0");
 
+  // NOTE: iOS does not seem to show ext advertisements in their bluetooth
+  // settings menu (even if you turn on legacy advertising)
+
   // now lets start advertising
-  espp::BleGattServer::AdvertisingData adv_data = {
-      .name = device_name,
-      .appearance = 0x03C4, // Gamepad
-      .services =
-          {
-              // these are the services that we want to advertise
-              hid_service.uuid(), // hid service
-          },
-      .service_data =
-          {
-              // these are the service data that we want to advertise
-          },
-  };
-  espp::BleGattServer::AdvertisingParameters adv_params = {};
-  ble_gatt_server.start_advertising(adv_data, adv_params);
+  uint32_t advertise_duration_ms = 0; // 0 means never stop
+  espp::BleGattServer::AdvertisedData adv_data;
+  // uint8_t flags = BLE_HS_ADV_F_DISC_LTD;
+  uint8_t flags = BLE_HS_ADV_F_DISC_GEN;
+  adv_data.setFlags(flags);
+  adv_data.setName(device_name);
+  adv_data.setAppearance((uint16_t)espp::BleAppearance::GAMEPAD);
+  adv_data.setPartialServices16({hid_service.uuid()});
+  adv_data.addTxPower();
+  ble_gatt_server.set_advertisement_data(adv_data);
+  ble_gatt_server.start_advertising(advertise_duration_ms);
 
   // now lets update the battery level and send an input report every second
   uint8_t battery_level = 99;

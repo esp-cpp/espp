@@ -25,6 +25,24 @@ protected:
       : server_(server) {}
   BleGattServer *server_{nullptr};
 };
+
+#if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+/// Class for handling GATT server advertising callbacks, as required by NimBLE
+/// \note This class is not intended to be used directly by the user
+/// \note This class is only available if CONFIG_BT_NIMBLE_EXT_ADV is enabled
+class BleGattServerAdvertisingCallbacks : public NimBLEExtAdvertisingCallbacks {
+public:
+  virtual void onStopped(NimBLEExtAdvertising *pAdv, int reason, uint8_t inst_id) override;
+  virtual void onScanRequest(NimBLEExtAdvertising *pAdv, uint8_t inst_id,
+                             NimBLEAddress addr) override;
+
+protected:
+  friend class BleGattServer;
+  explicit BleGattServerAdvertisingCallbacks(BleGattServer *server)
+      : server_(server) {}
+  BleGattServer *server_{nullptr};
+};
+#endif // CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 } // namespace espp
 
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)

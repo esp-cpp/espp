@@ -37,7 +37,13 @@ extern "C" void app_main(void) {
           },
   });
   ble_gatt_server.init(device_name);
+#if CONFIG_BT_NIMBLE_EXT_ADV
+#error                                                                                             \
+    "This example does not support extended advertising, as GFPS does not recognize ext advertisements"
+#endif
+#if !CONFIG_BT_NIMBLE_EXT_ADV
   ble_gatt_server.set_advertise_on_disconnect(true);
+#endif
 
   // NOTE: we don't have to set security, since GFPS internally will set it to
   // what is required by the spec.
@@ -78,18 +84,16 @@ extern "C" void app_main(void) {
   device_info_service.set_hardware_version("1.0.0");
 
   // now lets start advertising
-  espp::BleGattServer::AdvertisingData adv_data = {
-      .name = device_name,
-      .appearance = 0x03C4, // Gamepad
-      .services = {},
-      .service_data =
-          {// these are the service data that we want to advertise
-           {gfps_service.uuid(), gfps_service.get_service_data()}},
-  };
-  espp::BleGattServer::AdvertisingParameters adv_params = {
-      .include_tx_power = true, // needed for gfps
-  };
-  ble_gatt_server.start_advertising(adv_data, adv_params);
+  espp::BleGattServer::AdvertisedData adv_data;
+  // uint8_t flags = BLE_HS_ADV_F_DISC_LTD;
+  uint8_t flags = BLE_HS_ADV_F_DISC_GEN;
+  adv_data.setFlags(flags);
+  adv_data.setName(device_name);
+  adv_data.setAppearance((uint16_t)espp::BleAppearance::GENERIC_DISPLAY);
+  adv_data.setServiceData(gfps_service.uuid(), gfps_service.get_service_data());
+  adv_data.addTxPower();
+  ble_gatt_server.set_advertisement_data(adv_data);
+  ble_gatt_server.start_advertising();
 
   // now lets update the battery level every second
   uint8_t battery_level = 99;
