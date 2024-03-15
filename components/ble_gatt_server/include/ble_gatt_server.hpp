@@ -61,6 +61,7 @@ public:
   /// @param advertising Pointer to the advertising object.
   /// @param reason The reason for stopping advertising.
   /// @param instance The advertising instance that was stopped.
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled.
   typedef std::function<void(NimBLEExtAdvertising *, int, uint8_t)>
       advertisement_stopped_callback_t;
 
@@ -69,6 +70,7 @@ public:
   /// @param advertising Pointer to the advertising object.
   /// @param instance The advertising instance that received the scan request.
   /// @param address The address of the device that sent the scan request.
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled.
   typedef std::function<void(NimBLEExtAdvertising *, uint8_t, NimBLEAddress)>
       scan_request_callback_t;
 #endif // CONFIG_BT_NIMBLE_EXT_ADV
@@ -80,6 +82,7 @@ public:
   /// @note This is called when advertising is complete, not when the device is
   ///       actually advertising. It will not be called if the advertisement
   ///       duration is 0 (i.e. no timeout).
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled.
   typedef std::function<void(NimBLEAdvertising *)> advertisement_complete_callback_t;
 #endif // !CONFIG_BT_NIMBLE_EXT_ADV
 
@@ -113,16 +116,23 @@ public:
                  ///  simply compare the passkey to NimBLEDevice::getSecurityPasskey().
 #if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
     advertisement_complete_callback_t advertisement_complete_callback =
-        nullptr; ///< Callback for when advertising is complete. NOTE: this is
-                 ///  called when advertising is complete, not when the device
-                 ///  is actually advertising. It will not be called if
-                 ///  the advertisement duration is 0 (i.e. no timeout)
+        nullptr; ///< Callback for when advertising is complete.
+                 ///  @note This is called when advertising is complete, not
+                 ///        when the device is actually advertising. It will not
+                 ///        be called if the advertisement duration is 0 (i.e.
+                 ///        no timeout)
+                 ///  @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV
+                 ///        is not enabled.
 #endif           // !CONFIG_BT_NIMBLE_EXT_ADV
 #if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
     advertisement_stopped_callback_t advertisement_stopped_callback =
         nullptr; ///< Callback for when advertising is stopped.
+                 ///  @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV
+                 ///        is enabled.
     scan_request_callback_t scan_request_callback =
         nullptr; ///< Callback for when a scan request is received.
+                 ///  @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV
+                 ///        is enabled.
 #endif           // CONFIG_BT_NIMBLE_EXT_ADV
   };
 
@@ -137,7 +147,7 @@ public:
   /// @brief Advertising parameters for the device.
   /// This struct contains the advertising parameters for the device.
   /// @see start_advertising
-  /// @note This struct is only used when CONFIG_BT_NIMBLE_EXT_ADV is not
+  /// @note This struct is only available when CONFIG_BT_NIMBLE_EXT_ADV is not
   ///       enabled, ane legacy advertising is used. Otherwise, use the
   ///       NimBLEExtAdvertisement class.
   struct AdvertisingParameters {
@@ -259,9 +269,9 @@ public:
 #if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
   /// Set whether to advertise on disconnect
   /// @param advertise_on_disconnect Whether to advertise on disconnect
-  /// @note This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not
-  ///       enabled, ane legacy advertising is used. Otherwise, you will
-  ///       have to manually start advertising after disconnecting.
+  /// @note This method is only available when CONFIG_BT_NIMBLE_EXT_ADV is not
+  ///       enabled, ane legacy advertising is used. Otherwise, you will have to
+  ///       manually start advertising after disconnecting.
   void set_advertise_on_disconnect(bool advertise_on_disconnect) {
     if (!server_) {
       logger_.error("Server not created");
@@ -276,21 +286,25 @@ public:
   /// Set the advertisement data for the device.
   /// @param advertising_data The advertising data for the device.
   /// @param instance The advertising instance to set the data for.
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled.
   void set_advertisement_data(const AdvertisedData &advertising_data, uint8_t instance = 0);
 
   /// Set the scan response data for the device.
   /// @param scan_response_data The scan response data for the device.
   /// @param instance The advertising instance to set the data for.
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled.
   void set_scan_response_data(const AdvertisedData &scan_response_data, uint8_t instance = 0);
 #endif // CONFIG_BT_NIMBLE_EXT_ADV
 
 #if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
   /// Set the advertisement data for the device.
   /// @param advertising_data The advertising data for the device.
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is disabled.
   void set_advertisement_data(const AdvertisedData &advertising_data);
 
   /// Set the scan response data for the device.
   /// @param scan_response_data The scan response data for the device.
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is disabled.
   void set_scan_response_data(const AdvertisedData &scan_response_data);
 #endif // CONFIG_BT_NIMBLE_EXT_ADV
 
@@ -314,6 +328,7 @@ public:
   /// Stop advertising
   /// This method stops advertising.
   /// @param instance The advertising instance to stop.
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled.
   void stop_advertising(uint8_t instance);
 
   /// Start Advertising using the previously set advertising data
@@ -323,6 +338,7 @@ public:
   ///                    the advertising will not timeout. If non-zero, the
   ///                    advertising will stop after the specified duration.
   /// @param instance The advertising instance to start.
+  /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled.
   void start_advertising(uint32_t duration_ms = 0, uint8_t instance = 0);
 #endif // CONFIG_BT_NIMBLE_EXT_ADV
 

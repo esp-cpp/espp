@@ -156,7 +156,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>BLE GATT Server</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/7d7cf820/docs/en/ble/ble_gatt_server.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/29123e9c/docs/en/ble/ble_gatt_server.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -174,13 +174,13 @@ adds standard battery service and device information service.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7d7cf820/components/ble_gatt_server/include/ble_appearances.hpp">components/ble_gatt_server/include/ble_appearances.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29123e9c/components/ble_gatt_server/include/ble_appearances.hpp">components/ble_gatt_server/include/ble_appearances.hpp</a></p></li>
 </ul>
 </section>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7d7cf820/components/ble_gatt_server/include/ble_gatt_server.hpp">components/ble_gatt_server/include/ble_gatt_server.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29123e9c/components/ble_gatt_server/include/ble_gatt_server.hpp">components/ble_gatt_server/include/ble_gatt_server.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -367,6 +367,10 @@ adds standard battery service and device information service.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer32advertisement_stopped_callback_tE">
 <span id="_CPPv3N4espp13BleGattServer32advertisement_stopped_callback_tE"></span><span id="_CPPv2N4espp13BleGattServer32advertisement_stopped_callback_tE"></span><span id="espp::BleGattServer::advertisement_stopped_callback_t"></span><span class="target" id="classespp_1_1BleGattServer_1aa58de0fe55a0f3d5ed8e24345fcd1906"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">NimBLEExtAdvertising</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_stopped_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer32advertisement_stopped_callback_tE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback for when advertising is stopped. This callback is called when advertising is stopped. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Param advertising</dt>
 <dd class="field-odd"><p>Pointer to the advertising object. </p>
@@ -384,6 +388,10 @@ adds standard battery service and device information service.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer23scan_request_callback_tE">
 <span id="_CPPv3N4espp13BleGattServer23scan_request_callback_tE"></span><span id="_CPPv2N4espp13BleGattServer23scan_request_callback_tE"></span><span id="espp::BleGattServer::scan_request_callback_t"></span><span class="target" id="classespp_1_1BleGattServer_1a1f75eb7f24a7d26a5fe08146fb4d00db"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">NimBLEExtAdvertising</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">uint8_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">NimBLEAddress</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scan_request_callback_t</span></span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer23scan_request_callback_tE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback for when a scan request is received. This callback is called when a scan request is received. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Param advertising</dt>
 <dd class="field-odd"><p>Pointer to the advertising object. </p>
@@ -404,6 +412,10 @@ adds standard battery service and device information service.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This is called when advertising is complete, not when the device is actually advertising. It will not be called if the advertisement duration is 0 (i.e. no timeout). </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled. </p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Param advertising</dt>
@@ -502,7 +514,7 @@ adds standard battery service and device information service.</p>
 <dd><p>Set whether to advertise on disconnect </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not enabled, ane legacy advertising is used. Otherwise, you will have to manually start advertising after disconnecting. </p>
+<p>This method is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled, ane legacy advertising is used. Otherwise, you will have to manually start advertising after disconnecting. </p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -515,6 +527,10 @@ adds standard battery service and device information service.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData7uint8_t">
 <span id="_CPPv3N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData7uint8_t"></span><span id="_CPPv2N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData7uint8_t"></span><span id="espp::BleGattServer::set_advertisement_data__AdvertisedDataCR.uint8_t"></span><span class="target" id="classespp_1_1BleGattServer_1aaa2672a2825b4028175809af89ace7e6"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_advertisement_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AdvertisedData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">advertising_data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData7uint8_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the advertisement data for the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -529,6 +545,10 @@ adds standard battery service and device information service.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData7uint8_t">
 <span id="_CPPv3N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData7uint8_t"></span><span id="_CPPv2N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData7uint8_t"></span><span id="espp::BleGattServer::set_scan_response_data__AdvertisedDataCR.uint8_t"></span><span class="target" id="classespp_1_1BleGattServer_1a9bc15b42f9850516fe75fc7fb5df868d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scan_response_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AdvertisedData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">scan_response_data</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData7uint8_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the scan response data for the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -543,6 +563,10 @@ adds standard battery service and device information service.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData">
 <span id="_CPPv3N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData"></span><span id="_CPPv2N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData"></span><span id="espp::BleGattServer::set_advertisement_data__AdvertisedDataCR"></span><span class="target" id="classespp_1_1BleGattServer_1a6c8e9d2000f9686d36b5b9f18b310bc3"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_advertisement_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AdvertisedData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">advertising_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22set_advertisement_dataERK14AdvertisedData" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the advertisement data for the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is disabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>advertising_data</strong> – The advertising data for the device. </p>
@@ -554,6 +578,10 @@ adds standard battery service and device information service.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData">
 <span id="_CPPv3N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData"></span><span id="_CPPv2N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData"></span><span id="espp::BleGattServer::set_scan_response_data__AdvertisedDataCR"></span><span class="target" id="classespp_1_1BleGattServer_1a65e97d75a2bc88dc185a6f656cf01f7a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_scan_response_data</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">AdvertisedData</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">scan_response_data</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer22set_scan_response_dataERK14AdvertisedData" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Set the scan response data for the device. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is disabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>scan_response_data</strong> – The scan response data for the device. </p>
@@ -571,6 +599,10 @@ adds standard battery service and device information service.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer16stop_advertisingE7uint8_t">
 <span id="_CPPv3N4espp13BleGattServer16stop_advertisingE7uint8_t"></span><span id="_CPPv2N4espp13BleGattServer16stop_advertisingE7uint8_t"></span><span id="espp::BleGattServer::stop_advertising__uint8_t"></span><span class="target" id="classespp_1_1BleGattServer_1a0f44cefc5efed39049aca8a96e682814"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">stop_advertising</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instance</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer16stop_advertisingE7uint8_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Stop advertising This method stops advertising. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>instance</strong> – The advertising instance to stop. </p>
@@ -582,6 +614,10 @@ adds standard battery service and device information service.</p>
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer17start_advertisingE8uint32_t7uint8_t">
 <span id="_CPPv3N4espp13BleGattServer17start_advertisingE8uint32_t7uint8_t"></span><span id="_CPPv2N4espp13BleGattServer17start_advertisingE8uint32_t7uint8_t"></span><span id="espp::BleGattServer::start_advertising__uint32_t.uint8_t"></span><span class="target" id="classespp_1_1BleGattServer_1a1a67b1db52ae3f76348d51a6ce7fd62c"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">start_advertising</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">uint32_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">duration_ms</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span>, <span class="n"><span class="pre">uint8_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">instance</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer17start_advertisingE8uint32_t7uint8_t" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Start Advertising using the previously set advertising data This method simply starts advertising using the previously set advertising data. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -910,7 +946,7 @@ adds standard battery service and device information service.</p>
 </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This struct is only used when CONFIG_BT_NIMBLE_EXT_ADV is not enabled, ane legacy advertising is used. Otherwise, use the NimBLEExtAdvertisement class. </p>
+<p>This struct is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled, ane legacy advertising is used. Otherwise, use the NimBLEExtAdvertisement class. </p>
 </div>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
@@ -1010,19 +1046,35 @@ adds standard battery service and device information service.</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE">
 <span id="_CPPv3N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE"></span><span id="espp::BleGattServer::Callbacks::advertisement_complete_callback__advertisement_complete_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1aad75eb35cdabe58c0a96f00533cc48aa"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer33advertisement_complete_callback_tE" title="espp::BleGattServer::advertisement_complete_callback_t"><span class="n"><span class="pre">advertisement_complete_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_complete_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks31advertisement_complete_callbackE" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Callback for when advertising is complete. NOTE: this is called when advertising is complete, not when the device is actually advertising. It will not be called if the advertisement duration is 0 (i.e. no timeout) </p>
+<dd><p>Callback for when advertising is complete. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is called when advertising is complete, not when the device is actually advertising. It will not be called if the advertisement duration is 0 (i.e. no timeout) </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is not enabled. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks30advertisement_stopped_callbackE">
 <span id="_CPPv3N4espp13BleGattServer9Callbacks30advertisement_stopped_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks30advertisement_stopped_callbackE"></span><span id="espp::BleGattServer::Callbacks::advertisement_stopped_callback__advertisement_stopped_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1acd7ea33506fc9aea20b2cd4aa10939a2"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer32advertisement_stopped_callback_tE" title="espp::BleGattServer::advertisement_stopped_callback_t"><span class="n"><span class="pre">advertisement_stopped_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">advertisement_stopped_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks30advertisement_stopped_callbackE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback for when advertising is stopped. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp13BleGattServer9Callbacks21scan_request_callbackE">
 <span id="_CPPv3N4espp13BleGattServer9Callbacks21scan_request_callbackE"></span><span id="_CPPv2N4espp13BleGattServer9Callbacks21scan_request_callbackE"></span><span id="espp::BleGattServer::Callbacks::scan_request_callback__scan_request_callback_t"></span><span class="target" id="structespp_1_1BleGattServer_1_1Callbacks_1a314e241f2851e4a3346c0577e031db80"></span><a class="reference internal" href="#_CPPv4N4espp13BleGattServer23scan_request_callback_tE" title="espp::BleGattServer::scan_request_callback_t"><span class="n"><span class="pre">scan_request_callback_t</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">scan_request_callback</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><a class="headerlink" href="#_CPPv4N4espp13BleGattServer9Callbacks21scan_request_callbackE" title="Permalink to this definition"></a><br /></dt>
 <dd><p>Callback for when a scan request is received. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled. </p>
+</div>
 </dd></dl>
 
 </div>
@@ -1055,7 +1107,7 @@ adds standard battery service and device information service.</p>
 <section id="id2">
 <h3>Header File<a class="headerlink" href="#id2" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7d7cf820/components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp">components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29123e9c/components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp">components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp</a></p></li>
 </ul>
 </section>
 <section id="id3">
@@ -1073,13 +1125,22 @@ adds standard battery service and device information service.</p>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N4espp33BleGattServerAdvertisingCallbacksE">
 <span id="_CPPv3N4espp33BleGattServerAdvertisingCallbacksE"></span><span id="_CPPv2N4espp33BleGattServerAdvertisingCallbacksE"></span><span id="espp::BleGattServerAdvertisingCallbacks"></span><span class="target" id="classespp_1_1BleGattServerAdvertisingCallbacks"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BleGattServerAdvertisingCallbacks</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><span class="n"><span class="pre">NimBLEExtAdvertisingCallbacks</span></span><a class="headerlink" href="#_CPPv4N4espp33BleGattServerAdvertisingCallbacksE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dd><p>Class for handling GATT server advertising callbacks, as required by NimBLE </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is not intended to be used directly by the user </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class is only available if CONFIG_BT_NIMBLE_EXT_ADV is enabled </p>
+</div>
+</dd></dl>
 
 </section>
 <section id="id4">
 <h3>Header File<a class="headerlink" href="#id4" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7d7cf820/components/ble_gatt_server/include/ble_gatt_server_menu.hpp">components/ble_gatt_server/include/ble_gatt_server_menu.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/29123e9c/components/ble_gatt_server/include/ble_gatt_server_menu.hpp">components/ble_gatt_server/include/ble_gatt_server_menu.hpp</a></p></li>
 </ul>
 </section>
 <section id="id5">
