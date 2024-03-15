@@ -154,7 +154,7 @@
           <li><a href="index.html">BLE APIs</a> &raquo;</li>
       <li>Google Fast Pair Service (GFPS) Service</li>
       <li class="wy-breadcrumbs-aside">
-              <a href="https://github.com/esp-cpp/espp/blob/ac1f3421/docs/en/ble/gfps_service.rst" class="fa fa-github"> Edit on GitHub</a>
+              <a href="https://github.com/esp-cpp/espp/blob/7d7cf820/docs/en/ble/gfps_service.rst" class="fa fa-github"> Edit on GitHub</a>
       </li>
   </ul>
   <hr/>
@@ -174,7 +174,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="header-file">
 <h3>Header File<a class="headerlink" href="#header-file" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ac1f3421/components/gfps_service/include/gfps_service.hpp">components/gfps_service/include/gfps_service.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7d7cf820/components/gfps_service/include/gfps_service.hpp">components/gfps_service/include/gfps_service.hpp</a></p></li>
 </ul>
 </section>
 <section id="classes">
@@ -225,7 +225,9 @@ account’s google devices and personalizing the name of the device.</p>
 <span class="w">          </span><span class="p">},</span>
 <span class="w">  </span><span class="p">});</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">init</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
+<span class="cp">#if !CONFIG_BT_NIMBLE_EXT_ADV</span>
 <span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertise_on_disconnect</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<span class="cp">#endif</span>
 
 <span class="w">  </span><span class="c1">// NOTE: we don&#39;t have to set security, since GFPS internally will set it to</span>
 <span class="w">  </span><span class="c1">// what is required by the spec.</span>
@@ -266,18 +268,16 @@ account’s google devices and personalizing the name of the device.</p>
 <span class="w">  </span><span class="n">device_info_service</span><span class="p">.</span><span class="n">set_hardware_version</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// now lets start advertising</span>
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingData</span><span class="w"> </span><span class="n">adv_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">device_name</span><span class="p">,</span>
-<span class="w">      </span><span class="p">.</span><span class="n">appearance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mh">0x03C4</span><span class="p">,</span><span class="w"> </span><span class="c1">// Gamepad</span>
-<span class="w">      </span><span class="p">.</span><span class="n">services</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{},</span>
-<span class="w">      </span><span class="p">.</span><span class="n">service_data</span><span class="w"> </span><span class="o">=</span>
-<span class="w">          </span><span class="p">{</span><span class="c1">// these are the service data that we want to advertise</span>
-<span class="w">           </span><span class="p">{</span><span class="n">gfps_service</span><span class="p">.</span><span class="n">uuid</span><span class="p">(),</span><span class="w"> </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">get_service_data</span><span class="p">()}},</span>
-<span class="w">  </span><span class="p">};</span>
-<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisingParameters</span><span class="w"> </span><span class="n">adv_params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="p">.</span><span class="n">include_tx_power</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// needed for gfps</span>
-<span class="w">  </span><span class="p">};</span>
-<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">(</span><span class="n">adv_data</span><span class="p">,</span><span class="w"> </span><span class="n">adv_params</span><span class="p">);</span>
+<span class="w">  </span><span class="n">espp</span><span class="o">::</span><span class="n">BleGattServer</span><span class="o">::</span><span class="n">AdvertisedData</span><span class="w"> </span><span class="n">adv_data</span><span class="p">;</span>
+<span class="w">  </span><span class="c1">// uint8_t flags = BLE_HS_ADV_F_DISC_LTD;</span>
+<span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">BLE_HS_ADV_F_DISC_GEN</span><span class="p">;</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setFlags</span><span class="p">(</span><span class="n">flags</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setName</span><span class="p">(</span><span class="n">device_name</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setAppearance</span><span class="p">((</span><span class="kt">uint16_t</span><span class="p">)</span><span class="n">espp</span><span class="o">::</span><span class="n">BleAppearance</span><span class="o">::</span><span class="n">GENERIC_DISPLAY</span><span class="p">);</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">setServiceData</span><span class="p">(</span><span class="n">gfps_service</span><span class="p">.</span><span class="n">uuid</span><span class="p">(),</span><span class="w"> </span><span class="n">gfps_service</span><span class="p">.</span><span class="n">get_service_data</span><span class="p">());</span>
+<span class="w">  </span><span class="n">adv_data</span><span class="p">.</span><span class="n">addTxPower</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">set_advertisement_data</span><span class="p">(</span><span class="n">adv_data</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ble_gatt_server</span><span class="p">.</span><span class="n">start_advertising</span><span class="p">();</span>
 
 <span class="w">  </span><span class="c1">// now lets update the battery level every second</span>
 <span class="w">  </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">battery_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99</span><span class="p">;</span>
@@ -576,7 +576,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="id1">
 <h3>Header File<a class="headerlink" href="#id1" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ac1f3421/components/gfps_service/include/gfps_characteristic_callbacks.hpp">components/gfps_service/include/gfps_characteristic_callbacks.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7d7cf820/components/gfps_service/include/gfps_characteristic_callbacks.hpp">components/gfps_service/include/gfps_characteristic_callbacks.hpp</a></p></li>
 </ul>
 </section>
 <section id="id2">
@@ -935,7 +935,7 @@ account’s google devices and personalizing the name of the device.</p>
 <section id="id3">
 <h3>Header File<a class="headerlink" href="#id3" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/ac1f3421/components/gfps_service/include/gfps.hpp">components/gfps_service/include/gfps.hpp</a></p></li>
+<li><p><a class="reference external" href="https://github.com/esp-cpp/espp/blob/7d7cf820/components/gfps_service/include/gfps.hpp">components/gfps_service/include/gfps.hpp</a></p></li>
 </ul>
 </section>
 </section>

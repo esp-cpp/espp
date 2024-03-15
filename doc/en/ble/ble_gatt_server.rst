@@ -10,5 +10,7 @@ adds standard battery service and device information service.
 API Reference
 -------------
 
+.. include-build-file:: inc/ble_appearances.inc
 .. include-build-file:: inc/ble_gatt_server.inc
+.. include-build-file:: inc/ble_gatt_server_callbacks.inc
 .. include-build-file:: inc/ble_gatt_server_menu.inc
