@@ -43,15 +43,15 @@ void BleGattServer::set_scan_response_data(const AdvertisedData &scan_response_d
   advertising->setScanResponseData(const_cast<AdvertisedData &>(scan_response_data));
 }
 
-void BleGattServer::start_advertising(const AdvertisingParameters &advertising_params) {
+bool BleGattServer::start_advertising(const AdvertisingParameters &advertising_params) {
   if (!server_) {
     logger_.error("Server not created");
-    return;
+    return false;
   }
   auto advertising = NimBLEDevice::getAdvertising();
   if (!advertising) {
     logger_.error("Advertising not created");
-    return;
+    return false;
   }
 
   logger_.info("Starting legacy advertising");
@@ -107,17 +107,18 @@ void BleGattServer::start_advertising(const AdvertisingParameters &advertising_p
   if (!success) {
     logger_.error("Failed to start advertising");
   }
+  return success;
 }
 
-void BleGattServer::start_advertising(uint32_t duration_ms, NimBLEAddress *directed_address) {
+bool BleGattServer::start_advertising(uint32_t duration_ms, NimBLEAddress *directed_address) {
   if (!server_) {
     logger_.error("Server not created");
-    return;
+    return false;
   }
   auto advertising = NimBLEDevice::getAdvertising();
   if (!advertising) {
     logger_.error("Advertising not created");
-    return;
+    return false;
   }
   logger_.info("Starting legacy advertising for {} ms", duration_ms);
   // assume connectable
@@ -133,6 +134,7 @@ void BleGattServer::start_advertising(uint32_t duration_ms, NimBLEAddress *direc
   if (!success) {
     logger_.error("Failed to start advertising");
   }
+  return success;
 }
 
 #endif // !CONFIG_BT_NIMBLE_EXT_ADV

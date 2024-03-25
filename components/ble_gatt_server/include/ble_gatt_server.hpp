@@ -203,7 +203,13 @@ public:
 
   /// Initialize the GATT server
   /// This method creates the GATT server and sets the callbacks to this class.
-  void init(const std::string &device_name) {
+  /// It also initializes the device info and battery services.
+  /// @param device_name The name of the device.
+  /// @note This method must be called before creating any other services or
+  ///       characteristics.
+  /// @note This method must be called before starting the server.
+  /// @return Whether the GATT server was initialized successfully.
+  bool init(const std::string &device_name) {
     logger_.info("Initializing GATT server with device name: '{}'", device_name);
     // create the device
     NimBLEDevice::init(device_name);
@@ -213,7 +219,7 @@ public:
     server_ = NimBLEDevice::createServer();
     if (!server_) {
       logger_.error("Failed to create server");
-      return;
+      return false;
     }
 
     // set the server callbacks
@@ -226,6 +232,8 @@ public:
     logger_.info("Creating battery service");
     // create the battery service
     battery_service_.init(server_);
+
+    return true;
   }
 
   /// Deinitialize the GATT server
@@ -258,12 +266,14 @@ public:
   /// This method starts the GATT server.
   /// This method must be called after the server has been initialized, and
   /// after any services / characteristics have been added to the server.
-  void start() {
+  /// @return Whether the server was started successfully.
+  bool start() {
     if (!server_) {
       logger_.error("Server not created");
-      return;
+      return false;
     }
     server_->start();
+    return true;
   }
 
 #if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
@@ -338,8 +348,9 @@ public:
   ///                    the advertising will not timeout. If non-zero, the
   ///                    advertising will stop after the specified duration.
   /// @param instance The advertising instance to start.
+  /// @return Whether advertising was started successfully.
   /// @note This is only available when CONFIG_BT_NIMBLE_EXT_ADV is enabled.
-  void start_advertising(uint32_t duration_ms = 0, uint8_t instance = 0);
+  bool start_advertising(uint32_t duration_ms = 0, uint8_t instance = 0);
 #endif // CONFIG_BT_NIMBLE_EXT_ADV
 
 #if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
@@ -347,11 +358,12 @@ public:
   /// This method simply starts advertising using the previously set advertising
   /// data.
   /// @param params The advertising parameters for the device.
+  /// @return Whether advertising was started successfully.
   /// @note This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not
   ///       enabled, ane legacy advertising is used. Otherwise, use the
   ///       NimBLEExtAdvertisement class for advertising and setting the
   ///       advertising parameters.
-  void start_advertising(const AdvertisingParameters &params);
+  bool start_advertising(const AdvertisingParameters &params);
 
   /// Start Advertising using the previously set advertising data
   /// This method simply starts advertising using the previously set advertising
@@ -360,9 +372,10 @@ public:
   ///                   If 0, the advertising will not timeout. If non-zero,
   ///                   the advertising will stop after the specified duration.
   /// @param directed_address The address to direct advertising to, if any.
+  /// @return Whether advertising was started successfully.
   /// @note This method is only used when CONFIG_BT_NIMBLE_EXT_ADV is not
   ///       enabled, ane legacy advertising is used.
-  void start_advertising(uint32_t duration_ms = 0, NimBLEAddress *directed_address = nullptr);
+  bool start_advertising(uint32_t duration_ms = 0, NimBLEAddress *directed_address = nullptr);
 #endif // CONFIG_BT_NIMBLE_EXT_ADV
 
   /// @brief Get the GATT server.
