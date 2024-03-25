@@ -69,15 +69,15 @@ void BleGattServer::stop_advertising(uint8_t instance) {
   advertising->stop(instance);
 }
 
-void BleGattServer::start_advertising(uint32_t duration_ms, uint8_t instance) {
+bool BleGattServer::start_advertising(uint32_t duration_ms, uint8_t instance) {
   if (!server_) {
     logger_.error("Server not created");
-    return;
+    return false;
   }
   auto advertising = NimBLEDevice::getAdvertising();
   if (!advertising) {
     logger_.error("Advertising not created");
-    return;
+    return false;
   }
 
   logger_.info("Starting ext advertising for instance {} with duration {} ms", instance,
@@ -91,6 +91,7 @@ void BleGattServer::start_advertising(uint32_t duration_ms, uint8_t instance) {
   if (!success) {
     logger_.error("Failed to start advertising for instance {}", instance);
   }
+  return success;
 }
 
 #endif // CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
