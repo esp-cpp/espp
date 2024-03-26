@@ -1,0 +1,46 @@
+name: Build and Publish Documentation (Pushes)
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  build-and-deploy-docs:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install doxygen
+          pip install -r doc/requirements.txt
+
+      - name: Checkout main branch
+        continue-on-error: true
+        run: git checkout --track origin/main
+
+      - name: Build Documentation
+        run: |
+          cd doc
+          build-docs -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./
+          cp -r _build/en/esp32/html/* ../docs/.
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          force_orphan: true
