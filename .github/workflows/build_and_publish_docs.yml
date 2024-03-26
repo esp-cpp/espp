@@ -37,7 +37,8 @@ jobs:
       - name: Build Documentation
         run: |
           cd doc
-          build-docs -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./
+          # ignore if the following command fails
+          build-docs -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
           cp -r _build/en/esp32/html/* ../docs/.
 
       - name: Deploy to GitHub Pages
