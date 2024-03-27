@@ -2,13 +2,5 @@
 # pip install --user -r requirements.txt
 #
 cairosvg
-
-# we have to pin these versions or we get a "this project needs sphinx v5.0" error
-# see https://github.com/sphinx-doc/sphinx/issues/11890
-sphinxcontrib-applehelp==1.0.4
-sphinxcontrib-devhelp==1.0.2
-sphinxcontrib-htmlhelp==2.0.1
-sphinxcontrib-qthelp==1.0.3
-sphinxcontrib-serializinghtml==1.1.5
-
-esp-docs==1.4.0
+sphinx==4.5.0
+esp-docs==1.8.0
