@@ -37,7 +37,8 @@ public:
    * @brief Configuration struct for the logger.
    */
   struct Config {
-    std::string_view tag; /**< The TAG that will be prepended to all logs. */
+    std::string_view tag;    /**< The TAG that will be prepended to all logs. */
+    bool include_time{true}; /**< Include the time in the log. */
     std::chrono::duration<float> rate_limit{
         0}; /**< The rate limit for the logger. Optional, if <= 0 no rate limit. @note Only calls
                that have _rate_limited suffixed will be rate limited. */
@@ -70,6 +71,14 @@ public:
   }
 
   /**
+   * @brief Whether to include the time in the log.
+   * @param include_time Whether to include the time in the log.
+   * @note The time is in seconds since boot and is represented as a floating
+   *       point number with precision to the millisecond.
+   */
+  void set_include_time(bool include_time) { include_time_ = include_time; }
+
+  /**
    * @brief Change the rate limit for the logger.
    * @param rate_limit The new rate limit.
    * @note Only calls that have _rate_limited suffixed will be rate limited.
@@ -97,8 +106,13 @@ public:
     if (level_ > Verbosity::DEBUG)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
+    if (include_time_) {
+      std::lock_guard<std::mutex> lock(tag_mutex_);
+      fmt::print(fg(fmt::color::gray), "[{}/D][{:.3f}]: {}\n", tag_, get_time(), msg);
+    } else {
+      std::lock_guard<std::mutex> lock(tag_mutex_);
+      fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
+    }
   }
 
   /**
@@ -110,8 +124,13 @@ public:
     if (level_ > Verbosity::INFO)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
+    if (include_time_) {
+      std::lock_guard<std::mutex> lock(tag_mutex_);
+      fmt::print(fg(fmt::terminal_color::green), "[{}/I][{:.3f}]: {}\n", tag_, get_time(), msg);
+    } else {
+      std::lock_guard<std::mutex> lock(tag_mutex_);
+      fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
+    }
   }
 
   /**
@@ -123,8 +142,13 @@ public:
     if (level_ > Verbosity::WARN)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
+    if (include_time_) {
+      std::lock_guard<std::mutex> lock(tag_mutex_);
+      fmt::print(fg(fmt::terminal_color::yellow), "[{}/W][{:.3f}]: {}\n", tag_, get_time(), msg);
+    } else {
+      std::lock_guard<std::mutex> lock(tag_mutex_);
+      fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
+    }
   }
 
   /**
@@ -136,8 +160,13 @@ public:
     if (level_ > Verbosity::ERROR)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
+    if (include_time_) {
+      std::lock_guard<std::mutex> lock(tag_mutex_);
+      fmt::print(fg(fmt::terminal_color::red), "[{}/E][{:.3f}]: {}\n", tag_, get_time(), msg);
+    } else {
+      std::lock_guard<std::mutex> lock(tag_mutex_);
+      fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
+    }
   }
 
   /**
@@ -156,9 +185,8 @@ public:
         return;
       last_print_ = now;
     }
-    auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
+    // forward the arguments to the debug function
+    debug(rt_fmt_str, std::forward<Args>(args)...);
   }
 
   /**
@@ -177,9 +205,8 @@ public:
         return;
       last_print_ = now;
     }
-    auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
+    // forward the arguments to the info function
+    info(rt_fmt_str, std::forward<Args>(args)...);
   }
 
   /**
@@ -198,9 +225,8 @@ public:
         return;
       last_print_ = now;
     }
-    auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
+    // forward the arguments to the warn function
+    warn(rt_fmt_str, std::forward<Args>(args)...);
   }
 
   /**
@@ -219,12 +245,30 @@ public:
         return;
       last_print_ = now;
     }
-    auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
+    // forward the arguments to the error function
+    error(rt_fmt_str, std::forward<Args>(args)...);
   }
 
 protected:
+  /**
+   *   Start time for the logging system.
+   */
+  static std::chrono::steady_clock::time_point start_time_;
+
+  /**
+   *   Get the current time in seconds since the start of the logging system.
+   *   @return time in seconds since the start of the logging system.
+   */
+  static auto get_time() {
+    // get the elapsed time since the start of the logging system as floating
+    // point seconds
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration<float>(now - start_time_).count();
+  }
+
+  /**
+   *   Mutex for the tag.
+   */
   std::mutex tag_mutex_;
 
   /**
@@ -242,6 +286,11 @@ protected:
    *   Last time a log was printed. Used for rate limiting.
    */
   std::chrono::high_resolution_clock::time_point last_print_{};
+
+  /**
+   *   Whether to include the time in the log.
+   */
+  std::atomic<bool> include_time_{true};
 
   /**
    *   Current verbosity of the logger. Determines what will be printed to
