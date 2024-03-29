@@ -192,10 +192,11 @@ protected:
   /// @param out The output stream to write to.
   void print_connected_devices(std::ostream &out) {
     std::string output = "";
-    auto addresses = server_.get().get_connected_devices();
-    output += fmt::format("Connected devices: {}\n", addresses.size());
-    for (auto &addr : addresses) {
-      output += fmt::format("Connected device: {}\n", addr.toString());
+    auto infos = server_.get().get_connected_device_infos();
+    output += fmt::format("Connected devices: {}\n", infos.size());
+    for (auto &info : infos) {
+      output += fmt::format("Connected device: {} '{}'\n", info.getAddress().toString(),
+                            server_.get().get_connected_device_name(info));
     }
     out << output;
   }

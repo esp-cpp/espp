@@ -122,8 +122,29 @@ extern "C" void app_main(void) {
 
   // now lets update the battery level every second for a little while
   uint8_t battery_level = 99;
+  bool was_connected = false;
   while (true) {
     auto start = std::chrono::steady_clock::now();
+
+    // if we are now connected, but were not, then get the services
+    if (ble_gatt_server.is_connected() && !was_connected) {
+      was_connected = true;
+      auto connected_device_infos = ble_gatt_server.get_connected_device_infos();
+      logger.info("Connected devices: {}", connected_device_infos.size());
+      std::vector<std::string> connected_device_names;
+      std::transform(connected_device_infos.begin(), connected_device_infos.end(),
+                     std::back_inserter(connected_device_names),
+                     [&](auto &info) { return ble_gatt_server.get_connected_device_name(info); });
+      logger.info("            Names: {}", connected_device_names);
+    } else if (!ble_gatt_server.is_connected()) {
+      was_connected = false;
+    }
+
+    if (!ble_gatt_server.is_connected()) {
+      // sleep
+      std::this_thread::sleep_until(start + 1s);
+      continue;
+    }
 
     // update the battery level
     battery_service.set_battery_level(battery_level);

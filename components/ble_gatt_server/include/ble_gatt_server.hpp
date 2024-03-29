@@ -222,6 +222,12 @@ public:
       return false;
     }
 
+    client_ = NimBLEDevice::createClient();
+    if (!client_) {
+      logger_.error("Failed to create client");
+      return false;
+    }
+
     // set the server callbacks
     server_->setCallbacks(new BleGattServerCallbacks(this));
 
@@ -253,6 +259,9 @@ public:
     // now deinitialize the services
     device_info_service_.deinit();
     battery_service_.deinit();
+    // clear the server and client
+    server_ = nullptr;
+    client_ = nullptr;
   }
 
   /// Start the services
@@ -444,20 +453,102 @@ public:
     return paired_devices;
   }
 
-  /// Get the connected devices
-  /// @return The connected devices as a vector of Addresses.
-  std::vector<NimBLEAddress> get_connected_devices() {
+  /// Get the connected device addresses
+  /// @return The addresses for the connected devices as a vector.
+  std::vector<NimBLEAddress> get_connected_device_addresses() {
     if (!server_) {
       logger_.error("Server not created");
       return {};
     }
-    std::vector<NimBLEAddress> connected_devices;
+    std::vector<NimBLEAddress> connected_addresses;
     auto peer_ids = server_->getPeerDevices();
     for (const auto &peer_id : peer_ids) {
       auto peer = server_->getPeerIDInfo(peer_id);
-      connected_devices.push_back(peer.getAddress());
+      connected_addresses.push_back(peer.getAddress());
     }
-    return connected_devices;
+    return connected_addresses;
+  }
+
+  /// Get the NimBLEConnInfo objects for the connected devices
+  /// @return The connected devices info as a vector of NimBLEConnInfo.
+  std::vector<NimBLEConnInfo> get_connected_device_infos() {
+    if (!server_) {
+      logger_.error("Server not created");
+      return {};
+    }
+    std::vector<NimBLEConnInfo> connected_devices_info;
+    auto peer_ids = server_->getPeerDevices();
+    for (const auto &peer_id : peer_ids) {
+      auto peer = server_->getPeerIDInfo(peer_id);
+      connected_devices_info.push_back(peer);
+    }
+    return connected_devices_info;
+  }
+
+  /// Get the connected device name
+  /// @param conn_info The connection information for the device.
+  /// @return The connected device name.
+  std::string get_connected_device_name(NimBLEConnInfo &conn_info) {
+    if (!server_) {
+      logger_.error("Server not created");
+      return {};
+    }
+    if (!client_) {
+      logger_.error("Client not created");
+      return {};
+    }
+    auto peer_address = conn_info.getAddress();
+    // since this connection is handled by the server, we won't manually
+    // connect, and instead inform the client that we are already connected
+    // using this conn handle
+    client_->setPeerAddress(peer_address);
+    client_->setConnId(conn_info.getConnHandle());
+    // refresh the services
+    client_->getServices(true);
+    // now get Generic Access Service
+    auto gas = client_->getService(NimBLEUUID("1800"));
+    if (!gas) {
+      logger_.error("Failed to get Generic Access Service");
+      return {};
+    }
+    // now get the Device Name characteristic
+    auto name_char = gas->getCharacteristic(NimBLEUUID("2A00"));
+    if (!name_char) {
+      logger_.error("Failed to get Device Name characteristic");
+      return {};
+    }
+    // make sure we can read it
+    if (!name_char->canRead()) {
+      logger_.error("Failed to read Device Name characteristic");
+      return {};
+    }
+    // and read it
+    return name_char->readValue();
+  }
+
+  /// Get the connected device names
+  /// @return The connected device names as a vector of strings.
+  /// @note This method will connect to each device to get the device name.
+  ///       This may take some time if there are many devices connected.
+  std::vector<std::string> get_connected_device_names() {
+    if (!server_) {
+      logger_.error("Server not created");
+      return {};
+    }
+    std::vector<std::string> connected_device_names;
+    auto peer_ids = server_->getPeerDevices();
+    for (const auto &peer_id : peer_ids) {
+      auto peer = server_->getPeerIDInfo(peer_id);
+      auto peer_name = get_connected_device_name(peer);
+      if (!peer_name.empty()) {
+        connected_device_names.push_back(peer_name);
+      } else {
+        logger_.error("Failed to get device name for connected device {}",
+                      peer.getAddress().toString());
+      }
+    }
+    logger_.info("Connected device names: {}", connected_device_names);
+    return connected_device_names;
   }
 
   /// Disconnect from all devices
@@ -484,6 +575,7 @@ protected:
 
   Callbacks callbacks_{};                 ///< The callbacks for the GATT server.
   NimBLEServer *server_{nullptr};         ///< The GATT server.
+  NimBLEClient *client_{nullptr};         ///< The client.
   DeviceInfoService device_info_service_; ///< The device info service.
   BatteryService battery_service_;        ///< The battery service.
 };
