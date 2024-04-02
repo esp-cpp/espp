@@ -34,6 +34,25 @@ namespace espp {
 /// used with any device.
 class DeviceInfoService : public BaseComponent {
 public:
+  /// Plug and Play ID
+  struct PnpId {
+    uint8_t vendor_id_source = 0x02; ///< 0x01 for Bluetooth SIG, 0x02 for USB
+    uint16_t vendor_id;              ///< Vendor ID
+    uint16_t product_id;             ///< Product ID
+    uint16_t product_version;        ///< Product version
+  };
+
+  /// Device Information
+  struct DeviceInfo {
+    std::string manufacturer_name; ///< Manufacturer name
+    std::string model_number;      ///< Model number
+    std::string serial_number;     ///< Serial number
+    std::string software_version;  ///< Software version
+    std::string firmware_version;  ///< Firmware version
+    std::string hardware_version;  ///< Hardware version
+    PnpId pnp_id;                  ///< Plug and Play ID
+  };
+
   /// Constructor
   /// \param log_level The log level for the component
   explicit DeviceInfoService(espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN)
@@ -81,6 +100,32 @@ public:
       return service_->getUUID();
     }
     return NimBLEUUID(SERVICE_UUID);
+  }
+
+  /// Set the device information
+  /// \param info The device information
+  /// \note This will set all the characteristics of the service to the values
+  ///       provided in the DeviceInfo struct
+  /// \note This must be called after the service has been initialized
+  void set_device_info(const DeviceInfo &info) {
+    if (!service_) {
+      logger_.error("Cannot set device info, service not created. Make sure to call init() first.");
+      return;
+    }
+    set_manufacturer_name(info.manufacturer_name);
+    set_model_number(info.model_number);
+    set_serial_number(info.serial_number);
+    set_software_version(info.software_version);
+    set_firmware_version(info.firmware_version);
+    set_hardware_version(info.hardware_version);
+    set_pnp_id(info.pnp_id);
+  }
+
+  /// Set the PnP ID
+  /// \param pnp_id The PnP ID
+  void set_pnp_id(const PnpId &pnp_id) {
+    set_pnp_id(pnp_id.vendor_id_source, pnp_id.vendor_id, pnp_id.product_id,
+               pnp_id.product_version);
   }
 
   /// Set the PnP ID
