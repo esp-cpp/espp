@@ -5,6 +5,10 @@
 #include <string>
 #include <string_view>
 
+#if defined(ESP_PLATFORM)
+#include <esp_timer.h>
+#endif
+
 #include "format.hpp"
 
 namespace espp {
@@ -108,7 +112,7 @@ public:
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
       std::lock_guard<std::mutex> lock(tag_mutex_);
-      fmt::print(fg(fmt::color::gray), "[{}/D][{:.3f}]: {}\n", tag_, get_time(), msg);
+      fmt::print(fg(fmt::color::gray), "[{}/D][{}]: {}\n", tag_, get_time(), msg);
     } else {
       std::lock_guard<std::mutex> lock(tag_mutex_);
       fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
@@ -126,7 +130,7 @@ public:
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
       std::lock_guard<std::mutex> lock(tag_mutex_);
-      fmt::print(fg(fmt::terminal_color::green), "[{}/I][{:.3f}]: {}\n", tag_, get_time(), msg);
+      fmt::print(fg(fmt::terminal_color::green), "[{}/I][{}]: {}\n", tag_, get_time(), msg);
     } else {
       std::lock_guard<std::mutex> lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
@@ -144,7 +148,7 @@ public:
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
       std::lock_guard<std::mutex> lock(tag_mutex_);
-      fmt::print(fg(fmt::terminal_color::yellow), "[{}/W][{:.3f}]: {}\n", tag_, get_time(), msg);
+      fmt::print(fg(fmt::terminal_color::yellow), "[{}/W][{}]: {}\n", tag_, get_time(), msg);
     } else {
       std::lock_guard<std::mutex> lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
@@ -162,7 +166,7 @@ public:
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
       std::lock_guard<std::mutex> lock(tag_mutex_);
-      fmt::print(fg(fmt::terminal_color::red), "[{}/E][{:.3f}]: {}\n", tag_, get_time(), msg);
+      fmt::print(fg(fmt::terminal_color::red), "[{}/E][{}]: {}\n", tag_, get_time(), msg);
     } else {
       std::lock_guard<std::mutex> lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
@@ -260,10 +264,19 @@ protected:
    *   @return time in seconds since the start of the logging system.
    */
   static auto get_time() {
+#if defined(ESP_PLATFORM)
+    // use esp_timer_get_time to get the time in microseconds
+    uint64_t time = esp_timer_get_time();
+    uint64_t seconds = time / 1e6f;
+    uint64_t milliseconds = (time % 1000000) / 1e3f;
+    return fmt::format("{}.{:03}", seconds, milliseconds);
+#else
     // get the elapsed time since the start of the logging system as floating
     // point seconds
     auto now = std::chrono::steady_clock::now();
-    return std::chrono::duration<float>(now - start_time_).count();
+    auto seconds = std::chrono::duration<float>(now - start_time_).count();
+    return fmt::format("{:.3f}", seconds);
+#endif
   }
 
   /**
