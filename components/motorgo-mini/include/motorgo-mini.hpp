@@ -81,14 +81,22 @@ protected:
   // current sense m2 U - note; the schmatic has the U and W swapped
   espp::AdcConfig current_sense_m2_u_ = {
       .unit = ADC_UNIT_2,
-      .channel = ADC1_CHANNEL_1,
+      .channel = ADC2_CHANNEL_1,
       .attenuation = ADC_ATTEN_DB_11,
   };
   // current sense m2 W - note; the schmatic has the U and W swapped
   espp::AdcConfig current_sense_m2_w_ = {
       .unit = ADC_UNIT_1,
-      .channel = ADC2_CHANNEL_7,
+      .channel = ADC1_CHANNEL_7,
       .attenuation = ADC_ATTEN_DB_11,
   };
+  espp::OneshotAdc adc_1({
+      .unit = ADC_UNIT_1,
+      .channels = {current_sense_m1_u_, current_sense_m1_w_, current_sense_m2_w_},
+  });
+  espp::OneshotAdc adc_2({
+      .unit = ADC_UNIT_2,
+      .channels = {current_sense_m2_u_},
+  });
 };
 } // namespace espp
