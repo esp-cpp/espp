@@ -118,6 +118,8 @@ extern "C" void app_main(void) {
     // now make the mt6701 which decodes the data
     using Mt6701 = espp::Mt6701<espp::Mt6701Interface::SSI>;
     Mt6701 mt6701({.read = [&](uint8_t *data, size_t len) -> bool {
+                     // we can use the SPI_TRANS_USE_RXDATA since our length is <= 4 bytes (32
+                     // bits), this means we can directly use the tarnsaction's rx_data field
                      spi_transaction_t t = {
                          .flags = SPI_TRANS_USE_RXDATA,
                          .cmd = 0,
