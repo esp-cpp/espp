@@ -307,8 +307,6 @@ protected:
     }
     // compute diff
     int diff = count_ - prev_count;
-    // update prev_count
-    prev_count = count_;
     // check for zero crossing
     if (diff > COUNTS_PER_REVOLUTION / 2) {
       // we crossed zero going clockwise (1 -> 359)

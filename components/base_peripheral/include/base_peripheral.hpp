@@ -102,7 +102,7 @@ public:
   ///      the constructor. If you need to change the probe function, consider
   ///      using the set_config function instead.
   /// \note This function is only available if UseAddress is true
-  void set_probe(probe_fn probe) requires(UseAddress) {
+  void set_probe(const probe_fn &probe) requires(UseAddress) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     base_config_.probe = probe;
   }
@@ -113,7 +113,7 @@ public:
   /// \note This should rarely be used, as the write function is usually set in
   ///       the constructor. If you need to change the write function, consider
   ///       using the set_config function instead.
-  void set_write(write_fn write) {
+  void set_write(const write_fn &write) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     base_config_.write = write;
   }
@@ -124,7 +124,7 @@ public:
   /// \note This should rarely be used, as the read function is usually set in
   ///      the constructor. If you need to change the read function, consider
   ///      using the set_config function instead.
-  void set_read(read_fn read) {
+  void set_read(const read_fn &read) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     base_config_.read = read;
   }
@@ -135,7 +135,7 @@ public:
   /// \note This should rarely be used, as the read register function is usually
   ///      set in the constructor. If you need to change the read register
   ///      function, consider using the set_config function instead.
-  void set_read_register(read_register_fn read_register) {
+  void set_read_register(const read_register_fn &read_register) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     base_config_.read_register = read_register;
   }
@@ -145,7 +145,7 @@ public:
   /// \note This function is thread safe
   /// \note This should rarely be used, as the write then read function is
   ///      usually set in the constructor. If you need to change the write then
-  void set_write_then_read(write_then_read_fn write_then_read) {
+  void set_write_then_read(const write_then_read_fn &write_then_read) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     base_config_.write_then_read = write_then_read;
   }
@@ -160,7 +160,7 @@ public:
   /// \note This delay is only used if the write_then_read function is not set to
   ///      a custom function and the write and read functions are separate
   ///      functions.
-  void set_separate_write_then_read_delay(std::chrono::milliseconds delay) {
+  void set_separate_write_then_read_delay(const std::chrono::milliseconds &delay) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     base_config_.separate_write_then_read_delay = delay;
   }
