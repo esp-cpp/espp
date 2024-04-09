@@ -43,8 +43,17 @@ public:
 
   I2c &get_external_i2c() { return external_i2c_; }
 
-  std::shared_ptr<Encoder> &get_encoder1() { return encoder1_; }
-  std::shared_ptr<Encoder> &get_encoder2() { return encoder2_; }
+  std::shared_ptr<Encoder> &encoder1() { return encoder1_; }
+  std::shared_ptr<Encoder> &encoder2() { return encoder2_; }
+
+  std::shared_ptr<espp::BldcDriver> &motor1_driver() { return motor1_driver_; }
+  std::shared_ptr<espp::BldcDriver> &motor2_driver() { return motor2_driver_; }
+
+  BldcMotor &motor1() { return *motor1_; }
+  BldcMotor &motor2() { return *motor2_; }
+
+  espp::OneshotAdc &adc1() { return adc_1; }
+  espp::OneshotAdc &adc2() { return adc_2; }
 
 protected:
   static constexpr auto ENCODER_1_CS_PIN = GPIO_NUM_37;
@@ -104,12 +113,12 @@ protected:
     encoder1_ = std::make_shared<Encoder>(
         Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool { return false; },
                         .velocity_filter = nullptr,
-                        .update_period = std::chrono::duration<float>(0.01f),
+                        .update_period = std::chrono::duration<float>(0.001f),
                         .log_level = espp::Logger::Verbosity::WARN});
     encoder2_ = std::make_shared<Encoder>(
         Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool { return false; },
                         .velocity_filter = nullptr,
-                        .update_period = std::chrono::duration<float>(0.01f),
+                        .update_period = std::chrono::duration<float>(0.001f),
                         .log_level = espp::Logger::Verbosity::WARN});
   }
 
