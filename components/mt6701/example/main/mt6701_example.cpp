@@ -126,7 +126,7 @@ extern "C" void app_main(void) {
                          .rxlength = len * 8,
                          .user = nullptr,
                      };
-                     esp_err_t err = spi_device_polling_transmit(encoder_spi_handle, &t);
+                     esp_err_t err = spi_device_transmit(encoder_spi_handle, &t);
                      if (err != ESP_OK) {
                        return false;
                      }
