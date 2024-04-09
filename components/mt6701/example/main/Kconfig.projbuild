@@ -36,4 +36,38 @@ menu "Example Configuration"
         help
             GPIO number for I2C Master data line.
 
+    config EXAMPLE_SPI_CLOCK_SPEED
+        int "SPI Clock Speed"
+        range 100000 15000000
+        default 10000000
+        help
+            SPI clock speed in Hz.
+
+    config EXAMPLE_SPI_MISO_GPIO
+        int "MISO GPIO Num"
+        range 0 50
+        default 12 if EXAMPLE_HARDWARE_QTPYPICO
+        default 12 if EXAMPLE_HARDWARE_QTPYS3
+        default 12 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for SPI Master In Slave Out line.
+
+    config EXAMPLE_SPI_SCLK_GPIO
+        int "SCLK GPIO Num"
+        range 0 50
+        default 10 if EXAMPLE_HARDWARE_QTPYPICO
+        default 10 if EXAMPLE_HARDWARE_QTPYS3
+        default 10 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for SPI Master clock line.
+
+    config EXAMPLE_SPI_CS_GPIO
+        int "CS GPIO Num"
+        range 0 50
+        default 5 if EXAMPLE_HARDWARE_QTPYPICO
+        default 5 if EXAMPLE_HARDWARE_QTPYS3
+        default 5 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for SPI chip select line.
+
 endmenu
