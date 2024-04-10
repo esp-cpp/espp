@@ -236,6 +236,8 @@ public:
   float get_power_supply_limit() const { return power_supply_voltage_.load(); }
 
 protected:
+  static int GROUP_ID;
+
   void init(const Config &config) {
     configure_enable_gpio();
     configure_timer();
@@ -243,6 +245,7 @@ protected:
     configure_fault();
     configure_comparators();
     configure_generators();
+    GROUP_ID++;
     enable();
   }
 
@@ -263,7 +266,7 @@ protected:
     logger_.info("Create MCPWM timer");
     mcpwm_timer_config_t timer_config;
     memset(&timer_config, 0, sizeof(timer_config));
-    timer_config.group_id = 0;
+    timer_config.group_id = GROUP_ID;
     timer_config.clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT;
     timer_config.resolution_hz = TIMER_RESOLUTION_HZ;
     timer_config.count_mode = MCPWM_TIMER_COUNT_MODE_UP_DOWN;
@@ -275,7 +278,7 @@ protected:
     logger_.info("Create MCPWM operator");
     mcpwm_operator_config_t operator_config;
     memset(&operator_config, 0, sizeof(operator_config));
-    operator_config.group_id = 0;
+    operator_config.group_id = GROUP_ID;
     for (int i = 0; i < 3; i++) {
       ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &operators_[i]));
     }
@@ -294,7 +297,7 @@ protected:
     mcpwm_gpio_fault_config_t gpio_fault_config{};
     memset(&gpio_fault_config, 0, sizeof(gpio_fault_config));
     gpio_fault_config.gpio_num = (gpio_num_t)gpio_fault_;
-    gpio_fault_config.group_id = 0;
+    gpio_fault_config.group_id = GROUP_ID;
     gpio_fault_config.flags.active_level = 1; // high level means fault, refer to TMC6300 datasheet
     gpio_fault_config.flags.pull_down = true; // internally pull down
     gpio_fault_config.flags.io_loop_back = true; // enable loop back to GPIO input
