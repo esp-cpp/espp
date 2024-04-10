@@ -168,6 +168,12 @@ extern "C" void app_main(void) {
                      std::back_inserter(connected_device_names),
                      [&](auto &info) { return ble_gatt_server.get_connected_device_name(info); });
       logger.info("            Names: {}", connected_device_names);
+      std::vector<std::string> connected_device_rssis;
+      std::transform(connected_device_infos.begin(), connected_device_infos.end(),
+                     std::back_inserter(connected_device_rssis), [&](auto &info) {
+                       return fmt::format("[{}]", ble_gatt_server.get_connected_device_rssi(info));
+                     });
+      logger.info("            RSSIs: {}", connected_device_rssis);
     } else if (!ble_gatt_server.is_connected()) {
       was_connected = false;
     }
