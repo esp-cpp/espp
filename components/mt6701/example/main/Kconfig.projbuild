@@ -2,7 +2,7 @@ menu "Example Configuration"
 
     choice EXAMPLE_HARDWARE
         prompt "Hardware"
-        default EXAMPLE_HARDWARE_QTPYS3
+        default EXAMPLE_HARDWARE_MOTORGO_MINI
         help
             Select the hardware to run this example on.
 
@@ -14,12 +14,24 @@ menu "Example Configuration"
             depends on IDF_TARGET_ESP32S3
             bool "Qt Py S3"
 
+        config EXAMPLE_HARDWARE_MOTORGO_MINI
+            depends on IDF_TARGET_ESP32S3
+            bool "MotorGo Mini"
+
         config EXAMPLE_HARDWARE_CUSTOM
             bool "Custom"
     endchoice
 
+    config EXAMPLE_RUN_I2C
+        bool "Run I2C Example"
+        default n if EXAMPLE_HARDWARE_MOTORGO_MINI
+        default y if EXAMPLE_HARDWARE_QTPYPICO || EXAMPLE_HARDWARE_QTPYS3 || EXAMPLE_HARDWARE_CUSTOM
+        help
+            Run I2C example.
+
     config EXAMPLE_I2C_SCL_GPIO
         int "SCL GPIO Num"
+        depends on EXAMPLE_RUN_I2C
         range 0 50
         default 19 if EXAMPLE_HARDWARE_QTPYPICO
         default 40 if EXAMPLE_HARDWARE_QTPYS3
@@ -29,6 +41,7 @@ menu "Example Configuration"
 
     config EXAMPLE_I2C_SDA_GPIO
         int "SDA GPIO Num"
+        depends on EXAMPLE_RUN_I2C
         range 0 50
         default 22 if EXAMPLE_HARDWARE_QTPYPICO
         default 41 if EXAMPLE_HARDWARE_QTPYS3
@@ -36,36 +49,49 @@ menu "Example Configuration"
         help
             GPIO number for I2C Master data line.
 
+    config EXAMPLE_RUN_SPI
+        bool "Run SPI Example"
+        default y
+        help
+            Run SPI example.
+
     config EXAMPLE_SPI_CLOCK_SPEED
         int "SPI Clock Speed"
+        depends on EXAMPLE_RUN_SPI
         range 100000 15000000
         default 10000000
         help
             SPI clock speed in Hz.
 
     config EXAMPLE_SPI_MISO_GPIO
-        int "MISO GPIO Num"
+        int "SPI MISO GPIO Num"
+        depends on EXAMPLE_RUN_SPI
         range 0 50
         default 12 if EXAMPLE_HARDWARE_QTPYPICO
         default 12 if EXAMPLE_HARDWARE_QTPYS3
+        default 35 if EXAMPLE_HARDWARE_MOTORGO_MINI
         default 12 if EXAMPLE_HARDWARE_CUSTOM
         help
             GPIO number for SPI Master In Slave Out line.
 
     config EXAMPLE_SPI_SCLK_GPIO
-        int "SCLK GPIO Num"
+        int "SPI SCLK GPIO Num"
+        depends on EXAMPLE_RUN_SPI
         range 0 50
         default 10 if EXAMPLE_HARDWARE_QTPYPICO
         default 10 if EXAMPLE_HARDWARE_QTPYS3
+        default 36 if EXAMPLE_HARDWARE_MOTORGO_MINI
         default 10 if EXAMPLE_HARDWARE_CUSTOM
         help
             GPIO number for SPI Master clock line.
 
     config EXAMPLE_SPI_CS_GPIO
-        int "CS GPIO Num"
+        int "SPI CS GPIO Num"
+        depends on EXAMPLE_RUN_SPI
         range 0 50
         default 5 if EXAMPLE_HARDWARE_QTPYPICO
         default 5 if EXAMPLE_HARDWARE_QTPYS3
+        default 37 if EXAMPLE_HARDWARE_MOTORGO_MINI
         default 5 if EXAMPLE_HARDWARE_CUSTOM
         help
             GPIO number for SPI chip select line.

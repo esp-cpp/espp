@@ -13,7 +13,9 @@ using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
   fmt::print("Starting mt6701 example, rotate to -720 degrees to quit!\n");
+#if CONFIG_EXAMPLE_RUN_I2C
   {
+    fmt::print("Running I2C example\n");
     //! [mt6701 i2c example]
     std::atomic<bool> quit_test = false;
 
@@ -71,7 +73,7 @@ extern "C" void app_main(void) {
                             .callback = task_fn,
                             .stack_size_bytes = 5 * 1024,
                             .log_level = espp::Logger::Verbosity::WARN});
-    fmt::print("%time(s), count, radians, degrees, rpm\n");
+    fmt::print("% time(s), count, radians, degrees, rpm\n");
     task.start();
     //! [mt6701 i2c example]
 
@@ -79,7 +81,11 @@ extern "C" void app_main(void) {
       std::this_thread::sleep_for(100ms);
     }
   }
+#endif // CONFIG_EXAMPLE_RUN_I2C
+
+#if CONFIG_EXAMPLE_RUN_SPI
   {
+    fmt::print("Running SPI example\n");
     //! [mt6701 ssi example]
     std::atomic<bool> quit_test = false;
 
@@ -103,6 +109,7 @@ extern "C" void app_main(void) {
     devcfg.clock_speed_hz = CONFIG_EXAMPLE_SPI_CLOCK_SPEED; // Supports 64ns clock period, 15.625MHz
     devcfg.input_delay_ns = 0;
     devcfg.spics_io_num = CONFIG_EXAMPLE_SPI_CS_GPIO;
+    devcfg.queue_size = 1;
 
     esp_err_t ret;
     // Initialize the SPI bus
@@ -125,19 +132,30 @@ extern "C" void app_main(void) {
     Mt6701 mt6701({.read = [&](uint8_t *data, size_t len) -> bool {
                      // we can use the SPI_TRANS_USE_RXDATA since our length is <= 4 bytes (32
                      // bits), this means we can directly use the tarnsaction's rx_data field
+                     static constexpr uint8_t SPIBUS_READ = 0x80;
                      spi_transaction_t t = {
-                         .flags = SPI_TRANS_USE_RXDATA,
+                         .flags = 0,
                          .cmd = 0,
+                         .addr = SPIBUS_READ,
+                         .length = len * 8,
                          .rxlength = len * 8,
                          .user = nullptr,
+                         .tx_buffer = nullptr,
+                         .rx_buffer = data,
                      };
+                     if (len <= 4) {
+                       t.flags = SPI_TRANS_USE_RXDATA;
+                       t.rx_buffer = nullptr;
+                     }
                      esp_err_t err = spi_device_transmit(encoder_spi_handle, &t);
                      if (err != ESP_OK) {
                        return false;
                      }
-                     // copy the data to the output
-                     for (size_t i = 0; i < len; i++) {
-                       data[i] = t.rx_data[i];
+                     if (len <= 4) {
+                       // copy the data from the rx_data field
+                       for (size_t i = 0; i < len; i++) {
+                         data[i] = t.rx_data[i];
+                       }
                      }
                      return true;
                    },
@@ -178,7 +196,7 @@ extern "C" void app_main(void) {
                             .callback = task_fn,
                             .stack_size_bytes = 5 * 1024,
                             .log_level = espp::Logger::Verbosity::WARN});
-    fmt::print("%time(s), count, radians, degrees, rpm\n");
+    fmt::print("% time(s), count, radians, degrees, rpm\n");
     task.start();
     //! [mt6701 ssi example]
 
@@ -186,6 +204,7 @@ extern "C" void app_main(void) {
       std::this_thread::sleep_for(100ms);
     }
   }
+#endif // CONFIG_EXAMPLE_RUN_SPI
 
   fmt::print("Mt6701 example complete!\n");
 
