@@ -56,9 +56,12 @@ public:
   espp::OneshotAdc &adc2() { return adc_2; }
 
 protected:
+  static constexpr auto ENCODER_SPI_HOST = SPI2_HOST;
+  static constexpr auto ENCODER_SPI_CLK_SPEED = 10 * 1000 * 1000; // 10 MHz
+  static constexpr auto ENCODER_SPI_MISO_PIN = GPIO_NUM_35;
+  static constexpr auto ENCODER_SPI_SCLK_PIN = GPIO_NUM_36;
   static constexpr auto ENCODER_1_CS_PIN = GPIO_NUM_37;
   static constexpr auto ENCODER_2_CS_PIN = GPIO_NUM_48;
-  static constexpr auto ENCODER_SPI_HOST = SPI2_HOST;
 
   static constexpr auto MOTOR_1_A_H = GPIO_NUM_18;
   static constexpr auto MOTOR_1_A_L = GPIO_NUM_15;
@@ -92,7 +95,8 @@ protected:
     encoder_config.command_bits = 0;
     encoder_config.address_bits = 0;
     encoder_config.mode = 0;
-    encoder_config.clock_speed_hz = 10000000; // 10 MHz
+    encoder_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
+    encoder_config.queue_size = 1;
 
     // Initialize the encoder 1
     encoder_config.spics_io_num = ENCODER_1_CS_PIN;
@@ -111,15 +115,48 @@ protected:
     }
 
     encoder1_ = std::make_shared<Encoder>(
-        Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool { return false; },
+        Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool {
+                          return read_encoder(encoder1_handle_, data, size);
+                        },
                         .velocity_filter = nullptr,
                         .update_period = std::chrono::duration<float>(0.001f),
                         .log_level = espp::Logger::Verbosity::WARN});
     encoder2_ = std::make_shared<Encoder>(
-        Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool { return false; },
+        Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool {
+                          return read_encoder(encoder2_handle_, data, size);
+                        },
                         .velocity_filter = nullptr,
                         .update_period = std::chrono::duration<float>(0.001f),
                         .log_level = espp::Logger::Verbosity::WARN});
+  }
+
+  bool read_encoder(const auto &encoder_handle, uint8_t *data, size_t size) {
+    static constexpr uint8_t SPIBUS_READ = 0x80;
+    spi_transaction_t t = {
+        .flags = 0,
+        .cmd = 0,
+        .addr = SPIBUS_READ,
+        .length = size * 8,
+        .rxlength = size * 8,
+        .user = nullptr,
+        .tx_buffer = nullptr,
+        .rx_buffer = data,
+    };
+    if (size <= 4) {
+      t.flags = SPI_TRANS_USE_RXDATA;
+      t.rx_buffer = nullptr;
+    }
+    esp_err_t err = spi_device_transmit(encoder_handle, &t);
+    if (err != ESP_OK) {
+      return false;
+    }
+    if (size <= 4) {
+      // copy the data from the rx_data field
+      for (size_t i = 0; i < size; i++) {
+        data[i] = t.rx_data[i];
+      }
+    }
+    return true;
   }
 
   void init_motors() {
@@ -136,7 +173,7 @@ protected:
         .limit_voltage = 5.0f,
     });
 
-    motor1_driver_ = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
+    motor2_driver_ = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
         .gpio_a_h = MOTOR_2_A_H,
         .gpio_a_l = MOTOR_2_A_L,
         .gpio_b_h = MOTOR_2_B_H,
@@ -227,8 +264,8 @@ protected:
   /// SPI bus for communication with the Encoders
   spi_bus_config_t encoder_spi_bus_config_ = {
       .mosi_io_num = -1,
-      .miso_io_num = GPIO_NUM_35,
-      .sclk_io_num = GPIO_NUM_36,
+      .miso_io_num = ENCODER_SPI_MISO_PIN,
+      .sclk_io_num = ENCODER_SPI_SCLK_PIN,
       .quadwp_io_num = -1,
       .quadhd_io_num = -1,
       .max_transfer_sz = 32,
