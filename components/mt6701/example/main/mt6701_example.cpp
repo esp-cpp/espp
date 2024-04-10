@@ -42,6 +42,9 @@ extern "C" void app_main(void) {
                        .update_period = std::chrono::duration<float>(encoder_update_period),
                        .log_level = espp::Logger::Verbosity::WARN});
 
+    // NOTE: since this is I2C, we cannot get the magnetic field strength,
+    // tracking status, or push button state
+
     // and finally, make the task to periodically poll the mt6701 and print the
     // state. NOTE: the Mt6701 runs its own task to maintain state, so we're
     // just polling the current state.
@@ -141,6 +144,13 @@ extern "C" void app_main(void) {
                    .velocity_filter = filter_fn,
                    .update_period = std::chrono::duration<float>(encoder_update_period),
                    .log_level = espp::Logger::Verbosity::WARN});
+
+    // get the initial state
+    auto field_strength = mt6701.get_magnetic_field_strength();
+    auto tracking_status = mt6701.get_tracking_status();
+    bool push_button = mt6701.get_push_button();
+    fmt::print("Initial state: field_strength: {}, tracking_status: {}, push_button: {}\n",
+               field_strength, tracking_status, push_button);
 
     // and finally, make the task to periodically poll the mt6701 and print the
     // state. NOTE: the Mt6701 runs its own task to maintain state, so we're

@@ -398,3 +398,51 @@ protected:
   std::unique_ptr<Task> task_;
 };
 } // namespace espp
+
+// for easy printing of MagneticFieldStatus using libfmt
+template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength const &mfs,
+              FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        mfs == espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength::NORMAL ? "NORMAL"
+        : mfs == espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength::TOO_STRONG
+            ? "TOO_STRONG"
+            : "TOO_WEAK");
+  }
+};
+template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus const &ts,
+              FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        ts == espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus::NORMAL ? "NORMAL" : "LOST");
+  }
+};
+template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength const &mfs,
+              FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        mfs == espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength::NORMAL ? "NORMAL"
+        : mfs == espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength::TOO_STRONG
+            ? "TOO_STRONG"
+            : "TOO_WEAK");
+  }
+};
+template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus const &ts,
+              FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        ts == espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus::NORMAL ? "NORMAL" : "LOST");
+  }
+};
