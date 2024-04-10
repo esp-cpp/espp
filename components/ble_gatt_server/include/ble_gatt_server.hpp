@@ -551,6 +551,55 @@ public:
     return connected_device_names;
   }
 
+  /// Get the RSSI of the connected device
+  /// @param conn_info The connection information for the device.
+  /// @return The RSSI of the connected device.
+  int get_connected_device_rssi(NimBLEConnInfo &conn_info) {
+    if (!server_) {
+      logger_.error("Server not created");
+      return {};
+    }
+    if (!client_) {
+      logger_.error("Client not created");
+      return {};
+    }
+    if (!is_connected()) {
+      logger_.error("Not connected to any devices");
+      return {};
+    }
+    auto peer_address = conn_info.getAddress();
+    logger_.debug("Getting RSSI for connected device {}", peer_address.toString());
+    // since this connection is handled by the server, we won't manually
+    // connect, and instead inform the client that we are already connected
+    // using this conn handle
+    client_->setPeerAddress(peer_address);
+    client_->setConnId(conn_info.getConnHandle());
+    // and read the RSSI from the client
+    auto rssi = client_->getRssi();
+    logger_.info("RSSI for connected device {}: {}", peer_address.toString(), rssi);
+    return rssi;
+  }
+
+  /// Get the RSSI of the connected devices
+  /// @return The RSSI of the connected devices as a vector.
+  /// @note This method will connect to each device to get the RSSI.
+  ///       This may take some time if there are many devices connected.
+  std::vector<int> get_connected_devices_rssi_values() {
+    if (!server_) {
+      logger_.error("Server not created");
+      return {};
+    }
+    std::vector<int> connected_device_rssi;
+    auto peer_ids = server_->getPeerDevices();
+    for (const auto &peer_id : peer_ids) {
+      auto peer = server_->getPeerIDInfo(peer_id);
+      auto peer_rssi = get_connected_device_rssi(peer);
+      connected_device_rssi.push_back(peer_rssi);
+    }
+    logger_.info("Connected device RSSI: {}", connected_device_rssi);
+    return connected_device_rssi;
+  }
+
   /// Disconnect from all devices
   /// This method disconnects from all devices that are currently connected.
   /// @return The Addresses of the devices that were disconnected from.

@@ -61,6 +61,9 @@ public:
         "connected", [this](std::ostream &out) -> void { print_connected_devices(out); },
         "Print the address of the connected BLE device, if any.");
     menu->Insert(
+        "rssi", [this](std::ostream &out) -> void { print_connected_device_rssi(out); },
+        "Print the RSSI of all connected devices.");
+    menu->Insert(
         "disconnect", [this](std::ostream &out) -> void { disconnect_all(out); },
         "disconnect from the current BLE device");
     menu->Insert(
@@ -195,8 +198,23 @@ protected:
     auto infos = server_.get().get_connected_device_infos();
     output += fmt::format("Connected devices: {}\n", infos.size());
     for (auto &info : infos) {
-      output += fmt::format("Connected device: {} '{}'\n", info.getAddress().toString(),
-                            server_.get().get_connected_device_name(info));
+      output += fmt::format(
+          "Connected device: [{}] {} '{}'\n", server_.get().get_connected_device_rssi(info),
+          info.getAddress().toString(), server_.get().get_connected_device_name(info));
+    }
+    out << output;
+  }
+
+  /// @brief Print out the RSSI of all connected devices.
+  /// @param out The output stream to write to.
+  void print_connected_device_rssi(std::ostream &out) {
+    std::string output = "";
+    auto infos = server_.get().get_connected_device_infos();
+    output += fmt::format("Connected devices: {}\n", infos.size());
+    for (auto &info : infos) {
+      output +=
+          fmt::format("Connected device RSSI: [{}] {}\n",
+                      server_.get().get_connected_device_rssi(info), info.getAddress().toString());
     }
     out << output;
   }
