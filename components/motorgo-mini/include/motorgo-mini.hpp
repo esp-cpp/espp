@@ -270,41 +270,42 @@ protected:
       .quadhd_io_num = -1,
       .max_transfer_sz = 32,
   };
+
+  // SPI handles for the encoders
   spi_device_handle_t encoder1_handle_;
   spi_device_handle_t encoder2_handle_;
 
+  // Encoders
   std::shared_ptr<Encoder> encoder1_;
   std::shared_ptr<Encoder> encoder2_;
 
-  /// Driver for motor 1
+  // Drivers
   std::shared_ptr<espp::BldcDriver> motor1_driver_;
-  /// Driver for motor 2
   std::shared_ptr<espp::BldcDriver> motor2_driver_;
 
-  /// Motor 1
+  // Motors
   std::shared_ptr<BldcMotor> motor1_;
-  /// Motor 2
   std::shared_ptr<BldcMotor> motor2_;
 
-  // current sense m1 U
+  // current sense Motor 1 phase U
   espp::AdcConfig current_sense_m1_u_ = {
       .unit = ADC_UNIT_1,
       .channel = ADC_CHANNEL_6,
       .attenuation = ADC_ATTEN_DB_11,
   };
-  // current sense m1 W
+  // current sense Motor 1 phase W
   espp::AdcConfig current_sense_m1_w_ = {
       .unit = ADC_UNIT_1,
       .channel = ADC_CHANNEL_3,
       .attenuation = ADC_ATTEN_DB_11,
   };
-  // current sense m2 U - note; the schmatic has the U and W swapped
+  // current sense Motor 2 phase U - note; the schmatic has the U and W swapped
   espp::AdcConfig current_sense_m2_u_ = {
       .unit = ADC_UNIT_2,
       .channel = ADC_CHANNEL_1,
       .attenuation = ADC_ATTEN_DB_11,
   };
-  // current sense m2 W - note; the schmatic has the U and W swapped
+  // current sense Motor 2 phase W - note; the schmatic has the U and W swapped
   espp::AdcConfig current_sense_m2_w_ = {
       .unit = ADC_UNIT_1,
       .channel = ADC_CHANNEL_7,
