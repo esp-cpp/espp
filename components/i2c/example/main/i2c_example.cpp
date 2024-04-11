@@ -22,6 +22,7 @@ extern "C" void app_main(void) {
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .clk_speed = CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ,
         .log_level = espp::Logger::Verbosity::INFO,
     });
     // now make a menu for it
