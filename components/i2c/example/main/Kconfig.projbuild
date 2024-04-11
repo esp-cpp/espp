@@ -36,6 +36,13 @@ menu "Example Configuration"
         help
             GPIO number for I2C Master data line.
 
+    config EXAMPLE_I2C_CLOCK_SPEED_HZ
+        int "I2C Clock Speed"
+        range 100 1000000
+        default 400000
+        help
+            I2C clock speed in Hz.
+
     config EXAMPLE_I2C_DEVICE_ADDR
         hex "I2C Device Address"
         range 0x00 0x7F
