@@ -76,7 +76,7 @@ public:
    *       that may have a Task as a member.
    */
   struct BaseConfig {
-    std::string_view name;             /**< Name of the task */
+    std::string name;                  /**< Name of the task */
     size_t stack_size_bytes{4 * 1024}; /**< Stack Size (B) allocated to the task. */
     size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
     int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
@@ -92,7 +92,7 @@ public:
    *       instead.
    */
   struct Config {
-    std::string_view name;             /**< Name of the task */
+    std::string name;                  /**< Name of the task */
     callback_fn callback;              /**< Callback function  */
     size_t stack_size_bytes{4 * 1024}; /**< Stack Size (B) allocated to the task. */
     size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
