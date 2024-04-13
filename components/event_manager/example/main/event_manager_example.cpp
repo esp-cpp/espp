@@ -9,7 +9,7 @@
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "main", .level = espp::Logger::Verbosity::INFO});
+  espp::Logger logger({.tag = "main", .level = espp::Logger::Verbosity::DEBUG});
   logger.info("Starting event manager example!");
   //! [event manager example]
   espp::EventManager::get().set_log_level(espp::Logger::Verbosity::WARN);
@@ -31,6 +31,9 @@ extern "C" void app_main(void) {
   const std::string event1 = "battery/state";
   const std::string event2 = "drive/control";
 
+  static int num_published = 0;
+  static int num_received = 0;
+
   // Make a task which has a pub/sub in it. NOTE: in real code, this would
   // likely be within a custom class and the registration would happen in the
   // constructor, with the remove_publisher / remove_subscriber calls in its
@@ -41,11 +44,14 @@ extern "C" void app_main(void) {
     {
       // Just for fun, we'll only define the subscriber callback within the
       // context of this task function
-      static auto event2_cb = [](const std::vector<uint8_t> &data) {
+      static auto event2_cb = [&](const std::vector<uint8_t> &data) {
         // we know this is a string, so just convert it to a string and
         // print it
         std::string data_str(data.begin(), data.end());
-        fmt::print("Task 1 cb got data: '{}'\n", data_str);
+        logger.debug("Task 1 cb got data: '{}'", data_str);
+        num_received++;
+        // block here like we're doing work
+        std::this_thread::sleep_for(10ms);
       };
       // we only want to register once, so ust the std::call_once /
       // std::once_flag functionality to only register the first time the
@@ -58,9 +64,13 @@ extern "C" void app_main(void) {
         auto did_sub = em.add_subscriber(event2, "task 1", event2_cb);
         logger.info("Task 1 publishing:  {}", did_pub);
         logger.info("Task 1 subscribing: {}", did_sub);
+        // sleep for a little bit to let the other task register its
+        // subscribers/publishers before we start publishing ensuring that the
+        // subscriber callback is registered before the publisher publishes
+        std::this_thread::sleep_for(10ms);
       });
       // periodically publish on event1
-      fmt::print("Task 1 publishing on {}\n", event1);
+      logger.debug("Task 1 publishing on {}", event1);
       static BatteryState bs;
       bs.current = 1.0f;
       bs.voltage -= 0.1f;
@@ -69,6 +79,12 @@ extern "C" void app_main(void) {
       std::vector<uint8_t> buffer;
       espp::serialize(bs, buffer);
       espp::EventManager::get().publish(event1, buffer);
+      num_published++;
+      buffer.clear();
+      bs.current = -1.0f;
+      espp::serialize(bs, buffer);
+      espp::EventManager::get().publish(event1, buffer);
+      num_published++;
       std::unique_lock<std::mutex> lk(m);
       cv.wait_for(lk, 500ms);
     }
@@ -76,7 +92,6 @@ extern "C" void app_main(void) {
     return false;
   };
   auto task1 = espp::Task({.name = "Task 1", .callback = task_1_fn});
-  task1.start();
 
   // Now let's make another task which will have pub/sub as well
   auto task_2_fn = [&](auto &m, auto &cv) {
@@ -92,14 +107,17 @@ extern "C" void app_main(void) {
           logger.error("Couldn't deserialize BatteryState: {}", ec.message());
           return;
         }
-        fmt::print("Task 2 got battery state data:\n"
-                   "  voltage:             {:.2f}\n"
-                   "  current:             {:.2f}\n"
-                   "  is_charging:         {}\n"
-                   "  temperature_celsius: {:.2f}\n"
-                   "  state_of_charge:     {:.2f}\n",
-                   bs.voltage, bs.current, bs.is_charging, bs.temperature_celsius,
-                   bs.state_of_charge);
+        logger.debug("Task 2 got battery state data:\n"
+                     "  voltage:             {:.2f}\n"
+                     "  current:             {:.2f}\n"
+                     "  is_charging:         {}\n"
+                     "  temperature_celsius: {:.2f}\n"
+                     "  state_of_charge:     {:.2f}",
+                     bs.voltage, bs.current, bs.is_charging, bs.temperature_celsius,
+                     bs.state_of_charge);
+        num_received++;
+        // block here like we're doing work
+        std::this_thread::sleep_for(10ms);
       };
       // we only want to register once, so ust the std::call_once /
       // std::once_flag functionality to only register the first time the
@@ -122,13 +140,20 @@ extern "C" void app_main(void) {
         auto did_sub = em.add_subscriber(event1, "task 2", event1_cb, task_config);
         logger.info("Task 2 publishing:  {}", did_pub);
         logger.info("Task 2 subscribing: {}", did_sub);
+        // sleep for a little bit to let the other task register its
+        // subscribers/publishers, ensuring that the subscriber callback is
+        // registered before the publisher publishes
+        std::this_thread::sleep_for(10ms);
       });
       // periodically publish on event2
-      fmt::print("Task 2 publishing on {}\n", event2);
+      logger.debug("Task 2 publishing on {}", event2);
       static int iteration = 0;
       std::string data = fmt::format("Task 2 data {}", iteration++);
       std::vector<uint8_t> buffer(data.begin(), data.end());
       espp::EventManager::get().publish(event2, buffer);
+      num_published++;
+      espp::EventManager::get().publish(event2, buffer);
+      num_published++;
       std::unique_lock<std::mutex> lk(m);
       cv.wait_for(lk, 500ms);
     }
@@ -136,6 +161,9 @@ extern "C" void app_main(void) {
     return false;
   };
   auto task2 = espp::Task({.name = "Task 2", .callback = task_2_fn});
+
+  // now start the tasks
+  task1.start();
   task2.start();
 
   // Now let's just wait for a little while for those tasks to run, showcasing
@@ -155,6 +183,15 @@ extern "C" void app_main(void) {
   em.remove_publisher(event2, "task 2");
   em.remove_subscriber(event1, "task 2");
   //! [event manager example]
+
+  logger.info("Published {} times", num_published);
+  logger.info("Received {} times", num_received);
+
+  if (num_published != num_received) {
+    logger.error("Mismatch between published and received!");
+  } else {
+    logger.info("Published and received match!");
+  }
 
   logger.info("Event manager example complete!");
 
