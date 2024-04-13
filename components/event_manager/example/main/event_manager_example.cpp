@@ -63,7 +63,8 @@ extern "C" void app_main(void) {
         logger.info("Task 1 publishing:  {}", did_pub);
         logger.info("Task 1 subscribing: {}", did_sub);
         // sleep for a little bit to let the other task register its
-        // subscribers/publishers
+        // subscribers/publishers before we start publishing ensuring that the
+        // subscriber callback is registered before the publisher publishes
         std::this_thread::sleep_for(10ms);
       });
       // periodically publish on event1
@@ -136,7 +137,8 @@ extern "C" void app_main(void) {
         logger.info("Task 2 publishing:  {}", did_pub);
         logger.info("Task 2 subscribing: {}", did_sub);
         // sleep for a little bit to let the other task register its
-        // subscribers/publishers
+        // subscribers/publishers, ensuring that the subscriber callback is
+        // registered before the publisher publishes
         std::this_thread::sleep_for(10ms);
       });
       // periodically publish on event2
