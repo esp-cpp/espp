@@ -9,7 +9,7 @@
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "main", .level = espp::Logger::Verbosity::INFO});
+  espp::Logger logger({.tag = "main", .level = espp::Logger::Verbosity::DEBUG});
   logger.info("Starting event manager example!");
   //! [event manager example]
   espp::EventManager::get().set_log_level(espp::Logger::Verbosity::WARN);
@@ -44,11 +44,11 @@ extern "C" void app_main(void) {
     {
       // Just for fun, we'll only define the subscriber callback within the
       // context of this task function
-      static auto event2_cb = [](const std::vector<uint8_t> &data) {
+      static auto event2_cb = [&](const std::vector<uint8_t> &data) {
         // we know this is a string, so just convert it to a string and
         // print it
         std::string data_str(data.begin(), data.end());
-        fmt::print("Task 1 cb got data: '{}'\n", data_str);
+        logger.debug("Task 1 cb got data: '{}'", data_str);
         num_received++;
         // block here like we're doing work
         std::this_thread::sleep_for(10ms);
@@ -70,7 +70,7 @@ extern "C" void app_main(void) {
         std::this_thread::sleep_for(10ms);
       });
       // periodically publish on event1
-      fmt::print("Task 1 publishing on {}\n", event1);
+      logger.debug("Task 1 publishing on {}", event1);
       static BatteryState bs;
       bs.current = 1.0f;
       bs.voltage -= 0.1f;
@@ -107,14 +107,14 @@ extern "C" void app_main(void) {
           logger.error("Couldn't deserialize BatteryState: {}", ec.message());
           return;
         }
-        fmt::print("Task 2 got battery state data:\n"
-                   "  voltage:             {:.2f}\n"
-                   "  current:             {:.2f}\n"
-                   "  is_charging:         {}\n"
-                   "  temperature_celsius: {:.2f}\n"
-                   "  state_of_charge:     {:.2f}\n",
-                   bs.voltage, bs.current, bs.is_charging, bs.temperature_celsius,
-                   bs.state_of_charge);
+        logger.debug("Task 2 got battery state data:\n"
+                     "  voltage:             {:.2f}\n"
+                     "  current:             {:.2f}\n"
+                     "  is_charging:         {}\n"
+                     "  temperature_celsius: {:.2f}\n"
+                     "  state_of_charge:     {:.2f}",
+                     bs.voltage, bs.current, bs.is_charging, bs.temperature_celsius,
+                     bs.state_of_charge);
         num_received++;
         // block here like we're doing work
         std::this_thread::sleep_for(10ms);
@@ -146,7 +146,7 @@ extern "C" void app_main(void) {
         std::this_thread::sleep_for(10ms);
       });
       // periodically publish on event2
-      fmt::print("Task 2 publishing on {}\n", event2);
+      logger.debug("Task 2 publishing on {}", event2);
       static int iteration = 0;
       std::string data = fmt::format("Task 2 data {}", iteration++);
       std::vector<uint8_t> buffer(data.begin(), data.end());
