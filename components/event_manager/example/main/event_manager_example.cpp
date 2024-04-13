@@ -50,6 +50,8 @@ extern "C" void app_main(void) {
         std::string data_str(data.begin(), data.end());
         fmt::print("Task 1 cb got data: '{}'\n", data_str);
         num_received++;
+        // block here like we're doing work
+        std::this_thread::sleep_for(10ms);
       };
       // we only want to register once, so ust the std::call_once /
       // std::once_flag functionality to only register the first time the
@@ -114,6 +116,8 @@ extern "C" void app_main(void) {
                    bs.voltage, bs.current, bs.is_charging, bs.temperature_celsius,
                    bs.state_of_charge);
         num_received++;
+        // block here like we're doing work
+        std::this_thread::sleep_for(10ms);
       };
       // we only want to register once, so ust the std::call_once /
       // std::once_flag functionality to only register the first time the
