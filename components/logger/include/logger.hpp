@@ -75,6 +75,15 @@ public:
   }
 
   /**
+   * @brief Get the current tag for the logger.
+   * @return The current tag.
+   */
+  std::string get_tag() {
+    std::lock_guard<std::mutex> lock(tag_mutex_);
+    return tag_;
+  }
+
+  /**
    * @brief Whether to include the time in the log.
    * @param include_time Whether to include the time in the log.
    * @note The time is in seconds since boot and is represented as a floating
