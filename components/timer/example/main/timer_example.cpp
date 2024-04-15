@@ -7,6 +7,7 @@
 #include <esp_sleep.h>
 #include <esp_system.h>
 
+#include "high_resolution_timer.hpp"
 #include "logger.hpp"
 #include "timer.hpp"
 
@@ -16,7 +17,6 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "Timer example", .level = espp::Logger::Verbosity::DEBUG});
   size_t num_seconds_to_run = 3;
   static auto start = std::chrono::high_resolution_clock::now();
-
   static auto elapsed = []() {
     auto now = std::chrono::high_resolution_clock::now();
     return std::chrono::duration<float>(now - start).count();
@@ -34,7 +34,7 @@ extern "C" void app_main(void) {
 
   // basic timer example
   {
-    logger.info("[{:.3f}] Starting basic timer example", elapsed());
+    logger.info("Starting basic timer example");
     //! [timer example]
     auto timer_fn = []() {
       static size_t iterations{0};
@@ -53,7 +53,7 @@ extern "C" void app_main(void) {
 
   // timer with delay example
   {
-    logger.info("[{:.3f}] Starting timer with delay example", elapsed());
+    logger.info("Starting timer with delay example");
     //! [timer delay example]
     auto timer_fn = []() {
       static size_t iterations{0};
@@ -71,12 +71,12 @@ extern "C" void app_main(void) {
                      .log_level = espp::Logger::Verbosity::DEBUG});
     timer.start();
     std::this_thread::sleep_for(2s);
-    logger.info("[{:.3f}] Cancelling timer for 2 seconds", elapsed());
+    logger.info("Cancelling timer for 2 seconds");
     timer.cancel();
     std::this_thread::sleep_for(2s);
     timer.start();
     std::this_thread::sleep_for(2s);
-    logger.info("[{:.3f}] Cancelling timer for 2 seconds", elapsed());
+    logger.info("Cancelling timer for 2 seconds");
     timer.cancel();
     std::this_thread::sleep_for(2s);
     timer.start(1s);
@@ -86,7 +86,7 @@ extern "C" void app_main(void) {
 
   // oneshot timer example
   {
-    logger.info("[{:.3f}] Starting oneshot timer example", elapsed());
+    logger.info("Starting oneshot timer example");
     //! [timer oneshot example]
     auto timer_fn = []() {
       static size_t iterations{0};
@@ -106,7 +106,7 @@ extern "C" void app_main(void) {
 
   // timer cancel itself example
   {
-    logger.info("[{:.3f}] Starting timer cancel itself example", elapsed());
+    logger.info("Starting timer cancel itself example");
     //! [timer cancel itself example]
     auto timer_fn = []() {
       static size_t iterations{0};
@@ -130,7 +130,7 @@ extern "C" void app_main(void) {
 
   // oneshot timer example cancel itself then start it again with delay
   {
-    logger.info("[{:.3f}] Starting oneshot timer cancel itself then restart example", elapsed());
+    logger.info("Starting oneshot timer cancel itself then restart example");
     //! [timer oneshot restart example]
     auto timer_fn = []() {
       static size_t iterations{0};
@@ -154,7 +154,7 @@ extern "C" void app_main(void) {
 
   // timer example update period while running
   {
-    logger.info("[{:.3f}] Starting timer update period while running example", elapsed());
+    logger.info("Starting timer update period while running example");
     //! [timer update period example]
     auto timer_fn = []() {
       static size_t iterations{0};
@@ -169,13 +169,51 @@ extern "C" void app_main(void) {
                               .stack_size_bytes = 4096,
                               .log_level = espp::Logger::Verbosity::DEBUG});
     std::this_thread::sleep_for(2s);
-    logger.info("[{:.3f}] Updating period to 100ms", elapsed());
+    logger.info("Updating period to 100ms");
     timer.set_period(100ms);
     //! [timer update period example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
 
-  logger.info("Test ran for {:.03f} seconds", elapsed());
+  // high resolution timer example
+  {
+    logger.info("Starting high resolution timer example");
+    //! [high resolution timer example]
+    logger.set_rate_limit(100ms);
+    auto timer_fn = [&]() {
+      static size_t iterations{0};
+      iterations++;
+      logger.info_rate_limited("High resolution timer callback: {}", iterations);
+      // we don't want to stop, so return false
+      return false;
+    };
+    auto high_resolution_timer =
+        espp::HighResolutionTimer({.name = "High Resolution Timer",
+                                   .callback = timer_fn,
+                                   .log_level = espp::Logger::Verbosity::DEBUG});
+    uint64_t period_us = 100;
+    high_resolution_timer.start(period_us);
+
+    std::this_thread::sleep_for(500ms);
+    logger.info("Updating period to 100ms");
+    period_us = 1000 * 100;
+    high_resolution_timer.set_period(period_us);
+    logger.info("Periodic timer period: {}us", high_resolution_timer.get_period());
+
+    std::this_thread::sleep_for(500ms);
+    logger.info("High resolution timer is running: {}", high_resolution_timer.is_running());
+    logger.info("Stopping timer");
+    high_resolution_timer.stop();
+
+    std::this_thread::sleep_for(500ms);
+    logger.info("Starting oneshot to expire in 100ms");
+    high_resolution_timer.oneshot(period_us);
+    logger.info("Oneshot timer expiry: {}us", high_resolution_timer.get_period());
+
+    //! [high resolution timer example]
+
+    std::this_thread::sleep_for(num_seconds_to_run * 1s);
+  }
 
   logger.info("Example complete!");
 

@@ -1,3 +1,3 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES base_component task)
+  REQUIRES esp_timer base_component task)
