@@ -20,3 +20,18 @@ API Reference
 -------------
 
 .. include-build-file:: inc/timer.inc
+
+High Resolution Timer
+---------------------
+
+The `HighResolutionTimer` component provides an esp-idf specific API to create
+managed high resolution timer objects using the esp_timer API. The timer can be
+started, stopped, and restarted, and it can be configured as a one-shot timer
+or a periodic timer.
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/high_resolution_timer.inc
