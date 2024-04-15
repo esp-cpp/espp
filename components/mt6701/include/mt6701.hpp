@@ -259,7 +259,7 @@ protected:
     if (ec) {
       return;
     }
-    count_.store((angle_h << 6) | angle_l);
+    count_ = ((angle_h << 6) | angle_l);
   }
 
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::SSI) {
@@ -281,7 +281,7 @@ protected:
     uint8_t crc = buffer[2] & 0b111111;
     logger_.debug("Angle: {}, Status: {}, CRC: {}", (angle_h << 8) | angle_l, status, crc);
     // update the count
-    count_.store((angle_h << 6) | angle_l);
+    count_ = ((angle_h << 6) | angle_l);
     // update the magnetic field strength, tracking status, and push button.
     // strength is the lower two bits [0:1], push button is the third bit [2],
     // and tracking status is the fourth bit [3]
