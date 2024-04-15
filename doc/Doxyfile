@@ -182,6 +182,7 @@ INPUT += $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp
 INPUT += $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp
 INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
 INPUT += $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp
+INPUT += $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp
 INPUT += $(PROJECT_PATH)/components/timer/include/timer.hpp
 INPUT += $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp
 INPUT += $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp
