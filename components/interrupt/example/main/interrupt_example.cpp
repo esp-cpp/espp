@@ -1,6 +1,8 @@
 #include <chrono>
 #include <vector>
 
+#include <esp_intr_alloc.h>
+
 #include "interrupt.hpp"
 
 using namespace std::chrono_literals;
@@ -46,6 +48,7 @@ extern "C" void app_main(void) {
   // make an interrupt for a single gpio
   {
     espp::Interrupt interrupt({
+        .isr_core_id = 1,
         .interrupts = {io0},
         .task_config =
             {
@@ -120,6 +123,8 @@ extern "C" void app_main(void) {
 
     std::this_thread::sleep_for(2s);
   }
+
+  esp_intr_dump(stdout);
 
   //! [interrupt example]
 }

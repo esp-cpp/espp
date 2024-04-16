@@ -26,6 +26,7 @@ public:
   /// \brief The configuration for the button
   struct Config {
     std::string_view name{"Button"};       ///< Name of the button
+    int isr_core_id = -1;                  ///< The core ID to run the interrupt service routine on
     Interrupt::PinConfig interrupt_config; ///< Configuration for the GPIO interrupt
     Task::BaseConfig task_config{};        ///< Configuration for the button task
     espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN; ///< Log level for this class
@@ -50,8 +51,12 @@ public:
 
   /// \brief Construct a button
   /// \param config The configuration for the button
+  /// \details This constructor is useful for buttons that require a custom task
+  ///         or interrupt configuration and need to register a callback
+  ///         function.
   explicit Button(const Config &config)
-      : Interrupt({.interrupts = {config.interrupt_config},
+      : Interrupt({.isr_core_id = config.isr_core_id,
+                   .interrupts = {config.interrupt_config},
                    .event_queue_size = 10,
                    .task_config = config.task_config,
                    .log_level = config.log_level})
@@ -60,6 +65,9 @@ public:
 
   /// \brief Construct a button with a simple configuration
   /// \param config The simple configuration for the button
+  /// \details This constructor is useful for simple buttons that don't require
+  ///         a custom task or interrupt configuration and do not need to
+  ///         register a callback function.
   explicit Button(const SimpleConfig &config)
       : Interrupt(config.name, config.log_level)
       , gpio_num_(config.gpio_num)
