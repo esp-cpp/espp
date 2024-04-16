@@ -116,6 +116,12 @@ public:
 
   /// \brief The configuration for the interrupt
   struct Config {
+    int isr_core_id = -1; ///< The core to install the ISR service on. If -1, then the ISR
+                          ///        service is installed on the core that this constructor is
+                          ///        called on. If 0 or 1, then the ISR service is installed on
+                          ///        the specified core. If the ISR service is already installed,
+                          ///        then this function does nothing. If the core_id is invalid,
+                          ///        then an error is logged and the ISR service is not installed.
     std::vector<PinConfig> interrupts; ///< The configuration for the interrupts
     size_t event_queue_size = 10;      ///< The size of the event queue
     Task::BaseConfig task_config;      ///< The configuration for the task
@@ -134,11 +140,8 @@ public:
       logger_.error("Failed to create event queue");
       return;
     }
-    // install the isr service if it hasn't been installed yet
-    if (!ISR_SERVICE_INSTALLED) {
-      gpio_install_isr_service(0);
-      ISR_SERVICE_INSTALLED = true;
-    }
+    // install the ISR service
+    install_isr_service(config.isr_core_id);
     // NOTE: no need for lock here, as we are in the constructor
     for (const auto &interrupt : interrupts_) {
       configure_interrupt(interrupt);
@@ -221,6 +224,38 @@ protected:
   // task initialization, etc. is done
   explicit Interrupt(std::string_view name, espp::Logger::Verbosity log_level)
       : BaseComponent(name, log_level) {}
+
+  void install_isr_service(int core_id = -1) {
+    if (ISR_SERVICE_INSTALLED) {
+      logger_.warn("ISR service already installed, not installing again");
+      return;
+    }
+    if (core_id < -1 || core_id > 1) {
+      logger_.error("Invalid core_id {}, must be -1 or 0 or 1", core_id);
+      return;
+    }
+    // install the isr service if it hasn't been installed yet
+    if (core_id == -1) {
+      // use whatever core we are running on
+      gpio_install_isr_service(0);
+      logger_.info("ISR service installed on core {}", xPortGetCoreID());
+    } else {
+      // create a task on core 1 for initializing the gpio interrupt so that the
+      // gpio ISR runs on core 1
+      auto isr_task = espp::Task::make_unique(espp::Task::Config{
+          .name = "interrupt isr registration task",
+          .callback = [](auto &m, auto &cv) -> bool {
+            gpio_install_isr_service(0);
+            return true; // stop the task
+          },
+          .stack_size_bytes = 2 * 1024,
+          .core_id = core_id,
+      });
+      isr_task->start();
+      logger_.info("ISR service installed on core {}", core_id);
+    }
+    ISR_SERVICE_INSTALLED = true;
+  }
 
   struct HandlerArgs {
     int gpio_num;
