@@ -1,7 +1,11 @@
 #include <chrono>
 #include <vector>
 
+#include "esp_idf_version.h"
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 #include <esp_intr_alloc.h>
+#endif // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 
 #include "interrupt.hpp"
 
@@ -124,7 +128,9 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(2s);
   }
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
   esp_intr_dump(stdout);
+#endif // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
 
   //! [interrupt example]
 }
