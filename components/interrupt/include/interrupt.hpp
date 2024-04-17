@@ -240,8 +240,8 @@ protected:
       gpio_install_isr_service(0);
       logger_.info("ISR service installed on core {}", xPortGetCoreID());
     } else {
-      // create a task on core 1 for initializing the gpio interrupt so that the
-      // gpio ISR runs on core 1
+      // create a task on the specified core for initializing the gpio interrupt
+      // so that the gpio ISR runs on that core
       auto isr_task = espp::Task::make_unique(espp::Task::Config{
           .name = "interrupt isr registration task",
           .callback = [](auto &m, auto &cv) -> bool {
