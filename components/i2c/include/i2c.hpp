@@ -87,7 +87,7 @@ public:
     // Make copy of variables for easy capture
     i2c_port_t i2c_port = config_.port;
     int core_id = config_.isr_core_id;
-    if (core_id == -1) {
+    if (core_id < 0) {
       err = i2c_driver_install(i2c_port, I2C_MODE_MASTER, 0, 0, 0);
     } else {
       if (core_id > configNUM_CORES - 1) {
