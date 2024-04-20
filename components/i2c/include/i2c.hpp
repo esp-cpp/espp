@@ -22,11 +22,9 @@ public:
   /// Configuration for I2C
   struct Config {
     int isr_core_id = -1; ///< The core to install the I2C interrupt on. If -1, then the I2C
-                          ///        interrupt is installed on the core that this constructor is
-                          ///        called on. If 0 or 1, then the I2C interrupt is installed on
-                          ///        the specified core. If the I2C interrupt is already installed,
-                          ///        then this function does nothing. If the core_id is invalid,
-                          ///        then an error is logged and the I2C interrupt is not installed.
+                          ///  interrupt is installed on the core that this constructor is
+                          ///  called on. If 0 or 1, then the I2C interrupt is installed on
+                          ///  the specified core. 
     i2c_port_t port = I2C_NUM_0;                       ///< I2C port
     gpio_num_t sda_io_num = GPIO_NUM_NC;               ///< SDA pin
     gpio_num_t scl_io_num = GPIO_NUM_NC;               ///< SCL pin
