@@ -77,6 +77,32 @@ public:
   void y(T v) { y_ = v; }
 
   /**
+   * @brief Spaceship operator for comparing two vectors.
+   * @param other The vector to compare against.
+   * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
+   *         this vector is greater than \p other.
+   */
+  int operator<=>(const Vector2d &other) const {
+    if (x_ < other.x_) {
+      return -1;
+    } else if (x_ > other.x_) {
+      return 1;
+    } else if (y_ < other.y_) {
+      return -1;
+    } else if (y_ > other.y_) {
+      return 1;
+    }
+    return 0;
+  }
+
+  /**
+   * @brief Equality operator for comparing two vectors.
+   * @param other The vector to compare against.
+   * @return True if the vectors are equal, false otherwise.
+   */
+  bool operator==(const Vector2d &other) const { return x_ == other.x_ && y_ == other.y_; }
+
+  /**
    * @brief Index operator for vector elements.
    * @note Returns a mutable reference to the element.
    * @param index The index to return.
@@ -253,23 +279,14 @@ typedef Vector2d<int> Vector2i;      ///< Typedef for integer 2D vectors.
 typedef Vector2d<uint8_t> Vector2u8; ///< Typedef for 8 bit integer 2D vectors.
 
 /**
- * @brief Operator overload for scaling a vector v by a floating point value f.
+ * @brief Operator overload for scaling a vector v by a factor f.
  * @param f Scaling factor.
  * @param v Vector to be scaled.
  * @return Scaled vector (v*f).
  */
-[[maybe_unused]] static Vector2f operator*(float f, const Vector2f &v) {
-  return espp::Vector2f(v.x() * f, v.y() * f);
-}
-
-/**
- * @brief Compare if two vectors are equal.
- * @param lhs Left hand side vector
- * @param rhs Right hand side vector
- * @return True if their x and y are equal, false otherwise.
- */
-[[maybe_unused]] static bool operator==(const Vector2f &lhs, const Vector2f &rhs) {
-  return lhs.x() == rhs.x() && lhs.y() == rhs.y();
+[[maybe_unused]] static auto operator*(auto f, const auto &v) {
+  // swap the order so we can use the templated operator* function
+  return v * f;
 }
 
 } // namespace espp

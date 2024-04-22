@@ -4,15 +4,16 @@
 
 #include "bezier.hpp"
 #include "fast_math.hpp"
-#include "format.hpp"
 #include "gaussian.hpp"
+#include "logger.hpp"
 #include "range_mapper.hpp"
 #include "vector2d.hpp"
 
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
-  fmt::print("bezier:\n");
+  espp::Logger logger({.tag = "math_example", .level = espp::Logger::Verbosity::INFO});
+  logger.info("=== bezier ===");
   {
     //! [bezier example]
     using Bezier = espp::Bezier<espp::Vector2f>;
@@ -35,7 +36,7 @@ extern "C" void app_main(void) {
     //! [bezier example]
   }
 
-  fmt::print("fast_math:\n");
+  logger.info("=== fast math ===");
   {
     //! [fast_ln example]
     float x = 3.0f;
@@ -73,7 +74,7 @@ extern "C" void app_main(void) {
     //! [fast_cos example]
   }
 
-  fmt::print("Gaussian:\n");
+  logger.info("=== gaussian ===");
   {
     //! [gaussian example]
     std::array<float, 4> gammas = {
@@ -111,7 +112,7 @@ extern "C" void app_main(void) {
     //! [gaussian example]
   }
 
-  fmt::print("RangeMapper:\n");
+  logger.info("=== range mapper ===");
   {
     //! [range_mapper example]
     // Default will have output range [-1, 1]
@@ -164,18 +165,44 @@ extern "C" void app_main(void) {
     //! [range_mapper example]
   }
 
-  fmt::print("Vector2d:\n");
+  logger.info("=== vector2d ===");
   {
     //! [vector2d example]
+    fmt::print("--- uint8_t vector ---\n");
+    espp::Vector2u8 v8(2, 3);
+    fmt::print("original:       {}\n", v8);
+    auto v8_2 = v8;
+    v8 = uint8_t(2) * v8; // NOTE: need explicit cast to avoid ambiguity with auto type
+    v8 /= 2;
+    v8 += espp::Vector2u8(0, 1);
+    v8 -= espp::Vector2u8(0, 1);
+    fmt::print("should be same: {}, {}\n", v8, v8_2);
+    // for good measure, print all the comparisons
+    fmt::print("       v == v2: {}\n", v8 == v8_2);
+    fmt::print("       v != v2: {}\n", v8 != v8_2);
+    fmt::print("       v <  v2: {}\n", v8 < v8_2);
+    fmt::print("       v <= v2: {}\n", v8 <= v8_2);
+    fmt::print("       v >  v2: {}\n", v8 > v8_2);
+    fmt::print("       v >= v2: {}\n", v8 >= v8_2);
+    fmt::print("magnitude:      {}\n", v8.magnitude());
+    fmt::print("normalized:     {}\n", v8.normalized());
+
+    fmt::print("--- float vector ---\n");
     espp::Vector2f v(1, 1);
     fmt::print("original:       {}\n", v);
+    auto v2 = v;
     v = 2.0f * v;
     v /= 2.0f;
     v += espp::Vector2f(0, 1);
     v -= espp::Vector2f(0, 1);
-    auto v2 = v;
-    fmt::print("should be same: {}\n", v);
-    fmt::print("should be same: {}\n", v2);
+    fmt::print("should be same: {}, {}\n", v, v2);
+    // for good measure, print all the comparisons
+    fmt::print("       v == v2: {}\n", v == v2);
+    fmt::print("       v != v2: {}\n", v != v2);
+    fmt::print("       v <  v2: {}\n", v < v2);
+    fmt::print("       v <= v2: {}\n", v <= v2);
+    fmt::print("       v >  v2: {}\n", v > v2);
+    fmt::print("       v >= v2: {}\n", v >= v2);
     fmt::print("magnitude:      {}\n", v.magnitude());
     fmt::print("normalized:     {}\n", v.normalized());
     fmt::print("norm mag:       {}\n", v.normalized().magnitude());
@@ -183,7 +210,7 @@ extern "C" void app_main(void) {
     //! [vector2d example]
   }
 
-  fmt::print("Lerp:\n");
+  logger.info("=== Linear Interpolation ===");
   {
     //! [lerp example]
     // simple lerp
@@ -206,27 +233,28 @@ extern "C" void app_main(void) {
     //! [lerp example]
   }
 
-  fmt::print("Piecewise Linear:\n");
+  logger.info("=== Piecewise Linear Interpolation ===");
   {
     //! [piecewise linear example]
     std::vector<std::pair<float, float>> points = {
         // clang-format off
       // battery voltage (mV), battery percent (%)
       {3500, 0},
-      {3750, 25},
+      {3700, 30},
       {4000, 50},
-      {4250, 75},
+      {4350, 75},
       {4500, 100},
         // clang-format on
     };
+    fmt::print("points: {}\n", points);
     for (int i = 3000; i < 5000; i += 100) {
       float percent = espp::piecewise_linear(points, (float)i);
-      fmt::print("battery voltage: {} mV -> {}%\n", i, percent);
+      fmt::print("battery voltage: {} mV -> {:.2f} %\n", i, percent);
     }
     //! [piecewise linear example]
   }
 
-  fmt::print("Math example complete!\n");
+  logger.info("Math example complete!");
 
   while (true) {
     std::this_thread::sleep_for(1s);
