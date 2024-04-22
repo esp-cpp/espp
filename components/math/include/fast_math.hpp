@@ -3,6 +3,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <utility>
+#include <vector>
 
 namespace espp {
 /**
@@ -23,8 +25,8 @@ namespace espp {
  * @brief Fast square root approximation.
  * @note Using https://reprap.org/forum/read.php?147,219210 and
  *       https://en.wikipedia.org/wiki/Fast_inverse_square_root
- * @param value [description]
- * @return [description]
+ * @param value Value to take the square root of.
+ * @return Approximation of the square root of value.
  */
 [[maybe_unused]] static float fast_sqrt(float value) {
   uint32_t i{0};
@@ -49,6 +51,70 @@ namespace espp {
  * @return Sign of x: -1 if x < 0, 0 if x == 0, or +1 if x > 0
  */
 template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
+
+/**
+ * @brief Linear interpolation between two values.
+ * @param a First value.
+ * @param b Second value.
+ * @param t Interpolation factor in the range [0, 1].
+ * @return Linear interpolation between a and b.
+ */
+[[maybe_unused]] static float lerp(float a, float b, float t) { return a + t * (b - a); }
+
+/**
+ * @brief Compute the inverse lerped value.
+ * @param a First value (usually the lower of the two).
+ * @param b Second value (usually the higher of the two).
+ * @param v Value to inverse lerp (usually a value between a and b).
+ * @return Inverse lerp value, the factor of v between a and b in the range [0,
+ *         1] if v is between a and b, 0 if v == a, or 1 if v == b. If a == b,
+ *         0 is returned. If v is outside the range [a, b], the value is
+ *         extrapolated linearly (i.e. if v < a, the value is less than 0, if v
+ *         > b, the value is greater than 1).
+ */
+[[maybe_unused]] static float inv_lerp(float a, float b, float v) {
+  if (a == b) {
+    return 0.0f;
+  }
+  return (v - a) / (b - a);
+}
+
+/**
+ * @brief Compute the piecewise linear interpolation between a set of points.
+ * @param points Vector of points to interpolate between. The vector should be
+ *               sorted by the first value in the pair. The first value in the
+ *               pair is the x value and the second value is the y value. The x
+ *               values should be unique. The function will interpolate between
+ *               the points using linear interpolation. If x is less than the
+ *               first x value, the first y value is returned. If x is greater
+ *               than the last x value, the last y value is returned. If x is
+ *               between two x values, the y value is interpolated between the
+ *               two y values.
+ * @param x Value to interpolate at. Should be a value from the first
+ *          distribution of the points (the domain). If x is outside the domain
+ *          of the points, the value returned will be clamped to the first or
+ *          last y value.
+ * @return Interpolated value at x.
+ */
+[[maybe_unused]] static float piecewise_linear(const std::vector<std::pair<float, float>> &points,
+                                               float x) {
+  if (points.size() == 0) {
+    return 0.0f;
+  }
+  if (x <= points[0].first) {
+    return points[0].second;
+  }
+  if (x >= points[points.size() - 1].first) {
+    return points[points.size() - 1].second;
+  }
+  for (size_t i = 1; i < points.size(); i++) {
+    if (x <= points[i].first) {
+      float t = inv_lerp(points[i - 1].first, points[i].first, x);
+      return lerp(points[i - 1].second, points[i].second, t);
+    }
+  }
+  return 0.0f;
+}
 
 /**
  * @brief Round x to the nearest integer.

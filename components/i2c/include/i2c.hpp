@@ -6,6 +6,7 @@
 #include <driver/i2c.h>
 
 #include "base_component.hpp"
+#include "task.hpp"
 
 #include "i2c_format_helpers.hpp"
 
@@ -20,6 +21,10 @@ class I2c : public espp::BaseComponent {
 public:
   /// Configuration for I2C
   struct Config {
+    int isr_core_id = -1; ///< The core to install the I2C interrupt on. If -1, then the I2C
+                          ///  interrupt is installed on the core that this constructor is
+                          ///  called on. If 0 or 1, then the I2C interrupt is installed on
+                          ///  the specified core. 
     i2c_port_t port = I2C_NUM_0;                       ///< I2C port
     gpio_num_t sda_io_num = GPIO_NUM_NC;               ///< SDA pin
     gpio_num_t scl_io_num = GPIO_NUM_NC;               ///< SCL pin
@@ -79,7 +84,28 @@ public:
       ec = std::make_error_code(std::errc::io_error);
       return;
     }
-    err = i2c_driver_install(config_.port, I2C_MODE_MASTER, 0, 0, 0);
+    // Make copy of variables for easy capture
+    i2c_port_t i2c_port = config_.port;
+    int core_id = config_.isr_core_id;
+    if (core_id < 0) {
+      err = i2c_driver_install(i2c_port, I2C_MODE_MASTER, 0, 0, 0);
+    } else {
+      if (core_id > configNUM_CORES - 1) {
+        core_id = configNUM_CORES - 1;
+      }
+      auto isr_task = espp::Task::make_unique(espp::Task::Config{
+        .name = "i2c_install",
+        .callback = [i2c_port, core_id, &err](auto &m, auto &cv) -> bool {
+          err = i2c_driver_install(i2c_port, I2C_MODE_MASTER, 0, 0, 0);
+          return true; // stop the task
+        },
+        .stack_size_bytes = 2 * 1024,
+        .priority = 15,
+        .core_id = core_id,
+      });
+      isr_task->start();
+    }
+    
     if (err != ESP_OK) {
       logger_.error("install i2c driver failed {}", esp_err_to_name(err));
       ec = std::make_error_code(std::errc::io_error);

@@ -14,7 +14,41 @@ void BleGattServerCallbacks::onConnect(NimBLEServer *server, NimBLEConnInfo &con
 void BleGattServerCallbacks::onDisconnect(NimBLEServer *server, NimBLEConnInfo &conn_info,
                                           int reason) {
   if (server_ && server_->callbacks_.disconnect_callback) {
-    server_->callbacks_.disconnect_callback(conn_info);
+    // convert the reason to a espp::BleGattServer::DisconnectReason. For more
+    // information, see
+    // https://mynewt.apache.org/latest/network/ble_hs/ble_hs_return_codes.html
+    BleGattServer::DisconnectReason disconnect_reason = BleGattServer::DisconnectReason::UNKNOWN;
+    switch (reason) {
+    case BLE_HS_ETIMEOUT_HCI:
+    case (0x200 + BLE_ERR_CONN_SPVN_TMO):
+    case (0x200 + BLE_ERR_CONN_ACCEPT_TMO):
+      disconnect_reason = BleGattServer::DisconnectReason::TIMEOUT;
+      break;
+    case BLE_HS_EAUTHEN:
+    case BLE_HS_EAUTHOR:
+    case BLE_HS_EENCRYPT:
+    case (0x200 + BLE_ERR_AUTH_FAIL):
+      disconnect_reason = BleGattServer::DisconnectReason::AUTHENTICATION_FAILURE;
+      break;
+    case (0x0200 + BLE_ERR_CONN_TERM_MIC):
+      disconnect_reason = BleGattServer::DisconnectReason::CONNECTION_TERMINATED;
+      break;
+    case (0x0200 + BLE_ERR_REM_USER_CONN_TERM):
+      disconnect_reason = BleGattServer::DisconnectReason::REMOTE_USER_TERMINATED;
+      break;
+    case (0x0200 + BLE_ERR_RD_CONN_TERM_RESRCS):
+    case (0x0200 + BLE_ERR_RD_CONN_TERM_PWROFF):
+      disconnect_reason = BleGattServer::DisconnectReason::REMOTE_DEVICE_TERMINATED;
+      break;
+    case (0x0200 + BLE_ERR_CONN_TERM_LOCAL):
+      disconnect_reason = BleGattServer::DisconnectReason::LOCAL_USER_TERMINATED;
+      break;
+    default:
+      fmt::print("Unknown disconnect reason: {}\n", reason);
+      disconnect_reason = BleGattServer::DisconnectReason::UNKNOWN;
+      break;
+    }
+    server_->callbacks_.disconnect_callback(conn_info, disconnect_reason);
   }
 }
 
