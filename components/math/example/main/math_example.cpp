@@ -210,8 +210,14 @@ extern "C" void app_main(void) {
   {
     //! [piecewise linear example]
     std::vector<std::pair<float, float>> points = {
-        // battery voltage (mV), battery percent (%)
-        {3500, 0}, {3750, 25}, {4000, 50}, {4250, 75}, {4500, 100},
+        // clang-format off
+      // battery voltage (mV), battery percent (%)
+      {3500, 0},
+      {3750, 25},
+      {4000, 50},
+      {4250, 75},
+      {4500, 100},
+        // clang-format on
     };
     for (int i = 3000; i < 5000; i += 100) {
       float percent = espp::piecewise_linear(points, (float)i);
