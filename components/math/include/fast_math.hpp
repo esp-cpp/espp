@@ -69,7 +69,12 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
  * @return Inverse lerp value, the factor of v between a and b in the range [0,
  *         1] if v is between a and b.
  */
-[[maybe_unused]] static float inv_lerp(float a, float b, float v) { return (v - a) / (b - a); }
+[[maybe_unused]] static float inv_lerp(float a, float b, float v) {
+  if (a == b) {
+    return 0.0f;
+  }
+  return (v - a) / (b - a);
+}
 
 /**
  * @brief Compute the piecewise linear interpolation between a set of points.
