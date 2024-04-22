@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py format math"
+  "main esptool_py logger math"
   CACHE STRING
   "List of components to include"
   )
