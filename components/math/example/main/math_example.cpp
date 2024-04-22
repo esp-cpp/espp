@@ -183,6 +183,49 @@ extern "C" void app_main(void) {
     //! [vector2d example]
   }
 
+  fmt::print("Lerp:\n");
+  {
+    //! [lerp example]
+    // simple lerp
+    float a = 0.0f;
+    float b = 1.0f;
+    float t = 0.5f;
+    float v = espp::lerp(a, b, t);
+    float inv_lerp = espp::inv_lerp(a, b, v);
+    fmt::print("lerp({}, {}, {}) = {}\n", a, b, t, v);
+    fmt::print("inv_lerp({}, {}, {}) = {}\n", a, b, v, inv_lerp);
+
+    // more complex lerp
+    a = 3540.0f;
+    b = 4350.0f;
+    t = 0.5f;
+    v = espp::lerp(a, b, t);
+    inv_lerp = espp::inv_lerp(a, b, v);
+    fmt::print("lerp({}, {}, {}) = {}\n", a, b, t, v);
+    fmt::print("inv_lerp({}, {}, {}) = {}\n", a, b, v, inv_lerp);
+    //! [lerp example]
+  }
+
+  fmt::print("Piecewise Linear:\n");
+  {
+    //! [piecewise linear example]
+    std::vector<std::pair<float, float>> points = {
+        // clang-format off
+      // battery voltage (mV), battery percent (%)
+      {3500, 0},
+      {3750, 25},
+      {4000, 50},
+      {4250, 75},
+      {4500, 100},
+        // clang-format on
+    };
+    for (int i = 3000; i < 5000; i += 100) {
+      float percent = espp::piecewise_linear(points, (float)i);
+      fmt::print("battery voltage: {} mV -> {}%\n", i, percent);
+    }
+    //! [piecewise linear example]
+  }
+
   fmt::print("Math example complete!\n");
 
   while (true) {
