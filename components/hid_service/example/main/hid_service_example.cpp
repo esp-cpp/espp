@@ -24,7 +24,8 @@ extern "C" void app_main(void) {
   ble_gatt_server.set_log_level(espp::Logger::Verbosity::INFO);
   ble_gatt_server.set_callbacks({
       .connect_callback = [&](NimBLEConnInfo &conn_info) { logger.info("Device connected"); },
-      .disconnect_callback = [&](NimBLEConnInfo &conn_info) { logger.info("Device disconnected"); },
+      .disconnect_callback = [&](auto &conn_info,
+                                 auto reason) { logger.info("Device disconnected: {}", reason); },
       .authentication_complete_callback =
           [&](NimBLEConnInfo &conn_info) { logger.info("Device authenticated"); },
       // NOTE: this is optional, if you don't provide this callback, it will

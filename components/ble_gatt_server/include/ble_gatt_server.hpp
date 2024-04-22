@@ -30,6 +30,25 @@ namespace espp {
 /// \snippet ble_gatt_server_example.cpp ble gatt server example
 class BleGattServer : public BaseComponent {
 public:
+  /// @brief Disconnect reasons for the GATT server.
+  /// This enum represents the different reasons for disconnection that will be
+  /// passed to the disconnect callback.
+  ///
+  /// This enum is a simplification of the NimBLE disconnect reasons, and is
+  /// meant to provide a more user-friendly way to handle disconnections.
+  /// For more information about the possible reasons for disconnection, see
+  /// https://mynewt.apache.org/latest/network/ble_hs/ble_hs_return_codes.html.
+  enum class DisconnectReason : uint8_t {
+    UNKNOWN,                  ///< Unknown reason for disconnection
+    TIMEOUT,                  ///< Disconnected due to timeout
+    CONNECTION_TERMINATED,    ///< Disconnected due to the connection being terminated
+    REMOTE_USER_TERMINATED,   ///< Disconnected due to the remote user terminating the connection
+    REMOTE_DEVICE_TERMINATED, ///< Disconnected due to the remote device terminating the connection
+                              ///< (low resources or power off)
+    LOCAL_USER_TERMINATED,    ///< Disconnected due to the local user terminating the connection
+    AUTHENTICATION_FAILURE,   ///< Disconnected due to an authentication failure
+  };
+
 #if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
   typedef NimBLEExtAdvertisement AdvertisedData;
 #else
@@ -37,10 +56,13 @@ public:
 #endif
 
   /// @brief Callback for when a device connects to the GATT server.
+  /// @param conn_info The connection information for the device.
   typedef std::function<void(NimBLEConnInfo &)> connect_callback_t;
 
   /// @brief Callback for when a device disconnects from the GATT server.
-  typedef std::function<void(NimBLEConnInfo &)> disconnect_callback_t;
+  /// @param conn_info The connection information for the device.
+  /// @param reason The reason for the disconnection.
+  typedef std::function<void(NimBLEConnInfo &, DisconnectReason reason)> disconnect_callback_t;
 
   /// @brief Callback for when a device completes authentication.
   /// @param conn_info The connection information for the device.
@@ -656,5 +678,31 @@ template <> struct fmt::formatter<espp::BleGattServer::AdvertisingParameters> {
   }
 };
 #endif // !CONFIG_BT_NIMBLE_EXT_ADV
+
+// for easy printing of the DisconnectReason enum using libfmt
+template <> struct fmt::formatter<espp::BleGattServer::DisconnectReason> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(const espp::BleGattServer::DisconnectReason &reason, FormatContext &ctx) {
+    switch (reason) {
+    case espp::BleGattServer::DisconnectReason::UNKNOWN:
+      return fmt::format_to(ctx.out(), "UNKNOWN");
+    case espp::BleGattServer::DisconnectReason::TIMEOUT:
+      return fmt::format_to(ctx.out(), "TIMEOUT");
+    case espp::BleGattServer::DisconnectReason::CONNECTION_TERMINATED:
+      return fmt::format_to(ctx.out(), "CONNECTION_TERMINATED");
+    case espp::BleGattServer::DisconnectReason::REMOTE_USER_TERMINATED:
+      return fmt::format_to(ctx.out(), "REMOTE_USER_TERMINATED");
+    case espp::BleGattServer::DisconnectReason::REMOTE_DEVICE_TERMINATED:
+      return fmt::format_to(ctx.out(), "REMOTE_DEVICE_TERMINATED");
+    case espp::BleGattServer::DisconnectReason::LOCAL_USER_TERMINATED:
+      return fmt::format_to(ctx.out(), "LOCAL_USER_TERMINATED");
+    case espp::BleGattServer::DisconnectReason::AUTHENTICATION_FAILURE:
+      return fmt::format_to(ctx.out(), "AUTHENTICATION_FAILURE");
+    default:
+      return fmt::format_to(ctx.out(), "INVALID");
+    }
+  }
+};
 
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
