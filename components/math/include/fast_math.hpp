@@ -67,7 +67,10 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
  * @param b Second value (usually the higher of the two).
  * @param v Value to inverse lerp (usually a value between a and b).
  * @return Inverse lerp value, the factor of v between a and b in the range [0,
- *         1] if v is between a and b.
+ *         1] if v is between a and b, 0 if v == a, or 1 if v == b. If a == b,
+ *         0 is returned. If v is outside the range [a, b], the value is
+ *         extrapolated linearly (i.e. if v < a, the value is less than 0, if v
+ *         > b, the value is greater than 1).
  */
 [[maybe_unused]] static float inv_lerp(float a, float b, float v) {
   if (a == b) {
@@ -87,7 +90,10 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
  *               than the last x value, the last y value is returned. If x is
  *               between two x values, the y value is interpolated between the
  *               two y values.
- * @param x Value to interpolate at.
+ * @param x Value to interpolate at. Should be a value from the first
+ *          distribution of the points (the domain). If x is outside the domain
+ *          of the points, the value returned will be clamped to the first or
+ *          last y value.
  * @return Interpolated value at x.
  */
 [[maybe_unused]] static float piecewise_linear(const std::vector<std::pair<float, float>> &points,
