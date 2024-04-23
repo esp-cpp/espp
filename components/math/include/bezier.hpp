@@ -10,6 +10,20 @@ namespace espp {
  *       curves.
  * @note Template class which can be used individually on floating point
  *       values directly or on containers such as Vector2d<float>.
+ * @tparam T The type of the control points, e.g. float or Vector2d<float>.
+ * @note The bezier curve is defined by 4 control points, P0, P1, P2, P3.
+ *      The curve is defined by the equation:
+ *      \f$B(t) = (1-t)^3 * P0 + 3 * (1-t)^2 * t * P1 + 3 * (1-t) * t^2 * P2 + t^3 * P3\f$
+ *      where t is the evaluation parameter, [0, 1].
+ *
+ * @note The weighted bezier curve is defined by 4 control points, P0, P1, P2, P3
+ *      and 4 weights, W0, W1, W2, W3.
+ *      The curve is defined by the equation:
+ *      \f$B(t) = (W0 * (1-t)^3 * P0 + W1 * 3 * (1-t)^2 * t * P1 + W2 * 3 * (1-t) * t^2 * P2 + W3 *
+ * t^3 * P3) / (W0 + W1 + W2 + W3)\f$ where t is the evaluation parameter, [0, 1].
+ *
+ * \section bezier_ex1 Example
+ * \snippet math_example.cpp bezier example
  */
 template <typename T> class Bezier {
 public:

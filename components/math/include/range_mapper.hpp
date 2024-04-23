@@ -29,6 +29,9 @@ namespace espp {
  *        The RangeMapper can be optionally configured to invert the output,
  *        so that after converting from the input range to the output range,
  *        it will flip the sign on the output.
+ *
+ * \section range_mapper_ex1 Example
+ * \snippet math_example.cpp range_mapper example
  */
 template <typename T> class RangeMapper {
 public:
