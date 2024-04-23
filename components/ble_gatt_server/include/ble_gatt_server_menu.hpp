@@ -75,6 +75,10 @@ public:
         "unpair from the current BLE device");
 
     menu->Insert(
+        "unbond", [this](std::ostream &out) -> void { unbond(out); },
+        "Deletes all existing bonds");
+
+    menu->Insert(
         "is_adv", [this](std::ostream &out) -> void { is_advertising(out); },
         "Is the server advertising?");
 
@@ -241,6 +245,13 @@ protected:
         << "\n";
   }
 #endif // !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
+
+  /// @brief Unbonds all devices
+  /// @param out The output stream to write to.
+  void unbond(std::ostream &out) {
+    NimBLEDevice::deleteAllBonds();
+    out << "Number of Bonds: " << NimBLEDevice::getNumBonds() << "\n";
+  }
 
   /// @brief Start advertising.
   /// @param out The output stream to write to.
