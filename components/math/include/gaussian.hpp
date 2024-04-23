@@ -8,6 +8,9 @@ namespace espp {
  *        \f$y(t)=\alpha\exp(-\frac{(t-\beta)^2}{2\gamma^2})\f$.
  * @details Alows you to store the alpha, beta, and gamma coefficients as well
  *          as update them dynamically.
+ *
+ * \section gaussian_ex1 Example
+ * \snippet math_example.cpp gaussian example
  */
 class Gaussian {
 public:

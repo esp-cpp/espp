@@ -9,6 +9,9 @@ namespace espp {
  *
  * Provides getters/setters, index operator, and vector / scalar math
  * utilities.
+ *
+ * \section vector_ex1 Example
+ * \snippet math_example.cpp vector2d example
  */
 template <typename T> class Vector2d {
 public:

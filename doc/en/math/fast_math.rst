@@ -11,8 +11,13 @@ optimized approximations of the following functions:
 
 along with some utility functions:
 
+* square (x^2)
+* cube (x^3)
 * sgn (sign of a number)
 * round (round floating point value to nearest integer value)
+* lerp (linear interpolate between two points)
+* inv_lerp (inverse linear interpolate between two points)
+* piecewise_linear (compute the piecewise linear interpolation between a set of points)
 
 .. ---------------------------- API Reference ----------------------------------
 
