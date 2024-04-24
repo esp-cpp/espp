@@ -38,17 +38,23 @@ public:
   enum class ConsoleType {
     UART,            ///< UART console. Requires configuration of the UART port and baud rate.
     USB_SERIAL_JTAG, ///< USB Serial JTAG console, provided by ESP ROM. No configuration required.
-    CUSTOM_USB_CDC,  ///< USB CDC console. NOTE: this is not the same as ESP_CONSOLE_USB_CDC
+    CUSTOM,          ///< Custom VFS around some other driver (e.g. TinyUSB CDC)
   };
 
   struct ConsoleConfig {
     ConsoleType type;
     union {
+      // UART configuration
       struct {
         uart_port_t port;
         int baud_rate;
       } uart;
       // no config required for USB_SERIAL_JTAG
+      // CUSTOM_USB_CDC configuration
+      struct {
+        std::string dev_name;
+        esp_vfs_t vfs;
+      } custom;
     };
   };
 
@@ -64,8 +70,8 @@ public:
     case ConsoleType::USB_SERIAL_JTAG:
       configure_stdin_stdout_usb_serial_jtag();
       break;
-    case ConsoleType::CUSTOM_USB_CDC:
-      // TODO: implement
+    case ConsoleType::CUSTOM:
+      configure_stdin_stdout_vfs(config.custom.dev_name, config.custom.vfs);
       break;
     }
   }
@@ -168,6 +174,36 @@ public:
     esp_vfs_usb_serial_jtag_use_driver();
     esp_vfs_dev_usb_serial_jtag_set_rx_line_endings(ESP_LINE_ENDINGS_CR);
     esp_vfs_dev_usb_serial_jtag_set_tx_line_endings(ESP_LINE_ENDINGS_CRLF);
+
+    fflush(stdout);
+    fsync(fileno(stdout));
+
+    configured_ = true;
+  }
+
+  static void configure_stdin_stdout_vfs(std::string_view dev_name, const esp_vfs_t &vfs) {
+    if (configured_) {
+      return;
+    }
+
+    // drain stdout before reconfiguring it
+    fflush(stdout);
+    fsync(fileno(stdout));
+
+    // Initialize VFS & UART so we can use std::cout/cin
+    // _IOFBF = full buffering
+    // _IOLBF = line buffering
+    // _IONBF = no buffering
+    // disable buffering on stdin
+    setvbuf(stdin, nullptr, _IONBF, 0);
+
+    // Register the USB CDC interface
+    auto err = esp_vfs_register(dev_name.data(), &vfs, NULL);
+
+    // redirect stdin, stdout, stderr to the USB CDC interface
+    freopen(dev_name.data(), "r", stdin);
+    freopen(dev_name.data(), "w", stdout);
+    freopen(dev_name.data(), "w", stderr);
 
     fflush(stdout);
     fsync(fileno(stdout));
