@@ -26,9 +26,9 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
+#include "high_resolution_timer.hpp"
 #include "logger.hpp"
 #include "task.hpp"
-#include "timer.hpp"
 
 #if CONFIG_BT_NIMBLE_ENABLED
 #include "NimBLEDevice.h"

@@ -4,7 +4,7 @@ static espp::Logger logger({.tag = "GFPS OS", .level = espp::gfps::LOG_LEVEL});
 
 static std::chrono::system_clock::time_point s_start_time;
 
-std::vector<espp::Timer *> s_timers_to_delete;
+std::vector<espp::HighResolutionTimer *> s_timers_to_delete;
 
 void nearby_platform_Cleanup() {
   logger.debug("cleaning up {} timers", s_timers_to_delete.size());
@@ -29,17 +29,21 @@ unsigned int nearby_platform_GetCurrentTimeMs() {
 // delay_ms - Number of milliseconds to run the timer.
 void *nearby_platform_StartTimer(void (*callback)(), unsigned int delay_ms) {
   logger.debug("starting timer with delay {} ms", delay_ms);
-  espp::Timer *timer = new espp::Timer(espp::Timer::Config{
-      .name = "nearby timer",
-      .period = std::chrono::milliseconds(0), // one-shot
-      .delay = std::chrono::milliseconds(delay_ms),
-      .callback =
-          [callback]() {
-            if (callback)
-              callback();
-            return true; // stop the timer
-          },
+  auto *timer = new espp::HighResolutionTimer(espp::HighResolutionTimer::Config{
+      .name = "gfps timer",
+      .callback = callback,
+      .log_level = espp::gfps::LOG_LEVEL,
   });
+  if (timer == nullptr) {
+    logger.error("failed to create timer");
+    return nullptr;
+  }
+  uint64_t delay_us = delay_ms * 1000;
+  if (!timer->oneshot(delay_us)) {
+    logger.error("failed to start timer");
+    delete timer;
+    return nullptr;
+  }
   return timer;
 }
 
@@ -51,7 +55,7 @@ nearby_platform_status nearby_platform_CancelTimer(void *timer) {
   nearby_platform_Cleanup();
 
   // add this timer to the list of timers to delete
-  espp::Timer *t = (espp::Timer *)timer;
+  auto *t = (espp::HighResolutionTimer *)timer;
   if (!t)
     return kNearbyStatusError;
   logger.debug("canceling timer");
