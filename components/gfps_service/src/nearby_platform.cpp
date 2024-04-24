@@ -38,7 +38,7 @@ void *nearby_platform_StartTimer(void (*callback)(), unsigned int delay_ms) {
     logger.error("failed to create timer");
     return nullptr;
   }
-  uint64_t delay_us = delay_ms * 1000;
+  uint64_t delay_us = uint64_t(delay_ms) * uint64_t(1000);
   if (!timer->oneshot(delay_us)) {
     logger.error("failed to start timer");
     delete timer;
