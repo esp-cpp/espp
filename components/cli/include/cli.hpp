@@ -38,7 +38,9 @@ public:
   enum class ConsoleType {
     UART,            ///< UART console. Requires configuration of the UART port and baud rate.
     USB_SERIAL_JTAG, ///< USB Serial JTAG console, provided by ESP ROM. No configuration required.
-    CUSTOM,          ///< Custom VFS around some other driver (e.g. TinyUSB CDC)
+    CUSTOM_VFS,      ///< Custom VFS around some other driver (e.g. TinyUSB CDC)
+    CUSTOM, ///< Custom console. Does nothing, expects the user to have fully configured the
+            ///< console.
   };
 
   struct ConsoleConfig {
@@ -52,9 +54,10 @@ public:
       // no config required for USB_SERIAL_JTAG
       // CUSTOM_USB_CDC configuration
       struct {
-        std::string dev_name;
+        std::string_view dev_name;
         esp_vfs_t vfs;
-      } custom;
+      } custom_vfs;
+      // no config required for CUSTOM
     };
   };
 
@@ -78,8 +81,10 @@ public:
     case ConsoleType::USB_SERIAL_JTAG:
       configure_stdin_stdout_usb_serial_jtag();
       break;
+    case ConsoleType::CUSTOM_VFS:
+      configure_stdin_stdout_vfs(config.custom_vfs.dev_name, config.custom_vfs.vfs);
+      break;
     case ConsoleType::CUSTOM:
-      configure_stdin_stdout_vfs(config.custom.dev_name, config.custom.vfs);
       break;
     }
   }
