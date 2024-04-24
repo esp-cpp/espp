@@ -58,6 +58,14 @@ public:
     };
   };
 
+  /**
+   * @brief Configure stdin and stdout to use the specified console. This should
+   *        be called before creating a Cli object if you want to use std::cin
+   *        and std::cout with a console other than the one that the ESP_CONSOLE
+   *        was compiled to use.
+   *
+   * @param config The configuration for the console to use.
+   */
   static void configure_stdin_stdout(const ConsoleConfig &config) {
     if (configured_) {
       return;
@@ -77,16 +85,19 @@ public:
   }
 
   /**
-   * @brief Configure the UART driver to support blocking input read, so that
-   *        std::cin (which assumes a blocking read) will function. This should
-   *        be primarily used when you want to use the std::cin/std::getline and
-   *        other std input functions or you want to use the cli library.
+   * @brief Configure stdin and stdout to use whatever the ESP CONSOLE was
+   *       compiled to use. This will only work if the ESP_CONSOLE was
+   *       configured to use one of the following:
+   *       - CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+   *       - CONFIG_ESP_CONSOLE_UART
    *
-   *        This code was copied from
-   *        https://github.com/espressif/esp-idf/blob/master/examples/common_components/protocol_examples_common/stdin_out.c,
-   *        and there is some discussion here:
-   *        https://github.com/espressif/esp-idf/issues/9692 and
-   *        https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html.
+   *       If you want to use a different console, you should use the other
+   *       configure_stdin_stdout() function that takes a ConsoleConfig object.
+   *
+   * @note If you do not call a configure_stdin_stdout() function before
+   *      creating a Cli object, the Cli object will call
+   *      configure_stdin_stdout() with no arguments (this function), using
+   *      whatever console was compiled to be the ESP primary console.
    */
   static void configure_stdin_stdout(void) {
     if (configured_) {
@@ -104,6 +115,21 @@ public:
 #endif // CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
   }
 
+  /**
+   * @brief Configure the UART driver to support blocking input read, so that
+   *        std::cin (which assumes a blocking read) will function. This should
+   *        be primarily used when you want to use the std::cin/std::getline and
+   *        other std input functions or you want to use the cli library.
+   *
+   *        This code was copied from
+   *        https://github.com/espressif/esp-idf/blob/master/examples/common_components/protocol_examples_common/stdin_out.c,
+   *        and there is some discussion here:
+   *        https://github.com/espressif/esp-idf/issues/9692 and
+   *        https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html.
+   *
+   * @param port The UART port to use.
+   * @param baud_rate The baud rate to use.
+   */
   static void configure_stdin_stdout_uart(uart_port_t port, int baud_rate) {
     if (configured_) {
       return;
@@ -149,10 +175,12 @@ public:
     configured_ = true;
   }
 
-  // TODO: look at
-  // https://github.com/espressif/esp-usb/blob/master/device/esp_tinyusb/tusb_console.c#L102
-  // for wiring up to TinyUSB CDC
-
+  /**
+   * @brief Configure the USB Serial JTAG driver to support blocking input read,
+   *        so that std::cin (which assumes a blocking read) will function. This
+   *        should be primarily used when you want to use the std::cin/std::getline
+   *        and other std input functions or you want to use the cli library.
+   */
   static void configure_stdin_stdout_usb_serial_jtag(void) {
     if (configured_) {
       return;
@@ -181,6 +209,17 @@ public:
     configured_ = true;
   }
 
+  /**
+   * @brief Configure stdin/stdout to use a custom VFS driver. This should be
+   *        used when you have a custom VFS driver that you want to use for
+   *        std::cin/std::cout, such as when using TinyUSB CDC.
+   *
+   * @param dev_name The name of the device to use for the VFS driver.
+   * @param vfs The VFS driver configuration to use.
+   *
+   * @note This function must be called before creating a Cli object if you want
+   *       to use std::cin/std::cout with a custom VFS driver.
+   */
   static void configure_stdin_stdout_vfs(std::string_view dev_name, const esp_vfs_t &vfs) {
     if (configured_) {
       return;
