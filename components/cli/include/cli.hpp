@@ -33,63 +33,6 @@ namespace espp {
 class Cli : private cli::CliSession {
 public:
   /**
-   * @brief Enum for the different types of consoles that can be used.
-   */
-  enum class ConsoleType {
-    UART,            ///< UART console. Requires configuration of the UART port and baud rate.
-    USB_SERIAL_JTAG, ///< USB Serial JTAG console, provided by ESP ROM. No configuration required.
-    CUSTOM_VFS,      ///< Custom VFS around some other driver (e.g. TinyUSB CDC)
-    CUSTOM, ///< Custom console. Does nothing, expects the user to have fully configured the
-            ///< console.
-  };
-
-  struct ConsoleConfig {
-    ConsoleType type;
-    union {
-      // UART configuration
-      struct {
-        uart_port_t port;
-        int baud_rate;
-      } uart;
-      // no config required for USB_SERIAL_JTAG
-      // CUSTOM_USB_CDC configuration
-      struct {
-        std::string_view dev_name;
-        esp_vfs_t vfs;
-      } custom_vfs;
-      // no config required for CUSTOM
-    };
-  };
-
-  /**
-   * @brief Configure stdin and stdout to use the specified console. This should
-   *        be called before creating a Cli object if you want to use std::cin
-   *        and std::cout with a console other than the one that the ESP_CONSOLE
-   *        was compiled to use.
-   *
-   * @param config The configuration for the console to use.
-   */
-  static void configure_stdin_stdout(const ConsoleConfig &config) {
-    if (configured_) {
-      return;
-    }
-
-    switch (config.type) {
-    case ConsoleType::UART:
-      configure_stdin_stdout_uart(config.uart.port, config.uart.baud_rate);
-      break;
-    case ConsoleType::USB_SERIAL_JTAG:
-      configure_stdin_stdout_usb_serial_jtag();
-      break;
-    case ConsoleType::CUSTOM_VFS:
-      configure_stdin_stdout_vfs(config.custom_vfs.dev_name, config.custom_vfs.vfs);
-      break;
-    case ConsoleType::CUSTOM:
-      break;
-    }
-  }
-
-  /**
    * @brief Configure stdin and stdout to use whatever the ESP CONSOLE was
    *       compiled to use. This will only work if the ESP_CONSOLE was
    *       configured to use one of the following:
@@ -254,6 +197,17 @@ public:
 
     configured_ = true;
   }
+
+  /**
+   * @brief Configure stdin/stdout to use a custom VFS driver. This should be
+   *        used when you manually configure the VFS driver and want to use
+   *        std::cin/std::cout, such as when using TinyUSB CDC. This function
+   *        merely sets the configured flag to true.
+   *
+   * @note This function must be called before creating a Cli object if you want
+   *       to use std::cin/std::cout with a custom VFS driver.
+   */
+  static void configure_stdin_stdout_custom() { configured_ = true; }
 
   /**
    * @brief Construct a Cli object and call
