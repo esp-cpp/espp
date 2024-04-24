@@ -50,9 +50,7 @@ public:
 
   /// Destructor
   ~HighResolutionTimer() {
-    if (is_running()) {
-      stop();
-    }
+    stop();
     if (timer_handle_) {
       esp_timer_delete(timer_handle_);
     }
@@ -62,7 +60,8 @@ public:
   /// @param period_us Period of the timer in microseconds, or timeout if
   ///        oneshot is true
   /// @param oneshot True if the timer should be oneshot, false if periodic
-  void start(uint64_t period_us = 0, bool oneshot = false) {
+  /// @return True if the timer was started successfully, false otherwise
+  bool start(uint64_t period_us = 0, bool oneshot = false) {
     if (is_running()) {
       stop();
     }
@@ -76,9 +75,14 @@ public:
     timer_args.dispatch_method = ESP_TIMER_TASK; // TIMER_TASK or TIMER_ISR
     timer_args.name = get_name().c_str();
 
-    esp_timer_create(&timer_args, &timer_handle_);
-
     esp_err_t err = ESP_OK;
+
+    err = esp_timer_create(&timer_args, &timer_handle_);
+    if (err != ESP_OK) {
+      logger_.error("Failed to create timer: {}", esp_err_to_name(err));
+      return false;
+    }
+
     if (oneshot) {
       err = esp_timer_start_once(timer_handle_, period_us);
     } else {
@@ -87,16 +91,20 @@ public:
 
     if (err != ESP_OK) {
       logger_.error("Failed to start timer: {}", esp_err_to_name(err));
+      return false;
     }
+    return true;
   }
 
   /// Start the timer in oneshot mode
   /// @param timeout_us Timeout of the timer in microseconds
-  void oneshot(uint64_t timeout_us = 0) { start(timeout_us, true); }
+  /// @return True if the timer was started successfully, false otherwise
+  bool oneshot(uint64_t timeout_us = 0) { return start(timeout_us, true); }
 
   /// Start the timer in periodic mode
   /// @param period_us Period of the timer in microseconds
-  void periodic(uint64_t period_us = 0) { start(period_us, false); }
+  /// @return True if the timer was started successfully, false otherwise
+  bool periodic(uint64_t period_us = 0) { return start(period_us, false); }
 
   /// Stop the timer
   void stop() {
@@ -107,7 +115,7 @@ public:
 
   /// Check if the timer is running
   /// @return True if the timer is running, false otherwise
-  bool is_running() const { return esp_timer_is_active(timer_handle_); }
+  bool is_running() const { return timer_handle_ && esp_timer_is_active(timer_handle_); }
 
   /// Is the timer oneshot?
   /// @return True if the timer is a oneshot timer, false if it is perioic.
