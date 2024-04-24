@@ -16,7 +16,7 @@
 #include "line_input.hpp"
 
 #ifdef CONFIG_ESP_CONSOLE_USB_CDC
-#error The cli component is incompatible with USB CDC console.
+#error The cli component is currently incompatible with CONFIG ESP_CONSOLE_USB_CDC console.
 #endif // CONFIG_ESP_CONSOLE_USB_CDC
 
 namespace espp {
@@ -33,6 +33,44 @@ namespace espp {
 class Cli : private cli::CliSession {
 public:
   /**
+   * @brief Enum for the different types of consoles that can be used.
+   */
+  enum class ConsoleType {
+    UART,            ///< UART console. Requires configuration of the UART port and baud rate.
+    USB_SERIAL_JTAG, ///< USB Serial JTAG console, provided by ESP ROM. No configuration required.
+    CUSTOM_USB_CDC,  ///< USB CDC console. NOTE: this is not the same as ESP_CONSOLE_USB_CDC
+  };
+
+  struct ConsoleConfig {
+    ConsoleType type;
+    union {
+      struct {
+        uart_port_t port;
+        int baud_rate;
+      } uart;
+      // no config required for USB_SERIAL_JTAG
+    };
+  };
+
+  static void configure_stdin_stdout(const ConsoleConfig &config) {
+    if (configured_) {
+      return;
+    }
+
+    switch (config.type) {
+    case ConsoleType::UART:
+      configure_stdin_stdout_uart(config.uart.port, config.uart.baud_rate);
+      break;
+    case ConsoleType::USB_SERIAL_JTAG:
+      configure_stdin_stdout_usb_serial_jtag();
+      break;
+    case ConsoleType::CUSTOM_USB_CDC:
+      // TODO: implement
+      break;
+    }
+  }
+
+  /**
    * @brief Configure the UART driver to support blocking input read, so that
    *        std::cin (which assumes a blocking read) will function. This should
    *        be primarily used when you want to use the std::cin/std::getline and
@@ -45,8 +83,23 @@ public:
    *        https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/cplusplus.html.
    */
   static void configure_stdin_stdout(void) {
-    static bool configured = false;
-    if (configured) {
+    if (configured_) {
+      return;
+    }
+
+#if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+    configure_stdin_stdout_usb_serial_jtag();
+#else
+#if CONFIG_ESP_CONSOLE_UART
+    configure_stdin_stdout_uart(CONFIG_ESP_CONSOLE_UART_NUM, CONFIG_ESP_CONSOLE_UART_BAUDRATE);
+#else
+#error "No console configured, cannot call configure_stdin_stdout() without arguments"
+#endif
+#endif // CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+  }
+
+  static void configure_stdin_stdout_uart(uart_port_t port, int baud_rate) {
+    if (configured_) {
       return;
     }
 
@@ -61,14 +114,10 @@ public:
     // disable buffering on stdin
     setvbuf(stdin, nullptr, _IONBF, 0);
 
-    // The code blow was generously provided from:
-    // https://github.com/espressif/esp-idf/issues/8789#issuecomment-1103523381
-#if !CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
-    /* Configure UART. Note that REF_TICK is used so that the baud rate remains
-     * correct while APB frequency is changing in light sleep mode.
-     */
+    // Configure UART. Note that REF_TICK is used so that the baud rate remains
+    // correct while APB frequency is changing in light sleep mode.
     const uart_config_t uart_config = {
-      .baud_rate = CONFIG_ESP_CONSOLE_UART_BAUDRATE,
+      .baud_rate = baud_rate,
       .data_bits = UART_DATA_8_BITS,
       .parity = UART_PARITY_DISABLE,
       .stop_bits = UART_STOP_BITS_1,
@@ -79,29 +128,51 @@ public:
 #endif
     };
     /* Install UART driver for interrupt-driven reads and writes */
-    ESP_ERROR_CHECK(
-        uart_driver_install((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM, 256, 0, 0, NULL, 0));
-    ESP_ERROR_CHECK(uart_param_config((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM, &uart_config));
+    ESP_ERROR_CHECK(uart_driver_install(port, 256, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(port, &uart_config));
     /* Tell VFS to use UART driver */
-    esp_vfs_dev_uart_use_driver((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM);
+    esp_vfs_dev_uart_use_driver(port);
     /* Minicom, screen, idf_monitor send CR when ENTER key is pressed */
-    esp_vfs_dev_uart_port_set_rx_line_endings((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM,
-                                              ESP_LINE_ENDINGS_CR);
+    esp_vfs_dev_uart_port_set_rx_line_endings(port, ESP_LINE_ENDINGS_CR);
     /* Move the caret to the beginning of the next line on '\n' */
-    esp_vfs_dev_uart_port_set_tx_line_endings((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM,
-                                              ESP_LINE_ENDINGS_CRLF);
-#else  // CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+    esp_vfs_dev_uart_port_set_tx_line_endings(port, ESP_LINE_ENDINGS_CRLF);
+
+    fflush(stdout);
+    fsync(fileno(stdout));
+
+    configured_ = true;
+  }
+
+  // TODO: look at
+  // https://github.com/espressif/esp-usb/blob/master/device/esp_tinyusb/tusb_console.c#L102
+  // for wiring up to TinyUSB CDC
+
+  static void configure_stdin_stdout_usb_serial_jtag(void) {
+    if (configured_) {
+      return;
+    }
+
+    // drain stdout before reconfiguring it
+    fflush(stdout);
+    fsync(fileno(stdout));
+
+    // Initialize VFS & UART so we can use std::cout/cin
+    // _IOFBF = full buffering
+    // _IOLBF = line buffering
+    // _IONBF = no buffering
+    // disable buffering on stdin
+    setvbuf(stdin, nullptr, _IONBF, 0);
+
     usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
     usb_serial_jtag_driver_install(&cfg);
     esp_vfs_usb_serial_jtag_use_driver();
     esp_vfs_dev_usb_serial_jtag_set_rx_line_endings(ESP_LINE_ENDINGS_CR);
     esp_vfs_dev_usb_serial_jtag_set_tx_line_endings(ESP_LINE_ENDINGS_CRLF);
-#endif // CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
 
     fflush(stdout);
     fsync(fileno(stdout));
 
-    configured = true;
+    configured_ = true;
   }
 
   /**
@@ -175,6 +246,8 @@ public:
   }
 
 private:
+  static bool configured_;
+
   bool exit;
   LineInput line_input_;
   std::istream &in;
