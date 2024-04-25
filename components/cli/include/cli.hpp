@@ -21,6 +21,11 @@
 #error The cli component is currently incompatible with CONFIG ESP_CONSOLE_USB_CDC console.
 #endif // CONFIG_ESP_CONSOLE_USB_CDC
 
+#ifndef STRINGIFY
+#define STRINGIFY(s) STRINGIFY2(s)
+#define STRINGIFY2(s) #s
+#endif // STRINGIFY
+
 namespace espp {
 /**
  * @brief Class for implementing a basic Cli using the external cli library.
@@ -214,14 +219,42 @@ public:
     // TODO: this function is mostly untested, so we should probably add some
     //       error handling here and store the resultant pointers for later use
     // redirect stdin, stdout, stderr to the USB CDC interface
-    [[maybe_unused]] auto in_ptr = freopen(dev_name.data(), "r", stdin);
-    [[maybe_unused]] auto out_ptr = freopen(dev_name.data(), "w", stdout);
-    [[maybe_unused]] auto err_ptr = freopen(dev_name.data(), "w", stderr);
+    console_.in = freopen(dev_name.data(), "r", stdin);
+    console_.out = freopen(dev_name.data(), "w", stdout);
+    console_.err = freopen(dev_name.data(), "w", stderr);
 
     fflush(stdout);
     fsync(fileno(stdout));
 
     configured_ = true;
+  }
+
+  /**
+   * @brief Restore the default stdin/stdout after configuring it to use a
+   *        custom VFS driver. This should be used when you want to restore
+   *        stdin/stdout to the default UART driver after using a custom VFS
+   *        driver.
+   * @note This function should be called after you are done with the Cli object
+   *       and want to restore the default stdin/stdout, but only if you have
+   *       called configure_stdin_stdout_vfs() before creating the Cli object.
+   */
+  static void restore_default_stdin_stdout() {
+    if (!configured_) {
+      return;
+    }
+    const char *default_uart_dev = "/dev/uart/" STRINGIFY(CONFIG_ESP_CONSOLE_UART_NUM);
+    if (console_.in) {
+      stdin = freopen(default_uart_dev, "r", console_.in);
+      console_.in = nullptr;
+    }
+    if (console_.out) {
+      stdout = freopen(default_uart_dev, "w", console_.out);
+      console_.out = nullptr;
+    }
+    if (console_.err) {
+      stderr = freopen(default_uart_dev, "w", console_.err);
+      console_.err = nullptr;
+    }
   }
 
   /**
@@ -338,6 +371,14 @@ public:
   }
 
 private:
+  typedef struct {
+    FILE *in{nullptr};
+    FILE *out{nullptr};
+    FILE *err{nullptr};
+  } console_handle_t;
+
+  static console_handle_t console_;
+
   static bool configured_;
 
   bool exit;
