@@ -27,6 +27,18 @@ namespace espp {
  *        instead of std::getline() so that we can simultaneously read the
  *        stream and print it out.
  *
+ * @note You should call configure_stdin_stdout() before creating a Cli object
+ *       to ensure that std::cin works as needed. If you do not want to use the
+ *       Cli over the ESP CONSOLE (e.g. the ESP's UART, USB Serial/JTAG) and
+ *       instead want to run it over a different UART port, VFS, or some other
+ *       configuration, then you should call one of
+ *       - configure_stdin_stdout_uart()
+ *       - configure_stdin_stdout_vfs()
+ *       - configure_stdin_stdout_custom()
+ *       If you do not call any of these functions, the Cli will assume you
+ *       intend to use the ESP CONSOLE that was configured via menuconfig, and
+ *       will therefore call configure_stdin_stdout() to set it up for you.
+ *
  * \section cli_ex1 Oneshot CLI Example
  * \snippet cli_example.cpp cli example
  */
@@ -39,8 +51,10 @@ public:
    *       - CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
    *       - CONFIG_ESP_CONSOLE_UART
    *
-   *       If you want to use a different console, you should use the other
-   *       configure_stdin_stdout() function that takes a ConsoleConfig object.
+   *       If you want to use a different console, you should use one of the
+   *       other configure_stdin_stdout functions to configure sdin/stdout or
+   *       indicate that you have already configured stdin/stdout and the vfs by
+   *       calling configure_stdin_stdout_custom().
    *
    * @note If you do not call a configure_stdin_stdout() function before
    *      creating a Cli object, the Cli object will call
@@ -54,13 +68,15 @@ public:
 
 #if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     configure_stdin_stdout_usb_serial_jtag();
+#elif CONFIG_ESP_CONSOLE_UART
+    configure_stdin_stdout_uart((uart_port_t)CONFIG_ESP_CONSOLE_UART_NUM,
+                                CONFIG_ESP_CONSOLE_UART_BAUDRATE);
 #else
-#if CONFIG_ESP_CONSOLE_UART
-    configure_stdin_stdout_uart(CONFIG_ESP_CONSOLE_UART_NUM, CONFIG_ESP_CONSOLE_UART_BAUDRATE);
-#else
-#error "No console configured, cannot call configure_stdin_stdout() without arguments"
-#endif
-#endif // CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
+    fmt::print(fg(fmt::terminal_color::red),
+               "Cannot configure stdin/stdout: ESP_CONSOLE not configured. "
+               "Please call one of the other configure_stdin_stdout functions to "
+               "configure stdin/stdout.\n");
+#endif // CONFIG_ESP_CONSOLE_*
   }
 
   /**
@@ -167,6 +183,12 @@ public:
    *
    * @note This function must be called before creating a Cli object if you want
    *       to use std::cin/std::cout with a custom VFS driver.
+   *
+   * @note You need to ensure that the read data function in the VFS driver is
+   *       blocking, as std::cin assumes blocking reads. For example the
+   *       espressif vfs_tinyusb implementation of tusb_read is non-blocking by
+   *       default, so you will need to ensure that it blocks until data is
+   *       available.
    */
   static void configure_stdin_stdout_vfs(std::string_view dev_name, const esp_vfs_t &vfs) {
     if (configured_) {
@@ -202,10 +224,17 @@ public:
    * @brief Configure stdin/stdout to use a custom VFS driver. This should be
    *        used when you manually configure the VFS driver and want to use
    *        std::cin/std::cout, such as when using TinyUSB CDC. This function
-   *        merely sets the configured flag to true.
+   *        merely sets the configured flag to true, you will need to configure
+   *        the VFS driver yourself.
    *
    * @note This function must be called before creating a Cli object if you want
    *       to use std::cin/std::cout with a custom VFS driver.
+   *
+   * @note You need to ensure that the read data function in the VFS driver is
+   *       blocking, as std::cin assumes blocking reads. For example the
+   *       espressif vfs_tinyusb implementation of tusb_read is non-blocking by
+   *       default, so you will need to ensure that it blocks until data is
+   *       available.
    */
   static void configure_stdin_stdout_custom() { configured_ = true; }
 
