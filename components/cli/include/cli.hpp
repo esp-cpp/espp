@@ -1,5 +1,9 @@
 #pragma once
 
+#include <sdkconfig.h>
+
+#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
+
 #define __linux__
 
 #include "driver/uart.h"
@@ -8,8 +12,6 @@
 #include "esp_system.h"
 #include "esp_vfs_dev.h"
 #include "esp_vfs_usb_serial_jtag.h"
-
-#include <sdkconfig.h>
 
 #include <cli/cli.h>
 
@@ -341,3 +343,5 @@ private:
   std::istream &in;
 };
 } // namespace espp
+
+#endif // CONFIG_COMPILER_CXX_EXCEPTIONS
