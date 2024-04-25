@@ -186,6 +186,7 @@ public:
   static auto get_latest_info_table() {
     std::string output = "";
     auto task_info = get_latest_info_vector();
+    // cppcheck-suppress knownConditionTrueFalse
     if (task_info.empty()) {
       return output;
     }
