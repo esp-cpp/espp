@@ -6,7 +6,6 @@
 #include "sdkconfig.h"
 
 #include "base_component.hpp"
-#include "tabulate.hpp"
 #include "task.hpp"
 
 #include "esp_freertos_hooks.h"
@@ -180,23 +179,23 @@ public:
    * @brief Print the latest task information in a nice table format.
    *        This is a static function, so it can be called without having to
    *        instantiate a TaskMonitor object.
-   * @param os std::ostream to write the table to.
-   * @return A tabulate::Table object which can be streamed to a std::ostream.
+   * @return A string containing the information in a table format.
    * @note This function calls TaskMonitor::get_latest_info_vector() and then
-   *       formats the data into a table using the tabulate library.
+   *       formats the data into a table using the libfmt library.
    */
   static auto get_latest_info_table() {
-    using namespace tabulate;
-    Table table;
-    table.add_row({"Task Name", "CPU %", "High Water Mark", "Priority"});
+    std::string output = "";
     auto task_info = get_latest_info_vector();
-    // cppcheck-suppress knownEmptyContainer
-    for (const auto &t : task_info) {
-      std::string percent = t.cpu_percent > 0 ? fmt::format("{} %", t.cpu_percent) : "<1%";
-      table.add_row(
-          {t.name, percent, fmt::format("{} B", t.high_water_mark), fmt::format("{}", t.priority)});
+    if (task_info.empty()) {
+      return output;
     }
-    return table;
+    output = "|     Task Name    | CPU % | High Water Mark | Priority |\n"
+             "| ---------------- | ----- | --------------- | -------- |\n";
+    for (const auto &t : task_info) {
+      output += fmt::format("| {: >16.16s} | {: >3} % | {: >13} B | {: >8} |\n", t.name,
+                            t.cpu_percent, t.high_water_mark, t.priority);
+    }
+    return output;
   }
 
 protected:
