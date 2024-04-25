@@ -192,7 +192,8 @@ extern "C" void app_main(void) {
                                    .callback = timer_fn,
                                    .log_level = espp::Logger::Verbosity::DEBUG});
     uint64_t period_us = 100;
-    high_resolution_timer.start(period_us);
+    bool started = high_resolution_timer.start(period_us);
+    logger.info("High resolution timer started: {}", started);
 
     std::this_thread::sleep_for(500ms);
     logger.info("Updating period to 100ms");
@@ -207,7 +208,8 @@ extern "C" void app_main(void) {
 
     std::this_thread::sleep_for(500ms);
     logger.info("Starting oneshot to expire in 100ms");
-    high_resolution_timer.oneshot(period_us);
+    started = high_resolution_timer.oneshot(period_us);
+    logger.info("Oneshot timer started: {}", started);
     logger.info("Oneshot timer expiry: {}us", high_resolution_timer.get_period());
 
     //! [high resolution timer example]

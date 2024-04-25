@@ -1,3 +1,7 @@
+#include <sdkconfig.h>
+
+#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
+
 #include <algorithm>
 #include <atomic>
 #include <deque>
@@ -100,14 +104,46 @@ public:
   void set_handle_resize(bool handle_resize) { should_handle_resize_ = handle_resize; }
 
   /**
+   * @brief Set whether or not to send escape sequences.
+   * @note If \p send_escape_sequences is true, then escape sequences will be
+   *       sent to the terminal. If false, they will not be sent. Escape
+   *       sequences are used for things like moving the cursor around the
+   *       terminal, clearing the screen, and getting the cursor position.
+   * @param send_escape_sequences Whether or not to send escape sequences.
+   */
+  void set_send_escape_sequences(bool send_escape_sequences) {
+    send_escape_sequences_ = send_escape_sequences;
+  }
+
+  /**
+   * @brief Set whether or not to handle control commands.
+   * @note If \p handle_control_commands is true, then control commands will be
+   *       handled. If false, they will not be handled. Control commands are
+   *       things like backspace, arrow keys, and CTRL+<KEY> input commands.
+   *       If this is false, then all data received will be treated as input
+   *       characters.
+   * @param handle_control_commands Whether or not to handle control commands.
+   */
+  void set_handle_control_commands(bool handle_control_commands) {
+    handle_control_commands_ = handle_control_commands;
+  }
+
+  /**
    * @brief Get the current terminal size.
    * @note Tries to move the cursor to the bottom right of the terminal
    *       (999,999) and then get the cursor position. This is a bit of a hack,
    *       but it seems to work.
+   * @note If send_escape_sequences is false, then the terminal width and height
+   *       will be returned as the last known values, which may not be accurate.
    * @param width Reference to an int to store the width in.
    * @param height Reference to an int to store the height in.
    */
-  void get_terminal_size(int &width, int &height) {
+  void get_terminal_size(int &width, int &height) const {
+    if (!send_escape_sequences_) {
+      width = terminal_width_;
+      height = terminal_height_;
+      return;
+    }
     printf("\033[s\033[999;999H\033[6n\033[u");
     fflush(stdout);
     fsync(fileno(stdout));
@@ -125,7 +161,7 @@ public:
    */
   std::string get_user_input(std::istream &is, prompt_fn prompt = nullptr,
                              get_completions_fn get_completions = nullptr) {
-    int start_pos_x, start_pos_y;
+    int start_pos_x = 0, start_pos_y = 0;
     get_cursor_position(start_pos_x, start_pos_y);
 
     if (should_handle_resize_) {
@@ -154,6 +190,22 @@ public:
       }
 
       int ch = is.get();
+
+      // if we don't handle control commands, then just treat everything as
+      // input characters
+      if (!handle_control_commands_) {
+        if (ch == '\n') { // Enter
+          fmt::print("\n");
+          break;
+        } else { // Regular character
+          input.insert(input.begin() + pos_x - start_pos_x, ch);
+          std::cout << input.substr(pos_x - start_pos_x);
+          pos_x++;
+        }
+        continue;
+      }
+
+      // if we are here, then we are handling control commands
 
       // Handle arrow keys
       if (ch == '\033') {
@@ -270,14 +322,18 @@ public:
   /**
    * @brief Clear the screen
    */
-  void clear_screen() {
+  void clear_screen() const {
+    if (!send_escape_sequences_)
+      return;
     printf("\033[2J"); // Clear the screen
   }
 
   /**
    * @brief Clear the line (that the cursor is on)
    */
-  void clear_line() {
+  void clear_line() const {
+    if (!send_escape_sequences_)
+      return;
     printf("\033[2K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
                        // entire line
   }
@@ -285,7 +341,9 @@ public:
   /**
    * @brief Clear to end of line (from cursor)
    */
-  void clear_to_end_of_line() {
+  void clear_to_end_of_line() const {
+    if (!send_escape_sequences_)
+      return;
     printf("\033[0K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
                        // entire line
   }
@@ -293,13 +351,18 @@ public:
   /**
    * @brief Clear to start of line (from cursor)
    */
-  void clear_to_start_of_line() {
+  void clear_to_start_of_line() const {
+    if (!send_escape_sequences_)
+      return;
     printf("\033[1K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
                        // entire line
   }
 
 protected:
-  void redraw(int start_pos_x, std::string_view input, prompt_fn prompt) {
+  void redraw(int start_pos_x, std::string_view input, prompt_fn prompt) const {
+    if (!send_escape_sequences_)
+      return;
+
     printf("\033[2K");     // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
                            // entire line
     printf("\033[%dG", 0); // Move cursor to beginning of the line
@@ -312,12 +375,22 @@ protected:
   }
 
   // Move the cursor
-  void move_cursor(int x, int y) { printf("\033[%d;%dH", y, x); }
+  void move_cursor(int x, int y) const {
+    if (!send_escape_sequences_)
+      return;
+    printf("\033[%d;%dH", y, x);
+  }
 
-  void move_cursor(int x) { printf("\033[%dG", x); }
+  void move_cursor(int x) const {
+    if (!send_escape_sequences_)
+      return;
+    printf("\033[%dG", x);
+  }
 
   // Get cursor position
-  void get_cursor_position(int &x, int &y) {
+  void get_cursor_position(int &x, int &y) const {
+    if (!send_escape_sequences_)
+      return;
     printf("\033[6n"); // Request cursor position
     fflush(stdout);
     fsync(fileno(stdout));
@@ -326,6 +399,8 @@ protected:
 
   // Update the terminal size and return true if it changed
   bool handle_resize() {
+    if (!send_escape_sequences_)
+      return false;
     if (!should_handle_resize_)
       return false;
     int term_width, term_height;
@@ -343,5 +418,9 @@ protected:
   size_t history_size_ = 0;
   History input_history_;
   std::atomic<bool> should_handle_resize_{true};
+  std::atomic<bool> send_escape_sequences_{true};
+  std::atomic<bool> handle_control_commands_{true};
 };
 } // namespace espp
+
+#endif // CONFIG_COMPILER_CXX_EXCEPTIONS

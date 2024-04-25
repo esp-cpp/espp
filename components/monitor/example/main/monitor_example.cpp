@@ -5,9 +5,6 @@
 #include "task.hpp"
 #include "task_monitor.hpp"
 
-// must be after tabulate.hpp
-#include <tabulate/markdown_exporter.hpp>
-
 // for doing work
 #include <math.h>
 
@@ -116,11 +113,6 @@ extern "C" void app_main(void) {
     fmt::print("Task Monitor Info (pretty table):\n");
     auto task_table = espp::TaskMonitor::get_latest_info_table();
     std::cout << task_table << std::endl;
-    // markdown table
-    fmt::print("Converting the table above to markdown:\n");
-    tabulate::MarkdownExporter exporter;
-    auto markdown = exporter.dump(task_table);
-    std::cout << markdown << std::endl;
     //! [get_latest_info example]
   }
 
