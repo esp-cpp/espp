@@ -211,10 +211,12 @@ public:
     // Register the USB CDC interface
     auto err = esp_vfs_register(dev_name.data(), &vfs, NULL);
 
+    // TODO: this function is mostly untested, so we should probably add some
+    //       error handling here and store the resultant pointers for later use
     // redirect stdin, stdout, stderr to the USB CDC interface
-    freopen(dev_name.data(), "r", stdin);
-    freopen(dev_name.data(), "w", stdout);
-    freopen(dev_name.data(), "w", stderr);
+    [[maybe_unused]] auto in_ptr = freopen(dev_name.data(), "r", stdin);
+    [[maybe_unused]] auto out_ptr = freopen(dev_name.data(), "w", stdout);
+    [[maybe_unused]] auto err_ptr = freopen(dev_name.data(), "w", stderr);
 
     fflush(stdout);
     fsync(fileno(stdout));
