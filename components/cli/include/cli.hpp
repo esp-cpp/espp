@@ -283,6 +283,14 @@ public:
   void SetHandleResize(bool handle_resize) { line_input_.set_handle_resize(handle_resize); }
 
   /**
+   * @brief Set whether or not to send escape sequences.
+   * @param send_escape_sequences true to send escape sequences, false otherwise.
+   */
+  void SetSendEscapeSequences(bool send_escape_sequences) {
+    line_input_.set_send_escape_sequences(send_escape_sequences);
+  }
+
+  /**
    * @brief Get the input history for this session.
    * @return The current input history for this session.
    */
@@ -294,12 +302,14 @@ public:
   void Start() {
     Enter();
 
+    auto print_prompt = [this]() { Prompt(); };
+    auto get_completions = [this](auto line) { return GetCompletions(line); };
+
     while (!exit) {
       Prompt();
       if (!in.good())
         Exit();
-      auto line = line_input_.get_user_input(
-          in, [this]() { Prompt(); }, [this](auto line) { return GetCompletions(line); });
+      auto line = line_input_.get_user_input(in, print_prompt, get_completions);
       if (in.eof()) {
         Exit();
       } else {
