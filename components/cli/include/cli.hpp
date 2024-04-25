@@ -291,6 +291,14 @@ public:
   }
 
   /**
+   * @brief Set whether or not to handle control commands.
+   * @param handle_control_commands true to handle control commands, false otherwise.
+   */
+  void SetHandleControlCommands(bool handle_control_commands) {
+    line_input_.set_handle_control_commands(handle_control_commands);
+  }
+
+  /**
    * @brief Get the input history for this session.
    * @return The current input history for this session.
    */
@@ -298,13 +306,20 @@ public:
 
   /**
    * @brief Start the Cli, blocking until it exits.
+   * @param show_prompt true to show the prompt, false otherwise.
+   * @param show_completions true to show the completions, false otherwise.
+   * @note Show completions requires that SetHandleControlCommands(true) is set.
+   *       By default it is on.
    */
-  void Start() {
+  void Start(bool show_prompt = true, bool show_completions = true) {
+    espp::LineInput::prompt_fn print_prompt = nullptr;
+    if (show_prompt)
+      print_prompt = [this]() { Prompt(); };
+    espp::LineInput::get_completions_fn get_completions = nullptr;
+    if (show_completions)
+      get_completions = [this](auto line) { return GetCompletions(line); };
+
     Enter();
-
-    auto print_prompt = [this]() { Prompt(); };
-    auto get_completions = [this](auto line) { return GetCompletions(line); };
-
     while (!exit) {
       Prompt();
       if (!in.good())
