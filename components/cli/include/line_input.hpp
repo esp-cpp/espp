@@ -134,7 +134,7 @@ public:
    * @param width Reference to an int to store the width in.
    * @param height Reference to an int to store the height in.
    */
-  void get_terminal_size(int &width, int &height) {
+  void get_terminal_size(int &width, int &height) const {
     if (!send_escape_sequences_) {
       width = terminal_width_;
       height = terminal_height_;
@@ -318,7 +318,7 @@ public:
   /**
    * @brief Clear the screen
    */
-  void clear_screen() {
+  void clear_screen() const {
     if (!send_escape_sequences_)
       return;
     printf("\033[2J"); // Clear the screen
@@ -327,7 +327,7 @@ public:
   /**
    * @brief Clear the line (that the cursor is on)
    */
-  void clear_line() {
+  void clear_line() const {
     if (!send_escape_sequences_)
       return;
     printf("\033[2K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
@@ -337,7 +337,7 @@ public:
   /**
    * @brief Clear to end of line (from cursor)
    */
-  void clear_to_end_of_line() {
+  void clear_to_end_of_line() const {
     if (!send_escape_sequences_)
       return;
     printf("\033[0K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
@@ -347,7 +347,7 @@ public:
   /**
    * @brief Clear to start of line (from cursor)
    */
-  void clear_to_start_of_line() {
+  void clear_to_start_of_line() const {
     if (!send_escape_sequences_)
       return;
     printf("\033[1K"); // Clear (0) cursor to end of line, (1), cursor to start of line, or (2)
@@ -355,7 +355,7 @@ public:
   }
 
 protected:
-  void redraw(int start_pos_x, std::string_view input, prompt_fn prompt) {
+  void redraw(int start_pos_x, std::string_view input, prompt_fn prompt) const {
     if (!send_escape_sequences_)
       return;
 
@@ -371,20 +371,20 @@ protected:
   }
 
   // Move the cursor
-  void move_cursor(int x, int y) {
+  void move_cursor(int x, int y) const {
     if (!send_escape_sequences_)
       return;
     printf("\033[%d;%dH", y, x);
   }
 
-  void move_cursor(int x) {
+  void move_cursor(int x) const {
     if (!send_escape_sequences_)
       return;
     printf("\033[%dG", x);
   }
 
   // Get cursor position
-  void get_cursor_position(int &x, int &y) {
+  void get_cursor_position(int &x, int &y) const {
     if (!send_escape_sequences_)
       return;
     printf("\033[6n"); // Request cursor position
