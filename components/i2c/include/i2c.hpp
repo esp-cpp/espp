@@ -69,7 +69,7 @@ public:
 
     logger_.debug("Initializing I2C with config: {}", config_);
 
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     i2c_config_t i2c_cfg;
     memset(&i2c_cfg, 0, sizeof(i2c_cfg));
     i2c_cfg.sda_io_num = config_.sda_io_num;
@@ -87,7 +87,7 @@ public:
     // Make copy of variables for easy capture
     i2c_port_t i2c_port = config_.port;
     int core_id = config_.isr_core_id;
-    if (core_id < 0) {
+    if (core_id <= 0) {
       err = i2c_driver_install(i2c_port, I2C_MODE_MASTER, 0, 0, 0);
     } else {
       if (core_id > configNUM_CORES - 1) {
@@ -95,8 +95,10 @@ public:
       }
       auto isr_task = espp::Task::make_unique(espp::Task::Config{
         .name = "i2c_install",
-        .callback = [i2c_port, core_id, &err](auto &m, auto &cv) -> bool {
+        .callback = [i2c_port, core_id, this, &err](auto &m, auto &cv) -> bool {
+          std::unique_lock lock(mutex_);
           err = i2c_driver_install(i2c_port, I2C_MODE_MASTER, 0, 0, 0);
+          init_done_cv_.notify_all();
           return true; // stop the task
         },
         .stack_size_bytes = 2 * 1024,
@@ -104,6 +106,7 @@ public:
         .core_id = core_id,
       });
       isr_task->start();
+      init_done_cv_.wait(lock);
     }
     
     if (err != ESP_OK) {
@@ -303,6 +306,7 @@ protected:
   Config config_;
   bool initialized_ = false;
   std::mutex mutex_;
+  std::condition_variable init_done_cv_; ///< Signal for when I2C init is done (when pinned to 2nd core)
 };
 } // namespace espp
 
