@@ -69,7 +69,7 @@ public:
 
     logger_.debug("Initializing I2C with config: {}", config_);
 
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::unique_lock lock(mutex_);
     i2c_config_t i2c_cfg;
     memset(&i2c_cfg, 0, sizeof(i2c_cfg));
     i2c_cfg.sda_io_num = config_.sda_io_num;
@@ -87,16 +87,22 @@ public:
     // Make copy of variables for easy capture
     i2c_port_t i2c_port = config_.port;
     int core_id = config_.isr_core_id;
-    if (core_id < 0) {
+    if (core_id < 0 || core_id == xPortGetCoreID()) {
+      // If no core id specified or we are already executing on the desired core,
+      // install the driver directly.
       err = i2c_driver_install(i2c_port, I2C_MODE_MASTER, 0, 0, 0);
     } else {
+      // Otherwise install I2C driver on the specified core via pinned task
       if (core_id > configNUM_CORES - 1) {
         core_id = configNUM_CORES - 1;
       }
+      std::condition_variable install_cv; ///< Signal for when I2C driver install is done
       auto isr_task = espp::Task::make_unique(espp::Task::Config{
         .name = "i2c_install",
-        .callback = [i2c_port, core_id, &err](auto &m, auto &cv) -> bool {
+        .callback = [this, i2c_port, core_id, &install_cv, &err](auto &m, auto &cv) -> bool {
+          std::unique_lock lock(mutex_);
           err = i2c_driver_install(i2c_port, I2C_MODE_MASTER, 0, 0, 0);
+          install_cv.notify_all();
           return true; // stop the task
         },
         .stack_size_bytes = 2 * 1024,
@@ -104,6 +110,7 @@ public:
         .core_id = core_id,
       });
       isr_task->start();
+      install_cv.wait(lock);
     }
     
     if (err != ESP_OK) {
