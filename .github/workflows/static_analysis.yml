@@ -1,7 +1,6 @@
 name: Static analysis
 
 on: 
-
   pull_request:
     branches:
       - main
