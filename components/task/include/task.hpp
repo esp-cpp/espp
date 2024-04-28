@@ -351,8 +351,8 @@ public:
         core_id = configNUM_CORES - 1;
       }
       std::mutex mutex;
-      std::unique_lock lock(mutex);
-      std::condition_variable cv; ///< Signal for when the task is done / function is run
+      std::unique_lock lock(mutex); // cppcheck-suppress localMutex
+      std::condition_variable cv;   ///< Signal for when the task is done / function is run
       if constexpr (!std::is_void_v<decltype(f())>) {
         // the function returns something
         decltype(f()) ret_val;
