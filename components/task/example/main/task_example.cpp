@@ -333,6 +333,43 @@ extern "C" void app_main(void) {
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
   fmt::print("Test ran for {:.03f} seconds\n", test_duration);
 
+  {
+    //! [run on core example]
+    fmt::print("Example main running on core {}\n", xPortGetCoreID());
+    // NOTE: in these examples, because we're logging with libfmt in the
+    // function to be run, we need a little more than the default 2k stack size,
+    // so we're using 3k.
+
+    // test running a function that returns void on a specific core
+    auto task_fn = []() -> void { fmt::print("Void Task running on core {}\n", xPortGetCoreID()); };
+    espp::Task::run_on_core(task_fn, 0, 3 * 1024);
+    espp::Task::run_on_core(task_fn, 1, 3 * 1024);
+    fmt::print("Void Function returned\n");
+
+    // test running a function that returns bool on a specific core
+    auto task_fn2 = []() -> bool {
+      auto core_id = xPortGetCoreID();
+      fmt::print("Bool Task running on core {}\n", core_id);
+      return core_id == 1;
+    };
+    auto result0 = espp::Task::run_on_core(task_fn2, 0, 3 * 1024);
+    fmt::print("Bool Function returned {}\n", result0);
+    auto result1 = espp::Task::run_on_core(task_fn2, 1, 3 * 1024);
+    fmt::print("Bool Function returned {}\n", result1);
+
+    // test running a function that returns esp_err_t on a specific core
+    auto task_fn3 = []() -> esp_err_t {
+      auto core_id = xPortGetCoreID();
+      fmt::print("esp_err_t Task running on core {}\n", core_id);
+      return core_id == 1 ? ESP_OK : ESP_FAIL;
+    };
+    auto err0 = espp::Task::run_on_core(task_fn3, 0, 3 * 1024);
+    fmt::print("esp_err_t Function returned {}\n", esp_err_to_name(err0));
+    auto err1 = espp::Task::run_on_core(task_fn3, 1, 3 * 1024);
+    fmt::print("esp_err_t Function returned {}\n", esp_err_to_name(err1));
+    //! [run on core example]
+  }
+
   fmt::print("Task example complete!\n");
 
   while (true) {

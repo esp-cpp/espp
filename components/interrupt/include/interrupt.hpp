@@ -230,29 +230,11 @@ protected:
       logger_.warn("ISR service already installed, not installing again");
       return;
     }
-    if (core_id < -1 || core_id > 1) {
-      logger_.error("Invalid core_id {}, must be -1 or 0 or 1", core_id);
+    auto install_fn = []() -> esp_err_t { return gpio_install_isr_service(0); };
+    auto err = espp::Task::run_on_core(install_fn, core_id);
+    if (err != ESP_OK) {
+      logger_.error("Failed to install ISR service: {}", esp_err_to_name(err));
       return;
-    }
-    // install the isr service if it hasn't been installed yet
-    if (core_id == -1) {
-      // use whatever core we are running on
-      gpio_install_isr_service(0);
-      logger_.info("ISR service installed on core {}", xPortGetCoreID());
-    } else {
-      // create a task on the specified core for initializing the gpio interrupt
-      // so that the gpio ISR runs on that core
-      auto isr_task = espp::Task::make_unique(espp::Task::Config{
-          .name = "interrupt isr registration task",
-          .callback = [](auto &m, auto &cv) -> bool {
-            gpio_install_isr_service(0);
-            return true; // stop the task
-          },
-          .stack_size_bytes = 2 * 1024,
-          .core_id = core_id,
-      });
-      isr_task->start();
-      logger_.info("ISR service installed on core {}", core_id);
     }
     ISR_SERVICE_INSTALLED = true;
   }
