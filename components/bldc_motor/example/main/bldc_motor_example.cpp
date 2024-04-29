@@ -26,6 +26,7 @@ extern "C" void app_main(void) {
         .port = I2C_NUM_1,
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+        .clk_speed = 1 * 1000 * 1000, // MT6701 supports 1 MHz I2C
     });
 
     // make the velocity filter
