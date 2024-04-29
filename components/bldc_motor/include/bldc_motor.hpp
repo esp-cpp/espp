@@ -5,7 +5,6 @@
 #include "base_component.hpp"
 #include "fast_math.hpp"
 #include "pid.hpp"
-#include "task.hpp"
 
 #include "bldc_types.hpp"
 #include "foc_utils.hpp"
@@ -30,6 +29,7 @@ concept DriverConcept = requires {
  */
 template <class FOO>
 concept SensorConcept = requires {
+  static_cast<void (FOO::*)(std::error_code &)>(&FOO::update);
   static_cast<bool (FOO::*)(void) const>(&FOO::needs_zero_search);
   static_cast<float (FOO::*)(void) const>(&FOO::get_radians);
   static_cast<float (FOO::*)(void) const>(&FOO::get_rpm);
@@ -484,6 +484,16 @@ public:
    *       other types require current sense.
    */
   void loop_foc() {
+    // update the sensor values
+    std::error_code ec;
+    if (sensor_)
+      sensor_->update(ec);
+    if (ec) {
+      logger_.error("Sensor update failed: {}", ec.message());
+      return;
+    }
+
+    // if disabled do nothing
     if (!enabled_) {
       return;
     }
@@ -671,6 +681,7 @@ protected:
   void init_foc(float zero_electric_offset = 0,
                 detail::SensorDirection sensor_direction = detail::SensorDirection::CLOCKWISE) {
     logger_.info("Init FOC");
+    std::error_code ec;
     status_ = Status::CALIBRATING;
     // align motor with sensor - necessary for encoders
     if (zero_electric_offset) {
@@ -681,6 +692,7 @@ protected:
     }
     // align sensor and motor
     bool success = align_sensor();
+    sensor_->update(ec);
     shaft_angle_ = get_shaft_angle();
 
     if (current_sense_) {
@@ -695,6 +707,7 @@ protected:
     using namespace std::chrono_literals;
     int exit_flag = 1; // success
     logger_.info("Aligning sensor");
+    std::error_code ec;
 
     // check if sensor needs zero search
     if (sensor_->needs_zero_search())
@@ -711,16 +724,21 @@ protected:
       for (int i = 0; i <= 500; i++) {
         float angle = _3PI_2 + _2PI * i / 500.0f;
         set_phase_voltage(voltage_sensor_align_, 0, angle);
+        sensor_->update(ec);
         std::this_thread::sleep_for(1ms * 2);
       }
-      // take and angle in the middle
+      // take an angle in the middle
+      sensor_->update(ec);
       float mid_angle = sensor_->get_radians();
       // move one electrical revolution backwards
       for (int i = 500; i >= 0; i--) {
         float angle = _3PI_2 + _2PI * i / 500.0f;
         set_phase_voltage(voltage_sensor_align_, 0, angle);
+        sensor_->update(ec);
         std::this_thread::sleep_for(1ms * 2);
       }
+      // take an angle in the end
+      sensor_->update(ec);
       float end_angle = sensor_->get_radians();
       set_phase_voltage(0, 0, 0);
       std::this_thread::sleep_for(1ms * 200);
@@ -753,6 +771,8 @@ protected:
       // set angle -90(270 = 3PI/2) degrees
       set_phase_voltage(voltage_sensor_align_, 0, _3PI_2);
       std::this_thread::sleep_for(1ms * 700);
+      // read the sensor
+      sensor_->update(ec);
       // get the current zero electric angle
       zero_electrical_angle_ = 0;
       zero_electrical_angle_ = get_electrical_angle();
@@ -800,6 +820,8 @@ protected:
     shaft_angle_ = 0;
     while (sensor_->needs_zero_search() && shaft_angle_ < _2PI) {
       angle_openloop(1.5f * _2PI);
+      std::error_code ec;
+      sensor_->update(ec);
     }
     // disable motor
     set_phase_voltage(0, 0, 0);

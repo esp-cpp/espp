@@ -30,7 +30,7 @@ extern "C" void app_main(void) {
 
     // make the velocity filter
     static constexpr float core_update_period = 0.001f; // seconds
-    static constexpr float filter_cutoff_hz = 4.0f;
+    static constexpr float filter_cutoff_hz = 10.0f;
     espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter(
         {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period});
     espp::LowpassFilter lpfilter(
@@ -59,6 +59,7 @@ extern "C" void app_main(void) {
                                           std::placeholders::_2, std::placeholders::_3),
                         .velocity_filter = filter_fn,
                         .update_period = std::chrono::duration<float>(core_update_period),
+                        .run_task = false, // the motor will run the encoder update() function
                         .log_level = espp::Logger::Verbosity::WARN});
 
     // now make the bldc driver
