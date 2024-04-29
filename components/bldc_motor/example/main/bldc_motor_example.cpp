@@ -148,7 +148,7 @@ extern "C" void app_main(void) {
       break;
     case espp::detail::MotionControlType::ANGLE:
     case espp::detail::MotionControlType::ANGLE_OPENLOOP:
-      target = M_PI; // 180 degrees (whereever that is...)
+      target = motor.get_shaft_angle();
       break;
     default:
       break;
