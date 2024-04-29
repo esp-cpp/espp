@@ -36,7 +36,7 @@ extern "C" void app_main(void) {
 
   std::atomic<float> target = 60.0f;
 
-  auto motor_task_fn = [&encoder1, &encoder2, &motor1, &motor2, &target]() -> bool {
+  auto motor_task_fn = [&]() -> bool {
     if constexpr (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
                   motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
       // if it's a velocity setpoint, convert it from RPM to rad/s
