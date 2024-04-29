@@ -23,9 +23,9 @@ extern "C" void app_main(void) {
   static constexpr float core_update_period = core_update_period_us / 1e6f; // seconds
 
   // static constexpr auto motion_control_type = espp::detail::MotionControlType::VELOCITY_OPENLOOP;
-  static constexpr auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
+  // static constexpr auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
   // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE_OPENLOOP;
-  // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
+  static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
 
   logger.info("Setting motion control type to {}", motion_control_type);
   motor1->set_motion_control_type(motion_control_type);
@@ -72,44 +72,11 @@ extern "C" void app_main(void) {
     break;
   case espp::detail::MotionControlType::ANGLE:
   case espp::detail::MotionControlType::ANGLE_OPENLOOP:
-    target = M_PI; // 180 degrees (whereever that is...)
+    target = motor1->get_shaft_angle();
     break;
   default:
     break;
   }
-
-  // make a task which will update the target (velocity or angle)
-  auto target_task_fn = [&target](std::mutex &m, std::condition_variable &cv) {
-    static auto delay = std::chrono::duration<float>(is_angle ? 1.0f : core_update_period);
-    auto start = std::chrono::high_resolution_clock::now();
-    // update target
-    if (increment_direction == IncrementDirection::UP) {
-      target += target_delta;
-      if (target > max_target) {
-        increment_direction = IncrementDirection::DOWN;
-        target -= target_delta;
-      }
-    } else if (increment_direction == IncrementDirection::DOWN) {
-      target -= target_delta;
-      if (target < -max_target) {
-        increment_direction = IncrementDirection::UP;
-        target += target_delta;
-      }
-    }
-    // NOTE: sleeping in this way allows the sleep to exit early when the
-    // task is being stopped / destroyed
-    {
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + delay);
-    }
-    // don't want to stop the task
-    return false;
-  };
-  auto target_task = espp::Task({
-      .name = "Target Task",
-      .callback = target_task_fn,
-  });
-  target_task.start();
 
   static constexpr float filter_cutoff_hz = 4.0f;
   // we're running this in the logging task, which is 0.01s (10ms). We'll use a
@@ -161,6 +128,42 @@ extern "C" void app_main(void) {
                "angle (radians)\n");
   }
   task.start();
+
+  std::this_thread::sleep_for(1s);
+  logger.info("Starting target task");
+
+  // make a task which will update the target (velocity or angle)
+  auto target_task_fn = [&target](std::mutex &m, std::condition_variable &cv) {
+    static auto delay = std::chrono::duration<float>(is_angle ? 1.0f : core_update_period);
+    auto start = std::chrono::high_resolution_clock::now();
+    // update target
+    if (increment_direction == IncrementDirection::UP) {
+      target += target_delta;
+      if (target > max_target) {
+        increment_direction = IncrementDirection::DOWN;
+        target -= target_delta;
+      }
+    } else if (increment_direction == IncrementDirection::DOWN) {
+      target -= target_delta;
+      if (target < -max_target) {
+        increment_direction = IncrementDirection::UP;
+        target += target_delta;
+      }
+    }
+    // NOTE: sleeping in this way allows the sleep to exit early when the
+    // task is being stopped / destroyed
+    {
+      std::unique_lock<std::mutex> lk(m);
+      cv.wait_until(lk, start + delay);
+    }
+    // don't want to stop the task
+    return false;
+  };
+  auto target_task = espp::Task({
+      .name = "Target Task",
+      .callback = target_task_fn,
+  });
+  target_task.start();
 
   //! [motorgo-mini example]
   while (true) {
