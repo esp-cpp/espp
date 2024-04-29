@@ -180,7 +180,7 @@ protected:
         .num_pole_pairs = 7,
         .phase_resistance = 5.0f,
         .kv_rating = 320,
-        .current_limit = 0.25f,
+        .current_limit = 1.0f,
         .zero_electric_offset = 0.0f, // set to 0 to always calibrate
         .sensor_direction = espp::detail::SensorDirection::UNKNOWN,
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
@@ -226,7 +226,7 @@ protected:
         .num_pole_pairs = 7,
         .phase_resistance = 5.0f,
         .kv_rating = 320,
-        .current_limit = 0.25f,
+        .current_limit = 1.0f,
         .zero_electric_offset = 0.0f, // set to 0 to always calibrate
         .sensor_direction = espp::detail::SensorDirection::UNKNOWN,
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
