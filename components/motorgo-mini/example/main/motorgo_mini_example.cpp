@@ -14,8 +14,6 @@ extern "C" void app_main(void) {
   logger.info("Starting");
   //! [motorgo-mini example]
   espp::MotorGoMini motorgo_mini;
-  auto encoder1 = motorgo_mini.encoder1();
-  auto encoder2 = motorgo_mini.encoder2();
   auto motor1 = motorgo_mini.motor1();
   auto motor2 = motorgo_mini.motor2();
 
@@ -36,26 +34,29 @@ extern "C" void app_main(void) {
 
   std::atomic<float> target = 60.0f;
 
-  auto motor_task_fn = [&]() -> bool {
+  auto motor_task_fn = [&](auto motor) -> bool {
     if constexpr (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
                   motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
       // if it's a velocity setpoint, convert it from RPM to rad/s
-      motor1->move(target * espp::RPM_TO_RADS);
-      // motor2->move(target * espp::RPM_TO_RADS);
+      motor->move(target * espp::RPM_TO_RADS);
     } else {
       // it's a position setpoint, so just set the target
-      motor1->move(target);
-      // motor2->move(target);
+      motor->move(target);
     }
     // command the motor
-    motor1->loop_foc();
-    // motor2->loop_foc();
+    motor->loop_foc();
     return false; // don't want to stop the task
   };
-  auto motor_timer = espp::HighResolutionTimer({.name = "Motor Timer",
-                                                .callback = motor_task_fn,
-                                                .log_level = espp::Logger::Verbosity::WARN});
-  motor_timer.periodic(core_update_period_us);
+  auto motor1_fn = std::bind(motor_task_fn, motor1);
+  auto motor2_fn = std::bind(motor_task_fn, motor2);
+
+  auto motor1_timer = espp::HighResolutionTimer(
+      {.name = "Motor 1 Timer", .callback = motor1_fn, .log_level = espp::Logger::Verbosity::WARN});
+  // motor1_timer.periodic(core_update_period_us);
+
+  auto motor2_timer = espp::HighResolutionTimer(
+      {.name = "Motor 2 Timer", .callback = motor2_fn, .log_level = espp::Logger::Verbosity::WARN});
+  motor2_timer.periodic(core_update_period_us);
 
   // Configure the target
   enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
