@@ -27,8 +27,8 @@ extern "C" void app_main(void) {
     });
 
     // make the velocity filter
-    static constexpr float filter_cutoff_hz = 4.0f;
-    static constexpr float encoder_update_period = 0.01f; // seconds
+    static constexpr float filter_cutoff_hz = 10.0f;
+    static constexpr float encoder_update_period = 0.001f; // seconds
     espp::ButterworthFilter<2, espp::BiquadFilterDf2> filter(
         {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * encoder_update_period});
     auto filter_fn = [&filter](float raw) -> float { return filter.update(raw); };
@@ -42,6 +42,8 @@ extern "C" void app_main(void) {
                                          std::placeholders::_2, std::placeholders::_3),
                        .velocity_filter = filter_fn,
                        .update_period = std::chrono::duration<float>(encoder_update_period),
+                       .run_task = true, // run a task which calls the update function at the update
+                                         // period
                        .log_level = espp::Logger::Verbosity::WARN});
 
     // NOTE: since this is I2C, we cannot get the magnetic field strength,
@@ -64,7 +66,7 @@ extern "C" void app_main(void) {
       // task is being stopped / destroyed
       {
         std::unique_lock<std::mutex> lk(m);
-        cv.wait_for(lk, 50ms);
+        cv.wait_for(lk, 10ms);
       }
       // don't want to stop the task
       return false;
@@ -121,8 +123,8 @@ extern "C" void app_main(void) {
     ESP_ERROR_CHECK(ret);
 
     // make the velocity filter
-    static constexpr float filter_cutoff_hz = 4.0f;
-    static constexpr float encoder_update_period = 0.01f; // seconds
+    static constexpr float filter_cutoff_hz = 10.0f;
+    static constexpr float encoder_update_period = 0.001f; // seconds
     espp::ButterworthFilter<2, espp::BiquadFilterDf2> filter(
         {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * encoder_update_period});
     auto filter_fn = [&filter](float raw) -> float { return filter.update(raw); };
@@ -161,6 +163,8 @@ extern "C" void app_main(void) {
                    },
                    .velocity_filter = filter_fn,
                    .update_period = std::chrono::duration<float>(encoder_update_period),
+                   .run_task = true, // run a task which calls the update function at the update
+                                     // period
                    .log_level = espp::Logger::Verbosity::WARN});
 
     // get the initial state
@@ -187,7 +191,7 @@ extern "C" void app_main(void) {
       // task is being stopped / destroyed
       {
         std::unique_lock<std::mutex> lk(m);
-        cv.wait_for(lk, 50ms);
+        cv.wait_for(lk, 10ms);
       }
       // don't want to stop the task
       return false;

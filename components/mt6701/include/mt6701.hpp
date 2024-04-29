@@ -111,6 +111,8 @@ public:
                ///< velocity.
     bool auto_init{true}; ///< Whether to automatically initialize the accumulator to the current
                           ///< position on startup.
+    bool run_task{false}; ///< Whether to run the task on startup. If false, you must call update()
+                          ///< manually.
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
@@ -130,21 +132,23 @@ public:
     }
     if (config.auto_init) {
       std::error_code ec;
-      initialize(ec);
+      initialize(config.run_task, ec);
     }
   }
 
   /**
    * @brief Initialize the accumulator to the current position and start the
    *        update task.
+   * @param run_task Whether to start the update task.
    * @param ec Error code to set if there is an error.
+   * @note If you do not start the task, you must call update() manually.
    */
-  void initialize(std::error_code &ec) {
+  void initialize(bool run_task, std::error_code &ec) {
     logger_.info("Initializing. Fastest measurable velocity will be {:.3f} RPM",
                  // half a rotation in one update period is the fastest we can
                  // measure
                  0.5f / update_period_.count() * SECONDS_PER_MINUTE);
-    init(ec);
+    init(run_task, ec);
     if (ec) {
       logger_.error("Error initializing: {}", ec.message());
     }
@@ -241,6 +245,55 @@ public:
     return push_button_.load();
   }
 
+  /**
+   * @brief Update the state of the encoder by reading the latest data from the
+   *       encoder and updating the associated state.
+   * @param ec Error code to set if there is an error.
+   * @note You should not call this function if you have started the encoder's
+   *       update task (e.g. run_task = true in the constructor, or you called
+   *       initialize(true)).
+   */
+  void update(std::error_code &ec) {
+    logger_.info("update");
+    // measure update timing
+    uint64_t now_us = esp_timer_get_time();
+    static auto prev_time_us = now_us;
+    float seconds = (now_us - prev_time_us) / 1e6f;
+    prev_time_us = now_us;
+    // store the previous count
+    int prev_count = count_;
+    // read the latest data from the encoder and update the state
+    read(ec);
+    if (ec) {
+      return;
+    }
+    // compute diff
+    int diff = count_ - prev_count;
+    // check for zero crossing
+    if (diff > COUNTS_PER_REVOLUTION / 2) {
+      // we crossed zero going clockwise (1 -> 359)
+      diff -= COUNTS_PER_REVOLUTION;
+    } else if (diff < -COUNTS_PER_REVOLUTION / 2) {
+      // we crossed zero going counter-clockwise (359 -> 1)
+      diff += COUNTS_PER_REVOLUTION;
+    }
+    // update accumulator
+    accumulator_ += diff;
+    logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
+    // update velocity (filtering it)
+    float raw_velocity =
+        seconds > 0 ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE : 0.0f;
+    velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
+    if (seconds > 0) {
+      float max_velocity = 0.5f / seconds * SECONDS_PER_MINUTE;
+      if (raw_velocity >= max_velocity) {
+        logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
+                     "update period!",
+                     max_velocity);
+      }
+    }
+  }
+
 protected:
   struct MagneticFieldStatus {
     uint8_t magnetic_field_strength : 2;
@@ -290,45 +343,6 @@ protected:
     tracking_status_ = (TrackingStatus)((status >> 3) & 0b1);
   }
 
-  void update(std::error_code &ec) {
-    logger_.info("update");
-    // measure update timing
-    static auto prev_time = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    float elapsed = std::chrono::duration<float>(now - prev_time).count();
-    prev_time = now;
-    float seconds = elapsed ? elapsed : update_period_.count();
-    // store the previous count
-    int prev_count = count_;
-    // read the latest data from the encoder and update the state
-    read(ec);
-    if (ec) {
-      return;
-    }
-    // compute diff
-    int diff = count_ - prev_count;
-    // check for zero crossing
-    if (diff > COUNTS_PER_REVOLUTION / 2) {
-      // we crossed zero going clockwise (1 -> 359)
-      diff -= COUNTS_PER_REVOLUTION;
-    } else if (diff < -COUNTS_PER_REVOLUTION / 2) {
-      // we crossed zero going counter-clockwise (359 -> 1)
-      diff += COUNTS_PER_REVOLUTION;
-    }
-    // update accumulator
-    accumulator_ += diff;
-    logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
-    // update velocity (filtering it)
-    float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
-    velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
-    static float max_velocity = 0.5f / update_period_.count() * SECONDS_PER_MINUTE;
-    if (raw_velocity >= max_velocity) {
-      logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
-                   "update period!",
-                   max_velocity);
-    }
-  }
-
   bool update_task(std::mutex &m, std::condition_variable &cv) {
     auto start = std::chrono::high_resolution_clock::now();
     std::error_code ec;
@@ -344,13 +358,19 @@ protected:
     return false;
   }
 
-  void init(std::error_code &ec) {
+  void init(bool run_task, std::error_code &ec) {
     // initialize the accumulator to have the current angle
     read(ec);
     if (ec) {
       return;
     }
     accumulator_ = count_.load();
+    if (!run_task) {
+      logger_.info(
+          "Not starting task, run_task is false. Manually call update() to update the state.");
+      return;
+    }
+    logger_.info("Starting task with update period of {:.3f} seconds", update_period_.count());
     // start the task
     using namespace std::placeholders;
     task_ = Task::make_unique(
