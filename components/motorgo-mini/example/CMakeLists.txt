@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py motorgo-mini task"
+  "main esptool_py filters motorgo-mini task timer"
   CACHE STRING
   "List of components to include"
   )

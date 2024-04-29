@@ -43,19 +43,20 @@ public:
 
   I2c &get_external_i2c() { return external_i2c_; }
 
-  std::shared_ptr<Encoder> &encoder1() { return encoder1_; }
-  std::shared_ptr<Encoder> &encoder2() { return encoder2_; }
+  std::shared_ptr<Encoder> encoder1() { return encoder1_; }
+  std::shared_ptr<Encoder> encoder2() { return encoder2_; }
 
-  std::shared_ptr<espp::BldcDriver> &motor1_driver() { return motor1_driver_; }
-  std::shared_ptr<espp::BldcDriver> &motor2_driver() { return motor2_driver_; }
+  std::shared_ptr<espp::BldcDriver> motor1_driver() { return motor1_driver_; }
+  std::shared_ptr<espp::BldcDriver> motor2_driver() { return motor2_driver_; }
 
-  BldcMotor &motor1() { return *motor1_; }
-  BldcMotor &motor2() { return *motor2_; }
+  std::shared_ptr<BldcMotor> motor1() { return motor1_; }
+  std::shared_ptr<BldcMotor> motor2() { return motor2_; }
 
   espp::OneshotAdc &adc1() { return adc_1; }
   espp::OneshotAdc &adc2() { return adc_2; }
 
 protected:
+  static constexpr uint64_t core_update_period_us = 1000; // 1 ms
   static constexpr auto ENCODER_SPI_HOST = SPI2_HOST;
   static constexpr auto ENCODER_SPI_CLK_SPEED = 10 * 1000 * 1000; // 10 MHz
   static constexpr auto ENCODER_SPI_MISO_PIN = GPIO_NUM_35;
@@ -111,7 +112,7 @@ protected:
     err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder_config, &encoder2_handle_);
     if (err != ESP_OK) {
       logger_.error("Failed to initialize Encoder 2: {}", esp_err_to_name(err));
-      ;
+      return;
     }
 
     encoder1_ = std::make_shared<Encoder>(
@@ -119,14 +120,16 @@ protected:
                           return read_encoder(encoder1_handle_, data, size);
                         },
                         .velocity_filter = nullptr,
-                        .update_period = std::chrono::duration<float>(0.001f),
+                        .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
+                        .run_task = false, // we will manually call update
                         .log_level = espp::Logger::Verbosity::WARN});
     encoder2_ = std::make_shared<Encoder>(
         Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool {
                           return read_encoder(encoder2_handle_, data, size);
                         },
                         .velocity_filter = nullptr,
-                        .update_period = std::chrono::duration<float>(0.001f),
+                        .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
+                        .run_task = false, // we will manually call update
                         .log_level = espp::Logger::Verbosity::WARN});
   }
 
@@ -160,6 +163,7 @@ protected:
   }
 
   void init_motors() {
+    /// Motor 1
     motor1_driver_ = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
         .gpio_a_h = MOTOR_1_A_H,
         .gpio_a_l = MOTOR_1_A_L,
@@ -172,25 +176,11 @@ protected:
         .power_supply_voltage = 5.0f,
         .limit_voltage = 5.0f,
     });
-
-    motor2_driver_ = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
-        .gpio_a_h = MOTOR_2_A_H,
-        .gpio_a_l = MOTOR_2_A_L,
-        .gpio_b_h = MOTOR_2_B_H,
-        .gpio_b_l = MOTOR_2_B_L,
-        .gpio_c_h = MOTOR_2_C_H,
-        .gpio_c_l = MOTOR_2_C_L,
-        .gpio_enable = -1, // pulled up, not connected
-        .gpio_fault = -1,  // not connected
-        .power_supply_voltage = 5.0f,
-        .limit_voltage = 5.0f,
-    });
-
     motor1_ = std::make_shared<BldcMotor>(BldcMotor::Config{
         .num_pole_pairs = 7,
         .phase_resistance = 5.0f,
         .kv_rating = 320,
-        .current_limit = 1.0f,
+        .current_limit = 0.25f,
         .zero_electric_offset = 0.0f, // set to 0 to always calibrate
         .sensor_direction = espp::detail::SensorDirection::UNKNOWN,
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
@@ -220,11 +210,23 @@ protected:
     });
 
     /// Motor 2
+    motor2_driver_ = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
+        .gpio_a_h = MOTOR_2_A_H,
+        .gpio_a_l = MOTOR_2_A_L,
+        .gpio_b_h = MOTOR_2_B_H,
+        .gpio_b_l = MOTOR_2_B_L,
+        .gpio_c_h = MOTOR_2_C_H,
+        .gpio_c_l = MOTOR_2_C_L,
+        .gpio_enable = -1, // pulled up, not connected
+        .gpio_fault = -1,  // not connected
+        .power_supply_voltage = 5.0f,
+        .limit_voltage = 5.0f,
+    });
     motor2_ = std::make_shared<BldcMotor>(BldcMotor::Config{
         .num_pole_pairs = 7,
         .phase_resistance = 5.0f,
         .kv_rating = 320,
-        .current_limit = 1.0f,
+        .current_limit = 0.25f,
         .zero_electric_offset = 0.0f, // set to 0 to always calibrate
         .sensor_direction = espp::detail::SensorDirection::UNKNOWN,
         .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
