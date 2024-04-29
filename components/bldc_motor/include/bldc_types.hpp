@@ -37,3 +37,65 @@ enum class FocType {
 };
 } // namespace detail
 } // namespace espp
+
+#include "format.hpp"
+
+// for easy printing of enums using fmt
+template <> struct fmt::formatter<espp::detail::MotionControlType> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(espp::detail::MotionControlType t, FormatContext &ctx) {
+    switch (t) {
+    case espp::detail::MotionControlType::TORQUE:
+      return fmt::format_to(ctx.out(), "TORQUE");
+    case espp::detail::MotionControlType::VELOCITY:
+      return fmt::format_to(ctx.out(), "VELOCITY");
+    case espp::detail::MotionControlType::ANGLE:
+      return fmt::format_to(ctx.out(), "ANGLE");
+    case espp::detail::MotionControlType::VELOCITY_OPENLOOP:
+      return fmt::format_to(ctx.out(), "VELOCITY_OPENLOOP");
+    case espp::detail::MotionControlType::ANGLE_OPENLOOP:
+      return fmt::format_to(ctx.out(), "ANGLE_OPENLOOP");
+    default:
+      return fmt::format_to(ctx.out(), "UNKNOWN");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::detail::TorqueControlType> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(espp::detail::TorqueControlType t, FormatContext &ctx) {
+    switch (t) {
+    case espp::detail::TorqueControlType::VOLTAGE:
+      return fmt::format_to(ctx.out(), "VOLTAGE");
+    case espp::detail::TorqueControlType::DC_CURRENT:
+      return fmt::format_to(ctx.out(), "DC_CURRENT");
+    case espp::detail::TorqueControlType::FOC_CURRENT:
+      return fmt::format_to(ctx.out(), "FOC_CURRENT");
+    default:
+      return fmt::format_to(ctx.out(), "UNKNOWN");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::detail::FocType> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+
+  template <typename FormatContext> auto format(espp::detail::FocType t, FormatContext &ctx) {
+    switch (t) {
+    case espp::detail::FocType::SINE_PWM:
+      return fmt::format_to(ctx.out(), "SINE_PWM");
+    case espp::detail::FocType::SPACE_VECTOR_PWM:
+      return fmt::format_to(ctx.out(), "SPACE_VECTOR_PWM");
+    case espp::detail::FocType::TRAPEZOID_120:
+      return fmt::format_to(ctx.out(), "TRAPEZOID_120");
+    case espp::detail::FocType::TRAPEZOID_150:
+      return fmt::format_to(ctx.out(), "TRAPEZOID_150");
+    default:
+      return fmt::format_to(ctx.out(), "UNKNOWN");
+    }
+  }
+};
