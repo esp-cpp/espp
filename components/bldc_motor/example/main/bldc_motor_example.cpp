@@ -4,10 +4,9 @@
 
 #include "bldc_driver.hpp"
 #include "bldc_motor.hpp"
-#include "butterworth_filter.hpp"
+#include "high_resolution_timer.hpp"
 #include "i2c.hpp"
 #include "logger.hpp"
-#include "lowpass_filter.hpp"
 #include "mt6701.hpp"
 #include "task.hpp"
 #include "task_monitor.hpp"
@@ -29,26 +28,8 @@ extern "C" void app_main(void) {
         .clk_speed = 1 * 1000 * 1000, // MT6701 supports 1 MHz I2C
     });
 
-    // make the velocity filter
-    static constexpr float core_update_period = 0.001f; // seconds
-    static constexpr float filter_cutoff_hz = 10.0f;
-    espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter(
-        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period});
-    espp::LowpassFilter lpfilter(
-        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * core_update_period,
-         .q_factor = 1.0f});
-    auto filter_fn = [&bwfilter, &lpfilter](float raw) -> float {
-      // return bwfilter.update(raw);
-      // return lpfilter.update(raw);
-
-      // NOTE: right now there seems to be something wrong with the filter
-      //       configuration, so we don't filter at all. Either 1) the filtering
-      //       is not actually removing the noise we want, 2) it is adding too
-      //       much delay for the PID to compensate for, or 3) there is a bug in
-      //       the update function which doesn't take previous state into
-      //       account?
-      return raw;
-    };
+    static constexpr uint64_t core_update_period_us = 1000;                   // microseconds
+    static constexpr float core_update_period = core_update_period_us / 1e6f; // seconds
 
     //! [bldc_motor example]
     // now make the mt6701 which decodes the data
@@ -58,7 +39,7 @@ extern "C" void app_main(void) {
                                            std::placeholders::_2, std::placeholders::_3),
                         .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
                                           std::placeholders::_2, std::placeholders::_3),
-                        .velocity_filter = filter_fn,
+                        .velocity_filter = nullptr, // no filtering
                         .update_period = std::chrono::duration<float>(core_update_period),
                         .run_task = false, // the motor will run the encoder update() function
                         .log_level = espp::Logger::Verbosity::WARN});
@@ -133,9 +114,7 @@ extern "C" void app_main(void) {
     // enable the motor
     motor.enable();
 
-    auto motor_task_fn = [&motor, &target](std::mutex &m, std::condition_variable &cv) {
-      static auto delay = std::chrono::duration<float>(core_update_period);
-      auto start = std::chrono::high_resolution_clock::now();
+    auto motor_task_fn = [&motor, &target]() -> bool {
       if (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
           motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
         // if it's a velocity setpoint, convert it from RPM to rad/s
@@ -145,22 +124,13 @@ extern "C" void app_main(void) {
       }
       // command the motor
       motor.loop_foc();
-      // NOTE: sleeping in this way allows the sleep to exit early when the
-      // task is being stopped / destroyed
-      {
-        std::unique_lock<std::mutex> lk(m);
-        cv.wait_until(lk, start + delay);
-      }
       // don't want to stop the task
       return false;
     };
-    auto motor_task = espp::Task({.name = "Motor Task",
-                                  .callback = motor_task_fn,
-                                  .stack_size_bytes = 5 * 1024,
-                                  .priority = 20,
-                                  .core_id = 1,
-                                  .log_level = espp::Logger::Verbosity::WARN});
-    motor_task.start();
+    auto motor_timer = espp::HighResolutionTimer({.name = "Motor Timer",
+                                                  .callback = motor_task_fn,
+                                                  .log_level = espp::Logger::Verbosity::WARN});
+    motor_timer.periodic(core_update_period_us);
     //! [bldc_motor example]
 
     // Configure the target

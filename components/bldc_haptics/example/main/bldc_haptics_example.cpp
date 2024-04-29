@@ -5,9 +5,7 @@
 #include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
 #include "bldc_motor.hpp"
-#include "butterworth_filter.hpp"
 #include "i2c.hpp"
-#include "lowpass_filter.hpp"
 #include "mt6701.hpp"
 #include "task.hpp"
 
@@ -28,27 +26,7 @@ extern "C" void app_main(void) {
         .clk_speed = 1 * 1000 * 1000, // MT6701 supports 1 MHz I2C
     });
 
-    // make the velocity filter
     static constexpr float core_update_period = 0.001f; // seconds
-    static constexpr float filter_cutoff_hz = 10.0f;
-    espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter({
-        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01 // core_update_period
-    });
-    espp::LowpassFilter lpfilter(
-        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01, // core_update_period,
-         .q_factor = 1.0f});
-    auto filter_fn = [&bwfilter, &lpfilter](float raw) -> float {
-      // return bwfilter.update(raw);
-      // return lpfilter.update(raw);
-
-      // NOTE: right now there seems to be something wrong with the filter
-      //       configuration, so we don't filter at all. Either 1) the filtering
-      //       is not actually removing the noise we want, 2) it is adding too
-      //       much delay for the PID to compensate for, or 3) there is a bug in
-      //       the update function which doesn't take previous state into
-      //       account?
-      return raw;
-    };
 
     // now make the mt6701 which decodes the data
     using Encoder = espp::Mt6701<>;
@@ -57,7 +35,7 @@ extern "C" void app_main(void) {
                                            std::placeholders::_2, std::placeholders::_3),
                         .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
                                           std::placeholders::_2, std::placeholders::_3),
-                        .velocity_filter = filter_fn,
+                        .velocity_filter = nullptr, // no filtering
                         .update_period = std::chrono::duration<float>(core_update_period),
                         .run_task = false, // the motor will run the encoder update() function
                         .log_level = espp::Logger::Verbosity::WARN});
