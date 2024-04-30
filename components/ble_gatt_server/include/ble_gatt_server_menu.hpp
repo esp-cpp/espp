@@ -64,6 +64,20 @@ public:
         "rssi", [this](std::ostream &out) -> void { print_connected_device_rssi(out); },
         "Print the RSSI of all connected devices.");
     menu->Insert(
+        "log_rssi", {"duration (ms)"},
+        [this](std::ostream &out, int duration_ms) -> void {
+          log_connected_device_rssi(out, duration_ms);
+        },
+        "Log the RSSI of all connected devices every 100 ms as a CSV for the specified <duration> "
+        "ms.");
+    menu->Insert(
+        "log_rssi", {"duration (ms)", "interval (ms)"},
+        [this](std::ostream &out, int duration_ms, int interval_ms) -> void {
+          log_connected_device_rssi(out, duration_ms, interval_ms);
+        },
+        "Log the RSSI of all connected devices every <interval> ms as a CSV for the specified "
+        "<duration> ms.");
+    menu->Insert(
         "disconnect", [this](std::ostream &out) -> void { disconnect_all(out); },
         "disconnect from the current BLE device");
     menu->Insert(
@@ -196,6 +210,10 @@ protected:
   void print_connected_devices(std::ostream &out) {
     std::string output = "";
     auto infos = server_.get().get_connected_device_infos();
+    if (infos.size() == 0) {
+      out << "No connected devices\n";
+      return;
+    }
     output += fmt::format("Connected devices: {}\n", infos.size());
     for (auto &info : infos) {
       output += fmt::format(
@@ -210,6 +228,10 @@ protected:
   void print_connected_device_rssi(std::ostream &out) {
     std::string output = "";
     auto infos = server_.get().get_connected_device_infos();
+    if (infos.size() == 0) {
+      out << "No connected devices\n";
+      return;
+    }
     output += fmt::format("Connected devices: {}\n", infos.size());
     for (auto &info : infos) {
       output +=
@@ -217,6 +239,49 @@ protected:
                       server_.get().get_connected_device_rssi(info), info.getAddress().toString());
     }
     out << output;
+  }
+
+  /// @brief Log the RSSI of all connected devices as a CSV until the user presses
+  ///       the enter key.
+  /// @param out The output stream to write to.
+  /// @param duration_ms The duration to log the RSSI for.
+  /// @param interval_ms The interval to log the RSSI at.
+  void log_connected_device_rssi(std::ostream &out, int duration_ms = 0, int interval_ms = 100) {
+    if (duration_ms <= 0) {
+      out << "Duration must be greater than 0\n";
+      return;
+    }
+    if (interval_ms <= 0) {
+      out << "Interval must be greater than 0\n";
+      return;
+    }
+    auto infos = server_.get().get_connected_device_infos();
+    if (infos.size() == 0) {
+      out << "No connected devices\n";
+      return;
+    }
+    out << fmt::format("Connected devices: {}\n", infos.size());
+    out << fmt::format("% time (s)");
+    for (auto &info : infos) {
+      out << fmt::format(", RSSI for {}", info.getAddress().toString());
+    }
+    out << "\n";
+    uint64_t start_time = esp_timer_get_time();
+    while (true) {
+      uint64_t t_us = esp_timer_get_time();
+      auto elapsed_ms = (t_us - start_time) / 1000;
+      // see if the requested time has elapsed
+      if (elapsed_ms >= duration_ms) {
+        break;
+      }
+      out << fmt::format("{:.2f}", elapsed_ms / 1000.0f);
+      for (auto &info : infos) {
+        out << fmt::format(", {}", server_.get().get_connected_device_rssi(info));
+      }
+      out << "\n";
+      // otherwise sleep for 100 ms
+      std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
+    }
   }
 
   /// @brief Disconnect from all devices.
