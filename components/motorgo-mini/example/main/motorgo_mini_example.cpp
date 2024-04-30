@@ -90,7 +90,7 @@ extern "C" void app_main(void) {
   // make the task to periodically poll the encoders and print the state. NOTE:
   // the encoders run their own tasks to maintain state, so we're just polling
   // the current state.
-  auto task_fn = [&](std::mutex &m, std::condition_variable &cv) {
+  auto logging_fn = [&](std::mutex &m, std::condition_variable &cv) {
     static auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
     auto seconds = std::chrono::duration<float>(now - start).count();
@@ -114,10 +114,10 @@ extern "C" void app_main(void) {
     // don't want to stop the task
     return false;
   };
-  auto task = espp::Task({.name = "Logging Task",
-                          .callback = task_fn,
-                          .stack_size_bytes = 5 * 1024,
-                          .log_level = espp::Logger::Verbosity::WARN});
+  auto logging_task = espp::Task({.name = "Logging Task",
+                                  .callback = logging_fn,
+                                  .stack_size_bytes = 5 * 1024,
+                                  .log_level = espp::Logger::Verbosity::WARN});
   if constexpr (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
                 motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
     // if it's a velocity setpoint then target is RPM
@@ -128,7 +128,7 @@ extern "C" void app_main(void) {
     fmt::print("%time(s), target angle (radians), motor 1 actual angle (radians), motor 2 actual "
                "angle (radians)\n");
   }
-  task.start();
+  logging_task.start();
 
   std::this_thread::sleep_for(1s);
   logger.info("Starting target task");
