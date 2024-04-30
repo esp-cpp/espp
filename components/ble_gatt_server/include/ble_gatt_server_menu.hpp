@@ -68,7 +68,15 @@ public:
         [this](std::ostream &out, int duration_ms) -> void {
           log_connected_device_rssi(out, duration_ms);
         },
-        "Log the RSSI of all connected devices as a CSV for the specified duration.");
+        "Log the RSSI of all connected devices every 100 ms as a CSV for the specified <duration> "
+        "ms.");
+    menu->Insert(
+        "log_rssi", {"duration (ms)", "interval (ms)"},
+        [this](std::ostream &out, int duration_ms, int interval_ms) -> void {
+          log_connected_device_rssi(out, duration_ms, interval_ms);
+        },
+        "Log the RSSI of all connected devices every <interval> ms as a CSV for the specified "
+        "<duration> ms.");
     menu->Insert(
         "disconnect", [this](std::ostream &out) -> void { disconnect_all(out); },
         "disconnect from the current BLE device");
@@ -237,9 +245,14 @@ protected:
   ///       the enter key.
   /// @param out The output stream to write to.
   /// @param duration_ms The duration to log the RSSI for.
-  void log_connected_device_rssi(std::ostream &out, int duration_ms = 0) {
+  /// @param interval_ms The interval to log the RSSI at.
+  void log_connected_device_rssi(std::ostream &out, int duration_ms = 0, int interval_ms = 100) {
     if (duration_ms <= 0) {
       out << "Duration must be greater than 0\n";
+      return;
+    }
+    if (interval_ms <= 0) {
+      out << "Interval must be greater than 0\n";
       return;
     }
     auto infos = server_.get().get_connected_device_infos();
@@ -267,7 +280,7 @@ protected:
       }
       out << "\n";
       // otherwise sleep for 100 ms
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
     }
   }
 
