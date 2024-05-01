@@ -32,9 +32,10 @@ extern "C" void app_main(void) {
   motor1->enable();
   motor2->enable();
 
-  std::atomic<float> target = 60.0f;
+  std::atomic<float> target1 = 60.0f;
+  std::atomic<float> target2 = 60.0f;
 
-  auto motor_task_fn = [&](auto motor) -> bool {
+  auto motor_task_fn = [&](auto motor, auto &target) -> bool {
     if constexpr (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
                   motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
       // if it's a velocity setpoint, convert it from RPM to rad/s
@@ -47,8 +48,8 @@ extern "C" void app_main(void) {
     motor->loop_foc();
     return false; // don't want to stop the task
   };
-  auto motor1_fn = std::bind(motor_task_fn, motor1);
-  auto motor2_fn = std::bind(motor_task_fn, motor2);
+  auto motor1_fn = std::bind(motor_task_fn, motor1, std::ref(target1));
+  auto motor2_fn = std::bind(motor_task_fn, motor2, std::ref(target2));
 
   auto motor1_timer = espp::HighResolutionTimer(
       {.name = "Motor 1 Timer", .callback = motor1_fn, .log_level = espp::Logger::Verbosity::WARN});
@@ -59,21 +60,16 @@ extern "C" void app_main(void) {
   motor2_timer.periodic(core_update_period_us);
 
   // Configure the target
-  enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
-  static IncrementDirection increment_direction = IncrementDirection::UP;
-  static const bool is_angle =
-      motion_control_type == espp::detail::MotionControlType::ANGLE ||
-      motion_control_type == espp::detail::MotionControlType::ANGLE_OPENLOOP;
-  static const float max_target = is_angle ? (2.0f * M_PI) : 200.0f;
-  static const float target_delta = is_angle ? (M_PI / 4.0f) : (50.0f * core_update_period);
   switch (motion_control_type) {
   case espp::detail::MotionControlType::VELOCITY:
   case espp::detail::MotionControlType::VELOCITY_OPENLOOP:
-    target = 50.0f;
+    target1 = 50.0f;
+    target2 = 50.0f;
     break;
   case espp::detail::MotionControlType::ANGLE:
   case espp::detail::MotionControlType::ANGLE_OPENLOOP:
-    target = motor1->get_shaft_angle();
+    target1 = motor1->get_shaft_angle();
+    target2 = motor2->get_shaft_angle();
     break;
   default:
     break;
@@ -94,16 +90,19 @@ extern "C" void app_main(void) {
     static auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
     auto seconds = std::chrono::duration<float>(now - start).count();
-    auto _target = target.load();
+    auto _target1 = target1.load();
+    auto _target2 = target2.load();
     if constexpr (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
                   motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
       auto rpm1 = filter1.update(motor1->get_shaft_velocity() * espp::RADS_TO_RPM);
       auto rpm2 = filter2.update(motor2->get_shaft_velocity() * espp::RADS_TO_RPM);
-      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, _target, rpm1, rpm2);
+      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, _target1, rpm1, _target2,
+                 rpm2);
     } else {
       auto rads1 = motor1->get_shaft_angle();
       auto rads2 = motor2->get_shaft_angle();
-      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, _target, rads1, rads2);
+      fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, _target1, rads1, _target2,
+                 rads2);
     }
     // NOTE: sleeping in this way allows the sleep to exit early when the
     // task is being stopped / destroyed
@@ -121,36 +120,49 @@ extern "C" void app_main(void) {
   if constexpr (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
                 motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
     // if it's a velocity setpoint then target is RPM
-    fmt::print("%time(s), target velocity (rpm), motor 1 actual speed (rpm), motor 2 actual speed "
-               "(rpm)\n");
+    fmt::print(
+        "%time(s), target velocity 1 (rpm), motor 1 actual speed (rpm), motor 2 actual speed "
+        "(rpm), target velocity 2 (rpm)\n");
   } else {
     // if it's an angle setpoint then target is angle (radians)
-    fmt::print("%time(s), target angle (radians), motor 1 actual angle (radians), motor 2 actual "
-               "angle (radians)\n");
+    fmt::print("%time(s), target angle 1 (radians), motor 1 actual angle (radians), motor 2 actual "
+               "angle (radians), target angle 2 (radians)\n");
   }
   logging_task.start();
 
   std::this_thread::sleep_for(1s);
   logger.info("Starting target task");
 
-  // make a task which will update the target (velocity or angle)
-  auto target_task_fn = [&target](std::mutex &m, std::condition_variable &cv) {
-    static auto delay = std::chrono::duration<float>(is_angle ? 1.0f : core_update_period);
-    auto start = std::chrono::high_resolution_clock::now();
+  enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
+  static IncrementDirection increment_direction1 = IncrementDirection::UP;
+  static IncrementDirection increment_direction2 = IncrementDirection::DOWN;
+  static const bool is_angle =
+      motion_control_type == espp::detail::MotionControlType::ANGLE ||
+      motion_control_type == espp::detail::MotionControlType::ANGLE_OPENLOOP;
+  static const float max_target = is_angle ? (2.0f * M_PI) : 200.0f;
+  static const float target_delta = is_angle ? (M_PI / 4.0f) : (50.0f * core_update_period);
+
+  auto update_target = [&](auto &target, auto &increment_direction) {
     // update target
     if (increment_direction == IncrementDirection::UP) {
       target += target_delta;
-      if (target > max_target) {
+      if (target >= max_target) {
         increment_direction = IncrementDirection::DOWN;
-        target -= target_delta;
       }
     } else if (increment_direction == IncrementDirection::DOWN) {
       target -= target_delta;
-      if (target < -max_target) {
+      if (target <= -max_target) {
         increment_direction = IncrementDirection::UP;
-        target += target_delta;
       }
     }
+  };
+
+  // make a task which will update the target (velocity or angle)
+  auto target_task_fn = [&](std::mutex &m, std::condition_variable &cv) {
+    static auto delay = std::chrono::duration<float>(is_angle ? 1.0f : core_update_period);
+    auto start = std::chrono::high_resolution_clock::now();
+    update_target(target1, increment_direction1);
+    update_target(target2, increment_direction2);
     // NOTE: sleeping in this way allows the sleep to exit early when the
     // task is being stopped / destroyed
     {
