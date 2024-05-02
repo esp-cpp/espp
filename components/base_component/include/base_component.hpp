@@ -19,6 +19,12 @@ public:
   /// \param tag The tag to use for the logger
   void set_log_tag(const std::string_view &tag) { logger_.set_tag(tag); }
 
+  /// Get the log level for the logger
+  /// \return The verbosity level of the logger
+  /// \sa Logger::Verbosity
+  /// \sa Logger::set_verbosity
+  espp::Logger::Verbosity get_log_level() const { return logger_.get_verbosity(); }
+
   /// Set the log level for the logger
   /// \param level The verbosity level to use for the logger
   /// \sa Logger::Verbosity
@@ -32,6 +38,14 @@ public:
   /// \sa Logger::Verbosity
   /// \sa Logger::set_verbosity
   void set_log_verbosity(Logger::Verbosity level) { set_log_level(level); }
+
+  /// Get the log verbosity for the logger
+  /// \return The verbosity level of the logger
+  /// \note This is a convenience method that calls get_log_level
+  /// \sa get_log_level
+  /// \sa Logger::Verbosity
+  /// \sa Logger::get_verbosity
+  espp::Logger::Verbosity get_log_verbosity() const { return get_log_level(); }
 
   /// Set the rate limit for the logger
   /// \param rate_limit The rate limit to use for the logger
