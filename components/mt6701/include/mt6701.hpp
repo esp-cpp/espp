@@ -254,7 +254,7 @@ public:
    *       initialize(true)).
    */
   void update(std::error_code &ec) {
-    logger_.info("update");
+    logger_.debug("update");
     // measure update timing
     uint64_t now_us = esp_timer_get_time();
     static auto prev_time_us = now_us;
@@ -302,7 +302,7 @@ protected:
   } __attribute__((packed));
 
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::I2C) {
-    logger_.info("read");
+    logger_.debug("read");
     // read the angle count registers
     uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
     if (ec) {
@@ -316,7 +316,7 @@ protected:
   }
 
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::SSI) {
-    logger_.info("read");
+    logger_.debug("read");
     // read the angle count as 24 bits (3 bytes) from the serial stream
     uint8_t buffer[3] = {0};
     read(&buffer[0], 3, ec);
