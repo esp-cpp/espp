@@ -25,6 +25,10 @@ namespace espp {
  *     (default) or print out the stats for you to analyze. Finally, the
  *     monitoring period can be configured as well.
  *
+ *  @note If you wish to also get the core id of the task, you must enable
+ *     CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID. If you do not enable this
+ *     option, the core id will be -2.
+ *
  * \section task_monitor_ex1 Basic Task Monitor Example
  * \snippet monitor_example.cpp TaskMonitor example
  *
@@ -44,6 +48,9 @@ public:
     uint32_t cpu_percent;     /**< % CPU run time the task has used. */
     uint32_t high_water_mark; /**< Stack high water mark (bytes). */
     uint32_t priority;        /**< Current priority of the task. */
+    int core_id; /**< Core the task is running on. Will be 0,1, or -1 if task is not pinned to a
+                    core. Only valid if CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID is set to y,
+                    otherwise will be -2.*/
   };
 
   /**
@@ -121,13 +128,19 @@ public:
           // ulTotalRunTimeDiv100 has already been divided by 100.
           ulStatsAsPercentage = pxTaskStatusArray[x].ulRunTimeCounter / ulTotalRunTime;
 
+          int core_id = -2; // -2 is the default value if core id is not available
+#if CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+          core_id = pxTaskStatusArray[x].xCoreID;
+#endif
+
           if (ulStatsAsPercentage > 0UL) {
-            task_info.push_back(
-                {pxTaskStatusArray[x].pcTaskName, ulStatsAsPercentage, high_water_mark, priority});
+            task_info.push_back({pxTaskStatusArray[x].pcTaskName, ulStatsAsPercentage,
+                                 high_water_mark, priority, core_id});
           } else {
             // If the percentage is zero here then the task has
             // consumed less than 1% of the total run time.
-            task_info.push_back({pxTaskStatusArray[x].pcTaskName, 0, high_water_mark, priority});
+            task_info.push_back(
+                {pxTaskStatusArray[x].pcTaskName, 0, high_water_mark, priority, core_id});
           }
         }
       }
@@ -145,6 +158,7 @@ public:
    *          * % CPU run time the task has used
    *          * stack high water mark (bytes)
    *          * current priority of the task
+   *          * core the task is running on
    *
    *        Where each entry is separated by ',' and each set of task data is
    *        separated by ';'.
@@ -156,7 +170,7 @@ public:
    *
    * @return std::string containing sequence of entries, formatted:
    *
-   *     name, cpu%, high_water_mark, priority;;
+   *     name, cpu%, high_water_mark, priority, core_id;;
    *
    * @note This function calls TaskMonitor::get_latest_info_vector() and then
    *       formats the data into a single line string separated by , and ;.
@@ -167,9 +181,11 @@ public:
     // cppcheck-suppress knownEmptyContainer
     for (const auto &t : task_info) {
       if (t.cpu_percent > 0.0f) {
-        info += fmt::format("{},{},{},{};", t.name, t.cpu_percent, t.high_water_mark, t.priority);
+        info += fmt::format("{},{},{},{},{};", t.name, t.cpu_percent, t.high_water_mark, t.priority,
+                            t.core_id);
       } else {
-        info += fmt::format("{},<1%,{},{};", t.name, 0, t.high_water_mark, t.priority);
+        info +=
+            fmt::format("{},<1%,{},{},{};", t.name, 0, t.high_water_mark, t.priority, t.core_id);
       }
     }
     return info;
@@ -190,11 +206,11 @@ public:
     if (task_info.empty()) {
       return output;
     }
-    output = "|     Task Name    | CPU % | High Water Mark | Priority |\n"
-             "| ---------------- | ----- | --------------- | -------- |\n";
+    output = "|     Task Name    | CPU % | High Water Mark | Priority | Core ID |\n"
+             "| ---------------- | ----- | --------------- | -------- | ------- |\n";
     for (const auto &t : task_info) {
-      output += fmt::format("| {: >16.16s} | {: >3} % | {: >13} B | {: >8} |\n", t.name,
-                            t.cpu_percent, t.high_water_mark, t.priority);
+      output += fmt::format("| {: >16.16s} | {: >3} % | {: >13} B | {: >8} | {: >7} |\n", t.name,
+                            t.cpu_percent, t.high_water_mark, t.priority, t.core_id);
     }
     return output;
   }
@@ -223,8 +239,8 @@ template <> struct fmt::formatter<espp::TaskMonitor::TaskInfo> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
   template <typename FormatContext>
   auto format(const espp::TaskMonitor::TaskInfo &t, FormatContext &ctx) {
-    return fmt::format_to(ctx.out(),
-                          "TaskInfo(name={}, cpu_percent={}, high_water_mark={}, priority={})",
-                          t.name, t.cpu_percent, t.high_water_mark, t.priority);
+    return fmt::format_to(
+        ctx.out(), "TaskInfo(name={}, cpu_percent={}, high_water_mark={}, priority={}, core_id={})",
+        t.name, t.cpu_percent, t.high_water_mark, t.priority, t.core_id);
   }
 };
