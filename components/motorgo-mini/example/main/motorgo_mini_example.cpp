@@ -6,6 +6,7 @@
 #include "high_resolution_timer.hpp"
 #include "motorgo-mini.hpp"
 #include "task.hpp"
+#include "task_monitor.hpp"
 
 using namespace std::chrono_literals;
 
@@ -13,7 +14,7 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "MotorGo Mini Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting");
   //! [motorgo-mini example]
-  espp::MotorGoMini motorgo_mini;
+  espp::MotorGoMini motorgo_mini(espp::Logger::Verbosity::INFO);
   auto motor1 = motorgo_mini.motor1();
   auto motor2 = motorgo_mini.motor2();
 
@@ -51,13 +52,24 @@ extern "C" void app_main(void) {
   auto motor1_fn = std::bind(motor_task_fn, motor1, std::ref(target1));
   auto motor2_fn = std::bind(motor_task_fn, motor2, std::ref(target2));
 
+  auto dual_motor_fn = [&]() -> bool {
+    motor1_fn();
+    motor2_fn();
+    return false; // don't want to stop the task
+  };
+
   auto motor1_timer = espp::HighResolutionTimer(
       {.name = "Motor 1 Timer", .callback = motor1_fn, .log_level = espp::Logger::Verbosity::WARN});
   // motor1_timer.periodic(core_update_period_us);
 
   auto motor2_timer = espp::HighResolutionTimer(
       {.name = "Motor 2 Timer", .callback = motor2_fn, .log_level = espp::Logger::Verbosity::WARN});
-  motor2_timer.periodic(core_update_period_us);
+  // motor2_timer.periodic(core_update_period_us);
+
+  auto dual_motor_timer = espp::HighResolutionTimer({.name = "Motor Timer",
+                                                     .callback = dual_motor_fn,
+                                                     .log_level = espp::Logger::Verbosity::WARN});
+  // dual_motor_timer.periodic(core_update_period_us);
 
   // Configure the target
   switch (motion_control_type) {
@@ -128,7 +140,7 @@ extern "C" void app_main(void) {
     fmt::print("%time(s), target angle 1 (radians), motor 1 actual angle (radians), motor 2 actual "
                "angle (radians), target angle 2 (radians)\n");
   }
-  logging_task.start();
+  // logging_task.start();
 
   std::this_thread::sleep_for(1s);
   logger.info("Starting target task");
@@ -180,6 +192,7 @@ extern "C" void app_main(void) {
 
   //! [motorgo-mini example]
   while (true) {
+    fmt::print("{}", espp::TaskMonitor::get_latest_info_table());
     std::this_thread::sleep_for(1s);
   }
 }

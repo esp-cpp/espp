@@ -36,8 +36,8 @@ public:
   using Encoder = espp::Mt6701<espp::Mt6701Interface::SSI>;
   using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
 
-  MotorGoMini()
-      : BaseComponent("MotorGo-Mini") {
+  explicit MotorGoMini(espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
+      : BaseComponent("MotorGo-Mini", verbosity) {
     init();
   }
 
@@ -122,7 +122,7 @@ protected:
                         .velocity_filter = nullptr,
                         .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
                         .run_task = false, // we will manually call update
-                        .log_level = espp::Logger::Verbosity::WARN});
+                        .log_level = get_log_level()});
     encoder2_ = std::make_shared<Encoder>(
         Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool {
                           return read_encoder(encoder2_handle_, data, size);
@@ -130,7 +130,7 @@ protected:
                         .velocity_filter = nullptr,
                         .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
                         .run_task = false, // we will manually call update
-                        .log_level = espp::Logger::Verbosity::WARN});
+                        .log_level = get_log_level()});
   }
 
   bool read_encoder(const auto &encoder_handle, uint8_t *data, size_t size) {
@@ -175,6 +175,7 @@ protected:
         .gpio_fault = -1,  // not connected
         .power_supply_voltage = 5.0f,
         .limit_voltage = 5.0f,
+        .log_level = get_log_level(),
     });
     motor1_ = std::make_shared<BldcMotor>(BldcMotor::Config{
         .num_pole_pairs = 7,
@@ -206,7 +207,7 @@ protected:
                 .output_min = -20.0,      // angle pid works on velocity (rad/s)
                 .output_max = 20.0,       // angle pid works on velocity (rad/s)
             },
-        .log_level = espp::Logger::Verbosity::WARN,
+        .log_level = get_log_level(),
     });
 
     /// Motor 2
@@ -221,6 +222,7 @@ protected:
         .gpio_fault = -1,  // not connected
         .power_supply_voltage = 5.0f,
         .limit_voltage = 5.0f,
+        .log_level = get_log_level(),
     });
     motor2_ = std::make_shared<BldcMotor>(BldcMotor::Config{
         .num_pole_pairs = 7,
@@ -252,7 +254,7 @@ protected:
                 .output_min = -20.0,      // angle pid works on velocity (rad/s)
                 .output_max = 20.0,       // angle pid works on velocity (rad/s)
             },
-        .log_level = espp::Logger::Verbosity::WARN,
+        .log_level = get_log_level(),
     });
   }
 
