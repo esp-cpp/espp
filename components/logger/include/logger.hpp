@@ -60,6 +60,14 @@ public:
       , level_(config.level) {}
 
   /**
+   * @brief Get the current verbosity for the logger.
+   * @return The current verbosity level.
+   * \sa Logger::Verbosity
+   *
+   */
+  Verbosity get_verbosity() const { return level_; }
+
+  /**
    * @brief Change the verbosity for the logger. \sa Logger::Verbosity
    * @param level new verbosity level
    */
@@ -97,6 +105,12 @@ public:
    * @note Only calls that have _rate_limited suffixed will be rate limited.
    */
   void set_rate_limit(const std::chrono::duration<float> rate_limit) { rate_limit_ = rate_limit; }
+
+  /**
+   * @brief Get the current rate limit for the logger.
+   * @return The current rate limit.
+   */
+  std::chrono::duration<float> get_rate_limit() const { return rate_limit_; }
 
   /**
    * @brief Format args into string according to format string. From:
