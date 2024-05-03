@@ -84,8 +84,15 @@ public:
         "unpair",
         [this](std::ostream &out) -> void {
           auto devices = server_.get().unpair_all();
-          NimBLEDevice::deleteAllBonds();
-          out << "Unpaired " << devices.size() << " devices\n";
+          int return_code = NimBLEDevice::deleteAllBonds();
+          bool success = return_code == 0;
+          out << "Unpaired " << devices.size() << " devices individually\n";
+          if (!success) {
+            out << "Failed to deleteAllBonds\n";
+            out << "Return code: " << return_code << "\n";
+          } else {
+            out << "Then deleted all bonds\n";
+          }
         },
         "unpair from the current BLE device");
 

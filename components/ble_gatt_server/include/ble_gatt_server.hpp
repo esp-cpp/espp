@@ -650,10 +650,16 @@ public:
     }
     std::vector<NimBLEAddress> unpaired_devices;
     auto num_bonds = NimBLEDevice::getNumBonds();
+    logger_.info("Unpairing {} devices", num_bonds);
     for (int i = 0; i < num_bonds; i++) {
       auto bond_addr = NimBLEDevice::getBondedAddress(i);
-      unpaired_devices.push_back(bond_addr);
-      NimBLEDevice::deleteBond(bond_addr);
+      logger_.debug("Unpairing device {}", bond_addr.toString());
+      bool success = NimBLEDevice::deleteBond(bond_addr);
+      if (!success) {
+        logger_.error("Failed to unpair device {}", bond_addr.toString());
+      } else {
+        unpaired_devices.push_back(bond_addr);
+      }
     }
     return unpaired_devices;
   }
