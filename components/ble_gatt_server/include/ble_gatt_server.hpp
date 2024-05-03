@@ -640,6 +640,24 @@ public:
     return disconnected_devices;
   }
 
+  /// Unpair all devices
+  /// This method unpairs all devices that are currently paired.
+  /// @return The Addresses of the devices that were unpaired.
+  std::vector<NimBLEAddress> unpair_all() {
+    if (!server_) {
+      logger_.error("Server not created");
+      return {};
+    }
+    std::vector<NimBLEAddress> unpaired_devices;
+    auto num_bonds = NimBLEDevice::getNumBonds();
+    for (int i = 0; i < num_bonds; i++) {
+      auto bond_addr = NimBLEDevice::getBondedAddress(i);
+      unpaired_devices.push_back(bond_addr);
+      NimBLEDevice::deleteBond(bond_addr);
+    }
+    return unpaired_devices;
+  }
+
 protected:
   friend class BleGattServerCallbacks;
   friend class BleGattServerAdvertisingCallbacks;
