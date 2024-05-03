@@ -297,7 +297,7 @@ nearby_platform_status nearby_platform_SetDefaultCapabilities() {
   logger.info("SetDefaultCapabilities - setting LE_AUTH_BOND and IO_CAP_NONE");
 #if CONFIG_BT_NIMBLE_ENABLED
   bool bonding = true;
-  bool mitm = true;
+  bool mitm = false;
   bool secure = true;
   NimBLEDevice::setSecurityAuth(bonding, mitm, secure);
   NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
