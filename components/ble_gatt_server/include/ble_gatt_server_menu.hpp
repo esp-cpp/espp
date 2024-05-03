@@ -83,8 +83,9 @@ public:
     menu->Insert(
         "unpair",
         [this](std::ostream &out) -> void {
+          auto devices = server_.get().unpair_all();
           NimBLEDevice::deleteAllBonds();
-          out << "Unpaired all devices\n";
+          out << "Unpaired " << devices.size() << " devices\n";
         },
         "unpair from the current BLE device");
 
