@@ -85,38 +85,45 @@ protected:
 
   void init_encoders() {
     // Initialize the SPI bus for the encoders
+    memset(&encoder_spi_bus_config_, 0, sizeof(encoder_spi_bus_config_));
+    encoder_spi_bus_config_.mosi_io_num = -1;
+    encoder_spi_bus_config_.miso_io_num = ENCODER_SPI_MISO_PIN;
+    encoder_spi_bus_config_.sclk_io_num = ENCODER_SPI_SCLK_PIN;
+    encoder_spi_bus_config_.quadwp_io_num = -1;
+    encoder_spi_bus_config_.quadhd_io_num = -1;
+    encoder_spi_bus_config_.max_transfer_sz = 100;
     auto err = spi_bus_initialize(ENCODER_SPI_HOST, &encoder_spi_bus_config_, SPI_DMA_CH_AUTO);
     if (err != ESP_OK) {
       logger_.error("Failed to initialize SPI bus for encoders: {}", esp_err_to_name(err));
       return;
     }
 
-    spi_device_interface_config_t encoder_config;
-    memset(&encoder_config, 0, sizeof(encoder_config));
-    encoder_config.command_bits = 0;
-    encoder_config.address_bits = 0;
-    encoder_config.mode = 0;
-    encoder_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
-    encoder_config.queue_size = 1;
-
     // Initialize the encoder 1
-    encoder_config.spics_io_num = ENCODER_1_CS_PIN;
-    err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder_config, &encoder1_handle_);
+    memset(&encoder1_config, 0, sizeof(encoder1_config));
+    encoder1_config.mode = 0;
+    encoder1_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
+    encoder1_config.queue_size = 7;
+    encoder1_config.spics_io_num = ENCODER_1_CS_PIN;
+    err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder1_config, &encoder1_handle_);
     if (err != ESP_OK) {
       logger_.error("Failed to initialize Encoder 1: {}", esp_err_to_name(err));
       return;
     }
 
     // Initialize the encoder 2
-    encoder_config.spics_io_num = ENCODER_2_CS_PIN;
-    err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder_config, &encoder2_handle_);
+    memset(&encoder2_config, 0, sizeof(encoder2_config));
+    encoder2_config.mode = 0;
+    encoder2_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
+    encoder2_config.queue_size = 7;
+    encoder2_config.spics_io_num = ENCODER_2_CS_PIN;
+    err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder2_config, &encoder2_handle_);
     if (err != ESP_OK) {
       logger_.error("Failed to initialize Encoder 2: {}", esp_err_to_name(err));
       return;
     }
 
     encoder1_ = std::make_shared<Encoder>(
-        Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool {
+        Encoder::Config{.read = [this](uint8_t *data, size_t size) -> bool {
                           return read_encoder(encoder1_handle_, data, size);
                         },
                         .velocity_filter = nullptr,
@@ -124,7 +131,7 @@ protected:
                         .run_task = false, // we will manually call update
                         .log_level = get_log_level()});
     encoder2_ = std::make_shared<Encoder>(
-        Encoder::Config{.read = [&](uint8_t *data, size_t size) -> bool {
+        Encoder::Config{.read = [this](uint8_t *data, size_t size) -> bool {
                           return read_encoder(encoder2_handle_, data, size);
                         },
                         .velocity_filter = nullptr,
@@ -149,7 +156,7 @@ protected:
       t.flags = SPI_TRANS_USE_RXDATA;
       t.rx_buffer = nullptr;
     }
-    esp_err_t err = spi_device_transmit(encoder_handle, &t);
+    esp_err_t err = spi_device_polling_transmit(encoder_handle, &t);
     if (err != ESP_OK) {
       return false;
     }
@@ -266,17 +273,12 @@ protected:
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
   /// SPI bus for communication with the Encoders
-  spi_bus_config_t encoder_spi_bus_config_ = {
-      .mosi_io_num = -1,
-      .miso_io_num = ENCODER_SPI_MISO_PIN,
-      .sclk_io_num = ENCODER_SPI_SCLK_PIN,
-      .quadwp_io_num = -1,
-      .quadhd_io_num = -1,
-      .max_transfer_sz = 32,
-  };
+  spi_bus_config_t encoder_spi_bus_config_;
 
   // SPI handles for the encoders
+  spi_device_interface_config_t encoder1_config;
   spi_device_handle_t encoder1_handle_;
+  spi_device_interface_config_t encoder2_config;
   spi_device_handle_t encoder2_handle_;
 
   // Encoders
