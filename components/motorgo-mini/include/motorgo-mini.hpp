@@ -8,6 +8,7 @@
 #include "base_component.hpp"
 #include "bldc_driver.hpp"
 #include "bldc_motor.hpp"
+#include "button.hpp"
 #include "i2c.hpp"
 #include "mt6701.hpp"
 #include "oneshot_adc.hpp"
@@ -42,6 +43,8 @@ public:
   }
 
   I2c &get_external_i2c() { return external_i2c_; }
+
+  espp::Button &button() { return button_; }
 
   std::shared_ptr<Encoder> encoder1() { return encoder1_; }
   std::shared_ptr<Encoder> encoder2() { return encoder2_; }
@@ -324,6 +327,16 @@ protected:
   espp::OneshotAdc adc_2{{
       .unit = ADC_UNIT_2,
       .channels = {current_sense_m2_u_},
+  }};
+
+  // button
+  espp::Button button_{{
+      .name = "MotorGo Mini Button",
+      .gpio_num = GPIO_NUM_0,
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .pullup_enabled = false,
+      .pulldown_enabled = false,
+      .log_level = espp::Logger::Verbosity::WARN,
   }};
 };
 } // namespace espp

@@ -17,6 +17,7 @@ extern "C" void app_main(void) {
   espp::MotorGoMini motorgo_mini(espp::Logger::Verbosity::INFO);
   auto motor1 = motorgo_mini.motor1();
   auto motor2 = motorgo_mini.motor2();
+  auto &button = motorgo_mini.button();
 
   static constexpr uint64_t core_update_period_us = 1000;                   // microseconds
   static constexpr float core_update_period = core_update_period_us / 1e6f; // seconds
@@ -58,34 +59,39 @@ extern "C" void app_main(void) {
     return false; // don't want to stop the task
   };
 
-  auto motor1_timer = espp::HighResolutionTimer(
-      {.name = "Motor 1 Timer", .callback = motor1_fn, .log_level = espp::Logger::Verbosity::WARN});
-  motor1_timer.periodic(core_update_period_us);
+  // auto motor1_timer = espp::HighResolutionTimer(
+  //     {.name = "Motor 1 Timer", .callback = motor1_fn, .log_level =
+  //     espp::Logger::Verbosity::WARN});
+  // motor1_timer.periodic(core_update_period_us);
 
-  auto motor2_timer = espp::HighResolutionTimer(
-      {.name = "Motor 2 Timer", .callback = motor2_fn, .log_level = espp::Logger::Verbosity::WARN});
+  // auto motor2_timer = espp::HighResolutionTimer(
+  //     {.name = "Motor 2 Timer", .callback = motor2_fn, .log_level =
+  //     espp::Logger::Verbosity::WARN});
   // motor2_timer.periodic(core_update_period_us);
 
   auto dual_motor_timer = espp::HighResolutionTimer({.name = "Motor Timer",
                                                      .callback = dual_motor_fn,
                                                      .log_level = espp::Logger::Verbosity::WARN});
+  // NOTE: we'll start the timer when the button is pressed
   // dual_motor_timer.periodic(core_update_period_us);
 
-  // Configure the target
-  switch (motion_control_type) {
-  case espp::detail::MotionControlType::VELOCITY:
-  case espp::detail::MotionControlType::VELOCITY_OPENLOOP:
-    target1 = 50.0f;
-    target2 = 50.0f;
-    break;
-  case espp::detail::MotionControlType::ANGLE:
-  case espp::detail::MotionControlType::ANGLE_OPENLOOP:
-    target1 = motor1->get_shaft_angle();
-    target2 = motor2->get_shaft_angle();
-    break;
-  default:
-    break;
-  }
+  // Function for initializing the target based on the motion control type
+  auto initialize_target = [&]() {
+    switch (motion_control_type) {
+    case espp::detail::MotionControlType::VELOCITY:
+    case espp::detail::MotionControlType::VELOCITY_OPENLOOP:
+      target1 = 50.0f;
+      target2 = 50.0f;
+      break;
+    case espp::detail::MotionControlType::ANGLE:
+    case espp::detail::MotionControlType::ANGLE_OPENLOOP:
+      target1 = motor1->get_shaft_angle();
+      target2 = motor2->get_shaft_angle();
+      break;
+    default:
+      break;
+    }
+  };
 
   static constexpr float filter_cutoff_hz = 4.0f;
   // we're running this in the logging task, which is 0.01s (10ms). We'll use a
@@ -190,9 +196,23 @@ extern "C" void app_main(void) {
   });
   target_task.start();
 
+  bool button_state = false;
+
   //! [motorgo-mini example]
   while (true) {
     // fmt::print("{}", espp::TaskMonitor::get_latest_info_table());
-    std::this_thread::sleep_for(1s);
+    bool new_button_state = button.is_pressed();
+    if (new_button_state != button_state) {
+      button_state = new_button_state;
+      if (button_state) {
+        logger.info("Button pressed, starting motors");
+        initialize_target();
+        dual_motor_timer.periodic(core_update_period_us);
+      } else {
+        logger.info("Button released, stopping motors");
+        dual_motor_timer.stop();
+      }
+    }
+    std::this_thread::sleep_for(50ms);
   }
 }
