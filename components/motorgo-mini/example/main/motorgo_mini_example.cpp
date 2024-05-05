@@ -36,7 +36,7 @@ extern "C" void app_main(void) {
   std::atomic<float> target1 = 60.0f;
   std::atomic<float> target2 = 60.0f;
 
-  auto motor_task_fn = [&](auto &encoder, auto &motor, auto &target) -> bool {
+  auto motor_task_fn = [&](auto &motor, auto &target) -> bool {
     if constexpr (motion_control_type == espp::detail::MotionControlType::VELOCITY ||
                   motion_control_type == espp::detail::MotionControlType::VELOCITY_OPENLOOP) {
       // if it's a velocity setpoint, convert it from RPM to rad/s
@@ -49,10 +49,8 @@ extern "C" void app_main(void) {
     motor->loop_foc();
     return false; // don't want to stop the task
   };
-  auto motor1_fn =
-      std::bind(motor_task_fn, std::ref(encoder1), std::ref(motor1), std::ref(target1));
-  auto motor2_fn =
-      std::bind(motor_task_fn, std::ref(encoder2), std::ref(motor2), std::ref(target2));
+  auto motor1_fn = std::bind(motor_task_fn, std::ref(motor1), std::ref(target1));
+  auto motor2_fn = std::bind(motor_task_fn, std::ref(motor2), std::ref(target2));
 
   auto dual_motor_fn = [&]() -> bool {
     motor1_fn();
@@ -66,7 +64,7 @@ extern "C" void app_main(void) {
 
   auto motor2_timer = espp::HighResolutionTimer(
       {.name = "Motor 2 Timer", .callback = motor2_fn, .log_level = espp::Logger::Verbosity::WARN});
-  motor2_timer.periodic(core_update_period_us);
+  // motor2_timer.periodic(core_update_period_us);
 
   auto dual_motor_timer = espp::HighResolutionTimer({.name = "Motor Timer",
                                                      .callback = dual_motor_fn,
