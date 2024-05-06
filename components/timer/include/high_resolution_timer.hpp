@@ -49,12 +49,7 @@ public:
   }
 
   /// Destructor
-  ~HighResolutionTimer() {
-    stop();
-    if (timer_handle_) {
-      esp_timer_delete(timer_handle_);
-    }
-  }
+  ~HighResolutionTimer() { stop(); }
 
   /// Start the timer
   /// @param period_us Period of the timer in microseconds, or timeout if
@@ -110,6 +105,10 @@ public:
   void stop() {
     if (is_running()) {
       esp_timer_stop(timer_handle_);
+    }
+    if (timer_handle_) {
+      esp_timer_delete(timer_handle_);
+      timer_handle_ = nullptr;
     }
   }
 
