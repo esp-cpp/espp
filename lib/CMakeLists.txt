@@ -17,6 +17,8 @@ set(EXTERNAL "../external")
 set(ESPP_INCLUDES
   ${EXTERNAL}/fmt/include
   ${EXTERNAL}/alpaca/include
+  ${COMPONENTS}/base_component/include
+  ${COMPONENTS}/base_peripheral/include
   ${COMPONENTS}/ftp/include
   ${COMPONENTS}/format/include
   ${COMPONENTS}/logger/include
@@ -28,6 +30,7 @@ set(ESPP_INCLUDES
 )
 
 set(ESPP_SOURCES
+  ${COMPONENTS}/logger/src/logger.cpp
   lib.cpp
 )
 
