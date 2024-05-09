@@ -20,7 +20,8 @@ bool EventManager::add_publisher(const std::string &topic, const std::string &co
 bool EventManager::add_subscriber(const std::string &topic, const std::string &component,
                                   const event_callback_fn &callback,
                                   const size_t stack_size_bytes) {
-  return add_subscriber(topic, component, callback, {.stack_size_bytes = stack_size_bytes});
+  return add_subscriber(topic, component, callback,
+                        {.name = "", .stack_size_bytes = stack_size_bytes});
 }
 
 bool EventManager::add_subscriber(const std::string &topic, const std::string &component,

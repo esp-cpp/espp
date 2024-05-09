@@ -60,7 +60,7 @@ public:
    * @brief Initialize the LEDC subsystem according to the configuration.
    * @param config The configuration structure for the LEDC subsystem.
    */
-  explicit Led(const Config &config)
+  explicit Led(const Config &config) noexcept
       : BaseComponent("Led", config.log_level)
       , duty_resolution_(config.duty_resolution)
       , max_raw_duty_((uint32_t)(std::pow(2, (int)duty_resolution_) - 1))
@@ -77,7 +77,7 @@ public:
     ledc_timer_config(&ledc_timer);
 
     logger_.info("Initializing channels");
-    for (auto conf : channels_) {
+    for (const auto &conf : channels_) {
       uint32_t actual_duty = std::clamp(conf.duty, 0.0f, 100.0f) * max_raw_duty_ / 100.0f;
       ledc_channel_config_t channel_conf;
       memset(&channel_conf, 0, sizeof(channel_conf));
