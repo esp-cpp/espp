@@ -18,3 +18,5 @@ add_definitions(-DNEARBY_FP_RETROACTIVE_PAIRING=1) # not sure what this is...
 add_definitions(-DNEARBY_FP_BLE_ONLY=1)
 add_definitions(-DNEARBY_FP_PREFER_BLE_BONDING=1)
 add_definitions(-DNEARBY_FP_PREFER_LE_TRANSPORT=1)
+
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-type-limits -Wno-write-strings)

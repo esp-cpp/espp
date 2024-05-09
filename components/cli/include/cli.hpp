@@ -119,17 +119,17 @@ public:
 
     // Configure UART. Note that REF_TICK is used so that the baud rate remains
     // correct while APB frequency is changing in light sleep mode.
-    const uart_config_t uart_config = {
-      .baud_rate = baud_rate,
-      .data_bits = UART_DATA_8_BITS,
-      .parity = UART_PARITY_DISABLE,
-      .stop_bits = UART_STOP_BITS_1,
+    uart_config_t uart_config;
+    memset(&uart_config, 0, sizeof(uart_config));
+    uart_config.baud_rate = baud_rate;
+    uart_config.data_bits = UART_DATA_8_BITS;
+    uart_config.parity = UART_PARITY_DISABLE;
+    uart_config.stop_bits = UART_STOP_BITS_1;
 #if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
-      .source_clk = UART_SCLK_REF_TICK,
+    uart_config.source_clk = UART_SCLK_REF_TICK;
 #else
-      .source_clk = UART_SCLK_XTAL,
+    uart_config.source_clk = UART_SCLK_XTAL;
 #endif
-    };
     /* Install UART driver for interrupt-driven reads and writes */
     ESP_ERROR_CHECK(uart_driver_install(port, 256, 0, 0, NULL, 0));
     ESP_ERROR_CHECK(uart_param_config(port, &uart_config));
@@ -214,7 +214,7 @@ public:
     setvbuf(stdin, nullptr, _IONBF, 0);
 
     // Register the USB CDC interface
-    auto err = esp_vfs_register(dev_name.data(), &vfs, NULL);
+    [[maybe_unused]] auto err = esp_vfs_register(dev_name.data(), &vfs, NULL);
 
     // TODO: this function is mostly untested, so we should probably add some
     //       error handling here and store the resultant pointers for later use
