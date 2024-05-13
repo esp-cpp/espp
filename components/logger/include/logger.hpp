@@ -286,7 +286,7 @@ protected:
    *   Get the current time in seconds since the start of the logging system.
    *   @return time in seconds since the start of the logging system.
    */
-  static auto get_time() {
+  static std::string get_time() {
 #if defined(ESP_PLATFORM)
     // use esp_timer_get_time to get the time in microseconds
     uint64_t time = esp_timer_get_time();

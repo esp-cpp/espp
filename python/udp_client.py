@@ -30,8 +30,9 @@ def task_func():
     return False # we don't want to stop the task
 
 task = espp.Task(espp.TaskSimpleConfig(
-    "test task", #name
-    task_func
+    task_func, #function
+    # config
+    espp.TaskBaseConfig("test task")
 ))
 task.start()
 

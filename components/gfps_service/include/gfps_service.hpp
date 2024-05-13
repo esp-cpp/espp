@@ -195,10 +195,10 @@ public:
 
 protected:
   static constexpr uint16_t SERVICE_UUID = 0xFE2C;
-  static constexpr char *MODEL_ID_UUID = "fe2c1233-8366-4814-8eb0-01de32100bea";
-  static constexpr char *KB_PAIRING_UUID = "fe2c1234-8366-4814-8eb0-01de32100bea";
-  static constexpr char *PASSKEY_UUID = "fe2c1235-8366-4814-8eb0-01de32100bea";
-  static constexpr char *ACCOUNT_KEY_UUID = "fe2c1236-8366-4814-8eb0-01de32100bea";
+  static const std::string MODEL_ID_UUID;
+  static const std::string KB_PAIRING_UUID;
+  static const std::string PASSKEY_UUID;
+  static const std::string ACCOUNT_KEY_UUID;
 
   void make_service(NimBLEServer *server) {
     if (service_) {

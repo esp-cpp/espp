@@ -32,21 +32,27 @@ PYBIND11_MODULE(espp, m) {
   //       std::mutex and std::condition_variable which pybind does not support.
   //       Therefore we use the SimpleConfig, whose callback function has no
   //       arguments and return bool
-  py::class_<Task::SimpleConfig>(m, "TaskSimpleConfig")
-      .def(py::init<const std::string &, Task::simple_callback_fn, size_t, size_t, int,
-                    Logger::Verbosity>(),
-           py::arg("name"), py::arg("callback"), py::arg("stack_size") = 4 * 1024,
-           py::arg("priority") = 0, py::arg("core_id") = -1,
-           py::arg("verbosity") = Logger::Verbosity::WARN);
+  py::class_<Task::BaseConfig>(m, "TaskBaseConfig")
+      .def(py::init<const std::string &, size_t, size_t, int>(), py::arg("name"),
+           py::arg("stack_size") = 4 * 1024, py::arg("priority") = 0, py::arg("core_id") = -1);
   py::class_<Task::Config>(m, "TaskConfig")
       .def(py::init<const std::string &, Task::callback_fn, size_t, size_t, int,
                     Logger::Verbosity>(),
            py::arg("name"), py::arg("callback"), py::arg("stack_size") = 4 * 1024,
            py::arg("priority") = 0, py::arg("core_id") = -1,
            py::arg("verbosity") = Logger::Verbosity::WARN);
+  py::class_<Task::SimpleConfig>(m, "TaskSimpleConfig")
+      .def(py::init<Task::simple_callback_fn, Task::BaseConfig, Logger::Verbosity>(),
+           py::arg("callback"), py::arg("task_config"),
+           py::arg("verbosity") = Logger::Verbosity::WARN);
+  py::class_<Task::AdvancedConfig>(m, "TaskAdvancedConfig")
+      .def(py::init<Task::callback_fn, Task::BaseConfig, Logger::Verbosity>(), py::arg("callback"),
+           py::arg("task_config"), py::arg("verbosity") = Logger::Verbosity::WARN);
 
   py::class_<Task>(m, "Task")
+      .def(py::init<const Task::Config &>())
       .def(py::init<const Task::SimpleConfig &>())
+      .def(py::init<const Task::AdvancedConfig &>())
       .def("start", &Task::start)
       .def("stop", &Task::stop)
       .def("is_started", &Task::is_started)
