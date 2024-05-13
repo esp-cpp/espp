@@ -115,52 +115,68 @@ extern "C" void app_main(void) {
   logger.info("=== range mapper ===");
   {
     //! [range_mapper example]
+    static constexpr float deadband = 12.0f;
+    static constexpr float min = 0.0f;
+    static constexpr float center = 127.0f;
+    static constexpr float max = 255.0f;
     // Default will have output range [-1, 1]
-    espp::RangeMapper<float> rm({.center = 127, .deadband = 12, .minimum = 0, .maximum = 255});
+    espp::RangeMapper<float> rm(
+        {.center = center, .deadband = deadband, .minimum = min, .maximum = max});
     // You can explicitly set output center/range. In this case the output will
     // be in the range [0, 1024]
-    espp::RangeMapper<float> rm2({.center = 127,
-                                  .deadband = 12,
-                                  .minimum = 0,
-                                  .maximum = 255,
+    espp::RangeMapper<float> rm2({.center = center,
+                                  .deadband = deadband,
+                                  .minimum = min,
+                                  .maximum = max,
                                   .output_center = 512,
                                   .output_range = 512});
     // You can also invert the input distribution, such that input values are
     // compared against the input min/max instead of input center. NOTE: this
     // also showcases the use of a non-centered input distribution.
-    espp::FloatRangeMapper rm3({.center = 0,
-                                .deadband = 12,
-                                .minimum = 0,
-                                .maximum = 255,
+    espp::FloatRangeMapper rm3({.center = center,
+                                .deadband = deadband,
+                                .minimum = min,
+                                .maximum = max,
                                 .invert_input = true,
-                                .output_center = 0,
-                                .output_range = 1024});
+                                .output_center = 512,
+                                .output_range = 512});
     // You can even invert the ouput distribution
     espp::FloatRangeMapper rm4({
-        .center = 127,
-        .deadband = 12,
-        .minimum = 0,
-        .maximum = 255,
+        .center = center,
+        .deadband = deadband,
+        .minimum = min,
+        .maximum = max,
         .invert_output = true,
     });
-    auto vals =
-        std::array<float, 14>{-10, 0, 10, 50, 100, 120, 127, 135, 150, 200, 240, 250, 255, 275};
+    auto vals = std::vector<float>{min - 10, min, min + 5, min + 10, min + deadband,
+                                   // should show as approx -.66 and -.33
+                                   min + (center - deadband - min) * .33f,
+                                   min + (center - deadband - min) * .66f, center - deadband,
+                                   center - 7, center, center + 7, center + deadband,
+                                   // should show as approx .33 and .66
+                                   center + deadband + (max - center - deadband) * .33f,
+                                   center + deadband + (max - center - deadband) * .66f,
+                                   max - deadband, max - 10, max - 5, max, max + 10};
     // test the mapping and unmapping
     fmt::print("Mapping [0, 255] -> [-1, 1]\n");
+    fmt::print("% value, mapped, unmapped\n");
     for (const auto &v : vals) {
-      fmt::print("{} -> {} -> {} \n", v, rm.map(v), rm.unmap(rm.map(v)));
+      fmt::print("{}, {}, {}\n", v, rm.map(v), rm.unmap(rm.map(v)));
     }
     fmt::print("Mapping [0, 255] -> [0, 1024]\n");
+    fmt::print("% value, mapped, unmapped\n");
     for (const auto &v : vals) {
-      fmt::print("{} -> {} -> {} \n", v, rm2.map(v), rm2.unmap(rm2.map(v)));
+      fmt::print("{}, {}, {}\n", v, rm2.map(v), rm2.unmap(rm2.map(v)));
     }
     fmt::print("Mapping Inverted [0, 255] -> [1024, 0]\n");
+    fmt::print("% value, mapped, unmapped\n");
     for (const auto &v : vals) {
-      fmt::print("{} -> {} -> {} \n", v, rm3.map(v), rm3.unmap(rm3.map(v)));
+      fmt::print("{}, {}, {}\n", v, rm3.map(v), rm3.unmap(rm3.map(v)));
     }
     fmt::print("Mapping [0, 255] -> Inverted [1, -1]\n");
+    fmt::print("% value, mapped, unmapped\n");
     for (const auto &v : vals) {
-      fmt::print("{} -> {} -> {} \n", v, rm4.map(v), rm4.unmap(rm4.map(v)));
+      fmt::print("{}, {}, {}\n", v, rm4.map(v), rm4.unmap(rm4.map(v)));
     }
     //! [range_mapper example]
   }
