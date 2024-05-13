@@ -45,10 +45,14 @@ public:
     T deadband; /**< Deadband amount around (+-) the center for which output will be 0. */
     T minimum;  /**< Minimum value for the input range. */
     T maximum;  /**< Maximum value for the input range. */
-    bool invert_input{
-        false}; /**< Whether to invert the input distribution (default false). @note If true will
-                   compute the input relative to min/max instead of to center. */
-    T output_center{T(0)}; /**< The center for the output. Default 0. */
+    bool invert_input{false}; /**< Whether to invert the input distribution (default false).
+                                 @note If true will compute the input relative to min/max
+                                 instead of to center. @warning This introduces a
+                                 discontinuity at the center value and ambiguity around the
+                                 min/max values when un-mapping back to the input
+                                 distribution. For these reasons this setting is not
+                                 recommended and may be replaced in future revisions. */
+    T output_center{T(0)};    /**< The center for the output. Default 0. */
     T output_range{T(1)}; /**< The range (+/-) from the center for the output. Default 1. @note Will
                              be passed through std::abs() to ensure it is positive. */
     bool invert_output{
@@ -89,8 +93,8 @@ public:
     output_range_ = std::abs(config.output_range);
     output_min_ = output_center_ - output_range_;
     output_max_ = output_center_ + output_range_;
-    pos_range_ = (maximum_ - center_) / output_range_;
-    neg_range_ = std::abs(minimum_ - center_) / output_range_;
+    pos_range_ = (maximum_ - (center_ + deadband_)) / output_range_;
+    neg_range_ = (center_ - deadband_ - minimum_) / output_range_;
     invert_output_ = config.invert_output;
   }
 
@@ -138,22 +142,32 @@ public:
   T map(const T &v) const {
     T clamped = std::clamp(v, minimum_, maximum_);
     T calibrated{0};
+    bool positive_input = clamped >= center_;
     if (invert_input_) {
       // if we invert the input, then we are comparing against the min/max
-      calibrated = clamped >= T(0) ? maximum_ - clamped : minimum_ - clamped;
+      calibrated = positive_input ? maximum_ - clamped : minimum_ - clamped;
+      // if it's within the deadband, return the output center
+      if (std::abs(calibrated) < deadband_) {
+        return output_center_;
+      }
+      // remove the deadband from the calibrated value
+      calibrated = positive_input ? calibrated + deadband_ : calibrated - deadband_;
     } else {
       // normally we compare against center
       calibrated = clamped - center_;
+      // if it's within the deadband, return the output center
+      if (std::abs(calibrated) < deadband_) {
+        return output_center_;
+      }
+      // remove the deadband from the calibrated value
+      calibrated = positive_input ? calibrated - deadband_ : calibrated + deadband_;
     }
-    if (std::abs(calibrated) < deadband_) {
-      return output_center_;
-    }
-    T output = calibrated >= T(0) ? calibrated / pos_range_ + output_center_
-                                  : calibrated / neg_range_ + output_center_;
+    T output = positive_input ? calibrated / pos_range_ + output_center_
+                              : calibrated / neg_range_ + output_center_;
     if (invert_output_) {
       output = -output;
     }
-    return output;
+    return std::clamp(output, output_min_, output_max_);
   }
 
   /**
@@ -161,18 +175,39 @@ public:
    *        default [-1,1]) back into the input distribution.
    * @param T&v Value from the centered output distribution.
    * @return Value within the input distribution.
+   * @note If `invert_input` is true, then the max/min of the input range both
+   *       map to the output center, which means that unmapping a value at the
+   *       output center is ambiguous. In this case unmap() will return the
+   *       maximum input value.
    */
   T unmap(const T &v) const {
-    T calibrated =
-        v >= T(0) ? (v - output_center_) * pos_range_ : (v - output_center_) * neg_range_;
+    T clamped = std::clamp(v, output_min_, output_max_);
+    T calibrated{0};
     if (invert_output_) {
-      calibrated = -calibrated;
+      clamped = -clamped;
     }
-    T clamped = calibrated + center_;
+    bool positive_output = clamped >= output_center_;
+    if (positive_output) {
+      calibrated = (clamped - output_center_) * pos_range_;
+    } else {
+      calibrated = (clamped - output_center_) * neg_range_;
+    }
     if (invert_input_) {
-      clamped = calibrated >= T(0) ? maximum_ - calibrated : minimum_ - calibrated;
+      if (clamped == output_center_) {
+        // NOTE: we cannot know if the original input value was minimum or maximum
+        //       so we return the maximum value
+        return maximum_;
+      }
+      calibrated =
+          positive_output ? maximum_ - calibrated + deadband_ : minimum_ - calibrated + deadband_;
+    } else {
+      if (clamped == output_center_) {
+        return center_;
+      }
+      calibrated =
+          positive_output ? calibrated + center_ + deadband_ : calibrated + center_ - deadband_;
     }
-    return std::clamp(clamped, minimum_, maximum_);
+    return std::clamp(calibrated, minimum_, maximum_);
   }
 
 protected:
