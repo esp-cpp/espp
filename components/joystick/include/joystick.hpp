@@ -156,8 +156,15 @@ public:
         position_.x(0);
         position_.y(0);
       } else if (magnitude > 1.0f) {
-        // otherwise, we need to clamp the vector to be within the unit circle
+        // if it's outside the unit circle, then normalize the vector so that
+        // it's on the unit circle
         position_ = position_.normalized();
+      } else {
+        // otherwise we should scale the vector so that it's 0 on the edge of
+        // the deadzone and 1 on the edge of the unit circle
+        const float magnitude_range = 1.0f - center_deadzone_radius_;
+        const float scale = (magnitude - center_deadzone_radius_) / magnitude_range;
+        position_ *= scale;
       }
     }
   }
