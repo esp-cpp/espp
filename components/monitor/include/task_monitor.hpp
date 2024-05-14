@@ -131,17 +131,13 @@ public:
           int core_id = -2; // -2 is the default value if core id is not available
 #if CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
           core_id = pxTaskStatusArray[x].xCoreID;
+          if (core_id == tskNO_AFFINITY) {
+            core_id = -1;
+          }
 #endif
 
-          if (ulStatsAsPercentage > 0UL) {
-            task_info.push_back({pxTaskStatusArray[x].pcTaskName, ulStatsAsPercentage,
-                                 high_water_mark, priority, core_id});
-          } else {
-            // If the percentage is zero here then the task has
-            // consumed less than 1% of the total run time.
-            task_info.push_back(
-                {pxTaskStatusArray[x].pcTaskName, 0, high_water_mark, priority, core_id});
-          }
+          task_info.push_back({pxTaskStatusArray[x].pcTaskName, ulStatsAsPercentage,
+                               high_water_mark, priority, core_id});
         }
       }
       // The array is no longer needed, free the memory it consumes.
