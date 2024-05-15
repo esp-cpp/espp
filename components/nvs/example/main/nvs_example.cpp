@@ -16,10 +16,20 @@ extern "C" void app_main(void) {
     uint8_t counter = 0;
     espp::Nvs nvs;
     //note that the namespace and key strings must be shorter than 15 characters
-    nvs.get_nvs_var("system", "reset_counter", counter, counter, ec); 
+    nvs.get_var("system", "reset_counter", counter, counter, ec); 
     ec.clear();
     fmt::print("Reset Counter = {}\n", counter);
-    nvs.set_nvs_var("system", "reset_counter", ++counter, ec);
+
+    counter ++;
+
+    if(counter > 10) {
+        nvs.erase_and_refresh(ec);
+        counter = 0;
+        fmt::print("NVS erased, Reset Counter set to 0\n");
+        ec.clear();
+    }
+
+    nvs.set_var("system", "reset_counter", counter, ec);
     fmt::print("Next Reset Counter will be = {}\n", counter);
     fmt::print("NVS example complete!\n");
     //! [NVS example]
