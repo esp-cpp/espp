@@ -16,7 +16,18 @@ public:
       : BaseComponent( "Nvs", espp::Logger::Verbosity::WARN) {}
 
 
-    void init_nvs(std::error_code &ec) {
+    void erase_and_refresh(std::error_code ec) {
+        esp_err_t err = nvs_flash_erase();
+        if (err != ESP_OK) {
+            logger_.error("Failed to erase NVS partition: {%s}", esp_err_to_name(err));
+            ec = std::make_error_code(std::errc::protocol_error);
+            return;
+        }
+        init(ec);
+    }
+
+
+    void init(std::error_code &ec) {
         esp_err_t err = nvs_flash_init();
         if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
             // NVS partition was truncated and needs to be erased
@@ -30,8 +41,8 @@ public:
         }
     }
 
-    template<typename T> void set_nvs_var(const char *ns_name, const char *key, T value, std::error_code &ec) {
-        init_nvs(ec);
+    template<typename T> void set_var(const char *ns_name, const char *key, T value, std::error_code &ec) {
+        init(ec);
         if (ec)
             return;
         esp_err_t err;
@@ -55,9 +66,9 @@ public:
         return;
     }
 
-    template<typename T> void get_nvs_var(const char *ns_name, const char *key, T &value, T default_value, std::error_code &ec) {
+    template<typename T> void get_var(const char *ns_name, const char *key, T &value, T default_value, std::error_code &ec) {
         value = default_value;
-        init_nvs(ec);
+        init(ec);
         if (ec)
             return;
         esp_err_t err;
@@ -94,9 +105,9 @@ public:
         return;
     }
 
-    void get_nvs_var(const char *ns_name, const char *key, bool &value, bool default_value, std::error_code &ec) {
+    void get_var(const char *ns_name, const char *key, bool &value, bool default_value, std::error_code &ec) {
         uint8_t u8 = static_cast<uint8_t>(value);
-        get_nvs_var<uint8_t>("system", "factory_mode", u8, static_cast<uint8_t>(default_value), ec);
+        get_var<uint8_t>("system", "factory_mode", u8, static_cast<uint8_t>(default_value), ec);
         if(!ec)
             value = static_cast<bool>(u8);
     }
