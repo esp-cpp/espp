@@ -162,9 +162,9 @@ public:
     // clang-format off
       return descriptor(
                         conditional_report_id<REPORT_ID>(),
-                        usage(generic_desktop::POINTER),
 
                         // left joystick
+                        usage(generic_desktop::POINTER),
                         collection::physical(
                                              usage(generic_desktop::X),
                                              usage(generic_desktop::Y),
@@ -208,7 +208,7 @@ public:
                         usage(generic_desktop::HAT_SWITCH),
                         logical_limits<1, 1>(1, 8),
                         physical_limits<1, 2>(0, 315),
-                        unit::unit_item<2>(0x0014), // system: english rotation, length: centimeter
+                        unit::degree(),
                         report_size(4),
                         report_count(1),
                         input::absolute_variable(static_cast<main::field_flags>(main::field_flags::NULL_STATE)),
