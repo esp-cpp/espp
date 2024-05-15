@@ -131,17 +131,13 @@ public:
           int core_id = -2; // -2 is the default value if core id is not available
 #if CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
           core_id = pxTaskStatusArray[x].xCoreID;
+          if (core_id == tskNO_AFFINITY) {
+            core_id = -1;
+          }
 #endif
 
-          if (ulStatsAsPercentage > 0UL) {
-            task_info.push_back({pxTaskStatusArray[x].pcTaskName, ulStatsAsPercentage,
-                                 high_water_mark, priority, core_id});
-          } else {
-            // If the percentage is zero here then the task has
-            // consumed less than 1% of the total run time.
-            task_info.push_back(
-                {pxTaskStatusArray[x].pcTaskName, 0, high_water_mark, priority, core_id});
-          }
+          task_info.push_back({pxTaskStatusArray[x].pcTaskName, ulStatsAsPercentage,
+                               high_water_mark, priority, core_id});
         }
       }
       // The array is no longer needed, free the memory it consumes.
@@ -206,12 +202,28 @@ public:
     if (task_info.empty()) {
       return output;
     }
-    output = "|     Task Name    | CPU % | High Water Mark | Priority | Core ID |\n"
-             "| ---------------- | ----- | --------------- | -------- | ------- |\n";
+    static constexpr int task_name_header_min_width = 9; // length of "Task Name"
+    static constexpr int task_name_max_width = CONFIG_FREERTOS_MAX_TASK_NAME_LEN;
+    static constexpr int task_name_width =
+        std::max(task_name_header_min_width, task_name_max_width);
+#if CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+    output = fmt::format("| {1: ^{0}.{0}s} | CPU % | High Water Mark | Priority | Core ID |\n"
+                         "| {2:->{0}} | ----- | --------------- | -------- | ------- |\n",
+                         task_name_width, "Task Name", "");
     for (const auto &t : task_info) {
-      output += fmt::format("| {: >16.16s} | {: >3} % | {: >13} B | {: >8} | {: >7} |\n", t.name,
-                            t.cpu_percent, t.high_water_mark, t.priority, t.core_id);
+      output += fmt::format("| {1: >{0}.{0}s} | {2: >3} % | {3: >13} B | {4: >8} | {5: >7} |\n",
+                            task_name_width, t.name, t.cpu_percent, t.high_water_mark, t.priority,
+                            t.core_id);
     }
+#else
+    output = fmt::format("| {1: ^{0}.{0}s} | CPU % | High Water Mark | Priority |\n"
+                         "| {2:->{0}} | ----- | --------------- | -------- |\n",
+                         task_name_width, "Task Name", "");
+    for (const auto &t : task_info) {
+      output += fmt::format("| {1: >{0}.{0}s} | {2: >3} % | {3: >13} B | {4: >8} |\n",
+                            task_name_width, t.name, t.cpu_percent, t.high_water_mark, t.priority);
+    }
+#endif
     return output;
   }
 
@@ -240,7 +252,12 @@ template <> struct fmt::formatter<espp::TaskMonitor::TaskInfo> {
   template <typename FormatContext>
   auto format(const espp::TaskMonitor::TaskInfo &t, FormatContext &ctx) {
     return fmt::format_to(
+#if CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
         ctx.out(), "TaskInfo(name={}, cpu_percent={}, high_water_mark={}, priority={}, core_id={})",
         t.name, t.cpu_percent, t.high_water_mark, t.priority, t.core_id);
+#else
+        ctx.out(), "TaskInfo(name={}, cpu_percent={}, high_water_mark={}, priority={})", t.name,
+        t.cpu_percent, t.high_water_mark, t.priority);
+#endif
   }
 };
