@@ -91,11 +91,14 @@ public:
   float update(float error) {
 #if defined(ESP_PLATFORM)
     auto curr_ts = esp_timer_get_time();
-    static auto prev_ts_ = curr_ts;
+    if (prev_ts_ == 0) {
+      prev_ts_ = curr_ts;
+    }
     float t = (curr_ts - prev_ts_) / 1e6f; // convert to seconds from microseconds
 #else                                      // ESP_PLATFORM
     auto curr_ts = std::chrono::high_resolution_clock::now();
-    static auto prev_ts_ = curr_ts;
+    if (prev_ts_ == std::chrono::high_resolution_clock::time_point())
+      prev_ts_ = curr_ts;
     float t = std::chrono::duration<float>(curr_ts - prev_ts_).count();
 #endif                                     // ESP_PLATFORM
     prev_ts_ = curr_ts;
@@ -155,6 +158,11 @@ protected:
   std::atomic<float> error_{0};
   std::atomic<float> previous_error_{0};
   std::atomic<float> integrator_{0};
+#if defined(ESP_PLATFORM)
+  uint64_t prev_ts_{0};
+#else
+  std::chrono::high_resolution_clock::time_point prev_ts_;
+#endif
   std::recursive_mutex mutex_; ///< For protecting the config
 };
 } // namespace espp
