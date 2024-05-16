@@ -169,6 +169,7 @@ extern "C" void app_main(void) {
           motion_control_type = espp::detail::MotionControlType::ANGLE;
           target_is_angle = true;
         }
+        initialize_target();
         motor1.set_motion_control_type(motion_control_type);
         motor2.set_motion_control_type(motion_control_type);
       } else {
