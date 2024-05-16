@@ -14,8 +14,10 @@ namespace espp {
 ///
 /// \section hid_rp_ex1 HID-RP Example
 /// \snippet hid_rp_example.cpp hid rp example
-template <size_t BUTTON_COUNT = 15, uint16_t JOYSTICK_MIN = 0, uint16_t JOYSTICK_MAX = 65534,
-          uint16_t TRIGGER_MIN = 0, uint16_t TRIGGER_MAX = 1023, uint8_t REPORT_ID = 1>
+template <size_t BUTTON_COUNT = 15, typename JOYSTICK_TYPE = std::uint16_t,
+          typename TRIGGER_TYPE = std::uint16_t, JOYSTICK_TYPE JOYSTICK_MIN = 0,
+          JOYSTICK_TYPE JOYSTICK_MAX = 65534, TRIGGER_TYPE TRIGGER_MIN = 0,
+          TRIGGER_TYPE TRIGGER_MAX = 1023, uint8_t REPORT_ID = 1>
 class GamepadInputReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
 public:
   /// Possible Hat switch directions
@@ -33,14 +35,14 @@ public:
 
 protected:
   static constexpr size_t button_count = BUTTON_COUNT;
-  static constexpr uint16_t joystick_min = JOYSTICK_MIN;
-  static constexpr uint16_t joystick_max = JOYSTICK_MAX;
-  static constexpr uint16_t joystick_center = (joystick_min + joystick_max) / 2;
-  static constexpr uint16_t trigger_min = TRIGGER_MIN;
-  static constexpr uint16_t trigger_max = TRIGGER_MAX;
-  static constexpr uint16_t trigger_center = TRIGGER_MIN;
+  static constexpr JOYSTICK_TYPE joystick_min = JOYSTICK_MIN;
+  static constexpr JOYSTICK_TYPE joystick_max = JOYSTICK_MAX;
+  static constexpr JOYSTICK_TYPE joystick_center = (joystick_min + joystick_max) / 2;
+  static constexpr TRIGGER_TYPE trigger_min = TRIGGER_MIN;
+  static constexpr TRIGGER_TYPE trigger_max = TRIGGER_MAX;
+  static constexpr TRIGGER_TYPE trigger_center = TRIGGER_MIN;
   static constexpr size_t joystick_value_range = joystick_max - joystick_min;
-  static constexpr uint16_t joystick_range = joystick_value_range / 2;
+  static constexpr size_t joystick_range = joystick_value_range / 2;
   static constexpr size_t trigger_range = trigger_max - trigger_min;
   static constexpr size_t num_joystick_bits = num_bits(joystick_value_range);
   static constexpr size_t num_trigger_bits = num_bits(trigger_range);
@@ -52,8 +54,8 @@ protected:
   static constexpr size_t num_data_bytes =
       num_joystick_bytes * 4 + num_trigger_bytes * 2 + num_hat_bytes + num_button_bytes;
 
-  std::array<std::uint16_t, 4> joystick_axes{0};
-  std::array<std::uint16_t, 2> trigger_axes{0};
+  std::array<JOYSTICK_TYPE, 4> joystick_axes{0};
+  std::array<TRIGGER_TYPE, 2> trigger_axes{0};
   std::uint8_t hat_switch{0};
   hid::report_bitset<hid::page::button, hid::page::button(1), hid::page::button(BUTTON_COUNT)>
       buttons;
@@ -101,7 +103,7 @@ public:
     buttons.set(hid::page::button(button_index), value);
   }
 
-  constexpr void set_joystick_axis(size_t index, std::uint16_t value) {
+  constexpr void set_joystick_axis(size_t index, JOYSTICK_TYPE value) {
     if (index < 4) {
       joystick_axes[index] = std::clamp(value, joystick_min, joystick_max);
     }
@@ -109,11 +111,11 @@ public:
   constexpr void set_joystick_axis(size_t index, float value) {
     if (index < 4) {
       joystick_axes[index] =
-          std::clamp(static_cast<std::uint16_t>(value * joystick_range + joystick_center),
+          std::clamp(static_cast<JOYSTICK_TYPE>(value * joystick_range + joystick_center),
                      joystick_min, joystick_max);
     }
   }
-  constexpr void set_trigger_axis(size_t index, std::uint16_t value) {
+  constexpr void set_trigger_axis(size_t index, TRIGGER_TYPE value) {
     if (index < 2) {
       trigger_axes[index] = std::clamp(value, trigger_min, trigger_max);
     }
@@ -121,8 +123,8 @@ public:
   constexpr void set_trigger_axis(size_t index, float value) {
     if (index < 2) {
       trigger_axes[index] =
-          std::clamp(static_cast<std::uint16_t>(value * trigger_range + trigger_center),
-                     trigger_min, trigger_max);
+          std::clamp(static_cast<TRIGGER_TYPE>(value * trigger_range + trigger_center), trigger_min,
+                     trigger_max);
     }
   }
   constexpr void set_hat_switch(std::uint8_t value) { hat_switch = (value & 0xf); }
