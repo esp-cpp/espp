@@ -32,7 +32,8 @@ public:
         esp_err_t err = nvs_flash_init();
         if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
             // NVS partition was truncated and needs to be erased
-            erase_and_refresh(ec);
+            erase(ec);
+            err = nvs_flash_init();
         }
         if (err != ESP_OK) {
             logger_.error("NVS INIT FAILED");
@@ -40,16 +41,15 @@ public:
         }
     }
 
-    /// @brief Erase the NVS and re-initialize
+    /// @brief Erase the NVS
     /// @param[out] ec Saves a std::error_code representing success or failure
-    void erase_and_refresh(std::error_code ec) {
+    void erase(std::error_code ec) {
         esp_err_t err = nvs_flash_erase();
         if (err != ESP_OK) {
             logger_.error("Failed to erase NVS partition: {%s}", esp_err_to_name(err));
             ec = std::make_error_code(std::errc::protocol_error);
             return;
         }
-        init(ec);
     }
 
     /// @brief Save a variable in the NVS and commit

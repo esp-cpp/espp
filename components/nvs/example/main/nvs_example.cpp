@@ -25,7 +25,8 @@ extern "C" void app_main(void) {
     counter ++;
 
     if(counter > 10) {
-        nvs.erase_and_refresh(ec);
+        nvs.erase(ec);
+        nvs.init(ec);
         counter = 0;
         fmt::print("NVS erased, Reset Counter set to 0\n");
         ec.clear();
