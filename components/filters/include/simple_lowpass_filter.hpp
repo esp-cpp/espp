@@ -24,7 +24,7 @@ public:
   };
 
   /**
-   * @brief Initialize the lowpass filter coefficients based on the config.
+   * @brief Initialize the lowpass filter based on the config.
    * @param config Configuration struct.
    */
   explicit SimpleLowpassFilter(const Config &config)
@@ -34,7 +34,7 @@ public:
    * @brief Filter the signal sampled by input, updating internal state, and
    *        returning the filtered output.
    * @param input New sample of the input data.
-   * @return Filtered output based on input and history.
+   * @return Filtered output based on input, time, and history.
    */
   float update(const float input) {
     float output;
@@ -60,7 +60,7 @@ public:
    * @brief Filter the signal sampled by input, updating internal state, and
    *        returning the filtered output.
    * @param input New sample of the input data.
-   * @return Filtered output based on input and history.
+   * @return Filtered output based on input, time, and history.
    */
   float operator()(float input) { return update(input); }
 
