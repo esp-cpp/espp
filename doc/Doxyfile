@@ -58,6 +58,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/max1704x/example/main/max1704x_exampl
 EXAMPLE_PATH += $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/rmt/example/main/rmt_example.cpp

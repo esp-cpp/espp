@@ -52,7 +52,7 @@ public:
         init(ec);
     }
 
-    /// @brief Save a variable in the NVS and commit
+    /// @brief Initializes NVS. Save a variable in the NVS and commit
     /// @param[in] ns_name Namespace of the variable to save
     /// @param[in] key NVS Key of the variable to save
     /// @param[in] value Variable to save
@@ -83,7 +83,7 @@ public:
         return;
     }
 
-    /// @brief Reads a variable from the NVS
+    /// @brief Initializes NVS. Reads a variable from the NVS
     /// @param[in] ns_name Namespace of the variable to read
     /// @param[in] key NVS Key of the variable to read
     /// @param[in] value Variable to read
@@ -117,7 +117,7 @@ public:
         return;
     }
 
-    /// @brief Reads a variable from the NVS
+    /// @brief Initializes NVS. Reads a variable from the NVS
     /// @param[in] ns_name Namespace of the variable to read
     /// @param[in] key NVS Key of the variable to read
     /// @param[in] value Variable to read
@@ -163,7 +163,7 @@ public:
         return;
     }
 
-    /// @brief Reads a bool from the NVS
+    /// @brief Initializes NVS. Reads a bool from the NVS
     /// @param[in] ns_name Namespace of the bool to read
     /// @param[in] key NVS Key of the bool to read
     /// @param[in] value bool to read
@@ -176,7 +176,7 @@ public:
             value = static_cast<bool>(u8);
     }
 
-    /// @brief Reads a bool from the NVS
+    /// @brief Initializes NVS. Reads a bool from the NVS
     /// @param[in] ns_name Namespace of the bool to read
     /// @param[in] key NVS Key of the bool to read
     /// @param[in] value bool to read
