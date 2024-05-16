@@ -42,8 +42,7 @@ public:
    * @brief Create the PID controller.
    */
   explicit Pid(const Config &config)
-      : BaseComponent("PID", config.log_level)
-      , prev_ts_(std::chrono::high_resolution_clock::now()) {
+      : BaseComponent("PID", config.log_level) {
     change_gains(config);
   }
 
@@ -90,23 +89,24 @@ public:
    * @return The output control signal based on the PID state and error.
    */
   float update(float error) {
+#if defined(ESP_PLATFORM)
+    auto curr_ts = esp_timer_get_time();
+    static auto prev_ts_ = curr_ts;
+    float t = (curr_ts - prev_ts_) / 1e6f; // convert to seconds from microseconds
+#else                                      // ESP_PLATFORM
     auto curr_ts = std::chrono::high_resolution_clock::now();
+    static auto prev_ts_ = curr_ts;
     float t = std::chrono::duration<float>(curr_ts - prev_ts_).count();
+#endif                                     // ESP_PLATFORM
     prev_ts_ = curr_ts;
     std::lock_guard<std::recursive_mutex> lk(mutex_);
-    // NOTE: for ESP platform, we shouldn't be running PID on anything faster
-    //       than a few KHz so check against 100KHz here.
-    if (t <= 1e-5) {
-      // during startup, use a small value until we get reasonable values...
-      t = 1e-3;
-    }
     error_ = error;
     float integrand = config_.ki * error_ * t;
     integrator_ =
         std::clamp(integrator_ + integrand, config_.integrator_min, config_.integrator_max);
     float p = config_.kp * error_;
     float i = integrator_;
-    float d = config_.kd * (error_ - previous_error_) / t;
+    float d = t > 0 ? config_.kd * (error_ - previous_error_) / t : 0;
     float output = p + i + d;
     // update our state for next loop
     previous_error_.store(error_);
@@ -155,7 +155,6 @@ protected:
   std::atomic<float> error_{0};
   std::atomic<float> previous_error_{0};
   std::atomic<float> integrator_{0};
-  std::chrono::time_point<std::chrono::high_resolution_clock> prev_ts_;
   std::recursive_mutex mutex_; ///< For protecting the config
 };
 } // namespace espp
