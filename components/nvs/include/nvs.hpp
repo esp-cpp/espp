@@ -126,6 +126,7 @@ public:
     /// @details Read the key/variable pair, If the key isn't found in the NVS, default_value is saved to NVS
     template<typename T> void get_or_set_var(const char *ns_name, const char *key, T &value, T default_value, std::error_code &ec) {
         value = default_value;
+        check_lengths(ns_name, key, ec);
         if (ec)
             return;
         esp_err_t err;
