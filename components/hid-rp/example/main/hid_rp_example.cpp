@@ -20,8 +20,9 @@ extern "C" void app_main(void) {
   static constexpr int trigger_min = 0;
   static constexpr int trigger_max = 1023;
 
-  using GamepadInput = espp::GamepadInputReport<num_buttons, joystick_min, joystick_max,
-                                                trigger_min, trigger_max, input_report_id>;
+  using GamepadInput =
+      espp::GamepadInputReport<num_buttons, std::uint16_t, std::uint16_t, joystick_min,
+                               joystick_max, trigger_min, trigger_max, input_report_id>;
   GamepadInput gamepad_input_report;
 
   static constexpr uint8_t output_report_id = 2;
