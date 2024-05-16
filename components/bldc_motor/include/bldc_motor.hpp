@@ -92,6 +92,9 @@ public:
         detail::TorqueControlType::VOLTAGE}; /**< Torque controller type. */
     std::shared_ptr<D> driver;               /**< Driver for low-level setting of phase PWMs. */
     std::shared_ptr<S> sensor;               /**< Sensor for measuring position / speed. */
+    bool run_sensor_update{
+        false}; /**< Runs the sensor::update() in the loop_foc() function. If false, the sensor must
+                   be updated elsewhere (e.g. within a sensor task). */
     std::shared_ptr<CS> current_sense{
         nullptr}; /**< Sensor for measuring current through the motor. */
     Pid::Config current_pid_config{
@@ -145,6 +148,7 @@ public:
       , torque_control_type_(config.torque_controller)
       , driver_(config.driver)
       , sensor_(config.sensor)
+      , run_sensor_update_(config.run_sensor_update)
       , current_sense_(config.current_sense)
       , pid_current_q_(config.current_pid_config)
       , pid_current_d_(config.current_pid_config)
@@ -435,13 +439,15 @@ public:
    *       other types require current sense.
    */
   void loop_foc() {
-    // update the sensor values
-    std::error_code ec;
-    if (sensor_)
-      sensor_->update(ec);
-    if (ec) {
-      logger_.error("Sensor update failed: {}", ec.message());
-      return;
+    if (run_sensor_update_) {
+      // update the sensor values
+      std::error_code ec;
+      if (sensor_)
+        sensor_->update(ec);
+      if (ec) {
+        logger_.error("Sensor update failed: {}", ec.message());
+        return;
+      }
     }
 
     // if disabled do nothing
@@ -567,6 +573,11 @@ public:
       // value from previous calculation
       target_current_ =
           pid_velocity_(target_shaft_velocity_ - shaft_velocity_); // if voltage torque control
+      logger_.debug_rate_limited("\n"
+                                 "CURRENT angle: {:.2f}, velocity: {:.2f}\n"
+                                 "TARGET  angle: {:.2f}, velocity: {:.2f}, current: {:.2f}",
+                                 shaft_angle_, shaft_velocity_, target_shaft_angle_,
+                                 target_shaft_velocity_, target_current_);
       // if torque controlled through voltage
       if (torque_control_type_ == detail::TorqueControlType::VOLTAGE) {
         // use voltage if phase-resistance not provided
@@ -643,7 +654,8 @@ protected:
     }
     // align sensor and motor
     bool success = align_sensor();
-    sensor_->update(ec);
+    if (run_sensor_update_)
+      sensor_->update(ec);
     shaft_angle_ = get_shaft_angle();
 
     if (current_sense_) {
@@ -675,21 +687,25 @@ protected:
       for (int i = 0; i <= 500; i++) {
         float angle = _3PI_2 + _2PI * i / 500.0f;
         set_phase_voltage(voltage_sensor_align_, 0, angle);
-        sensor_->update(ec);
+        if (run_sensor_update_)
+          sensor_->update(ec);
         std::this_thread::sleep_for(1ms * 2);
       }
       // take an angle in the middle
-      sensor_->update(ec);
+      if (run_sensor_update_)
+        sensor_->update(ec);
       float mid_angle = sensor_->get_radians();
       // move one electrical revolution backwards
       for (int i = 500; i >= 0; i--) {
         float angle = _3PI_2 + _2PI * i / 500.0f;
         set_phase_voltage(voltage_sensor_align_, 0, angle);
-        sensor_->update(ec);
+        if (run_sensor_update_)
+          sensor_->update(ec);
         std::this_thread::sleep_for(1ms * 2);
       }
       // take an angle in the end
-      sensor_->update(ec);
+      if (run_sensor_update_)
+        sensor_->update(ec);
       float end_angle = sensor_->get_radians();
       set_phase_voltage(0, 0, 0);
       std::this_thread::sleep_for(1ms * 200);
@@ -698,19 +714,18 @@ protected:
         logger_.warn("Failed to notice movement when trying to find natural direction.");
         return 0; // failed calibration
       } else if (mid_angle < end_angle) {
-        logger_.info("sensor direction: detail::SensorDirection::COUNTER_CLOCKWISE");
         sensor_direction_ = detail::SensorDirection::COUNTER_CLOCKWISE;
       } else {
-        logger_.info("sensor direction: detail::SensorDirection::CLOCKWISE");
         sensor_direction_ = detail::SensorDirection::CLOCKWISE;
       }
+      logger_.info("sensor direction: {}", sensor_direction_);
       // check pole pair number
       float moved = std::abs(mid_angle - end_angle);
       if (std::abs(moved * num_pole_pairs_ - _2PI) >
           0.5f) { // 0.5f is arbitrary number it can be lower or higher!
-        logger_.debug("PP check: fail - estimated pp: {:.3f}", _2PI / moved);
+        logger_.warn("PP check: fail - estimated pp: {:.3f}", _2PI / moved);
       } else
-        logger_.debug("PP check: OK!");
+        logger_.info("PP check: OK!");
 
     } else
       logger_.debug("Skip dir calib.");
@@ -723,7 +738,8 @@ protected:
       set_phase_voltage(voltage_sensor_align_, 0, _3PI_2);
       std::this_thread::sleep_for(1ms * 700);
       // read the sensor
-      sensor_->update(ec);
+      if (run_sensor_update_)
+        sensor_->update(ec);
       // get the current zero electric angle
       zero_electrical_angle_ = 0;
       zero_electrical_angle_ = get_electrical_angle();
@@ -771,8 +787,10 @@ protected:
     shaft_angle_ = 0;
     while (sensor_->needs_zero_search() && shaft_angle_ < _2PI) {
       angle_openloop(1.5f * _2PI);
-      std::error_code ec;
-      sensor_->update(ec);
+      if (run_sensor_update_) {
+        std::error_code ec;
+        sensor_->update(ec);
+      }
     }
     // disable motor
     set_phase_voltage(0, 0, 0);
@@ -919,6 +937,7 @@ protected:
 
   std::shared_ptr<D> driver_;
   std::shared_ptr<S> sensor_;
+  bool run_sensor_update_{false};
   std::shared_ptr<CS> current_sense_;
 
   Pid pid_current_q_;
