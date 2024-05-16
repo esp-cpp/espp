@@ -59,7 +59,8 @@ public:
     /// @param[out] ec Saves a std::error_code representing success or failure
     /// @details Saves the key/variable pair, and commits the NVS. 
     template<typename T> void set_var(const char *ns_name, const char *key, T value, std::error_code &ec) {
-        if (ec)
+        check_lengths(ns_name, key, ec);
+        if(ec)
             return;
         esp_err_t err;
         std::unique_ptr<nvs::NVSHandle> handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
@@ -89,7 +90,8 @@ public:
     /// @param[out] ec Saves a std::error_code representing success or failure
     /// @details Read the key/variable pair
     template<typename T> void get_var(const char *ns_name, const char *key, T &value, std::error_code &ec) {
-        if (ec)
+        check_lengths(ns_name, key, ec);
+        if(ec)
             return;
         esp_err_t err;
         std::unique_ptr<nvs::NVSHandle> handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
@@ -185,6 +187,20 @@ public:
         get_or_set_var<uint8_t>("system", "factory_mode", u8, static_cast<uint8_t>(default_value), ec);
         if(!ec)
             value = static_cast<bool>(u8);
+    }
+
+protected:
+    void check_lengths(const char *ns_name, const char *key, std::error_code &ec) {
+        if(strlen(ns_name) > 15) {
+            logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
+            ec = std::make_error_code(std::errc::argument_out_of_domain);
+            return;
+        }
+        if(strlen(key) > 15) {
+            logger_.error("Key too long, must be <= 15 characters: {}", key);
+            ec = std::make_error_code(std::errc::argument_out_of_domain);
+            return;
+        }
     }
 
 }; //Class Nvs

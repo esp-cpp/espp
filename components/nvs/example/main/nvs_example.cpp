@@ -17,7 +17,7 @@ extern "C" void app_main(void) {
     espp::Nvs nvs;
     nvs.init(ec);
     ec.clear();
-    //note that the namespace and key strings must be shorter than 15 characters
+    //note that the namespace and key strings must be <= 15 characters
     nvs.get_or_set_var("system", "reset_counter", counter, counter, ec); 
     ec.clear();
     fmt::print("Reset Counter = {}\n", counter);
