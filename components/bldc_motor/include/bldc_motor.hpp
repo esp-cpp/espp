@@ -85,7 +85,7 @@ public:
     float current_limit{1.0f};     /**< Current limit (Amps) for the controller. */
     float velocity_limit{1000.0f}; /**< Velocity limit (RPM) for the controller. */
     float zero_electric_offset{0.0f};
-    detail::SensorDirection sensor_direction{detail::SensorDirection::CLOCKWISE};
+    detail::SensorDirection sensor_direction{detail::SensorDirection::UNKNOWN};
     detail::FocType foc_type{detail::FocType::SPACE_VECTOR_PWM}; /**< How the voltage for the phases
                                                                     should be calculated. */
     detail::TorqueControlType torque_controller{
@@ -122,6 +122,9 @@ public:
     filter_fn d_current_filter{nullptr}; /**< Optional filter added to the sensed d current. */
     filter_fn velocity_filter{nullptr};  /**< Optional filter added to the sensed velocity. */
     filter_fn angle_filter{nullptr};     /**< Optional filter added to the sensed angle. */
+    bool auto_init{true}; /**< Automatically initialize the motor. Ensure all necessary objects and
+                             communications have been initialized before this object has been
+                             constructed, or this will fail. */
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the Motor.  */
   };
 
@@ -177,14 +180,10 @@ public:
     angle_pid_config.output_max = velocity_limit_;
     pid_angle_.change_gains(angle_pid_config);
 
-    // finish the rest of init
-    init();
-    // enable the motor for foc initialization
-    enable();
-    // then initialize the foc (calibration etc.)
-    init_foc(config.zero_electric_offset, config.sensor_direction);
-    // disable the motor to put it back into a safe state
-    disable();
+    // if auto init is enabled
+    if (config.auto_init) {
+      initialize(config.zero_electric_offset, config.sensor_direction);
+    }
   }
 
   /**
@@ -216,6 +215,29 @@ public:
   }
 
   /**
+   * @brief Initialize the motor, running through any necessary sensor
+   *        calibration.
+   * @param zero_electric_offset The zero electrical offset for the motor.
+   * @param sensor_direction The direction of the sensor.
+   * @note This function will enable the motor, run through the necessary
+   *       calibration steps, and then disable the motor.
+   * @note This function is automatically called in the constructor if
+   *       auto_init is set to true. Otherwise, it must be called manually
+   *       before the motor can be used.
+   */
+  void initialize(float zero_electric_offset = 0,
+                  detail::SensorDirection sensor_direction = detail::SensorDirection::UNKNOWN) {
+    // finish the rest of init
+    init();
+    // enable the motor for foc initialization
+    enable();
+    // then initialize the foc (calibration etc.)
+    init_foc(zero_electric_offset, sensor_direction);
+    // disable the motor to put it back into a safe state
+    disable();
+  }
+
+  /**
    * @brief Update the motoion control scheme the motor control loop uses.
    * @param motion_control_type New motion control to use.
    */
@@ -242,7 +264,7 @@ public:
     switch (foc_type_) {
     case detail::FocType::TRAPEZOID_120:
       // see https://www.youtube.com/watch?v=InzXA7mWBWE Slide 5
-      static int trap_120_map[6][3] = {
+      static constexpr int trap_120_map[6][3] = {
           {_HIGH_IMPEDANCE, 1, -1},
           {-1, 1, _HIGH_IMPEDANCE},
           {-1, _HIGH_IMPEDANCE, 1},
@@ -279,7 +301,7 @@ public:
 
     case detail::FocType::TRAPEZOID_150:
       // see https://www.youtube.com/watch?v=InzXA7mWBWE Slide 8
-      static int trap_150_map[12][3] = {
+      static constexpr int trap_150_map[12][3] = {
           {_HIGH_IMPEDANCE, 1, -1},
           {-1, 1, -1},
           {-1, 1, _HIGH_IMPEDANCE},
@@ -321,6 +343,7 @@ public:
       break;
 
     case detail::FocType::SINE_PWM:
+    case detail::FocType::SPACE_VECTOR_PWM:
       // Sinusoidal PWM modulation
       // Inverse Park + Clarke transformation
 
@@ -333,105 +356,33 @@ public:
       Ualpha = _ca * ud - _sa * uq; // -sin(angle) * uq;
       Ubeta = _sa * ud + _ca * uq;  //  cos(angle) * uq;
 
-      // center = modulation_centered_ ? (driver_->get_voltage_limit())/2 : uq;
-      center = driver_->get_voltage_limit() / 2;
       // Clarke transform
-      Ua = Ualpha + center;
-      Ub = -0.5f * Ualpha + _SQRT3_2 * Ubeta + center;
-      Uc = -0.5f * Ualpha - _SQRT3_2 * Ubeta + center;
+      Ua = Ualpha;
+      Ub = -0.5f * Ualpha + _SQRT3_2 * Ubeta;
+      Uc = -0.5f * Ualpha - _SQRT3_2 * Ubeta;
+
+      center = driver_->get_voltage_limit() / 2;
+      if (foc_type_ == detail::FocType::SPACE_VECTOR_PWM) {
+        // discussed here:
+        // https://community.simplefoc.com/t/embedded-world-2023-stm32-cordic-co-processor/3107/165?u=candas1
+        // a bit more info here: https://microchipdeveloper.com/mct5001:which-zsm-is-best
+        // Midpoint Clamp
+        float Umin = std::min(Ua, std::min(Ub, Uc));
+        float Umax = std::max(Ua, std::max(Ub, Uc));
+        center -= (Umax + Umin) / 2;
+      }
 
       if (!modulation_centered_) {
         float Umin = std::min(Ua, std::min(Ub, Uc));
         Ua -= Umin;
         Ub -= Umin;
         Uc -= Umin;
+      } else {
+        Ua += center;
+        Ub += center;
+        Uc += center;
       }
 
-      break;
-
-    case detail::FocType::SPACE_VECTOR_PWM:
-      // Nice video explaining the SpaceVectorModulation (SVPWM) algorithm
-      // https://www.youtube.com/watch?v=QMSWUMEAejg
-
-      // the algorithm goes
-      // 1) Ualpha, Ubeta
-      // 2) Uout = sqrt(Ualpha^2 + Ubeta^2)
-      // 3) el_angle = atan2(Ubeta, Ualpha)
-      //
-      // equivalent to 2)  because the magnitude does not change is:
-      // Uout = sqrt(ud^2 + uq^2)
-      // equivalent to 3) is
-      // el_angle = el_angle + atan2(uq,ud)
-
-      float Uout;
-      // a bit of optitmisation
-      if (ud) { // only if ud and uq set
-        // fast_sqrt is an approx of sqrt (3-4% error)
-        Uout = fast_sqrt(ud * ud + uq * uq) / driver_->get_voltage_limit();
-        // angle normalisation in between 0 and 2pi
-        // only necessary if using fast_sin and fast_cos - approximation functions
-        el_angle = normalize_angle(el_angle + atan2(uq, ud));
-      } else { // only uq available - no need for atan2 and sqrt
-        Uout = uq / driver_->get_voltage_limit();
-        // angle normalisation in between 0 and 2pi
-        // only necessary if using fast_sin and fast_cos - approximation functions
-        el_angle = normalize_angle(el_angle + M_PI_2);
-      }
-      // find the sector we are in currently
-      sector = floor(el_angle / _PI_3) + 1;
-      // calculate the duty cycles
-      float T1 = _SQRT3 * fast_sin(sector * _PI_3 - el_angle) * Uout;
-      float T2 = _SQRT3 * fast_sin(el_angle - (sector - 1.0f) * _PI_3) * Uout;
-      // two versions possible
-      float T0 = 0; // pulled to 0 - better for low power supply voltage
-      if (modulation_centered_) {
-        T0 = 1 - T1 - T2; // modulation_centered_ around driver_->get_voltage_limit()/2
-      }
-
-      // calculate the duty cycles(times)
-      float Ta, Tb, Tc;
-      switch (sector) {
-      case 1:
-        Ta = T1 + T2 + T0 / 2;
-        Tb = T2 + T0 / 2;
-        Tc = T0 / 2;
-        break;
-      case 2:
-        Ta = T1 + T0 / 2;
-        Tb = T1 + T2 + T0 / 2;
-        Tc = T0 / 2;
-        break;
-      case 3:
-        Ta = T0 / 2;
-        Tb = T1 + T2 + T0 / 2;
-        Tc = T2 + T0 / 2;
-        break;
-      case 4:
-        Ta = T0 / 2;
-        Tb = T1 + T0 / 2;
-        Tc = T1 + T2 + T0 / 2;
-        break;
-      case 5:
-        Ta = T2 + T0 / 2;
-        Tb = T0 / 2;
-        Tc = T1 + T2 + T0 / 2;
-        break;
-      case 6:
-        Ta = T1 + T2 + T0 / 2;
-        Tb = T0 / 2;
-        Tc = T1 + T0 / 2;
-        break;
-      default:
-        // possible error state
-        Ta = 0;
-        Tb = 0;
-        Tc = 0;
-      }
-
-      // calculate the phase voltages and center
-      Ua = Ta * driver_->get_voltage_limit();
-      Ub = Tb * driver_->get_voltage_limit();
-      Uc = Tc * driver_->get_voltage_limit();
       break;
     }
 
