@@ -1,4 +1,4 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES "base_peripheral" "task"
+  REQUIRES "base_peripheral" "timer"
   )

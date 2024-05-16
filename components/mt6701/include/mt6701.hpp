@@ -5,7 +5,7 @@
 #include <functional>
 
 #include "base_peripheral.hpp"
-#include "task.hpp"
+#include "high_resolution_timer.hpp"
 
 namespace espp {
 /// @brief Enum class for the interface type of the MT6701.
@@ -254,12 +254,11 @@ public:
    *       initialize(true)).
    */
   void update(std::error_code &ec) {
-    logger_.debug("update");
     // measure update timing
     uint64_t now_us = esp_timer_get_time();
-    static auto prev_time_us = now_us;
-    float seconds = (now_us - prev_time_us) / 1e6f;
-    prev_time_us = now_us;
+    auto dt = now_us - prev_time_us_;
+    float seconds = dt / 1e6f;
+    prev_time_us_ = now_us;
     // store the previous count
     int prev_count = count_;
     // read the latest data from the encoder and update the state
@@ -279,17 +278,21 @@ public:
     }
     // update accumulator
     accumulator_ += diff;
-    logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
+    logger_.debug_rate_limited("CDA: {}, {}, {}", count_, diff, accumulator_);
+    static constexpr int MIN_DIFF = 2;
     // update velocity (filtering it)
     float raw_velocity =
-        seconds > 0 ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE : 0.0f;
+        (dt > 0 && std::abs(diff) > MIN_DIFF)
+            ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE
+            : 0.0f;
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
-    if (seconds > 0) {
+    if (dt > 0) {
       float max_velocity = 0.5f / seconds * SECONDS_PER_MINUTE;
       if (raw_velocity >= max_velocity) {
-        logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
-                     "update period!",
-                     max_velocity);
+        logger_.warn_rate_limited(
+            "Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
+            "update period!",
+            max_velocity);
       }
     }
   }
@@ -302,25 +305,26 @@ protected:
   } __attribute__((packed));
 
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::I2C) {
-    logger_.debug("read");
     // read the angle count registers
     uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
     if (ec) {
+      logger_.error_rate_limited("Error reading: {}", ec.message());
       return;
     }
     uint8_t angle_l = read_u8_from_register((uint8_t)Registers::ANGLE_L, ec) >> 2;
     if (ec) {
+      logger_.error_rate_limited("Error reading: {}", ec.message());
       return;
     }
     count_ = ((angle_h << 6) | angle_l);
   }
 
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::SSI) {
-    logger_.debug("read");
     // read the angle count as 24 bits (3 bytes) from the serial stream
     uint8_t buffer[3] = {0};
     read(&buffer[0], 3, ec);
     if (ec) {
+      logger_.error_rate_limited("Error reading: {}", ec.message());
       return;
     }
     // the first 14 bits is the angle data, followed by 4 bit status, and 6 bit
@@ -343,16 +347,11 @@ protected:
     tracking_status_ = (TrackingStatus)((status >> 3) & 0b1);
   }
 
-  bool update_task(std::mutex &m, std::condition_variable &cv) {
-    auto start = std::chrono::high_resolution_clock::now();
+  bool update_task() {
     std::error_code ec;
     update(ec);
     if (ec) {
       logger_.error("Error updating: {}", ec.message());
-    }
-    {
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + update_period_);
     }
     // don't want to stop the task
     return false;
@@ -372,10 +371,10 @@ protected:
     }
     logger_.info("Starting task with update period of {:.3f} seconds", update_period_.count());
     // start the task
-    using namespace std::placeholders;
-    task_ = Task::make_unique(
-        {.name = "Mt6701", .callback = std::bind(&Mt6701::update_task, this, _1, _2)});
-    task_->start();
+    uint64_t period_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(update_period_).count();
+    timer_.periodic(period_us);
+    prev_time_us_ = esp_timer_get_time();
   }
 
   /**
@@ -408,6 +407,7 @@ protected:
   };
 
   velocity_filter_fn velocity_filter_{nullptr};
+  uint64_t prev_time_us_{0};
   std::chrono::duration<float> update_period_;
   std::atomic<int> count_{0};
   std::atomic<int> accumulator_{0};
@@ -415,7 +415,8 @@ protected:
   std::atomic<MagneticFieldStrength> magnetic_field_strength_{MagneticFieldStrength::NORMAL};
   std::atomic<TrackingStatus> tracking_status_{TrackingStatus::NORMAL};
   std::atomic<bool> push_button_{false};
-  std::unique_ptr<Task> task_;
+  espp::HighResolutionTimer timer_{
+      {.name = "Mt6701", .callback = std::bind(&Mt6701::update_task, this)}};
 };
 } // namespace espp
 
