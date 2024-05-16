@@ -5,6 +5,9 @@ initialize the hardware on the [MotorGo Mini board](https://motorgo.net) which
 is connected to two encoders and two BLDC motors. It uses those hardware to
 drive the motors and outputs the state as a CSV.
 
+If you press the boot button it will toggle between closed-loop angle control
+and closed-loop velocity control.
+
 ## How to use example
 
 ### Hardware Required
@@ -29,3 +32,8 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+![CleanShot 2024-05-16 at 14 10 38](https://github.com/esp-cpp/espp/assets/213467/11bafc1c-4358-4cb0-a2c3-05df0a888c94)
+
+https://github.com/esp-cpp/espp/assets/213467/709e2aa4-84bb-48e6-882d-bad559eaa4f2
+
+![CleanShot 2024-05-16 at 14 22 20](https://github.com/esp-cpp/espp/assets/213467/8bfa7d8c-223b-470b-88af-6e89554e6a66)
