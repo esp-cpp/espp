@@ -7,6 +7,7 @@ Filter APIs
     biquad
     butterworth
     lowpass
+    simple_lowpass
     sos
     transfer_function
 
