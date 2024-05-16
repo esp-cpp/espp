@@ -1,4 +1,4 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES "base_peripheral"
+  REQUIRES "nvs_flash base_peripheral"
 )
