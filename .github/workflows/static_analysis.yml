@@ -1,10 +1,6 @@
 name: Static analysis
 
 on: 
-  pull_request:
-    branches:
-      - main
-
   # 'pull_request_target' allows this Action to also run on forked repositories
   # The output will be shown in PR comments (unless the 'force_console_print' flag is used)
   pull_request_target:
