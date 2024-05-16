@@ -359,25 +359,25 @@ protected:
   // current sense Motor 1 phase U
   espp::AdcConfig current_sense_m1_u_ = {
       .unit = ADC_UNIT_1,
-      .channel = ADC_CHANNEL_6,
+      .channel = ADC_CHANNEL_6, // GPIO7
       .attenuation = ADC_ATTEN_DB_12,
   };
   // current sense Motor 1 phase W
   espp::AdcConfig current_sense_m1_w_ = {
       .unit = ADC_UNIT_1,
-      .channel = ADC_CHANNEL_3,
+      .channel = ADC_CHANNEL_3, // GPIO4
       .attenuation = ADC_ATTEN_DB_12,
   };
   // current sense Motor 2 phase U - note; the schmatic has the U and W swapped
   espp::AdcConfig current_sense_m2_u_ = {
       .unit = ADC_UNIT_2,
-      .channel = ADC_CHANNEL_1,
+      .channel = ADC_CHANNEL_1, // GPIO12
       .attenuation = ADC_ATTEN_DB_12,
   };
   // current sense Motor 2 phase W - note; the schmatic has the U and W swapped
   espp::AdcConfig current_sense_m2_w_ = {
       .unit = ADC_UNIT_1,
-      .channel = ADC_CHANNEL_7,
+      .channel = ADC_CHANNEL_7, // GPIO8
       .attenuation = ADC_ATTEN_DB_12,
   };
   espp::OneshotAdc adc_1{{
