@@ -14,6 +14,7 @@
 #include "led.hpp"
 #include "mt6701.hpp"
 #include "oneshot_adc.hpp"
+#include "simple_lowpass_filter.hpp"
 
 namespace espp {
 /// This class acts as a board support component for the MotorGo-Mini board.
@@ -51,8 +52,12 @@ public:
   espp::Button &button() { return button_; }
 
   // LEDs on the board
+  espp::Led::ChannelConfig &yellow_led() { return led_channels_[0]; }
   espp::Led::ChannelConfig &led_channel0() { return led_channels_[0]; }
+
+  espp::Led::ChannelConfig &red_led() { return led_channels_[1]; }
   espp::Led::ChannelConfig &led_channel1() { return led_channels_[1]; }
+
   espp::Led &led() { return led_; }
   espp::Gaussian &gaussian() { return gaussian_; }
   void start_breathing() {
@@ -78,9 +83,13 @@ public:
   espp::OneshotAdc &adc2() { return adc_2; }
 
 protected:
+  static constexpr auto I2C_PORT = I2C_NUM_0;
+  static constexpr auto I2C_SDA_PIN = GPIO_NUM_2;
+  static constexpr auto I2C_SCL_PIN = GPIO_NUM_1;
+
   static constexpr uint64_t core_update_period_us = 1000; // 1 ms
   static constexpr auto ENCODER_SPI_HOST = SPI2_HOST;
-  static constexpr auto ENCODER_SPI_CLK_SPEED = 10 * 1000 * 1000; // 10 MHz
+  static constexpr auto ENCODER_SPI_CLK_SPEED = 10 * 1000 * 1000; // max is 10 MHz
   static constexpr auto ENCODER_SPI_MISO_PIN = GPIO_NUM_35;
   static constexpr auto ENCODER_SPI_SCLK_PIN = GPIO_NUM_36;
   static constexpr auto ENCODER_1_CS_PIN = GPIO_NUM_37;
@@ -100,6 +109,10 @@ protected:
   static constexpr auto MOTOR_2_C_H = GPIO_NUM_11;
   static constexpr auto MOTOR_2_C_L = GPIO_NUM_14;
 
+  static constexpr auto BUTTON_GPIO = GPIO_NUM_0;
+  static constexpr auto YELLOW_LED_GPIO = GPIO_NUM_38;
+  static constexpr auto RED_LED_GPIO = GPIO_NUM_47;
+
   void init() {
     start_breathing();
     init_spi();
@@ -116,6 +129,8 @@ protected:
     encoder_spi_bus_config_.quadwp_io_num = -1;
     encoder_spi_bus_config_.quadhd_io_num = -1;
     encoder_spi_bus_config_.max_transfer_sz = 100;
+    // encoder_spi_bus_config_.isr_cpu_id = 0; // set to the same core as the esp-timer task (which
+    // runs the encoders)
     auto err = spi_bus_initialize(ENCODER_SPI_HOST, &encoder_spi_bus_config_, SPI_DMA_CH_AUTO);
     if (err != ESP_OK) {
       logger_.error("Failed to initialize SPI bus for encoders: {}", esp_err_to_name(err));
@@ -126,8 +141,10 @@ protected:
     memset(&encoder1_config, 0, sizeof(encoder1_config));
     encoder1_config.mode = 0;
     encoder1_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
-    encoder1_config.queue_size = 7;
+    encoder1_config.queue_size = 1;
     encoder1_config.spics_io_num = ENCODER_1_CS_PIN;
+    // encoder1_config.cs_ena_pretrans = 2;
+    // encoder1_config.input_delay_ns = 30;
     err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder1_config, &encoder1_handle_);
     if (err != ESP_OK) {
       logger_.error("Failed to initialize Encoder 1: {}", esp_err_to_name(err));
@@ -138,8 +155,10 @@ protected:
     memset(&encoder2_config, 0, sizeof(encoder2_config));
     encoder2_config.mode = 0;
     encoder2_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
-    encoder2_config.queue_size = 7;
+    encoder2_config.queue_size = 1;
     encoder2_config.spics_io_num = ENCODER_2_CS_PIN;
+    // encoder2_config.cs_ena_pretrans = 2;
+    // encoder2_config.input_delay_ns = 30;
     err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder2_config, &encoder2_handle_);
     if (err != ESP_OK) {
       logger_.error("Failed to initialize Encoder 2: {}", esp_err_to_name(err));
@@ -148,7 +167,7 @@ protected:
   }
 
   void init_encoders() {
-    bool run_task = false;
+    bool run_task = true;
     std::error_code ec;
     encoder1_.initialize(run_task, ec);
     if (ec) {
@@ -208,9 +227,9 @@ protected:
   }
 
   /// I2C bus for external communication
-  I2c external_i2c_{{.port = I2C_NUM_0,
-                     .sda_io_num = GPIO_NUM_2,
-                     .scl_io_num = GPIO_NUM_1,
+  I2c external_i2c_{{.port = I2C_PORT,
+                     .sda_io_num = I2C_SDA_PIN,
+                     .scl_io_num = I2C_SCL_PIN,
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
@@ -228,19 +247,15 @@ protected:
       {.read = [this](uint8_t *data, size_t size) -> bool {
          return read_encoder(encoder1_handle_, data, size);
        },
-       .velocity_filter = nullptr,
        .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
        .auto_init = false, // we have to initialize the SPI first before we can use the encoder
-       .run_task = false,  // we will manually call update
        .log_level = get_log_level()}};
   Encoder encoder2_{
       {.read = [this](uint8_t *data, size_t size) -> bool {
          return read_encoder(encoder2_handle_, data, size);
        },
-       .velocity_filter = nullptr,
        .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
        .auto_init = false, // we have to initialize the SPI first before we can use the encoder
-       .run_task = false,  // we will manually call update
        .log_level = get_log_level()}};
 
   // Drivers
@@ -266,6 +281,12 @@ protected:
                                    .power_supply_voltage = 5.0f,
                                    .limit_voltage = 5.0f,
                                    .log_level = get_log_level()}};
+
+  // Filters
+  espp::SimpleLowpassFilter motor1_velocity_filter_{{.time_constant = 0.005f}};
+  espp::SimpleLowpassFilter motor1_angle_filter_{{.time_constant = 0.001f}};
+  espp::SimpleLowpassFilter motor2_velocity_filter_{{.time_constant = 0.005f}};
+  espp::SimpleLowpassFilter motor2_angle_filter_{{.time_constant = 0.001f}};
 
   // Motors
   BldcMotor motor1_{{
@@ -296,6 +317,8 @@ protected:
               .output_min = -20.0,      // angle pid works on velocity (rad/s)
               .output_max = 20.0,       // angle pid works on velocity (rad/s)
           },
+      .velocity_filter = [this](auto v) { return motor1_velocity_filter_(v); },
+      .angle_filter = [this](auto v) { return motor1_angle_filter_(v); },
       .auto_init = false, // we have to initialize the SPI first before we can use the encoder
       .log_level = get_log_level(),
   }};
@@ -327,6 +350,8 @@ protected:
               .output_min = -20.0,      // angle pid works on velocity (rad/s)
               .output_max = 20.0,       // angle pid works on velocity (rad/s)
           },
+      .velocity_filter = [this](auto v) { return motor2_velocity_filter_(v); },
+      .angle_filter = [this](auto v) { return motor2_angle_filter_(v); },
       .auto_init = false, // we have to initialize the SPI first before we can use the encoder
       .log_level = get_log_level(),
   }};
@@ -367,7 +392,7 @@ protected:
   // button
   espp::Button button_{{
       .name = "MotorGo Mini Button",
-      .gpio_num = GPIO_NUM_0,
+      .gpio_num = BUTTON_GPIO,
       .active_level = espp::Interrupt::ActiveLevel::LOW,
       .pullup_enabled = false,
       .pulldown_enabled = false,
@@ -377,9 +402,9 @@ protected:
   // led
   std::vector<espp::Led::ChannelConfig> led_channels_{
       // shown on the board as io38
-      {.gpio = 38, .channel = LEDC_CHANNEL_0, .timer = LEDC_TIMER_2},
+      {.gpio = (int)YELLOW_LED_GPIO, .channel = LEDC_CHANNEL_0, .timer = LEDC_TIMER_2},
       // shown on the board as io8 >.<
-      {.gpio = 47, .channel = LEDC_CHANNEL_1, .timer = LEDC_TIMER_2},
+      {.gpio = (int)RED_LED_GPIO, .channel = LEDC_CHANNEL_1, .timer = LEDC_TIMER_2},
   };
   espp::Led led_{espp::Led::Config{
       .timer = LEDC_TIMER_2,
