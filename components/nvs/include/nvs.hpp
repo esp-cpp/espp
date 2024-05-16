@@ -52,14 +52,13 @@ public:
         init(ec);
     }
 
-    /// @brief Initializes NVS. Save a variable in the NVS and commit
+    /// @brief Save a variable in the NVS and commit
     /// @param[in] ns_name Namespace of the variable to save
     /// @param[in] key NVS Key of the variable to save
     /// @param[in] value Variable to save
     /// @param[out] ec Saves a std::error_code representing success or failure
-    /// @details Initializes NVS, saves the key/variable pair, and commits the NVS. 
+    /// @details Saves the key/variable pair, and commits the NVS. 
     template<typename T> void set_var(const char *ns_name, const char *key, T value, std::error_code &ec) {
-        init(ec);
         if (ec)
             return;
         esp_err_t err;
@@ -83,14 +82,13 @@ public:
         return;
     }
 
-    /// @brief Initializes NVS. Reads a variable from the NVS
+    /// @brief Reads a variable from the NVS
     /// @param[in] ns_name Namespace of the variable to read
     /// @param[in] key NVS Key of the variable to read
     /// @param[in] value Variable to read
     /// @param[out] ec Saves a std::error_code representing success or failure
-    /// @details Initializes NVS and read the key/variable pair
+    /// @details Read the key/variable pair
     template<typename T> void get_var(const char *ns_name, const char *key, T &value, std::error_code &ec) {
-        init(ec);
         if (ec)
             return;
         esp_err_t err;
@@ -117,16 +115,15 @@ public:
         return;
     }
 
-    /// @brief Initializes NVS. Reads a variable from the NVS
+    /// @brief Reads a variable from the NVS
     /// @param[in] ns_name Namespace of the variable to read
     /// @param[in] key NVS Key of the variable to read
     /// @param[in] value Variable to read
     /// @param[in] default_value If the key isn't found in the NVS, this value is saved to NVS
     /// @param[out] ec Saves a std::error_code representing success or failure
-    /// @details Initializes NVS and read the key/variable pair, If the key isn't found in the NVS, default_value is saved to NVS
+    /// @details Read the key/variable pair, If the key isn't found in the NVS, default_value is saved to NVS
     template<typename T> void get_or_set_var(const char *ns_name, const char *key, T &value, T default_value, std::error_code &ec) {
         value = default_value;
-        init(ec);
         if (ec)
             return;
         esp_err_t err;
@@ -163,12 +160,12 @@ public:
         return;
     }
 
-    /// @brief Initializes NVS. Reads a bool from the NVS
+    /// @brief Reads a bool from the NVS
     /// @param[in] ns_name Namespace of the bool to read
     /// @param[in] key NVS Key of the bool to read
     /// @param[in] value bool to read
     /// @param[out] ec Saves a std::error_code representing success or failure
-    /// @details Initializes NVS and read the key/variable pair
+    /// @details Read the key/variable pair
     void get_var(const char *ns_name, const char *key, bool &value, std::error_code &ec) {
         uint8_t u8 = static_cast<uint8_t>(value);
         get_var<uint8_t>("system", "factory_mode", u8, ec);
@@ -176,13 +173,13 @@ public:
             value = static_cast<bool>(u8);
     }
 
-    /// @brief Initializes NVS. Reads a bool from the NVS
+    /// @brief Reads a bool from the NVS
     /// @param[in] ns_name Namespace of the bool to read
     /// @param[in] key NVS Key of the bool to read
     /// @param[in] value bool to read
     /// @param[in] default_value If the key isn't found in the NVS, this bool is saved to NVS
     /// @param[out] ec Saves a std::error_code representing success or failure
-    /// @details Initializes NVS and read the key/variable pair, If the key isn't found in the NVS, default_value is saved to NVS
+    /// @details Read the key/variable pair, If the key isn't found in the NVS, default_value is saved to NVS
     void get_or_set_var(const char *ns_name, const char *key, bool &value, bool default_value, std::error_code &ec) {
         uint8_t u8 = static_cast<uint8_t>(value);
         get_or_set_var<uint8_t>("system", "factory_mode", u8, static_cast<uint8_t>(default_value), ec);
