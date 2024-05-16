@@ -61,6 +61,7 @@ public:
     static constexpr uint64_t led_timer_period_us = 30 * 1000; // 30 ms
     led_timer_.periodic(led_timer_period_us);
   }
+  void stop_breathing() { led_timer_.stop(); }
 
   // Encoders
   Encoder &encoder1() { return encoder1_; }
