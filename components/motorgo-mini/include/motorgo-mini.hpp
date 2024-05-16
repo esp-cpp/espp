@@ -46,14 +46,14 @@ public:
 
   espp::Button &button() { return button_; }
 
-  std::shared_ptr<Encoder> encoder1() { return encoder1_; }
-  std::shared_ptr<Encoder> encoder2() { return encoder2_; }
+  Encoder &encoder1() { return encoder1_; }
+  Encoder &encoder2() { return encoder2_; }
 
-  std::shared_ptr<espp::BldcDriver> motor1_driver() { return motor1_driver_; }
-  std::shared_ptr<espp::BldcDriver> motor2_driver() { return motor2_driver_; }
+  espp::BldcDriver &motor1_driver() { return motor1_driver_; }
+  espp::BldcDriver &motor2_driver() { return motor2_driver_; }
 
-  std::shared_ptr<BldcMotor> motor1() { return motor1_; }
-  std::shared_ptr<BldcMotor> motor2() { return motor2_; }
+  BldcMotor &motor1() { return motor1_; }
+  BldcMotor &motor2() { return motor2_; }
 
   espp::OneshotAdc &adc1() { return adc_1; }
   espp::OneshotAdc &adc2() { return adc_2; }
@@ -82,11 +82,12 @@ protected:
   static constexpr auto MOTOR_2_C_L = GPIO_NUM_14;
 
   void init() {
+    init_spi();
     init_encoders();
     init_motors();
   }
 
-  void init_encoders() {
+  void init_spi() {
     // Initialize the SPI bus for the encoders
     memset(&encoder_spi_bus_config_, 0, sizeof(encoder_spi_bus_config_));
     encoder_spi_bus_config_.mosi_io_num = -1;
@@ -124,26 +125,29 @@ protected:
       logger_.error("Failed to initialize Encoder 2: {}", esp_err_to_name(err));
       return;
     }
-
-    encoder1_ = std::make_shared<Encoder>(
-        Encoder::Config{.read = [this](uint8_t *data, size_t size) -> bool {
-                          return read_encoder(encoder1_handle_, data, size);
-                        },
-                        .velocity_filter = nullptr,
-                        .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
-                        .run_task = false, // we will manually call update
-                        .log_level = get_log_level()});
-    encoder2_ = std::make_shared<Encoder>(
-        Encoder::Config{.read = [this](uint8_t *data, size_t size) -> bool {
-                          return read_encoder(encoder2_handle_, data, size);
-                        },
-                        .velocity_filter = nullptr,
-                        .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
-                        .run_task = false, // we will manually call update
-                        .log_level = get_log_level()});
   }
 
-  bool read_encoder(const auto &encoder_handle, uint8_t *data, size_t size) {
+  void init_encoders() {
+    bool run_task = false;
+    std::error_code ec;
+    encoder1_.initialize(run_task, ec);
+    if (ec) {
+      logger_.error("Could not initialize encoder1: {}", ec.message());
+    }
+    ec.clear();
+    encoder2_.initialize(run_task, ec);
+    if (ec) {
+      logger_.error("Could not initialize encoder2: {}", ec.message());
+    }
+    ec.clear();
+  }
+
+  void init_motors() {
+    motor1_.initialize();
+    motor2_.initialize();
+  }
+
+  bool IRAM_ATTR read_encoder(const auto &encoder_handle, uint8_t *data, size_t size) {
     static constexpr uint8_t SPIBUS_READ = 0x80;
     spi_transaction_t t = {
         .flags = 0,
@@ -172,102 +176,6 @@ protected:
     return true;
   }
 
-  void init_motors() {
-    /// Motor 1
-    motor1_driver_ = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
-        .gpio_a_h = MOTOR_1_A_H,
-        .gpio_a_l = MOTOR_1_A_L,
-        .gpio_b_h = MOTOR_1_B_H,
-        .gpio_b_l = MOTOR_1_B_L,
-        .gpio_c_h = MOTOR_1_C_H,
-        .gpio_c_l = MOTOR_1_C_L,
-        .gpio_enable = -1, // pulled up, not connected
-        .gpio_fault = -1,  // not connected
-        .power_supply_voltage = 5.0f,
-        .limit_voltage = 5.0f,
-        .log_level = get_log_level(),
-    });
-    motor1_ = std::make_shared<BldcMotor>(BldcMotor::Config{
-        .num_pole_pairs = 7,
-        .phase_resistance = 5.0f,
-        .kv_rating = 320,
-        .current_limit = 1.0f,
-        .zero_electric_offset = 0.0f, // set to 0 to always calibrate
-        .sensor_direction = espp::detail::SensorDirection::UNKNOWN,
-        .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
-        .driver = motor1_driver_,
-        .sensor = encoder1_,
-        .velocity_pid_config =
-            {
-                .kp = 0.010f,
-                .ki = 1.000f,
-                .kd = 0.000f,
-                .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
-                .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
-                .output_min = -1.0, // velocity pid works on current (if we have phase resistance)
-                .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
-            },
-        .angle_pid_config =
-            {
-                .kp = 7.000f,
-                .ki = 0.300f,
-                .kd = 0.010f,
-                .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
-                .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
-                .output_min = -20.0,      // angle pid works on velocity (rad/s)
-                .output_max = 20.0,       // angle pid works on velocity (rad/s)
-            },
-        .log_level = get_log_level(),
-    });
-
-    /// Motor 2
-    motor2_driver_ = std::make_shared<espp::BldcDriver>(espp::BldcDriver::Config{
-        .gpio_a_h = MOTOR_2_A_H,
-        .gpio_a_l = MOTOR_2_A_L,
-        .gpio_b_h = MOTOR_2_B_H,
-        .gpio_b_l = MOTOR_2_B_L,
-        .gpio_c_h = MOTOR_2_C_H,
-        .gpio_c_l = MOTOR_2_C_L,
-        .gpio_enable = -1, // pulled up, not connected
-        .gpio_fault = -1,  // not connected
-        .power_supply_voltage = 5.0f,
-        .limit_voltage = 5.0f,
-        .log_level = get_log_level(),
-    });
-    motor2_ = std::make_shared<BldcMotor>(BldcMotor::Config{
-        .num_pole_pairs = 7,
-        .phase_resistance = 5.0f,
-        .kv_rating = 320,
-        .current_limit = 1.0f,
-        .zero_electric_offset = 0.0f, // set to 0 to always calibrate
-        .sensor_direction = espp::detail::SensorDirection::UNKNOWN,
-        .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
-        .driver = motor2_driver_,
-        .sensor = encoder2_,
-        .velocity_pid_config =
-            {
-                .kp = 0.010f,
-                .ki = 1.000f,
-                .kd = 0.000f,
-                .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
-                .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
-                .output_min = -1.0, // velocity pid works on current (if we have phase resistance)
-                .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
-            },
-        .angle_pid_config =
-            {
-                .kp = 7.000f,
-                .ki = 0.300f,
-                .kd = 0.010f,
-                .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
-                .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
-                .output_min = -20.0,      // angle pid works on velocity (rad/s)
-                .output_max = 20.0,       // angle pid works on velocity (rad/s)
-            },
-        .log_level = get_log_level(),
-    });
-  }
-
   /// I2C bus for external communication
   I2c external_i2c_{{.port = I2C_NUM_0,
                      .sda_io_num = GPIO_NUM_2,
@@ -285,40 +193,136 @@ protected:
   spi_device_handle_t encoder2_handle_;
 
   // Encoders
-  std::shared_ptr<Encoder> encoder1_;
-  std::shared_ptr<Encoder> encoder2_;
+  Encoder encoder1_{
+      {.read = [this](uint8_t *data, size_t size) -> bool {
+         return read_encoder(encoder1_handle_, data, size);
+       },
+       .velocity_filter = nullptr,
+       .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
+       .auto_init = false, // we have to initialize the SPI first before we can use the encoder
+       .run_task = false,  // we will manually call update
+       .log_level = get_log_level()}};
+  Encoder encoder2_{
+      {.read = [this](uint8_t *data, size_t size) -> bool {
+         return read_encoder(encoder2_handle_, data, size);
+       },
+       .velocity_filter = nullptr,
+       .update_period = std::chrono::duration<float>(core_update_period_us / 1e6f),
+       .auto_init = false, // we have to initialize the SPI first before we can use the encoder
+       .run_task = false,  // we will manually call update
+       .log_level = get_log_level()}};
 
   // Drivers
-  std::shared_ptr<espp::BldcDriver> motor1_driver_;
-  std::shared_ptr<espp::BldcDriver> motor2_driver_;
+  espp::BldcDriver motor1_driver_{{.gpio_a_h = MOTOR_1_A_H,
+                                   .gpio_a_l = MOTOR_1_A_L,
+                                   .gpio_b_h = MOTOR_1_B_H,
+                                   .gpio_b_l = MOTOR_1_B_L,
+                                   .gpio_c_h = MOTOR_1_C_H,
+                                   .gpio_c_l = MOTOR_1_C_L,
+                                   .gpio_enable = -1, // pulled up, not connected
+                                   .gpio_fault = -1,  // not connected
+                                   .power_supply_voltage = 5.0f,
+                                   .limit_voltage = 5.0f,
+                                   .log_level = get_log_level()}};
+  espp::BldcDriver motor2_driver_{{.gpio_a_h = MOTOR_2_A_H,
+                                   .gpio_a_l = MOTOR_2_A_L,
+                                   .gpio_b_h = MOTOR_2_B_H,
+                                   .gpio_b_l = MOTOR_2_B_L,
+                                   .gpio_c_h = MOTOR_2_C_H,
+                                   .gpio_c_l = MOTOR_2_C_L,
+                                   .gpio_enable = -1, // pulled up, not connected
+                                   .gpio_fault = -1,  // not connected
+                                   .power_supply_voltage = 5.0f,
+                                   .limit_voltage = 5.0f,
+                                   .log_level = get_log_level()}};
 
   // Motors
-  std::shared_ptr<BldcMotor> motor1_;
-  std::shared_ptr<BldcMotor> motor2_;
+  BldcMotor motor1_{{
+      .num_pole_pairs = 7,
+      .phase_resistance = 5.0f,
+      .kv_rating = 320,
+      .current_limit = 1.0f,
+      .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
+      .driver = std::shared_ptr<espp::BldcDriver>(&motor1_driver_),
+      .sensor = std::shared_ptr<Encoder>(&encoder1_),
+      .velocity_pid_config =
+          {
+              .kp = 0.010f,
+              .ki = 1.000f,
+              .kd = 0.000f,
+              .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
+              .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
+              .output_min = -1.0, // velocity pid works on current (if we have phase resistance)
+              .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
+          },
+      .angle_pid_config =
+          {
+              .kp = 7.000f,
+              .ki = 0.300f,
+              .kd = 0.010f,
+              .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
+              .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
+              .output_min = -20.0,      // angle pid works on velocity (rad/s)
+              .output_max = 20.0,       // angle pid works on velocity (rad/s)
+          },
+      .auto_init = false, // we have to initialize the SPI first before we can use the encoder
+      .log_level = get_log_level(),
+  }};
+  BldcMotor motor2_{{
+      .num_pole_pairs = 7,
+      .phase_resistance = 5.0f,
+      .kv_rating = 320,
+      .current_limit = 1.0f,
+      .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
+      .driver = std::shared_ptr<espp::BldcDriver>(&motor2_driver_),
+      .sensor = std::shared_ptr<Encoder>(&encoder2_),
+      .velocity_pid_config =
+          {
+              .kp = 0.010f,
+              .ki = 1.000f,
+              .kd = 0.000f,
+              .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
+              .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
+              .output_min = -1.0, // velocity pid works on current (if we have phase resistance)
+              .output_max = 1.0,  // velocity pid works on current (if we have phase resistance)
+          },
+      .angle_pid_config =
+          {
+              .kp = 7.000f,
+              .ki = 0.300f,
+              .kd = 0.010f,
+              .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
+              .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
+              .output_min = -20.0,      // angle pid works on velocity (rad/s)
+              .output_max = 20.0,       // angle pid works on velocity (rad/s)
+          },
+      .auto_init = false, // we have to initialize the SPI first before we can use the encoder
+      .log_level = get_log_level(),
+  }};
 
   // current sense Motor 1 phase U
   espp::AdcConfig current_sense_m1_u_ = {
       .unit = ADC_UNIT_1,
       .channel = ADC_CHANNEL_6,
-      .attenuation = ADC_ATTEN_DB_11,
+      .attenuation = ADC_ATTEN_DB_12,
   };
   // current sense Motor 1 phase W
   espp::AdcConfig current_sense_m1_w_ = {
       .unit = ADC_UNIT_1,
       .channel = ADC_CHANNEL_3,
-      .attenuation = ADC_ATTEN_DB_11,
+      .attenuation = ADC_ATTEN_DB_12,
   };
   // current sense Motor 2 phase U - note; the schmatic has the U and W swapped
   espp::AdcConfig current_sense_m2_u_ = {
       .unit = ADC_UNIT_2,
       .channel = ADC_CHANNEL_1,
-      .attenuation = ADC_ATTEN_DB_11,
+      .attenuation = ADC_ATTEN_DB_12,
   };
   // current sense Motor 2 phase W - note; the schmatic has the U and W swapped
   espp::AdcConfig current_sense_m2_w_ = {
       .unit = ADC_UNIT_1,
       .channel = ADC_CHANNEL_7,
-      .attenuation = ADC_ATTEN_DB_11,
+      .attenuation = ADC_ATTEN_DB_12,
   };
   espp::OneshotAdc adc_1{{
       .unit = ADC_UNIT_1,

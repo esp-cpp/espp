@@ -15,10 +15,10 @@ extern "C" void app_main(void) {
   logger.info("Starting");
   //! [motorgo-mini example]
   espp::MotorGoMini motorgo_mini(espp::Logger::Verbosity::INFO);
-  auto encoder1 = motorgo_mini.encoder1();
-  auto encoder2 = motorgo_mini.encoder2();
-  auto motor1 = motorgo_mini.motor1();
-  auto motor2 = motorgo_mini.motor2();
+  auto &encoder1 = motorgo_mini.encoder1();
+  auto &encoder2 = motorgo_mini.encoder2();
+  auto &motor1 = motorgo_mini.motor1();
+  auto &motor2 = motorgo_mini.motor2();
   auto &button = motorgo_mini.button();
 
   static constexpr uint64_t core_update_period_us = 1000;                   // microseconds
@@ -30,17 +30,20 @@ extern "C" void app_main(void) {
   static const auto motion_control_type = espp::detail::MotionControlType::ANGLE;
 
   logger.info("Setting motion control type to {}", motion_control_type);
-  motor1->set_motion_control_type(motion_control_type);
-  motor2->set_motion_control_type(motion_control_type);
+  motor1.set_motion_control_type(motion_control_type);
+  motor2.set_motion_control_type(motion_control_type);
 
   std::atomic<float> target1 = 60.0f;
   std::atomic<float> target2 = 60.0f;
+  static const bool target_is_angle =
+      motion_control_type == espp::detail::MotionControlType::ANGLE ||
+      motion_control_type == espp::detail::MotionControlType::ANGLE_OPENLOOP;
 
   auto dual_motor_fn = [&]() -> bool {
-    motor1->move(target1);
-    motor2->move(target2);
-    motor1->loop_foc();
-    motor2->loop_foc();
+    // motor1.move(target1);
+    motor2.move(target2);
+    // motor1.loop_foc();
+    motor2.loop_foc();
     return false; // don't want to stop the task
   };
 
@@ -59,8 +62,8 @@ extern "C" void app_main(void) {
       break;
     case espp::detail::MotionControlType::ANGLE:
     case espp::detail::MotionControlType::ANGLE_OPENLOOP:
-      target1 = motor1->get_shaft_angle();
-      target2 = motor2->get_shaft_angle();
+      target1 = motor1.get_shaft_angle();
+      target2 = motor2.get_shaft_angle();
       break;
     default:
       break;
@@ -99,18 +102,22 @@ extern "C" void app_main(void) {
     // to keep the state up to date
     if (!dual_motor_timer.is_running()) {
       std::error_code ec;
-      encoder1->update(ec);
-      encoder2->update(ec);
+      encoder1.update(ec);
+      encoder2.update(ec);
     }
     static auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
     auto seconds = std::chrono::duration<float>(now - start).count();
-    auto _target1 = target1.load() * espp::RADS_TO_RPM;
-    auto _target2 = target2.load() * espp::RADS_TO_RPM;
-    auto rpm1 = filter1.update(motor1->get_shaft_velocity() * espp::RADS_TO_RPM);
-    auto rpm2 = filter2.update(motor2->get_shaft_velocity() * espp::RADS_TO_RPM);
-    auto rads1 = motor1->get_shaft_angle();
-    auto rads2 = motor2->get_shaft_angle();
+    auto _target1 = target1.load();
+    if (!target_is_angle)
+      _target1 *= espp::RADS_TO_RPM;
+    auto _target2 = target2.load();
+    if (!target_is_angle)
+      _target2 *= espp::RADS_TO_RPM;
+    auto rpm1 = filter1.update(motor1.get_shaft_velocity() * espp::RADS_TO_RPM);
+    auto rpm2 = filter2.update(motor2.get_shaft_velocity() * espp::RADS_TO_RPM);
+    auto rads1 = motor1.get_shaft_angle();
+    auto rads2 = motor2.get_shaft_angle();
     fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, _target1, rads1,
                rpm1, _target2, rads2, rpm2);
     // NOTE: sleeping in this way allows the sleep to exit early when the
@@ -134,12 +141,9 @@ extern "C" void app_main(void) {
   enum class IncrementDirection { DOWN = -1, HOLD = 0, UP = 1 };
   static IncrementDirection increment_direction1 = IncrementDirection::UP;
   static IncrementDirection increment_direction2 = IncrementDirection::DOWN;
-  static const bool is_angle =
-      motion_control_type == espp::detail::MotionControlType::ANGLE ||
-      motion_control_type == espp::detail::MotionControlType::ANGLE_OPENLOOP;
-  static const float max_target = is_angle ? (2.0f * M_PI) : (200.0f * espp::RPM_TO_RADS);
+  static const float max_target = target_is_angle ? (2.0f * M_PI) : (200.0f * espp::RPM_TO_RADS);
   static const float target_delta =
-      is_angle ? (M_PI / 4.0f) : (50.0f * espp::RPM_TO_RADS * core_update_period);
+      target_is_angle ? (M_PI / 4.0f) : (50.0f * espp::RPM_TO_RADS * core_update_period);
 
   auto update_target = [&](auto &target, auto &increment_direction) {
     // update target
@@ -158,7 +162,7 @@ extern "C" void app_main(void) {
 
   // make a task which will update the target (velocity or angle)
   auto target_task_fn = [&](std::mutex &m, std::condition_variable &cv) {
-    static auto delay = std::chrono::duration<float>(is_angle ? 1.0f : core_update_period);
+    static auto delay = std::chrono::duration<float>(target_is_angle ? 1.0f : core_update_period);
     auto start = std::chrono::high_resolution_clock::now();
     update_target(target1, increment_direction1);
     update_target(target2, increment_direction2);
@@ -187,16 +191,16 @@ extern "C" void app_main(void) {
       if (button_state) {
         logger.info("Button pressed, starting motors");
         initialize_target();
-        motor1->enable();
-        motor2->enable();
+        motor1.enable();
+        motor2.enable();
         dual_motor_timer.periodic(core_update_period_us);
         target_task.start();
       } else {
         logger.info("Button released, stopping motors");
         dual_motor_timer.stop();
         target_task.stop();
-        motor1->disable();
-        motor2->disable();
+        motor1.disable();
+        motor2.disable();
       }
     }
     std::this_thread::sleep_for(50ms);
