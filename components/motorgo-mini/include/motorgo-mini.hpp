@@ -9,7 +9,9 @@
 #include "bldc_driver.hpp"
 #include "bldc_motor.hpp"
 #include "button.hpp"
+#include "gaussian.hpp"
 #include "i2c.hpp"
+#include "led.hpp"
 #include "mt6701.hpp"
 #include "oneshot_adc.hpp"
 
@@ -42,19 +44,35 @@ public:
     init();
   }
 
+  // I2C
   I2c &get_external_i2c() { return external_i2c_; }
 
+  // Button
   espp::Button &button() { return button_; }
 
+  // LEDs on the board
+  espp::Led::ChannelConfig &led_channel0() { return led_channels_[0]; }
+  espp::Led::ChannelConfig &led_channel1() { return led_channels_[1]; }
+  espp::Led &led() { return led_; }
+  espp::Gaussian &gaussian() { return gaussian_; }
+  void start_breathing() {
+    io38_breathe_start_us = esp_timer_get_time();
+    io8_breathe_start_us = esp_timer_get_time();
+    static constexpr uint64_t led_timer_period_us = 30 * 1000; // 30 ms
+    led_timer_.periodic(led_timer_period_us);
+  }
+
+  // Encoders
   Encoder &encoder1() { return encoder1_; }
   Encoder &encoder2() { return encoder2_; }
 
+  // Motors
   espp::BldcDriver &motor1_driver() { return motor1_driver_; }
   espp::BldcDriver &motor2_driver() { return motor2_driver_; }
-
   BldcMotor &motor1() { return motor1_; }
   BldcMotor &motor2() { return motor2_; }
 
+  // Current sense
   espp::OneshotAdc &adc1() { return adc_1; }
   espp::OneshotAdc &adc2() { return adc_2; }
 
@@ -82,6 +100,7 @@ protected:
   static constexpr auto MOTOR_2_C_L = GPIO_NUM_14;
 
   void init() {
+    start_breathing();
     init_spi();
     init_encoders();
     init_motors();
@@ -145,6 +164,17 @@ protected:
   void init_motors() {
     motor1_.initialize();
     motor2_.initialize();
+  }
+
+  float breathe(float breathing_period, uint64_t start_us, bool restart = false) {
+    auto now_us = esp_timer_get_time();
+    if (restart) {
+      start_us = now_us;
+    }
+    auto elapsed_us = now_us - start_us;
+    float elapsed = elapsed_us / 1e6f;
+    float t = std::fmod(elapsed, breathing_period) / breathing_period;
+    return gaussian_(t);
   }
 
   bool IRAM_ATTR read_encoder(const auto &encoder_handle, uint8_t *data, size_t size) {
@@ -342,5 +372,31 @@ protected:
       .pulldown_enabled = false,
       .log_level = espp::Logger::Verbosity::WARN,
   }};
+
+  // led
+  std::vector<espp::Led::ChannelConfig> led_channels_{
+      // shown on the board as io38
+      {.gpio = 38, .channel = LEDC_CHANNEL_0, .timer = LEDC_TIMER_2},
+      // shown on the board as io8 >.<
+      {.gpio = 47, .channel = LEDC_CHANNEL_1, .timer = LEDC_TIMER_2},
+  };
+  espp::Led led_{espp::Led::Config{
+      .timer = LEDC_TIMER_2,
+      .frequency_hz = 5000,
+      .channels = led_channels_,
+      .duty_resolution = LEDC_TIMER_10_BIT,
+      .clock_config = LEDC_USE_RC_FAST_CLK, // to support light sleep
+  }};
+  espp::Gaussian gaussian_{{.gamma = 0.1f, .alpha = 1.0f, .beta = 0.5f}};
+  uint64_t io38_breathe_start_us = 0;
+  uint64_t io8_breathe_start_us = 0;
+  espp::HighResolutionTimer led_timer_{
+      {.name = "MotorGo Mini LED Timer",
+       .callback = [this]() -> bool {
+         led_.set_duty(led_channels_[0].channel, 100.0f * breathe(1.0f, io38_breathe_start_us));
+         led_.set_duty(led_channels_[1].channel, 100.0f * breathe(1.0f, io8_breathe_start_us));
+         return true;
+       },
+       .log_level = espp::Logger::Verbosity::WARN}};
 };
 } // namespace espp
