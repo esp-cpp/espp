@@ -15,7 +15,8 @@ extern "C" void app_main(void) {
     std::error_code ec;
     uint8_t counter = 0;
     espp::Nvs nvs;
-    nvs.init();
+    nvs.init(ec);
+    ec.clear();
     //note that the namespace and key strings must be shorter than 15 characters
     nvs.get_or_set_var("system", "reset_counter", counter, counter, ec); 
     ec.clear();
