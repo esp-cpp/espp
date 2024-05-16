@@ -8,6 +8,8 @@ drive the motors and outputs the state as a CSV.
 If you press the boot button it will toggle between closed-loop angle control
 and closed-loop velocity control.
 
+https://github.com/esp-cpp/espp/assets/213467/1e7cd53b-2c87-4529-b711-e9f0ba2bcaf6
+
 ## How to use example
 
 ### Hardware Required
