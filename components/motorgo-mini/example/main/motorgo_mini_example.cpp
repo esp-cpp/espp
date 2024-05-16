@@ -2,6 +2,7 @@
 #include <sdkconfig.h>
 #include <vector>
 
+#include "butterworth_filter.hpp"
 #include "high_resolution_timer.hpp"
 #include "motorgo-mini.hpp"
 #include "task.hpp"
@@ -63,6 +64,16 @@ extern "C" void app_main(void) {
                                                      .log_level = espp::Logger::Verbosity::WARN});
   dual_motor_timer.periodic(core_update_period_us);
 
+  static constexpr float sample_freq_hz = 100.0f;
+  static constexpr float filter_cutoff_freq_hz = 5.0f;
+  static constexpr float normalized_cutoff_frequency =
+      2.0f * filter_cutoff_freq_hz / sample_freq_hz;
+  static constexpr size_t ORDER = 2;
+  // NOTE: using the Df2 since it's hardware accelerated :)
+  using Filter = espp::ButterworthFilter<ORDER, espp::BiquadFilterDf2>;
+  Filter filter1({.normalized_cutoff_frequency = normalized_cutoff_frequency});
+  Filter filter2({.normalized_cutoff_frequency = normalized_cutoff_frequency});
+
   // if it's a velocity setpoint then target is RPM
   fmt::print("%time(s), "
              "motor 1 target, " // target is either RPM or radians
@@ -85,8 +96,8 @@ extern "C" void app_main(void) {
     auto _target2 = target2.load();
     if (!target_is_angle)
       _target2 *= espp::RADS_TO_RPM;
-    auto rpm1 = motor1.get_shaft_velocity() * espp::RADS_TO_RPM;
-    auto rpm2 = motor2.get_shaft_velocity() * espp::RADS_TO_RPM;
+    auto rpm1 = filter1(motor1.get_shaft_velocity() * espp::RADS_TO_RPM);
+    auto rpm2 = filter2(motor2.get_shaft_velocity() * espp::RADS_TO_RPM);
     auto rads1 = motor1.get_shaft_angle();
     auto rads2 = motor2.get_shaft_angle();
     fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, _target1, rads1,
