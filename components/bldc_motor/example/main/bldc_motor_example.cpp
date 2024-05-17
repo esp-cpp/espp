@@ -4,6 +4,7 @@
 
 #include "bldc_driver.hpp"
 #include "bldc_motor.hpp"
+#include "butterworth_filter.hpp"
 #include "high_resolution_timer.hpp"
 #include "i2c.hpp"
 #include "logger.hpp"
@@ -186,16 +187,25 @@ extern "C" void app_main(void) {
     });
     target_task.start();
 
+    static constexpr float sample_freq_hz = 100.0f;
+    static constexpr float filter_cutoff_freq_hz = 5.0f;
+    static constexpr float normalized_cutoff_frequency =
+        2.0f * filter_cutoff_freq_hz / sample_freq_hz;
+    static constexpr size_t ORDER = 2;
+    // NOTE: using the Df2 since it's hardware accelerated :)
+    using Filter = espp::ButterworthFilter<ORDER, espp::BiquadFilterDf2>;
+    Filter filter({.normalized_cutoff_frequency = normalized_cutoff_frequency});
+
     // and finally, make the task to periodically poll the mt6701 and print the
     // state. NOTE: the Mt6701 runs its own task to maintain state, so we're
     // just polling the current state.
-    auto task_fn = [&motor, &target](std::mutex &m, std::condition_variable &cv) {
+    auto task_fn = [&](std::mutex &m, std::condition_variable &cv) {
       static auto start = std::chrono::high_resolution_clock::now();
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds = std::chrono::duration<float>(now - start).count();
       auto radians = motor.get_shaft_angle();
       auto degrees = radians * 180.0f / M_PI;
-      auto rpm = motor.get_shaft_velocity() * espp::RADS_TO_RPM;
+      auto rpm = filter(motor.get_shaft_velocity() * espp::RADS_TO_RPM);
       auto _target = target.load();
       fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, radians, degrees, _target,
                  rpm);
