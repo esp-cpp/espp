@@ -659,11 +659,6 @@ public:
       // value from previous calculation
       target_current_ =
           pid_velocity_(target_shaft_velocity_ - shaft_velocity_); // if voltage torque control
-      logger_.debug_rate_limited("\n"
-                                 "CURRENT angle: {:.2f}, velocity: {:.2f}\n"
-                                 "TARGET  angle: {:.2f}, velocity: {:.2f}, current: {:.2f}",
-                                 shaft_angle_, shaft_velocity_, target_shaft_angle_,
-                                 target_shaft_velocity_, target_current_);
       // if torque controlled through voltage
       if (torque_control_type_ == detail::TorqueControlType::VOLTAGE) {
         // use voltage if phase-resistance not provided
