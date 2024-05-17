@@ -389,6 +389,7 @@ public:
       }
 
       break;
+
     case detail::FocType::SPACE_VECTOR_PWM:
       // Nice video explaining the SpaceVectorModulation (SVPWM) algorithm
       // https://www.youtube.com/watch?v=QMSWUMEAejg
