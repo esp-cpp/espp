@@ -18,8 +18,8 @@ namespace espp {
  */
 class BldcDriver : public BaseComponent {
 public:
-  static constexpr size_t TIMER_RESOLUTION_HZ = 40 * 1000 * 1000;
-  static constexpr size_t FREQUENCY_HZ = 40 * 1000;
+  static constexpr size_t TIMER_RESOLUTION_HZ = 80 * 1000 * 1000;
+  static constexpr size_t FREQUENCY_HZ = 20 * 1000;
   static constexpr size_t TICKS_PER_PERIOD = (TIMER_RESOLUTION_HZ / FREQUENCY_HZ);
 
   /**
