@@ -25,6 +25,7 @@ namespace espp {
 ///
 /// High level overview of the board:
 /// - ESP32s3 module
+/// - Two LEDs (yellow and red)
 /// - Two BLDC motor drivers (TMC6300)
 /// - Two magnetic encoders (connected via two JST-SH 5 pin connectors to EncoderGo boards)
 /// (SPI2_HOST)
@@ -40,47 +41,136 @@ public:
   using Encoder = espp::Mt6701<espp::Mt6701Interface::SSI>;
   using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
 
+  /// Constructor
+  /// \param verbosity The verbosity level for the logger of the MotorGo-Mini
+  ///        and its components
   explicit MotorGoMini(espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
       : BaseComponent("MotorGo-Mini", verbosity) {
     init();
   }
 
-  // I2C
+  /// Get a reference to the external I2C bus
+  /// \return A reference to the external I2C bus
   I2c &get_external_i2c() { return external_i2c_; }
 
-  // Button
+  /// Get a reference to the boot button
   espp::Button &button() { return button_; }
 
-  // LEDs on the board
+  /// Get a reference to the yellow LED channel (channel 0)
+  /// \return A reference to the yellow LED channel (channel 0)
   espp::Led::ChannelConfig &yellow_led() { return led_channels_[0]; }
+  /// Get a reference to the yellow LED channel (channel 0)
+  /// \return A reference to the yellow LED channel (channel 0)
   espp::Led::ChannelConfig &led_channel0() { return led_channels_[0]; }
+  /// Set the duty cycle of the yellow LED
+  /// \param duty The duty cycle of the yellow LED (0.0 - 100.0)
+  /// \note The duty cycle is a percentage of the maximum duty cycle
+  ///      (which is 100.0)
+  ///      0.0 is off, 100.0 is fully on
+  /// \note For this function to have an effect, the LED timer must NOT be running
+  ///      (i.e. stop_breathing() must be called)
+  void set_yellow_led_duty(float duty) { led_.set_duty(led_channels_[0].channel, duty); }
 
+  /// Get a reference to the red LED channel (channel 1)
+  /// \return A reference to the red LED channel (channel 1)
   espp::Led::ChannelConfig &red_led() { return led_channels_[1]; }
+  /// Get a reference to the red LED channel (channel 1)
+  /// \return A reference to the red LED channel (channel 1)
   espp::Led::ChannelConfig &led_channel1() { return led_channels_[1]; }
+  /// Set the duty cycle of the red LED
+  /// \param duty The duty cycle of the red LED (0.0 - 100.0)
+  /// \note The duty cycle is a percentage of the maximum duty cycle
+  ///      (which is 100.0)
+  ///      0.0 is off, 100.0 is fully on
+  /// \note For this function to have an effect, the LED timer must NOT be running
+  ///      (i.e. stop_breathing() must be called)
+  void set_red_led_duty(float duty) { led_.set_duty(led_channels_[1].channel, duty); }
 
+  /// Get a reference to the LED object which controls the LEDs
+  /// \return A reference to the Led object
   espp::Led &led() { return led_; }
+
+  /// \brief Get a reference to the Gaussian object which is used for breathing
+  ///        the LEDs.
+  /// \return A reference to the Gaussian object
   espp::Gaussian &gaussian() { return gaussian_; }
+
+  /// Start breathing the LEDs
+  /// \details This function starts the LED timer which will periodically update
+  ///          the LED duty cycle using the gaussian to create a breathing
+  ///          efect.
   void start_breathing() {
     io38_breathe_start_us = esp_timer_get_time();
     io8_breathe_start_us = esp_timer_get_time();
     static constexpr uint64_t led_timer_period_us = 30 * 1000; // 30 ms
     led_timer_.periodic(led_timer_period_us);
   }
-  void stop_breathing() { led_timer_.stop(); }
 
-  // Encoders
+  /// Stop breathing the LEDs
+  /// \details This function stops the LED timer which will stop updating the
+  ///         LED duty cycle. It will also set the LED duty cycle to 0,
+  ///         effectively turning off the LEDs.
+  void stop_breathing() {
+    led_timer_.stop();
+    led_.set_duty(led_channels_[0].channel, 0.0f);
+    led_.set_duty(led_channels_[1].channel, 0.0f);
+  }
+
+  /// Get a reference to the encoder 1
+  /// \return A reference to the encoder 1
   Encoder &encoder1() { return encoder1_; }
+
+  /// Get a reference to the encoder 2
+  /// \return A reference to the encoder 2
   Encoder &encoder2() { return encoder2_; }
 
-  // Motors
+  /// Get a reference to the motor 1 driver
+  /// \return A reference to the motor 1 driver
   espp::BldcDriver &motor1_driver() { return motor1_driver_; }
+
+  /// Get a reference to the motor 2 driver
+  /// \return A reference to the motor 2 driver
   espp::BldcDriver &motor2_driver() { return motor2_driver_; }
+
+  /// Get a reference to the motor 1
+  /// \return A reference to the motor 1
   BldcMotor &motor1() { return motor1_; }
+
+  /// Get a reference to the motor 2
+  /// \return A reference to the motor 2
   BldcMotor &motor2() { return motor2_; }
 
-  // Current sense
+  /// Get a reference to the ADC_UNIT_1 OneshotAdc object
+  /// \return A reference to the ADC_UNIT_1 OneshotAdc object
   espp::OneshotAdc &adc1() { return adc_1; }
+
+  /// Get a reference to the ADC_UNIT_2 OneshotAdc object
+  /// \return A reference to the ADC_UNIT_2 OneshotAdc object
   espp::OneshotAdc &adc2() { return adc_2; }
+
+  /// Get the current sense value for motor 1 phase U
+  /// \return The current sense value for motor 1 phase U in amps
+  float motor1_current_u_amps() {
+    return adc_1.read_mv(current_sense_m1_u_).value() * CURRENT_SENSE_MV_TO_A;
+  }
+
+  /// Get the current sense value for motor 1 phase W
+  /// \return The current sense value for motor 1 phase W in amps
+  float motor1_current_w_amps() {
+    return adc_1.read_mv(current_sense_m1_w_).value() * CURRENT_SENSE_MV_TO_A;
+  }
+
+  /// Get the current sense value for motor 2 phase U
+  /// \return The current sense value for motor 2 phase U in amps
+  float motor2_current_u_amps() {
+    return adc_2.read_mv(current_sense_m2_u_).value() * CURRENT_SENSE_MV_TO_A;
+  }
+
+  /// Get the current sense value for motor 2 phase W
+  /// \return The current sense value for motor 2 phase W in amps
+  float motor2_current_w_amps() {
+    return adc_1.read_mv(current_sense_m2_w_).value() * CURRENT_SENSE_MV_TO_A;
+  }
 
 protected:
   static constexpr auto I2C_PORT = I2C_NUM_0;
@@ -112,6 +202,9 @@ protected:
   static constexpr auto BUTTON_GPIO = GPIO_NUM_0;
   static constexpr auto YELLOW_LED_GPIO = GPIO_NUM_38;
   static constexpr auto RED_LED_GPIO = GPIO_NUM_47;
+
+  // TODO: figure this out and update it :)
+  static constexpr float CURRENT_SENSE_MV_TO_A = 1.0f;
 
   void init() {
     start_breathing();
