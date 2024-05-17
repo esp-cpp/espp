@@ -111,7 +111,7 @@ public:
                ///< velocity.
     bool auto_init{true}; ///< Whether to automatically initialize the accumulator to the current
                           ///< position on startup.
-    bool run_task{false}; ///< Whether to run the task on startup. If false, you must call update()
+    bool run_task{true};  ///< Whether to run the task on startup. If false, you must call update()
                           ///< manually.
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
