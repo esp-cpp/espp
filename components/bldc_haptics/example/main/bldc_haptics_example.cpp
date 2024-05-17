@@ -37,7 +37,6 @@ extern "C" void app_main(void) {
                                           std::placeholders::_2, std::placeholders::_3),
                         .velocity_filter = nullptr, // no filtering
                         .update_period = std::chrono::duration<float>(core_update_period),
-                        .run_task = false, // the motor will run the encoder update() function
                         .log_level = espp::Logger::Verbosity::WARN});
 
     // now make the bldc driver
