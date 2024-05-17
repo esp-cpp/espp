@@ -18,4 +18,4 @@ ADC, LEDs, and I2C.
 API Reference
 -------------
 
-.. include-build-file:: inc/motorgo_mini.inc
+.. include-build-file:: inc/motorgo-mini.inc
