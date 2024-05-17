@@ -11,11 +11,11 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py driver filters i2c task mt6701"
+  "main esptool_py filters monitor motorgo-mini task timer"
   CACHE STRING
   "List of components to include"
   )
 
-project(mt6701_example)
+project(motorgo_mini_example)
 
 set(CMAKE_CXX_STANDARD 20)

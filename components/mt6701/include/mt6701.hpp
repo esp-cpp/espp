@@ -5,30 +5,56 @@
 #include <functional>
 
 #include "base_peripheral.hpp"
-#include "task.hpp"
+#include "high_resolution_timer.hpp"
 
 namespace espp {
+/// @brief Enum class for the interface type of the MT6701.
+enum class Mt6701Interface : uint8_t {
+  I2C = 0, ///< Inter-Integrated Circuit (I2C)
+  SSI = 1, ///< Synchronous Serial Interface (SSI), which can be SPI or SSI
+};
 /**
  * @brief Class for position and velocity measurement using a MT6701 magnetic
  *        encoder. This class starts its own measurement task at the specified
  *        frequency which reads the current angle, updates the accumulator, and
- *        filters / updates the velocity measurement.
+ *        filters / updates the velocity measurement. The Mt6701 supports I2C,
+ *        SSI, ABZ, UVW, Analog/PWM, and Push-Button interfaces.
+ *
+ * @note This implementation currently only supports I2C and SSI interfaces.
  *
  * @note There is an implicit assumption in this class regarding the maximum
  *       velocity it can measure (above which there will be aliasing). The
- *       fastest velocity it can measure will be (0.5f * update_period * 60.0f)
- *       which is half a rotation in one update period.
+ *       fastest velocity it can measure will be (0.5f / update_period * 60.0f)
+ *       RPM which is half a rotation in one update period.
  *
  * @note The assumption above also affects the reliability of the accumulator,
  *       since it is based on accumulating position differences every update
  *       period.
  *
- * \section mt6701_ex1 Mt6701 Example
- * \snippet mt6701_example.cpp mt6701 example
+ * \section mt6701_ex1 Mt6701 I2C Example
+ * \snippet mt6701_example.cpp mt6701 i2c example
+ * \section mt6701_ex2 Mt6701 SSI / SPI Example
+ * \snippet mt6701_example.cpp mt6701 ssi example
  */
-class Mt6701 : public BasePeripheral<> {
+template <Mt6701Interface Interface = Mt6701Interface::I2C>
+class Mt6701 : public BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C> {
+  // Since the BasePeripheral is a dependent base class (e.g. its template
+  // parameters depend on our template parameters), we need to use the `using`
+  // keyword to bring in the functions / members we want to use, otherwise we
+  // have to either use `this->` or explicitly scope each call, which clutters
+  // the code / is annoying. This is needed because of the two phases of name
+  // lookups for templates.
+  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::set_address;
+  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::set_write;
+  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::set_read;
+  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::read_u8_from_register;
+  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::read;
+  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::logger_;
+
 public:
-  static constexpr uint8_t DEFAULT_ADDRESS = (0b0000110); ///< I2C address of the MT6701
+  static constexpr uint8_t DEFAULT_ADDRESS =
+      (0b0000110); ///< I2C address of the MT6701. It can be programmed to be 0b1000110 as well.
+                   ///< Only used if Interface == Mt6701Interface::I2C.
 
   /**
    * @brief Filter the input raw velocity and return it.
@@ -36,6 +62,23 @@ public:
    * @return Filtered velocity.
    */
   typedef std::function<float(float raw)> velocity_filter_fn;
+
+  /**
+   * @brief Enum class for the magnetic field strength of the MT6701.
+   */
+  enum class MagneticFieldStrength : uint8_t {
+    NORMAL = 0,     ///< The magnetic field is normal.
+    TOO_STRONG = 1, ///< The magnetic field is too strong to measure the angle.
+    TOO_WEAK = 2,   ///< The magnetic field is too weak to measure the angle.
+  };
+
+  /**
+   * @brief Enum class for the tracking status of the MT6701.
+   */
+  enum class TrackingStatus : uint8_t {
+    NORMAL = 0, ///< Normal tracking status.
+    LOST = 1,   ///< Tracking has been lost.
+  };
 
   static constexpr int COUNTS_PER_REVOLUTION =
       16384; ///< Int number of counts per revolution for the magnetic encoder.
@@ -54,10 +97,12 @@ public:
    * @brief Configuration information for the Mt6701.
    */
   struct Config {
-    uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the device.
-    BasePeripheral::write_fn write;           ///< Function to write to the device.
-    BasePeripheral::read_register_fn
-        read_register; ///< Function to read data from a register on the device.
+    uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the device. Only used if
+                                              ///< Interface == Mt6701Interface::I2C.
+    BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::write_fn write{
+        nullptr}; ///< Function to write to the device.
+    BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::read_fn read{
+        nullptr};                                ///< Function to read data from the device.
     velocity_filter_fn velocity_filter{nullptr}; ///< Function to filter the veolcity. @note Will be
                                                  ///< called once every update_period seconds.
     std::chrono::duration<float> update_period{
@@ -66,6 +111,8 @@ public:
                ///< velocity.
     bool auto_init{true}; ///< Whether to automatically initialize the accumulator to the current
                           ///< position on startup.
+    bool run_task{true};  ///< Whether to run the task on startup. If false, you must call update()
+                          ///< manually.
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
@@ -73,29 +120,35 @@ public:
    * @brief Construct the Mt6701 and start the update task.
    */
   explicit Mt6701(const Config &config)
-      : BasePeripheral({.address = config.device_address,
-                        .write = config.write,
-                        .read_register = config.read_register},
-                       "Mt6701", config.log_level)
+      : BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>({}, "Mt6701", config.log_level)
       , velocity_filter_(config.velocity_filter)
       , update_period_(config.update_period) {
+    if constexpr (Interface == Mt6701Interface::I2C) {
+      set_address(config.device_address);
+      set_write(config.write);
+      set_read(config.read);
+    } else {
+      set_read(config.read);
+    }
     if (config.auto_init) {
       std::error_code ec;
-      initialize(ec);
+      initialize(config.run_task, ec);
     }
   }
 
   /**
    * @brief Initialize the accumulator to the current position and start the
    *        update task.
+   * @param run_task Whether to start the update task.
    * @param ec Error code to set if there is an error.
+   * @note If you do not start the task, you must call update() manually.
    */
-  void initialize(std::error_code &ec) {
+  void initialize(bool run_task, std::error_code &ec) {
     logger_.info("Initializing. Fastest measurable velocity will be {:.3f} RPM",
                  // half a rotation in one update period is the fastest we can
                  // measure
                  0.5f / update_period_.count() * SECONDS_PER_MINUTE);
-    init(ec);
+    init(run_task, ec);
     if (ec) {
       logger_.error("Error initializing: {}", ec.message());
     }
@@ -164,40 +217,57 @@ public:
    */
   float get_rpm() const { return velocity_rpm_.load(); }
 
-protected:
-  int read_count(std::error_code &ec) {
-    logger_.info("read_count");
-    // read the angle count registers
-    uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
-    if (ec) {
-      return 0;
-    }
-    uint8_t angle_l = read_u8_from_register((uint8_t)Registers::ANGLE_L, ec) >> 2;
-    if (ec) {
-      return 0;
-    }
-    return (int)((angle_h << 6) | angle_l);
+  /**
+   * @brief Return the magnetic field strength of the encoder.
+   * @return Magnetic field strength of the encoder.
+   * @note This function is only available when using SSI communications.
+   */
+  MagneticFieldStrength get_magnetic_field_strength() const
+      requires(Interface == Mt6701Interface::SSI) {
+    return magnetic_field_strength_.load();
   }
 
+  /**
+   * @brief Return the tracking status of the encoder.
+   * @return Tracking status of the encoder.
+   * @note This function is only available when using SSI communications.
+   */
+  TrackingStatus get_tracking_status() const requires(Interface == Mt6701Interface::SSI) {
+    return tracking_status_.load();
+  }
+
+  /**
+   * @brief Return whether the push button is currently pressed.
+   * @return True if the push button is pressed, false otherwise.
+   * @note This function is only available when using SSI communications.
+   */
+  bool get_push_button() const requires(Interface == Mt6701Interface::SSI) {
+    return push_button_.load();
+  }
+
+  /**
+   * @brief Update the state of the encoder by reading the latest data from the
+   *       encoder and updating the associated state.
+   * @param ec Error code to set if there is an error.
+   * @note You should not call this function if you have started the encoder's
+   *       update task (e.g. run_task = true in the constructor, or you called
+   *       initialize(true)).
+   */
   void update(std::error_code &ec) {
-    logger_.info("update");
     // measure update timing
-    static auto prev_time = std::chrono::high_resolution_clock::now();
-    auto now = std::chrono::high_resolution_clock::now();
-    float elapsed = std::chrono::duration<float>(now - prev_time).count();
-    prev_time = now;
-    float seconds = elapsed ? elapsed : update_period_.count();
-    // update raw count
-    auto count = read_count(ec);
+    uint64_t now_us = esp_timer_get_time();
+    auto dt = now_us - prev_time_us_;
+    float seconds = dt / 1e6f;
+    prev_time_us_ = now_us;
+    // store the previous count
+    int prev_count = count_;
+    // read the latest data from the encoder and update the state
+    read(ec);
     if (ec) {
       return;
     }
-    count_.store(count);
-    static int prev_count = count_;
     // compute diff
     int diff = count_ - prev_count;
-    // update prev_count
-    prev_count = count_;
     // check for zero crossing
     if (diff > COUNTS_PER_REVOLUTION / 2) {
       // we crossed zero going clockwise (1 -> 359)
@@ -208,45 +278,103 @@ protected:
     }
     // update accumulator
     accumulator_ += diff;
-    logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
+    logger_.debug_rate_limited("CDA: {}, {}, {}", count_, diff, accumulator_);
+    static constexpr int MIN_DIFF = 2;
     // update velocity (filtering it)
-    float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
+    float raw_velocity =
+        (dt > 0 && std::abs(diff) > MIN_DIFF)
+            ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE
+            : 0.0f;
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
-    static float max_velocity = 0.5f / update_period_.count() * SECONDS_PER_MINUTE;
-    if (raw_velocity >= max_velocity) {
-      logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
-                   "update period!",
-                   max_velocity);
+    if (dt > 0) {
+      float max_velocity = 0.5f / seconds * SECONDS_PER_MINUTE;
+      if (raw_velocity >= max_velocity) {
+        logger_.warn_rate_limited(
+            "Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
+            "update period!",
+            max_velocity);
+      }
     }
   }
 
-  bool update_task(std::mutex &m, std::condition_variable &cv) {
-    auto start = std::chrono::high_resolution_clock::now();
+protected:
+  struct MagneticFieldStatus {
+    uint8_t magnetic_field_strength : 2;
+    uint8_t push_button : 1;
+    uint8_t tracking_status : 1;
+  } __attribute__((packed));
+
+  void read(std::error_code &ec) requires(Interface == Mt6701Interface::I2C) {
+    // read the angle count registers
+    uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
+    if (ec) {
+      logger_.error_rate_limited("Error reading: {}", ec.message());
+      return;
+    }
+    uint8_t angle_l = read_u8_from_register((uint8_t)Registers::ANGLE_L, ec) >> 2;
+    if (ec) {
+      logger_.error_rate_limited("Error reading: {}", ec.message());
+      return;
+    }
+    count_ = ((angle_h << 6) | angle_l);
+  }
+
+  void read(std::error_code &ec) requires(Interface == Mt6701Interface::SSI) {
+    // read the angle count as 24 bits (3 bytes) from the serial stream
+    uint8_t buffer[3] = {0};
+    read(&buffer[0], 3, ec);
+    if (ec) {
+      logger_.error_rate_limited("Error reading: {}", ec.message());
+      return;
+    }
+    // the first 14 bits is the angle data, followed by 4 bit status, and 6 bit
+    // crc
+    uint16_t angle_h = buffer[0];
+    uint8_t angle_l = buffer[1] >> 2;
+    // status is the lower 2 bits of the second byte and the upper 2 bits of
+    // the third byte
+    uint8_t status = ((buffer[1] & 0b11) << 2) | (buffer[2] >> 6);
+    // crc is the lower 6 bits of the third byte
+    uint8_t crc = buffer[2] & 0b111111;
+    logger_.debug("Angle: {}, Status: {}, CRC: {}", (angle_h << 8) | angle_l, status, crc);
+    // update the count
+    count_ = ((angle_h << 6) | angle_l);
+    // update the magnetic field strength, tracking status, and push button.
+    // strength is the lower two bits [0:1], push button is the third bit [2],
+    // and tracking status is the fourth bit [3]
+    magnetic_field_strength_ = (MagneticFieldStrength)(status & 0b11);
+    push_button_ = (bool)((status >> 2) & 0b1);
+    tracking_status_ = (TrackingStatus)((status >> 3) & 0b1);
+  }
+
+  bool update_task() {
     std::error_code ec;
     update(ec);
     if (ec) {
       logger_.error("Error updating: {}", ec.message());
     }
-    {
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + update_period_);
-    }
     // don't want to stop the task
     return false;
   }
 
-  void init(std::error_code &ec) {
+  void init(bool run_task, std::error_code &ec) {
     // initialize the accumulator to have the current angle
-    auto count = read_count(ec);
+    read(ec);
     if (ec) {
       return;
     }
-    accumulator_ = count;
+    accumulator_ = count_.load();
+    if (!run_task) {
+      logger_.info(
+          "Not starting task, run_task is false. Manually call update() to update the state.");
+      return;
+    }
+    logger_.info("Starting task with update period of {:.3f} seconds", update_period_.count());
     // start the task
-    using namespace std::placeholders;
-    task_ = Task::make_unique(
-        {.name = "Mt6701", .callback = std::bind(&Mt6701::update_task, this, _1, _2)});
-    task_->start();
+    uint64_t period_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(update_period_).count();
+    timer_.periodic(period_us);
+    prev_time_us_ = esp_timer_get_time();
   }
 
   /**
@@ -260,7 +388,7 @@ protected:
    *
    * @note The push button can only be read from the MT6701 when using SSI
    *       communications, and is returned as part of the magnetic field status
-   *       truth table (page 24).
+   *       truth table (page 26).
    */
   enum class Registers : uint8_t {
     ANGLE_H = 0x03,     ///< Angle[13:6]
@@ -279,10 +407,63 @@ protected:
   };
 
   velocity_filter_fn velocity_filter_{nullptr};
+  uint64_t prev_time_us_{0};
   std::chrono::duration<float> update_period_;
   std::atomic<int> count_{0};
   std::atomic<int> accumulator_{0};
   std::atomic<float> velocity_rpm_{0};
-  std::unique_ptr<Task> task_;
+  std::atomic<MagneticFieldStrength> magnetic_field_strength_{MagneticFieldStrength::NORMAL};
+  std::atomic<TrackingStatus> tracking_status_{TrackingStatus::NORMAL};
+  std::atomic<bool> push_button_{false};
+  espp::HighResolutionTimer timer_{
+      {.name = "Mt6701", .callback = std::bind(&Mt6701::update_task, this)}};
 };
 } // namespace espp
+
+// for easy printing of MagneticFieldStatus using libfmt
+template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength const &mfs,
+              FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        mfs == espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength::NORMAL ? "NORMAL"
+        : mfs == espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength::TOO_STRONG
+            ? "TOO_STRONG"
+            : "TOO_WEAK");
+  }
+};
+template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus const &ts,
+              FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        ts == espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus::NORMAL ? "NORMAL" : "LOST");
+  }
+};
+template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength const &mfs,
+              FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        mfs == espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength::NORMAL ? "NORMAL"
+        : mfs == espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength::TOO_STRONG
+            ? "TOO_STRONG"
+            : "TOO_WEAK");
+  }
+};
+template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus const &ts,
+              FormatContext &ctx) {
+    return fmt::format_to(
+        ctx.out(), "{}",
+        ts == espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus::NORMAL ? "NORMAL" : "LOST");
+  }
+};

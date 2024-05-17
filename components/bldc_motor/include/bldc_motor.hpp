@@ -5,7 +5,6 @@
 #include "base_component.hpp"
 #include "fast_math.hpp"
 #include "pid.hpp"
-#include "task.hpp"
 
 #include "bldc_types.hpp"
 #include "foc_utils.hpp"
@@ -30,6 +29,7 @@ concept DriverConcept = requires {
  */
 template <class FOO>
 concept SensorConcept = requires {
+  static_cast<void (FOO::*)(std::error_code &)>(&FOO::update);
   static_cast<bool (FOO::*)(void) const>(&FOO::needs_zero_search);
   static_cast<float (FOO::*)(void) const>(&FOO::get_radians);
   static_cast<float (FOO::*)(void) const>(&FOO::get_rpm);
@@ -85,13 +85,16 @@ public:
     float current_limit{1.0f};     /**< Current limit (Amps) for the controller. */
     float velocity_limit{1000.0f}; /**< Velocity limit (RPM) for the controller. */
     float zero_electric_offset{0.0f};
-    detail::SensorDirection sensor_direction{detail::SensorDirection::CLOCKWISE};
+    detail::SensorDirection sensor_direction{detail::SensorDirection::UNKNOWN};
     detail::FocType foc_type{detail::FocType::SPACE_VECTOR_PWM}; /**< How the voltage for the phases
                                                                     should be calculated. */
     detail::TorqueControlType torque_controller{
         detail::TorqueControlType::VOLTAGE}; /**< Torque controller type. */
     std::shared_ptr<D> driver;               /**< Driver for low-level setting of phase PWMs. */
     std::shared_ptr<S> sensor;               /**< Sensor for measuring position / speed. */
+    bool run_sensor_update{
+        false}; /**< Runs the sensor::update() in the loop_foc() function. If false, the sensor must
+                   be updated elsewhere (e.g. within a sensor task). */
     std::shared_ptr<CS> current_sense{
         nullptr}; /**< Sensor for measuring current through the motor. */
     Pid::Config current_pid_config{
@@ -122,6 +125,9 @@ public:
     filter_fn d_current_filter{nullptr}; /**< Optional filter added to the sensed d current. */
     filter_fn velocity_filter{nullptr};  /**< Optional filter added to the sensed velocity. */
     filter_fn angle_filter{nullptr};     /**< Optional filter added to the sensed angle. */
+    bool auto_init{true}; /**< Automatically initialize the motor. Ensure all necessary objects and
+                             communications have been initialized before this object has been
+                             constructed, or this will fail. */
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the Motor.  */
   };
 
@@ -142,6 +148,7 @@ public:
       , torque_control_type_(config.torque_controller)
       , driver_(config.driver)
       , sensor_(config.sensor)
+      , run_sensor_update_(config.run_sensor_update)
       , current_sense_(config.current_sense)
       , pid_current_q_(config.current_pid_config)
       , pid_current_d_(config.current_pid_config)
@@ -177,14 +184,10 @@ public:
     angle_pid_config.output_max = velocity_limit_;
     pid_angle_.change_gains(angle_pid_config);
 
-    // finish the rest of init
-    init();
-    // enable the motor for foc initialization
-    enable();
-    // then initialize the foc (calibration etc.)
-    init_foc(config.zero_electric_offset, config.sensor_direction);
-    // disable the motor to put it back into a safe state
-    disable();
+    // if auto init is enabled
+    if (config.auto_init) {
+      initialize(config.zero_electric_offset, config.sensor_direction);
+    }
   }
 
   /**
@@ -216,6 +219,29 @@ public:
   }
 
   /**
+   * @brief Initialize the motor, running through any necessary sensor
+   *        calibration.
+   * @param zero_electric_offset The zero electrical offset for the motor.
+   * @param sensor_direction The direction of the sensor.
+   * @note This function will enable the motor, run through the necessary
+   *       calibration steps, and then disable the motor.
+   * @note This function is automatically called in the constructor if
+   *       auto_init is set to true. Otherwise, it must be called manually
+   *       before the motor can be used.
+   */
+  void initialize(float zero_electric_offset = 0,
+                  detail::SensorDirection sensor_direction = detail::SensorDirection::UNKNOWN) {
+    // finish the rest of init
+    init();
+    // enable the motor for foc initialization
+    enable();
+    // then initialize the foc (calibration etc.)
+    init_foc(zero_electric_offset, sensor_direction);
+    // disable the motor to put it back into a safe state
+    disable();
+  }
+
+  /**
    * @brief Update the motoion control scheme the motor control loop uses.
    * @param motion_control_type New motion control to use.
    */
@@ -242,7 +268,7 @@ public:
     switch (foc_type_) {
     case detail::FocType::TRAPEZOID_120:
       // see https://www.youtube.com/watch?v=InzXA7mWBWE Slide 5
-      static int trap_120_map[6][3] = {
+      static constexpr int trap_120_map[6][3] = {
           {_HIGH_IMPEDANCE, 1, -1},
           {-1, 1, _HIGH_IMPEDANCE},
           {-1, _HIGH_IMPEDANCE, 1},
@@ -279,7 +305,7 @@ public:
 
     case detail::FocType::TRAPEZOID_150:
       // see https://www.youtube.com/watch?v=InzXA7mWBWE Slide 8
-      static int trap_150_map[12][3] = {
+      static constexpr int trap_150_map[12][3] = {
           {_HIGH_IMPEDANCE, 1, -1},
           {-1, 1, -1},
           {-1, 1, _HIGH_IMPEDANCE},
@@ -321,6 +347,7 @@ public:
       break;
 
     case detail::FocType::SINE_PWM:
+      // case detail::FocType::SPACE_VECTOR_PWM:
       // Sinusoidal PWM modulation
       // Inverse Park + Clarke transformation
 
@@ -333,18 +360,32 @@ public:
       Ualpha = _ca * ud - _sa * uq; // -sin(angle) * uq;
       Ubeta = _sa * ud + _ca * uq;  //  cos(angle) * uq;
 
-      // center = modulation_centered_ ? (driver_->get_voltage_limit())/2 : uq;
-      center = driver_->get_voltage_limit() / 2;
       // Clarke transform
-      Ua = Ualpha + center;
-      Ub = -0.5f * Ualpha + _SQRT3_2 * Ubeta + center;
-      Uc = -0.5f * Ualpha - _SQRT3_2 * Ubeta + center;
+      Ua = Ualpha;
+      Ub = -0.5f * Ualpha + _SQRT3_2 * Ubeta;
+      Uc = -0.5f * Ualpha - _SQRT3_2 * Ubeta;
+
+      center = driver_->get_voltage_limit() / 2;
+      // if (foc_type_ == detail::FocType::SPACE_VECTOR_PWM) {
+      //   // discussed here:
+      //   //
+      //   https://community.simplefoc.com/t/embedded-world-2023-stm32-cordic-co-processor/3107/165?u=candas1
+      //   // a bit more info here: https://microchipdeveloper.com/mct5001:which-zsm-is-best
+      //   // Midpoint Clamp
+      //   float Umin = std::min(Ua, std::min(Ub, Uc));
+      //   float Umax = std::max(Ua, std::max(Ub, Uc));
+      //   center -= (Umax + Umin) / 2;
+      // }
 
       if (!modulation_centered_) {
         float Umin = std::min(Ua, std::min(Ub, Uc));
         Ua -= Umin;
         Ub -= Umin;
         Uc -= Umin;
+      } else {
+        Ua += center;
+        Ub += center;
+        Uc += center;
       }
 
       break;
@@ -484,6 +525,18 @@ public:
    *       other types require current sense.
    */
   void loop_foc() {
+    if (run_sensor_update_) {
+      // update the sensor values
+      std::error_code ec;
+      if (sensor_)
+        sensor_->update(ec);
+      if (ec) {
+        logger_.error("Sensor update failed: {}", ec.message());
+        return;
+      }
+    }
+
+    // if disabled do nothing
     if (!enabled_) {
       return;
     }
@@ -671,6 +724,7 @@ protected:
   void init_foc(float zero_electric_offset = 0,
                 detail::SensorDirection sensor_direction = detail::SensorDirection::CLOCKWISE) {
     logger_.info("Init FOC");
+    std::error_code ec;
     status_ = Status::CALIBRATING;
     // align motor with sensor - necessary for encoders
     if (zero_electric_offset) {
@@ -681,6 +735,8 @@ protected:
     }
     // align sensor and motor
     bool success = align_sensor();
+    if (run_sensor_update_)
+      sensor_->update(ec);
     shaft_angle_ = get_shaft_angle();
 
     if (current_sense_) {
@@ -695,6 +751,7 @@ protected:
     using namespace std::chrono_literals;
     int exit_flag = 1; // success
     logger_.info("Aligning sensor");
+    std::error_code ec;
 
     // check if sensor needs zero search
     if (sensor_->needs_zero_search())
@@ -711,16 +768,25 @@ protected:
       for (int i = 0; i <= 500; i++) {
         float angle = _3PI_2 + _2PI * i / 500.0f;
         set_phase_voltage(voltage_sensor_align_, 0, angle);
+        if (run_sensor_update_)
+          sensor_->update(ec);
         std::this_thread::sleep_for(1ms * 2);
       }
-      // take and angle in the middle
+      // take an angle in the middle
+      if (run_sensor_update_)
+        sensor_->update(ec);
       float mid_angle = sensor_->get_radians();
       // move one electrical revolution backwards
       for (int i = 500; i >= 0; i--) {
         float angle = _3PI_2 + _2PI * i / 500.0f;
         set_phase_voltage(voltage_sensor_align_, 0, angle);
+        if (run_sensor_update_)
+          sensor_->update(ec);
         std::this_thread::sleep_for(1ms * 2);
       }
+      // take an angle in the end
+      if (run_sensor_update_)
+        sensor_->update(ec);
       float end_angle = sensor_->get_radians();
       set_phase_voltage(0, 0, 0);
       std::this_thread::sleep_for(1ms * 200);
@@ -729,19 +795,18 @@ protected:
         logger_.warn("Failed to notice movement when trying to find natural direction.");
         return 0; // failed calibration
       } else if (mid_angle < end_angle) {
-        logger_.info("sensor direction: detail::SensorDirection::COUNTER_CLOCKWISE");
         sensor_direction_ = detail::SensorDirection::COUNTER_CLOCKWISE;
       } else {
-        logger_.info("sensor direction: detail::SensorDirection::CLOCKWISE");
         sensor_direction_ = detail::SensorDirection::CLOCKWISE;
       }
+      logger_.info("sensor direction: {}", sensor_direction_);
       // check pole pair number
       float moved = std::abs(mid_angle - end_angle);
       if (std::abs(moved * num_pole_pairs_ - _2PI) >
           0.5f) { // 0.5f is arbitrary number it can be lower or higher!
-        logger_.debug("PP check: fail - estimated pp: {:.3f}", _2PI / moved);
+        logger_.warn("PP check: fail - estimated pp: {:.3f}", _2PI / moved);
       } else
-        logger_.debug("PP check: OK!");
+        logger_.info("PP check: OK!");
 
     } else
       logger_.debug("Skip dir calib.");
@@ -753,6 +818,9 @@ protected:
       // set angle -90(270 = 3PI/2) degrees
       set_phase_voltage(voltage_sensor_align_, 0, _3PI_2);
       std::this_thread::sleep_for(1ms * 700);
+      // read the sensor
+      if (run_sensor_update_)
+        sensor_->update(ec);
       // get the current zero electric angle
       zero_electrical_angle_ = 0;
       zero_electrical_angle_ = get_electrical_angle();
@@ -800,6 +868,10 @@ protected:
     shaft_angle_ = 0;
     while (sensor_->needs_zero_search() && shaft_angle_ < _2PI) {
       angle_openloop(1.5f * _2PI);
+      if (run_sensor_update_) {
+        std::error_code ec;
+        sensor_->update(ec);
+      }
     }
     // disable motor
     set_phase_voltage(0, 0, 0);
@@ -946,6 +1018,7 @@ protected:
 
   std::shared_ptr<D> driver_;
   std::shared_ptr<S> sensor_;
+  bool run_sensor_update_{false};
   std::shared_ptr<CS> current_sense_;
 
   Pid pid_current_q_;

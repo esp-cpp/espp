@@ -5,9 +5,7 @@
 #include "bldc_driver.hpp"
 #include "bldc_haptics.hpp"
 #include "bldc_motor.hpp"
-#include "butterworth_filter.hpp"
 #include "i2c.hpp"
-#include "lowpass_filter.hpp"
 #include "mt6701.hpp"
 #include "task.hpp"
 
@@ -25,40 +23,21 @@ extern "C" void app_main(void) {
         .port = I2C_NUM_1,
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+        .clk_speed = 1 * 1000 * 1000, // MT6701 supports 1 MHz I2C
     });
 
-    // make the velocity filter
     static constexpr float core_update_period = 0.001f; // seconds
-    static constexpr float filter_cutoff_hz = 4.0f;
-    espp::ButterworthFilter<2, espp::BiquadFilterDf2> bwfilter({
-        .normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01 // core_update_period
-    });
-    espp::LowpassFilter lpfilter(
-        {.normalized_cutoff_frequency = 2.0f * filter_cutoff_hz * 0.01, // core_update_period,
-         .q_factor = 1.0f});
-    auto filter_fn = [&bwfilter, &lpfilter](float raw) -> float {
-      // return bwfilter.update(raw);
-      // return lpfilter.update(raw);
-
-      // NOTE: right now there seems to be something wrong with the filter
-      //       configuration, so we don't filter at all. Either 1) the filtering
-      //       is not actually removing the noise we want, 2) it is adding too
-      //       much delay for the PID to compensate for, or 3) there is a bug in
-      //       the update function which doesn't take previous state into
-      //       account?
-      return raw;
-    };
 
     // now make the mt6701 which decodes the data
-    std::shared_ptr<espp::Mt6701> mt6701 = std::make_shared<espp::Mt6701>(espp::Mt6701::Config{
-        .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
-                           std::placeholders::_3),
-        .read_register =
-            std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
-                      std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-        .velocity_filter = filter_fn,
-        .update_period = std::chrono::duration<float>(core_update_period),
-        .log_level = espp::Logger::Verbosity::WARN});
+    using Encoder = espp::Mt6701<>;
+    std::shared_ptr<Encoder> mt6701 = std::make_shared<Encoder>(
+        Encoder::Config{.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
+                                           std::placeholders::_2, std::placeholders::_3),
+                        .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
+                                          std::placeholders::_2, std::placeholders::_3),
+                        .velocity_filter = nullptr, // no filtering
+                        .update_period = std::chrono::duration<float>(core_update_period),
+                        .log_level = espp::Logger::Verbosity::WARN});
 
     // now make the bldc driver
     std::shared_ptr<espp::BldcDriver> driver =
@@ -78,7 +57,7 @@ extern "C" void app_main(void) {
             .log_level = espp::Logger::Verbosity::DEBUG});
 
     // now make the bldc motor
-    using BldcMotor = espp::BldcMotor<espp::BldcDriver, espp::Mt6701>;
+    using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
     auto motor = BldcMotor(BldcMotor::Config{
         // measured by setting it into ANGLE_OPENLOOP and then counting how many
         // spots you feel when rotating it.

@@ -18,8 +18,8 @@ namespace espp {
  */
 class BldcDriver : public BaseComponent {
 public:
-  static constexpr size_t TIMER_RESOLUTION_HZ = 80 * 1000 * 1000; // 80 MHz
-  static constexpr size_t FREQUENCY_HZ = 20 * 1000;               // 20 KHz
+  static constexpr size_t TIMER_RESOLUTION_HZ = 80 * 1000 * 1000;
+  static constexpr size_t FREQUENCY_HZ = 20 * 1000;
   static constexpr size_t TICKS_PER_PERIOD = (TIMER_RESOLUTION_HZ / FREQUENCY_HZ);
 
   /**
@@ -37,7 +37,8 @@ public:
     float power_supply_voltage; /**< Voltage of the power supply. */
     float limit_voltage{-1}; /**< What voltage the motor should be limited to. Less than 0 means no
                                 limit. Will be clamped to power supply voltage. */
-    float dead_zone{0.02};   /**< Percentage [0.0, 1.0] of time the gates are off. */
+    uint64_t dead_zone_ns{
+        100}; /**< Dead zone in nanoseconds. Will be applied to both sides of the waveform. */
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; /**< Verbosity for the bldc driver. */
   };
@@ -57,7 +58,7 @@ public:
       , gpio_cl_((gpio_num_t)config.gpio_c_l)
       , gpio_en_(config.gpio_enable)
       , gpio_fault_(config.gpio_fault)
-      , dead_zone_(config.dead_zone) {
+      , dead_zone_ns_(config.dead_zone_ns) {
     configure_power(config.power_supply_voltage, config.limit_voltage);
     init(config);
   }
@@ -236,13 +237,20 @@ public:
   float get_power_supply_limit() const { return power_supply_voltage_.load(); }
 
 protected:
+  static int GROUP_ID;
+
   void init(const Config &config) {
+    if (GROUP_ID >= SOC_MCPWM_GROUPS) {
+      GROUP_ID = 0;
+      logger_.error("Exceeded max number of MCPWM groups ({}), resetting to 0", SOC_MCPWM_GROUPS);
+    }
     configure_enable_gpio();
     configure_timer();
     configure_operators();
     configure_fault();
     configure_comparators();
     configure_generators();
+    GROUP_ID++;
     enable();
   }
 
@@ -260,10 +268,10 @@ protected:
   }
 
   void configure_timer() {
-    logger_.info("Create MCPWM timer");
+    logger_.info("Create MCPWM timer, group: {}", GROUP_ID);
     mcpwm_timer_config_t timer_config;
     memset(&timer_config, 0, sizeof(timer_config));
-    timer_config.group_id = 0;
+    timer_config.group_id = GROUP_ID;
     timer_config.clk_src = MCPWM_TIMER_CLK_SRC_DEFAULT;
     timer_config.resolution_hz = TIMER_RESOLUTION_HZ;
     timer_config.count_mode = MCPWM_TIMER_COUNT_MODE_UP_DOWN;
@@ -272,10 +280,10 @@ protected:
   }
 
   void configure_operators() {
-    logger_.info("Create MCPWM operator");
+    logger_.info("Create MCPWM operator, group: {}", GROUP_ID);
     mcpwm_operator_config_t operator_config;
     memset(&operator_config, 0, sizeof(operator_config));
-    operator_config.group_id = 0;
+    operator_config.group_id = GROUP_ID;
     for (int i = 0; i < 3; i++) {
       ESP_ERROR_CHECK(mcpwm_new_operator(&operator_config, &operators_[i]));
     }
@@ -290,11 +298,11 @@ protected:
     if (gpio_fault_ < 0) {
       return;
     }
-    logger_.info("Create fault detector");
+    logger_.info("Create fault detector, group: {}", GROUP_ID);
     mcpwm_gpio_fault_config_t gpio_fault_config{};
     memset(&gpio_fault_config, 0, sizeof(gpio_fault_config));
     gpio_fault_config.gpio_num = (gpio_num_t)gpio_fault_;
-    gpio_fault_config.group_id = 0;
+    gpio_fault_config.group_id = GROUP_ID;
     gpio_fault_config.flags.active_level = 1; // high level means fault, refer to TMC6300 datasheet
     gpio_fault_config.flags.pull_down = true; // internally pull down
     gpio_fault_config.flags.io_loop_back = true; // enable loop back to GPIO input
@@ -391,12 +399,14 @@ protected:
     // TODO: determine the right number of ticks here....
     mcpwm_dead_time_config_t dt_config;
 
+    uint32_t dead_zone_ticks = (uint32_t)((dead_zone_ns_ * TIMER_RESOLUTION_HZ) / 1000000000UL);
+
     memset(&dt_config, 0, sizeof(dt_config));
-    dt_config.posedge_delay_ticks = 5; // got this from the esp-idf sample...
+    dt_config.posedge_delay_ticks = dead_zone_ticks;
     ESP_ERROR_CHECK(mcpwm_generator_set_dead_time(gen_high, gen_high, &dt_config));
 
     memset(&dt_config, 0, sizeof(dt_config));
-    dt_config.negedge_delay_ticks = 5;
+    dt_config.negedge_delay_ticks = dead_zone_ticks;
     dt_config.flags.invert_output = true;
     ESP_ERROR_CHECK(mcpwm_generator_set_dead_time(gen_high, gen_low, &dt_config));
   }
@@ -412,7 +422,7 @@ protected:
   mcpwm_fault_handle_t fault_handle_;
   std::atomic<float> power_supply_voltage_;
   std::atomic<float> limit_voltage_;
-  float dead_zone_;
+  uint64_t dead_zone_ns_;
   std::atomic<bool> enabled_{false};
   mcpwm_timer_handle_t timer_;
   std::array<mcpwm_oper_handle_t, 3> operators_;
