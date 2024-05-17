@@ -41,12 +41,32 @@ public:
   using Encoder = espp::Mt6701<espp::Mt6701Interface::SSI>;
   using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
 
+  /// Configuration for the MotorGo-Mini
+  struct Config {
+    bool auto_init = true; ///< If true, the MotorGo-Mini will initialize itself in the constructor
+    espp::Logger::Verbosity verbosity =
+        espp::Logger::Verbosity::WARN; ///< The verbosity level for
+                                       ///< the logger of the MotorGo-Mini
+                                       ///< and its components
+  };
+
   /// Constructor
   /// \param verbosity The verbosity level for the logger of the MotorGo-Mini
   ///        and its components
   explicit MotorGoMini(espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
       : BaseComponent("MotorGo-Mini", verbosity) {
+    always_init();
     init();
+  }
+
+  /// Constructor
+  /// \param config The configuration for the MotorGo-Mini
+  explicit MotorGoMini(const Config &config)
+      : BaseComponent("MotorGo-Mini", config.verbosity) {
+    always_init();
+    if (config.auto_init) {
+      init();
+    }
   }
 
   /// Get a reference to the external I2C bus
@@ -114,6 +134,34 @@ public:
     led_timer_.stop();
     led_.set_duty(led_channels_[0].channel, 0.0f);
     led_.set_duty(led_channels_[1].channel, 0.0f);
+  }
+
+  /// Initialize the MotorGo-Mini's components for motor channel 1
+  /// \details This function initializes the encoder and motor for motor channel
+  ///          1. This consists of initializing encoder1 and motor1.
+  void init_motor_channel_1() {
+    bool run_task = true;
+    std::error_code ec;
+    encoder1_.initialize(run_task, ec);
+    if (ec) {
+      logger_.error("Could not initialize encoder1: {}", ec.message());
+      return;
+    }
+    motor1_.initialize();
+  }
+
+  /// Initialize the MotorGo-Mini's components for motor channel 2
+  /// \details This function initializes the encoder and motor for motor channel
+  ///          2. This consists of initializing encoder2 and motor2.
+  void init_motor_channel_2() {
+    bool run_task = true;
+    std::error_code ec;
+    encoder2_.initialize(run_task, ec);
+    if (ec) {
+      logger_.error("Could not initialize encoder2: {}", ec.message());
+      return;
+    }
+    motor2_.initialize();
   }
 
   /// Get a reference to the encoder 1
@@ -206,9 +254,12 @@ protected:
   // TODO: figure this out and update it :)
   static constexpr float CURRENT_SENSE_MV_TO_A = 1.0f;
 
-  void init() {
+  void always_init() {
     start_breathing();
     init_spi();
+  }
+
+  void init() {
     init_encoders();
     init_motors();
   }
@@ -388,8 +439,11 @@ protected:
       .kv_rating = 320,
       .current_limit = 1.0f,
       .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
-      .driver = std::shared_ptr<espp::BldcDriver>(&motor1_driver_),
-      .sensor = std::shared_ptr<Encoder>(&encoder1_),
+      // create shared_ptr from raw pointer to ensure shared_ptr doesn't delete the object
+      .driver =
+          std::shared_ptr<espp::BldcDriver>(std::shared_ptr<espp::BldcDriver>{}, &motor1_driver_),
+      // create shared_ptr from raw pointer to ensure shared_ptr doesn't delete the object
+      .sensor = std::shared_ptr<Encoder>(std::shared_ptr<Encoder>{}, &encoder1_),
       .velocity_pid_config =
           {
               .kp = 0.010f,
@@ -421,8 +475,11 @@ protected:
       .kv_rating = 320,
       .current_limit = 1.0f,
       .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
-      .driver = std::shared_ptr<espp::BldcDriver>(&motor2_driver_),
-      .sensor = std::shared_ptr<Encoder>(&encoder2_),
+      // create shared_ptr from raw pointer to ensure shared_ptr doesn't delete the object
+      .driver =
+          std::shared_ptr<espp::BldcDriver>(std::shared_ptr<espp::BldcDriver>{}, &motor2_driver_),
+      // create shared_ptr from raw pointer to ensure shared_ptr doesn't delete the object
+      .sensor = std::shared_ptr<Encoder>(std::shared_ptr<Encoder>{}, &encoder2_),
       .velocity_pid_config =
           {
               .kp = 0.010f,
