@@ -23,6 +23,35 @@ extern "C" void app_main(void) {
   ec.clear();
   fmt::print("Reset Counter = {}\n", counter);
 
+  bool flag = false;
+  nvs.get_or_set_var("other-namespace", "flag", flag, flag, ec);
+  ec.clear();
+  fmt::print("Got / Set Flag = {}\n", flag);
+  // now toggle the flag
+  flag = !flag;
+  nvs.set_var("other-namespace", "flag", flag, ec);
+  ec.clear();
+  fmt::print("Toggled Flag = {}\n", flag);
+
+  // test protection against really long namespace names (length > 15)
+  std::string long_ns(16, 'a');
+  nvs.get_or_set_var(long_ns, "flag", flag, flag, ec);
+  if (ec) {
+    fmt::print("Expected error: {}\n", ec.message());
+  } else {
+    fmt::print("Unexpected success\n");
+  }
+  ec.clear();
+
+  // test getting a non-existent key
+  nvs.get_var("system", "not-here", counter, ec);
+  if (ec) {
+    fmt::print("Expected error: {}\n", ec.message());
+  } else {
+    fmt::print("Unexpected success\n");
+  }
+  ec.clear();
+
   counter++;
 
   if (counter > 10) {
