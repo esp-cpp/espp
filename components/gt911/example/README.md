@@ -1,13 +1,22 @@
 # GT911 Example
 
 This example shows how to use the GT911 touch controller with ESP32. It is
-designed to run on a LilyGo T-Deck.
+designed to run on a LilyGo T-Deck (no home button) or the ESP32-S3-BOX-3 (with
+home button).
 
 ## How to use example
 
 ### Hardware Required
 
-LilyGo T-Deck (or any other ESP32 board with a GT911 touch controller)
+LilyGo T-Deck orESP32-S3-BOX-3 (or any other ESP32 board with a GT911 touch controller)
+
+### Configure
+
+``` 
+idf.py menuconfig
+```
+
+Set the hardware configuration for the example.
 
 ### Build and Flash
 
@@ -25,4 +34,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-<img width="281" alt="CleanShot 2023-11-05 at 10 00 57@2x" src="https://github.com/esp-cpp/espp/assets/213467/ec2c4a01-5b38-404d-842e-253f92d3527e">
+![CleanShot 2024-05-18 at 13 58 18](https://github.com/esp-cpp/espp/assets/213467/e4d0c65a-71b8-4a45-a491-26c6630ca4c9)
