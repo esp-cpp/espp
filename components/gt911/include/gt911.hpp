@@ -36,31 +36,49 @@ public:
   /// @param ec Error code to set if an error occurs
   /// @return True if the GT911 has new data, false otherwise
   bool update(std::error_code &ec) {
+    bool new_data = false;
     static constexpr size_t DATA_LEN = CONTACT_SIZE * MAX_CONTACTS;
     static uint8_t data[DATA_LEN];
     read_many_from_register((uint16_t)Registers::POINT_INFO, data, 1, ec);
-    if (ec) {
-      return false;
-    }
-    num_touch_points_ = data[0] & 0x0f;
-    logger_.debug("Got {} touch points", num_touch_points_);
-    if (num_touch_points_ > 0) {
-      read_many_from_register((uint16_t)Registers::POINTS, data, CONTACT_SIZE * num_touch_points_,
-                              ec);
-      if (ec) {
-        return false;
+    if (ec) return false;
+
+    // the below is copied from
+    // https://github.com/espressif/esp-bsp/blob/master/components/lcd_touch/esp_lcd_touch_gt911/esp_lcd_touch_gt911.c
+    if ((data[0] & 0x80) == 0) {
+      // no data available
+    } else if ((data[0] & 0x10) == 0x10) {
+      // only the keys were pressed, read them
+      uint8_t key_max = MAX_KEYS;
+      read_many_from_register((uint16_t)Registers::KEY, data, key_max, ec);
+      if (ec) return false;
+      // set the button state
+      home_button_pressed_ = data[0];
+      logger_.debug("Home button is {}", home_button_pressed_ ? "pressed" : "released");
+      new_data = true;
+    } else if ((data[0] & 0x80) == 0x80) {
+      // clear the home button state
+      home_button_pressed_ = false;
+
+      // touch data is available
+      num_touch_points_ = data[0] & 0x0f;
+      logger_.debug("Got {} touch points", num_touch_points_);
+      if (num_touch_points_ > 0) {
+        read_many_from_register((uint16_t)Registers::POINTS, data, CONTACT_SIZE * num_touch_points_,
+                                ec);
+        if (ec) return false;
+        // convert the data pointer to a GTPoint*
+        const GTPoint *point = (GTPoint *)&data[0];
+        x_ = point->x;
+        y_ = point->y;
+        logger_.debug("Touch at ({}, {})", x_, y_);
       }
-      // convert the data pointer to a GTPoint*
-      const GTPoint *point = (GTPoint *)&data[0];
-      x_ = point->x;
-      y_ = point->y;
-      logger_.debug("Touch at ({}, {})", x_, y_);
+      new_data = true;
     }
+
+    // send the clear command
     write_u8_to_register((uint16_t)Registers::POINT_INFO, 0x00, ec); // sync signal
-    if (ec) {
-      return false;
-    }
-    return num_touch_points_ > 0;
+
+    return new_data;
   }
 
   /// @brief Get the number of touch points
@@ -84,11 +102,12 @@ public:
   /// @brief Get the home button state
   /// @return True if the home button is pressed, false otherwise
   /// @note This is a cached value from the last update() call
-  uint8_t get_home_button_state() const { return home_button_pressed_; }
+  bool get_home_button_state() const { return home_button_pressed_; }
 
 protected:
   static constexpr int CONTACT_SIZE = 8;
   static constexpr int MAX_CONTACTS = 5;
+  static constexpr int MAX_KEYS = 4;
   static constexpr int CONFIG_MAX_LEN = 240;
   static constexpr int CONFIG_911_LEN = 186;
   static constexpr int CONFIG_967_LEN = 228;
@@ -99,6 +118,7 @@ protected:
     SWITCH_1 = 0x804D,
     SWITCH_2 = 0x804E,
     REFRESH_RATE = 0x8056,
+    KEY = 0x8093,
     DATA = 0x8140,
     POINT_INFO = 0x814E,
     POINTS = 0x814F,
