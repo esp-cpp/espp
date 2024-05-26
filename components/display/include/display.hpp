@@ -58,7 +58,7 @@ public:
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    size_t stack_size_bytes{4096}; /**< Size of the display task stack in bytes. */
+    Task::BaseConfig task_config{.name="Display", .stack_size_bytes=4096, .priority=20, .core_id=0}; /**< Task configuration. */
     std::chrono::duration<float> update_period{
         0.01}; /**< How frequently to run the update function. */
     bool double_buffered{
@@ -87,7 +87,7 @@ public:
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    size_t stack_size_bytes{4096}; /**< Size of the display task stack in bytes. */
+    Task::BaseConfig task_config{.name="Display", .stack_size_bytes=4096, .priority=20, .core_id=0}; /**< Task configuration. */
     std::chrono::duration<float> update_period{
         0.01};                              /**< How frequently to run the update function. */
     Rotation rotation{Rotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
@@ -127,7 +127,7 @@ public:
     }
     created_vram_ = true;
     init(config.flush_callback, config.software_rotation_enabled, config.rotation,
-         config.stack_size_bytes);
+         config.task_config);
     set_brightness(1.0f);
   }
 
@@ -155,7 +155,7 @@ public:
       , update_period_(config.update_period) {
     logger_.debug("Initializing with non-allocating config!");
     init(config.flush_callback, config.software_rotation_enabled, config.rotation,
-         config.stack_size_bytes);
+         config.task_config);
   }
 
   /**
@@ -261,10 +261,10 @@ protected:
    * @param sw_rotation_enabled Whether to use software roation (slower) or
    *        not.
    * @param rotation Default / initial rotation of the display.
-   * @param stack_size_bytes Size of the task stack in bytes.
+   * @param task_config Configuration for the task that runs the lvgl tick
    */
   void init(flush_fn flush_callback, bool sw_rotation_enabled, Rotation rotation,
-            size_t stack_size_bytes = 4096) {
+            const Task::BaseConfig &task_config) {
     lv_init();
 
     // Configure the LVGL display buffer with our pixel buffers
@@ -284,11 +284,8 @@ protected:
     // Now start the task for the ui management
     using namespace std::placeholders;
     task_ = Task::make_unique({
-        .name = "Display",
         .callback = std::bind(&Display::update, this, _1, _2),
-        .stack_size_bytes = stack_size_bytes,
-        .priority = 20,
-        .core_id = 0, // pin it to a core for maximum speed
+        .task_config = task_config,
     });
     task_->start();
   }
