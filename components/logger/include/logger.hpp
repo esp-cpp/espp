@@ -84,9 +84,9 @@ public:
 
   /**
    * @brief Get the current tag for the logger.
-   * @return The current tag.
+   * @return A const reference to the current tag.
    */
-  const std::string &get_tag() { return tag_; }
+  const std::string &get_tag() const { return tag_; }
 
   /**
    * @brief Whether to include the time in the log.
