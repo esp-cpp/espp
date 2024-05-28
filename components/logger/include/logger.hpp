@@ -84,12 +84,9 @@ public:
 
   /**
    * @brief Get the current tag for the logger.
-   * @return The current tag.
+   * @return A const reference to the current tag.
    */
-  std::string get_tag() {
-    std::lock_guard<std::mutex> lock(tag_mutex_);
-    return tag_;
-  }
+  const std::string &get_tag() const { return tag_; }
 
   /**
    * @brief Whether to include the time in the log.

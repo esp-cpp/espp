@@ -11,9 +11,9 @@ namespace espp {
 class BaseComponent {
 public:
   /// Get the name of the component
-  /// \return The name of the component
+  /// \return A const reference to the name of the component
   /// \note This is the tag of the logger
-  std::string get_name() { return logger_.get_tag(); }
+  const std::string &get_name() const { return logger_.get_tag(); }
 
   /// Set the tag for the logger
   /// \param tag The tag to use for the logger
