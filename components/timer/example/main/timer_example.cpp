@@ -201,6 +201,10 @@ extern "C" void app_main(void) {
     high_resolution_timer.set_period(period_us);
     logger.info("Periodic timer period: {}us", high_resolution_timer.get_period());
 
+    // NOTE: only if CONFIG_ESP_TIMER_PROFILING is enabled will this show more
+    //       than address, period and alarm.
+    esp_timer_dump(stdout); // dump timer stats
+
     std::this_thread::sleep_for(500ms);
     logger.info("High resolution timer is running: {}", high_resolution_timer.is_running());
     logger.info("Stopping timer");

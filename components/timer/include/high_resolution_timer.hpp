@@ -33,8 +33,12 @@ public:
 
   /// Configuration of the timer
   struct Config {
-    std::string name;           ///< Name of the timer
-    Callback callback{nullptr}; ///< Callback to be called when the timer expires
+    std::string name;                  ///< Name of the timer
+    Callback callback{nullptr};        ///< Callback to be called when the timer expires
+    bool skip_unhandled_events{false}; ///< Skip unhandled events. If true, will skip unhandled
+                                       ///< events in light sleep for periodic timers.
+    esp_timer_dispatch_t dispatch_method =
+        ESP_TIMER_TASK; ///< Dispatch method, TIMER_TASK or TIMER_ISR.
     espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN; ///< Log level
   };
 
@@ -42,6 +46,8 @@ public:
   /// @param config Configuration of the timer
   explicit HighResolutionTimer(const Config &config)
       : BaseComponent(config.name, config.log_level)
+      , skip_unhandled_events_(config.skip_unhandled_events)
+      , dispatch_method_(config.dispatch_method)
       , callback_(config.callback) {
     using namespace std::chrono_literals;
     // set a default logger rate limit (can always be set later by caller)
@@ -49,7 +55,13 @@ public:
   }
 
   /// Destructor
-  ~HighResolutionTimer() { stop(); }
+  ~HighResolutionTimer() {
+    stop();
+    if (timer_handle_) {
+      esp_timer_delete(timer_handle_);
+      timer_handle_ = nullptr;
+    }
+  }
 
   /// Start the timer
   /// @param period_us Period of the timer in microseconds, or timeout if
@@ -64,18 +76,21 @@ public:
     // store whether the timer is oneshot or periodic
     oneshot_ = oneshot;
 
-    esp_timer_create_args_t timer_args;
-    timer_args.callback = timer_callback;
-    timer_args.arg = this;
-    timer_args.dispatch_method = ESP_TIMER_TASK; // TIMER_TASK or TIMER_ISR
-    timer_args.name = get_name().c_str();
-
     esp_err_t err = ESP_OK;
 
-    err = esp_timer_create(&timer_args, &timer_handle_);
-    if (err != ESP_OK) {
-      logger_.error("Failed to create timer: {}", esp_err_to_name(err));
-      return false;
+    if (timer_handle_ == nullptr) {
+      esp_timer_create_args_t timer_args;
+      timer_args.callback = timer_callback;
+      timer_args.arg = this;
+      timer_args.dispatch_method = dispatch_method_;
+      timer_args.name = get_name().c_str();
+      timer_args.skip_unhandled_events = skip_unhandled_events_;
+
+      err = esp_timer_create(&timer_args, &timer_handle_);
+      if (err != ESP_OK) {
+        logger_.error("Failed to create timer: {}", esp_err_to_name(err));
+        return false;
+      }
     }
 
     if (oneshot) {
@@ -105,10 +120,6 @@ public:
   void stop() {
     if (is_running()) {
       esp_timer_stop(timer_handle_);
-    }
-    if (timer_handle_) {
-      esp_timer_delete(timer_handle_);
-      timer_handle_ = nullptr;
     }
   }
 
@@ -183,6 +194,8 @@ protected:
     }
   }
 
+  bool skip_unhandled_events_{false};
+  esp_timer_dispatch_t dispatch_method_{ESP_TIMER_TASK};
   esp_timer_handle_t timer_handle_{nullptr};
   std::atomic<bool> oneshot_{false};
   Callback callback_{nullptr};
