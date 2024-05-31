@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    container: docker://pandoc/latex:3
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,7 +27,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen graphviz texlive-full
+          sudo apt-get install doxygen
           pip install -r doc/requirements.txt
 
       - name: Build Documentation
