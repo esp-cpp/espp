@@ -483,6 +483,29 @@ public:
   }
 
   /**
+   * @brief Set the i/o direction for the pins according to mask.
+   * @param mask The mask indicating pin position
+   * @param direction The direction indicating direction (1 = input, 0 = output)
+   * @param ec Error code to set if an error occurs.
+   */
+  void set_direction(uint16_t mask, bool direction, std::error_code &ec) {
+    auto addr = Registers::CONFIG0;
+    uint8_t data[] = {0, 0};
+    read_many_from_register((uint8_t)addr, data, 2, ec);
+    if (ec) return;
+    if (direction) {
+        // To Input port
+        data[0] |= (uint8_t) mask;
+        data[1] |= (uint8_t)(mask >> 8);
+    } else {
+        // To Output port
+        data[0] &= (uint8_t) ~mask;
+        data[1] &= (uint8_t)(~mask >> 8);
+    }
+    write_many_to_register((uint8_t)addr, data, 2, ec);
+  }
+
+  /**
    * @brief Set polarity inversion for the pins according to mask.
    * @param port The port associated with the provided pin mask.
    * @param mask The mask indicating polarity inversion (1 = inverted, 0 = normal)
