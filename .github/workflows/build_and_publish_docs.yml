@@ -26,8 +26,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install doxygen
+          apt-get update
+          apt-get install doxygen
           pip install -r doc/requirements.txt
 
       - name: Build Documentation
