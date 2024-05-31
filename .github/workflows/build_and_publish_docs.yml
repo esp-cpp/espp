@@ -39,10 +39,10 @@ jobs:
           cp -r _build/en/esp32/html/* ../docs/.
           # go to the latex output
           cd _build/en/esp32/latex/
-          # build once
-          pdflatex -interaction=batchmode refman
-          # build again to make sure page numbers and refs and such work
-          pdflatex -interaction=batchmode refman
+          # build once (ignore if command fails)
+          pdflatex -interaction=batchmode refman || true
+          # build again to make sure page numbers and refs and such work (ignore if command fails)
+          pdflatex -interaction=batchmode refman || true
           # rename refman to espp_documentation.pdf
           mv refman.pdf espp_documentation.pdf
 
