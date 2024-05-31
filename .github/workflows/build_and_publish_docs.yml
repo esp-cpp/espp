@@ -12,7 +12,6 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
-    container: docker://pandoc/extra:latest-ubuntu
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,7 +26,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen
+          sudo apt-get install doxygen graphviz texlive
           pip install -r doc/requirements.txt
 
       - name: Build Documentation
