@@ -26,7 +26,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen graphviz texlive
+          sudo apt-get install doxygen graphviz texlive-full pandoc
           pip install -r doc/requirements.txt
 
       - name: Build Documentation
