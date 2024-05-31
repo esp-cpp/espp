@@ -5,6 +5,7 @@ on:
     branches: [main]
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy-docs:
@@ -25,7 +26,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen
+          sudo apt-get install doxygen texlive
           pip install -r doc/requirements.txt
 
       - name: Build Documentation
@@ -35,6 +36,14 @@ jobs:
           build-docs -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
           mkdir -p ../docs
           cp -r _build/en/esp32/html/* ../docs/.
+          # go to the latex output
+          cd _build/en/esp32/latex/
+          # build once
+          pdflatex -interaction=batchmode refman
+          # build again to make sure page numbers and refs and such work
+          pdflatex -interaction=batchmode refman
+          # rename refman to espp_documentation.pdf
+          mv refman.pdf espp_documentation.pdf
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
@@ -42,3 +51,15 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
           force_orphan: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: espp_documentation.pdf
+          path: doc/_build/en/esp32/latex/espp_documentation.pdf
+
+      - name: Attach files to release
+        uses: softprops/action-gh-release@v2
+        if: ${{ github.event.release && github.event.action == 'published' }}
+        with:
+          files: |
+            doc/_build/en/esp32/latex/espp_documentation.pdf
