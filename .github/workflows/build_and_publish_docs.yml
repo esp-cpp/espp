@@ -19,14 +19,14 @@ jobs:
           fetch-tags: true
 
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install doxygen texlive
+          sudo apt-get install doxygen graphviz texlive-full pandoc
           pip install -r doc/requirements.txt
 
       - name: Build Documentation
@@ -38,15 +38,15 @@ jobs:
           cp -r _build/en/esp32/html/* ../docs/.
           # go to the latex output
           cd _build/en/esp32/latex/
-          # build once
-          pdflatex -interaction=batchmode refman
-          # build again to make sure page numbers and refs and such work
-          pdflatex -interaction=batchmode refman
+          # build once (ignore if command fails)
+          pdflatex -interaction=batchmode refman || true
+          # build again to make sure page numbers and refs and such work (ignore if command fails)
+          pdflatex -interaction=batchmode refman || true
           # rename refman to espp_documentation.pdf
           mv refman.pdf espp_documentation.pdf
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
