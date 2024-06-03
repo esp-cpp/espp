@@ -52,6 +52,26 @@ extern "C" void app_main(void) {
   }
   ec.clear();
 
+  // test getting a string value
+  std::string str;
+  nvs.get_or_set_var("system", "string", str, std::string("default"), ec);
+  if (ec) {
+    fmt::print("Error: {}\n", ec.message());
+  } else {
+    fmt::print("String = {}\n", str);
+  }
+  ec.clear();
+
+  // test setting a string value
+  str = "hello";
+  nvs.set_var("system", "string", str, ec);
+  if (ec) {
+    fmt::print("Error: {}\n", ec.message());
+  } else {
+    fmt::print("String set to '{}'\n", str);
+  }
+  ec.clear();
+
   counter++;
 
   if (counter > 10) {
