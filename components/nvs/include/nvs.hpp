@@ -155,6 +155,48 @@ public:
     set_var(ns_name.data(), key.data(), value, ec);
   }
 
+  /// @brief Set a string in the NVS
+  /// @param[in] ns_name Namespace of the string to set
+  /// @param[in] key NVS Key of the string to set
+  /// @param[in] value string to set
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set_var(std::string_view ns_name, std::string_view key, const std::string &value,
+               std::error_code &ec) {
+    set_var(ns_name.data(), key.data(), value, ec);
+  }
+
+  /// @brief Set a string in the NVS
+  /// @param[in] ns_name Namespace of the string to set
+  /// @param[in] key NVS Key of the string to set
+  /// @param[in] value string to set
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set_var(const char *ns_name, const char *key, const std::string &value,
+               std::error_code &ec) {
+    check_lengths(ns_name, key, ec);
+    if (ec)
+      return;
+    esp_err_t err;
+    std::unique_ptr<nvs::NVSHandle> handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
+    if (err != ESP_OK) {
+      logger_.error("Error {} opening NVS handle for namespace '{}'!", esp_err_to_name(err),
+                    ns_name);
+      ec = make_error_code(NvsErrc::Open_NVS_Handle_Failed);
+      return;
+    }
+    err = handle->set_string(key, value.data());
+    if (err != ESP_OK) {
+      ec = make_error_code(NvsErrc::Write_NVS_Failed);
+      logger_.error("Error {} writing to NVS!", esp_err_to_name(err));
+      return;
+    }
+    err = handle->commit();
+    if (err != ESP_OK) {
+      ec = make_error_code(NvsErrc::Commit_NVS_Failed);
+      logger_.error("Error {} committing to NVS!", esp_err_to_name(err));
+    }
+    return;
+  }
+
   /// @brief Reads a bool from the NVS
   /// @param[in] ns_name Namespace of the bool to read
   /// @param[in] key NVS Key of the bool to read
@@ -164,7 +206,51 @@ public:
     get_var(ns_name.data(), key.data(), value, ec);
   }
 
-  /// @brief Reads a bool from the NVS
+  /// @brief Reads a string from the NVS
+  /// @param[in] ns_name Namespace of the string to read
+  /// @param[in] key NVS Key of the string to read
+  /// @param[in] value string to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get_var(std::string_view ns_name, std::string_view key, std::string &value,
+               std::error_code &ec) {
+    get_var(ns_name.data(), key.data(), value, ec);
+  }
+
+  /// @brief Reads a string from the NVS
+  /// @param[in] ns_name Namespace of the string to read
+  /// @param[in] key NVS Key of the string to read
+  /// @param[in] value string to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get_var(const char *ns_name, const char *key, std::string &value, std::error_code &ec) {
+    check_lengths(ns_name, key, ec);
+    if (ec)
+      return;
+    esp_err_t err;
+    std::unique_ptr<nvs::NVSHandle> handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
+    if (err != ESP_OK) {
+      logger_.error("Error {} opening NVS handle for namespace '{}'!", esp_err_to_name(err),
+                    ns_name);
+      ec = make_error_code(NvsErrc::Open_NVS_Handle_Failed);
+      return;
+    }
+    std::size_t len = 0;
+    err = handle->get_item_size(nvs::ItemType::SZ, key, len);
+    if (err != ESP_OK) {
+      logger_.error("Error {} reading!", esp_err_to_name(err));
+      ec = make_error_code(NvsErrc::Read_NVS_Failed);
+      return;
+    }
+    value.resize(len);
+    err = handle->get_string(key, value.data(), len);
+    if (err != ESP_OK) {
+      ec = make_error_code(NvsErrc::Read_NVS_Failed);
+      logger_.error("Error {} reading from NVS!", esp_err_to_name(err));
+      return;
+    }
+    return;
+  }
+
+  /// @brief Reads a bool from the NVS. Writes the default value if the key is not found
   /// @param[in] ns_name Namespace of the bool to read
   /// @param[in] key NVS Key of the bool to read
   /// @param[in] value bool to read
@@ -173,6 +259,66 @@ public:
   void get_or_set_var(std::string_view ns_name, std::string_view key, bool &value,
                       bool default_value, std::error_code &ec) {
     get_or_set_var(ns_name.data(), key.data(), value, default_value, ec);
+  }
+
+  /// @brief Reads a string from the NVS. Writes the default value if the key is not found
+  /// @param[in] ns_name Namespace of the string to read
+  /// @param[in] key NVS Key of the string to read
+  /// @param[in] value string to read
+  /// @param[in] default_value If the key isn't found in the NVS, this string is saved to NVS
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get_or_set_var(std::string_view ns_name, std::string_view key, std::string &value,
+                      const std::string &default_value, std::error_code &ec) {
+    get_or_set_var(ns_name.data(), key.data(), value, default_value, ec);
+  }
+
+  /// @brief Reads a string from the NVS. Writes the default value if the key is not found
+  /// @param[in] ns_name Namespace of the string to read
+  /// @param[in] key NVS Key of the string to read
+  /// @param[in] value string to read
+  /// @param[in] default_value If the key isn't found in the NVS, this string is saved to NVS
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get_or_set_var(const char *ns_name, const char *key, std::string &value,
+                      const std::string &default_value, std::error_code &ec) {
+    check_lengths(ns_name, key, ec);
+    if (ec)
+      return;
+    // don't set default value unless the key is valid
+    value = default_value;
+    esp_err_t err;
+    std::unique_ptr<nvs::NVSHandle> handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
+    if (err != ESP_OK) {
+      logger_.error("Error {} opening NVS handle for namespace '{}'!", esp_err_to_name(err),
+                    ns_name);
+      ec = make_error_code(NvsErrc::Open_NVS_Handle_Failed);
+      return;
+    }
+    std::size_t len = 0;
+    err = handle->get_item_size(nvs::ItemType::SZ, key, len);
+    if (err != ESP_OK || len == 0) {
+      logger_.warn("The value is not initialized yet! ns::key '{}::{}' set to: {}", ns_name, key,
+                   default_value);
+      err = handle->set_string(key, default_value.data());
+      if (err != ESP_OK) {
+        logger_.error("Error {} writing to NVS!", esp_err_to_name(err));
+        ec = make_error_code(NvsErrc::Write_NVS_Failed);
+        return;
+      }
+      err = handle->commit();
+      if (err != ESP_OK) {
+        logger_.error("Error {} committing to NVS!", esp_err_to_name(err));
+        ec = make_error_code(NvsErrc::Commit_NVS_Failed);
+      }
+    } else {
+      value.resize(len);
+      err = handle->get_string(key, value.data(), len);
+      if (err != ESP_OK) {
+        ec = make_error_code(NvsErrc::Read_NVS_Failed);
+        logger_.error("Error {} reading from NVS!", esp_err_to_name(err));
+        return;
+      }
+    }
+    return;
   }
 
   /// @brief Save a variable in the NVS and commit
