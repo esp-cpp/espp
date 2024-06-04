@@ -105,7 +105,7 @@ public:
 
   /// @brief Erase the NVS
   /// @param[out] ec Saves a std::error_code representing success or failure
-  void erase(std::error_code ec) {
+  void erase(std::error_code &ec) {
     esp_err_t err = nvs_flash_erase();
     if (err != ESP_OK) {
       logger_.error("Failed to erase NVS partition: {}", esp_err_to_name(err));
