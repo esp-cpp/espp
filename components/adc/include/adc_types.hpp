@@ -1,8 +1,8 @@
 #pragma once
 
-#include <driver/adc.h>
-
 #include "format.hpp"
+
+#include <hal/adc_types.h>
 
 namespace espp {
 /**
