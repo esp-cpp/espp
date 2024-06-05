@@ -84,12 +84,10 @@ public:
         "unpair",
         [this](std::ostream &out) -> void {
           auto devices = server_.get().unpair_all();
-          int return_code = NimBLEDevice::deleteAllBonds();
-          bool success = return_code == 0;
           out << "Unpaired " << devices.size() << " devices individually\n";
+          bool success = NimBLEDevice::deleteAllBonds();
           if (!success) {
-            out << "Failed to deleteAllBonds\n";
-            out << "Return code: " << return_code << "\n";
+            out << "Then failed to deleteAllBonds\n";
           } else {
             out << "Then deleted all bonds\n";
           }

@@ -519,12 +519,11 @@ public:
       logger_.error("Client not created");
       return {};
     }
-    auto peer_address = conn_info.getAddress();
     // since this connection is handled by the server, we won't manually
     // connect, and instead inform the client that we are already connected
     // using this conn handle
-    client_->setPeerAddress(peer_address);
-    client_->setConnId(conn_info.getConnHandle());
+    client_->clearConnection();
+    client_->setConnection(conn_info);
     // refresh the services
     client_->getServices(true);
     // now get Generic Access Service
@@ -594,8 +593,8 @@ public:
     // since this connection is handled by the server, we won't manually
     // connect, and instead inform the client that we are already connected
     // using this conn handle
-    client_->setPeerAddress(peer_address);
-    client_->setConnId(conn_info.getConnHandle());
+    client_->clearConnection();
+    client_->setConnection(conn_info);
     // and read the RSSI from the client
     auto rssi = client_->getRssi();
     logger_.info("RSSI for connected device {}: {}", peer_address.toString(), rssi);
