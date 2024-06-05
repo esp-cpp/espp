@@ -15,8 +15,8 @@ extern "C" void app_main(void) {
     logger.info("Reading oneshot adc for {} seconds", num_seconds_to_run);
     //! [oneshot adc example]
     std::vector<espp::AdcConfig> channels{
-        {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_6, .attenuation = ADC_ATTEN_DB_11},
-        {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_7, .attenuation = ADC_ATTEN_DB_11}};
+        {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_6, .attenuation = ADC_ATTEN_DB_12},
+        {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_7, .attenuation = ADC_ATTEN_DB_12}};
     espp::OneshotAdc adc({
         .unit = ADC_UNIT_1,
         .channels = channels,
@@ -62,8 +62,8 @@ extern "C" void app_main(void) {
     logger.info("Reading continuous adc for {} seconds", num_seconds_to_run);
     //! [continuous adc example]
     std::vector<espp::AdcConfig> channels{
-        {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_6, .attenuation = ADC_ATTEN_DB_11},
-        {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_7, .attenuation = ADC_ATTEN_DB_11}};
+        {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_6, .attenuation = ADC_ATTEN_DB_12},
+        {.unit = ADC_UNIT_1, .channel = ADC_CHANNEL_7, .attenuation = ADC_ATTEN_DB_12}};
     // this initailizes the DMA and filter task for the continuous adc
     espp::ContinuousAdc adc(
         {.sample_rate_hz = 20 * 1000,
