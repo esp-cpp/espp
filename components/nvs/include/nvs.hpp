@@ -70,26 +70,39 @@ const NvsErrCategory theNvsErrCategory{};
 } // namespace
 
 namespace espp {
-  class NVSHandle : public nvs::NVSHandle, public BaseComponent {
+class NVSHandle : public BaseComponent {
 public:
   /**
-   * @brief Construct a new NVS object.
+   * @brief Construct a new NVSHandle object.
    */
-  explicit NVSHandle()
-      : BaseComponent("NVSHandle", espp::Logger::Verbosity::WARN) {}
+  explicit NVSHandle(const char *ns_name, std::error_code &ec)
+      : BaseComponent("NVSHandle", espp::Logger::Verbosity::WARN) {
+    // Initialize NVS
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        // NVS partition was truncated and needs to be erased
+        // Retry nvs_flash_init
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK( err );
+
+    ns_name = ns_name;
+    handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
+    if (err != ESP_OK) {
+      logger_.error("Error {} opening NVS handle for namespace '{}'!", esp_err_to_name(err),
+                    ns_name);
+      ec = make_error_code(NvsErrc::Open_NVS_Handle_Failed);
+    }
+  }
 
   template <typename T>
   void get(const char *key, T &value, std::error_code &ec) {
     if (ec)
       return;
     esp_err_t err;
-    if (err != ESP_OK) {
-      logger_.error("Error {} opening NVS handle!", esp_err_to_name(err));
-      ec = make_error_code(NvsErrc::Open_NVS_Handle_Failed);
-      return;
-    }
     T readvalue;
-    err = this->get_item(key, readvalue);
+    err = handle->get_item(key, readvalue);
     switch (err) {
     case ESP_OK:
       value = readvalue;
@@ -110,12 +123,7 @@ public:
     if (ec)
       return;
     esp_err_t err;
-    if (err != ESP_OK) {
-      logger_.error("Error {} opening NVS handle!", esp_err_to_name(err));
-      ec = make_error_code(NvsErrc::Open_NVS_Handle_Failed);
-      return;
-    }
-    err = this->set_item(key, value);
+    err = handle->set_item(key, value);
     if (err != ESP_OK) {
       ec = make_error_code(NvsErrc::Write_NVS_Failed);
       logger_.error("Error {} writing to NVS!", esp_err_to_name(err));
@@ -124,7 +132,7 @@ public:
   }
 
   void close_handle(std::error_code &ec) {
-    esp_err_t err = this->commit();
+    esp_err_t err = handle->commit();
     if (err != ESP_OK) {
       logger_.error("Error {} committing to NVS!", esp_err_to_name(err));
       ec = make_error_code(NvsErrc::Commit_NVS_Failed);
@@ -133,6 +141,8 @@ public:
   }
 
 protected:
+  std::unique_ptr<nvs::NVSHandle> handle;
+  const char *ns_name;
   /**
    * @brief overload of std::make_error_code used by custom error codes.
    */
@@ -549,25 +559,6 @@ public:
     get_or_set_var<uint8_t>(ns_name, key, u8, static_cast<uint8_t>(default_value), ec);
     if (!ec)
       value = static_cast<bool>(u8);
-  }
-
-  /// @brief Opens handle for an NVS belonging to a specific namespace
-  /// @param[in] ns_name Namespace of the variable to read
-  /// @param[out] ec Saves a std::error_code representing success or failure
-  /// @details Return NVS handle while hiding errors, retries
-  std::unique_ptr<espp::NVSHandle> open_handle(const char *ns_name, std::error_code &ec) {
-    if (ec)
-      return nullptr;
-    esp_err_t err;
-    std::unique_ptr<nvs::NVSHandle> handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
-    if (err != ESP_OK) {
-      logger_.error("Error {} opening NVS handle for namespace '{}'!", esp_err_to_name(err),
-                    ns_name);
-      ec = make_error_code(NvsErrc::Open_NVS_Handle_Failed);
-      return nullptr;
-    }
-    
-    return std::unique_ptr<espp::NVSHandle>(static_cast<espp::NVSHandle*>(handle.release()));
   }
 
 protected:
