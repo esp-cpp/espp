@@ -95,6 +95,7 @@ public:
   /// @details Read the key/variable pair without committing
   template <typename T>
   void get(const char *key, T &value, std::error_code &ec) {
+    check_lengths(ns_name, key, ec);
     if (ec)
       return;
     esp_err_t err;
@@ -134,6 +135,7 @@ public:
   /// @details Saves the key/variable pair without committing the NVS.
   template <typename T>
   void set(const char *key, T value, std::error_code &ec) {
+    check_lengths(ns_name, key, ec);
     if (ec)
       return;
     esp_err_t err;
@@ -587,7 +589,6 @@ public:
       value = static_cast<bool>(u8);
   }
 
-protected:
   void check_lengths(const char *ns_name, const char *key, std::error_code &ec) {
     if (strlen(ns_name) > 15) {
       logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
