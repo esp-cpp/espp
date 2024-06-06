@@ -115,6 +115,23 @@ public:
     return;
   }
 
+  /// @brief Reads a bool from the NVS
+  /// @param[in] key NVS Key of the bool to read
+  /// @param[in] value bool to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Read the key/variable pair
+  void get(const char *ns_name, const char *key, bool &value, std::error_code &ec) {
+    uint8_t u8 = static_cast<uint8_t>(value);
+    get<uint8_t>(key, u8, ec);
+    if (!ec)
+      value = static_cast<bool>(u8);
+  }
+
+  /// @brief Save a variable in the NVS
+  /// @param[in] key NVS Key of the variable to read
+  /// @param[in] value Variable to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Saves the key/variable pair without committing the NVS.
   template <typename T>
   void set(const char *key, T value, std::error_code &ec) {
     if (ec)
@@ -126,6 +143,15 @@ public:
       logger_.error("Error {} writing to NVS!", esp_err_to_name(err));
     }
     return;
+  }
+
+  /// @brief Set a bool in the NVS
+  /// @param[in] key NVS Key of the bool to set
+  /// @param[in] value bool to set
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set(const char *ns_name, const char *key, bool value, std::error_code &ec) {
+    uint8_t u8 = static_cast<uint8_t>(value);
+    set<uint8_t>(key, u8, ec);
   }
 
   /// @brief Commit changes
