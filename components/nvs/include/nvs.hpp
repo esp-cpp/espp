@@ -131,7 +131,7 @@ public:
     return;
   }
 
-  void close_handle(std::error_code &ec) {
+  void commit(std::error_code &ec) {
     esp_err_t err = handle->commit();
     if (err != ESP_OK) {
       logger_.error("Error {} committing to NVS!", esp_err_to_name(err));
