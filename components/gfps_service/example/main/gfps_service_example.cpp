@@ -25,16 +25,13 @@ extern "C" void app_main(void) {
       .disconnect_callback = [&](auto &conn_info,
                                  auto reason) { logger.info("Device disconnected: {}", reason); },
       .authentication_complete_callback =
-          [&](NimBLEConnInfo &conn_info) { logger.info("Device authenticated"); },
+          [&](const NimBLEConnInfo &conn_info) { logger.info("Device authenticated"); },
       .get_passkey_callback = [&]() { return NimBLEDevice::getSecurityPasskey(); },
       .confirm_passkey_callback =
-          [&](uint32_t passkey) {
-            // NOTE: right now we have no way to do asynchronous passkey injection
-            // (see: https://github.com/h2zero/esp-nimble-cpp/pull/117), so we
-            // have to blindly return true here AND set the passkey since it will
-            // be used by the GFPS BLE stack through the side channel.
+          [&](const NimBLEConnInfo &conn_info, uint32_t passkey) {
+            // set the passkey here, so that GFPS can later compare against it
+            // and inject confirmation/rejection
             NimBLEDevice::setSecurityPasskey(passkey);
-            return true;
           },
   });
   ble_gatt_server.init(device_name);

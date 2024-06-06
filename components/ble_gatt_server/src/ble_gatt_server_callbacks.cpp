@@ -52,23 +52,23 @@ void BleGattServerCallbacks::onDisconnect(NimBLEServer *server, NimBLEConnInfo &
   }
 }
 
-void BleGattServerCallbacks::onAuthenticationComplete(NimBLEConnInfo &conn_info) {
+void BleGattServerCallbacks::onAuthenticationComplete(const NimBLEConnInfo &conn_info) {
   if (server_ && server_->callbacks_.authentication_complete_callback) {
     server_->callbacks_.authentication_complete_callback(conn_info);
   }
 }
-uint32_t BleGattServerCallbacks::onPassKeyRequest() {
+uint32_t BleGattServerCallbacks::onPassKeyDisplay() {
   if (server_ && server_->callbacks_.get_passkey_callback) {
     return server_->callbacks_.get_passkey_callback();
   } else {
     return NimBLEDevice::getSecurityPasskey();
   }
 }
-bool BleGattServerCallbacks::onConfirmPIN(uint32_t pass_key) {
+void BleGattServerCallbacks::onConfirmPIN(const NimBLEConnInfo &conn_info, uint32_t pass_key) {
   if (server_ && server_->callbacks_.confirm_passkey_callback) {
-    return server_->callbacks_.confirm_passkey_callback(pass_key);
+    server_->callbacks_.confirm_passkey_callback(conn_info, pass_key);
   } else {
-    return pass_key == NimBLEDevice::getSecurityPasskey();
+    NimBLEDevice::injectConfirmPIN(conn_info, pass_key == NimBLEDevice::getSecurityPasskey());
   }
 }
 
