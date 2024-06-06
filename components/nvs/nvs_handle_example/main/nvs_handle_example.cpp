@@ -31,7 +31,13 @@ extern "C" void app_main(void) {
   int32_t restart_counter = 0; // value will default to 0, if not set yet in NVS
   storage.get("restart_counter", restart_counter, ec);
   if (ec) {
-    printf("The value is not initialized yet!\n");
+    if (ec.value() == static_cast<int>(NvsErrc::Key_Not_Found)) {
+      printf("The value is not initialized yet!\n");
+    } else if (ec.value() == static_cast<int>(NvsErrc::Read_NVS_Failed)) {
+      printf("Failed to read from NVS: %s\n", ec.message().c_str());
+    } else {
+      printf("An error occurred: %s\n", ec.message().c_str());
+    }
   } else {
     printf("Done\n");
     printf("Restart counter = %" PRIu32 "\n", restart_counter);
