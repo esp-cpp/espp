@@ -33,7 +33,7 @@
 	url = git@github.com:esp-cpp/esp-nimble-cpp
 [submodule "external/hid-rp"]
 	path = external/hid-rp
-	url = https://github.com/intergatedcircuits/hid-rp
+	url = git@github.com:intergatedcircuits/hid-rp
 [submodule "external/nearby"]
 	path = external/nearby
 	url = git@github.com:google/nearby
