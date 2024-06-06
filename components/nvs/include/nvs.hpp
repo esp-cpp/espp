@@ -72,9 +72,10 @@ const NvsErrCategory theNvsErrCategory{};
 namespace espp {
 class NVSHandle : public BaseComponent {
 public:
-  /**
-   * @brief Construct a new NVSHandle object.
-   */
+  /// @brief Construct a new NVSHandle object
+  /// @param[in] ns_name Namespace for NVS
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Create an NVSHandle object for the key-value pairs in the ns_name namespace
   explicit NVSHandle(const char *ns_name, std::error_code &ec)
       : BaseComponent("NVSHandle", espp::Logger::Verbosity::WARN) {
     esp_err_t err;
@@ -87,6 +88,11 @@ public:
     }
   }
 
+  /// @brief Reads a variable from the NVS
+  /// @param[in] key NVS Key of the variable to read
+  /// @param[in] value Variable to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Read the key/variable pair without committing
   template <typename T>
   void get(const char *key, T &value, std::error_code &ec) {
     if (ec)
@@ -122,6 +128,9 @@ public:
     return;
   }
 
+  /// @brief Commit changes
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Commits changes to the NVS
   void commit(std::error_code &ec) {
     esp_err_t err = handle->commit();
     if (err != ESP_OK) {
