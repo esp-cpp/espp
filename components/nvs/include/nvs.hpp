@@ -77,16 +77,7 @@ public:
    */
   explicit NVSHandle(const char *ns_name, std::error_code &ec)
       : BaseComponent("NVSHandle", espp::Logger::Verbosity::WARN) {
-    // Initialize NVS
-    esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        // NVS partition was truncated and needs to be erased
-        // Retry nvs_flash_init
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        err = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK( err );
-
+    esp_err_t err;
     ns_name = ns_name;
     handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
     if (err != ESP_OK) {
@@ -108,8 +99,8 @@ public:
       value = readvalue;
       break;
     case ESP_ERR_NVS_NOT_FOUND:
-      logger_.error("The value is not initialized in NVS, key = '{}'", key);
       ec = make_error_code(NvsErrc::Key_Not_Found);
+      logger_.error("The value is not initialized in NVS, key = '{}'", key);
       break;
     default:
       logger_.error("Error {} reading!", esp_err_to_name(err));
