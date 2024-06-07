@@ -79,16 +79,6 @@ int espp::gfps::ble_gap_event_handler(ble_gap_event *event, void *arg) {
     NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
     break;
   }
-  case BLE_GAP_EVENT_PASSKEY_ACTION: {
-    logger.info("BLE_GAP_EVENT_PASSKEY_ACTION");
-    if (event->passkey.params.action == BLE_SM_IOACT_NUMCMP) {
-      // this is the kind of event that GFPS should expect but for some reason
-      // it doesn't seem to be triggering (no BLE_GAP_EVENT_PASSKEY_ACTION
-      // events are being triggered, only the ones in the NimBLEServer class are
-      // triggered...)
-    }
-    break;
-  }
   default:
     break;
   }
@@ -273,12 +263,11 @@ void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   } else {
     logger.error("Declining pairing request, passkey does not match");
   }
-  // TODO: in the original implementation we set the pairing success/failure
-  // here, but our current esp-nimble-cpp NimBLEServer doesn't have a
-  // mechanism right now which would allow us to respond success/failure here
-  // without responding within the onConfirmPIN callback.
-  logger.info("TODO: implement pairing success/failure here after esp-nimble-ble adds support for "
-              "asynchronous pin injections");
+  // get the connection info for the remote party (assume only one, so first
+  // index)
+  auto conn_info = NimBLEDevice::getServer()->getPeerInfo(0);
+  // Now actually respond to the pairing request
+  NimBLEDevice::injectConfirmPIN(conn_info, accept);
 #endif // CONFIG_BT_NIMBLE_ENABLED
 }
 

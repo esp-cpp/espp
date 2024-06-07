@@ -66,16 +66,16 @@ public:
 
   /// @brief Callback for when a device completes authentication.
   /// @param conn_info The connection information for the device.
-  typedef std::function<void(NimBLEConnInfo &)> authentication_complete_callback_t;
+  typedef std::function<void(const NimBLEConnInfo &)> authentication_complete_callback_t;
 
-  /// @brief Callback for the passkey.
+  /// @brief Callback to retrieve the passkey for the device.
   /// @return The passkey for the device.
   typedef std::function<uint32_t(void)> get_passkey_callback_t;
 
   /// @brief Callback for confirming the passkey.
+  /// @param conn_info The connection information for the device.
   /// @param passkey The passkey for the device.
-  /// @return Whether the passkey is confirmed.
-  typedef std::function<bool(uint32_t)> confirm_passkey_callback_t;
+  typedef std::function<void(const NimBLEConnInfo &conn_info, uint32_t)> confirm_passkey_callback_t;
 
 #if CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
   /// @brief Callback for when advertising is stopped.
@@ -131,11 +131,18 @@ public:
     authentication_complete_callback_t authentication_complete_callback =
         nullptr; ///< Callback for when a device completes authentication.
     get_passkey_callback_t get_passkey_callback =
-        nullptr; ///< Callback for getting the passkey. If not set, will simply
-                 ///  return NimBLEDevice::getSecurityPasskey().
+        nullptr; ///< Callback for getting the passkey.
+                 /// @note If not provided, will simply return
+                 /// NimBLEDevice::getSecurityPasskey().
     confirm_passkey_callback_t confirm_passkey_callback =
-        nullptr; ///< Callback for confirming the passkey. If not set, will
-                 ///  simply compare the passkey to NimBLEDevice::getSecurityPasskey().
+        nullptr; ///< Callback for confirming the passkey.
+                 /// @note Within this function or some point after this call,
+                 /// the user should call
+                 /// NimBLEDevice::injectConfirmPIN(conn_info, true/false) to
+                 /// confirm or reject the passkey.
+                 /// @note If not provided, will simply call
+                 /// NimBLEDevice::injectConfirmPIN(conn_info, passkey ==
+                 /// NimBLEDevice::getSecurityPasskey()).
 #if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
     advertisement_complete_callback_t advertisement_complete_callback =
         nullptr; ///< Callback for when advertising is complete.
