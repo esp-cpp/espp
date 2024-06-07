@@ -116,16 +116,68 @@ public:
     return;
   }
 
+  /// @brief Reads a variable from the NVS
+  /// @param[in] key NVS Key of the variable to read
+  /// @param[in] value Variable to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  template <typename T>
+  void get(std::string_view key, T &value, std::error_code &ec) {
+    get(key.data(), value, ec);
+  }
+
   /// @brief Reads a bool from the NVS
   /// @param[in] key NVS Key of the bool to read
   /// @param[in] value bool to read
   /// @param[out] ec Saves a std::error_code representing success or failure
   /// @details Read the key/variable pair
-  void get(const char *ns_name, const char *key, bool &value, std::error_code &ec) {
+  void get(const char *key, bool &value, std::error_code &ec) {
     uint8_t u8 = static_cast<uint8_t>(value);
     get<uint8_t>(key, u8, ec);
     if (!ec)
       value = static_cast<bool>(u8);
+  }
+
+  /// @brief Reads a bool from the NVS
+  /// @param[in] key NVS Key of the bool to read
+  /// @param[in] value bool to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get(std::string_view key, bool &value, std::error_code &ec) {
+    get(key.data(), value, ec);
+  }
+
+  /// @brief Reads a string from the NVS
+  /// @param[in] key NVS Key of the string to read
+  /// @param[in] value string to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get(std::string_view key, std::string &value,
+               std::error_code &ec) {
+    get(key.data(), value, ec);
+  }
+
+  /// @brief Reads a string from the NVS
+  /// @param[in] key NVS Key of the string to read
+  /// @param[in] value string to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get(const char *key, std::string &value, std::error_code &ec) {
+    check_lengths(ns_name, key, ec);
+    if (ec)
+      return;
+    esp_err_t err;
+    std::size_t len = 0;
+    err = handle->get_item_size(nvs::ItemType::SZ, key, len);
+    if (err != ESP_OK) {
+      logger_.error("Error {} reading!", esp_err_to_name(err));
+      ec = make_error_code(NvsErrc::Read_NVS_Failed);
+      return;
+    }
+    value.resize(len);
+    err = handle->get_string(key, value.data(), len);
+    if (err != ESP_OK) {
+      ec = make_error_code(NvsErrc::Read_NVS_Failed);
+      logger_.error("Error {} reading from NVS!", esp_err_to_name(err));
+      return;
+    }
+    return;
   }
 
   /// @brief Save a variable in the NVS
@@ -147,13 +199,58 @@ public:
     return;
   }
 
+  /// @brief Save a variable in the NVS
+  /// @param[in] key NVS Key of the variable to save
+  /// @param[in] value Variable to save
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  template <typename T>
+  void set(std::string_view key, T value, std::error_code &ec) {
+    set(key.data(), value, ec);
+  }
+
   /// @brief Set a bool in the NVS
   /// @param[in] key NVS Key of the bool to set
   /// @param[in] value bool to set
   /// @param[out] ec Saves a std::error_code representing success or failure
-  void set(const char *ns_name, const char *key, bool value, std::error_code &ec) {
+  void set(std::string_view key, bool value, std::error_code &ec) {
+    set(key.data(), value, ec);
+  }
+
+  /// @brief Set a bool in the NVS
+  /// @param[in] key NVS Key of the bool to set
+  /// @param[in] value bool to set
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set(const char *key, bool value, std::error_code &ec) {
     uint8_t u8 = static_cast<uint8_t>(value);
     set<uint8_t>(key, u8, ec);
+  }
+
+  /// @brief Set a string in the NVS
+  /// @param[in] key NVS Key of the string to set
+  /// @param[in] value string to set
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set(std::string_view key, const std::string &value,
+               std::error_code &ec) {
+    set(key.data(), value, ec);
+  }
+
+  /// @brief Set a string in the NVS
+  /// @param[in] key NVS Key of the string to set
+  /// @param[in] value string to set
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set(const char *key, const std::string &value,
+               std::error_code &ec) {
+    check_lengths(ns_name, key, ec);
+    if (ec)
+      return;
+    esp_err_t err;
+    err = handle->set_string(key, value.data());
+    if (err != ESP_OK) {
+      ec = make_error_code(NvsErrc::Write_NVS_Failed);
+      logger_.error("Error {} writing to NVS!", esp_err_to_name(err));
+      return;
+    }
+    return;
   }
 
   /// @brief Commit changes
@@ -171,6 +268,20 @@ public:
 protected:
   std::unique_ptr<nvs::NVSHandle> handle;
   const char *ns_name;
+
+  void check_lengths(const char *ns_name, const char *key, std::error_code &ec) {
+    if (strlen(ns_name) > 15) {
+      logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
+      ec = make_error_code(NvsErrc::Namespace_Length_Too_Long);
+      return;
+    }
+    if (strlen(key) > 15) {
+      logger_.error("Key too long, must be <= 15 characters: {}", key);
+      ec = make_error_code(NvsErrc::Key_Length_Too_Long);
+      return;
+    }
+  }
+
   /**
    * @brief overload of std::make_error_code used by custom error codes.
    */
@@ -589,23 +700,24 @@ public:
       value = static_cast<bool>(u8);
   }
 
-  void check_lengths(const char *ns_name, const char *key, std::error_code &ec) {
-    if (strlen(ns_name) > 15) {
-      logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
-      ec = make_error_code(NvsErrc::Namespace_Length_Too_Long);
-      return;
+  protected:
+    void check_lengths(const char *ns_name, const char *key, std::error_code &ec) {
+      if (strlen(ns_name) > 15) {
+        logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
+        ec = make_error_code(NvsErrc::Namespace_Length_Too_Long);
+        return;
+      }
+      if (strlen(key) > 15) {
+        logger_.error("Key too long, must be <= 15 characters: {}", key);
+        ec = make_error_code(NvsErrc::Key_Length_Too_Long);
+        return;
+      }
     }
-    if (strlen(key) > 15) {
-      logger_.error("Key too long, must be <= 15 characters: {}", key);
-      ec = make_error_code(NvsErrc::Key_Length_Too_Long);
-      return;
-    }
-  }
 
-  /**
-   * @brief overload of std::make_error_code used by custom error codes.
-   */
-  std::error_code make_error_code(NvsErrc e) { return {static_cast<int>(e), theNvsErrCategory}; }
+    /**
+     * @brief overload of std::make_error_code used by custom error codes.
+     */
+    std::error_code make_error_code(NvsErrc e) { return {static_cast<int>(e), theNvsErrCategory}; }
 
 }; // Class Nvs
 } // namespace espp
