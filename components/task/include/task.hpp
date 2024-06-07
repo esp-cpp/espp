@@ -221,6 +221,8 @@ public:
       return false;
     }
 
+    std::lock_guard lock(control_mutex_);
+
 #if defined(ESP_PLATFORM)
     auto thread_config = esp_pthread_get_default_config();
     thread_config.thread_name = name_.c_str();
@@ -272,6 +274,7 @@ public:
    */
   bool stop() {
     logger_.debug("Stopping task");
+    std::lock_guard lock(control_mutex_);
     started_ = false;
     cv_.notify_all();
     if (thread_.joinable()) {
@@ -448,6 +451,7 @@ protected:
    */
   BaseConfig config_;
 
+  std::mutex control_mutex_;
   std::atomic<bool> started_{false};
   std::condition_variable cv_;
   std::mutex cv_m_;
