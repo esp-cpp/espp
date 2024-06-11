@@ -78,8 +78,13 @@ public:
   /// @details Create an NVSHandle object for the key-value pairs in the ns_name namespace
   explicit NVSHandle(const char *ns_name, std::error_code &ec)
       : BaseComponent("NVSHandle", espp::Logger::Verbosity::WARN) {
+    if (strlen(ns_name) > 15) {
+      logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
+      ec = make_error_code(NvsErrc::Namespace_Length_Too_Long);
+      return;
+    }
+
     esp_err_t err;
-    ns_name = ns_name;
     handle = nvs::open_nvs_handle(ns_name, NVS_READWRITE, &err);
     if (err != ESP_OK) {
       logger_.error("Error {} opening NVS handle for namespace '{}'!", esp_err_to_name(err),
@@ -92,10 +97,10 @@ public:
   /// @param[in] key NVS Key of the variable to read
   /// @param[in] value Variable to read
   /// @param[out] ec Saves a std::error_code representing success or failure
-  /// @details Read the key/variable pair without committing
+  /// @details Reads the value of key into value, if key exists
   template <typename T>
   void get(const char *key, T &value, std::error_code &ec) {
-    check_lengths(ns_name, key, ec);
+    check_key_length(key, ec);
     if (ec)
       return;
     esp_err_t err;
@@ -159,7 +164,7 @@ public:
   /// @param[in] value string to read
   /// @param[out] ec Saves a std::error_code representing success or failure
   void get(const char *key, std::string &value, std::error_code &ec) {
-    check_lengths(ns_name, key, ec);
+    check_key_length(key, ec);
     if (ec)
       return;
     esp_err_t err;
@@ -187,7 +192,7 @@ public:
   /// @details Saves the key/variable pair without committing the NVS.
   template <typename T>
   void set(const char *key, T value, std::error_code &ec) {
-    check_lengths(ns_name, key, ec);
+    check_key_length(key, ec);
     if (ec)
       return;
     esp_err_t err;
@@ -240,7 +245,7 @@ public:
   /// @param[out] ec Saves a std::error_code representing success or failure
   void set(const char *key, const std::string &value,
                std::error_code &ec) {
-    check_lengths(ns_name, key, ec);
+    check_key_length(key, ec);
     if (ec)
       return;
     esp_err_t err;
@@ -267,14 +272,8 @@ public:
 
 protected:
   std::unique_ptr<nvs::NVSHandle> handle;
-  const char *ns_name;
 
-  void check_lengths(const char *ns_name, const char *key, std::error_code &ec) {
-    if (strlen(ns_name) > 15) {
-      logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
-      ec = make_error_code(NvsErrc::Namespace_Length_Too_Long);
-      return;
-    }
+  void check_key_length(const char *key, std::error_code &ec) {
     if (strlen(key) > 15) {
       logger_.error("Key too long, must be <= 15 characters: {}", key);
       ec = make_error_code(NvsErrc::Key_Length_Too_Long);
