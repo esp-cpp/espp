@@ -98,55 +98,54 @@ extern "C" void app_main(void) {
     ec.clear();
     
     // Open
-    printf("\n");
-    printf("Opening Non-Volatile Storage (NVS) handle... ");
+    fmt::print("\nOpening Non-Volatile Storage (NVS) handle... ");
     // Handle will automatically close when going out of scope or when it's reset.
     espp::NVSHandle storage("storage", ec);
-    printf("Done\n");
+    fmt::print("Done\n");
     ec.clear();
     
     // Read
-    printf("Reading restart counter from NVS ... ");
+    fmt::print("Reading restart counter from NVS ... ");
     int32_t restart_counter = 0; // value will default to 0, if not set yet in NVS
     storage.get("restart_counter", restart_counter, ec);
     if (ec) {
       if (ec.value() == static_cast<int>(NvsErrc::Key_Not_Found)) {
-        printf("The value is not initialized yet!\n");
+        fmt::print("The value is not initialized yet!\n");
       } else if (ec.value() == static_cast<int>(NvsErrc::Read_NVS_Failed)) {
-        printf("Failed to read from NVS: %s\n", ec.message().c_str());
+        fmt::print("Failed to read from NVS: %s\n", ec.message().c_str());
       } else {
-        printf("An error occurred: %s\n", ec.message().c_str());
+        fmt::print("An error occurred: %s\n", ec.message().c_str());
       }
     } else {
-      printf("Done\n");
-      printf("Restart counter = %" PRIu32 "\n", restart_counter);
+      fmt::print("Done\n");
+      fmt::print("Restart counter = %" PRIu32 "\n", restart_counter);
     }
     ec.clear();
 
     // Write
-    printf("Updating restart counter in NVS ... ");
+    fmt::print("Updating restart counter in NVS ... ");
     restart_counter++;
     storage.set("restart_counter", restart_counter, ec);
-    printf("Done\n");
+    fmt::print("Done\n");
     ec.clear();
 
     // Commit written value.
     // After setting any values, nvs_commit() must be called to ensure changes are written
     // to flash storage. Implementations may write to storage at other times,
     // but this is not guaranteed.
-    printf("Committing updates in NVS ... ");
+    fmt::print("Committing updates in NVS ... ");
     storage.commit(ec);
-    printf("Done\n");
+    fmt::print("Done\n");
     ec.clear();
 
-    printf("\n");
+    fmt::print("\n");
 
     // Restart module
     for (int i = 10; i >= 0; i--) {
-        printf("Restarting in %d seconds...\n", i);
+        fmt::print("Restarting in %d seconds...\n", i);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    printf("Restarting now.\n");
+    fmt::print("Restarting now.\n");
     fflush(stdout);
     esp_restart();
     //! [nvshandle example]
