@@ -160,6 +160,7 @@ INPUT += $(PROJECT_PATH)/components/math/include/vector2d.hpp
 INPUT += $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp
 INPUT += $(PROJECT_PATH)/components/ndef/include/ndef.hpp
 INPUT += $(PROJECT_PATH)/components/nvs/include/nvs.hpp
+INPUT += $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp
 INPUT += $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp
 INPUT += $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp
 INPUT += $(PROJECT_PATH)/components/pid/include/pid.hpp
