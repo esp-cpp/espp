@@ -23,6 +23,7 @@ enum class NvsErrc {
   Key_Not_Found,
   Init_NVS_Failed,
   Erase_NVS_Failed,
+  Handle_Uninitialized,
 };
 
 struct NvsErrCategory : std::error_category {
@@ -60,6 +61,9 @@ std::string NvsErrCategory::message(int ev) const {
 
   case NvsErrc::Erase_NVS_Failed:
     return "Failed to erase NVS";
+
+  case NvsErrc::Handle_Uninitialized:
+    return "Handle not initialized";
 
   default:
     return "(unrecognized error)";

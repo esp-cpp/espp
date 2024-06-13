@@ -52,6 +52,10 @@ public:
     check_key_length(key, ec);
     if (ec)
       return;
+
+    if (!check_handle_initialized(ec))
+      return;
+
     esp_err_t err;
     T readvalue;
     err = handle->get_item(key, readvalue);
@@ -112,6 +116,10 @@ public:
     check_key_length(key, ec);
     if (ec)
       return;
+
+    if (!check_handle_initialized(ec))
+      return;
+
     esp_err_t err;
     std::size_t len = 0;
     err = handle->get_item_size(nvs::ItemType::SZ, key, len);
@@ -139,6 +147,10 @@ public:
     check_key_length(key, ec);
     if (ec)
       return;
+
+    if (!check_handle_initialized(ec))
+      return;
+
     esp_err_t err;
     err = handle->set_item(key, value);
     if (err != ESP_OK) {
@@ -187,6 +199,10 @@ public:
     check_key_length(key, ec);
     if (ec)
       return;
+
+    if (!check_handle_initialized(ec))
+      return;
+
     esp_err_t err;
     err = handle->set_string(key, value.data());
     if (err != ESP_OK) {
@@ -218,6 +234,15 @@ protected:
       ec = make_error_code(NvsErrc::Key_Length_Too_Long);
       return;
     }
+  }
+
+  bool check_handle_initialized(std::error_code &ec) {
+    if (!handle) {
+      ec = make_error_code(NvsErrc::Handle_Uninitialized);
+      logger_.error("NVS Handle not initialized!");
+      return false;
+    }
+    return true;
   }
 
   /**
