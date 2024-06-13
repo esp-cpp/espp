@@ -481,24 +481,24 @@ public:
       value = static_cast<bool>(u8);
   }
 
-  protected:
-    void check_lengths(const char *ns_name, const char *key, std::error_code &ec) {
-      if (strlen(ns_name) > 15) {
-        logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
-        ec = make_error_code(NvsErrc::Namespace_Length_Too_Long);
-        return;
-      }
-      if (strlen(key) > 15) {
-        logger_.error("Key too long, must be <= 15 characters: {}", key);
-        ec = make_error_code(NvsErrc::Key_Length_Too_Long);
-        return;
-      }
+protected:
+  void check_lengths(const char *ns_name, const char *key, std::error_code &ec) {
+    if (strlen(ns_name) > 15) {
+      logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
+      ec = make_error_code(NvsErrc::Namespace_Length_Too_Long);
+      return;
     }
+    if (strlen(key) > 15) {
+      logger_.error("Key too long, must be <= 15 characters: {}", key);
+      ec = make_error_code(NvsErrc::Key_Length_Too_Long);
+      return;
+    }
+  }
 
-    /**
-     * @brief overload of std::make_error_code used by custom error codes.
-     */
-    std::error_code make_error_code(NvsErrc e) { return {static_cast<int>(e), theNvsErrCategory}; }
+  /**
+   * @brief overload of std::make_error_code used by custom error codes.
+   */
+  std::error_code make_error_code(NvsErrc e) { return {static_cast<int>(e), theNvsErrCategory}; }
 
 }; // Class Nvs
 } // namespace espp

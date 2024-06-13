@@ -108,8 +108,7 @@ public:
   /// @param[in] value Variable to read
   /// @param[out] ec Saves a std::error_code representing success or failure
   /// @details Reads the value of key into value, if key exists
-  template <typename T>
-  void get(const char *key, T &value, std::error_code &ec) {
+  template <typename T> void get(const char *key, T &value, std::error_code &ec) {
     check_key_length(key, ec);
     if (ec)
       return;
@@ -135,8 +134,7 @@ public:
   /// @param[in] key NVS Key of the variable to read
   /// @param[in] value Variable to read
   /// @param[out] ec Saves a std::error_code representing success or failure
-  template <typename T>
-  void get(std::string_view key, T &value, std::error_code &ec) {
+  template <typename T> void get(std::string_view key, T &value, std::error_code &ec) {
     get(key.data(), value, ec);
   }
 
@@ -156,16 +154,13 @@ public:
   /// @param[in] key NVS Key of the bool to read
   /// @param[in] value bool to read
   /// @param[out] ec Saves a std::error_code representing success or failure
-  void get(std::string_view key, bool &value, std::error_code &ec) {
-    get(key.data(), value, ec);
-  }
+  void get(std::string_view key, bool &value, std::error_code &ec) { get(key.data(), value, ec); }
 
   /// @brief Reads a string from the NVS
   /// @param[in] key NVS Key of the string to read
   /// @param[in] value string to read
   /// @param[out] ec Saves a std::error_code representing success or failure
-  void get(std::string_view key, std::string &value,
-               std::error_code &ec) {
+  void get(std::string_view key, std::string &value, std::error_code &ec) {
     get(key.data(), value, ec);
   }
 
@@ -200,8 +195,7 @@ public:
   /// @param[in] value Variable to read
   /// @param[out] ec Saves a std::error_code representing success or failure
   /// @details Saves the key/variable pair without committing the NVS.
-  template <typename T>
-  void set(const char *key, T value, std::error_code &ec) {
+  template <typename T> void set(const char *key, T value, std::error_code &ec) {
     check_key_length(key, ec);
     if (ec)
       return;
@@ -218,8 +212,7 @@ public:
   /// @param[in] key NVS Key of the variable to save
   /// @param[in] value Variable to save
   /// @param[out] ec Saves a std::error_code representing success or failure
-  template <typename T>
-  void set(std::string_view key, T value, std::error_code &ec) {
+  template <typename T> void set(std::string_view key, T value, std::error_code &ec) {
     set(key.data(), value, ec);
   }
 
@@ -227,9 +220,7 @@ public:
   /// @param[in] key NVS Key of the bool to set
   /// @param[in] value bool to set
   /// @param[out] ec Saves a std::error_code representing success or failure
-  void set(std::string_view key, bool value, std::error_code &ec) {
-    set(key.data(), value, ec);
-  }
+  void set(std::string_view key, bool value, std::error_code &ec) { set(key.data(), value, ec); }
 
   /// @brief Set a bool in the NVS
   /// @param[in] key NVS Key of the bool to set
@@ -244,8 +235,7 @@ public:
   /// @param[in] key NVS Key of the string to set
   /// @param[in] value string to set
   /// @param[out] ec Saves a std::error_code representing success or failure
-  void set(std::string_view key, const std::string &value,
-               std::error_code &ec) {
+  void set(std::string_view key, const std::string &value, std::error_code &ec) {
     set(key.data(), value, ec);
   }
 
@@ -253,8 +243,7 @@ public:
   /// @param[in] key NVS Key of the string to set
   /// @param[in] value string to set
   /// @param[out] ec Saves a std::error_code representing success or failure
-  void set(const char *key, const std::string &value,
-               std::error_code &ec) {
+  void set(const char *key, const std::string &value, std::error_code &ec) {
     check_key_length(key, ec);
     if (ec)
       return;
