@@ -43,10 +43,10 @@ struct PhaseCurrent {
   float c;
 };
 
-float normalize_angle(float angle) {
+inline float normalize_angle(float angle) {
   float a = fmod(angle, _2PI);
   return a >= 0 ? a : (a + _2PI);
 }
 
-float calc_electrical_angle(float shaft_angle, int pole_pairs) { return shaft_angle * pole_pairs; }
+inline float calc_electrical_angle(float shaft_angle, int pole_pairs) { return shaft_angle * pole_pairs; }
 } // namespace espp
