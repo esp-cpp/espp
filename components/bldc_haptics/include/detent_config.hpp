@@ -31,7 +31,7 @@ struct DetentConfig {
 /// @param lhs Left hand side of the equality
 /// @param rhs Right hand side of the equality
 /// @return True if the two DetentConfigs are equal
-bool operator==(const DetentConfig &lhs, const DetentConfig &rhs) {
+inline bool operator==(const DetentConfig &lhs, const DetentConfig &rhs) {
   bool vectors_equal = lhs.detent_positions.size() == rhs.detent_positions.size() &&
                        std::equal(lhs.detent_positions.begin(), lhs.detent_positions.end(),
                                   rhs.detent_positions.begin());
