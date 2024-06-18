@@ -101,7 +101,7 @@ extern "C" void app_main(void) {
     // Open
     fmt::print("\nOpening Non-Volatile Storage (NVS) handle... ");
     // Handle will automatically close when going out of scope or when it's reset.
-    espp::NVSHandle storage("storage", ec);
+    espp::NvsHandle storage("storage", ec);
     fmt::print("Done\n");
     ec.clear();
 
