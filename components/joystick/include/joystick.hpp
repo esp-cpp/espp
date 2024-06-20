@@ -149,10 +149,19 @@ public:
    * @param center_deadzone_radius The radius of the unit circle's deadzone [0,
    *        1.0f] around the center, only used when the joystick is configured
    *        as Type::CIRCULAR.
+   *  @param range_deadzone Optional deadzone around the edge of the unit circle
+   *         when \p type is Type::CIRCULAR. This scales the output so that the
+   *         output appears to have magnitude 1 (meaning it appears to be on the
+   *         edge of the unit circle) if the magnitude of the mapped position
+   *         vector is greater than 1-range_deadzone. Example: if the range
+   *         deadzone is 0.1, then the output will be scaled so that the
+   *         magnitude of the output is 1 if the magnitude of the mapped
+   *         position vector is greater than 0.9.
    * @note If the Joystick is Type::CIRCULAR, the actual calibrations that are
-   *       saved into the joystick will have 0 deadzone around the center value,
-   *       so that only the center deadzone radius is applied.
+   *       saved into the joystick will have 0 deadzone around the center and range values,
+   *       so that center and range deadzones are actually applied on the vector value.
    * @sa set_center_deadzone_radius
+   * @sa set_range_deadzone
    */
   void set_calibration(const FloatRangeMapper::Config &x_calibration,
                        const FloatRangeMapper::Config &y_calibration,
