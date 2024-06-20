@@ -52,6 +52,11 @@ public:
     float center_deadzone_radius{
         0}; /**< The radius of the unit circle's deadzone [0, 1.0f] around the center, only used
         when the joystick is configured as Type::CIRCULAR. */
+    float range_deadzone_{0}; /**< The deadzone around the edge of the unit circle, only used when
+                          the joystick is configured as Type::CIRCULAR. This scales the output so
+                          that the output appears to have magnitude 1 (meaning it appears to be on
+                          the edge of the unit circle) when the joystick value magnitude is within
+                          the range [1-range_deadzone, 1]. */
     get_values_fn
         get_values; /**< Function to retrieve the latest unmapped joystick values (range [-1,1]). */
     Logger::Verbosity log_level{
@@ -68,6 +73,7 @@ public:
       , y_mapper_(config.y_calibration)
       , type_(config.type)
       , center_deadzone_radius_(config.center_deadzone_radius)
+      , range_deadzone_(config.range_deadzone_)
       , get_values_(config.get_values) {}
 
   /**
@@ -77,17 +83,30 @@ public:
    *         Type::CIRCULAR. When the magnitude of the joystick's mapped
    *         position vector is less than this value, the vector is set to
    *         (0,0).
+   *  @param range_deadzone Optional deadzone around the edge of the unit circle
+   *         when \p type is Type::CIRCULAR. This scales the output so that the
+   *         output appears to have magnitude 1 (meaning it appears to be on the
+   *         edge of the unit circle) if the magnitude of the mapped position
+   *         vector is greater than 1-range_deadzone. Example: if the range
+   *         deadzone is 0.1, then the output will be scaled so that the
+   *         magnitude of the output is 1 if the magnitude of the mapped
+   *         position vector is greater than 0.9.
    *  @note If the Joystick is Type::CIRCULAR, the actual calibrations that are
-   *        saved into the joystick will have 0 deadzone around the center
-   *        value, so that only the center deadzone radius is applied.
+   *        saved into the joystick will have 0 deadzone around the center value
+   *        and range values, so that center and range deadzones are actually
+   *        applied on the vector value instead of on the individual axes
+   *        independently.
    *  @sa set_center_deadzone_radius
+   *  @sa set_range_deadzone
    *  @sa set_calibration
    */
-  void set_type(Type type, float radius = 0) {
+  void set_type(Type type, float radius = 0, float range_deadzone = 0) {
     type_ = type;
     if (type_ == Type::CIRCULAR) {
-      x_mapper_.set_deadband(0);
-      y_mapper_.set_deadband(0);
+      x_mapper_.set_center_deadband(0);
+      y_mapper_.set_center_deadband(0);
+      x_mapper_.set_range_deadband(0);
+      y_mapper_.set_range_deadband(0);
     }
     center_deadzone_radius_ = radius;
   }
@@ -103,6 +122,20 @@ public:
   void set_center_deadzone_radius(float radius) { center_deadzone_radius_ = radius; }
 
   /**
+   * @brief Sets the range deadzone.
+   * @note Range deadzone is only applied when \p deadzone is Deadzone::CIRCULAR.
+   * @param range_deadzone Optional deadzone around the edge of the unit circle
+   *        when \p deadzone is Deadzone::CIRCULAR. This scales the output so
+   *        that the output appears to have magnitude 1 (meaning it appears to
+   *        be on the edge of the unit circle) if the magnitude of the mapped
+   *        position vector is greater than 1-range_deadzone. Example: if the
+   *        range deadzone is 0.1, then the output will be scaled so that the
+   *        magnitude of the output is 1 if the magnitude of the mapped position
+   *        vector is greater than 0.9.
+   */
+  void set_range_deadzone(float range_deadzone) { range_deadzone_ = range_deadzone; }
+
+  /**
    * @brief Update the x and y axis mapping.
    * @param x_calibration New x-axis range mapping configuration to use.
    * @param y_calibration New y-axis range mapping configuration to use.
@@ -116,14 +149,17 @@ public:
    */
   void set_calibration(const FloatRangeMapper::Config &x_calibration,
                        const FloatRangeMapper::Config &y_calibration,
-                       float center_deadzone_radius = 0) {
+                       float center_deadzone_radius = 0, float range_deadzone = 0) {
     x_mapper_.configure(x_calibration);
     y_mapper_.configure(y_calibration);
     if (type_ == Type::CIRCULAR) {
-      x_mapper_.set_deadband(0);
-      y_mapper_.set_deadband(0);
+      x_mapper_.set_center_deadband(0);
+      y_mapper_.set_center_deadband(0);
+      x_mapper_.set_range_deadband(0);
+      y_mapper_.set_range_deadband(0);
     }
     center_deadzone_radius_ = center_deadzone_radius;
+    range_deadzone_ = range_deadzone;
   }
 
   /**
@@ -155,14 +191,14 @@ public:
         // if it's within the deadzone radius, then set both axes to 0.
         position_.x(0);
         position_.y(0);
-      } else if (magnitude > 1.0f) {
-        // if it's outside the unit circle, then normalize the vector so that
-        // it's on the unit circle
+      } else if (magnitude > 1.0f - range_deadzone_) {
+        // if it's greater than the unit circle (or within the range deadzone),
+        // then normalize the vector so that it's on the edge of the unit circle
         position_ = position_.normalized();
       } else {
         // otherwise we should scale the vector so that it's 0 on the edge of
         // the deadzone and 1 on the edge of the unit circle
-        const float magnitude_range = 1.0f - center_deadzone_radius_;
+        const float magnitude_range = 1.0f - center_deadzone_radius_ - range_deadzone_;
         const float scale = (magnitude - center_deadzone_radius_) / magnitude_range;
         position_ *= scale;
       }
@@ -208,6 +244,7 @@ protected:
   FloatRangeMapper y_mapper_{};
   Type type_{Type::RECTANGULAR};
   float center_deadzone_radius_{0};
+  float range_deadzone_{0};
   get_values_fn get_values_{nullptr};
 };
 } // namespace espp

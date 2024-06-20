@@ -13,10 +13,10 @@ extern "C" void app_main(void) {
     //! [adc joystick example]
     std::vector<espp::AdcConfig> channels{{.unit = ADC_UNIT_2,
                                            .channel = ADC_CHANNEL_9, // Qt Py ESP32 PICO A0
-                                           .attenuation = ADC_ATTEN_DB_11},
+                                           .attenuation = ADC_ATTEN_DB_12},
                                           {.unit = ADC_UNIT_2,
                                            .channel = ADC_CHANNEL_8, // Qt Py ESP32 PICO A1
-                                           .attenuation = ADC_ATTEN_DB_11}};
+                                           .attenuation = ADC_ATTEN_DB_12}};
     espp::OneshotAdc adc({
         .unit = ADC_UNIT_2,
         .channels = channels,
@@ -37,15 +37,17 @@ extern "C" void app_main(void) {
     espp::Joystick js1({
         // convert [0, 3300]mV to approximately [-1.0f, 1.0f]
         .x_calibration =
-            {.center = 1700.0f, .deadband = 100.0f, .minimum = 0.0f, .maximum = 3300.0f},
+            {.center = 1700.0f, .center_deadband = 100.0f, .minimum = 0.0f, .maximum = 3300.0f},
         .y_calibration =
-            {.center = 1700.0f, .deadband = 100.0f, .minimum = 0.0f, .maximum = 3300.0f},
+            {.center = 1700.0f, .center_deadband = 100.0f, .minimum = 0.0f, .maximum = 3300.0f},
         .get_values = read_joystick,
     });
     espp::Joystick js2({
         // convert [0, 3300]mV to approximately [-1.0f, 1.0f]
-        .x_calibration = {.center = 1700.0f, .deadband = 0.0f, .minimum = 0.0f, .maximum = 3300.0f},
-        .y_calibration = {.center = 1700.0f, .deadband = 0.0f, .minimum = 0.0f, .maximum = 3300.0f},
+        .x_calibration =
+            {.center = 1700.0f, .center_deadband = 0.0f, .minimum = 0.0f, .maximum = 3300.0f},
+        .y_calibration =
+            {.center = 1700.0f, .center_deadband = 0.0f, .minimum = 0.0f, .maximum = 3300.0f},
         .type = espp::Joystick::Type::CIRCULAR,
         .center_deadzone_radius = 0.1f,
         .get_values = read_joystick,
