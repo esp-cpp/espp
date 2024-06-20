@@ -61,10 +61,10 @@ public:
                           the edge of the unit circle) when the joystick value magnitude is within
                           the range [1-range_deadzone, 1]. */
     get_values_fn get_values{nullptr}; /**< Function to retrieve the latest
-                                          unmapped joystick values. Needed if
-                                          you want to use update(), optional if
-                                          you want to use update(float raw_x,
-                                          float raw_y). */
+                                          unmapped joystick values. Required if
+                                          you want to use update(), unused if
+                                          you call update(float raw_x, float
+                                          raw_y). */
     Logger::Verbosity log_level{
         Logger::Verbosity::WARN}; /**< Verbosity for the Joystick logger_. */
   };
