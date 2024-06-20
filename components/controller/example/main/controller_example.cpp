@@ -76,10 +76,10 @@ extern "C" void app_main(void) {
     std::vector<espp::AdcConfig> channels{
         {.unit = ADC_UNIT_2,
          .channel = ADC_CHANNEL_1, // (x) Analog 0 on the joystick shield
-         .attenuation = ADC_ATTEN_DB_11},
+         .attenuation = ADC_ATTEN_DB_12},
         {.unit = ADC_UNIT_2,
          .channel = ADC_CHANNEL_2, // (y) Analog 1 on the joystick shield
-         .attenuation = ADC_ATTEN_DB_11}};
+         .attenuation = ADC_ATTEN_DB_12}};
     espp::OneshotAdc adc(espp::OneshotAdc::Config{
         .unit = ADC_UNIT_2,
         .channels = channels,
@@ -111,11 +111,16 @@ extern "C" void app_main(void) {
         .gpio_start = 42,           // D4 on the joystick shield
         .gpio_select = 21,          // D6 on the joystick shield
         .gpio_joystick_select = -1, // D2 on the joystick shield
-        .joystick_config =
-            {.x_calibration = {.center = 0.0f, .deadband = 0.2f, .minimum = -1.0f, .maximum = 1.0f},
-             .y_calibration = {.center = 0.0f, .deadband = 0.2f, .minimum = -1.0f, .maximum = 1.0f},
-             .get_values = read_joystick,
-             .log_level = espp::Logger::Verbosity::WARN},
+        .joystick_config = {.x_calibration = {.center = 0.0f,
+                                              .center_deadband = 0.2f,
+                                              .minimum = -1.0f,
+                                              .maximum = 1.0f},
+                            .y_calibration = {.center = 0.0f,
+                                              .center_deadband = 0.2f,
+                                              .minimum = -1.0f,
+                                              .maximum = 1.0f},
+                            .get_values = read_joystick,
+                            .log_level = espp::Logger::Verbosity::WARN},
         .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the controller and print
     // the state
@@ -236,11 +241,16 @@ extern "C" void app_main(void) {
         .gpio_start = 42,  // pin 37 on the joybonnet
         .gpio_select = 21, // pin 38 on the joybonnet
         .gpio_joystick_select = -1,
-        .joystick_config =
-            {.x_calibration = {.center = 0.0f, .deadband = 0.2f, .minimum = -1.0f, .maximum = 1.0f},
-             .y_calibration = {.center = 0.0f, .deadband = 0.2f, .minimum = -1.0f, .maximum = 1.0f},
-             .get_values = read_joystick,
-             .log_level = espp::Logger::Verbosity::WARN},
+        .joystick_config = {.x_calibration = {.center = 0.0f,
+                                              .center_deadband = 0.2f,
+                                              .minimum = -1.0f,
+                                              .maximum = 1.0f},
+                            .y_calibration = {.center = 0.0f,
+                                              .center_deadband = 0.2f,
+                                              .minimum = -1.0f,
+                                              .maximum = 1.0f},
+                            .get_values = read_joystick,
+                            .log_level = espp::Logger::Verbosity::WARN},
         .log_level = espp::Logger::Verbosity::WARN});
     // and finally, make the task to periodically poll the controller and print
     // the state

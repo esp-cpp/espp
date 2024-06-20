@@ -121,62 +121,46 @@ extern "C" void app_main(void) {
     static constexpr float max = 255.0f;
     // Default will have output range [-1, 1]
     espp::RangeMapper<float> rm(
-        {.center = center, .deadband = deadband, .minimum = min, .maximum = max});
+        {.center = center, .center_deadband = deadband, .minimum = min, .maximum = max});
     // You can explicitly set output center/range. In this case the output will
     // be in the range [0, 1024]
     espp::RangeMapper<float> rm2({.center = center,
-                                  .deadband = deadband,
+                                  .center_deadband = deadband,
                                   .minimum = min,
                                   .maximum = max,
                                   .output_center = 512,
                                   .output_range = 512});
-    // You can also invert the input distribution, such that input values are
-    // compared against the input min/max instead of input center. NOTE: this
-    // also showcases the use of a non-centered input distribution.
-    espp::FloatRangeMapper rm3({.center = center,
-                                .deadband = deadband,
+    // You can also use a non-centered input distribution.
+    espp::FloatRangeMapper rm3({.center = center / 2,
+                                .center_deadband = deadband,
                                 .minimum = min,
                                 .maximum = max,
-                                .invert_input = true,
                                 .output_center = 512,
                                 .output_range = 512});
-    // You can even invert the ouput distribution
+    // You can even invert the ouput distribution, and add a deadband around the
+    // min/max values
     espp::FloatRangeMapper rm4({
         .center = center,
-        .deadband = deadband,
+        .center_deadband = deadband,
         .minimum = min,
         .maximum = max,
+        .range_deadband = deadband,
         .invert_output = true,
     });
-    auto vals = std::vector<float>{min - 10, min, min + 5, min + 10, min + deadband,
-                                   // should show as approx -.66 and -.33
-                                   min + (center - deadband - min) * .33f,
-                                   min + (center - deadband - min) * .66f, center - deadband,
-                                   center - 7, center, center + 7, center + deadband,
-                                   // should show as approx .33 and .66
-                                   center + deadband + (max - center - deadband) * .33f,
-                                   center + deadband + (max - center - deadband) * .66f,
-                                   max - deadband, max - 10, max - 5, max, max + 10};
+    // make a vector of float values min - 10 to max + 10 in increments of 5
+    std::vector<float> vals;
+    for (float v = min - 10; v <= max + 10; v += 5) {
+      vals.push_back(v);
+    }
     // test the mapping and unmapping
-    fmt::print("Mapping [0, 255] -> [-1, 1]\n");
-    fmt::print("% value, mapped, unmapped\n");
+    fmt::print(
+        "% value, mapped [0;255] to [-1;1], unmapped [-1;1] to [0;255], mapped [0;255] to "
+        "[0;1024], unmapped [0;1024] to [0;255], mapped [0;255] to [1024;0], unmapped [1024;0] to "
+        "[0;255], mapped [0;255] to inverted [1;-1], unmapped inverted [1;-1] to [0;255]\n");
     for (const auto &v : vals) {
-      fmt::print("{}, {}, {}\n", v, rm.map(v), rm.unmap(rm.map(v)));
-    }
-    fmt::print("Mapping [0, 255] -> [0, 1024]\n");
-    fmt::print("% value, mapped, unmapped\n");
-    for (const auto &v : vals) {
-      fmt::print("{}, {}, {}\n", v, rm2.map(v), rm2.unmap(rm2.map(v)));
-    }
-    fmt::print("Mapping Inverted [0, 255] -> [1024, 0]\n");
-    fmt::print("% value, mapped, unmapped\n");
-    for (const auto &v : vals) {
-      fmt::print("{}, {}, {}\n", v, rm3.map(v), rm3.unmap(rm3.map(v)));
-    }
-    fmt::print("Mapping [0, 255] -> Inverted [1, -1]\n");
-    fmt::print("% value, mapped, unmapped\n");
-    for (const auto &v : vals) {
-      fmt::print("{}, {}, {}\n", v, rm4.map(v), rm4.unmap(rm4.map(v)));
+      fmt::print("{}, {}, {}, {}, {}, {}, {}, {}, {}\n", v, rm.map(v), rm.unmap(rm.map(v)),
+                 rm2.map(v), rm2.unmap(rm2.map(v)), rm3.map(v), rm3.unmap(rm3.map(v)), rm4.map(v),
+                 rm4.unmap(rm4.map(v)));
     }
     //! [range_mapper example]
   }

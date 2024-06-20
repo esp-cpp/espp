@@ -41,18 +41,14 @@ public:
    *  and 1 output range provide a default output range between [-1, 1].
    */
   struct Config {
-    T center;   /**< Center value for the input range. */
-    T deadband; /**< Deadband amount around (+-) the center for which output will be 0. */
-    T minimum;  /**< Minimum value for the input range. */
-    T maximum;  /**< Maximum value for the input range. */
-    bool invert_input{false}; /**< Whether to invert the input distribution (default false).
-                                 @note If true will compute the input relative to min/max
-                                 instead of to center. @warning This introduces a
-                                 discontinuity at the center value and ambiguity around the
-                                 min/max values when un-mapping back to the input
-                                 distribution. For these reasons this setting is not
-                                 recommended and may be replaced in future revisions. */
-    T output_center{T(0)};    /**< The center for the output. Default 0. */
+    T center; /**< Center value for the input range. */
+    T center_deadband{
+        T(0)}; /**< Deadband amount around (+-) the center for which output will be 0. */
+    T minimum; /**< Minimum value for the input range. */
+    T maximum; /**< Maximum value for the input range. */
+    T range_deadband{T(0)}; /**< Deadband amount around the minimum and maximum for which output
+                         will be min/max output. */
+    T output_center{T(0)};  /**< The center for the output. Default 0. */
     T output_range{T(1)}; /**< The range (+/-) from the center for the output. Default 1. @note Will
                              be passed through std::abs() to ensure it is positive. */
     bool invert_output{
@@ -85,16 +81,18 @@ public:
     }
 
     center_ = config.center;
-    deadband_ = config.deadband;
+    center_deadband_ = std::abs(config.center_deadband);
     minimum_ = config.minimum;
     maximum_ = config.maximum;
-    invert_input_ = config.invert_input;
+    range_deadband_ = std::abs(config.range_deadband);
     output_center_ = config.output_center;
     output_range_ = std::abs(config.output_range);
     output_min_ = output_center_ - output_range_;
     output_max_ = output_center_ + output_range_;
-    pos_range_ = (maximum_ - (center_ + deadband_)) / output_range_;
-    neg_range_ = (center_ - deadband_ - minimum_) / output_range_;
+    // positive range is the range from the (center + center_deadband) to (max - range_deadband)
+    pos_range_ = (maximum_ - range_deadband_ - (center_ + center_deadband_)) / output_range_;
+    // negative range is the range from the (center - center_deadband) to (min + range_deadband)
+    neg_range_ = (center_ - center_deadband_ - (minimum_ + range_deadband_)) / output_range_;
     invert_output_ = config.invert_output;
   }
 
@@ -124,13 +122,24 @@ public:
   T get_output_max() const { return output_max_; }
 
   /**
-   * @brief Set the deadband for the input distribution.
-   * @param deadband The deadband to use for the input distribution.
+   * @brief Set the deadband around the center of the input distribution.
+   * @param deadband The deadband to use around the center of the input
+   *        distribution.
    * @note The deadband must be non-negative.
    * @note The deadband is applied around the center value of the input
    *       distribution.
    */
-  void set_deadband(T deadband) { deadband_ = deadband; }
+  void set_center_deadband(T deadband) { center_deadband_ = deadband; }
+
+  /**
+   * @brief Set the deadband around the min/max of the input distribution.
+   * @param deadband The deadband to use around the min/max of the input
+   *        distribution.
+   * @note The deadband must be non-negative.
+   * @note The deadband is applied around the min/max values of the input
+   *       distribution.
+   */
+  void set_range_deadband(T deadband) { range_deadband_ = deadband; }
 
   /**
    * @brief Map a value \p v from the input distribution into the configured
@@ -142,31 +151,31 @@ public:
   T map(const T &v) const {
     T clamped = std::clamp(v, minimum_, maximum_);
     T calibrated{0};
-    bool positive_input = clamped >= center_;
-    if (invert_input_) {
-      // if we invert the input, then we are comparing against the min/max
-      calibrated = positive_input ? maximum_ - clamped : minimum_ - clamped;
-      // if it's within the deadband, return the output center
-      if (std::abs(calibrated) < deadband_) {
-        return output_center_;
-      }
-      // remove the deadband from the calibrated value
-      calibrated = positive_input ? calibrated + deadband_ : calibrated - deadband_;
-    } else {
-      // normally we compare against center
-      calibrated = clamped - center_;
-      // if it's within the deadband, return the output center
-      if (std::abs(calibrated) < deadband_) {
-        return output_center_;
-      }
-      // remove the deadband from the calibrated value
-      calibrated = positive_input ? calibrated - deadband_ : calibrated + deadband_;
+    // compare against center
+    calibrated = clamped - center_;
+    bool positive_input = calibrated >= 0;
+    bool within_center_deadband = std::abs(calibrated) < center_deadband_;
+    bool within_range_deadband =
+        clamped >= maximum_ - range_deadband_ || clamped <= minimum_ + range_deadband_;
+    if (within_center_deadband) {
+      // if it's within the center deadband, return the output center
+      return output_center_;
+    } else if (within_range_deadband) {
+      // if it's within the range deadband around the min/max, return the output
+      // min/max, taking into account the output inversion
+      return positive_input   ? invert_output_ ? output_min_ : output_max_
+             : invert_output_ ? output_max_
+                              : output_min_;
     }
-    T output = positive_input ? calibrated / pos_range_ + output_center_
-                              : calibrated / neg_range_ + output_center_;
+
+    // remove the deadband from the calibrated value
+    calibrated = positive_input ? calibrated - center_deadband_ : calibrated + center_deadband_;
+
+    T output = positive_input ? calibrated / pos_range_ : calibrated / neg_range_;
     if (invert_output_) {
       output = -output;
     }
+    output += output_center_;
     return std::clamp(output, output_min_, output_max_);
   }
 
@@ -175,47 +184,42 @@ public:
    *        default [-1,1]) back into the input distribution.
    * @param T&v Value from the centered output distribution.
    * @return Value within the input distribution.
-   * @note If `invert_input` is true, then the max/min of the input range both
-   *       map to the output center, which means that unmapping a value at the
-   *       output center is ambiguous. In this case unmap() will return the
-   *       maximum input value.
    */
   T unmap(const T &v) const {
     T clamped = std::clamp(v, output_min_, output_max_);
-    T calibrated{0};
+    // return early if we're in the center deadband
+    if (clamped == output_center_) {
+      return center_;
+    }
+    // return early if we're in the range deadband
+    if (clamped == output_min_ || clamped == output_max_) {
+      return invert_output_           ? clamped == output_min_ ? (maximum_ - range_deadband_)
+                                                               : (minimum_ + range_deadband_)
+                       : clamped == output_min_ ? (minimum_ + range_deadband_)
+                                      : (maximum_ - range_deadband_);
+    }
+    // else we need to convert the output value back to the input range
     if (invert_output_) {
-      clamped = -clamped;
+      // if the output is inverted, we need to invert the output value (flip
+      // around the output center)
+      clamped = output_center_ - (clamped - output_center_);
     }
     bool positive_output = clamped >= output_center_;
+    T calibrated{0};
     if (positive_output) {
-      calibrated = (clamped - output_center_) * pos_range_;
+      calibrated = (clamped - output_center_) * pos_range_ + center_ + center_deadband_;
     } else {
-      calibrated = (clamped - output_center_) * neg_range_;
-    }
-    if (invert_input_) {
-      if (clamped == output_center_) {
-        // NOTE: we cannot know if the original input value was minimum or maximum
-        //       so we return the maximum value
-        return maximum_;
-      }
-      calibrated =
-          positive_output ? maximum_ - calibrated + deadband_ : minimum_ - calibrated + deadband_;
-    } else {
-      if (clamped == output_center_) {
-        return center_;
-      }
-      calibrated =
-          positive_output ? calibrated + center_ + deadband_ : calibrated + center_ - deadband_;
+      calibrated = (clamped - output_center_) * neg_range_ + center_ - center_deadband_;
     }
     return std::clamp(calibrated, minimum_, maximum_);
   }
 
 protected:
   T center_{0};
-  T deadband_{0};
+  T center_deadband_{0};
   T minimum_{0};
   T maximum_{0};
-  bool invert_input_{false};
+  T range_deadband_{0};
   T pos_range_{1};
   T neg_range_{1};
   T output_center_{0};
@@ -244,15 +248,17 @@ typedef RangeMapper<int> IntRangeMapper;
 
 template <> struct fmt::formatter<espp::FloatRangeMapper::Config> : fmt::formatter<std::string> {
   auto format(const espp::FloatRangeMapper::Config &config, format_context &ctx) {
-    return fmt::format_to(ctx.out(), "[{},{},{},{},{},{},{},{}]", config.center, config.deadband,
-                          config.minimum, config.maximum, config.invert_input, config.output_center,
-                          config.output_range, config.invert_output);
+    return fmt::format_to(ctx.out(), "FloatRangeMapper[{},{},{},{},{},{},{},{}]", config.center,
+                          config.center_deadband, config.minimum, config.maximum,
+                          config.range_deadband, config.output_center, config.output_range,
+                          config.invert_output);
   }
 };
 template <> struct fmt::formatter<espp::IntRangeMapper::Config> : fmt::formatter<std::string> {
   auto format(const espp::IntRangeMapper::Config &config, format_context &ctx) {
-    return fmt::format_to(ctx.out(), "[{},{},{},{},{},{},{},{}]", config.center, config.deadband,
-                          config.minimum, config.maximum, config.invert_input, config.output_center,
-                          config.output_range, config.invert_output);
+    return fmt::format_to(ctx.out(), "IntRangeMapper[{},{},{},{},{},{},{},{}]", config.center,
+                          config.center_deadband, config.minimum, config.maximum,
+                          config.range_deadband, config.output_center, config.output_range,
+                          config.invert_output);
   }
 };
