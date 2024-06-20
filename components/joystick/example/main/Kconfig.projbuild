@@ -1,0 +1,50 @@
+menu "Example Configuration"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_QTPYPICO
+        help
+            Select the hardware to run this example on.
+
+        config EXAMPLE_HARDWARE_QTPYPICO
+            depends on IDF_TARGET_ESP32
+            bool "Qt Py PICO"
+
+        config EXAMPLE_HARDWARE_QTPYS3
+            depends on IDF_TARGET_ESP32S3
+            bool "Qt Py S3"
+
+        config EXAMPLE_HARDWARE_CUSTOM
+            bool "Custom"
+    endchoice
+
+    config EXAMPLE_ADC_UNIT
+        int "Example ADC Unit"
+        default 2 if EXAMPLE_HARDWARE_QTPYPICO
+        default 2 if EXAMPLE_HARDWARE_QTPYS3
+        range 1 2
+        help
+            The ADC unit number for the sensor. The ESP32 has two ADC units,
+            ADC_UNIT_1 and ADC_UNIT_2. Default is ADC UNIT 2.
+
+    config EXAMPLE_ADC_CHANNEL_X
+        int "Joystick X Axis ADC Channel"
+        range 0 50
+        default 9 if EXAMPLE_HARDWARE_QTPYPICO
+        default 7 if EXAMPLE_HARDWARE_QTPYS3
+        default 0 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            ADC Channel for the X axis of the joystick. Default is ADC2 channel
+            9 (A0) for Qt Py PICO and ADC2 channel 7 (A0) for Qt Py ESP32S3.
+
+    config EXAMPLE_ADC_CHANNEL_Y
+        int "Joystick Y Axis ADC Channel"
+        range 0 50
+        default 8 if EXAMPLE_HARDWARE_QTPYPICO
+        default 6 if EXAMPLE_HARDWARE_QTPYS3
+        default 1 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            ADC Channel for the Y axis of the joystick. Default is ADC2 channel
+            8 (A1) for Qt Py PICO and ADC2 channel 6 (A1) for Qt Py ESP32S3.
+
+endmenu

@@ -52,13 +52,15 @@ public:
     float center_deadzone_radius{
         0}; /**< The radius of the unit circle's deadzone [0, 1.0f] around the center, only used
         when the joystick is configured as Type::CIRCULAR. */
-    float range_deadzone_{0}; /**< The deadzone around the edge of the unit circle, only used when
+    float range_deadzone{0}; /**< The deadzone around the edge of the unit circle, only used when
                           the joystick is configured as Type::CIRCULAR. This scales the output so
                           that the output appears to have magnitude 1 (meaning it appears to be on
                           the edge of the unit circle) when the joystick value magnitude is within
                           the range [1-range_deadzone, 1]. */
-    get_values_fn
-        get_values; /**< Function to retrieve the latest unmapped joystick values (range [-1,1]). */
+    get_values_fn get_values{nullptr}; /**< Function to retrieve the latest unmapped
+                                          joystick values (range [-1,1]). Needed if you
+                                          want to use update(), optional if you want to
+                                          use update(float raw_x, float raw_y). */
     Logger::Verbosity log_level{
         Logger::Verbosity::WARN}; /**< Verbosity for the Joystick logger_. */
   };
@@ -73,7 +75,7 @@ public:
       , y_mapper_(config.y_calibration)
       , type_(config.type)
       , center_deadzone_radius_(config.center_deadzone_radius)
-      , range_deadzone_(config.range_deadzone_)
+      , range_deadzone_(config.range_deadzone)
       , get_values_(config.get_values) {}
 
   /**
@@ -165,6 +167,7 @@ public:
   /**
    * @brief Read the raw values and use the calibration data to update the
    *        position.
+   * @note Requires that the get_values_ function is set.
    */
   void update() {
     if (!get_values_) {
@@ -179,31 +182,18 @@ public:
       return;
     }
     logger_.debug("Got x,y values: ({}, {})", _x, _y);
-    raw_.x(_x);
-    raw_.y(_y);
-    position_.x(x_mapper_.map(_x));
-    position_.y(y_mapper_.map(_y));
-    // if we're configured to be a Type::CIRCULAR joystick, use the center
-    // deadzone radius and clamp the output to be within the unit circle
-    if (type_ == Type::CIRCULAR) {
-      auto magnitude = position_.magnitude();
-      if (magnitude < center_deadzone_radius_) {
-        // if it's within the deadzone radius, then set both axes to 0.
-        position_.x(0);
-        position_.y(0);
-      } else if (magnitude > 1.0f - range_deadzone_) {
-        // if it's greater than the unit circle (or within the range deadzone),
-        // then normalize the vector so that it's on the edge of the unit circle
-        position_ = position_.normalized();
-      } else {
-        // otherwise we should scale the vector so that it's 0 on the edge of
-        // the deadzone and 1 on the edge of the unit circle
-        const float magnitude_range = 1.0f - center_deadzone_radius_ - range_deadzone_;
-        const float scale = (magnitude - center_deadzone_radius_) / magnitude_range;
-        position_ *= scale;
-      }
-    }
+    recalculate(_x, _y);
   }
+
+  /**
+   * @brief Update the joystick's position using the provided raw x and y
+   *        values.
+   * @param raw_x The raw x-axis value.
+   * @param raw_y The raw y-axis value.
+   * @note This function is useful when you have the raw values and don't want
+   *       to use the get_values_ function.
+   */
+  void update(float raw_x, float raw_y) { recalculate(raw_x, raw_y); }
 
   /**
    * @brief Get the most recently updated x axis calibrated position.
@@ -238,6 +228,26 @@ public:
   friend struct fmt::formatter<Joystick>;
 
 protected:
+  void recalculate(float raw_x, float raw_y) {
+    raw_.x(raw_x);
+    raw_.y(raw_y);
+    position_.x(x_mapper_.map(raw_x));
+    position_.y(y_mapper_.map(raw_y));
+    if (type_ == Type::CIRCULAR) {
+      auto magnitude = position_.magnitude();
+      if (magnitude < center_deadzone_radius_) {
+        position_.x(0);
+        position_.y(0);
+      } else if (magnitude > 1.0f - range_deadzone_) {
+        position_ = position_.normalized();
+      } else {
+        const float magnitude_range = 1.0f - center_deadzone_radius_ - range_deadzone_;
+        const float new_magnitude = (magnitude - center_deadzone_radius_) / magnitude_range;
+        position_ = position_.normalized() * new_magnitude;
+      }
+    }
+  }
+
   Vector2f raw_{};
   Vector2f position_{};
   FloatRangeMapper x_mapper_{};
