@@ -10,7 +10,9 @@ namespace espp {
 /**
  *  @brief 2-axis Joystick with axis mapping / calibration.
  *
- * \section joystick_ex1 ADC Joystick Example
+ * \section joystick_ex1 Basic Circular and Rectangular Joystick Example
+ * \snippet joystick_example.cpp circular joystick example
+ * \section joystick_ex2 ADC Joystick Example
  * \snippet joystick_example.cpp adc joystick example
  */
 class Joystick : public BaseComponent {
@@ -27,8 +29,9 @@ public:
                  ///  [-1,1]) independently which results in x/y deadzones and
                  ///  output that are rectangular.
     CIRCULAR,    ///< The joystick is configured to have a circular output. This
-                 ///  means that the x/y < deadzones are circular around the input
-                 ///  and the output is clamped to be on or within the unit circle.
+                 ///  means that the x/y < deadzones are circular around the
+                 ///  input and range and the output is clamped to be on or
+                 ///  within the unit circle.
   };
 
   /**
@@ -111,6 +114,7 @@ public:
       y_mapper_.set_range_deadband(0);
     }
     center_deadzone_radius_ = radius;
+    range_deadzone_ = range_deadzone;
   }
 
   /**
