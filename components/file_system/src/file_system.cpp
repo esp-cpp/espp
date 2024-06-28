@@ -100,9 +100,8 @@ std::vector<std::filesystem::path> FileSystem::get_files_in_path(const std::file
       continue;
     }
     // use the config to determine output
-    std::error_code ec;
     auto file_path = fs::path{path} / entry->d_name;
-    auto file_status = fs::status(file_path, ec);
+    file_status = fs::status(file_path, ec);
     if (ec) {
       logger_.warn("Failed to get status for file: {}", file_path.string());
     }

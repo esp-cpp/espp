@@ -123,26 +123,26 @@ extern "C" void app_main(void) {
     // get a lsit of files in a directory
     auto files = fs.get_files_in_path(sandbox);
     logger.info("Files in {}: ", sandbox);
-    for (const auto &file : files) {
-      logger.info("\t{}", file);
+    for (const auto &f : files) {
+      logger.info("\t{}", f);
     }
 
     files = fs.get_files_in_path(root, true); // include directories
     logger.info("Files in {} (including directories): ", root.string());
-    for (const auto &file : files) {
-      logger.info("\t{}", file);
+    for (const auto &f : files) {
+      logger.info("\t{}", f);
     }
 
     files = fs.get_files_in_path(root, true, true); // include directories, recursive
     logger.info("Files in {} (including directories, recursive): ", root.string());
-    for (const auto &file : files) {
-      logger.info("\t{}", file);
+    for (const auto &f : files) {
+      logger.info("\t{}", f);
     }
 
     files = fs.get_files_in_path(root, false, true); // do not include directories, recursive
     logger.info("Files in {} (not including directories, recursive): ", root.string());
-    for (const auto &file : files) {
-      logger.info("\t{}", file);
+    for (const auto &f : files) {
+      logger.info("\t{}", f);
     }
 
     // cleanup
