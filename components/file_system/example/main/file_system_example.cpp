@@ -120,6 +120,31 @@ extern "C" void app_main(void) {
     std::string root_listing = fs.list_directory(root, config);
     logger.info("Recursive directory listing for {}:\n{}", root.string(), root_listing);
 
+    // get a lsit of files in a directory
+    auto files = fs.get_files_in_path(sandbox);
+    logger.info("Files in {}: ", sandbox);
+    for (const auto &file : files) {
+      logger.info("\t{}", file);
+    }
+
+    files = fs.get_files_in_path(root, true); // include directories
+    logger.info("Files in {} (including directories): ", root.string());
+    for (const auto &file : files) {
+      logger.info("\t{}", file);
+    }
+
+    files = fs.get_files_in_path(root, true, true); // include directories, recursive
+    logger.info("Files in {} (including directories, recursive): ", root.string());
+    for (const auto &file : files) {
+      logger.info("\t{}", file);
+    }
+
+    files = fs.get_files_in_path(root, false, true); // do not include directories, recursive
+    logger.info("Files in {} (not including directories, recursive): ", root.string());
+    for (const auto &file : files) {
+      logger.info("\t{}", file);
+    }
+
     // cleanup
     auto items = {file, file2, sandbox};
     for (auto &item : items) {
@@ -210,12 +235,16 @@ extern "C" void app_main(void) {
     }
 
     logger.info("Directory iterator:");
+    logger.warn(
+        "NOTE: directory_iterator is not implemented in esp-idf right now :( (as of v5.2.2)");
+    // NOTE: directory_iterator is not implemented in esp-idf right now :(
     // directory_iterator can be iterated using a range-for loop
     for (auto const &dir_entry : fs::recursive_directory_iterator{sandbox, ec}) {
       logger.info("\t{}", dir_entry.path().string());
     }
     if (ec) {
       logger.error("Could not iterate over directory '{}': {}", sandbox.string(), ec.message());
+      logger.info("\tThis is expected since directory_iterator is not implemented in esp-idf.");
     }
 
     // cleanup

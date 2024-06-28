@@ -1,8 +1,8 @@
 # File System Example
 
 This example shows how the `file_system` component can be used to manage files
-on a [littlefs](https://github.com/ARMmbed/littlefs) file system (wrapping the
-associated [esp_littlefs
+on a [littlefs](https://github.com/littlefs-project/littlefs) file system
+(wrapping the associated [esp_littlefs
 component](https://github.com/joltwallet/esp_littlefs)).
 
 The example further shows how POSIX / newlib APIs can be used alongside (most
