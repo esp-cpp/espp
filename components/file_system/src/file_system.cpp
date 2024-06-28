@@ -23,7 +23,7 @@ size_t FileSystem::get_used_space() const {
   return used;
 }
 
-std::string FileSystem::human_readable(size_t bytes) const {
+std::string FileSystem::human_readable(size_t bytes) {
   int i{};
   float mantissa = bytes;
   for (; mantissa >= 1024.; mantissa /= 1024., ++i) {
@@ -32,7 +32,7 @@ std::string FileSystem::human_readable(size_t bytes) const {
   return i == 0 ? fmt::format("{}", bytes) : fmt::format("{:.3f}{}", mantissa, "BKMGTPE"[i]);
 }
 
-std::string FileSystem::to_string(const std::filesystem::perms &perms) const {
+std::string FileSystem::to_string(const std::filesystem::perms &perms) {
   namespace fs = std::filesystem;
   std::string result;
   result += (perms & fs::perms::owner_read) != fs::perms::none ? "r" : "-";
@@ -47,7 +47,7 @@ std::string FileSystem::to_string(const std::filesystem::perms &perms) const {
   return result;
 }
 
-std::string FileSystem::to_string(time_t time) const {
+std::string FileSystem::to_string(time_t time) {
   std::tm tm = *std::localtime(&time);
   char buffer[80];
   std::strftime(buffer, sizeof(buffer), "%b %d %H:%M", &tm);

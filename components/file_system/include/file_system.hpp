@@ -65,6 +65,46 @@ public:
   /// @return Whether the file system was grown on mount
   static bool is_grow_on_mount() { return grow_on_mount_; }
 
+  /// @brief Get a human readable string for a byte size
+  /// @details
+  /// This method returns a human readable string for a byte size.
+  /// It is copied from the example on the page:
+  /// https://en.cppreference.com/w/cpp/filesystem/file_size
+  /// @param bytes The byte size
+  /// @return The human readable string
+  static std::string human_readable(size_t bytes);
+
+  /// @brief Get the partition label
+  /// @return The partition label
+  static const char *get_partition_label() { return CONFIG_ESPP_FILE_SYSTEM_PARTITION_LABEL; }
+
+  /// @brief Get the mount point
+  /// @details
+  /// The mount point is the root directory of the file system.
+  /// It is the root directory of the partition with the partition label.
+  /// @see get_root_path() and get_partition_label()
+  /// @return The mount point
+  static std::string get_mount_point() { return "/" + std::string{get_partition_label()}; }
+
+  /// @brief Get the root path
+  /// @details
+  /// The root path is the root directory of the file system.
+  /// @see get_mount_point() and get_partition_label()
+  /// @return The root path
+  static std::filesystem::path get_root_path() { return std::filesystem::path{get_mount_point()}; }
+
+  /// @brief Convert file permissions to a string
+  /// @details This method converts file permissions to a string in the format "rwxrwxrwx".
+  /// @param permissions The file permissions
+  /// @return The file permissions as a string
+  static std::string to_string(const std::filesystem::perms &permissions);
+
+  /// @brief Convert a time_t to a string
+  /// @details This method converts a time_t to a string in the format "Jan 01 00:00".
+  /// @param time The time_t to convert
+  /// @return The time as a string
+  static std::string to_string(time_t time);
+
   /// @brief Access the singleton instance of the file system
   /// @return Reference to the file system instance
   static FileSystem &get() {
@@ -103,46 +143,6 @@ public:
   /// @brief Get the amount of used space on the file system
   /// @return The amount of used space in bytes
   size_t get_used_space() const;
-
-  /// @brief Get a human readable string for a byte size
-  /// @details
-  /// This method returns a human readable string for a byte size.
-  /// It is copied from the example on the page:
-  /// https://en.cppreference.com/w/cpp/filesystem/file_size
-  /// @param bytes The byte size
-  /// @return The human readable string
-  std::string human_readable(size_t bytes) const;
-
-  /// @brief Get the partition label
-  /// @return The partition label
-  const char *get_partition_label() const { return CONFIG_ESPP_FILE_SYSTEM_PARTITION_LABEL; }
-
-  /// @brief Get the mount point
-  /// @details
-  /// The mount point is the root directory of the file system.
-  /// It is the root directory of the partition with the partition label.
-  /// @see get_root_path() and get_partition_label()
-  /// @return The mount point
-  std::string get_mount_point() const { return "/" + std::string{get_partition_label()}; }
-
-  /// @brief Get the root path
-  /// @details
-  /// The root path is the root directory of the file system.
-  /// @see get_mount_point() and get_partition_label()
-  /// @return The root path
-  std::filesystem::path get_root_path() const { return std::filesystem::path{get_mount_point()}; }
-
-  /// @brief Convert file permissions to a string
-  /// @details This method converts file permissions to a string in the format "rwxrwxrwx".
-  /// @param permissions The file permissions
-  /// @return The file permissions as a string
-  std::string to_string(const std::filesystem::perms &permissions) const;
-
-  /// @brief Convert a time_t to a string
-  /// @details This method converts a time_t to a string in the format "Jan 01 00:00".
-  /// @param time The time_t to convert
-  /// @return The time as a string
-  std::string to_string(time_t time) const;
 
   /// @brief Get the time of a file as a string
   /// @details This method gets the time of a file as a string in the format "Jan 01 00:00".
