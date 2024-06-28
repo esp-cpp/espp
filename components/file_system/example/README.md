@@ -26,5 +26,5 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-![output](https://user-images.githubusercontent.com/213467/235329033-c3a74010-5f75-4b7f-b5ba-15f6a54e2cc2.png)
+![CleanShot 2024-06-28 at 09 08 19](https://github.com/esp-cpp/espp/assets/213467/ae2791b0-e240-4a55-808d-fed00335b4e4)
 
