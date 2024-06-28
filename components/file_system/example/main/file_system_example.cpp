@@ -46,7 +46,7 @@ extern "C" void app_main(void) {
     logger.info("Testing filesystem using POSIX APIs...");
 
     //! [file_system posix example]
-    auto mount_point = espp::FileSystem::get().get_mount_point();
+    auto mount_point = espp::FileSystem::get_mount_point();
     const std::string sandbox = std::string(mount_point) + "/" + std::string(test_dir);
     struct stat st;
     // check that it exists - IT SHOULDN'T
@@ -75,7 +75,7 @@ extern "C" void app_main(void) {
     // get the file size
     stat(file.c_str(), &st);
     size_t file_size = st.st_size;
-    logger.info("File '{}' is {}", file, espp::FileSystem::get().human_readable(file_size));
+    logger.info("File '{}' is {}", file, espp::FileSystem::human_readable(file_size));
 
     // read from a file
     fp = fopen(file.c_str(), "r"); // NOTE: could use rb for binary
@@ -209,7 +209,7 @@ extern "C" void app_main(void) {
       logger.error("Could not get file size of '{}' - {}", file.string(), ec.message());
     } else {
       logger.info("File '{}' has a file size of {}", file.string(),
-                  espp::FileSystem::get().human_readable(file_size));
+                  espp::FileSystem::human_readable(file_size));
     }
 
     // read from a file
@@ -269,7 +269,7 @@ extern "C" void app_main(void) {
   }
 
   const std::string sandbox =
-      std::string(espp::FileSystem::get().get_mount_point()) + "/" + std::string(test_dir);
+      std::string(espp::FileSystem::get_mount_point()) + "/" + std::string(test_dir);
   rmdir(sandbox.c_str());
 
   logger.info("file_system example complete!");
