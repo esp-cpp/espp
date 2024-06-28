@@ -63,12 +63,12 @@ extern "C" void app_main(void) {
 
     // write to a file
     std::string file = sandbox + "/" + std::string(test_file);
-    FILE *f = fopen(file.c_str(), "w");
-    if (f == nullptr) {
+    FILE *fp = fopen(file.c_str(), "w");
+    if (fp == nullptr) {
       logger.error("Couldn't open {} for writing!", file);
     } else {
-      fwrite(file_contents.data(), 1, file_contents.size(), f);
-      fclose(f);
+      fwrite(file_contents.data(), 1, file_contents.size(), fp);
+      fclose(fp);
       logger.info("Wrote '{}' to {}", file_contents, file);
     }
 
@@ -78,8 +78,8 @@ extern "C" void app_main(void) {
     logger.info("File '{}' is {}", file, espp::FileSystem::get().human_readable(file_size));
 
     // read from a file
-    f = fopen(file.c_str(), "r"); // NOTE: could use rb for binary
-    if (f == nullptr) {
+    fp = fopen(file.c_str(), "r"); // NOTE: could use rb for binary
+    if (fp == nullptr) {
       logger.error("Couldn't open {} for reading!", file);
     } else {
       // // alternative way to get the file size if you've already opened it
@@ -89,8 +89,8 @@ extern "C" void app_main(void) {
 
       std::vector<char> bytes;
       bytes.resize(file_size);
-      fread(bytes.data(), 1, file_size, f);
-      fclose(f);
+      fread(bytes.data(), 1, file_size, fp);
+      fclose(fp);
       logger.info("Read bytes from file {}", bytes);
     }
 
