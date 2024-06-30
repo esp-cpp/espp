@@ -217,6 +217,8 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate) {
 
   audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 0);
 
+  play_audio_task_handle_ = xTaskGetCurrentTaskHandle();
+
   memset(&audio_tx_callbacks_, 0, sizeof(audio_tx_callbacks_));
   audio_tx_callbacks_.on_sent = audio_tx_sent_callback;
   i2s_channel_register_event_callback(audio_tx_handle, &audio_tx_callbacks_, NULL);
