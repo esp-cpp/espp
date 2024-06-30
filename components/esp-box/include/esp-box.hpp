@@ -8,8 +8,10 @@
 #include <driver/i2s_std.h>
 #include <driver/spi_master.h>
 
-#include <FreeRTOS/freertos.h>
-#include <FreeRTOS/stream_buffer.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/stream_buffer.h>
+#include <freertos/task.h>
 
 #include "base_component.hpp"
 #include "gt911.hpp"
