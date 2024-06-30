@@ -4,6 +4,8 @@ using namespace espp;
 
 EspBox::EspBox() { detect(); }
 
+EspBox::BoxType EspBox::box_type() const { return box_type_; }
+
 void EspBox::detect() {
   // probe the internal i2c bus for the gt911 and the tt21100 if we find the
   // gt911, we will use it as the touch controller, and detect that the box is
@@ -27,6 +29,7 @@ void EspBox::detect() {
   } else {
     box_type_ = BoxType::UNKNOWN;
   }
+  logger_.info("Detected box type: {}", box_type_);
 }
 
 ////////////////////////

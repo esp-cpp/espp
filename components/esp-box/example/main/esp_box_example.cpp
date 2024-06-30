@@ -11,6 +11,7 @@ extern "C" void app_main(void) {
 
   //! [esp box example]
   espp::EspBox box;
+  logger.info("Running on {}", box.box_type());
   box.initialize_touch();
   box.initialize_sound();
   //! [esp box example]
