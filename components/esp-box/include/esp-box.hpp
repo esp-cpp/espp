@@ -51,6 +51,8 @@ public:
   // Display
   bool initialize_lcd();
   bool initialize_display(size_t pixel_buffer_size);
+  static constexpr size_t lcd_width() { return lcd_width_; }
+  static constexpr size_t lcd_height() { return lcd_height_; }
   std::shared_ptr<Display> display() const;
   uint16_t *vram0() const;
   uint16_t *vram1() const;
@@ -111,10 +113,10 @@ protected:
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_18;
 
   // LCD
-  static constexpr size_t lcd_width = 320;
-  static constexpr size_t lcd_height = 240;
+  static constexpr size_t lcd_width_ = 320;
+  static constexpr size_t lcd_height_ = 240;
   static constexpr size_t lcd_bytes_per_pixel = 2;
-  static constexpr size_t frame_buffer_size = (((lcd_width)*lcd_bytes_per_pixel) * lcd_height);
+  static constexpr size_t frame_buffer_size = (((lcd_width_)*lcd_bytes_per_pixel) * lcd_height_);
   static constexpr int lcd_clock_speed = 60 * 1000 * 1000;
   static constexpr auto lcd_spi_num = SPI2_HOST;
   static constexpr gpio_num_t lcd_cs_io = GPIO_NUM_5;

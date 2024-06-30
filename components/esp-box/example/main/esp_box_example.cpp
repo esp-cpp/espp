@@ -12,8 +12,24 @@ extern "C" void app_main(void) {
   //! [esp box example]
   espp::EspBox box;
   logger.info("Running on {}", box.box_type());
-  box.initialize_touch();
-  box.initialize_sound();
+  if (!box.initialize_touch()) {
+    logger.error("Failed to initialize touchpad!");
+    return;
+  }
+  if (!box.initialize_sound()) {
+    logger.error("Failed to initialize sound!");
+    return;
+  }
+  if (!box.initialize_lcd()) {
+    logger.error("Failed to initialize LCD!");
+    return;
+  }
+  // pixel buffer is 50 lines high
+  static constexpr size_t pixel_buffer_size = box.lcd_width() * 50;
+  if (!box.initialize_display(pixel_buffer_size)) {
+    logger.error("Failed to initialize display!");
+    return;
+  }
 
   while (true) {
     std::this_thread::sleep_for(100ms);
