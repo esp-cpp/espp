@@ -18,17 +18,19 @@
 namespace espp {
 class EspBox : public BaseComponent {
 public:
+  /// The type of the box
   enum class BoxType {
-    UNKNOWN, // unknown box
-    BOX,     // ESP32-S3-BOX
-    BOX3,    // ESP32-S3-BOX-3
+    UNKNOWN, ///< unknown box
+    BOX,     ///< ESP32-S3-BOX
+    BOX3,    ///< ESP32-S3-BOX-3
   };
 
+  /// The data structure for the touchpad
   struct TouchpadData {
-    uint8_t num_touch_points = 0;
-    uint16_t x = 0;
-    uint16_t y = 0;
-    uint8_t btn_state = 0;
+    uint8_t num_touch_points = 0; ///< The number of touch points
+    uint16_t x = 0;               ///< The x coordinate
+    uint16_t y = 0;               ///< The y coordinate
+    uint8_t btn_state = 0;        ///< The button state (0 = button released, 1 = button pressed)
   };
 
   struct Config {};

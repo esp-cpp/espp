@@ -27,6 +27,7 @@ void EspBox::detect() {
     reset_value = box::reset_value;
     i2s_ws_io = box::i2s_ws_io;
   } else {
+    logger_.warn("Could not detect box type, are you sure you're running on a box?");
     box_type_ = BoxType::UNKNOWN;
   }
   logger_.info("Detected box type: {}", box_type_);
