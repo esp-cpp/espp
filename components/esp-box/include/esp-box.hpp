@@ -8,6 +8,9 @@
 #include <driver/i2s_std.h>
 #include <driver/spi_master.h>
 
+#include <FreeRTOS/freertos.h>
+#include <FreeRTOS/stream_buffer.h>
+
 #include "base_component.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
