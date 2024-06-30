@@ -50,7 +50,7 @@ public:
 
   // Display
   bool initialize_lcd();
-  bool initialize_display();
+  bool initialize_display(size_t pixel_buffer_size);
   std::shared_ptr<Display> display() const;
   uint16_t *vram0() const;
   uint16_t *vram1() const;
@@ -74,12 +74,15 @@ public:
   void play_audio(const std::vector<uint8_t> &data);
   void play_audio(const uint8_t *data, uint32_t num_bytes);
 
+  static constexpr auto get_lcd_dc_gpio() { return lcd_dc_io; }
+
 protected:
   void detect();
   bool update_gt911();
   bool update_tt21100();
   void update_volume_output();
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv);
+  void lcd_wait_lines();
 
   // box 3:
   struct box3 {
@@ -108,6 +111,10 @@ protected:
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_18;
 
   // LCD
+  static constexpr size_t lcd_width = 320;
+  static constexpr size_t lcd_height = 240;
+  static constexpr size_t lcd_bytes_per_pixel = 2;
+  static constexpr size_t frame_buffer_size = (((lcd_width)*lcd_bytes_per_pixel) * lcd_height);
   static constexpr int lcd_clock_speed = 60 * 1000 * 1000;
   static constexpr auto lcd_spi_num = SPI2_HOST;
   static constexpr gpio_num_t lcd_cs_io = GPIO_NUM_5;
@@ -115,8 +122,6 @@ protected:
   static constexpr gpio_num_t lcd_sclk_io = GPIO_NUM_7;
   static constexpr gpio_num_t lcd_reset_io = GPIO_NUM_48;
   static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_4;
-  static constexpr size_t lcd_width = 320;
-  static constexpr size_t lcd_height = 240;
   static constexpr bool backlight_value = true;
   static constexpr bool invert_colors = true;
   static constexpr auto rotation = espp::Display::Rotation::LANDSCAPE;
@@ -165,11 +170,15 @@ protected:
 
   // display
   std::shared_ptr<Display> display_;
-  std::atomic<float> brightness_{1.0f};
   /// SPI bus for communication with the LCD
   spi_bus_config_t lcd_spi_bus_config_;
-  spi_device_interface_config_t lcd_config;
-  spi_device_handle_t lcd_handle_;
+  spi_device_interface_config_t lcd_config_;
+  spi_device_handle_t lcd_handle_{nullptr};
+  static constexpr int spi_queue_size = 6;
+  spi_transaction_t trans[spi_queue_size];
+  std::atomic<int> num_queued_trans = 0;
+  uint8_t *frame_buffer0_{nullptr};
+  uint8_t *frame_buffer1_{nullptr};
 
   // sound
   std::atomic<float> volume_{1.0f};
