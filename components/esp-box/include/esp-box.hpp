@@ -39,41 +39,36 @@ public:
 
   I2c &internal_i2c();
 
+  // Touch
   bool initialize_touch();
   bool update_touch();
   std::shared_ptr<TouchpadInput> touchpad_input() const;
   TouchpadData touchpad_data() const;
   void touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, uint8_t *btn_state);
 
+  // Display
   bool initialize_lcd();
   bool initialize_display();
-
   std::shared_ptr<Display> display() const;
-
   uint16_t *vram0() const;
   uint16_t *vram1() const;
-
   uint8_t *frame_buffer0() const;
   uint8_t *frame_buffer1() const;
-
   void write_lcd(const uint8_t *data, size_t length, uint32_t user_data);
   void write_lcd_frame(const uint16_t x, const uint16_t y, const uint16_t width,
                        const uint16_t height, const uint8_t *data);
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
-
   void brightness(float brightness);
   float brightness() const;
 
-  bool initialize_sound();
+  // Audio
+  bool initialize_sound(uint32_t default_audio_rate = 48000);
   uint32_t audio_sample_rate() const;
   void audio_sample_rate(uint32_t sample_rate);
-
   void mute(bool mute);
-  bool mute() const;
-
+  bool is_muted() const;
   void volume(float volume);
   float volume() const;
-
   void play_audio(const std::vector<uint8_t> &data);
   void play_audio(const uint8_t *data, uint32_t num_bytes);
 
@@ -142,6 +137,14 @@ protected:
   static constexpr gpio_num_t i2s_di_io = GPIO_NUM_16;
   static constexpr gpio_num_t mute_pin = GPIO_NUM_1;
 
+  static constexpr int NUM_CHANNELS = 2;
+  static constexpr int NUM_BYTES_PER_CHANNEL = 2;
+  static constexpr int UPDATE_FREQUENCY = 60;
+
+  static constexpr int calc_audio_buffer_size(int sample_rate) {
+    return sample_rate * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
+  }
+
   BoxType box_type_{BoxType::UNKNOWN};
 
   // TODO: allow core id configuration
@@ -172,11 +175,29 @@ protected:
   std::unique_ptr<espp::Task> audio_task_{nullptr};
   // i2s / low-level audio
   i2s_chan_handle_t audio_tx_handle{nullptr};
-  uint8_t audio_tx_buffer[hal::AUDIO_BUFFER_SIZE];
+  std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   i2s_std_config_t audio_std_cfg;
   i2s_event_callbacks_t audio_tx_callbacks_;
   std::atomic<bool> has_sound{false};
-
 }; // class EspBox
 } // namespace espp
+
+// for easy printing of BoxType using libfmt
+template <> struct fmt::formatter<espp::EspBox::BoxType> : fmt::formatter<std::string> {
+  template <typename FormatContext> auto format(espp::EspBox::BoxType c, FormatContext &ctx) {
+    std::string name;
+    switch (c) {
+    case espp::EspBox::BoxType::UNKNOWN:
+      name = "UNKNOWN";
+      break;
+    case espp::EspBox::BoxType::BOX:
+      name = "BOX";
+      break;
+    case espp::EspBox::BoxType::BOX3:
+      name = "BOX3";
+      break;
+    }
+    return formatter<std::string>::format(name, ctx);
+  }
+};

@@ -157,21 +157,23 @@ void EspBox::touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y,
 // Audio Functions   //
 ////////////////////////
 
+static TaskHandle_t play_audio_task_handle_ = NULL;
+
 static bool IRAM_ATTR audio_tx_sent_callback(i2s_chan_handle_t handle, i2s_event_data_t *event,
                                              void *user_ctx) {
   // notify the main task that we're done
-  vTaskNotifyGiveFromISR(main_task_handle, NULL);
+  vTaskNotifyGiveFromISR(play_audio_task_handle_, NULL);
   return true;
 }
 
-bool EspBox::initialize_sound() {
+bool EspBox::initialize_sound(uint32_t default_audio_rate) {
   logger_.info("initializing i2s driver");
   logger_.debug("Using newer I2S standard");
   i2s_chan_config_t chan_cfg = {
       .id = i2s_port,
       .role = I2S_ROLE_MASTER,
-      .dma_desc_num = 16,
-      .dma_frame_num = 48,
+      .dma_desc_num = 16,  // TODO: calculate form audio rate
+      .dma_frame_num = 48, // TODO: calculate from audio rate
       .auto_clear = true,
       .intr_priority = 0,
   };
@@ -181,7 +183,7 @@ bool EspBox::initialize_sound() {
   audio_std_cfg = {
       .clk_cfg =
           {
-              .sample_rate_hz = hal::DEFAULT_AUDIO_RATE,
+              .sample_rate_hz = default_audio_rate,
               .clk_src = I2S_CLK_SRC_DEFAULT,
               .ext_clk_freq_hz = 0,
               .mclk_multiple = I2S_MCLK_MULTIPLE_256,
@@ -207,13 +209,14 @@ bool EspBox::initialize_sound() {
 
   ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
 
-  audio_tx_stream = xStreamBufferCreate(hal::AUDIO_BUFFER_SIZE * 4, 0);
+  auto buffer_size = calc_audio_buffer_size(default_audio_rate);
+  audio_tx_buffer.resize(buffer_size);
+
+  audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 0);
 
   memset(&audio_tx_callbacks_, 0, sizeof(audio_tx_callbacks_));
   audio_tx_callbacks_.on_sent = audio_tx_sent_callback;
   i2s_channel_register_event_callback(audio_tx_handle, &audio_tx_callbacks_, NULL);
-
-  main_task_handle = xTaskGetCurrentTaskHandle();
 
   audio_task_ = std::make_unique<espp::Task>(espp::Task::Config{
       .name = "audio task",
@@ -227,5 +230,74 @@ bool EspBox::initialize_sound() {
   xStreamBufferReset(audio_tx_stream);
 
   ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
+
+  audio_task_->start();
+
   return true;
+}
+
+bool IRAM_ATTR EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv) {
+  // Queue the next I2S out frame to write
+  uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
+  int buffer_size = audio_tx_buffer.size();
+  available = std::min<uint16_t>(available, buffer_size);
+  uint8_t *buffer = &audio_tx_buffer[0];
+  memset(buffer, 0, buffer_size);
+
+  if (available == 0) {
+    i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
+  } else {
+    xStreamBufferReceive(audio_tx_stream, buffer, available, 0);
+    i2s_channel_write(audio_tx_handle, buffer, available, NULL, portMAX_DELAY);
+  }
+  return false; // don't stop the task
+}
+
+void EspBox::update_volume_output() {
+  if (mute_) {
+    // TODO: use codec to set volume to 0
+  } else {
+    // TODO: use codec to set volume
+  }
+}
+
+void EspBox::mute(bool mute) {
+  mute_ = mute;
+  update_volume_output();
+}
+
+bool EspBox::is_muted() const { return mute_; }
+
+void EspBox::volume(float volume) {
+  volume_ = volume;
+  update_volume_output();
+}
+
+float EspBox::volume() const { return volume_; }
+
+uint32_t EspBox::audio_sample_rate() const { return audio_std_cfg.clk_cfg.sample_rate_hz; }
+
+void EspBox::audio_sample_rate(uint32_t sample_rate) {
+  logger_.info("Setting audio sample rate to {} Hz", sample_rate);
+  // stop the channel
+  i2s_channel_disable(audio_tx_handle);
+  // update the sample rate
+  audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
+  i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
+  // clear the buffer
+  xStreamBufferReset(audio_tx_stream);
+  // restart the channel
+  i2s_channel_enable(audio_tx_handle);
+}
+
+void EspBox::play_audio(const std::vector<uint8_t> &data) { play_audio(data.data(), data.size()); }
+
+void IRAM_ATTR EspBox::play_audio(const uint8_t *data, uint32_t num_bytes) {
+  play_audio_task_handle_ = xTaskGetCurrentTaskHandle();
+  if (has_sound) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+  }
+  // don't block here
+  xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
+  has_sound = true;
 }
