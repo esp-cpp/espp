@@ -7,6 +7,7 @@
 #include <driver/gpio.h>
 #include <driver/i2s_std.h>
 #include <driver/spi_master.h>
+#include <hal/spi_types.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
