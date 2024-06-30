@@ -14,5 +14,12 @@ extern "C" void app_main(void) {
   logger.info("Running on {}", box.box_type());
   box.initialize_touch();
   box.initialize_sound();
+
+  while (true) {
+    std::this_thread::sleep_for(100ms);
+    if (box.update_touch()) {
+      logger.info("Touch: {}", box.touchpad_data());
+    }
+  }
   //! [esp box example]
 }

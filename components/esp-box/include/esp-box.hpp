@@ -201,3 +201,13 @@ template <> struct fmt::formatter<espp::EspBox::BoxType> : fmt::formatter<std::s
     return formatter<std::string>::format(name, ctx);
   }
 };
+
+// for easy printing of TouchpadData using libfmt
+template <> struct fmt::formatter<espp::EspBox::TouchpadData> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const espp::EspBox::TouchpadData &c, FormatContext &ctx) {
+    return fmt::format_to(ctx.out(),
+                          "TouchpadData{{num_touch_points={}, x={}, y={}, btn_state={}}}",
+                          c.num_touch_points, c.x, c.y, c.btn_state);
+  }
+};
