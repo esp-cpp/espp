@@ -183,7 +183,7 @@ public:
 
 protected:
   static bool pcnt_on_reach(pcnt_unit_handle_t unit, const pcnt_watch_event_data_t *edata,
-                            void *user_ctx) const {
+                            void *user_ctx) {
     // NOTE: this function runs in ISR context
     AbiEncoder *obj = (AbiEncoder *)user_ctx;
     if (obj) {
