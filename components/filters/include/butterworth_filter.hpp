@@ -80,12 +80,12 @@ template <size_t ORDER, class Impl> struct fmt::formatter<espp::ButterworthFilte
   template <typename FormatContext>
   auto format(espp::ButterworthFilter<ORDER, Impl> const &f, FormatContext &ctx) {
     auto &&out = ctx.out();
-    format_to(out, "Butterworth - [");
+    fmt::format_to(out, "Butterworth - [");
     if constexpr (ORDER > 0) {
-      format_to(out, "[{}]", f.sections_[0]);
+      fmt::format_to(out, "[{}]", f.sections_[0]);
     }
     for (int i = 1; i < (ORDER + 1) / 2; i++) {
-      format_to(out, ", [{}]", f.sections_[i]);
+      fmt::format_to(out, ", [{}]", f.sections_[i]);
     }
     return fmt::format_to(out, "]");
   }
