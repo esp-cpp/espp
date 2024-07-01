@@ -100,9 +100,10 @@ static constexpr espp::Logger::Verbosity LOG_LEVEL =
 #if CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
 // for printing of BLE_GAP_EVENT_ using libfmt
 template <> struct fmt::formatter<ble_gap_event> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
-  template <typename FormatContext> auto format(const ble_gap_event &event, FormatContext &ctx) {
+  template <typename FormatContext>
+  auto format(const ble_gap_event &event, FormatContext &ctx) const {
     switch (event.type) {
     case BLE_GAP_EVENT_CONNECT:
       return fmt::format_to(ctx.out(), "BLE_GAP_EVENT_CONNECT");
@@ -129,10 +130,10 @@ template <> struct fmt::formatter<ble_gap_event> {
 
 // for pritning of nearby_fp_Characteristic using libfmt
 template <> struct fmt::formatter<nearby_fp_Characteristic> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const nearby_fp_Characteristic &characteristic, FormatContext &ctx) {
+  auto format(const nearby_fp_Characteristic &characteristic, FormatContext &ctx) const {
     switch (characteristic) {
     case kModelId:
       return fmt::format_to(ctx.out(), "kModelId");

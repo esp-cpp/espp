@@ -685,7 +685,7 @@ protected:
 #if !CONFIG_BT_NIMBLE_EXT_ADV || defined(_DOXYGEN_)
 // for easy printing of the advertising parameters using libfmt
 template <> struct fmt::formatter<espp::BleGattServer::AdvertisingParameters> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
   auto format(const espp::BleGattServer::AdvertisingParameters &advertising_params,
               FormatContext &ctx) const {
@@ -711,7 +711,7 @@ template <> struct fmt::formatter<espp::BleGattServer::AdvertisingParameters> {
 
 // for easy printing of the DisconnectReason enum using libfmt
 template <> struct fmt::formatter<espp::BleGattServer::DisconnectReason> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
   auto format(const espp::BleGattServer::DisconnectReason &reason, FormatContext &ctx) const {
     switch (reason) {

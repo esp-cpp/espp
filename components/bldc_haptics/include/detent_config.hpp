@@ -151,10 +151,12 @@ static const DetentConfig RETURN_TO_CENTER_WITH_DETENTS = {
 // for allowing easy serialization/printing of the
 // DetentConfig
 template <> struct fmt::formatter<espp::detail::DetentConfig> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
-  auto format(espp::detail::DetentConfig const &detent_config, FormatContext &ctx) {
+  auto format(espp::detail::DetentConfig const &detent_config, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(),
                           "DetentConfig:\n"
                           "\tposition_width: {} radians ({} degrees)\n"

@@ -19,10 +19,10 @@ enum class SensorDirection {
 
 // for printing SensorDirection using libfmt
 template <> struct fmt::formatter<espp::detail::SensorDirection> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(espp::detail::SensorDirection dir, FormatContext &ctx) {
+  auto format(espp::detail::SensorDirection dir, FormatContext &ctx) const {
     switch (dir) {
     case espp::detail::SensorDirection::CLOCKWISE:
       return fmt::format_to(ctx.out(), "CLOCKWISE");

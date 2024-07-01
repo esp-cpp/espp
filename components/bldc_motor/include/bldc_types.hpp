@@ -42,10 +42,10 @@ enum class FocType {
 
 // for easy printing of enums using fmt
 template <> struct fmt::formatter<espp::detail::MotionControlType> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(espp::detail::MotionControlType t, FormatContext &ctx) {
+  auto format(espp::detail::MotionControlType t, FormatContext &ctx) const {
     switch (t) {
     case espp::detail::MotionControlType::TORQUE:
       return fmt::format_to(ctx.out(), "TORQUE");
@@ -64,10 +64,10 @@ template <> struct fmt::formatter<espp::detail::MotionControlType> {
 };
 
 template <> struct fmt::formatter<espp::detail::TorqueControlType> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(espp::detail::TorqueControlType t, FormatContext &ctx) {
+  auto format(espp::detail::TorqueControlType t, FormatContext &ctx) const {
     switch (t) {
     case espp::detail::TorqueControlType::VOLTAGE:
       return fmt::format_to(ctx.out(), "VOLTAGE");
@@ -82,9 +82,9 @@ template <> struct fmt::formatter<espp::detail::TorqueControlType> {
 };
 
 template <> struct fmt::formatter<espp::detail::FocType> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
-  template <typename FormatContext> auto format(espp::detail::FocType t, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::detail::FocType t, FormatContext &ctx) const {
     switch (t) {
     case espp::detail::FocType::SINE_PWM:
       return fmt::format_to(ctx.out(), "SINE_PWM");

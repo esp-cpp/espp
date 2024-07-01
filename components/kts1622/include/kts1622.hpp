@@ -492,15 +492,16 @@ public:
     auto addr = Registers::CONFIG0;
     uint8_t data[] = {0, 0};
     read_many_from_register((uint8_t)addr, data, 2, ec);
-    if (ec) return;
+    if (ec)
+      return;
     if (direction) {
-        // To Input port
-        data[0] |= (uint8_t) mask;
-        data[1] |= (uint8_t)(mask >> 8);
+      // To Input port
+      data[0] |= (uint8_t)mask;
+      data[1] |= (uint8_t)(mask >> 8);
     } else {
-        // To Output port
-        data[0] &= (uint8_t) ~mask;
-        data[1] &= (uint8_t)(~mask >> 8);
+      // To Output port
+      data[0] &= (uint8_t)~mask;
+      data[1] &= (uint8_t)(~mask >> 8);
     }
     write_many_to_register((uint8_t)addr, data, 2, ec);
   }
@@ -722,8 +723,9 @@ protected:
 
 // for printing of enums using libfmt
 template <> struct fmt::formatter<espp::Kts1622::Port> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-  template <typename FormatContext> auto format(const espp::Kts1622::Port &p, FormatContext &ctx) {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(const espp::Kts1622::Port &p, FormatContext &ctx) const {
     switch (p) {
     case espp::Kts1622::Port::PORT0:
       return fmt::format_to(ctx.out(), "Port 0");
@@ -736,9 +738,9 @@ template <> struct fmt::formatter<espp::Kts1622::Port> {
 };
 
 template <> struct fmt::formatter<espp::Kts1622::InterruptType> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(const espp::Kts1622::InterruptType &t, FormatContext &ctx) {
+  auto format(const espp::Kts1622::InterruptType &t, FormatContext &ctx) const {
     switch (t) {
     case espp::Kts1622::InterruptType::LEVEL:
       return fmt::format_to(ctx.out(), "Level");
@@ -755,9 +757,9 @@ template <> struct fmt::formatter<espp::Kts1622::InterruptType> {
 };
 
 template <> struct fmt::formatter<espp::Kts1622::OutputDriveMode> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(const espp::Kts1622::OutputDriveMode &m, FormatContext &ctx) {
+  auto format(const espp::Kts1622::OutputDriveMode &m, FormatContext &ctx) const {
     switch (m) {
     case espp::Kts1622::OutputDriveMode::PUSH_PULL:
       return fmt::format_to(ctx.out(), "Push Pull");
@@ -770,9 +772,9 @@ template <> struct fmt::formatter<espp::Kts1622::OutputDriveMode> {
 };
 
 template <> struct fmt::formatter<espp::Kts1622::OutputDriveStrength> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(const espp::Kts1622::OutputDriveStrength &s, FormatContext &ctx) {
+  auto format(const espp::Kts1622::OutputDriveStrength &s, FormatContext &ctx) const {
     switch (s) {
     case espp::Kts1622::OutputDriveStrength::F_0_25:
       return fmt::format_to(ctx.out(), "0.25x");
@@ -789,9 +791,9 @@ template <> struct fmt::formatter<espp::Kts1622::OutputDriveStrength> {
 };
 
 template <> struct fmt::formatter<espp::Kts1622::PullResistor> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(const espp::Kts1622::PullResistor &p, FormatContext &ctx) {
+  auto format(const espp::Kts1622::PullResistor &p, FormatContext &ctx) const {
     switch (p) {
     case espp::Kts1622::PullResistor::PULL_UP:
       return fmt::format_to(ctx.out(), "Pull Up");

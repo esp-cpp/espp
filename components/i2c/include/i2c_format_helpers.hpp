@@ -6,7 +6,7 @@
 
 // for printing of i2c_port_t with libfmt
 template <> struct fmt::formatter<i2c_port_t> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext> auto format(const i2c_port_t &p, FormatContext &ctx) const {
     switch (p) {
@@ -22,7 +22,7 @@ template <> struct fmt::formatter<i2c_port_t> {
 
 // for printing gpio_num_t with libfmt
 template <> struct fmt::formatter<gpio_num_t> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext> auto format(const gpio_num_t &g, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(), "{:d}", (int)g);
@@ -31,7 +31,7 @@ template <> struct fmt::formatter<gpio_num_t> {
 
 // for printing gpio_pullup_t with libfmt
 template <> struct fmt::formatter<gpio_pullup_t> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext> auto format(const gpio_pullup_t &p, FormatContext &ctx) const {
     switch (p) {

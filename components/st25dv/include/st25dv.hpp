@@ -599,10 +599,10 @@ protected:
 
 // For printing out the IT_STS register using libfmt
 template <> struct fmt::formatter<espp::St25dv::IT_STS> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const espp::St25dv::IT_STS &it_sts, FormatContext &ctx) {
+  auto format(const espp::St25dv::IT_STS &it_sts, FormatContext &ctx) const {
     return fmt::format_to(
         ctx.out(),
         "IT_STS(raw: {:#02x}){{RF_USER: {}, RF_ACTIVITY: {}, RF_INTTERUPT: {}, FIELD_FALLING: {}, "

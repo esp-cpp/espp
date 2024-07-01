@@ -292,7 +292,7 @@ protected:
 
 // for printing the I2C::Config using fmt
 template <> struct fmt::formatter<espp::I2c::Config> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
   auto format(const espp::I2c::Config &c, FormatContext &ctx) const {

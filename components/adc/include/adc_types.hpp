@@ -55,7 +55,9 @@ template <> struct fmt::formatter<adc_atten_t> : fmt::formatter<std::string> {
 
 // for easy serialization of AdcConfig with libfmt
 template <> struct fmt::formatter<espp::AdcConfig> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
   auto format(const espp::AdcConfig &c, FormatContext &ctx) const {
