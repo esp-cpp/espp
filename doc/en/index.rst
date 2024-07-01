@@ -23,6 +23,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    csv
    display/index
    encoder/index
+   esp_box
    event_manager
    file_system
    filters/index
