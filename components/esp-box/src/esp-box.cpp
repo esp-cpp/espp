@@ -21,19 +21,30 @@ void EspBox::detect() {
 
   if (found_gt911) {
     box_type_ = BoxType::BOX3;
-    backlight_io = box3::backlight_io;
-    reset_value = box3::reset_value;
-    i2s_ws_io = box3::i2s_ws_io;
   } else if (found_tt21100) {
     box_type_ = BoxType::BOX;
-    backlight_io = box::backlight_io;
-    reset_value = box::reset_value;
-    i2s_ws_io = box::i2s_ws_io;
   } else {
     logger_.warn("Could not detect box type, are you sure you're running on a box?");
     box_type_ = BoxType::UNKNOWN;
   }
   logger_.info("Detected box type: {}", box_type_);
+  // now configure the pins based on the box type
+  switch (box_type_) {
+  case BoxType::BOX3:
+    backlight_io = box3::backlight_io;
+    reset_value = box3::reset_value;
+    i2s_ws_io = box3::i2s_ws_io;
+    touch_invert_x = box3::touch_invert_x;
+    break;
+  case BoxType::BOX:
+    backlight_io = box::backlight_io;
+    reset_value = box::reset_value;
+    i2s_ws_io = box::i2s_ws_io;
+    touch_invert_x = box::touch_invert_x;
+    break;
+  default:
+    break;
+  }
 }
 
 ////////////////////////
@@ -43,6 +54,7 @@ void EspBox::detect() {
 bool EspBox::initialize_touch() {
   switch (box_type_) {
   case BoxType::BOX3:
+    logger_.info("Initializing GT911");
     gt911_ = std::make_unique<espp::Gt911>(espp::Gt911::Config{
         .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
                            std::placeholders::_2, std::placeholders::_3),
@@ -51,6 +63,7 @@ bool EspBox::initialize_touch() {
         .log_level = espp::Logger::Verbosity::WARN});
     break;
   case BoxType::BOX:
+    logger_.info("Initializing TT21100");
     tt21100_ = std::make_unique<espp::Tt21100>(espp::Tt21100::Config{
         .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
                            std::placeholders::_2, std::placeholders::_3),
@@ -154,6 +167,27 @@ void EspBox::touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y,
   *x = touchpad_data_.x;
   *y = touchpad_data_.y;
   *btn_state = touchpad_data_.btn_state;
+}
+
+EspBox::TouchpadData EspBox::touchpad_convert(const EspBox::TouchpadData &data) const {
+  TouchpadData temp_data;
+  temp_data.num_touch_points = data.num_touch_points;
+  temp_data.x = data.x;
+  temp_data.y = data.y;
+  temp_data.btn_state = data.btn_state;
+  if (temp_data.num_touch_points == 0) {
+    return temp_data;
+  }
+  if (touch_swap_xy) {
+    std::swap(temp_data.x, temp_data.y);
+  }
+  if (touch_invert_x) {
+    temp_data.x = lcd_width_ - (temp_data.x + 1);
+  }
+  if (touch_invert_y) {
+    temp_data.y = lcd_height_ - (temp_data.y + 1);
+  }
+  return temp_data;
 }
 
 ////////////////////////

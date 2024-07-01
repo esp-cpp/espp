@@ -21,6 +21,7 @@ extern "C" void app_main(void) {
 
   //! [esp box example]
   espp::EspBox &box = espp::EspBox::get();
+  box.set_log_level(espp::Logger::Verbosity::INFO);
   logger.info("Running on {}", box.box_type());
   // initialize the touchpad
   if (!box.initialize_touch()) {
@@ -79,11 +80,15 @@ extern "C" void app_main(void) {
   // set the display brightness to be 75%
   box.brightness(75.0f);
 
-  auto previous_touchpad_data = box.touchpad_data();
+  auto previous_touchpad_data = box.touchpad_convert(box.touchpad_data());
   while (true) {
     std::this_thread::sleep_for(100ms);
     if (box.update_touch()) {
-      auto touchpad_data = box.touchpad_data();
+      // NOTE: since we're directly using the touchpad data, and not using the
+      // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
+      // converted into proper screen coordinates instead of simply using the
+      // raw values.
+      auto touchpad_data = box.touchpad_convert(box.touchpad_data());
       if (touchpad_data != previous_touchpad_data) {
         logger.info("Touch: {}", touchpad_data);
         previous_touchpad_data = touchpad_data;

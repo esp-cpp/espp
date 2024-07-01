@@ -113,6 +113,13 @@ public:
   /// \see update_touch()
   void touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, uint8_t *btn_state);
 
+  /// Convert touchpad data from raw reading to display coordinates
+  /// \param data The touchpad data to convert
+  /// \return The converted touchpad data
+  /// \note Uses the touch_invert_x and touch_invert_y settings to determine
+  ///       if the x and y coordinates should be inverted
+  TouchpadData touchpad_convert(const TouchpadData &data) const;
+
   /////////////////////////////////////////////////////////////////////////////
   // Display
   /////////////////////////////////////////////////////////////////////////////
@@ -275,6 +282,7 @@ protected:
     static constexpr gpio_num_t backlight_io = GPIO_NUM_47; // was 45 on ESP32-S3-BOX
     static constexpr bool reset_value = true;               // was false on ESP32-S3-BOX
     static constexpr gpio_num_t i2s_ws_io = GPIO_NUM_45;    // was 47 on ESP32-S3-BOX
+    static constexpr bool touch_invert_x = false;           // was true on ESP32-S3-BOX
   };                                                        // struct box3
 
   // box:
@@ -282,12 +290,14 @@ protected:
     static constexpr gpio_num_t backlight_io = GPIO_NUM_45;
     static constexpr bool reset_value = false;
     static constexpr gpio_num_t i2s_ws_io = GPIO_NUM_47;
+    static constexpr bool touch_invert_x = true;
   }; // struct box
 
   // set by the detect() method using the box3 and box namespaces
   gpio_num_t backlight_io;
   bool reset_value;
   gpio_num_t i2s_ws_io;
+  bool touch_invert_x;
 
   // common:
   // internal i2c (touchscreen, audio codec)
@@ -317,7 +327,6 @@ protected:
 
   // touch
   static constexpr bool touch_swap_xy = false;
-  static constexpr bool touch_invert_x = true;
   static constexpr bool touch_invert_y = false;
   static constexpr gpio_num_t touch_interrupt = GPIO_NUM_3;
 
