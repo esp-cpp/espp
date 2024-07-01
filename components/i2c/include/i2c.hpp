@@ -294,7 +294,8 @@ protected:
 template <> struct fmt::formatter<espp::I2c::Config> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
 
-  template <typename FormatContext> auto format(const espp::I2c::Config &c, FormatContext &ctx) {
+  template <typename FormatContext>
+  auto format(const espp::I2c::Config &c, FormatContext &ctx) const {
     // print the clock speed in khz
     auto clk_speed_khz = c.clk_speed / 1000;
     // if it's MHz, print it as such
