@@ -39,6 +39,7 @@ extern "C" void app_main(void) {
   }
 
   const std::string_view test_dir = "sandbox";
+  const std::string_view sub_dir = "subdir";
   const std::string_view test_file = "test.csv";
   const std::string_view file_contents = "Hello World!";
   // use posix api
@@ -108,6 +109,22 @@ extern "C" void app_main(void) {
       logger.info("Renamed '{}' to '{}'", file, file2);
     }
 
+    // make a subdirectory
+    std::string sub = sandbox + "/" + std::string(sub_dir);
+    mkdir(sub.c_str(), 0755);
+    logger.info("Created subdirectory {}", sub);
+
+    // make a file in the subdirectory
+    std::string sub_file = sub + "/subfile.txt";
+    FILE *sub_fp = fopen(sub_file.c_str(), "w");
+    if (sub_fp == nullptr) {
+      logger.error("Couldn't open {} for writing!", sub_file);
+    } else {
+      fwrite(file_contents.data(), 1, file_contents.size(), sub_fp);
+      fclose(sub_fp);
+      logger.info("Wrote '{}' to {}", file_contents, sub_file);
+    }
+
     // list files in a directory
     auto &fs = espp::FileSystem::get();
     espp::FileSystem::ListConfig config;
@@ -146,7 +163,7 @@ extern "C" void app_main(void) {
     }
 
     // cleanup
-    auto items = {file, file2, sandbox};
+    auto items = {sub_file, sub, file, file2, sandbox};
     for (auto &item : items) {
       // use stat to figure out if it exists
       auto code = stat(item.c_str(), &st);
@@ -234,6 +251,24 @@ extern "C" void app_main(void) {
       logger.info("Renamed {} to {}", file.string(), file2.string());
     }
 
+    // make a subdirectory
+    fs::path sub = sandbox / fs::path{sub_dir};
+    fs::create_directory(sub, ec);
+    if (ec) {
+      logger.error("Could not create directory {} - {}", sub.string(), ec.message());
+    } else {
+      logger.info("Created subdirectory {}", sub.string());
+    }
+
+    // make a file in the subdirectory
+    fs::path sub_file = sub / "subfile.txt";
+    std::ofstream sub_ofs(sub_file);
+    sub_ofs << file_contents;
+    sub_ofs.close();
+    sub_ofs.flush();
+    logger.info("Wrote '{}' to {}", file_contents, sub_file.string());
+
+    // list files in a directory
     logger.info("Directory iterator:");
     logger.warn(
         "NOTE: directory_iterator is not implemented in esp-idf right now :( (as of v5.2.2)");
@@ -247,23 +282,30 @@ extern "C" void app_main(void) {
       logger.info("\tThis is expected since directory_iterator is not implemented in esp-idf.");
     }
 
-    // cleanup
-    auto items = {file, file2, sandbox};
-    for (const auto &item : items) {
-      if (!fs::exists(item)) {
-        logger.warn("Not removing '{}', it doesn't exist!", item.string());
-        continue;
-      }
-      // and if it is a directory
-      bool is_dir = fs::is_directory(item);
-      auto err = is_dir ? rmdir(item.string().c_str()) : unlink(item.string().c_str());
-      if (err) {
-        logger.error("Could not remove {}, error code: {}", item.string(), err);
-      } else {
-        logger.info("Cleaned up {}", item.string());
-      }
-      // fs::remove(item, ec); // NOTE: cannot use fs::remove since it seems POSIX remove()
-      // doesn't work
+    logger.info("Recursive directory listing:");
+    auto &espp_fs = espp::FileSystem::get();
+    auto files = espp_fs.get_files_in_path(sandbox, true, true);
+    for (const auto &f : files) {
+      logger.info("\t{}", f);
+    }
+
+    // cleanup, use convenience functions
+    // NOTE: cannot use fs::remove since it seems POSIX remove() doesn't work
+    // We'll use espp::FileSystem::remove, which works for both files and
+    // directories, and will recursively remove all the contents of the
+    // directory.
+    espp_fs.set_log_level(espp::Logger::Verbosity::DEBUG);
+    if (!espp_fs.remove(sandbox, ec)) {
+      logger.error("Could not remove {}", sandbox.string());
+    } else {
+      logger.info("Cleaned up {}", sandbox.string());
+    }
+
+    // now list entries in root (recursively) after cleanup
+    logger.info("Recursive directory listing after cleanup:");
+    files = espp_fs.get_files_in_path(espp_fs.get_root_path(), true, true);
+    for (const auto &f : files) {
+      logger.info("\t{}", f);
     }
     //! [file_system std filesystem example]
   }
