@@ -43,14 +43,14 @@ public:
 protected:
   void init_ui() {
     // Create a container with COLUMN flex direction
-    column_ = lv_obj_create(lv_scr_act());
+    column_ = lv_obj_create(lv_screen_active());
     lv_obj_set_size(column_, display_->width(), display_->height());
     lv_obj_set_flex_flow(column_, LV_FLEX_FLOW_COLUMN);
 
     label_ = lv_label_create(column_);
     lv_label_set_text(label_, "Hello world");
 
-    meter_ = lv_bar_create(lv_scr_act());
+    meter_ = lv_bar_create(lv_screen_active());
     lv_obj_set_size(meter_, display_->width() * 0.8f, 20);
     lv_obj_center(meter_);
 

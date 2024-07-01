@@ -117,8 +117,8 @@ public:
    * @param *area Pointer to the structure describing the pixel area.
    * @param *color_map Pointer to array of colors to flush to the display.
    */
-  static void flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map) {
-    fill(drv, area, color_map, (1 << (int)display_drivers::Flags::FLUSH_BIT));
+  static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
+    fill(disp, area, color_map, (1 << (int)display_drivers::Flags::FLUSH_BIT));
   }
 
   /**
@@ -171,16 +171,16 @@ public:
    * @param *color_map Pointer to array of colors to flush to the display.
    * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
    */
-  static void fill(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map,
+  static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,
                    uint32_t flags = 0) {
     if (lcd_send_lines_) {
       lcd_send_lines_(area->x1 + offset_x_, area->y1 + offset_y_, area->x2 + offset_x_,
-                      area->y2 + offset_y_, (uint8_t *)color_map, flags);
+                      area->y2 + offset_y_, color_map, flags);
     } else {
       set_drawing_area(area);
       send_command((uint8_t)Command::ramwr);
       uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      send_data((uint8_t *)color_map, size * 2, flags);
+      send_data(color_map, size * 2, flags);
     }
   }
 

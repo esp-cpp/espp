@@ -57,8 +57,8 @@ static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
   uint16_t user_flags = (uint32_t)(t->user);
   bool should_flush = user_flags & FLUSH_BIT;
   if (should_flush) {
-    lv_disp_t *disp = _lv_refr_get_disp_refreshing();
-    lv_disp_flush_ready(disp->driver);
+    lv_display_t *disp = _lv_refr_get_disp_refreshing();
+    lv_display_flush_ready(disp);
   }
 }
 //! [post_transfer_callback example]

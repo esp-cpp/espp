@@ -47,12 +47,12 @@ extern "C" void app_main(void) {
   }
 
   // set the background color to black
-  lv_obj_t *bg = lv_obj_create(lv_scr_act());
+  lv_obj_t *bg = lv_obj_create(lv_screen_active());
   lv_obj_set_size(bg, box.lcd_width(), box.lcd_height());
   lv_obj_set_style_bg_color(bg, lv_color_make(0, 0, 0), 0);
 
   // add text in the center of the screen
-  lv_obj_t *label = lv_label_create(lv_scr_act());
+  lv_obj_t *label = lv_label_create(lv_screen_active());
   lv_label_set_text(label, "Touch the screen!\nPress the home button to clear circles.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
@@ -108,7 +108,7 @@ extern "C" void app_main(void) {
 }
 
 static void draw_circle(int x0, int y0, int radius) {
-  lv_obj_t *my_Cir = lv_obj_create(lv_scr_act());
+  lv_obj_t *my_Cir = lv_obj_create(lv_screen_active());
   lv_obj_set_scrollbar_mode(my_Cir, LV_SCROLLBAR_MODE_OFF);
   lv_obj_set_size(my_Cir, 42, 42);
   lv_obj_set_pos(my_Cir, x0 - 21, y0 - 21);
@@ -119,7 +119,7 @@ static void draw_circle(int x0, int y0, int radius) {
 static void clear_circles() {
   // remove the circles from lvgl
   for (auto circle : circles) {
-    lv_obj_del(circle);
+    lv_obj_delete(circle);
   }
   // clear the vector
   circles.clear();
