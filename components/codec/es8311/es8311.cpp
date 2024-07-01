@@ -247,8 +247,6 @@ static void es8311_suspend(void) {
 }
 
 esp_err_t es8311_codec_init(audio_hal_codec_config_t *codec_cfg) {
-  uint8_t datmp, regv;
-  int coeff;
   esp_err_t ret = ESP_OK;
 
   ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG01, 0x30);
@@ -265,11 +263,11 @@ esp_err_t es8311_codec_init(audio_hal_codec_config_t *codec_cfg) {
   /*
    * Set Codec into Master or Slave mode
    */
-  regv = es8311_read_reg(ES8311_RESET_REG00);
+  uint8_t regv = es8311_read_reg(ES8311_RESET_REG00);
   /*
    * Set master/slave audio interface
    */
-  audio_hal_codec_i2s_iface_t *i2s_cfg = &(codec_cfg->i2s_iface);
+  audio_hal_codec_i2s_iface_t const *i2s_cfg = &(codec_cfg->i2s_iface);
   switch (i2s_cfg->mode) {
   case AUDIO_HAL_MODE_MASTER: /* MASTER MODE */
     ESP_LOGI(TAG, "ES8311 in Master mode");
@@ -338,7 +336,7 @@ esp_err_t es8311_codec_init(audio_hal_codec_config_t *codec_cfg) {
     break;
   }
   mclk_fre = sample_fre * MCLK_DIV_FRE;
-  coeff = get_coeff(mclk_fre, sample_fre);
+  int coeff = get_coeff(mclk_fre, sample_fre);
   if (coeff < 0) {
     ESP_LOGE(TAG, "Unable to configure sample rate %dHz with %dHz MCLK", sample_fre, mclk_fre);
     return ESP_FAIL;
@@ -346,63 +344,61 @@ esp_err_t es8311_codec_init(audio_hal_codec_config_t *codec_cfg) {
   /*
    * Set clock parammeters
    */
-  if (coeff >= 0) {
-    regv = es8311_read_reg(ES8311_CLK_MANAGER_REG02) & 0x07;
-    regv |= (coeff_div[coeff].pre_div - 1) << 5;
+  regv = es8311_read_reg(ES8311_CLK_MANAGER_REG02) & 0x07;
+  regv |= (coeff_div[coeff].pre_div - 1) << 5;
+  uint8_t datmp = 0;
+  switch (coeff_div[coeff].pre_multi) {
+  case 1:
     datmp = 0;
-    switch (coeff_div[coeff].pre_multi) {
-    case 1:
-      datmp = 0;
-      break;
-    case 2:
-      datmp = 1;
-      break;
-    case 4:
-      datmp = 2;
-      break;
-    case 8:
-      datmp = 3;
-      break;
-    default:
-      break;
-    }
-
-    if (ES8311_MCLK_SOURCE == FROM_SCLK_PIN) {
-      datmp = 3; /* DIG_MCLK = LRCK * 256 = BCLK * 8 */
-    }
-    regv |= (datmp) << 3;
-    ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG02, regv);
-
-    regv = es8311_read_reg(ES8311_CLK_MANAGER_REG05) & 0x00;
-    regv |= (coeff_div[coeff].adc_div - 1) << 4;
-    regv |= (coeff_div[coeff].dac_div - 1) << 0;
-    ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG05, regv);
-
-    regv = es8311_read_reg(ES8311_CLK_MANAGER_REG03) & 0x80;
-    regv |= coeff_div[coeff].fs_mode << 6;
-    regv |= coeff_div[coeff].adc_osr << 0;
-    ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG03, regv);
-
-    regv = es8311_read_reg(ES8311_CLK_MANAGER_REG04) & 0x80;
-    regv |= coeff_div[coeff].dac_osr << 0;
-    ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG04, regv);
-
-    regv = es8311_read_reg(ES8311_CLK_MANAGER_REG07) & 0xC0;
-    regv |= coeff_div[coeff].lrck_h << 0;
-    ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG07, regv);
-
-    regv = es8311_read_reg(ES8311_CLK_MANAGER_REG08) & 0x00;
-    regv |= coeff_div[coeff].lrck_l << 0;
-    ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG08, regv);
-
-    regv = es8311_read_reg(ES8311_CLK_MANAGER_REG06) & 0xE0;
-    if (coeff_div[coeff].bclk_div < 19) {
-      regv |= (coeff_div[coeff].bclk_div - 1) << 0;
-    } else {
-      regv |= (coeff_div[coeff].bclk_div) << 0;
-    }
-    ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG06, regv);
+    break;
+  case 2:
+    datmp = 1;
+    break;
+  case 4:
+    datmp = 2;
+    break;
+  case 8:
+    datmp = 3;
+    break;
+  default:
+    break;
   }
+
+  if (ES8311_MCLK_SOURCE == FROM_SCLK_PIN) {
+    datmp = 3; /* DIG_MCLK = LRCK * 256 = BCLK * 8 */
+  }
+  regv |= (datmp) << 3;
+  ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG02, regv);
+
+  regv = es8311_read_reg(ES8311_CLK_MANAGER_REG05) & 0x00;
+  regv |= (coeff_div[coeff].adc_div - 1) << 4;
+  regv |= (coeff_div[coeff].dac_div - 1) << 0;
+  ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG05, regv);
+
+  regv = es8311_read_reg(ES8311_CLK_MANAGER_REG03) & 0x80;
+  regv |= coeff_div[coeff].fs_mode << 6;
+  regv |= coeff_div[coeff].adc_osr << 0;
+  ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG03, regv);
+
+  regv = es8311_read_reg(ES8311_CLK_MANAGER_REG04) & 0x80;
+  regv |= coeff_div[coeff].dac_osr << 0;
+  ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG04, regv);
+
+  regv = es8311_read_reg(ES8311_CLK_MANAGER_REG07) & 0xC0;
+  regv |= coeff_div[coeff].lrck_h << 0;
+  ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG07, regv);
+
+  regv = es8311_read_reg(ES8311_CLK_MANAGER_REG08) & 0x00;
+  regv |= coeff_div[coeff].lrck_l << 0;
+  ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG08, regv);
+
+  regv = es8311_read_reg(ES8311_CLK_MANAGER_REG06) & 0xE0;
+  if (coeff_div[coeff].bclk_div < 19) {
+    regv |= (coeff_div[coeff].bclk_div - 1) << 0;
+  } else {
+    regv |= (coeff_div[coeff].bclk_div) << 0;
+  }
+  ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG06, regv);
 
   /*
    * mclk inverted or not

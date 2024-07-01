@@ -123,14 +123,14 @@ esp_err_t es8388_deinit(void);
 /**
  * @brief Configure ES8388 I2S format
  *
- * @param mod:  set ADC or DAC or both
- * @param cfg:   ES8388 I2S format
+ * @param mode:  set ADC or DAC or both
+ * @param fmt:   ES8388 I2S format
  *
  * @return
  *     - ESP_OK
  *     - ESP_FAIL
  */
-esp_err_t es8388_config_fmt(es_module_t mod, es_i2s_fmt_t cfg);
+esp_err_t es8388_config_fmt(es_module_t mode, es_i2s_fmt_t fmt);
 
 /**
  * @brief Configure I2s clock in MSATER mode

@@ -157,11 +157,7 @@ int es7210_read_reg(uint8_t reg_addr) {
 }
 
 esp_err_t es7210_config_sample(audio_hal_iface_samples_t sample) {
-  uint8_t regv;
-  int coeff;
   int sample_fre = 0;
-  int mclk_fre = 0;
-  esp_err_t ret = ESP_OK;
   switch (sample) {
   case AUDIO_HAL_08K_SAMPLES:
     sample_fre = 8000;
@@ -191,29 +187,28 @@ esp_err_t es7210_config_sample(audio_hal_iface_samples_t sample) {
     ESP_LOGE(TAG, "Unable to configure sample rate %dHz", sample_fre);
     break;
   }
-  mclk_fre = sample_fre * MCLK_DIV_FRE;
-  coeff = get_coeff(mclk_fre, sample_fre);
+  int mclk_fre = sample_fre * MCLK_DIV_FRE;
+  int coeff = get_coeff(mclk_fre, sample_fre);
   if (coeff < 0) {
     ESP_LOGE(TAG, "Unable to configure sample rate %dHz with %dHz MCLK", sample_fre, mclk_fre);
     return ESP_FAIL;
   }
+  esp_err_t ret = ESP_OK;
   /* Set clock parammeters */
-  if (coeff >= 0) {
-    /* Set adc_div & doubler & dll */
-    regv = es7210_read_reg(ES7210_MAINCLK_REG02) & 0x00;
-    regv |= coeff_div[coeff].adc_div;
-    regv |= coeff_div[coeff].doubler << 6;
-    regv |= coeff_div[coeff].dll << 7;
-    ret |= es7210_write_reg(ES7210_MAINCLK_REG02, regv);
-    /* Set osr */
-    regv = coeff_div[coeff].osr;
-    ret |= es7210_write_reg(ES7210_OSR_REG07, regv);
-    /* Set lrck */
-    regv = coeff_div[coeff].lrck_h;
-    ret |= es7210_write_reg(ES7210_LRCK_DIVH_REG04, regv);
-    regv = coeff_div[coeff].lrck_l;
-    ret |= es7210_write_reg(ES7210_LRCK_DIVL_REG05, regv);
-  }
+  /* Set adc_div & doubler & dll */
+  uint8_t regv = es7210_read_reg(ES7210_MAINCLK_REG02) & 0x00;
+  regv |= coeff_div[coeff].adc_div;
+  regv |= coeff_div[coeff].doubler << 6;
+  regv |= coeff_div[coeff].dll << 7;
+  ret |= es7210_write_reg(ES7210_MAINCLK_REG02, regv);
+  /* Set osr */
+  regv = coeff_div[coeff].osr;
+  ret |= es7210_write_reg(ES7210_OSR_REG07, regv);
+  /* Set lrck */
+  regv = coeff_div[coeff].lrck_h;
+  ret |= es7210_write_reg(ES7210_LRCK_DIVH_REG04, regv);
+  regv = coeff_div[coeff].lrck_l;
+  ret |= es7210_write_reg(ES7210_LRCK_DIVL_REG05, regv);
   return ret;
 }
 
