@@ -280,7 +280,7 @@ template <> struct fmt::formatter<espp::Joystick> {
   char presentation = 'v';
 
   // Parses format specifications of the form ['v' | 'r' | 'b'].
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
     // Parse the presentation format and store it in the formatter:
     auto it = ctx.begin(), end = ctx.end();
     if (it != end && (*it == 'v' || *it == 'r' || *it == 'b'))
