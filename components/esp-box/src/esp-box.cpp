@@ -2,7 +2,10 @@
 
 using namespace espp;
 
-EspBox::EspBox() { detect(); }
+EspBox::EspBox()
+    : BaseComponent("EspBox") {
+  detect();
+}
 
 EspBox::BoxType EspBox::box_type() const { return box_type_; }
 
@@ -402,9 +405,16 @@ uint8_t *EspBox::frame_buffer0() const { return frame_buffer0_; }
 
 uint8_t *EspBox::frame_buffer1() const { return frame_buffer1_; }
 
-void EspBox::brightness(float brightness) { display_->set_brightness(brightness); }
+void EspBox::brightness(float brightness) {
+  brightness = std::clamp(brightness, 0.0f, 100.0f) / 100.0f;
+  // display expects a value between 0 and 1
+  display_->set_brightness(brightness);
+}
 
-float EspBox::brightness() const { return display_->get_brightness(); }
+float EspBox::brightness() const {
+  // display returns a value between 0 and 1
+  return display_->get_brightness() * 100.0f;
+}
 
 ////////////////////////
 // Audio Functions   //

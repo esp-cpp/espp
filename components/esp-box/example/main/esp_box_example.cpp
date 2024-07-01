@@ -20,22 +20,26 @@ extern "C" void app_main(void) {
   logger.info("Starting example!");
 
   //! [esp box example]
-  espp::EspBox box;
+  espp::EspBox &box = espp::EspBox::get();
   logger.info("Running on {}", box.box_type());
+  // initialize the touchpad
   if (!box.initialize_touch()) {
     logger.error("Failed to initialize touchpad!");
     return;
   }
+  // initialize the sound
   if (!box.initialize_sound()) {
     logger.error("Failed to initialize sound!");
     return;
   }
+  // initialize the LCD
   if (!box.initialize_lcd()) {
     logger.error("Failed to initialize LCD!");
     return;
   }
   // set the pixel buffer to be 50 lines high
   static constexpr size_t pixel_buffer_size = box.lcd_width() * 50;
+  // initialize the LVGL display for the esp-box
   if (!box.initialize_display(pixel_buffer_size)) {
     logger.error("Failed to initialize display!");
     return;
@@ -72,18 +76,26 @@ extern "C" void app_main(void) {
   box.mute(false);
   box.volume(60.0f);
 
+  // set the display brightness to be 75%
+  box.brightness(75.0f);
+
+  auto previous_touchpad_data = box.touchpad_data();
   while (true) {
     std::this_thread::sleep_for(100ms);
     if (box.update_touch()) {
       auto touchpad_data = box.touchpad_data();
-      logger.info("Touch: {}", touchpad_data);
-      // if the button is pressed, clear the circles
-      if (touchpad_data.btn_state) {
-        clear_circles();
-      }
-      if (touchpad_data.num_touch_points > 0) {
-        draw_circle(touchpad_data.x, touchpad_data.y, 10);
-        play_click(box);
+      if (touchpad_data != previous_touchpad_data) {
+        logger.info("Touch: {}", touchpad_data);
+        previous_touchpad_data = touchpad_data;
+        // if the button is pressed, clear the circles
+        if (touchpad_data.btn_state) {
+          clear_circles();
+        }
+        // if there is a touch point, draw a circle and play a click sound
+        if (touchpad_data.num_touch_points > 0) {
+          draw_circle(touchpad_data.x, touchpad_data.y, 10);
+          play_click(box);
+        }
       }
     }
   }
