@@ -370,10 +370,10 @@ esp_err_t es8388_get_voice_volume(int *volume) {
  *     - (-1) Parameter error
  *     - (0)   Success
  */
-esp_err_t es8388_set_bits_per_sample(es_module_t mode, es_bits_length_t bits_length) {
+esp_err_t es8388_set_bits_per_sample(es_module_t mode, es_bits_length_t bits_per_sample) {
   esp_err_t res = ESP_OK;
   uint8_t reg = 0;
-  int bits = (int)bits_length;
+  int bits = (int)bits_per_sample;
 
   if (mode == ES_MODULE_ADC || mode == ES_MODULE_ADC_DAC) {
     res = es_read_reg(ES8388_ADCCONTROL4, &reg);
