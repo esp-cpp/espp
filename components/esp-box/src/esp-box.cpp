@@ -419,7 +419,40 @@ static bool IRAM_ATTR audio_tx_sent_callback(i2s_chan_handle_t handle, i2s_event
   return true;
 }
 
-bool EspBox::initialize_sound(uint32_t default_audio_rate) {
+bool EspBox::initialize_codec() {
+  logger_.info("initializing codec");
+
+  set_es8311_write(std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
+                             std::placeholders::_2, std::placeholders::_3));
+  set_es8311_read(std::bind(&espp::I2c::read_at_register, &internal_i2c_, std::placeholders::_1,
+                            std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+
+  esp_err_t ret_val = ESP_OK;
+  audio_hal_codec_config_t cfg;
+  memset(&cfg, 0, sizeof(cfg));
+  cfg.codec_mode = AUDIO_HAL_CODEC_MODE_DECODE;
+  cfg.dac_output = AUDIO_HAL_DAC_OUTPUT_LINE1;
+  cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
+  cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
+  cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
+  cfg.i2s_iface.samples = AUDIO_HAL_16K_SAMPLES;
+
+  ret_val |= es8311_codec_init(&cfg);
+  ret_val |= es8311_set_bits_per_sample(cfg.i2s_iface.bits);
+  ret_val |= es8311_config_fmt((es_i2s_fmt_t)cfg.i2s_iface.fmt);
+  ret_val |= es8311_codec_set_voice_volume(volume_);
+  ret_val |= es8311_codec_ctrl_state(cfg.codec_mode, AUDIO_HAL_CTRL_START);
+
+  if (ESP_OK != ret_val) {
+    logger_.error("Codec initialization failed");
+    return false;
+  } else {
+    logger_.info("Codec initialized");
+    return true;
+  }
+}
+
+bool EspBox::initialize_i2s(uint32_t default_audio_rate) {
   logger_.info("initializing i2s driver");
   logger_.debug("Using newer I2S standard");
   i2s_chan_config_t chan_cfg = {
@@ -473,6 +506,24 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate) {
   audio_tx_callbacks_.on_sent = audio_tx_sent_callback;
   i2s_channel_register_event_callback(audio_tx_handle, &audio_tx_callbacks_, NULL);
 
+  xStreamBufferReset(audio_tx_stream);
+
+  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
+
+  return true;
+}
+
+bool EspBox::initialize_sound(uint32_t default_audio_rate) {
+
+  if (!initialize_i2s(default_audio_rate)) {
+    logger_.error("Could not initialize I2S driver");
+    return false;
+  }
+  if (!initialize_codec()) {
+    logger_.error("Could not initialize codec");
+    return false;
+  }
+
   audio_task_ = std::make_unique<espp::Task>(espp::Task::Config{
       .name = "audio task",
       .callback = std::bind(&EspBox::audio_task_callback, this, std::placeholders::_1,
@@ -481,10 +532,6 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate) {
       .priority = 19,
       .core_id = 1,
   });
-
-  xStreamBufferReset(audio_tx_stream);
-
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
 
   audio_task_->start();
 
@@ -510,9 +557,9 @@ bool IRAM_ATTR EspBox::audio_task_callback(std::mutex &m, std::condition_variabl
 
 void EspBox::update_volume_output() {
   if (mute_) {
-    // TODO: use codec to set volume to 0
+    es8311_codec_set_voice_volume(0);
   } else {
-    // TODO: use codec to set volume
+    es8311_codec_set_voice_volume(volume_);
   }
 }
 

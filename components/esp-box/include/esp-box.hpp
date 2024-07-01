@@ -15,6 +15,8 @@
 #include <freertos/task.h>
 
 #include "base_component.hpp"
+#include "es7210.hpp"
+#include "es8311.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
 #include "st7789.hpp"
@@ -86,6 +88,8 @@ public:
 
 protected:
   void detect();
+  bool initialize_codec();
+  bool initialize_i2s(uint32_t default_audio_rate);
   bool update_gt911();
   bool update_tt21100();
   void update_volume_output();
