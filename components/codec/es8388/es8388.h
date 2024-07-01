@@ -147,13 +147,13 @@ esp_err_t es8388_i2s_config_clock(es_i2s_clock_t cfg);
  * @brief Configure ES8388 data sample bits
  *
  * @param mode:  set ADC or DAC or both
- * @param bit_per_sample:  bit number of per sample
+ * @param bits_per_sample:  bit number of per sample
  *
  * @return
  *     - ESP_OK
  *     - ESP_FAIL
  */
-esp_err_t es8388_set_bits_per_sample(es_module_t mode, es_bits_length_t bit_per_sample);
+esp_err_t es8388_set_bits_per_sample(es_module_t mode, es_bits_length_t bits_per_sample);
 
 /**
  * @brief  Start ES8388 codec chip
