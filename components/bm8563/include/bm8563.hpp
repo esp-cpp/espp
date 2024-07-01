@@ -192,28 +192,36 @@ protected:
 // for allowing easy serialization/printing of the
 // espp::Bm8563::Date, espp::Bm8563::Time, and espp::Bm8563::DateTime
 template <> struct fmt::formatter<espp::Bm8563::Date> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
-  template <typename FormatContext> auto format(espp::Bm8563::Date const &d, FormatContext &ctx) {
+  template <typename FormatContext>
+  auto format(espp::Bm8563::Date const &d, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(), "{{.year = {}, .month = {}, .weekday = {}, .day = {}}}",
                           d.year, d.month, d.weekday, d.day);
   }
 };
 
 template <> struct fmt::formatter<espp::Bm8563::Time> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
-  template <typename FormatContext> auto format(espp::Bm8563::Time const &t, FormatContext &ctx) {
+  template <typename FormatContext>
+  auto format(espp::Bm8563::Time const &t, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(), "{{.hour = {}, .minute = {}, .second = {}}}", t.hour, t.minute,
                           t.second);
   }
 };
 
 template <> struct fmt::formatter<espp::Bm8563::DateTime> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
-  auto format(espp::Bm8563::DateTime const &dt, FormatContext &ctx) {
+  auto format(espp::Bm8563::DateTime const &dt, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(), "{{.date = {}, .time = {}}}", dt.date, dt.time);
   }
 };

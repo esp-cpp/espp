@@ -391,7 +391,7 @@ protected:
 
 // for easy printing of BoxType using libfmt
 template <> struct fmt::formatter<espp::EspBox::BoxType> : fmt::formatter<std::string> {
-  template <typename FormatContext> auto format(espp::EspBox::BoxType c, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::EspBox::BoxType c, FormatContext &ctx) const {
     std::string name;
     switch (c) {
     case espp::EspBox::BoxType::UNKNOWN:
@@ -411,7 +411,7 @@ template <> struct fmt::formatter<espp::EspBox::BoxType> : fmt::formatter<std::s
 // for easy printing of TouchpadData using libfmt
 template <> struct fmt::formatter<espp::EspBox::TouchpadData> : fmt::formatter<std::string> {
   template <typename FormatContext>
-  auto format(const espp::EspBox::TouchpadData &c, FormatContext &ctx) {
+  auto format(const espp::EspBox::TouchpadData &c, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(),
                           "TouchpadData{{num_touch_points={}, x={}, y={}, btn_state={}}}",
                           c.num_touch_points, c.x, c.y, c.btn_state);

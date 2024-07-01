@@ -422,10 +422,10 @@ protected:
 
 // for easy printing of MagneticFieldStatus using libfmt
 template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
   auto format(espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength const &mfs,
-              FormatContext &ctx) {
+              FormatContext &ctx) const {
     return fmt::format_to(
         ctx.out(), "{}",
         mfs == espp::Mt6701<espp::Mt6701Interface::SSI>::MagneticFieldStrength::NORMAL ? "NORMAL"
@@ -435,20 +435,20 @@ template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::SSI>::Magn
   }
 };
 template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
   auto format(espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus const &ts,
-              FormatContext &ctx) {
+              FormatContext &ctx) const {
     return fmt::format_to(
         ctx.out(), "{}",
         ts == espp::Mt6701<espp::Mt6701Interface::SSI>::TrackingStatus::NORMAL ? "NORMAL" : "LOST");
   }
 };
 template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
   auto format(espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength const &mfs,
-              FormatContext &ctx) {
+              FormatContext &ctx) const {
     return fmt::format_to(
         ctx.out(), "{}",
         mfs == espp::Mt6701<espp::Mt6701Interface::I2C>::MagneticFieldStrength::NORMAL ? "NORMAL"
@@ -458,10 +458,10 @@ template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::I2C>::Magn
   }
 };
 template <> struct fmt::formatter<espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
   auto format(espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus const &ts,
-              FormatContext &ctx) {
+              FormatContext &ctx) const {
     return fmt::format_to(
         ctx.out(), "{}",
         ts == espp::Mt6701<espp::Mt6701Interface::I2C>::TrackingStatus::NORMAL ? "NORMAL" : "LOST");
