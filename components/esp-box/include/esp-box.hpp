@@ -24,6 +24,15 @@
 #include "tt21100.hpp"
 
 namespace espp {
+/// The EspBox class provides an interface to the ESP32-S3-BOX and ESP32-S3-BOX-3
+/// development boards.
+/// The class provides access to the following features:
+/// - Touchpad
+/// - Display
+/// - Audio
+///
+/// \section esp_box_example Example
+/// \snippet esp_box_example.cpp esp box example
 class EspBox : public BaseComponent {
 public:
   /// The type of the box
@@ -75,8 +84,10 @@ public:
 
   // Audio
   bool initialize_sound(uint32_t default_audio_rate = 48000);
+  void enable_sound(bool enable);
   uint32_t audio_sample_rate() const;
   void audio_sample_rate(uint32_t sample_rate);
+  size_t audio_buffer_size() const;
   void mute(bool mute);
   bool is_muted() const;
   void volume(float volume);

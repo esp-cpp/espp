@@ -524,6 +524,10 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate) {
     return false;
   }
 
+  // Config power control IO
+  gpio_set_direction(sound_power_pin, GPIO_MODE_OUTPUT);
+  enable_sound(true);
+
   audio_task_ = std::make_unique<espp::Task>(espp::Task::Config{
       .name = "audio task",
       .callback = std::bind(&EspBox::audio_task_callback, this, std::placeholders::_1,
@@ -537,6 +541,8 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate) {
 
   return true;
 }
+
+void EspBox::enable_sound(bool enable) { gpio_set_level(sound_power_pin, enable); }
 
 bool IRAM_ATTR EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv) {
   // Queue the next I2S out frame to write
@@ -578,6 +584,8 @@ void EspBox::volume(float volume) {
 float EspBox::volume() const { return volume_; }
 
 uint32_t EspBox::audio_sample_rate() const { return audio_std_cfg.clk_cfg.sample_rate_hz; }
+
+size_t EspBox::audio_buffer_size() const { return audio_tx_buffer.size(); }
 
 void EspBox::audio_sample_rate(uint32_t sample_rate) {
   logger_.info("Setting audio sample rate to {} Hz", sample_rate);
