@@ -215,11 +215,14 @@ std::string FileSystem::list_directory(const std::string &path, const ListConfig
     if (config.date_time) {
       result += fmt::format("{:>12} ", get_file_time_as_string(file_path));
     }
-    result += prefix;
-    result += entry->d_name;
+    std::string relative_name = "";
+    if (prefix.size())
+      relative_name += prefix + "/";
+    relative_name += entry->d_name;
+    result += relative_name;
     result += "\r\n";
     if (config.recursive && fs::is_directory(file_status)) {
-      result += list_directory(file_path, config, std::string{entry->d_name} + "/");
+      result += list_directory(file_path, config, relative_name);
     }
   }
   closedir(dir);
