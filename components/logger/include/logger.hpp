@@ -7,6 +7,7 @@
 
 #if defined(ESP_PLATFORM)
 #include <esp_timer.h>
+#include <sdkconfig.h>
 #endif
 
 #include "format.hpp"
@@ -25,6 +26,22 @@ namespace espp {
  * \snippet logger_example.cpp MultiLogger example
  */
 class Logger {
+
+#define ESPP_LOGGER_LOG_LEVEL_NONE 0
+#define ESPP_LOGGER_LOG_LEVEL_ERROR 1
+#define ESPP_LOGGER_LOG_LEVEL_WARN 2
+#define ESPP_LOGGER_LOG_LEVEL_INFO 3
+#define ESPP_LOGGER_LOG_LEVEL_DEBUG 4
+
+#ifndef CONFIG_ESPP_LOGGER_LOG_LEVEL
+#define CONFIG_ESPP_LOGGER_LOG_LEVEL ESPP_LOGGER_LOG_LEVEL_DEBUG
+#endif
+
+#define ESPP_LOGGER_DEBUG_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_DEBUG)
+#define ESPP_LOGGER_INFO_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_INFO)
+#define ESPP_LOGGER_WARN_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_WARN)
+#define ESPP_LOGGER_ERROR_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_ERROR)
+
 public:
   /**
    *   Verbosity levels for the logger, in order of increasing priority.
@@ -127,6 +144,7 @@ public:
    * @param args optional arguments passed to be formatted.
    */
   template <typename... Args> void debug(std::string_view rt_fmt_str, Args &&...args) {
+#if ESPP_LOGGER_DEBUG_ENABLED
     if (level_ > Verbosity::DEBUG)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
@@ -137,6 +155,7 @@ public:
       std::lock_guard<std::mutex> lock(tag_mutex_);
       fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
     }
+#endif
   }
 
   /**
@@ -145,6 +164,7 @@ public:
    * @param args optional arguments passed to be formatted.
    */
   template <typename... Args> void info(std::string_view rt_fmt_str, Args &&...args) {
+#if ESPP_LOGGER_INFO_ENABLED
     if (level_ > Verbosity::INFO)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
@@ -155,6 +175,7 @@ public:
       std::lock_guard<std::mutex> lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
     }
+#endif
   }
 
   /**
@@ -163,6 +184,7 @@ public:
    * @param args optional arguments passed to be formatted.
    */
   template <typename... Args> void warn(std::string_view rt_fmt_str, Args &&...args) {
+#if ESPP_LOGGER_WARN_ENABLED
     if (level_ > Verbosity::WARN)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
@@ -173,6 +195,7 @@ public:
       std::lock_guard<std::mutex> lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
     }
+#endif
   }
 
   /**
@@ -181,6 +204,7 @@ public:
    * @param args optional arguments passed to be formatted.
    */
   template <typename... Args> void error(std::string_view rt_fmt_str, Args &&...args) {
+#if ESPP_LOGGER_ERROR_ENABLED
     if (level_ > Verbosity::ERROR)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
@@ -191,6 +215,7 @@ public:
       std::lock_guard<std::mutex> lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
     }
+#endif
   }
 
   /**
@@ -201,6 +226,7 @@ public:
    * @param args optional arguments passed to be formatted.
    */
   template <typename... Args> void debug_rate_limited(std::string_view rt_fmt_str, Args &&...args) {
+#if ESPP_LOGGER_DEBUG_ENABLED
     if (level_ > Verbosity::DEBUG)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
@@ -211,6 +237,7 @@ public:
     }
     // forward the arguments to the debug function
     debug(rt_fmt_str, std::forward<Args>(args)...);
+#endif
   }
 
   /**
@@ -221,6 +248,7 @@ public:
    * @param args optional arguments passed to be formatted.
    */
   template <typename... Args> void info_rate_limited(std::string_view rt_fmt_str, Args &&...args) {
+#if ESPP_LOGGER_INFO_ENABLED
     if (level_ > Verbosity::INFO)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
@@ -231,6 +259,7 @@ public:
     }
     // forward the arguments to the info function
     info(rt_fmt_str, std::forward<Args>(args)...);
+#endif
   }
 
   /**
@@ -241,6 +270,7 @@ public:
    * @param args optional arguments passed to be formatted.
    */
   template <typename... Args> void warn_rate_limited(std::string_view rt_fmt_str, Args &&...args) {
+#if ESPP_LOGGER_WARN_ENABLED
     if (level_ > Verbosity::WARN)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
@@ -251,6 +281,7 @@ public:
     }
     // forward the arguments to the warn function
     warn(rt_fmt_str, std::forward<Args>(args)...);
+#endif
   }
 
   /**
@@ -261,6 +292,7 @@ public:
    * @param args optional arguments passed to be formatted.
    */
   template <typename... Args> void error_rate_limited(std::string_view rt_fmt_str, Args &&...args) {
+#if ESPP_LOGGER_ERROR_ENABLED
     if (level_ > Verbosity::ERROR)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
@@ -271,6 +303,7 @@ public:
     }
     // forward the arguments to the error function
     error(rt_fmt_str, std::forward<Args>(args)...);
+#endif
   }
 
 protected:
