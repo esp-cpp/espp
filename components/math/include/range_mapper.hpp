@@ -97,6 +97,47 @@ public:
   }
 
   /**
+   * @brief Return the configured center of the input distribution
+   * @return Center of the input distribution for this range mapper.
+   */
+  T get_center() const { return center_; }
+
+  /**
+   * @brief Return the configured deadband around the center of the input
+   *        distribution
+   * @return Deadband around the center of the input distribution for this
+   *         range mapper.
+   */
+  T get_center_deadband() const { return center_deadband_; }
+
+  /**
+   * @brief Return the configured minimum of the input distribution
+   * @return Minimum of the input distribution for this range mapper.
+   */
+  T get_minimum() const { return minimum_; }
+
+  /**
+   * @brief Return the configured maximum of the input distribution
+   * @return Maximum of the input distribution for this range mapper.
+   */
+  T get_maximum() const { return maximum_; }
+
+  /**
+   * @brief Return the configured range of the input distribution
+   * @note Always positive.
+   * @return Range of the input distribution for this range mapper.
+   */
+  T get_range() const { return maximum_ - minimum_; }
+
+  /**
+   * @brief Return the configured deadband around the min/max of the input
+   *        distribution
+   * @return Deadband around the min/max of the input distribution for this
+   *         range mapper.
+   */
+  T get_range_deadband() const { return range_deadband_; }
+
+  /**
    * @brief Return the configured center of the output distribution
    * @return Center of the output distribution for this range mapper.
    */
@@ -129,7 +170,7 @@ public:
    * @note The deadband is applied around the center value of the input
    *       distribution.
    */
-  void set_center_deadband(T deadband) { center_deadband_ = deadband; }
+  void set_center_deadband(T deadband) { center_deadband_ = std::abs(deadband); }
 
   /**
    * @brief Set the deadband around the min/max of the input distribution.
@@ -139,7 +180,7 @@ public:
    * @note The deadband is applied around the min/max values of the input
    *       distribution.
    */
-  void set_range_deadband(T deadband) { range_deadband_ = deadband; }
+  void set_range_deadband(T deadband) { range_deadband_ = std::abs(deadband); }
 
   /**
    * @brief Map a value \p v from the input distribution into the configured
