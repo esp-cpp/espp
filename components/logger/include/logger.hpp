@@ -20,6 +20,12 @@ namespace espp {
  * run-time. Logger currently is a light wrapper around libfmt (future
  * std::format).
  *
+ * To save on code size, the logger has the ability to be compiled out based on
+ * the log level set in the sdkconfig. This means that if the log level is set to
+ * ERROR, all debug, info, and warn logs will be compiled out. This is done by
+ * checking the log level at compile time and only compiling in the functions
+ * that are needed.
+ *
  * \section logger_ex1 Basic Example
  * \snippet logger_example.cpp Logger example
  * \section logger_ex2 Threaded Logging and Verbosity Example
