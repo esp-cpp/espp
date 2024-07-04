@@ -23,11 +23,6 @@ extern "C" void app_main(void) {
   espp::EspBox &box = espp::EspBox::get();
   box.set_log_level(espp::Logger::Verbosity::INFO);
   logger.info("Running on {}", box.box_type());
-  // initialize the touchpad
-  if (!box.initialize_touch()) {
-    logger.error("Failed to initialize touchpad!");
-    return;
-  }
   // initialize the sound
   if (!box.initialize_sound()) {
     logger.error("Failed to initialize sound!");
@@ -43,6 +38,11 @@ extern "C" void app_main(void) {
   // initialize the LVGL display for the esp-box
   if (!box.initialize_display(pixel_buffer_size)) {
     logger.error("Failed to initialize display!");
+    return;
+  }
+  // initialize the touchpad
+  if (!box.initialize_touch()) {
+    logger.error("Failed to initialize touchpad!");
     return;
   }
 

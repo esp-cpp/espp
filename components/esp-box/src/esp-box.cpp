@@ -52,6 +52,9 @@ void EspBox::detect() {
 ////////////////////////
 
 bool EspBox::initialize_touch() {
+  if (!display_) {
+    logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl will not properly handle the touchpad input!");
+  }
   switch (box_type_) {
   case BoxType::BOX3:
     logger_.info("Initializing GT911");
