@@ -86,6 +86,9 @@ public:
 
   /// Initialize the touchpad
   /// \return true if the touchpad was successfully initialized, false otherwise
+  /// \warning This method should be called after the display has been
+  ///          initialized if you want the touchpad to be recognized and used
+  ///          with LVGL and its objects.
   bool initialize_touch();
 
   /// Update the touchpad data
