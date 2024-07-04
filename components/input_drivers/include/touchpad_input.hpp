@@ -134,6 +134,10 @@ protected:
     indev_drv_tp_.read_cb = &TouchpadInput::touchpad_read;
     indev_drv_tp_.user_data = (void *)this;
     indev_touchpad_ = lv_indev_drv_register(&indev_drv_tp_);
+    if (!indev_touchpad_) {
+      logger_.error("Failed to register touchpad input device!");
+      return;
+    }
 
     logger_.info("Add HOME button input to LVGL");
     lv_indev_drv_init(&indev_drv_btn_);
@@ -141,6 +145,10 @@ protected:
     indev_drv_btn_.read_cb = &TouchpadInput::home_button_read;
     indev_drv_btn_.user_data = (void *)this;
     indev_button_ = lv_indev_drv_register(&indev_drv_btn_);
+    if (!indev_button_) {
+      logger_.error("Failed to register home button input device!");
+      return;
+    }
 
     auto disp = lv_disp_get_default();
     screen_size_x_ = (uint16_t)lv_disp_get_hor_res(disp);
