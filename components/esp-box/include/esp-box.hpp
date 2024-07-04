@@ -219,6 +219,10 @@ public:
   // Audio
   /////////////////////////////////////////////////////////////////////////////
 
+  /// Get the GPIO pin for the mute button (top of the box)
+  /// \return The GPIO pin for the mute button
+  static constexpr auto get_mute_pin() { return mute_pin; }
+
   /// Initialize the sound subsystem
   /// \param default_audio_rate The default audio rate
   /// \return true if the sound subsystem was successfully initialized, false
