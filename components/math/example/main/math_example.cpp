@@ -251,6 +251,45 @@ extern "C" void app_main(void) {
       float percent = espp::piecewise_linear(points, (float)i);
       fmt::print("battery voltage: {} mV -> {:.2f} %\n", i, percent);
     }
+
+    // approximations from
+    // https://support.xbox.com/en-US/help/hardware-network/accessories/adjusting-the-xbox-stick-settings-in-the-accessories-app
+    std::vector<std::pair<float, float>> instant = {
+        // clang-format off
+      // input (x), output (y)
+      {0, 0},
+      {0.2, 0.2},
+      {0.2, 0.4},
+      {1, 1},
+        // clang-format on
+    };
+    std::vector<std::pair<float, float>> aggressive = {
+        // clang-format off
+      // input (x), output (y)
+      {0, 0},
+      {0.2, 0.2},
+      {0.6, 0.8},
+      {1, 1},
+        // clang-format on
+    };
+    std::vector<std::pair<float, float>> delayed = {
+        // clang-format off
+      // input (x), output (y)
+      {0, 0},
+      {0.2, 0.2},
+      {0.8, 0.6},
+      {1, 1},
+        // clang-format on
+    };
+    fmt::print("points: {}\n", points);
+    fmt::print("% x, instant, aggressive, delayed\n");
+    for (float x = 0; x <= 1.0; x += 0.01) {
+      float y1 = espp::piecewise_linear(instant, x);
+      float y2 = espp::piecewise_linear(aggressive, x);
+      float y3 = espp::piecewise_linear(delayed, x);
+      fmt::print("{}, {}, {}, {}\n", x, y1, y2, y3);
+    }
+
     //! [piecewise linear example]
   }
 
