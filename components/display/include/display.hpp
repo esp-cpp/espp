@@ -58,7 +58,10 @@ public:
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    Task::BaseConfig task_config{.name="Display", .stack_size_bytes=4096, .priority=20, .core_id=0}; /**< Task configuration. */
+    Task::BaseConfig task_config{.name = "Display",
+                                 .stack_size_bytes = 4096,
+                                 .priority = 20,
+                                 .core_id = 0}; /**< Task configuration. */
     std::chrono::duration<float> update_period{
         0.01}; /**< How frequently to run the update function. */
     bool double_buffered{
@@ -87,7 +90,10 @@ public:
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    Task::BaseConfig task_config{.name="Display", .stack_size_bytes=4096, .priority=20, .core_id=0}; /**< Task configuration. */
+    Task::BaseConfig task_config{.name = "Display",
+                                 .stack_size_bytes = 4096,
+                                 .priority = 20,
+                                 .core_id = 0}; /**< Task configuration. */
     std::chrono::duration<float> update_period{
         0.01};                              /**< How frequently to run the update function. */
     Rotation rotation{Rotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
