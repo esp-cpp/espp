@@ -60,6 +60,20 @@ public:
   /// \note The internal I2C bus is used for the touchscreen
   I2c &internal_i2c();
 
+  /// Get the GPIO pin for the peripheral power
+  /// \return The GPIO pin for the peripheral power
+  /// \note This pin is used to enable/disable power to the peripherals, such as
+  ///       the keyboard, screen, etc.
+  static constexpr auto peripheral_power_pin() { return peripheral_power_pin_; }
+
+  /// Enable or disable power to the peripherals
+  /// \param on Whether to enable or disable power to the peripherals
+  void peripheral_power(bool on);
+
+  /// Get the state of the peripheral power
+  /// \return true if power is enabled, false otherwise
+  bool peripheral_power() const;
+
   /////////////////////////////////////////////////////////////////////////////
   // Keyboard
   /////////////////////////////////////////////////////////////////////////////
@@ -84,6 +98,10 @@ public:
   /// \return A shared pointer to the keyboard
   /// \note The keyboard is only available if it was successfully initialized
   std::shared_ptr<TKeyboard> keyboard() const;
+
+  /// Get the GPIO pin for the keyboard interrupt
+  /// \return The GPIO pin for the keyboard interrupt
+  static constexpr auto keyboard_interrupt_pin() { return keyboard_interrupt_pin_; }
 
   /////////////////////////////////////////////////////////////////////////////
   // Touchpad
@@ -235,8 +253,11 @@ protected:
   static constexpr gpio_num_t internal_i2c_sda = GPIO_NUM_18;
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_8;
 
+  // peripherals
+  static constexpr gpio_num_t peripheral_power_pin_ = GPIO_NUM_10;
+
   // keyboard
-  std::shared_ptr<TKeyboard> keyboard_{nullptr};
+  static constexpr gpio_num_t keyboard_interrupt_pin_ = GPIO_NUM_46;
 
   // LCD
   static constexpr size_t lcd_width_ = 320;
@@ -271,6 +292,9 @@ protected:
                      .scl_io_num = internal_i2c_scl,
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
+
+  // keyboard
+  std::shared_ptr<TKeyboard> keyboard_{nullptr};
 
   // touch
   std::shared_ptr<Gt911> gt911_;

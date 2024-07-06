@@ -3,7 +3,15 @@
 using namespace espp;
 
 TDeck::TDeck()
-    : BaseComponent("TDeck") {}
+    : BaseComponent("TDeck") {
+  // initialize the pweripheral power pin and set it to high
+  gpio_set_direction(peripheral_power_pin_, GPIO_MODE_OUTPUT);
+  peripheral_power(true);
+}
+
+void TDeck::peripheral_power(bool on) { gpio_set_level(peripheral_power_pin_, on); }
+
+bool TDeck::peripheral_power() const { return gpio_get_level(peripheral_power_pin_); }
 
 ////////////////////////
 // Keyboard Functions //
