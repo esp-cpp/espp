@@ -110,8 +110,8 @@ extern "C" void app_main(void) {
 static void draw_circle(int x0, int y0, int radius) {
   lv_obj_t *my_Cir = lv_obj_create(lv_scr_act());
   lv_obj_set_scrollbar_mode(my_Cir, LV_SCROLLBAR_MODE_OFF);
-  lv_obj_set_size(my_Cir, 42, 42);
-  lv_obj_set_pos(my_Cir, x0 - 21, y0 - 21);
+  lv_obj_set_size(my_Cir, radius * 2, radius * 2);
+  lv_obj_set_pos(my_Cir, x0 - radius, y0 - radius);
   lv_obj_set_style_radius(my_Cir, LV_RADIUS_CIRCLE, 0);
   circles.push_back(my_Cir);
 }
