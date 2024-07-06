@@ -63,12 +63,17 @@ extern "C" void app_main(void) {
   while (true) {
     std::this_thread::sleep_for(100ms);
     // if there are 10 circles on the screen, clear them
-    if (circles.size() >= 10) {
+    static constexpr int max_circles = 10;
+    if (circles.size() >= max_circles) {
       clear_circles();
     } else {
-      // draw a random circle on the screen
-      int x = rand() % wrover.lcd_width();
-      int y = rand() % wrover.lcd_height();
+      // draw a circle of circles on the screen (just draw the next circle)
+      static constexpr int middle_x = wrover.lcd_width() / 2;
+      static constexpr int middle_y = wrover.lcd_height() / 2;
+      static constexpr int radius = 50;
+      float angle = circles.size() * 2.0f * M_PI / max_circles;
+      int x = middle_x + radius * cos(angle);
+      int y = middle_y + radius * sin(angle);
       draw_circle(x, y, 10);
     }
   }
@@ -78,8 +83,8 @@ extern "C" void app_main(void) {
 static void draw_circle(int x0, int y0, int radius) {
   lv_obj_t *my_Cir = lv_obj_create(lv_scr_act());
   lv_obj_set_scrollbar_mode(my_Cir, LV_SCROLLBAR_MODE_OFF);
-  lv_obj_set_size(my_Cir, 42, 42);
-  lv_obj_set_pos(my_Cir, x0 - 21, y0 - 21);
+  lv_obj_set_size(my_Cir, radius * 2, radius * 2);
+  lv_obj_set_pos(my_Cir, x0 - radius, y0 - radius);
   lv_obj_set_style_radius(my_Cir, LV_RADIUS_CIRCLE, 0);
   circles.push_back(my_Cir);
 }
