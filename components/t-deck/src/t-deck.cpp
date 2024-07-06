@@ -129,6 +129,11 @@ TDeck::TouchpadData TDeck::touchpad_convert(const TDeck::TouchpadData &data) con
   if (touch_invert_y) {
     temp_data.y = lcd_height_ - (temp_data.y + 1);
   }
+  if (rotation == espp::Display::Rotation::LANDSCAPE_INVERTED) {
+    // invert x and y
+    temp_data.x = lcd_width_ - (temp_data.x + 1);
+    temp_data.y = lcd_height_ - (temp_data.y + 1);
+  }
   return temp_data;
 }
 

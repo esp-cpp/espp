@@ -282,8 +282,8 @@ protected:
 
   // touch
   static constexpr bool touch_swap_xy = true;
-  static constexpr bool touch_invert_x = false;
-  static constexpr bool touch_invert_y = true;
+  static constexpr bool touch_invert_x = true;
+  static constexpr bool touch_invert_y = false;
   // static constexpr gpio_num_t touch_interrupt = GPIO_NUM_3;
 
   // TODO: allow core id configuration
