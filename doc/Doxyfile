@@ -70,6 +70,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/socket/example/main/socket_example.cp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/t_keyboard/example/main/t_keyboard_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp
@@ -77,6 +78,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
 ## to automatically generate API reference list files header_file.inc
@@ -186,6 +188,7 @@ INPUT += $(PROJECT_PATH)/components/state_machine/include/deep_history_state.hpp
 INPUT += $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.hpp
 INPUT += $(PROJECT_PATH)/components/state_machine/include/state_base.hpp
 INPUT += $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp
+INPUT += $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp
 INPUT += $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp
 INPUT += $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp
 INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
@@ -196,6 +199,7 @@ INPUT += $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp
 INPUT += $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp
+INPUT += $(PROJECT_PATH)/components/wrover-kit/include/wrover-kit.hpp
 
 USE_MDFILE_AS_MAINPAGE = $(PROJECT_PATH)/README.md
 
