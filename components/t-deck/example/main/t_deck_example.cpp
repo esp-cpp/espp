@@ -19,7 +19,12 @@ extern "C" void app_main(void) {
   espp::TDeck &tdeck = espp::TDeck::get();
   tdeck.set_log_level(espp::Logger::Verbosity::INFO);
 
-  auto keypress_callback = [&](uint8_t key) { logger.info("Key pressed: {}", key); };
+  auto keypress_callback = [&](uint8_t key) {
+    logger.info("Key pressed: {}", key);
+    if (key == 8) {
+      clear_circles();
+    }
+  };
 
   // initialize the Keyboard
   bool start_task = true;
@@ -52,7 +57,7 @@ extern "C" void app_main(void) {
 
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_scr_act());
-  lv_label_set_text(label, "Touch the screen!\nPress the home button to clear circles.");
+  lv_label_set_text(label, "Touch the screen!\nPress the delete key to clear circles.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
