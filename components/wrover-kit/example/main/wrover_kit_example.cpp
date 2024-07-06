@@ -32,6 +32,8 @@ extern "C" void app_main(void) {
     return;
   }
 
+  logger.info("Adding LVGL objects to the screen.");
+
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_scr_act());
   lv_obj_set_size(bg, wrover.lcd_width(), wrover.lcd_height());
@@ -39,7 +41,7 @@ extern "C" void app_main(void) {
 
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_scr_act());
-  lv_label_set_text(label, "Touch the screen!\nPress the home button to clear circles.");
+  lv_label_set_text(label, "Drawing circles to the screen.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 

@@ -42,6 +42,7 @@ bool WroverKit::initialize_lcd() {
     logger_.warn("LCD already initialized, not initializing again!");
     return false;
   }
+  logger_.info("Initializing LCD with {}x{} resolution", lcd_width_, lcd_height_);
 
   esp_err_t ret;
 
@@ -93,6 +94,7 @@ bool WroverKit::initialize_display(size_t pixel_buffer_size) {
     logger_.warn("Display already initialized, not initializing again!");
     return false;
   }
+  logger_.info("Initializing display");
   // initialize the display / lvgl
   using namespace std::chrono_literals;
   display_ = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{

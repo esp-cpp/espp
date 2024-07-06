@@ -157,7 +157,7 @@ protected:
   static constexpr int lcd_clock_speed = 20 * 1000 * 1000;
   static constexpr auto lcd_spi_num = SPI2_HOST;
   static constexpr gpio_num_t lcd_cs_io = GPIO_NUM_22;
-  static constexpr gpio_num_t lcd_mosi_io = GPIO_NUM_32;
+  static constexpr gpio_num_t lcd_mosi_io = GPIO_NUM_23;
   static constexpr gpio_num_t lcd_sclk_io = GPIO_NUM_19;
   static constexpr gpio_num_t lcd_reset_io = GPIO_NUM_18;
   static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_21;
