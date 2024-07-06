@@ -48,5 +48,7 @@ inline float normalize_angle(float angle) {
   return a >= 0 ? a : (a + _2PI);
 }
 
-inline float calc_electrical_angle(float shaft_angle, int pole_pairs) { return shaft_angle * pole_pairs; }
+inline float calc_electrical_angle(float shaft_angle, int pole_pairs) {
+  return shaft_angle * pole_pairs;
+}
 } // namespace espp
