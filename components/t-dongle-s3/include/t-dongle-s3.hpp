@@ -18,6 +18,7 @@ namespace espp {
 ///
 /// The class provides access to the following features:
 /// - Display
+/// - RGB LED
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
