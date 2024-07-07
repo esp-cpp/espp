@@ -97,7 +97,7 @@ bool WroverKit::initialize_display(size_t pixel_buffer_size) {
   logger_.info("Initializing display");
   // initialize the display / lvgl
   using namespace std::chrono_literals;
-  display_ = std::make_shared<espp::Display<lv_color16_t>>(espp::Display<lv_color16_t>::AllocatingConfig{
+  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel>::AllocatingConfig{
       .width = lcd_width_,
       .height = lcd_height_,
       .pixel_buffer_size = pixel_buffer_size,
@@ -124,7 +124,7 @@ bool WroverKit::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
-std::shared_ptr<espp::Display<lv_color16_t>> WroverKit::display() const { return display_; }
+std::shared_ptr<espp::Display<WroverKit::Pixel>> WroverKit::display() const { return display_; }
 
 void IRAM_ATTR WroverKit::lcd_wait_lines() {
   spi_transaction_t *rtrans;
@@ -240,14 +240,14 @@ void WroverKit::write_lcd_frame(const uint16_t xs, const uint16_t ys, const uint
   }
 }
 
-lv_color16_t *WroverKit::vram0() const {
+WroverKit::Pixel *WroverKit::vram0() const {
   if (!display_) {
     return nullptr;
   }
   return display_->vram0();
 }
 
-lv_color16_t *WroverKit::vram1() const {
+WroverKit::Pixel *WroverKit::vram1() const {
   if (!display_) {
     return nullptr;
   }

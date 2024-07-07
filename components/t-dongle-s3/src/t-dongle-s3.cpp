@@ -179,7 +179,7 @@ bool TDongleS3::initialize_display(size_t pixel_buffer_size) {
   }
   // initialize the display / lvgl
   using namespace std::chrono_literals;
-  display_ = std::make_shared<espp::Display<lv_color16_t>>(espp::Display<lv_color16_t>::AllocatingConfig{
+  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel>::AllocatingConfig{
       // NOTE: for some reason, we have to swap the width and height here
       .width = lcd_height_,
       .height = lcd_width_,
@@ -207,7 +207,7 @@ bool TDongleS3::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
-std::shared_ptr<espp::Display<lv_color16_t>> TDongleS3::display() const { return display_; }
+std::shared_ptr<espp::Display<TDongleS3::Pixel>> TDongleS3::display() const { return display_; }
 
 void IRAM_ATTR TDongleS3::lcd_wait_lines() {
   spi_transaction_t *rtrans;
@@ -323,14 +323,14 @@ void TDongleS3::write_lcd_frame(const uint16_t xs, const uint16_t ys, const uint
   }
 }
 
-lv_color16_t *TDongleS3::vram0() const {
+TDongleS3::Pixel *TDongleS3::vram0() const {
   if (!display_) {
     return nullptr;
   }
   return display_->vram0();
 }
 
-lv_color16_t *TDongleS3::vram1() const {
+TDongleS3::Pixel *TDongleS3::vram1() const {
   if (!display_) {
     return nullptr;
   }

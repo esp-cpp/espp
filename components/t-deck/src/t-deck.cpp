@@ -129,7 +129,7 @@ TDeck::TouchpadData TDeck::touchpad_convert(const TDeck::TouchpadData &data) con
   if (touch_invert_y) {
     temp_data.y = lcd_height_ - (temp_data.y + 1);
   }
-  if (rotation == espp::Display<lv_color16_t>::Rotation::LANDSCAPE_INVERTED) {
+  if (rotation == espp::Display<Pixel>::Rotation::LANDSCAPE_INVERTED) {
     // invert x and y
     temp_data.x = lcd_width_ - (temp_data.x + 1);
     temp_data.y = lcd_height_ - (temp_data.y + 1);
@@ -227,7 +227,7 @@ bool TDeck::initialize_display(size_t pixel_buffer_size) {
   }
   // initialize the display / lvgl
   using namespace std::chrono_literals;
-  display_ = std::make_shared<espp::Display<lv_color16_t>>(espp::Display<lv_color16_t>::AllocatingConfig{
+  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel>::AllocatingConfig{
       .width = lcd_width_,
       .height = lcd_height_,
       .pixel_buffer_size = pixel_buffer_size,
@@ -254,7 +254,7 @@ bool TDeck::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
-std::shared_ptr<espp::Display<lv_color16_t>> TDeck::display() const { return display_; }
+std::shared_ptr<espp::Display<TDeck::Pixel>> TDeck::display() const { return display_; }
 
 void IRAM_ATTR TDeck::lcd_wait_lines() {
   spi_transaction_t *rtrans;
@@ -370,14 +370,14 @@ void TDeck::write_lcd_frame(const uint16_t xs, const uint16_t ys, const uint16_t
   }
 }
 
-lv_color16_t *TDeck::vram0() const {
+TDeck::Pixel *TDeck::vram0() const {
   if (!display_) {
     return nullptr;
   }
   return display_->vram0();
 }
 
-lv_color16_t *TDeck::vram1() const {
+TDeck::Pixel *TDeck::vram1() const {
   if (!display_) {
     return nullptr;
   }

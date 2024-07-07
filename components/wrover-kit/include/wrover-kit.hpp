@@ -24,6 +24,9 @@ namespace espp {
 /// \snippet wrover_kit_example.cpp wrover-kit example
 class WroverKit : public BaseComponent {
 public:
+  /// Alias for the pixel type used by the wrover-kit display
+  using Pixel = lv_color16_t;
+
   /// The data structure for the touchpad
   struct TouchpadData {
     uint8_t num_touch_points = 0; ///< The number of touch points
@@ -77,7 +80,7 @@ public:
 
   /// Get a shared pointer to the display
   /// \return A shared pointer to the display
-  std::shared_ptr<Display<lv_color16_t>> display() const;
+  std::shared_ptr<Display<Pixel>> display() const;
 
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
@@ -91,13 +94,13 @@ public:
   /// \return The VRAM 0 pointer
   /// \note This is the memory used by LVGL for rendering
   /// \note This is null unless initialize_display() has been called
-  lv_color16_t *vram0() const;
+  Pixel *vram0() const;
 
   /// Get the VRAM 1 pointer (DMA memory used by LVGL)
   /// \return The VRAM 1 pointer
   /// \note This is the memory used by LVGL for rendering
   /// \note This is null unless initialize_display() has been called
-  lv_color16_t *vram1() const;
+  Pixel *vram1() const;
 
   /// Get the frame buffer 0 pointer
   /// \return The frame buffer 0 pointer
@@ -165,13 +168,13 @@ protected:
   static constexpr bool backlight_value = false;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
-  static constexpr auto rotation = espp::Display<lv_color16_t>::Rotation::LANDSCAPE;
+  static constexpr auto rotation = espp::Display<Pixel>::Rotation::LANDSCAPE;
   static constexpr bool mirror_x = true;
   static constexpr bool mirror_y = true;
   using DisplayDriver = espp::Ili9341;
 
   // display
-  std::shared_ptr<Display<lv_color16_t>> display_;
+  std::shared_ptr<Display<Pixel>> display_;
   /// SPI bus for communication with the LCD
   spi_bus_config_t lcd_spi_bus_config_;
   spi_device_interface_config_t lcd_config_;
