@@ -174,7 +174,7 @@ public:
 
   /// Get a shared pointer to the display
   /// \return A shared pointer to the display
-  std::shared_ptr<Display> display() const;
+  std::shared_ptr<Display<lv_color16_t>> display() const;
 
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
@@ -188,13 +188,13 @@ public:
   /// \return The VRAM 0 pointer
   /// \note This is the memory used by LVGL for rendering
   /// \note This is null unless initialize_display() has been called
-  uint16_t *vram0() const;
+  lv_color16_t *vram0() const;
 
   /// Get the VRAM 1 pointer (DMA memory used by LVGL)
   /// \return The VRAM 1 pointer
   /// \note This is the memory used by LVGL for rendering
   /// \note This is null unless initialize_display() has been called
-  uint16_t *vram1() const;
+  lv_color16_t *vram1() const;
 
   /// Get the frame buffer 0 pointer
   /// \return The frame buffer 0 pointer
@@ -228,7 +228,7 @@ public:
   /// \note This method queues the data to be written to the LCD, only blocking
   ///      if there is an ongoing SPI transaction
   void write_lcd_frame(const uint16_t x, const uint16_t y, const uint16_t width,
-                       const uint16_t height, const uint8_t *data);
+                       const uint16_t height, uint8_t *data);
 
   /// Write lines to the LCD
   /// \param xs The x start coordinate
@@ -274,7 +274,7 @@ protected:
   static constexpr bool backlight_value = true;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
-  static constexpr auto rotation = espp::Display::Rotation::LANDSCAPE_INVERTED;
+  static constexpr auto rotation = espp::Display<lv_color16_t>::Rotation::LANDSCAPE_INVERTED;
   static constexpr bool mirror_x = true;
   static constexpr bool mirror_y = true;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_42;
@@ -303,7 +303,7 @@ protected:
   TouchpadData touchpad_data_;
 
   // display
-  std::shared_ptr<Display> display_;
+  std::shared_ptr<Display<lv_color16_t>> display_;
   /// SPI bus for communication with the LCD
   spi_bus_config_t lcd_spi_bus_config_;
   spi_device_interface_config_t lcd_config_;

@@ -311,7 +311,7 @@ bool EspBox::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
-std::shared_ptr<espp::Display> EspBox::display() const { return display_; }
+std::shared_ptr<espp::Display<lv_color16_t>> EspBox::display() const { return display_; }
 
 void IRAM_ATTR EspBox::lcd_wait_lines() {
   spi_transaction_t *rtrans;
