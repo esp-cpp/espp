@@ -52,6 +52,10 @@ void EspBox::detect() {
 ////////////////////////
 
 bool EspBox::initialize_touch() {
+  if (!display_) {
+    logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
+                 "will not properly handle the touchpad input!");
+  }
   switch (box_type_) {
   case BoxType::BOX3:
     logger_.info("Initializing GT911");
@@ -306,6 +310,8 @@ bool EspBox::initialize_display(size_t pixel_buffer_size) {
       (uint8_t *)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   return true;
 }
+
+std::shared_ptr<espp::Display> EspBox::display() const { return display_; }
 
 void IRAM_ATTR EspBox::lcd_wait_lines() {
   spi_transaction_t *rtrans;

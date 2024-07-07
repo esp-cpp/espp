@@ -1,0 +1,17 @@
+menu "ESPP Logger"
+    config ESPP_LOGGER_LOG_LEVEL
+        int "Max Log level"
+        default 4
+        range 0 4
+        help
+          Set the log level for the ESPP Logger. The higher the level, the more
+          verbose the log output will be. Note that this configuration only affects
+          the ESPP logger and not the log level of the ESP-IDF components. Furthermore,
+          this configuration will compile-out all log messages below the specified level.
+
+          0 - No log output
+          1 - Errors only
+          2 - Errors and warnings
+          3 - Errors, warnings, and info
+          4 - Errors, warnings, info, and debug
+endmenu

@@ -121,6 +121,46 @@ std::vector<std::filesystem::path> FileSystem::get_files_in_path(const std::file
   return files;
 }
 
+bool FileSystem::remove(const std::filesystem::path &path, std::error_code &ec) {
+  logger_.debug("Removing path: {}", path.string());
+  namespace fs = std::filesystem;
+  auto file_status = fs::status(path, ec);
+  if (std::filesystem::is_directory(file_status)) {
+    if (!remove_contents(path, ec)) {
+      logger_.error("Failed to remove contents of directory: {}", path.string());
+      return false;
+    }
+    return remove_directory(path);
+  } else {
+    return remove_file(path);
+  }
+}
+
+bool FileSystem::remove_file(const std::filesystem::path &path) {
+  logger_.debug("Removing file: {}", path.string());
+  return unlink(path.c_str()) == 0;
+}
+
+bool FileSystem::remove_directory(const std::filesystem::path &path) {
+  logger_.debug("Removing directory: {}", path.string());
+  return rmdir(path.c_str()) == 0;
+}
+
+bool FileSystem::remove_contents(const std::filesystem::path &path, std::error_code &ec) {
+  logger_.debug("Removing contents of directory: {}", path.string());
+  bool include_directories = true;
+  bool recursive = false; // don't want recursive since we'll already recurse
+  auto files = get_files_in_path(path, include_directories, recursive);
+  bool success = true;
+  for (const auto &file : files) {
+    if (!remove(file, ec)) {
+      logger_.error("Failed to remove file: {}", file.string());
+      success = false;
+    }
+  }
+  return success;
+}
+
 std::string FileSystem::list_directory(const std::string &path, const ListConfig &config,
                                        const std::string &prefix) {
   std::string result;
@@ -175,11 +215,14 @@ std::string FileSystem::list_directory(const std::string &path, const ListConfig
     if (config.date_time) {
       result += fmt::format("{:>12} ", get_file_time_as_string(file_path));
     }
-    result += prefix;
-    result += entry->d_name;
+    std::string relative_name = "";
+    if (prefix.size())
+      relative_name += prefix + "/";
+    relative_name += entry->d_name;
+    result += relative_name;
     result += "\r\n";
     if (config.recursive && fs::is_directory(file_status)) {
-      result += list_directory(file_path, config, std::string{entry->d_name} + "/");
+      result += list_directory(file_path, config, relative_name);
     }
   }
   closedir(dir);

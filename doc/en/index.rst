@@ -51,8 +51,11 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    rtsp
    serialization
    state_machine
+   t_deck
+   t_dongle_s3
    tabulate
    task
    thermistor
    timer
    wifi/index
+   wrover_kit

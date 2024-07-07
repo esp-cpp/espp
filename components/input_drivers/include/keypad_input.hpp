@@ -100,6 +100,9 @@ protected:
     indev_drv_keypad_.read_cb = &KeypadInput::keypad_read;
     indev_drv_keypad_.user_data = (void *)this;
     indev_keypad_ = lv_indev_drv_register(&indev_drv_keypad_);
+    if (!indev_keypad_) {
+      logger_.error("Failed to register keypad input device!");
+    }
   }
 
   read_fn read_;

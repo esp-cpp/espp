@@ -114,9 +114,15 @@ public:
       x_mapper_.set_range_deadband(0);
       y_mapper_.set_range_deadband(0);
     }
-    center_deadzone_radius_ = radius;
-    range_deadzone_ = range_deadzone;
+    set_center_deadzone_radius(radius);
+    set_range_deadzone(range_deadzone);
   }
+
+  /**
+   * @brief Get the type of the joystick.
+   * @return The Type of the joystick.
+   */
+  Type type() const { return type_; }
 
   /**
    * @brief Sets the center deadzone radius.
@@ -126,7 +132,15 @@ public:
    *        position vector is less than this value, the vector is set to
    *        (0,0).
    */
-  void set_center_deadzone_radius(float radius) { center_deadzone_radius_ = radius; }
+  void set_center_deadzone_radius(float radius) {
+    center_deadzone_radius_ = std::clamp<float>(radius, 0, 1);
+  }
+
+  /**
+   * @brief Get the center deadzone radius.
+   * @return The center deadzone radius.
+   */
+  float center_deadzone_radius() const { return center_deadzone_radius_; }
 
   /**
    * @brief Sets the range deadzone.
@@ -140,7 +154,15 @@ public:
    *        magnitude of the output is 1 if the magnitude of the mapped position
    *        vector is greater than 0.9.
    */
-  void set_range_deadzone(float range_deadzone) { range_deadzone_ = range_deadzone; }
+  void set_range_deadzone(float range_deadzone) {
+    range_deadzone_ = std::clamp<float>(range_deadzone, 0, 1);
+  }
+
+  /**
+   * @brief Get the range deadzone.
+   * @return The range deadzone.
+   */
+  float range_deadzone() const { return range_deadzone_; }
 
   /**
    * @brief Update the x and y axis mapping.
@@ -174,8 +196,8 @@ public:
       x_mapper_.set_range_deadband(0);
       y_mapper_.set_range_deadband(0);
     }
-    center_deadzone_radius_ = center_deadzone_radius;
-    range_deadzone_ = range_deadzone;
+    set_center_deadzone_radius(center_deadzone_radius);
+    set_range_deadzone(range_deadzone);
   }
 
   /**

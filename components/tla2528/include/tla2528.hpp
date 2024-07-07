@@ -908,10 +908,12 @@ protected:
 // for allowing easy serialization/printing of the
 // espp::Tla2528::OverSamplingRatio enum
 template <> struct fmt::formatter<espp::Tla2528::OversamplingRatio> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
-  auto format(espp::Tla2528::OversamplingRatio const &ratio, FormatContext &ctx) {
+  auto format(espp::Tla2528::OversamplingRatio const &ratio, FormatContext &ctx) const {
     switch (ratio) {
     case espp::Tla2528::OversamplingRatio::NONE:
       return fmt::format_to(ctx.out(), "NONE");
@@ -938,10 +940,12 @@ template <> struct fmt::formatter<espp::Tla2528::OversamplingRatio> {
 // for allowing easy serialization/printing of the
 // espp::Tla2528::Mode enum
 template <> struct fmt::formatter<espp::Tla2528::Mode> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
-  auto format(espp::Tla2528::Mode const &mode, FormatContext &ctx) {
+  auto format(espp::Tla2528::Mode const &mode, FormatContext &ctx) const {
     switch (mode) {
     case espp::Tla2528::Mode::MANUAL:
       return fmt::format_to(ctx.out(), "MANUAL");
@@ -956,10 +960,12 @@ template <> struct fmt::formatter<espp::Tla2528::Mode> {
 // for allowing easy serialization/printing of the
 // espp::Tla2528::DataFormat enum
 template <> struct fmt::formatter<espp::Tla2528::DataFormat> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
-  auto format(espp::Tla2528::DataFormat const &format, FormatContext &ctx) {
+  auto format(espp::Tla2528::DataFormat const &format, FormatContext &ctx) const {
     switch (format) {
     case espp::Tla2528::DataFormat::RAW:
       return fmt::format_to(ctx.out(), "RAW");
@@ -974,10 +980,12 @@ template <> struct fmt::formatter<espp::Tla2528::DataFormat> {
 // for allowing easy serialization/printing of the
 // espp::Tla2528::Append enum
 template <> struct fmt::formatter<espp::Tla2528::Append> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
-  auto format(espp::Tla2528::Append const &format, FormatContext &ctx) {
+  auto format(espp::Tla2528::Append const &format, FormatContext &ctx) const {
     switch (format) {
     case espp::Tla2528::Append::NONE:
       return fmt::format_to(ctx.out(), "NONE");
@@ -992,10 +1000,12 @@ template <> struct fmt::formatter<espp::Tla2528::Append> {
 // for allowing easy serialization/printing of the
 // espp::Tla2528::Channel enum
 template <> struct fmt::formatter<espp::Tla2528::Channel> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
-  auto format(espp::Tla2528::Channel const &ch, FormatContext &ctx) {
+  auto format(espp::Tla2528::Channel const &ch, FormatContext &ctx) const {
     switch (ch) {
     case espp::Tla2528::Channel::CH0:
       return fmt::format_to(ctx.out(), "CH0");
@@ -1022,10 +1032,12 @@ template <> struct fmt::formatter<espp::Tla2528::Channel> {
 // for allowing easy serialization/printing of a
 // std::vector<espp::Tla2528::Channel> object
 template <> struct fmt::formatter<std::vector<espp::Tla2528::Channel>> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
-  auto format(std::vector<espp::Tla2528::Channel> const &channels, FormatContext &ctx) {
+  auto format(std::vector<espp::Tla2528::Channel> const &channels, FormatContext &ctx) const {
     std::string result = "{";
     for (auto const &ch : channels) {
       result += fmt::format("{}, ", ch);

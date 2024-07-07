@@ -248,9 +248,9 @@ protected:
 
 // for printing TaskMonitor::TaskInfo using libfmt
 template <> struct fmt::formatter<espp::TaskMonitor::TaskInfo> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(const espp::TaskMonitor::TaskInfo &t, FormatContext &ctx) {
+  auto format(const espp::TaskMonitor::TaskInfo &t, FormatContext &ctx) const {
     return fmt::format_to(
 #if CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
         ctx.out(), "TaskInfo(name={}, cpu_percent={}, high_water_mark={}, priority={}, core_id={})",

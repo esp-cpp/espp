@@ -104,6 +104,10 @@ protected:
     indev_drv_enc_.read_cb = &EncoderInput::encoder_read;
     indev_drv_enc_.user_data = (void *)this;
     indev_encoder_ = lv_indev_drv_register(&indev_drv_enc_);
+    if (!indev_encoder_) {
+      logger_.error("Failed to register encoder input device!");
+      return;
+    }
 
     logger_.info("Add button input to LVGL");
     lv_indev_drv_init(&indev_drv_btn_);
@@ -111,6 +115,10 @@ protected:
     indev_drv_btn_.read_cb = &EncoderInput::button_read;
     indev_drv_btn_.user_data = (void *)this;
     indev_button_ = lv_indev_drv_register(&indev_drv_btn_);
+    if (!indev_button_) {
+      logger_.error("Failed to register button input device!");
+      return;
+    }
   }
 
   encoder_read_fn encoder_read_;

@@ -276,9 +276,9 @@ protected:
 
 // for easy printing of the enums with the libfmt library:
 template <> struct fmt::formatter<espp::Drv2605::Mode> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
-  template <typename FormatContext> auto format(espp::Drv2605::Mode m, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::Drv2605::Mode m, FormatContext &ctx) const {
     switch (m) {
     case espp::Drv2605::Mode::INTTRIG:
       return fmt::format_to(ctx.out(), "INTTRIG");
@@ -303,9 +303,10 @@ template <> struct fmt::formatter<espp::Drv2605::Mode> {
 };
 
 template <> struct fmt::formatter<espp::Drv2605::Waveform> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
-  template <typename FormatContext> auto format(espp::Drv2605::Waveform w, FormatContext &ctx) {
+  template <typename FormatContext>
+  auto format(espp::Drv2605::Waveform w, FormatContext &ctx) const {
     switch (w) {
     case espp::Drv2605::Waveform::END:
       return fmt::format_to(ctx.out(), "END");
@@ -352,9 +353,10 @@ template <> struct fmt::formatter<espp::Drv2605::Waveform> {
 };
 
 template <> struct fmt::formatter<espp::Drv2605::Library> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
-  template <typename FormatContext> auto format(espp::Drv2605::Library l, FormatContext &ctx) {
+  template <typename FormatContext>
+  auto format(espp::Drv2605::Library l, FormatContext &ctx) const {
     switch (l) {
     case espp::Drv2605::Library::EMPTY:
       return fmt::format_to(ctx.out(), "EMPTY");

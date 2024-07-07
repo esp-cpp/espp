@@ -109,6 +109,10 @@ jobs:
           target: esp32s3
         - path: 'components/state_machine/example'
           target: esp32
+        - path: 'components/t-deck/example'
+          target: esp32s3
+        - path: 'components/t-dongle-s3/example'
+          target: esp32s3
         - path: 'components/t_keyboard/example'
           target: esp32s3
         - path: 'components/tabulate/example'
@@ -124,6 +128,8 @@ jobs:
         - path: 'components/tt21100/example'
           target: esp32s3
         - path: 'components/wifi/example'
+          target: esp32
+        - path: 'components/wrover-kit/example'
           target: esp32
 
     steps:

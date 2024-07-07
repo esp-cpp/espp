@@ -34,6 +34,8 @@ namespace espp {
 ///   NOTE: on the MotorGo-Mini v1.3, the M2 motor sense is swapped in the
 ///         schematic, with U and W swapped
 ///
+/// The class is a singleton and can be accessed using the get() method.
+///
 /// \section motorgo_ex1 MotorGo-Mini Example
 /// \snippet motorgo_mini_example.cpp motorgo-mini example
 class MotorGoMini : public BaseComponent {
@@ -41,47 +43,33 @@ public:
   using Encoder = espp::Mt6701<espp::Mt6701Interface::SSI>;
   using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
 
-  /// Configuration for the MotorGo-Mini
-  struct Config {
-    bool auto_init = true; ///< If true, the MotorGo-Mini will initialize itself in the constructor
-    espp::Logger::Verbosity verbosity =
-        espp::Logger::Verbosity::WARN; ///< The verbosity level for
-                                       ///< the logger of the MotorGo-Mini
-                                       ///< and its components
-  };
-
-  /// Constructor
-  /// \param verbosity The verbosity level for the logger of the MotorGo-Mini
-  ///        and its components
-  explicit MotorGoMini(espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
-      : BaseComponent("MotorGo-Mini", verbosity) {
-    always_init();
-    init();
+  /// @brief Access the singleton instance of the MotorGoMini class
+  /// @return Reference to the singleton instance of the MotorGoMini class
+  static MotorGoMini &get() {
+    static MotorGoMini instance;
+    return instance;
   }
 
-  /// Constructor
-  /// \param config The configuration for the MotorGo-Mini
-  explicit MotorGoMini(const Config &config)
-      : BaseComponent("MotorGo-Mini", config.verbosity) {
-    always_init();
-    if (config.auto_init) {
-      init();
-    }
-  }
+  MotorGoMini(const MotorGoMini &) = delete;
+  MotorGoMini &operator=(const MotorGoMini &) = delete;
+  MotorGoMini(MotorGoMini &&) = delete;
+  MotorGoMini &operator=(MotorGoMini &&) = delete;
 
   /// Get a reference to the external I2C bus
   /// \return A reference to the external I2C bus
-  I2c &get_external_i2c() { return external_i2c_; }
+  I2c &get_external_i2c();
 
   /// Get a reference to the boot button
-  espp::Button &button() { return button_; }
+  espp::Button &button();
 
   /// Get a reference to the yellow LED channel (channel 0)
   /// \return A reference to the yellow LED channel (channel 0)
-  espp::Led::ChannelConfig &yellow_led() { return led_channels_[0]; }
+  espp::Led::ChannelConfig &yellow_led();
+
   /// Get a reference to the yellow LED channel (channel 0)
   /// \return A reference to the yellow LED channel (channel 0)
-  espp::Led::ChannelConfig &led_channel0() { return led_channels_[0]; }
+  espp::Led::ChannelConfig &led_channel0();
+
   /// Set the duty cycle of the yellow LED
   /// \param duty The duty cycle of the yellow LED (0.0 - 100.0)
   /// \note The duty cycle is a percentage of the maximum duty cycle
@@ -89,14 +77,16 @@ public:
   ///      0.0 is off, 100.0 is fully on
   /// \note For this function to have an effect, the LED timer must NOT be running
   ///      (i.e. stop_breathing() must be called)
-  void set_yellow_led_duty(float duty) { led_.set_duty(led_channels_[0].channel, duty); }
+  void set_yellow_led_duty(float duty);
 
   /// Get a reference to the red LED channel (channel 1)
   /// \return A reference to the red LED channel (channel 1)
-  espp::Led::ChannelConfig &red_led() { return led_channels_[1]; }
+  espp::Led::ChannelConfig &red_led();
+
   /// Get a reference to the red LED channel (channel 1)
   /// \return A reference to the red LED channel (channel 1)
-  espp::Led::ChannelConfig &led_channel1() { return led_channels_[1]; }
+  espp::Led::ChannelConfig &led_channel1();
+
   /// Set the duty cycle of the red LED
   /// \param duty The duty cycle of the red LED (0.0 - 100.0)
   /// \note The duty cycle is a percentage of the maximum duty cycle
@@ -104,121 +94,86 @@ public:
   ///      0.0 is off, 100.0 is fully on
   /// \note For this function to have an effect, the LED timer must NOT be running
   ///      (i.e. stop_breathing() must be called)
-  void set_red_led_duty(float duty) { led_.set_duty(led_channels_[1].channel, duty); }
+  void set_red_led_duty(float duty);
 
   /// Get a reference to the LED object which controls the LEDs
   /// \return A reference to the Led object
-  espp::Led &led() { return led_; }
+  espp::Led &led();
 
   /// \brief Get a reference to the Gaussian object which is used for breathing
   ///        the LEDs.
   /// \return A reference to the Gaussian object
-  espp::Gaussian &gaussian() { return gaussian_; }
+  espp::Gaussian &gaussian();
 
   /// Start breathing the LEDs
   /// \details This function starts the LED timer which will periodically update
   ///          the LED duty cycle using the gaussian to create a breathing
   ///          efect.
-  void start_breathing() {
-    io38_breathe_start_us = esp_timer_get_time();
-    io8_breathe_start_us = esp_timer_get_time();
-    static constexpr uint64_t led_timer_period_us = 30 * 1000; // 30 ms
-    led_timer_.periodic(led_timer_period_us);
-  }
+  void start_breathing();
 
   /// Stop breathing the LEDs
   /// \details This function stops the LED timer which will stop updating the
   ///         LED duty cycle. It will also set the LED duty cycle to 0,
   ///         effectively turning off the LEDs.
-  void stop_breathing() {
-    led_timer_.stop();
-    led_.set_duty(led_channels_[0].channel, 0.0f);
-    led_.set_duty(led_channels_[1].channel, 0.0f);
-  }
+  void stop_breathing();
 
   /// Initialize the MotorGo-Mini's components for motor channel 1
   /// \details This function initializes the encoder and motor for motor channel
   ///          1. This consists of initializing encoder1 and motor1.
-  void init_motor_channel_1() {
-    bool run_task = true;
-    std::error_code ec;
-    encoder1_.initialize(run_task, ec);
-    if (ec) {
-      logger_.error("Could not initialize encoder1: {}", ec.message());
-      return;
-    }
-    motor1_.initialize();
-  }
+  void init_motor_channel_1();
 
   /// Initialize the MotorGo-Mini's components for motor channel 2
   /// \details This function initializes the encoder and motor for motor channel
   ///          2. This consists of initializing encoder2 and motor2.
-  void init_motor_channel_2() {
-    bool run_task = true;
-    std::error_code ec;
-    encoder2_.initialize(run_task, ec);
-    if (ec) {
-      logger_.error("Could not initialize encoder2: {}", ec.message());
-      return;
-    }
-    motor2_.initialize();
-  }
+  void init_motor_channel_2();
 
   /// Get a reference to the encoder 1
   /// \return A reference to the encoder 1
-  Encoder &encoder1() { return encoder1_; }
+  Encoder &encoder1();
 
   /// Get a reference to the encoder 2
   /// \return A reference to the encoder 2
-  Encoder &encoder2() { return encoder2_; }
+  Encoder &encoder2();
 
   /// Get a reference to the motor 1 driver
   /// \return A reference to the motor 1 driver
-  espp::BldcDriver &motor1_driver() { return motor1_driver_; }
+  espp::BldcDriver &motor1_driver();
 
   /// Get a reference to the motor 2 driver
   /// \return A reference to the motor 2 driver
-  espp::BldcDriver &motor2_driver() { return motor2_driver_; }
+  espp::BldcDriver &motor2_driver();
 
   /// Get a reference to the motor 1
   /// \return A reference to the motor 1
-  BldcMotor &motor1() { return motor1_; }
+  BldcMotor &motor1();
 
   /// Get a reference to the motor 2
   /// \return A reference to the motor 2
-  BldcMotor &motor2() { return motor2_; }
+  BldcMotor &motor2();
 
   /// Get a reference to the ADC_UNIT_1 OneshotAdc object
   /// \return A reference to the ADC_UNIT_1 OneshotAdc object
-  espp::OneshotAdc &adc1() { return adc_1; }
+  espp::OneshotAdc &adc1();
 
   /// Get a reference to the ADC_UNIT_2 OneshotAdc object
   /// \return A reference to the ADC_UNIT_2 OneshotAdc object
-  espp::OneshotAdc &adc2() { return adc_2; }
+  espp::OneshotAdc &adc2();
 
   /// Get the current sense value for motor 1 phase U
   /// \return The current sense value for motor 1 phase U in amps
-  float motor1_current_u_amps() {
-    return adc_1.read_mv(current_sense_m1_u_).value() * CURRENT_SENSE_MV_TO_A;
-  }
+  float motor1_current_u_amps();
 
   /// Get the current sense value for motor 1 phase W
   /// \return The current sense value for motor 1 phase W in amps
-  float motor1_current_w_amps() {
-    return adc_1.read_mv(current_sense_m1_w_).value() * CURRENT_SENSE_MV_TO_A;
-  }
+  float motor1_current_w_amps();
 
   /// Get the current sense value for motor 2 phase U
   /// \return The current sense value for motor 2 phase U in amps
-  float motor2_current_u_amps() {
-    return adc_2.read_mv(current_sense_m2_u_).value() * CURRENT_SENSE_MV_TO_A;
-  }
+  float motor2_current_u_amps();
 
   /// Get the current sense value for motor 2 phase W
   /// \return The current sense value for motor 2 phase W in amps
-  float motor2_current_w_amps() {
-    return adc_1.read_mv(current_sense_m2_w_).value() * CURRENT_SENSE_MV_TO_A;
-  }
+  float motor2_current_w_amps();
 
 protected:
   static constexpr auto I2C_PORT = I2C_NUM_0;
@@ -254,121 +209,15 @@ protected:
   // TODO: figure this out and update it :)
   static constexpr float CURRENT_SENSE_MV_TO_A = 1.0f;
 
-  void always_init() {
-    start_breathing();
-    init_spi();
-  }
+  /// Constructor
+  MotorGoMini();
 
-  void init() {
-    init_encoders();
-    init_motors();
-  }
+  void always_init();
+  void init_spi();
 
-  void init_spi() {
-    // Initialize the SPI bus for the encoders
-    memset(&encoder_spi_bus_config_, 0, sizeof(encoder_spi_bus_config_));
-    encoder_spi_bus_config_.mosi_io_num = -1;
-    encoder_spi_bus_config_.miso_io_num = ENCODER_SPI_MISO_PIN;
-    encoder_spi_bus_config_.sclk_io_num = ENCODER_SPI_SCLK_PIN;
-    encoder_spi_bus_config_.quadwp_io_num = -1;
-    encoder_spi_bus_config_.quadhd_io_num = -1;
-    encoder_spi_bus_config_.max_transfer_sz = 100;
-    // encoder_spi_bus_config_.isr_cpu_id = 0; // set to the same core as the esp-timer task (which
-    // runs the encoders)
-    auto err = spi_bus_initialize(ENCODER_SPI_HOST, &encoder_spi_bus_config_, SPI_DMA_CH_AUTO);
-    if (err != ESP_OK) {
-      logger_.error("Failed to initialize SPI bus for encoders: {}", esp_err_to_name(err));
-      return;
-    }
+  float breathe(float breathing_period, uint64_t start_us, bool restart = false);
 
-    // Initialize the encoder 1
-    memset(&encoder1_config, 0, sizeof(encoder1_config));
-    encoder1_config.mode = 0;
-    encoder1_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
-    encoder1_config.queue_size = 1;
-    encoder1_config.spics_io_num = ENCODER_1_CS_PIN;
-    // encoder1_config.cs_ena_pretrans = 2;
-    // encoder1_config.input_delay_ns = 30;
-    err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder1_config, &encoder1_handle_);
-    if (err != ESP_OK) {
-      logger_.error("Failed to initialize Encoder 1: {}", esp_err_to_name(err));
-      return;
-    }
-
-    // Initialize the encoder 2
-    memset(&encoder2_config, 0, sizeof(encoder2_config));
-    encoder2_config.mode = 0;
-    encoder2_config.clock_speed_hz = ENCODER_SPI_CLK_SPEED;
-    encoder2_config.queue_size = 1;
-    encoder2_config.spics_io_num = ENCODER_2_CS_PIN;
-    // encoder2_config.cs_ena_pretrans = 2;
-    // encoder2_config.input_delay_ns = 30;
-    err = spi_bus_add_device(ENCODER_SPI_HOST, &encoder2_config, &encoder2_handle_);
-    if (err != ESP_OK) {
-      logger_.error("Failed to initialize Encoder 2: {}", esp_err_to_name(err));
-      return;
-    }
-  }
-
-  void init_encoders() {
-    bool run_task = true;
-    std::error_code ec;
-    encoder1_.initialize(run_task, ec);
-    if (ec) {
-      logger_.error("Could not initialize encoder1: {}", ec.message());
-    }
-    ec.clear();
-    encoder2_.initialize(run_task, ec);
-    if (ec) {
-      logger_.error("Could not initialize encoder2: {}", ec.message());
-    }
-    ec.clear();
-  }
-
-  void init_motors() {
-    motor1_.initialize();
-    motor2_.initialize();
-  }
-
-  float breathe(float breathing_period, uint64_t start_us, bool restart = false) {
-    auto now_us = esp_timer_get_time();
-    if (restart) {
-      start_us = now_us;
-    }
-    auto elapsed_us = now_us - start_us;
-    float elapsed = elapsed_us / 1e6f;
-    float t = std::fmod(elapsed, breathing_period) / breathing_period;
-    return gaussian_(t);
-  }
-
-  bool IRAM_ATTR read_encoder(const auto &encoder_handle, uint8_t *data, size_t size) {
-    static constexpr uint8_t SPIBUS_READ = 0x80;
-    spi_transaction_t t = {
-        .flags = 0,
-        .cmd = 0,
-        .addr = SPIBUS_READ,
-        .length = size * 8,
-        .rxlength = size * 8,
-        .user = nullptr,
-        .tx_buffer = nullptr,
-        .rx_buffer = data,
-    };
-    if (size <= 4) {
-      t.flags = SPI_TRANS_USE_RXDATA;
-      t.rx_buffer = nullptr;
-    }
-    esp_err_t err = spi_device_polling_transmit(encoder_handle, &t);
-    if (err != ESP_OK) {
-      return false;
-    }
-    if (size <= 4) {
-      // copy the data from the rx_data field
-      for (size_t i = 0; i < size; i++) {
-        data[i] = t.rx_data[i];
-      }
-    }
-    return true;
-  }
+  bool read_encoder(const auto &encoder_handle, uint8_t *data, size_t size);
 
   /// I2C bus for external communication
   I2c external_i2c_{{.port = I2C_PORT,

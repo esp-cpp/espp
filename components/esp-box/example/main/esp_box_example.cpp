@@ -23,11 +23,6 @@ extern "C" void app_main(void) {
   espp::EspBox &box = espp::EspBox::get();
   box.set_log_level(espp::Logger::Verbosity::INFO);
   logger.info("Running on {}", box.box_type());
-  // initialize the touchpad
-  if (!box.initialize_touch()) {
-    logger.error("Failed to initialize touchpad!");
-    return;
-  }
   // initialize the sound
   if (!box.initialize_sound()) {
     logger.error("Failed to initialize sound!");
@@ -45,6 +40,11 @@ extern "C" void app_main(void) {
     logger.error("Failed to initialize display!");
     return;
   }
+  // initialize the touchpad
+  if (!box.initialize_touch()) {
+    logger.error("Failed to initialize touchpad!");
+    return;
+  }
 
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
@@ -57,9 +57,14 @@ extern "C" void app_main(void) {
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
+  static std::mutex lvgl_mutex;
+
   // start a simple thread to do the lv_task_handler every 16ms
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
-                        lv_task_handler();
+                        {
+                          std::lock_guard<std::mutex> lock(lvgl_mutex);
+                          lv_task_handler();
+                        }
                         std::unique_lock<std::mutex> lock(m);
                         cv.wait_for(lock, 16ms);
                         return false;
@@ -94,12 +99,14 @@ extern "C" void app_main(void) {
         previous_touchpad_data = touchpad_data;
         // if the button is pressed, clear the circles
         if (touchpad_data.btn_state) {
+          std::lock_guard<std::mutex> lock(lvgl_mutex);
           clear_circles();
         }
         // if there is a touch point, draw a circle and play a click sound
         if (touchpad_data.num_touch_points > 0) {
-          draw_circle(touchpad_data.x, touchpad_data.y, 10);
           play_click(box);
+          std::lock_guard<std::mutex> lock(lvgl_mutex);
+          draw_circle(touchpad_data.x, touchpad_data.y, 10);
         }
       }
     }
@@ -110,8 +117,8 @@ extern "C" void app_main(void) {
 static void draw_circle(int x0, int y0, int radius) {
   lv_obj_t *my_Cir = lv_obj_create(lv_screen_active());
   lv_obj_set_scrollbar_mode(my_Cir, LV_SCROLLBAR_MODE_OFF);
-  lv_obj_set_size(my_Cir, 42, 42);
-  lv_obj_set_pos(my_Cir, x0 - 21, y0 - 21);
+  lv_obj_set_size(my_Cir, radius * 2, radius * 2);
+  lv_obj_set_pos(my_Cir, x0 - radius, y0 - radius);
   lv_obj_set_style_radius(my_Cir, LV_RADIUS_CIRCLE, 0);
   circles.push_back(my_Cir);
 }

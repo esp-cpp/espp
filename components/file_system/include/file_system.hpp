@@ -161,6 +161,27 @@ public:
                                                        bool include_directories = false,
                                                        bool recursive = false);
 
+  /// @brief Completely remove a file or directory (including contents)
+  /// @details This method removes a file or directory and all of its contents.
+  ///          If the path is a directory, it will iterate over the contents
+  ///          and remove them recursively. If the path is a file, it will
+  ///          remove the file. If the path does not exist, it will return false.
+  /// @param path The path to the file or directory
+  /// @param ec The error code to set if an error occurs
+  /// @return Whether the file or directory was successfully removed
+  bool remove(const std::filesystem::path &path, std::error_code &ec);
+
+  /// @brief Remove the contents of a directory, but not the directory itself
+  /// @details This method removes the contents of a directory, but not the
+  ///          directory itself. If the path is not a directory, it will return
+  ///          false. If the path does not exist, it will return false. If the
+  ///          path is a directory, it will iterate over the contents and remove
+  ///          them recursively.
+  /// @param path The path to the directory
+  /// @param ec The error code to set if an error occurs
+  /// @return Whether the contents of the directory were successfully removed
+  bool remove_contents(const std::filesystem::path &path, std::error_code &ec);
+
   /// @brief List the contents of a directory
   /// @details
   /// This method lists the contents of a directory. It returns a string
@@ -238,5 +259,19 @@ protected:
   /// This method initializes the file system. It is protected and called only by the constructor.
   /// It is responsible for mounting the file system and creating the root directory.
   void init();
+
+  /// @brief Remove a file
+  /// @param path The path to the file
+  /// @return Whether the file was successfully removed
+  bool remove_file(const std::filesystem::path &path);
+
+  /// @brief Remove an empty directory
+  /// @param path The path to the empty directory
+  /// @return Whether the directory was successfully removed
+  /// @note This method does not remove the contents of the directory, only the
+  ///       directory itself.
+  /// @warning If the directory is not empty, it will not be removed, and the
+  ///          method will return false.
+  bool remove_directory(const std::filesystem::path &path);
 };
 } // namespace espp

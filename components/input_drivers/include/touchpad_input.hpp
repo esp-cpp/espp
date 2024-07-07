@@ -130,12 +130,20 @@ protected:
     using namespace std::placeholders;
     logger_.info("Add TP input device to LVGL");
     indev_tp_ = lv_indev_create();
+    if (!indev_tp_) {
+      logger_.error("Failed to register touchpad input device!");
+      return;
+    }
     lv_indev_set_type(indev_tp_, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev_tp_, &TouchpadInput::touchpad_read);
     lv_indev_set_user_data(indev_tp_, (void *)this);
 
     logger_.info("Add HOME button input to LVGL");
     indev_btn_ = lv_indev_create();
+    if (!indev_btn_) {
+      logger_.error("Failed to register home button input device!");
+      return;
+    }
     lv_indev_set_type(indev_btn_, LV_INDEV_TYPE_BUTTON);
     lv_indev_set_read_cb(indev_btn_, &TouchpadInput::home_button_read);
     lv_indev_set_user_data(indev_btn_, (void *)this);

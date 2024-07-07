@@ -40,7 +40,8 @@ public:
     static constexpr size_t DATA_LEN = CONTACT_SIZE * MAX_CONTACTS;
     static uint8_t data[DATA_LEN];
     read_many_from_register((uint16_t)Registers::POINT_INFO, data, 1, ec);
-    if (ec) return false;
+    if (ec)
+      return false;
 
     // the below is copied from
     // https://github.com/espressif/esp-bsp/blob/master/components/lcd_touch/esp_lcd_touch_gt911/esp_lcd_touch_gt911.c
@@ -50,7 +51,8 @@ public:
       // only the keys were pressed, read them
       uint8_t key_max = MAX_KEYS;
       read_many_from_register((uint16_t)Registers::KEY, data, key_max, ec);
-      if (ec) return false;
+      if (ec)
+        return false;
       // set the button state
       home_button_pressed_ = data[0];
       logger_.debug("Home button is {}", home_button_pressed_ ? "pressed" : "released");
@@ -65,7 +67,8 @@ public:
       if (num_touch_points_ > 0) {
         read_many_from_register((uint16_t)Registers::POINTS, data, CONTACT_SIZE * num_touch_points_,
                                 ec);
-        if (ec) return false;
+        if (ec)
+          return false;
         // convert the data pointer to a GTPoint*
         const GTPoint *point = (GTPoint *)&data[0];
         x_ = point->x;

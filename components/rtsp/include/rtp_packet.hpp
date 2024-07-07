@@ -10,33 +10,13 @@ class RtpPacket {
 public:
   /// Construct an empty RtpPacket.
   /// The packet_ vector is empty and the header fields are set to 0.
-  RtpPacket()
-      : version_(2)
-      , padding_(false)
-      , extension_(false)
-      , csrc_count_(0)
-      , marker_(false)
-      , payload_type_(0)
-      , sequence_number_(0)
-      , timestamp_(0)
-      , ssrc_(0)
-      , payload_size_(0) {
+  RtpPacket() {
     // ensure that the packet_ vector is at least RTP_HEADER_SIZE bytes long
     packet_.resize(RTP_HEADER_SIZE);
   }
 
   /// Construct an RtpPacket with a payload of size payload_size.
-  explicit RtpPacket(size_t payload_size)
-      : version_(2)
-      , padding_(false)
-      , extension_(false)
-      , csrc_count_(0)
-      , marker_(false)
-      , payload_type_(0)
-      , sequence_number_(0)
-      , timestamp_(0)
-      , ssrc_(0)
-      , payload_size_(payload_size) {
+  explicit RtpPacket(size_t payload_size) : payload_size_(payload_size) {
     // ensure that the packet_ vector is at least RTP_HEADER_SIZE + payload_size bytes long
     packet_.resize(RTP_HEADER_SIZE + payload_size);
   }
@@ -150,15 +130,15 @@ protected:
   }
 
   std::vector<uint8_t> packet_;
-  int version_;
-  bool padding_;
-  bool extension_;
-  int csrc_count_;
-  bool marker_;
-  int payload_type_;
-  int sequence_number_;
-  int timestamp_;
-  int ssrc_;
-  int payload_size_;
+  int version_{2};
+  bool padding_{false};
+  bool extension_{false};
+  int csrc_count_{0};
+  bool marker_{false};
+  int payload_type_{0};
+  int sequence_number_{0};
+  int timestamp_{0};
+  int ssrc_{0};
+  int payload_size_{0};
 };
 } // namespace espp

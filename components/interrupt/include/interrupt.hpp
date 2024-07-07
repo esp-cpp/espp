@@ -379,8 +379,8 @@ protected:
 
 // for printing the interrupt type using libfmt
 template <> struct fmt::formatter<espp::Interrupt::Type> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-  template <typename FormatContext> auto format(espp::Interrupt::Type t, FormatContext &ctx) {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext> auto format(espp::Interrupt::Type t, FormatContext &ctx) const {
     switch (t) {
     case espp::Interrupt::Type::ANY_EDGE:
       return fmt::format_to(ctx.out(), "ANY_EDGE");
@@ -399,9 +399,9 @@ template <> struct fmt::formatter<espp::Interrupt::Type> {
 
 // for printing the active level using libfmt
 template <> struct fmt::formatter<espp::Interrupt::ActiveLevel> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(espp::Interrupt::ActiveLevel t, FormatContext &ctx) {
+  auto format(espp::Interrupt::ActiveLevel t, FormatContext &ctx) const {
     switch (t) {
     case espp::Interrupt::ActiveLevel::LOW:
       return fmt::format_to(ctx.out(), "LOW");
@@ -414,8 +414,9 @@ template <> struct fmt::formatter<espp::Interrupt::ActiveLevel> {
 
 // for printing the FilterType using libfmt
 template <> struct fmt::formatter<espp::Interrupt::FilterType> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-  template <typename FormatContext> auto format(espp::Interrupt::FilterType t, FormatContext &ctx) {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::Interrupt::FilterType t, FormatContext &ctx) const {
     switch (t) {
     case espp::Interrupt::FilterType::NONE:
       return fmt::format_to(ctx.out(), "NONE");
@@ -430,9 +431,9 @@ template <> struct fmt::formatter<espp::Interrupt::FilterType> {
 
 // for printing the FilterConfig using libfmt
 template <> struct fmt::formatter<espp::Interrupt::FilterConfig> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(const espp::Interrupt::FilterConfig &t, FormatContext &ctx) {
+  auto format(const espp::Interrupt::FilterConfig &t, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(), "FilterConfig{{window_width_ns={}, window_threshold_ns={}}}",
                           t.window_width_ns, t.window_threshold_ns);
   }
@@ -440,9 +441,9 @@ template <> struct fmt::formatter<espp::Interrupt::FilterConfig> {
 
 // for printing the PinConfig using libfmt
 template <> struct fmt::formatter<espp::Interrupt::PinConfig> {
-  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(const espp::Interrupt::PinConfig &t, FormatContext &ctx) {
+  auto format(const espp::Interrupt::PinConfig &t, FormatContext &ctx) const {
     return fmt::format_to(
         ctx.out(),
         "PinConfig{{gpio_num={}, active_level={}, interrupt_type={}, pullup_enabled={}, "

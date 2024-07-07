@@ -86,6 +86,9 @@ public:
 
   /// Initialize the touchpad
   /// \return true if the touchpad was successfully initialized, false otherwise
+  /// \warning This method should be called after the display has been
+  ///          initialized if you want the touchpad to be recognized and used
+  ///          with LVGL and its objects.
   bool initialize_touch();
 
   /// Update the touchpad data
@@ -218,6 +221,10 @@ public:
   /////////////////////////////////////////////////////////////////////////////
   // Audio
   /////////////////////////////////////////////////////////////////////////////
+
+  /// Get the GPIO pin for the mute button (top of the box)
+  /// \return The GPIO pin for the mute button
+  static constexpr auto get_mute_pin() { return mute_pin; }
 
   /// Initialize the sound subsystem
   /// \param default_audio_rate The default audio rate
@@ -391,7 +398,7 @@ protected:
 
 // for easy printing of BoxType using libfmt
 template <> struct fmt::formatter<espp::EspBox::BoxType> : fmt::formatter<std::string> {
-  template <typename FormatContext> auto format(espp::EspBox::BoxType c, FormatContext &ctx) {
+  template <typename FormatContext> auto format(espp::EspBox::BoxType c, FormatContext &ctx) const {
     std::string name;
     switch (c) {
     case espp::EspBox::BoxType::UNKNOWN:
@@ -411,7 +418,7 @@ template <> struct fmt::formatter<espp::EspBox::BoxType> : fmt::formatter<std::s
 // for easy printing of TouchpadData using libfmt
 template <> struct fmt::formatter<espp::EspBox::TouchpadData> : fmt::formatter<std::string> {
   template <typename FormatContext>
-  auto format(const espp::EspBox::TouchpadData &c, FormatContext &ctx) {
+  auto format(const espp::EspBox::TouchpadData &c, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(),
                           "TouchpadData{{num_touch_points={}, x={}, y={}, btn_state={}}}",
                           c.num_touch_points, c.x, c.y, c.btn_state);
