@@ -66,7 +66,7 @@ extern "C" void app_main(void) {
   wrover.brightness(75.0f);
 
   while (true) {
-    std::this_thread::sleep_for(100ms);
+    auto start = esp_timer_get_time();
     // if there are 10 circles on the screen, clear them
     static constexpr int max_circles = 10;
     if (circles.size() >= max_circles) {
@@ -83,6 +83,9 @@ extern "C" void app_main(void) {
       std::lock_guard<std::mutex> lock(lvgl_mutex);
       draw_circle(x, y, 10);
     }
+    auto end = esp_timer_get_time();
+    auto elapsed = end - start;
+    std::this_thread::sleep_for(100ms - std::chrono::microseconds(elapsed));
   }
   //! [wrover-kit example]
 }
