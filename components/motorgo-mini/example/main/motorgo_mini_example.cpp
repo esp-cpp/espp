@@ -13,7 +13,9 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "MotorGo Mini Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting");
   //! [motorgo-mini example]
-  espp::MotorGoMini motorgo_mini(espp::Logger::Verbosity::INFO);
+  auto &motorgo_mini = espp::MotorGoMini::get();
+  motorgo_mini.init_motor_channel_1();
+  motorgo_mini.init_motor_channel_2();
   auto &motor1 = motorgo_mini.motor1();
   auto &motor2 = motorgo_mini.motor2();
   auto &button = motorgo_mini.button();
