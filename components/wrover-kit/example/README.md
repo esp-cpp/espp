@@ -6,6 +6,8 @@ to initialize the ESP32-WROVER-KIT.
 It initializes the display subsystem and periodically draws 10 circles to the
 screen before clearing and starting over using LVGL.
 
+![image](https://github.com/esp-cpp/espp/assets/213467/8f083a11-d66d-4710-9dca-32a9cef0e538)
+
 ## How to use example
 
 ### Hardware Required

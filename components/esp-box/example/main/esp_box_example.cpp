@@ -57,9 +57,14 @@ extern "C" void app_main(void) {
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
+  static std::mutex lvgl_mutex;
+
   // start a simple thread to do the lv_task_handler every 16ms
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
-                        lv_task_handler();
+                        {
+                          std::lock_guard<std::mutex> lock(lvgl_mutex);
+                          lv_task_handler();
+                        }
                         std::unique_lock<std::mutex> lock(m);
                         cv.wait_for(lock, 16ms);
                         return false;
@@ -94,12 +99,14 @@ extern "C" void app_main(void) {
         previous_touchpad_data = touchpad_data;
         // if the button is pressed, clear the circles
         if (touchpad_data.btn_state) {
+          std::lock_guard<std::mutex> lock(lvgl_mutex);
           clear_circles();
         }
         // if there is a touch point, draw a circle and play a click sound
         if (touchpad_data.num_touch_points > 0) {
-          draw_circle(touchpad_data.x, touchpad_data.y, 10);
           play_click(box);
+          std::lock_guard<std::mutex> lock(lvgl_mutex);
+          draw_circle(touchpad_data.x, touchpad_data.y, 10);
         }
       }
     }

@@ -111,6 +111,8 @@ jobs:
           target: esp32
         - path: 'components/t-deck/example'
           target: esp32s3
+        - path: 'components/t-dongle-s3/example'
+          target: esp32s3
         - path: 'components/t_keyboard/example'
           target: esp32s3
         - path: 'components/tabulate/example'
