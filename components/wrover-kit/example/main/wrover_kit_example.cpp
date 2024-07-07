@@ -45,9 +45,14 @@ extern "C" void app_main(void) {
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
+  static std::mutex lvgl_mutex;
+
   // start a simple thread to do the lv_task_handler every 16ms
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
-                        lv_task_handler();
+                        {
+                          std::lock_guard<std::mutex> lock(lvgl_mutex);
+                          lv_task_handler();
+                        }
                         std::unique_lock<std::mutex> lock(m);
                         cv.wait_for(lock, 16ms);
                         return false;
@@ -65,6 +70,7 @@ extern "C" void app_main(void) {
     // if there are 10 circles on the screen, clear them
     static constexpr int max_circles = 10;
     if (circles.size() >= max_circles) {
+      std::lock_guard<std::mutex> lock(lvgl_mutex);
       clear_circles();
     } else {
       // draw a circle of circles on the screen (just draw the next circle)
@@ -74,6 +80,7 @@ extern "C" void app_main(void) {
       float angle = circles.size() * 2.0f * M_PI / max_circles;
       int x = middle_x + radius * cos(angle);
       int y = middle_y + radius * sin(angle);
+      std::lock_guard<std::mutex> lock(lvgl_mutex);
       draw_circle(x, y, 10);
     }
   }
