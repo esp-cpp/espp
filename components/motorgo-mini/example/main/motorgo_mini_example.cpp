@@ -14,6 +14,7 @@ extern "C" void app_main(void) {
   logger.info("Starting");
   //! [motorgo-mini example]
   auto &motorgo_mini = espp::MotorGoMini::get();
+  motorgo_mini.set_log_level(espp::Logger::Verbosity::INFO);
   motorgo_mini.init_motor_channel_1();
   motorgo_mini.init_motor_channel_2();
   auto &motor1 = motorgo_mini.motor1();
