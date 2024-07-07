@@ -30,6 +30,12 @@ namespace espp {
 template <typename Pixel> class Display : public BaseComponent {
 public:
   /**
+   * @brief Callback for lvgl to flush segments of pixel data from the pixel
+   *        buffers to the display.
+   */
+  using flush_fn = lv_display_flush_cb_t;
+
+  /**
    *  @brief Signals used by LVGL to let the post_transfer_callback know
    *         whether or not to call lv_disp_flush_ready.
    */
@@ -48,8 +54,7 @@ public:
     size_t width;             /**< Width of th display, in pixels. */
     size_t height;            /**< Height of the display, in pixels. */
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
-    lv_display_flush_cb_t
-        flush_callback;       /**< Function provided to LVGL for it to flush data to the display. */
+    flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
@@ -81,8 +86,7 @@ public:
     size_t width;  /**< Width of th display, in pixels. */
     size_t height; /**< Height of the display, in pixels. */
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
-    lv_display_flush_cb_t
-        flush_callback;       /**< Function provided to LVGL for it to flush data to the display. */
+    flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
@@ -265,8 +269,7 @@ protected:
    * @param rotation Default / initial rotation of the display.
    * @param task_config Configuration for the task that runs the lvgl tick
    */
-  void init(lv_display_flush_cb_t flush_callback, bool sw_rotation_enabled, Rotation rotation,
-            const Task::BaseConfig &task_config) {
+  void init(flush_fn flush_callback, bool sw_rotation_enabled, Rotation rotation, const Task::BaseConfig &task_config) {
     lv_init();
 
     display_ = lv_display_create(width_, height_);
@@ -276,7 +279,7 @@ protected:
                            LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     // Register the callback with lvgl
-    lv_display_set_flush_cb(display_, reinterpret_cast<lv_display_flush_cb_t>(flush_callback));
+    lv_display_set_flush_cb(display_, reinterpret_cast<flush_fn>(flush_callback));
 
     lv_display_set_rotation(display_, static_cast<lv_display_rotation_t>(rotation));
 
