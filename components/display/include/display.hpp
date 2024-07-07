@@ -22,20 +22,13 @@ namespace espp {
  *  (default = 10 ms).
  *
  *  For more information, see
- *  https://docs.lvgl.io/8.3/porting/display.html#display-interface
+ *  https://docs.lvgl.io/9.1/porting/display.html#display-interface
+ *
+ * @tparam Pixel The pixel format to be used for the display. This allows the class to be used with displays
+ *               of different color depths and formats.
  */
- template <typename Pixel>
-class Display : public BaseComponent {
+template <typename Pixel> class Display : public BaseComponent {
 public:
-  /**
-   * @brief Callback for lvgl to flush segments of pixel data from the pixel
-   *        buffers to the display.
-   * @param driver Pointer to display driver.
-   * @param area Pointer to structure describing the area of pixels to flush.
-   * @param color_data Pointer to pixel buffer containing color data.
-   */
-//  typedef void (*flush_fn)(lv_display_t *display, const lv_area_t *area, void *px_map);
-
   /**
    *  @brief Signals used by LVGL to let the post_transfer_callback know
    *         whether or not to call lv_disp_flush_ready.
@@ -52,14 +45,18 @@ public:
    * of the display buffer memory itself.
    */
   struct AllocatingConfig {
-    size_t width;                         /**< Width of th display, in pixels. */
-    size_t height;                        /**< Height of the display, in pixels. */
-    size_t pixel_buffer_size;             /**< Size of the display buffer in pixels. */
-    lv_display_flush_cb_t flush_callback; /**< Function provided to LVGL for it to flush data to the display. */
-    gpio_num_t backlight_pin;             /**< GPIO pin for the backlight. */
+    size_t width;             /**< Width of th display, in pixels. */
+    size_t height;            /**< Height of the display, in pixels. */
+    size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
+    lv_display_flush_cb_t
+        flush_callback;       /**< Function provided to LVGL for it to flush data to the display. */
+    gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    Task::BaseConfig task_config{.name="Display", .stack_size_bytes=4096, .priority=20, .core_id=0}; /**< Task configuration. */
+    Task::BaseConfig task_config{.name = "Display",
+                                 .stack_size_bytes = 4096,
+                                 .priority = 20,
+                                 .core_id = 0}; /**< Task configuration. */
     std::chrono::duration<float> update_period{
         0.01}; /**< How frequently to run the update function. */
     bool double_buffered{
@@ -83,12 +80,16 @@ public:
     Pixel *vram1;  /**< Pointer to display buffer 2 (if double buffered), that lvgl will use. */
     size_t width;  /**< Width of th display, in pixels. */
     size_t height; /**< Height of the display, in pixels. */
-    size_t pixel_buffer_size;             /**< Size of the display buffer in pixels. */
-    lv_display_flush_cb_t flush_callback; /**< Function provided to LVGL for it to flush data to the display. */
-    gpio_num_t backlight_pin;             /**< GPIO pin for the backlight. */
+    size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
+    lv_display_flush_cb_t
+        flush_callback;       /**< Function provided to LVGL for it to flush data to the display. */
+    gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    Task::BaseConfig task_config{.name="Display", .stack_size_bytes=4096, .priority=20, .core_id=0}; /**< Task configuration. */
+    Task::BaseConfig task_config{.name = "Display",
+                                 .stack_size_bytes = 4096,
+                                 .priority = 20,
+                                 .core_id = 0}; /**< Task configuration. */
     std::chrono::duration<float> update_period{
         0.01};                              /**< How frequently to run the update function. */
     Rotation rotation{Rotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
@@ -271,7 +272,8 @@ protected:
     display_ = lv_display_create(width_, height_);
 
     // Configure the LVGL display buffer with our pixel buffers
-    lv_display_set_buffers(display_, vram_0_, vram_1_, vram_size_bytes(), LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_buffers(display_, vram_0_, vram_1_, vram_size_bytes(),
+                           LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     // Register the callback with lvgl
     lv_display_set_flush_cb(display_, reinterpret_cast<lv_display_flush_cb_t>(flush_callback));
