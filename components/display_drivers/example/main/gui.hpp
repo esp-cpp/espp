@@ -10,13 +10,11 @@
 class Gui {
 public:
   struct Config {
-    std::shared_ptr<espp::Display> display;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
   explicit Gui(const Config &config)
-      : display_(config.display)
-      , logger_({.tag = "Gui", .level = config.log_level}) {
+      : logger_({.tag = "Gui", .level = config.log_level}) {
     init_ui();
     // now start the gui updater task
     using namespace std::placeholders;
@@ -44,14 +42,14 @@ protected:
   void init_ui() {
     // Create a container with COLUMN flex direction
     column_ = lv_obj_create(lv_screen_active());
-    lv_obj_set_size(column_, display_->width(), display_->height());
+    lv_obj_set_size(column_, LV_HOR_RES, LV_VER_RES);
     lv_obj_set_flex_flow(column_, LV_FLEX_FLOW_COLUMN);
 
     label_ = lv_label_create(column_);
     lv_label_set_text(label_, "Hello world");
 
     meter_ = lv_bar_create(lv_screen_active());
-    lv_obj_set_size(meter_, display_->width() * 0.8f, 20);
+    lv_obj_set_size(meter_, LV_HOR_RES * 0.8f, 20);
     lv_obj_center(meter_);
 
     static lv_style_t style_indic;
@@ -83,7 +81,6 @@ protected:
   lv_obj_t *label_;
   lv_obj_t *meter_;
 
-  std::shared_ptr<espp::Display> display_;
   std::unique_ptr<espp::Task> task_;
   espp::Logger logger_;
   std::recursive_mutex mutex_;

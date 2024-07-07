@@ -10,15 +10,19 @@
 #if CONFIG_HARDWARE_WROVER_KIT
 #include "ili9341.hpp"
 static constexpr int DC_PIN_NUM = 21;
+using Display = espp::Display<lv_color16_t>;
 #elif CONFIG_HARDWARE_TTGO
 #include "st7789.hpp"
 static constexpr int DC_PIN_NUM = 16;
+using Display = espp::Display<lv_color16_t>;
 #elif CONFIG_HARDWARE_BOX
 #include "st7789.hpp"
 static constexpr int DC_PIN_NUM = 4;
+using Display = espp::Display<lv_color16_t>;
 #elif CONFIG_SMARTKNOB_HA
 #include "gc9a01.hpp"
 static constexpr int DC_PIN_NUM = 16;
+using Display = espp::Display<lv_color16_t>;
 #else
 #error "Misconfigured hardware!"
 #endif
@@ -127,9 +131,9 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
   trans[0].tx_data[0] = (uint8_t)espp::Gc9a01::Command::caset;
 #endif
   trans[1].tx_data[0] = (xs) >> 8;
-  trans[1].tx_data[1] = (xs)&0xff;
+  trans[1].tx_data[1] = (xs) & 0xff;
   trans[1].tx_data[2] = (xe) >> 8;
-  trans[1].tx_data[3] = (xe)&0xff;
+  trans[1].tx_data[3] = (xe) & 0xff;
 #if CONFIG_HARDWARE_WROVER_KIT
   trans[2].tx_data[0] = (uint8_t)espp::Ili9341::Command::raset;
 #elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
@@ -138,9 +142,9 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
   trans[2].tx_data[0] = (uint8_t)espp::Gc9a01::Command::raset;
 #endif
   trans[3].tx_data[0] = (ys) >> 8;
-  trans[3].tx_data[1] = (ys)&0xff;
+  trans[3].tx_data[1] = (ys) & 0xff;
   trans[3].tx_data[2] = (ye) >> 8;
-  trans[3].tx_data[3] = (ye)&0xff;
+  trans[3].tx_data[3] = (ye) & 0xff;
 #if CONFIG_HARDWARE_WROVER_KIT
   trans[4].tx_data[0] = (uint8_t)espp::Ili9341::Command::ramwr;
 #elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
@@ -203,7 +207,7 @@ extern "C" void app_main(void) {
   bool mirror_x = false;
   bool mirror_y = false;
   using DisplayDriver = espp::Ili9341;
-  auto rotation = espp::Display::Rotation::LANDSCAPE;
+  auto rotation = Display::Rotation::LANDSCAPE;
   //! [wrover_kit_config example]
 #elif CONFIG_HARDWARE_TTGO
   //! [ttgo_config example]
@@ -227,7 +231,7 @@ extern "C" void app_main(void) {
   bool mirror_x = false;
   bool mirror_y = false;
   using DisplayDriver = espp::St7789;
-  auto rotation = espp::Display::Rotation::PORTRAIT;
+  auto rotation = Display::Rotation::PORTRAIT;
   //! [ttgo_config example]
 #elif CONFIG_HARDWARE_BOX
   //! [box_config example]
@@ -251,7 +255,7 @@ extern "C" void app_main(void) {
   bool mirror_x = true;
   bool mirror_y = true;
   using DisplayDriver = espp::St7789;
-  auto rotation = espp::Display::Rotation::LANDSCAPE;
+  auto rotation = Display::Rotation::LANDSCAPE;
   //! [box_config example]
 #elif CONFIG_SMARTKNOB_HA
   //! [smartknob_config example]
@@ -275,7 +279,7 @@ extern "C" void app_main(void) {
   bool mirror_x = true;
   bool mirror_y = true;
   using DisplayDriver = espp::Gc9a01;
-  auto rotation = espp::Display::Rotation::LANDSCAPE;
+  auto rotation = Display::Rotation::LANDSCAPE;
   //! [smartknob_config example]
 #endif
 
@@ -323,18 +327,18 @@ extern "C" void app_main(void) {
         .mirror_y = mirror_y,
     });
     // initialize the display / lvgl
-    auto display = std::make_shared<espp::Display>(
-        espp::Display::AllocatingConfig{.width = width,
-                                        .height = height,
-                                        .pixel_buffer_size = pixel_buffer_size,
-                                        .flush_callback = DisplayDriver::flush,
-                                        .backlight_pin = backlight,
-                                        .backlight_on_value = backlight_on_value,
-                                        .rotation = rotation,
-                                        .software_rotation_enabled = true});
+    auto display = std::make_shared<Display>(
+        Display::AllocatingConfig{.width = width,
+                                  .height = height,
+                                  .pixel_buffer_size = pixel_buffer_size,
+                                  .flush_callback = DisplayDriver::flush,
+                                  .backlight_pin = backlight,
+                                  .backlight_on_value = backlight_on_value,
+                                  .rotation = rotation,
+                                  .software_rotation_enabled = true});
 
     // initialize the gui
-    Gui gui({.display = display});
+    Gui gui({});
     size_t iterations = 0;
     while (true) {
       auto label = fmt::format("Iterations: {}", iterations);
