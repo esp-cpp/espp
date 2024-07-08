@@ -14,6 +14,12 @@ input with configurable pull-up or pull-down resistors and a configurable active
 state (high or low). In this configuration, the input is read manually any time
 the user calls the `is_pressed` method.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   button_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

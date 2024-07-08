@@ -14,6 +14,12 @@ or into a table for visualization.
 
 Code examples for the monitor API are provided in the `monitor` example folder.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   monitor_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

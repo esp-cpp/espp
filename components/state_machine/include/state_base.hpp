@@ -6,7 +6,9 @@ namespace espp::state_machine {
 // Base Class for Events, abstract so you never instantiate.
 class EventBase {
 public:
+  /// Default constructor
   virtual ~EventBase() {}
+  /// Returns a string representation of the event
   virtual std::string to_string() const = 0;
 }; // class EventBase
 
@@ -26,12 +28,24 @@ public:
  */
 class StateBase {
 public:
+  /**
+   * @brief Default constructor
+   */
   StateBase()
       : _activeState(this)
       , _parentState(nullptr) {}
+
+  /**
+   * @brief Constructor that sets the parent state.
+   * @param[in] parent Pointer to parent state
+   */
   explicit StateBase(StateBase *parent)
       : _activeState(this)
       , _parentState(parent) {}
+
+  /**
+   * @brief Destructor
+   */
   virtual ~StateBase(void) {}
 
   /**
@@ -54,9 +68,7 @@ public:
 
   /**
    * @brief Calls handleEvent on the activeLeaf.
-   *
-   * @param[in] EventBase* Event needing to be handled
-   *
+   * @param[in] event Event needing to be handled
    * @return true if event is consumed, false otherwise
    */
   virtual bool handleEvent(EventBase *event) { return false; }
@@ -79,8 +91,7 @@ public:
    *  derived classes to immediately return the correct initial
    *  state pointer for quickly transitioning to the proper state
    *  during external transition handling.
-   *
-   * @return StateBase*  Pointer to initial substate
+   * @return Pointer to initial substate
    */
   virtual StateBase *getInitial(void) { return this; };
 
@@ -98,16 +109,14 @@ public:
   /**
    * @brief Will return _activeState if it exists, otherwise will
    *  return nullptr.
-   *
-   * @return StateBase*  Pointer to last active substate
+   * @return Pointer to last active substate
    */
   StateBase *getActiveChild(void) { return _activeState; }
 
   /**
    * @brief Will return the active leaf state, otherwise will return
    *  nullptr.
-   *
-   * @return StateBase*  Pointer to last active leaf state.
+   * @return Pointer to last active leaf state.
    */
   StateBase *getActiveLeaf(void) {
     if (_activeState != nullptr && _activeState != this)
@@ -119,8 +128,7 @@ public:
   /**
    * @brief Make this state the active substate of its parent and
    *  then recurse up through the tree to the root.
-   *
-   *  *Should only be called on leaf nodes!*
+   * @note Should only be called on leaf nodes!
    */
   virtual void makeActive(void) {
     if (_parentState != nullptr) {
@@ -162,6 +170,7 @@ public:
 
   /**
    * @brief Will set the parent state.
+   * @param[in] parent Pointer to parent state
    */
   void setParentState(StateBase *parent) { _parentState = parent; }
 

@@ -4,6 +4,7 @@ Network APIs
 .. toctree::
     :maxdepth: 1
 
+    socket_example
     socket
     udp_socket
     tcp_socket

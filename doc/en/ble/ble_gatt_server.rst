@@ -5,6 +5,12 @@ The `BleGattServer` implements the standard BLE GATT server which has various
 APIs for controlling the server and adding services. It automatically builds and
 adds standard battery service and device information service.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   ble_gatt_server_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

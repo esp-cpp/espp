@@ -7,6 +7,12 @@ around the esp-idf I2C driver.
 A helper `I2cMenu` is also provided which can be used to interactively test
 I2C buses - scanning the bus, probing devices, reading and writing to devices.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   i2c_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

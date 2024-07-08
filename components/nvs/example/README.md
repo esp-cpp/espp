@@ -1,4 +1,4 @@
-# Serialization Example
+# NVS Example
 
 This example shows the use of the `NVS` component to save a variable to the NVS and load 
 it after reset. 

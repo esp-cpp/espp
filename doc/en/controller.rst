@@ -8,6 +8,12 @@ values into digital directional values (up/down/left/right). It can also be used
 for just a subset of the buttons, should you wish to do so, by providing the
 GPIO configuration for the unused buttons to be -1.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   controller_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

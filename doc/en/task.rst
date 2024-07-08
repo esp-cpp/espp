@@ -11,6 +11,12 @@ sleeps and termination of the task.
 
 Code examples for the task API are provided in the `task` example folder.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   task_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

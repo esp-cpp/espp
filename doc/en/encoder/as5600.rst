@@ -22,6 +22,12 @@ creation.
 The encoder is designed to fulfill the needs of the `BldcMotor` API, to provide
 closed-loop motor control.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   as5600_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

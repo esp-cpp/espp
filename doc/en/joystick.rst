@@ -11,6 +11,12 @@ axis according to the configuration provided.
 
 Code examples for the task API are provided in the `joystick` example folder.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   joystick_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

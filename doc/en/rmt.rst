@@ -16,6 +16,12 @@ provided by the esp-idf is to allow the use of the RMT peripheral with c++
 functions (such as with bound functions, functionals, etc.). It also provides a
 simpler wrapper / interface to the user.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   rmt_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

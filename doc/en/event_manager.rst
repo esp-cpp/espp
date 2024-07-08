@@ -13,6 +13,12 @@ EventManager. As noted in a few places, it is recommended to use a
 (de-)serialization library such as espp::serialization / alpaca for transforming
 data structures to/from `std::vector<uint8_t>` for publishing/subscribing.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   event_manager_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

@@ -33,6 +33,12 @@ voltage divider circuit, with a fixed resistor. The component can be configured
 so that either the thermistor or the fixed resistor is the upper part of the
 voltage divider.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   thermistor_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference
