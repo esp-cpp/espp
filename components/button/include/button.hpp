@@ -19,9 +19,10 @@ namespace espp {
 class Button : protected Interrupt {
 public:
   // Expose some types from the Interrupt class for convenience
-  using Event = Interrupt::Event;             ///< The event type for the button
-  using InterruptType = Interrupt::Type;      ///< The type of interrupt for the button
-  using ActiveLevel = Interrupt::ActiveLevel; ///< The active level of the button
+  using Event = Interrupt::Event;                  ///< The event type for the button
+  using InterruptType = Interrupt::Type;           ///< The type of interrupt for the button
+  using ActiveLevel = Interrupt::ActiveLevel;      ///< The active level of the button
+  using callback_t = Interrupt::event_callback_fn; ///< The callback function type for the button
 
   /// \brief The configuration for the button
   struct Config {

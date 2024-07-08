@@ -1,0 +1,39 @@
+menu "Example Configuration"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_TDECK
+        help
+            Select the hardware to run this example on.
+
+        config EXAMPLE_HARDWARE_TDECK
+            depends on IDF_TARGET_ESP32S3
+            bool "LilyGO T-Deck"
+
+        config EXAMPLE_HARDWARE_BOX_3
+            depends on IDF_TARGET_ESP32S3
+            bool "ESP32-S3 BOX-3"
+
+        config EXAMPLE_HARDWARE_CUSTOM
+            bool "Custom"
+    endchoice
+
+    config EXAMPLE_I2C_SCL_GPIO
+        int "SCL GPIO Num"
+        range 0 50
+        default 8 if EXAMPLE_HARDWARE_TDECK
+        default 18 if EXAMPLE_HARDWARE_BOX_3
+        default 19 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master clock line.
+
+    config EXAMPLE_I2C_SDA_GPIO
+        int "SDA GPIO Num"
+        range 0 50
+        default 18 if EXAMPLE_HARDWARE_TDECK
+        default 8 if EXAMPLE_HARDWARE_BOX_3
+        default 22 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master data line.
+
+endmenu
