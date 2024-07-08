@@ -1,39 +1,39 @@
 [submodule "external/fmt"]
 	path = external/fmt
-	url = git@github.com:fmtlib/fmt
+	url = https://github.com/fmtlib/fmt
 [submodule "external/alpaca"]
 	path = external/alpaca
-	url = git@github.com:p-ranav/alpaca
+	url = https://github.com/p-ranav/alpaca
 [submodule "components/esp_littlefs"]
 	path = components/esp_littlefs
-	url = git@github.com:joltwallet/esp_littlefs
+	url = https://github.com/joltwallet/esp_littlefs
 [submodule "components/lvgl"]
 	path = components/lvgl
-	url = git@github.com:lvgl/lvgl
+	url = https://github.com/lvgl/lvgl
 [submodule "components/esp-dsp"]
 	path = components/esp-dsp
-	url = git@github.com:espressif/esp-dsp
+	url = https://github.com/espressif/esp-dsp
 [submodule "external/csv2"]
 	path = external/csv2
-	url = git@github.com:p-ranav/csv2
+	url = https://github.com/p-ranav/csv2
 [submodule "external/cli"]
 	path = external/cli
-	url = git@github.com:daniele77/cli
+	url = https://github.com/daniele77/cli
 [submodule "external/tabulate"]
 	path = external/tabulate
-	url = git@github.com:p-ranav/tabulate
+	url = https://github.com/p-ranav/tabulate
 [submodule "lib/pybind11"]
 	path = lib/pybind11
-	url = git@github.com:pybind/pybind11
+	url = https://github.com/pybind/pybind11
 [submodule "external/magic_enum"]
 	path = external/magic_enum
-	url = git@github.com:neargye/magic_enum
+	url = https://github.com/neargye/magic_enum
 [submodule "components/esp-nimble-cpp"]
 	path = components/esp-nimble-cpp
-	url = git@github.com:esp-cpp/esp-nimble-cpp
+	url = https://github.com/esp-cpp/esp-nimble-cpp
 [submodule "external/hid-rp"]
 	path = external/hid-rp
-	url = git@github.com:intergatedcircuits/hid-rp
+	url = https://github.com/intergatedcircuits/hid-rp
 [submodule "external/nearby"]
 	path = external/nearby
-	url = git@github.com:google/nearby
+	url = https://github.com/google/nearby
