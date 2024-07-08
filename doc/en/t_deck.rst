@@ -10,6 +10,12 @@ nice touchscreen display and expansion headers.
 The `espp::TDeck` component provides a singleton hardware abstraction for
 initializing the touch and display subsystems.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   t_deck_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

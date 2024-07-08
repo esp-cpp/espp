@@ -11,6 +11,12 @@ Please see `Computer Graphics and Geometric Modeling: Implementation and
 Algorithms <https://isidore.co/calibre/browse/book/5588>`_, specifically section
 8.6 for more information.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   color_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

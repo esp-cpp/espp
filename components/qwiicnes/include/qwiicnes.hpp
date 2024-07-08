@@ -175,6 +175,11 @@ protected:
 };
 } // namespace espp
 
+/// @brief Overload the equality operator for the espp::QwiicNes::ButtonState
+///        struct.
+/// @param lhs The left hand side of the operator.
+/// @param rhs The right hand side of the operator.
+/// @return true if the two ButtonState structs are equal.
 static bool operator==(const espp::QwiicNes::ButtonState &lhs,
                        const espp::QwiicNes::ButtonState &rhs) {
   return lhs.raw == rhs.raw;

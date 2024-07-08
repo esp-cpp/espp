@@ -9,6 +9,12 @@ retrieves the data and filters it. When the user calls `get_mv(adc_channel_t)`,
 it simply returns the most recent filtered value for that channel, if it was
 configured.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   adc_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

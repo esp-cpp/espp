@@ -11,6 +11,12 @@ handling the commands and sending the responses.
 Note that the FTP server does not implement any authentication mechanism. It
 accepts any username and password.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   ftp_server_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

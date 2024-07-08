@@ -14,6 +14,12 @@ provide additional functionality, or it can of course be included as a member
 within another class. The Button class provides a very simple implementation of
 a subclass of `Interrupt`.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   interrupt_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

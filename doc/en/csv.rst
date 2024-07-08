@@ -7,6 +7,12 @@ include folder, so including `csv.hpp` is completely equivalent to including
 both `csv2/reader.hpp` and `csv2/writer.hpp`. Please see the documentation for
 csv2 if you have any questions about usage beyond the examples provided here.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   csv_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

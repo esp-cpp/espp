@@ -10,6 +10,12 @@ have its gains change dynamically.
 
 Code examples for the task API are provided in the `pid` example folder.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   pid_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

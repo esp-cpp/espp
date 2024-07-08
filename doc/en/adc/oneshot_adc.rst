@@ -8,6 +8,12 @@ any filtering on the data. Each time the user calls `read_raw(adc_channel_t)` or
 `read_mv(adc_channel_t)`, it block and trigger an analog read for the associated
 channel (if it was configured to do so).
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   adc_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

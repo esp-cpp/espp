@@ -20,6 +20,12 @@ can be distinguished from each other.
 Code examples for the serialization API are provided in the `serialization`
 example folder.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   serialization_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

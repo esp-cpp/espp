@@ -11,6 +11,12 @@ perhipheral
 It allows for both instant and hardware-based timed changing (fading) of duty cycle (in
 floating point percent [0,100]).
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   led_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

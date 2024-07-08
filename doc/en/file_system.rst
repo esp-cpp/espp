@@ -11,6 +11,12 @@ It also provides some utility functions for interacting with the filesystem
 and performing operations such as getting the total, used, and free space on
 the filesystem, and listing files in a directory.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   file_system_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

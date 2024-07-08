@@ -41,7 +41,8 @@ public:
   /// Called when a Google Fast Pair Service characteristic is written
   /// \param conn_info The connection information for the device
   /// \param characteristic The characteristic to write
-  ///
+  /// \param value The value to write
+  /// \param length The length of the value
   void on_gfps_write(NimBLEConnInfo &conn_info, nearby_fp_Characteristic characteristic,
                      const uint8_t *value, size_t length) {
     auto gfps_ble_interface = gfps::get_ble_interface();

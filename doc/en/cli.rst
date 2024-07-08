@@ -31,6 +31,12 @@ Please see the documentation for the `cli submodule
 <https://github.com/daniele77/cli>`_ if you have any questions about usage
 beyond the examples provided here.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   cli_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

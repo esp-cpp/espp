@@ -11,6 +11,12 @@ an RGB LED, and a button.
 The `espp::TDongleS3` component provides a singleton hardware abstraction for
 initializing the display and LED subsystems.
 
+.. ------------------------------ Example  -------------------------------------
+
+.. toctree::
+
+   t_dongle_s3_example.md
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

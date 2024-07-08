@@ -15,6 +15,12 @@ provided and for which the code was generated from webgme-hfsm):
 .. image:: images/complex-hfsm.png
   :alt: "Complex" example HFSM showing the many of the UML formalisms supported.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   state_machine_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

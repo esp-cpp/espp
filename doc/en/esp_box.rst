@@ -12,6 +12,12 @@ The `espp::EspBox` component provides a singleton hardware abstraction for
 initializing the touch, display, and audio subsystems, as well as automatically
 determining which version of the Box it's running on.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   esp_box_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

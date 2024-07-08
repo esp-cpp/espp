@@ -24,6 +24,12 @@ haptic feedback loop with configuration of:
   - Frequency of the haptic feedback [currently not implemented]
   - Duration of the haptic feedback [currently not implemented]
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   bldc_haptics_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

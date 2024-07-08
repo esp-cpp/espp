@@ -9,6 +9,12 @@ waveforms (e.g. via using the audio, pwm / analog functions) as well as a preset
 library of 123 different haptic waveforms which can be played in sequences of up
 to 8 waveforms.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   drv2605_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

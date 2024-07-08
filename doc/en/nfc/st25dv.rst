@@ -8,6 +8,12 @@ with other NFC/RFID enabled devices such as phones. This chip stores in its
 EEPROM NFC T5T tag records - which include a CC header (that this class
 maintains) followed by serialized NDEF records.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   st25dv_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

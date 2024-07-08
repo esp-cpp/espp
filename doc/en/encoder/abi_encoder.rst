@@ -12,6 +12,12 @@ current `count` of the encoder (including the overflow underflow conditions).
 
 Code examples for the ABI Encoder are provided in the `encoder` example folder.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   encoder_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

@@ -24,6 +24,12 @@ voltage, and rate information is accessed using the I2C interface. The ICs are
 available in a tiny 0.9mm x 1.7mm, 8-bump wafer-level package (WLP), or a 2mm x
 2mm, 8-pin TDFN package.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   max1704x_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference
