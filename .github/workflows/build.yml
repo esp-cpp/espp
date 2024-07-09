@@ -37,6 +37,8 @@ jobs:
           target: esp32
         - path: 'components/color/example'
           target: esp32
+        - path: 'components/cst816/example'
+          target: esp32s3
         - path: 'components/csv/example'
           target: esp32
         - path: 'components/display_drivers/example'
@@ -81,6 +83,8 @@ jobs:
           target: esp32
         - path: 'components/math/example'
           target: esp32
+        - path: 'components/matouch-rotary-display/example'
+          target: esp32s3
         - path: 'components/max1704x/example'
           target: esp32
         - path: 'components/monitor/example'
