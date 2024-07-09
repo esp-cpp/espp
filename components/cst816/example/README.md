@@ -1,14 +1,20 @@
 # CST816 Example
 
 This example shows how to use the CST816 touch controller with ESP32. It is
-designed to run on a LilyGo T-Deck (no home button) or the ESP32-S3-BOX-3 (with
-home button).
+designed to run on a [Matouch Rotary
+Display](https://wiki.makerfabs.com/MaTouch_ESP32_S3_Rotary_IPS_Display_1.28_GC9A01.html).
 
 ## How to use example
 
 ### Hardware Required
 
-LilyGo T-Deck orESP32-S3-BOX-3 (or any other ESP32 board with a CST816 touch controller)
+The [Matouch Rotary
+Display](https://wiki.makerfabs.com/MaTouch_ESP32_S3_Rotary_IPS_Display_1.28_GC9A01.html)
+is required for this example.
+
+If you have other hardware with CST816, you can run menuconfig, and select the
+`HARDWARE_CUSTOM` option. and then select which pins are connected to the
+CST816.
 
 ### Configure
 
