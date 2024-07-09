@@ -8,7 +8,11 @@ touchpad state and each time you touch the screen it uses LVGL to draw a circle
 where you touch. If you press the home button on the display, it will clear the
 circles.
 
-![image](https://github.com/esp-cpp/espp/assets/213467/4744d6ee-33bd-4907-8c58-3f3c2e5b7ba6)
+![image](https://github.com/esp-cpp/espp/assets/213467/2d8bf057-5c13-46ee-bf48-54df4ba74aea)
+
+![image](https://github.com/esp-cpp/espp/assets/213467/81f03ddf-0c3e-4db8-8a86-f8749245bd56)
+
+![image](https://github.com/esp-cpp/espp/assets/213467/516731e9-ad5d-487b-a46a-d5b760e66d60)
 
 ## How to use example
 
@@ -33,4 +37,5 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-![CleanShot 2024-07-05 at 23 43 27@2x](https://github.com/esp-cpp/espp/assets/213467/03d1dad5-e9fa-461c-9eb2-1e5d314dcfdb)
+![CleanShot 2024-07-08 at 22 02 08](https://github.com/esp-cpp/espp/assets/213467/3ab6b27c-9182-4ec5-be95-f85ecfcfea7b)
+
