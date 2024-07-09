@@ -1,12 +1,13 @@
 #include <chrono>
+#include <deque>
 #include <stdlib.h>
-#include <vector>
 
 #include "matouch-rotary-display.hpp"
 
 using namespace std::chrono_literals;
 
-static std::vector<lv_obj_t *> circles;
+static constexpr size_t MAX_CIRCLES = 100;
+static std::deque<lv_obj_t *> circles;
 
 static std::mutex lvgl_mutex;
 
@@ -33,6 +34,25 @@ extern "C" void app_main(void) {
     }
   };
 
+  auto on_touch = [&](const auto &touch) {
+    // NOTE: since we're directly using the touchpad data, and not using the
+    // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
+    // converted into proper screen coordinates instead of simply using the
+    // raw values.
+    static auto previous_touchpad_data = mt_display.touchpad_convert(touch);
+    auto touchpad_data = mt_display.touchpad_convert(touch);
+    if (touchpad_data != previous_touchpad_data) {
+      logger.info("Touch: {}", touchpad_data);
+      previous_touchpad_data = touchpad_data;
+      // if there is a touch point, draw a circle
+      if (touchpad_data.num_touch_points > 0) {
+        std::lock_guard<std::mutex> lock(lvgl_mutex);
+        draw_circle(touchpad_data.x, touchpad_data.y, 10);
+      }
+    }
+    previous_touchpad_data = touchpad_data;
+  };
+
   // initialize the LCD
   if (!mt_display.initialize_lcd()) {
     logger.error("Failed to initialize LCD!");
@@ -46,7 +66,7 @@ extern "C" void app_main(void) {
     return;
   }
   // initialize the touchpad
-  if (!mt_display.initialize_touch()) {
+  if (!mt_display.initialize_touch(on_touch)) {
     logger.error("Failed to initialize touchpad!");
     return;
   }
@@ -90,26 +110,8 @@ extern "C" void app_main(void) {
   // set the display brightness to be 75%
   mt_display.brightness(75.0f);
 
-  auto previous_touchpad_data = mt_display.touchpad_convert(mt_display.touchpad_data());
   while (true) {
     auto start = esp_timer_get_time();
-    // update touch and use it to draw circles
-    if (mt_display.update_touch()) {
-      // NOTE: since we're directly using the touchpad data, and not using the
-      // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
-      // converted into proper screen coordinates instead of simply using the
-      // raw values.
-      auto touchpad_data = mt_display.touchpad_convert(mt_display.touchpad_data());
-      if (touchpad_data != previous_touchpad_data) {
-        logger.info("Touch: {}", touchpad_data);
-        previous_touchpad_data = touchpad_data;
-        // if there is a touch point, draw a circle
-        if (touchpad_data.num_touch_points > 0) {
-          std::lock_guard<std::mutex> lock(lvgl_mutex);
-          draw_circle(touchpad_data.x, touchpad_data.y, 10);
-        }
-      }
-    }
     // get the encoder count and update the label with it
     int encoder_count = mt_display.encoder_value();
     lv_label_set_text_fmt(
@@ -124,6 +126,11 @@ extern "C" void app_main(void) {
 }
 
 static void draw_circle(int x0, int y0, int radius) {
+  // if the number of circles exceeds the max, remove the oldest circle
+  if (circles.size() >= MAX_CIRCLES) {
+    lv_obj_del(circles.front());
+    circles.pop_front();
+  }
   lv_obj_t *my_Cir = lv_obj_create(lv_scr_act());
   lv_obj_set_scrollbar_mode(my_Cir, LV_SCROLLBAR_MODE_OFF);
   lv_obj_set_size(my_Cir, radius * 2, radius * 2);

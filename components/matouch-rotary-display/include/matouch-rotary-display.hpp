@@ -10,10 +10,10 @@
 
 #include "abi_encoder.hpp"
 #include "base_component.hpp"
-#include "button.hpp"
 #include "cst816.hpp"
 #include "gc9a01.hpp"
 #include "i2c.hpp"
+#include "interrupt.hpp"
 #include "touchpad_input.hpp"
 
 namespace espp {
@@ -34,10 +34,6 @@ namespace espp {
 /// \snippet matouch_rotary_display_example.cpp matouch-rotary-display example
 class MatouchRotaryDisplay : public BaseComponent {
 public:
-  using Encoder = espp::AbiEncoder<espp::EncoderType::ROTATIONAL>;
-
-  using button_callback_t = espp::Button::callback_t;
-
   /// The data structure for the touchpad
   struct TouchpadData {
     uint8_t num_touch_points = 0; ///< The number of touch points
@@ -50,6 +46,10 @@ public:
     /// @return true if the two TouchpadData objects are equal, false otherwise
     bool operator==(const TouchpadData &rhs) const = default;
   };
+
+  using Encoder = espp::AbiEncoder<espp::EncoderType::ROTATIONAL>;
+  using button_callback_t = espp::Interrupt::event_callback_fn;
+  using touch_callback_t = std::function<void(const TouchpadData &)>;
 
   /// @brief Access the singleton instance of the MatouchRotaryDisplay class
   /// @return Reference to the singleton instance of the MatouchRotaryDisplay class
@@ -90,14 +90,8 @@ public:
 
   /// Initialize the button
   /// \param callback The callback function to call when the button is pressed
-  /// \param task_config The task configuration for the button task
   /// \return true if the button was successfully initialized, false otherwise
-  bool initialize_button(const button_callback_t &callback = nullptr,
-                         const espp::Task::BaseConfig &task_config = {});
-
-  /// Get the button
-  /// \return A shared pointer to the button
-  std::shared_ptr<espp::Button> button() const;
+  bool initialize_button(const button_callback_t &callback = nullptr);
 
   /// Get the button state
   /// \return The button state (true = button pressed, false = button released)
@@ -108,26 +102,27 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   /// Initialize the touchpad
+  /// \param callback The callback function to call when the touchpad is
+  ///                 touched. This callback will be called after the touchpad
+  ///                 data has been updated and will be passed the updated
+  ///                 touchpad data.
   /// \return true if the touchpad was successfully initialized, false otherwise
+  /// \note This will also register an interrupt for the touchpad which will
+  ///       automatically update the touchpad data when the touchpad is touched
   /// \warning This method should be called after the display has been
   ///          initialized if you want the touchpad to be recognized and used
   ///          with LVGL and its objects.
-  bool initialize_touch();
-
-  /// Update the touchpad data
-  /// \return true if there is new touchpad data, false otherwise
-  bool update_touch();
+  bool initialize_touch(const touch_callback_t &callback = nullptr);
 
   /// Get the touchpad input
   /// \return A shared pointer to the touchpad input
   std::shared_ptr<TouchpadInput> touchpad_input() const;
 
-  /// Get the touchpad data, updated by the update_touch() method
-  /// \return The touchpad data, updated by the update_touch() method
-  /// \see update_touch()
+  /// Get the most recent touchpad data
+  /// \return The touchpad data
   TouchpadData touchpad_data() const;
 
-  /// Get the touchpad data, updated by the update_touch() method
+  /// Get the most recent touchpad data
   /// \param num_touch_points The number of touch points
   /// \param x The x coordinate
   /// \param y The y coordinate
@@ -136,7 +131,6 @@ public:
   ///       data it returns is identical to the data returned by the
   ///       touchpad_data() method
   /// \see touchpad_data()
-  /// \see update_touch()
   void touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, uint8_t *btn_state);
 
   /// Convert touchpad data from raw reading to display coordinates
@@ -298,10 +292,41 @@ protected:
   // encoder
   std::shared_ptr<Encoder> encoder_{nullptr};
 
+  // Interrupts
+  espp::Interrupt::PinConfig button_interrupt_pin_{
+      .gpio_num = button_io,
+      .callback =
+          [this](const auto &event) {
+            if (button_callback_) {
+              button_callback_(event);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE};
+  espp::Interrupt::PinConfig touch_interrupt_pin_{
+      .gpio_num = touch_interrupt,
+      .callback =
+          [this](const auto &event) {
+            update_cst816();
+            if (touch_callback_) {
+              touch_callback_(touchpad_data());
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+
+  // we'll only add each interrupt pin if the initialize method is called
+  espp::Interrupt interrupts_{
+      {.interrupts = {},
+       .task_config = {.name = "matouch interrupts",
+                       .stack_size_bytes = CONFIG_MATOUCH_INTERRUPT_STACK_SIZE}}};
+
   // button
-  std::shared_ptr<espp::Button> button_{nullptr};
+  std::atomic<bool> button_initialized_{false};
+  button_callback_t button_callback_{nullptr};
 
   // touch
+  touch_callback_t touch_callback_{nullptr};
   std::shared_ptr<Cst816> cst816_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;

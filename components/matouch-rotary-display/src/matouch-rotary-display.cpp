@@ -46,48 +46,35 @@ int MatouchRotaryDisplay::encoder_value() {
 ////////////////////////
 
 bool MatouchRotaryDisplay::initialize_button(
-    const MatouchRotaryDisplay::button_callback_t &callback,
-    const espp::Task::BaseConfig &task_config) {
+    const MatouchRotaryDisplay::button_callback_t &callback) {
   if (!display_) {
     logger_.warn("You should call initialize_display() before initialize_buttons(), otherwise lvgl "
                  "will not properly handle the button input!");
   }
   logger_.info("Initializing buttons");
 
-  auto button_task_config = task_config;
-  button_task_config.name = "MaTouch Button task";
+  // save the callback
+  button_callback_ = callback;
 
-  button_ = std::make_shared<espp::Button>(espp::Button::Config{
-      .name = "MaTouch Button",
-      .interrupt_config =
-          {
-              .gpio_num = button_io,
-              .callback = callback,
-              .active_level = espp::Interrupt::ActiveLevel::LOW,
-              .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-              .pullup_enabled = false,
-              .pulldown_enabled = false,
-          },
-      .task_config = button_task_config,
-      .log_level = espp::Logger::Verbosity::WARN,
-  });
+  // configure the button
+  interrupts_.add_interrupt(button_interrupt_pin_);
+  button_initialized_ = true;
   return true;
 }
 
-std::shared_ptr<espp::Button> MatouchRotaryDisplay::button() const { return button_; }
-
 bool MatouchRotaryDisplay::button_state() const {
-  if (!button_) {
+  if (!button_initialized_) {
     return false;
   }
-  return button_->is_pressed();
+  return interrupts_.is_active(button_interrupt_pin_);
 }
 
 ////////////////////////
 // Touchpad Functions //
 ////////////////////////
 
-bool MatouchRotaryDisplay::initialize_touch() {
+bool MatouchRotaryDisplay::initialize_touch(
+    const MatouchRotaryDisplay::touch_callback_t &callback) {
   if (!display_) {
     logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
                  "will not properly handle the touchpad input!");
@@ -110,6 +97,11 @@ bool MatouchRotaryDisplay::initialize_touch() {
       .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN});
 
+  // save the callback
+  touch_callback_ = callback;
+
+  // configure the touchpad
+  interrupts_.add_interrupt(touch_interrupt_pin_);
   return true;
 }
 
@@ -141,8 +133,6 @@ bool MatouchRotaryDisplay::update_cst816() {
   touchpad_data_ = temp_data;
   return true;
 }
-
-bool MatouchRotaryDisplay::update_touch() { return update_cst816(); }
 
 std::shared_ptr<espp::TouchpadInput> MatouchRotaryDisplay::touchpad_input() const {
   return touchpad_input_;
