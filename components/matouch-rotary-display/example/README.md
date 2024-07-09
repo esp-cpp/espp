@@ -1,7 +1,7 @@
 # Matouch-Rotary-Display Example
 
 This example shows how to use the `espp::MatouchRotaryDisplay` hardware
-abstraction component initialize the components on the MaTouch Rotary Display.
+abstraction component initialize the components on the [MaTouch Rotary Display](https://wiki.makerfabs.com/MaTouch_ESP32_S3_Rotary_IPS_Display_1.28_GC9A01.html).
 
 It initializes the touch, display, and t-keyboard subsystems. It reads the
 touchpad state and each time you touch the screen it uses LVGL to draw a circle
