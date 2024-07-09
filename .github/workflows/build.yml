@@ -37,6 +37,8 @@ jobs:
           target: esp32
         - path: 'components/color/example'
           target: esp32
+        - path: 'components/cst816/example'
+          target: esp32s3
         - path: 'components/csv/example'
           target: esp32
         - path: 'components/display_drivers/example'
