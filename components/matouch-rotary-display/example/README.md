@@ -1,7 +1,7 @@
 # Matouch-Rotary-Display Example
 
-This example shows how to use the `espp::MatouchRotaryDisplay` hardware abstraction component
-initialize the components on the MaTouch Rotary Display 1.28".
+This example shows how to use the `espp::MatouchRotaryDisplay` hardware
+abstraction component initialize the components on the MaTouch Rotary Display.
 
 It initializes the touch, display, and t-keyboard subsystems. It reads the
 touchpad state and each time you touch the screen it uses LVGL to draw a circle

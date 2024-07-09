@@ -81,6 +81,8 @@ jobs:
           target: esp32
         - path: 'components/math/example'
           target: esp32
+        - path: 'components/matouch-rotary-display/example'
+          target: esp32s3
         - path: 'components/max1704x/example'
           target: esp32
         - path: 'components/monitor/example'
