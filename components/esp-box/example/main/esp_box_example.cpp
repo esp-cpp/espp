@@ -1,4 +1,5 @@
 #include <chrono>
+#include <deque>
 #include <stdlib.h>
 #include <vector>
 
@@ -6,7 +7,8 @@
 
 using namespace std::chrono_literals;
 
-static std::vector<lv_obj_t *> circles;
+static constexpr size_t MAX_CIRCLES = 100;
+static std::deque<lv_obj_t *> circles;
 static std::vector<uint8_t> audio_bytes;
 
 static void draw_circle(int x0, int y0, int radius);
@@ -87,7 +89,7 @@ extern "C" void app_main(void) {
 
   auto previous_touchpad_data = box.touchpad_convert(box.touchpad_data());
   while (true) {
-    std::this_thread::sleep_for(100ms);
+    auto start = esp_timer_get_time();
     if (box.update_touch()) {
       // NOTE: since we're directly using the touchpad data, and not using the
       // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
@@ -110,11 +112,19 @@ extern "C" void app_main(void) {
         }
       }
     }
+    auto end = esp_timer_get_time();
+    auto elapsed = end - start;
+    std::this_thread::sleep_for(50ms - std::chrono::microseconds(elapsed));
   }
   //! [esp box example]
 }
 
 static void draw_circle(int x0, int y0, int radius) {
+  // if the number of circles is greater than the max, remove the oldest circle
+  if (circles.size() > MAX_CIRCLES) {
+    lv_obj_del(circles.front());
+    circles.pop_front();
+  }
   lv_obj_t *my_Cir = lv_obj_create(lv_scr_act());
   lv_obj_set_scrollbar_mode(my_Cir, LV_SCROLLBAR_MODE_OFF);
   lv_obj_set_size(my_Cir, radius * 2, radius * 2);
