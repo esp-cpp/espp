@@ -24,18 +24,14 @@ extern "C" void app_main(void) {
         .clk_speed = 400 * 1000,
     });
 
-    bool has_cst816_5d = i2c.probe_device(0x5d);
-    bool has_cst816_14 = i2c.probe_device(0x14);
-    uint8_t address = has_cst816_5d ? 0x5d : 0x14;
-    fmt::print("Touchpad probe: {}\n", has_cst816_5d || has_cst816_14);
-    fmt::print("       address: {:#02x}\n", address);
+    bool has_cst816 = i2c.probe_device(espp::Cst816::DEFAULT_ADDRESS);
+    fmt::print("Touchpad probe: {}\n", has_cst816);
 
     // now make the cst816 which decodes the data
     espp::Cst816 cst816({.write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1,
                                             std::placeholders::_2, std::placeholders::_3),
                          .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
                                            std::placeholders::_2, std::placeholders::_3),
-                         .address = address,
                          .log_level = espp::Logger::Verbosity::WARN});
 
     // and finally, make the task to periodically poll the cst816 and print
