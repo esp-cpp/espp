@@ -29,6 +29,9 @@ namespace espp {
 /// https://github.com/Xinyuan-LilyGO/T-Deck/tree/master and
 /// https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/utilities.h
 ///
+/// \note They keyboard has a backlight, which you can control with the shortcut
+///       `alt + b`. The keyboard backlight is off by default.
+///
 /// The class is a singleton and can be accessed using the get() method.
 ///
 /// \section t_deck_example Example
