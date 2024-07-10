@@ -19,6 +19,7 @@
 #include "es8311.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "interrupt.hpp"
 #include "st7789.hpp"
 #include "touchpad_input.hpp"
 #include "tt21100.hpp"
@@ -58,6 +59,8 @@ public:
     bool operator==(const TouchpadData &rhs) const = default;
   };
 
+  using touch_callback_t = std::function<void(const TouchpadData &)>;
+
   /// @brief Access the singleton instance of the EspBox class
   /// @return Reference to the singleton instance of the EspBox class
   static EspBox &get() {
@@ -80,31 +83,34 @@ public:
   /// \note The internal I2C bus is used for the touchscreen and audio codec
   I2c &internal_i2c();
 
+  /// Get a reference to the interrupts
+  /// \return A reference to the interrupts
+  espp::Interrupt &interrupts();
+
   /////////////////////////////////////////////////////////////////////////////
   // Touchpad
   /////////////////////////////////////////////////////////////////////////////
 
   /// Initialize the touchpad
+  /// \param callback The touchpad callback
   /// \return true if the touchpad was successfully initialized, false otherwise
   /// \warning This method should be called after the display has been
   ///          initialized if you want the touchpad to be recognized and used
   ///          with LVGL and its objects.
-  bool initialize_touch();
-
-  /// Update the touchpad data
-  /// \return true if there is new touchpad data, false otherwise
-  bool update_touch();
+  /// \note This will configure the touchpad interrupt pin which will
+  ///       automatically call the touch callback function when the touchpad is
+  ///       touched
+  bool initialize_touch(const touch_callback_t &callback = nullptr);
 
   /// Get the touchpad input
   /// \return A shared pointer to the touchpad input
   std::shared_ptr<TouchpadInput> touchpad_input() const;
 
-  /// Get the touchpad data, updated by the update_touch() method
-  /// \return The touchpad data, updated by the update_touch() method
-  /// \see update_touch()
+  /// Get the most recent touchpad data
+  /// \return The touchpad data
   TouchpadData touchpad_data() const;
 
-  /// Get the touchpad data, updated by the update_touch() method
+  /// Get the most recent touchpad data
   /// \param num_touch_points The number of touch points
   /// \param x The x coordinate
   /// \param y The y coordinate
@@ -113,7 +119,6 @@ public:
   ///       data it returns is identical to the data returned by the
   ///       touchpad_data() method
   /// \see touchpad_data()
-  /// \see update_touch()
   void touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, uint8_t *btn_state);
 
   /// Convert touchpad data from raw reading to display coordinates
@@ -278,6 +283,7 @@ protected:
   void detect();
   bool initialize_codec();
   bool initialize_i2s(uint32_t default_audio_rate);
+  bool update_touch();
   bool update_gt911();
   bool update_tt21100();
   void update_volume_output();
@@ -363,12 +369,31 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
+  espp::Interrupt::PinConfig touch_interrupt_pin_{
+      .gpio_num = touch_interrupt,
+      .callback =
+          [this](const auto &event) {
+            update_touch();
+            if (touch_callback_) {
+              touch_callback_(touchpad_data());
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+
+  // we'll only add each interrupt pin if the initialize method is called
+  espp::Interrupt interrupts_{
+      {.interrupts = {},
+       .task_config = {.name = "esp-box interrupts",
+                       .stack_size_bytes = CONFIG_ESP_BOX_INTERRUPT_STACK_SIZE}}};
+
   // touch
   std::shared_ptr<Gt911> gt911_;     // only used on ESP32-S3-BOX-3
   std::shared_ptr<Tt21100> tt21100_; // only used on ESP32-S3-BOX
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
+  touch_callback_t touch_callback_{nullptr};
 
   // display
   std::shared_ptr<Display> display_;

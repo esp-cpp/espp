@@ -11,6 +11,7 @@ static constexpr size_t MAX_CIRCLES = 100;
 static std::deque<lv_obj_t *> circles;
 static std::vector<uint8_t> audio_bytes;
 
+static std::mutex lvgl_mutex;
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
 
@@ -25,6 +26,31 @@ extern "C" void app_main(void) {
   espp::EspBox &box = espp::EspBox::get();
   box.set_log_level(espp::Logger::Verbosity::INFO);
   logger.info("Running on {}", box.box_type());
+
+  auto touch_callback = [&](const auto &touch) {
+    // NOTE: since we're directly using the touchpad data, and not using the
+    // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
+    // converted into proper screen coordinates instead of simply using the
+    // raw values.
+    static auto previous_touchpad_data = box.touchpad_convert(touch);
+    auto touchpad_data = box.touchpad_convert(touch);
+    if (touchpad_data != previous_touchpad_data) {
+      logger.info("Touch: {}", touchpad_data);
+      previous_touchpad_data = touchpad_data;
+      // if the button is pressed, clear the circles
+      if (touchpad_data.btn_state) {
+        std::lock_guard<std::mutex> lock(lvgl_mutex);
+        clear_circles();
+      }
+      // if there is a touch point, draw a circle and play a click sound
+      if (touchpad_data.num_touch_points > 0) {
+        play_click(box);
+        std::lock_guard<std::mutex> lock(lvgl_mutex);
+        draw_circle(touchpad_data.x, touchpad_data.y, 10);
+      }
+    }
+  };
+
   // initialize the sound
   if (!box.initialize_sound()) {
     logger.error("Failed to initialize sound!");
@@ -43,7 +69,7 @@ extern "C" void app_main(void) {
     return;
   }
   // initialize the touchpad
-  if (!box.initialize_touch()) {
+  if (!box.initialize_touch(touch_callback)) {
     logger.error("Failed to initialize touchpad!");
     return;
   }
@@ -58,8 +84,6 @@ extern "C" void app_main(void) {
   lv_label_set_text(label, "Touch the screen!\nPress the home button to clear circles.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
-
-  static std::mutex lvgl_mutex;
 
   // start a simple thread to do the lv_task_handler every 16ms
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
@@ -87,34 +111,9 @@ extern "C" void app_main(void) {
   // set the display brightness to be 75%
   box.brightness(75.0f);
 
-  auto previous_touchpad_data = box.touchpad_convert(box.touchpad_data());
+  // loop forever
   while (true) {
-    auto start = esp_timer_get_time();
-    if (box.update_touch()) {
-      // NOTE: since we're directly using the touchpad data, and not using the
-      // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
-      // converted into proper screen coordinates instead of simply using the
-      // raw values.
-      auto touchpad_data = box.touchpad_convert(box.touchpad_data());
-      if (touchpad_data != previous_touchpad_data) {
-        logger.info("Touch: {}", touchpad_data);
-        previous_touchpad_data = touchpad_data;
-        // if the button is pressed, clear the circles
-        if (touchpad_data.btn_state) {
-          std::lock_guard<std::mutex> lock(lvgl_mutex);
-          clear_circles();
-        }
-        // if there is a touch point, draw a circle and play a click sound
-        if (touchpad_data.num_touch_points > 0) {
-          play_click(box);
-          std::lock_guard<std::mutex> lock(lvgl_mutex);
-          draw_circle(touchpad_data.x, touchpad_data.y, 10);
-        }
-      }
-    }
-    auto end = esp_timer_get_time();
-    auto elapsed = end - start;
-    std::this_thread::sleep_for(50ms - std::chrono::microseconds(elapsed));
+    std::this_thread::sleep_for(1s);
   }
   //! [esp box example]
 }

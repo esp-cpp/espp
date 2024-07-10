@@ -9,6 +9,10 @@ TDeck::TDeck()
   peripheral_power(true);
 }
 
+espp::I2c &TDeck::internal_i2c() { return internal_i2c_; }
+
+espp::Interrupts &TDeck::interrupts() { return interrupts_; }
+
 void TDeck::peripheral_power(bool on) { gpio_set_level(peripheral_power_pin_, on); }
 
 bool TDeck::peripheral_power() const { return gpio_get_level(peripheral_power_pin_); }
@@ -17,7 +21,7 @@ bool TDeck::peripheral_power() const { return gpio_get_level(peripheral_power_pi
 // Keyboard Functions //
 ////////////////////////
 
-bool TDeck::initialize_keyboard(bool start_task, TKeyboard::key_cb_fn key_cb,
+bool TDeck::initialize_keyboard(bool start_task, const TDeck::keypress_callback_t &key_cb,
                                 std::chrono::milliseconds poll_interval) {
   if (keyboard_) {
     logger_.warn("Keyboard already initialized, not initializing again!");
@@ -42,7 +46,7 @@ std::shared_ptr<espp::TKeyboard> TDeck::keyboard() const { return keyboard_; }
 // Touchpad Functions //
 ////////////////////////
 
-bool TDeck::initialize_touch() {
+bool TDeck::initialize_touch(const TDeck::touch_callback_t &touch_cb) {
   if (!display_) {
     logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
                  "will not properly handle the touchpad input!");
@@ -64,6 +68,12 @@ bool TDeck::initialize_touch() {
       .invert_x = touch_invert_x,
       .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN});
+
+  // store the callback
+  touch_callback_ = touch_cb;
+
+  // add the touch interrupt pin
+  interrupts_.add_interrupt(touch_interrupt_pin_);
 
   return true;
 }
@@ -96,8 +106,6 @@ bool TDeck::update_gt911() {
   touchpad_data_ = temp_data;
   return true;
 }
-
-bool TDeck::update_touch() { return update_gt911(); }
 
 std::shared_ptr<espp::TouchpadInput> TDeck::touchpad_input() const { return touchpad_input_; }
 
