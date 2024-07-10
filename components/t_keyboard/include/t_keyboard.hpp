@@ -90,7 +90,13 @@ public:
       ec = std::make_error_code(std::errc::operation_in_progress);
       return 0;
     }
-    return read_u8(ec);
+    auto key = read_u8(ec);
+    if (ec) {
+      logger_.error("Failed to get key: {}", ec.message());
+      return 0;
+    }
+    pressed_key_ = key;
+    return key;
   }
 
   /// \brief Start the keyboard task.
