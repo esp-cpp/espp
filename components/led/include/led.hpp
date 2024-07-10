@@ -92,7 +92,11 @@ public:
     }
 
     logger_.info("Initializing the fade service");
-    ledc_fade_func_install(0);
+    static bool fade_service_installed = false;
+    if (!fade_service_installed) {
+      ledc_fade_func_install(0);
+      fade_service_installed = true;
+    }
     ledc_cbs_t callbacks = {.fade_cb = &Led::cb_ledc_fade_end_event};
 
     // we associate each channel with its own semaphore so that they can be
