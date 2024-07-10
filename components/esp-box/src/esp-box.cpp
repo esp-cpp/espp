@@ -56,6 +56,11 @@ void EspBox::detect() {
 ////////////////////////
 
 bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
+  if (touchpad_input_) {
+    logger_.warn("Touchpad already initialized, not initializing again!");
+    return false;
+  }
+
   if (!display_) {
     logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
                  "will not properly handle the touchpad input!");

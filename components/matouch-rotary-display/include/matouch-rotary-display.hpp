@@ -68,6 +68,10 @@ public:
   /// \note The internal I2C bus is used for the touchscreen
   I2c &internal_i2c();
 
+  /// Get a reference to the interrupts
+  /// \return A reference to the interrupts
+  espp::Interrupt &interrupts();
+
   /////////////////////////////////////////////////////////////////////////////
   // Encoder
   /////////////////////////////////////////////////////////////////////////////

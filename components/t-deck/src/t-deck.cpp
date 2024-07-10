@@ -47,6 +47,11 @@ std::shared_ptr<espp::TKeyboard> TDeck::keyboard() const { return keyboard_; }
 ////////////////////////
 
 bool TDeck::initialize_touch(const TDeck::touch_callback_t &touch_cb) {
+  if (gt911_ || touchpad_input_) {
+    logger_.warn("Touch already initialized, not initializing again!");
+    return false;
+  }
+
   if (!display_) {
     logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
                  "will not properly handle the touchpad input!");
