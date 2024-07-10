@@ -9,6 +9,8 @@ state and each time you touch the scren it 1) uses LVGL to draw a circle where
 you touch, and 2) play a click sound (wav file bundled with the firmware). If
 you press the home button on the display, it will clear the circles.
 
+https://github.com/esp-cpp/espp/assets/213467/d5379983-9bc2-4d56-a9fc-9e37f54af15e
+
 ![image](https://github.com/esp-cpp/espp/assets/213467/bfb45218-0d1f-4a07-ba30-c0c74a1657b9)
 ![image](https://github.com/esp-cpp/espp/assets/213467/c7216cfd-330d-4610-baf2-30001c98ff42)
 

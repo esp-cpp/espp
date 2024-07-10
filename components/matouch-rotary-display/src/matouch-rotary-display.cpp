@@ -5,6 +5,10 @@ using namespace espp;
 MatouchRotaryDisplay::MatouchRotaryDisplay()
     : BaseComponent("MatouchRotaryDisplay") {}
 
+espp::I2c &MatouchRotaryDisplay::internal_i2c() { return internal_i2c_; }
+
+espp::Interrupt &MatouchRotaryDisplay::interrupts() { return interrupts_; }
+
 ////////////////////////
 // Encoder Functions  //
 ////////////////////////
@@ -75,13 +79,17 @@ bool MatouchRotaryDisplay::button_state() const {
 
 bool MatouchRotaryDisplay::initialize_touch(
     const MatouchRotaryDisplay::touch_callback_t &callback) {
+  if (cst816_ || touchpad_input_) {
+    logger_.warn("Touchpad already initialized, not initializing again!");
+    return false;
+  }
   if (!display_) {
     logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
                  "will not properly handle the touchpad input!");
   }
   logger_.info("Initializing touch input");
 
-  cst816_ = std::make_unique<espp::Cst816>(espp::Cst816::Config{
+  cst816_ = std::make_shared<espp::Cst816>(espp::Cst816::Config{
       .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
                          std::placeholders::_2, std::placeholders::_3),
       .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,

@@ -9,6 +9,10 @@ EspBox::EspBox()
 
 EspBox::BoxType EspBox::box_type() const { return box_type_; }
 
+espp::I2c &EspBox::internal_i2c() { return internal_i2c_; }
+
+espp::Interrupt &EspBox::interrupts() { return interrupts_; }
+
 void EspBox::detect() {
   // probe the internal i2c bus for the gt911 and the tt21100 if we find the
   // gt911, we will use it as the touch controller, and detect that the box is
@@ -51,7 +55,12 @@ void EspBox::detect() {
 // Touchpad Functions //
 ////////////////////////
 
-bool EspBox::initialize_touch() {
+bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
+  if (touchpad_input_) {
+    logger_.warn("Touchpad already initialized, not initializing again!");
+    return false;
+  }
+
   if (!display_) {
     logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
                  "will not properly handle the touchpad input!");
@@ -87,6 +96,12 @@ bool EspBox::initialize_touch() {
       .invert_x = touch_invert_x,
       .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN});
+
+  // store the callback
+  touch_callback_ = callback;
+
+  // add the touch interrupt pin
+  interrupts_.add_interrupt(touch_interrupt_pin_);
 
   return true;
 }

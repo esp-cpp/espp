@@ -11,6 +11,7 @@
 #include "base_component.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "interrupt.hpp"
 #include "st7789.hpp"
 #include "t_keyboard.hpp"
 #include "touchpad_input.hpp"
@@ -23,6 +24,13 @@ namespace espp {
 /// - Touchpad
 /// - Display
 /// - Keyboard
+///
+/// For more information, see
+/// https://github.com/Xinyuan-LilyGO/T-Deck/tree/master and
+/// https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/utilities.h
+///
+/// \note They keyboard has a backlight, which you can control with the shortcut
+///       `alt + b`. The keyboard backlight is off by default.
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
@@ -43,6 +51,9 @@ public:
     bool operator==(const TouchpadData &rhs) const = default;
   };
 
+  using keypress_callback_t = TKeyboard::key_cb_fn;
+  using touch_callback_t = std::function<void(const TouchpadData &)>;
+
   /// @brief Access the singleton instance of the TDeck class
   /// @return Reference to the singleton instance of the TDeck class
   static TDeck &get() {
@@ -59,6 +70,10 @@ public:
   /// \return A reference to the internal I2C bus
   /// \note The internal I2C bus is used for the touchscreen
   I2c &internal_i2c();
+
+  /// Get a reference to the interrupts
+  /// \return A reference to the interrupts
+  espp::Interrupt &interrupts();
 
   /// Get the GPIO pin for the peripheral power
   /// \return The GPIO pin for the peripheral power
@@ -81,17 +96,19 @@ public:
   /// Initialize the keyboard
   /// \param start_task Whether to start the keyboard task
   /// \param key_cb The key callback function, called when a key is pressed if
-  ///        not null and the keyboard task is started
-  /// \param poll_interval The poll interval for the keyboard task
+  ///         not null and the keyboard task is started
+  /// \param poll_interval The interval at which to poll the keyboard
   /// \return true if the keyboard was successfully initialized, false otherwise
-  /// \note If you do not start the keyboard task, you will need to call
-  ///       either keyboard()->read_key() to manually read the keyboard, or
-  ///       keyboard()->start() to start the keyboard task.
-  /// \note If the keyboard task is started, you can get the most recent key
-  ///       press by calling keyboard()->get_key().
+  /// \note The Keyboard has an interrupt pin connected from it (the esp32c3) to
+  ///       the main esp32s3. However, the default firmware on the keyboard
+  ///       (esp32c3) does not use this interrupt pin. Instead, the main esp32s3
+  ///       must poll the keyboard to get key presses. This is done by the
+  ///       keyboard task. If you update the firmware on the keyboard to use the
+  ///       interrupt pin, you can set start_task to false and wire up the
+  ///       interrupt to the keyboard()->read_key() method.
   /// \see TKeyboard
   /// \see keyboard()
-  bool initialize_keyboard(bool start_task = true, TKeyboard::key_cb_fn key_cb = nullptr,
+  bool initialize_keyboard(bool start_task = true, const keypress_callback_t &key_cb = nullptr,
                            std::chrono::milliseconds poll_interval = std::chrono::milliseconds(10));
 
   /// Get the keyboard
@@ -101,33 +118,36 @@ public:
 
   /// Get the GPIO pin for the keyboard interrupt
   /// \return The GPIO pin for the keyboard interrupt
-  static constexpr auto keyboard_interrupt_pin() { return keyboard_interrupt_pin_; }
+  /// \note This pin is used to detect when a key is pressed on the keyboard
+  ///       and is connected to the main esp32s3, however the default firmware
+  ///       on the keyboard does not use this pin
+  static constexpr auto keyboard_interrupt() { return keyboard_interrupt_io; }
 
   /////////////////////////////////////////////////////////////////////////////
   // Touchpad
   /////////////////////////////////////////////////////////////////////////////
 
   /// Initialize the touchpad
+  /// \param touch_cb The touch callback function, called when the touchpad is
+  ///        touched if not null
   /// \return true if the touchpad was successfully initialized, false otherwise
   /// \warning This method should be called after the display has been
   ///          initialized if you want the touchpad to be recognized and used
   ///          with LVGL and its objects.
-  bool initialize_touch();
-
-  /// Update the touchpad data
-  /// \return true if there is new touchpad data, false otherwise
-  bool update_touch();
+  /// \note This will configure the touchpad interrupt pin which will
+  ///       automatically call the touch callback function when the touchpad is
+  ///       touched
+  bool initialize_touch(const touch_callback_t &touch_cb = nullptr);
 
   /// Get the touchpad input
   /// \return A shared pointer to the touchpad input
   std::shared_ptr<TouchpadInput> touchpad_input() const;
 
-  /// Get the touchpad data, updated by the update_touch() method
-  /// \return The touchpad data, updated by the update_touch() method
-  /// \see update_touch()
+  /// Get the most recent touchpad data
+  /// \return The touchpad data
   TouchpadData touchpad_data() const;
 
-  /// Get the touchpad data, updated by the update_touch() method
+  /// Get the most recent touchpad data
   /// \param num_touch_points The number of touch points
   /// \param x The x coordinate
   /// \param y The y coordinate
@@ -136,7 +156,6 @@ public:
   ///       data it returns is identical to the data returned by the
   ///       touchpad_data() method
   /// \see touchpad_data()
-  /// \see update_touch()
   void touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, uint8_t *btn_state);
 
   /// Convert touchpad data from raw reading to display coordinates
@@ -257,7 +276,7 @@ protected:
   static constexpr gpio_num_t peripheral_power_pin_ = GPIO_NUM_10;
 
   // keyboard
-  static constexpr gpio_num_t keyboard_interrupt_pin_ = GPIO_NUM_46;
+  static constexpr gpio_num_t keyboard_interrupt_io = GPIO_NUM_46; // NOTE: unused by default
 
   // LCD
   static constexpr size_t lcd_width_ = 320;
@@ -284,7 +303,7 @@ protected:
   static constexpr bool touch_swap_xy = true;
   static constexpr bool touch_invert_x = true;
   static constexpr bool touch_invert_y = false;
-  // static constexpr gpio_num_t touch_interrupt = GPIO_NUM_3;
+  static constexpr gpio_num_t touch_interrupt = GPIO_NUM_16;
 
   // TODO: allow core id configuration
   I2c internal_i2c_{{.port = internal_i2c_port,
@@ -292,6 +311,24 @@ protected:
                      .scl_io_num = internal_i2c_scl,
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
+
+  espp::Interrupt::PinConfig touch_interrupt_pin_{
+      .gpio_num = touch_interrupt,
+      .callback =
+          [this](const auto &event) {
+            update_gt911();
+            if (touch_callback_) {
+              touch_callback_(touchpad_data());
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+
+  // we'll only add each interrupt pin if the initialize method is called
+  espp::Interrupt interrupts_{
+      {.interrupts = {},
+       .task_config = {.name = "t-deck interrupts",
+                       .stack_size_bytes = CONFIG_TDECK_INTERRUPT_STACK_SIZE}}};
 
   // keyboard
   std::shared_ptr<TKeyboard> keyboard_{nullptr};
@@ -301,6 +338,7 @@ protected:
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
   TouchpadData touchpad_data_;
+  touch_callback_t touch_callback_{nullptr};
 
   // display
   std::shared_ptr<Display> display_;
