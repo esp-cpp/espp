@@ -11,7 +11,7 @@ TDeck::TDeck()
 
 espp::I2c &TDeck::internal_i2c() { return internal_i2c_; }
 
-espp::Interrupts &TDeck::interrupts() { return interrupts_; }
+espp::Interrupt &TDeck::interrupts() { return interrupts_; }
 
 void TDeck::peripheral_power(bool on) { gpio_set_level(peripheral_power_pin_, on); }
 
