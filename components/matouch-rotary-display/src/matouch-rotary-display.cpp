@@ -7,7 +7,7 @@ MatouchRotaryDisplay::MatouchRotaryDisplay()
 
 espp::I2c &MatouchRotaryDisplay::internal_i2c() { return internal_i2c_; }
 
-espp::Interrupts &MatouchRotaryDisplay::interrupts() { return interrupts_; }
+espp::Interrupt &MatouchRotaryDisplay::interrupts() { return interrupts_; }
 
 ////////////////////////
 // Encoder Functions  //
