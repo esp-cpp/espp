@@ -93,7 +93,7 @@ public:
   /// Initialize the keyboard
   /// \param start_task Whether to start the keyboard task
   /// \param key_cb The key callback function, called when a key is pressed if
-  ///         not null
+  ///         not null and the keyboard task is started
   /// \param poll_interval The interval at which to poll the keyboard
   /// \return true if the keyboard was successfully initialized, false otherwise
   /// \note The Keyboard has an interrupt pin connected from it (the esp32c3) to
