@@ -8,6 +8,8 @@ touchpad state and each time you touch the screen it uses LVGL to draw a circle
 where you touch. If you press the home button on the display, it will clear the
 circles.
 
+https://github.com/esp-cpp/espp/assets/213467/4d88dd97-b23a-49d0-b6a2-2ee3b50a8f62
+
 ![image](https://github.com/esp-cpp/espp/assets/213467/2d8bf057-5c13-46ee-bf48-54df4ba74aea)
 
 ![image](https://github.com/esp-cpp/espp/assets/213467/81f03ddf-0c3e-4db8-8a86-f8749245bd56)
