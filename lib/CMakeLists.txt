@@ -14,7 +14,7 @@ set(CMAKE_COLOR_MAKEFILE   ON)
 set(COMPONENTS "../components")
 set(EXTERNAL "../external")
 
-set(ESPP_INCLUDES
+set(EXTERNAL_INCLUDES
   ${EXTERNAL}/alpaca/include
   ${EXTERNAL}/cli/include
   ${EXTERNAL}/csv2/include
@@ -22,13 +22,18 @@ set(ESPP_INCLUDES
   ${EXTERNAL}/fmt/include
   ${EXTERNAL}/magic_enum/include/magic_enum
   ${EXTERNAL}/tabulate/include
+)
+
+set(ESPP_INCLUDES
   ${COMPONENTS}/base_component/include
   ${COMPONENTS}/base_peripheral/include
+  ${COMPONENTS}/color/include
   ${COMPONENTS}/csv/include
-  ${COMPONENTS}/hid-rp/include
+  ${COMPONENTS}/event_manager/include
   ${COMPONENTS}/file_system/include
   ${COMPONENTS}/ftp/include
   ${COMPONENTS}/format/include
+  ${COMPONENTS}/hid-rp/include
   ${COMPONENTS}/logger/include
   ${COMPONENTS}/math/include
   ${COMPONENTS}/rtsp/include
@@ -41,12 +46,14 @@ set(ESPP_INCLUDES
 )
 
 set(ESPP_SOURCES
+  ${COMPONENTS}/color/src/color.cpp
+  ${COMPONENTS}/event_manager/src/event_manager.cpp
   ${COMPONENTS}/logger/src/logger.cpp
   ${COMPONENTS}/file_system/src/file_system.cpp
   espp.cpp
 )
 
-include_directories(. ${ESPP_INCLUDES})
+include_directories(. ${EXTERNAL_INCLUDES} ${ESPP_INCLUDES})
 
 set(TARGET_NAME "espp_pc")
 # to build for python we need to have the python developer libraries installed
@@ -72,7 +79,16 @@ target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)
 install(TARGETS ${TARGET_NAME}
         ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/pc)
 # and install the headers for use by the c++ code there
-install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${PROJECT_SOURCE_DIR}/pc)
+install(DIRECTORY ${EXTERNAL}/alpaca/include DESTINATION ${PROJECT_SOURCE_DIR}/pc)
+install(DIRECTORY ${EXTERNAL}/cli/include DESTINATION ${PROJECT_SOURCE_DIR}/pc)
+install(DIRECTORY ${EXTERNAL}/csv2/include DESTINATION ${PROJECT_SOURCE_DIR}/pc)
+install(DIRECTORY ${EXTERNAL}/hid-rp/hid-rp DESTINATION ${PROJECT_SOURCE_DIR}/pc/include)
+install(DIRECTORY ${EXTERNAL}/fmt/include DESTINATION ${PROJECT_SOURCE_DIR}/pc)
+install(DIRECTORY ${EXTERNAL}/magic_enum/include/magic_enum/ DESTINATION ${PROJECT_SOURCE_DIR}/pc/include)
+install(DIRECTORY ${EXTERNAL}/tabulate/include DESTINATION ${PROJECT_SOURCE_DIR}/pc)
+install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
+# and install the espp.hpp file for use by the python scripts there
+install(FILES espp.hpp DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
 # Python binding
 add_library( # Specifies the name of the library.
              espp

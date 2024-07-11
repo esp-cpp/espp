@@ -5,7 +5,9 @@
 
 #include "base_component.hpp"
 #include "bezier.hpp"
+#include "color.hpp"
 #include "csv.hpp"
+#include "event_manager.hpp"
 #include "fast_math.hpp"
 #include "file_system.hpp"
 #include "ftp_server.hpp"
