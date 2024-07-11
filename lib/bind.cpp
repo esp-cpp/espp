@@ -4,15 +4,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "ftp_server.hpp"
-#include "logger.hpp"
-#include "rtsp_client.hpp"
-#include "rtsp_server.hpp"
-#include "serialization.hpp"
-#include "task.hpp"
-#include "tcp_socket.hpp"
-#include "timer.hpp"
-#include "udp_socket.hpp"
+#include "espp.hpp"
 
 namespace py = pybind11;
 using namespace espp;

@@ -1,5 +1,6 @@
 #pragma once
 
+#if defined(ESP_PLATFORM)
 #include <sdkconfig.h>
 
 #if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
@@ -13,8 +14,6 @@
 #include "esp_vfs_dev.h"
 #include "esp_vfs_usb_serial_jtag.h"
 
-#include <cli/cli.h>
-
 #include "line_input.hpp"
 
 #ifdef CONFIG_ESP_CONSOLE_USB_CDC
@@ -25,6 +24,8 @@
 #define STRINGIFY(s) STRINGIFY2(s)
 #define STRINGIFY2(s) #s
 #endif // STRINGIFY
+
+#include <cli/cli.h>
 
 namespace espp {
 /**
@@ -388,3 +389,5 @@ private:
 } // namespace espp
 
 #endif // CONFIG_COMPILER_CXX_EXCEPTIONS
+
+#endif // ESP_PLATFORM

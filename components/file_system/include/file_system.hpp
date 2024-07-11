@@ -14,10 +14,13 @@
 #include <sys/stdio.h>
 #include <sys/types.h>
 
+#if defined(ESP_PLATFORM)
 #include <esp_err.h>
-#include <esp_partition.h>
-
 #include <esp_littlefs.h>
+#include <esp_partition.h>
+#else // ESP_PLATFORM
+#include <unistd.h>
+#endif // ESP_PLATFORM
 
 #include "base_component.hpp"
 
@@ -45,6 +48,7 @@ namespace espp {
 /// \snippet file_system_example.cpp file_system std filesystem example
 class FileSystem : public BaseComponent {
 public:
+#if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
   /// @brief Set whether to mount the file system as read only
   /// @param read_only Whether the file system is mounted as read only
   /// @note This only has an effect if called before the file system is mounted,
@@ -64,6 +68,7 @@ public:
   /// @brief Get whether the file system was grown on mount
   /// @return Whether the file system was grown on mount
   static bool is_grow_on_mount() { return grow_on_mount_; }
+#endif // ESP_PLATFORM
 
   /// @brief Get a human readable string for a byte size
   /// @details
@@ -74,24 +79,26 @@ public:
   /// @return The human readable string
   static std::string human_readable(size_t bytes);
 
+#if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
   /// @brief Get the partition label
   /// @return The partition label
   static const char *get_partition_label() { return CONFIG_ESPP_FILE_SYSTEM_PARTITION_LABEL; }
+#endif // ESP_PLATFORM
 
   /// @brief Get the mount point
   /// @details
   /// The mount point is the root directory of the file system.
   /// It is the root directory of the partition with the partition label.
-  /// @see get_root_path() and get_partition_label()
+  /// @see get_root_path()
   /// @return The mount point
-  static std::string get_mount_point() { return "/" + std::string{get_partition_label()}; }
+  static std::string get_mount_point();
 
   /// @brief Get the root path
   /// @details
   /// The root path is the root directory of the file system.
-  /// @see get_mount_point() and get_partition_label()
+  /// @see get_mount_point()
   /// @return The root path
-  static std::filesystem::path get_root_path() { return std::filesystem::path{get_mount_point()}; }
+  static std::filesystem::path get_root_path();
 
   /// @brief Convert file permissions to a string
   /// @details This method converts file permissions to a string in the format "rwxrwxrwx".

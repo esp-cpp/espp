@@ -5,22 +5,70 @@ using namespace espp;
 bool FileSystem::read_only_ = false;
 bool FileSystem::grow_on_mount_ = true;
 
+std::string FileSystem::get_mount_point() {
+#if defined(ESP_PLATFORM)
+  return "/" + std::string{get_partition_label()};
+#else
+  // return the current working directory
+  return std::filesystem::current_path().string();
+#endif
+}
+
+std::filesystem::path FileSystem::get_root_path() {
+#if defined(ESP_PLATFORM)
+  return std::filesystem::path{get_mount_point()};
+#else
+  // get current working directory
+  return std::filesystem::current_path();
+#endif
+}
+
 size_t FileSystem::get_free_space() const {
+#if defined(ESP_PLATFORM)
   size_t total, used;
   esp_littlefs_info(get_partition_label(), &total, &used);
   return total - used;
+#else
+  // use std::filesystem to get free space
+  std::error_code ec;
+  auto space = std::filesystem::space(get_root_path(), ec);
+  if (ec) {
+    return 0;
+  }
+  return space.free;
+#endif
 }
 
 size_t FileSystem::get_total_space() const {
+#if defined(ESP_PLATFORM)
   size_t total, used;
   esp_littlefs_info(get_partition_label(), &total, &used);
   return total;
+#else
+  // use std::filesystem to get total space
+  std::error_code ec;
+  auto space = std::filesystem::space(get_root_path(), ec);
+  if (ec) {
+    return 0;
+  }
+  return space.capacity;
+#endif
 }
 
 size_t FileSystem::get_used_space() const {
+#if defined(ESP_PLATFORM)
   size_t total, used;
   esp_littlefs_info(get_partition_label(), &total, &used);
   return used;
+#else
+  // use std::filesystem to get used space
+  std::error_code ec;
+  auto space = std::filesystem::space(get_root_path(), ec);
+  if (ec) {
+    return 0;
+  }
+  return space.capacity - space.free;
+#endif
 }
 
 std::string FileSystem::human_readable(size_t bytes) {
@@ -230,6 +278,7 @@ std::string FileSystem::list_directory(const std::string &path, const ListConfig
 }
 
 void FileSystem::init() {
+#if defined(ESP_PLATFORM)
   logger_.debug("Initializing file system");
   esp_err_t err;
 
@@ -270,4 +319,7 @@ void FileSystem::init() {
     logger_.debug("Creating root directory");
     std::filesystem::create_directory(root_path);
   }
+#else
+  logger_.debug("Not on ESP platform, no need to initialize file system");
+#endif
 }

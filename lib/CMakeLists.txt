@@ -15,26 +15,38 @@ set(COMPONENTS "../components")
 set(EXTERNAL "../external")
 
 set(ESPP_INCLUDES
-  ${EXTERNAL}/fmt/include
   ${EXTERNAL}/alpaca/include
+  ${EXTERNAL}/cli/include
+  ${EXTERNAL}/csv2/include
+  ${EXTERNAL}/hid-rp/hid-rp
+  ${EXTERNAL}/fmt/include
+  ${EXTERNAL}/magic_enum/include/magic_enum
+  ${EXTERNAL}/tabulate/include
   ${COMPONENTS}/base_component/include
   ${COMPONENTS}/base_peripheral/include
+  ${COMPONENTS}/csv/include
+  ${COMPONENTS}/hid-rp/include
+  ${COMPONENTS}/file_system/include
   ${COMPONENTS}/ftp/include
   ${COMPONENTS}/format/include
   ${COMPONENTS}/logger/include
+  ${COMPONENTS}/math/include
   ${COMPONENTS}/rtsp/include
   ${COMPONENTS}/serialization/include
+  ${COMPONENTS}/tabulate/include
   ${COMPONENTS}/task/include
   ${COMPONENTS}/timer/include
   ${COMPONENTS}/socket/include
+  ${COMPONENTS}/state_machine/include
 )
 
 set(ESPP_SOURCES
   ${COMPONENTS}/logger/src/logger.cpp
-  lib.cpp
+  ${COMPONENTS}/file_system/src/file_system.cpp
+  espp.cpp
 )
 
-include_directories(${ESPP_INCLUDES})
+include_directories(. ${ESPP_INCLUDES})
 
 set(TARGET_NAME "espp_pc")
 # to build for python we need to have the python developer libraries installed
