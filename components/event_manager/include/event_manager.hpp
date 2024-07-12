@@ -80,7 +80,7 @@ public:
    *         registered for that component.
    */
   bool add_subscriber(const std::string &topic, const std::string &component,
-                      const event_callback_fn &callback, const size_t stack_size_bytes = 8 * 1024);
+                      const event_callback_fn &callback, const size_t stack_size_bytes = 8192);
 
   /**
    * @brief Register a subscriber for \p component on \p topic.

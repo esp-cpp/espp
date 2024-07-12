@@ -5,6 +5,11 @@ using namespace espp;
 bool FileSystem::read_only_ = false;
 bool FileSystem::grow_on_mount_ = true;
 
+FileSystem::FileSystem()
+    : BaseComponent("FileSystem") {
+  init();
+}
+
 std::string FileSystem::get_mount_point() {
 #if defined(ESP_PLATFORM)
   return "/" + std::string{get_partition_label()};

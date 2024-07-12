@@ -256,10 +256,7 @@ protected:
   /// @brief Constructor
   /// @details
   /// The constructor is private to ensure that the class is a singleton.
-  FileSystem()
-      : BaseComponent("FileSystem") {
-    init();
-  }
+  FileSystem();
 
   /// @brief Initialize the file system
   /// @details

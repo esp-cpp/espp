@@ -64,6 +64,10 @@ public:
    */
   Rgb &operator+=(const Rgb &rhs);
 
+  bool operator==(const Rgb &rhs) { return r == rhs.r && g == rhs.g && b == rhs.b; }
+
+  bool operator!=(const Rgb &rhs) { return !(*this == rhs); }
+
   /**
    * @brief Get a HSV representation of this RGB color.
    * @return An HSV object containing the HSV representation.
@@ -105,50 +109,14 @@ public:
 
   Hsv &operator=(const Hsv &other) = default;
 
+  bool operator==(const Hsv &rhs) { return h == rhs.h && s == rhs.s && v == rhs.v; }
+
+  bool operator!=(const Hsv &rhs) { return !(*this == rhs); }
+
   /**
    * @brief Get a RGB representation of this HSV color.
    * @return An RGB object containing the RGB representation.
    */
   Rgb rgb() const;
 };
-
-// equality operators
-[[maybe_unused]] static bool operator==(const Rgb &lhs, const Rgb &rhs) {
-  return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b;
-}
-
-[[maybe_unused]] static bool operator==(const Hsv &lhs, const Hsv &rhs) {
-  return lhs.h == rhs.h && lhs.s == rhs.s && lhs.v == rhs.v;
-}
-
-// inequality operators
-[[maybe_unused]] static bool operator!=(const Rgb &lhs, const Rgb &rhs) { return !(lhs == rhs); }
-
-[[maybe_unused]] static bool operator!=(const Hsv &lhs, const Hsv &rhs) { return !(lhs == rhs); }
 } // namespace espp
-
-#include "format.hpp"
-
-// for allowing easy serialization/printing of the
-// Rgb
-template <> struct fmt::formatter<espp::Rgb> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext> auto format(espp::Rgb const &rgb, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "({}, {}, {})", rgb.r, rgb.g, rgb.b);
-  }
-};
-
-// for allowing easy serialization/printing of the
-// Rgb
-template <> struct fmt::formatter<espp::Hsv> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext> auto format(espp::Hsv const &hsv, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "({}, {}, {})", hsv.h, hsv.s, hsv.v);
-  }
-};
