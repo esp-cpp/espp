@@ -24,11 +24,11 @@ std::unique_ptr<Task> Task::make_unique(const Task::Config &config) {
   return std::make_unique<Task>(config);
 }
 
-std::unique_ptr<Task> make_unique(const Task::SimpleConfig &config) {
+std::unique_ptr<Task> Task::make_unique(const Task::SimpleConfig &config) {
   return std::make_unique<Task>(config);
 }
 
-std::unique_ptr<Task> make_unique(const Task::AdvancedConfig &config) {
+std::unique_ptr<Task> Task::make_unique(const Task::AdvancedConfig &config) {
   return std::make_unique<Task>(config);
 }
 
