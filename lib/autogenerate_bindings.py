@@ -1,4 +1,5 @@
 import litgen
+from srcmlcpp import SrcmlcppOptions
 import os
 
 
@@ -58,7 +59,7 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # will be published as: max_value_int and max_value_float
     # options.fn_template_options.add_specialization("^Bezier$", ["int", "float"], add_suffix_to_function_name=False)
 
-    options.class_template_options.add_specialization("^(Range|Bezier|Vector2)", ["int", "float"])
+    options.class_template_options.add_specialization("^RangeMapper|Bezier|Vector2d", ["int", "float"])
 
     # ////////////////////////////////////////////////////////////////////
     # Return values policy
@@ -103,12 +104,14 @@ def autogenerate() -> None:
                     include_dir + "event_manager/include/event_manager.hpp",
                     include_dir + "file_system/include/file_system.hpp",
                     include_dir + "ftp/include/ftp_server.hpp",
-                    include_dir + "math/include/bezier.hpp",
+                    include_dir + "math/include/bezier.hpp", # have to set class template options
                     include_dir + "math/include/fast_math.hpp",
                     include_dir + "math/include/gaussian.hpp",
                     include_dir + "math/include/range_mapper.hpp", # have to set class template options
                     include_dir + "math/include/vector2d.hpp", # have to set class template options
                     # include_dir + "logger/include/logger.hpp",
+                    include_dir + "rtsp/include/jpeg_frame.hpp",
+                    include_dir + "rtsp/include/jpeg_header.hpp",
                     include_dir + "rtsp/include/rtsp_client.hpp",
                     include_dir + "rtsp/include/rtsp_server.hpp",
                     include_dir + "socket/include/socket.hpp",

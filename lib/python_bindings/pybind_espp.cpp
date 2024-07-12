@@ -508,8 +508,7 @@ void py_init_module_espp_lib(py::module &m) {
                 "/< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].");
   } // end of inner classes & enums of Gaussian
 
-  pyClassGaussian
-      .def(py::init<>()) // implicit default constructor
+  pyClassGaussian.def(py::init<espp::Gaussian::Config>())
       .def("gamma", &espp::Gaussian::gamma, py::arg("g"),
            "*\n   * @brief Set / Update the gamma (shape) value.\n   * @param g New gamma (shape) "
            "to use.\n")
@@ -537,10 +536,6 @@ void py_init_module_espp_lib(py::module &m) {
   ////////////////////    </generated_from:gaussian.hpp>    ////////////////////
 
   ////////////////////    <generated_from:range_mapper.hpp>    ////////////////////
-  m.def("unmap", unmap, py::arg("v"),
-        "*\n   * @brief Unmap a value \\p v from the configured output range (centered,\n   *      "
-        "  default [-1,1]) back into the input distribution.\n   * @param T&v Value from the "
-        "centered output distribution.\n   * @return Value within the input distribution.\n");
   ////////////////////    </generated_from:range_mapper.hpp>    ////////////////////
 
   ////////////////////    <generated_from:vector2d.hpp>    ////////////////////
@@ -550,10 +545,10 @@ void py_init_module_espp_lib(py::module &m) {
           "*\n * @brief Container representing a 2 dimensional vector.\n *\n * Provides "
           "getters/setters, index operator, and vector / scalar math\n * utilities.\n *\n * "
           "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2 example\n")
-          .def(py::init<int, int>(), py::arg("x") = T(0), py::arg("y") = T(0),
+          .def(py::init<int, int>(), py::arg("x") = 0, py::arg("y") = 0,
                "*\n   * @brief Constructor for the vector, defaults to 0,0.\n   * @param x The "
                "starting X value.\n   * @param y The starting Y value.\n")
-          .def(py::init<const espp::Vector2d &>(), py::arg("other"),
+          .def(py::init<const espp::Vector2d<int> &>(), py::arg("other"),
                "*\n   * @brief Vector copy constructor.\n   * @param other Vector to copy.\n")
           .def("magnitude", &espp::Vector2d<int>::magnitude,
                "*\n   * @brief Returns vector magnitude: ||v||.\n   * @return The magnitude.\n")
@@ -572,7 +567,7 @@ void py_init_module_espp_lib(py::module &m) {
                "*\n   * @brief Setter for the y value.\n   * @param v New value for \\c y.\n")
           .def(
               "__lt__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<int> &self, const espp::Vector2d<int> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) < 0; };
 
                 return cmp(other);
@@ -583,7 +578,7 @@ void py_init_module_espp_lib(py::module &m) {
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
           .def(
               "__le__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<int> &self, const espp::Vector2d<int> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) <= 0; };
 
                 return cmp(other);
@@ -594,7 +589,7 @@ void py_init_module_espp_lib(py::module &m) {
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
           .def(
               "__eq__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<int> &self, const espp::Vector2d<int> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) == 0; };
 
                 return cmp(other);
@@ -605,7 +600,7 @@ void py_init_module_espp_lib(py::module &m) {
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
           .def(
               "__ge__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<int> &self, const espp::Vector2d<int> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) >= 0; };
 
                 return cmp(other);
@@ -616,7 +611,7 @@ void py_init_module_espp_lib(py::module &m) {
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
           .def(
               "__gt__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<int> &self, const espp::Vector2d<int> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) > 0; };
 
                 return cmp(other);
@@ -625,7 +620,7 @@ void py_init_module_espp_lib(py::module &m) {
               "*\n   * @brief Spaceship operator for comparing two vectors.\n   * @param other The "
               "vector to compare against.\n   * @return -1 if this vector is less than \\p other, "
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
-          .def("__eq__", &espp::Vector2d::operator==, py::arg("other"),
+          .def("__eq__", &espp::Vector2d<int>::operator==, py::arg("other"),
                "*\n   * @brief Equality operator for comparing two vectors.\n   * @param other The "
                "vector to compare against.\n   * @return True if the vectors are equal, False "
                "otherwise.\n")
@@ -634,57 +629,61 @@ void py_init_module_espp_lib(py::module &m) {
                "reference to the element.\n   * @param index The index to return.\n   * @return "
                "Mutable reference to the element at \\p index.\n")
           .def(
-              "__neg__", [](espp::Vector2d &self) { return self.operator-(); },
+              "__neg__", [](espp::Vector2d<int> &self) { return self.operator-(); },
               "*\n   * @brief Negate the vector.\n   * @return The new vector which is the "
               "negative.\n")
           .def("__sub__",
-               py::overload_cast<const espp::Vector2d &>(&espp::Vector2d::operator-, py::const_),
+               py::overload_cast<const espp::Vector2d<int> &>(&espp::Vector2d<int>::operator-,
+                                                              py::const_),
                py::arg("rhs"),
                "*\n   * @brief Return a new vector which is the provided vector subtracted from\n  "
                " *        this vector.\n   * @param rhs The vector to subtract from this vector.\n "
                "  * @return Resultant vector subtraction.\n")
-          .def("__isub__", &espp::Vector2d::operator-=, py::arg("rhs"),
+          .def("__isub__", &espp::Vector2d<int>::operator-=, py::arg("rhs"),
                "*\n   * @brief Return the provided vector subtracted from this vector.\n   * "
                "@param rhs The vector to subtract from this vector.\n   * @return Resultant vector "
                "subtraction.\n")
-          .def("__add__", &espp::Vector2d::operator+, py::arg("rhs"),
+          .def("__add__", &espp::Vector2d<int>::operator+, py::arg("rhs"),
                "*\n   * @brief Return a new vector, which is the addition of this vector and the\n "
                "  *        provided vector.\n   * @param rhs The vector to add to this vector.\n   "
                "* @return Resultant vector addition.\n")
-          .def("__iadd__", &espp::Vector2d::operator+=, py::arg("rhs"),
+          .def("__iadd__", &espp::Vector2d<int>::operator+=, py::arg("rhs"),
                "*\n   * @brief Return the vector added with the provided vector.\n   * @param rhs "
                "The vector to add to this vector.\n   * @return Resultant vector addition.\n")
-          .def("__mul__", &espp::Vector2d::operator*, py::arg("v"),
+          .def("__mul__", &espp::Vector2d<int>::operator*, py::arg("v"),
                "*\n   * @brief Return a scaled version of the vector, multiplied by the provided\n "
                "  *        value.\n   * @param v Value the vector should be multiplied by.\n   * "
                "@return Resultant scaled vector.\n")
-          .def("__imul__", &espp::Vector2d::operator*=, py::arg("v"),
+          .def("__imul__", &espp::Vector2d<int>::operator*=, py::arg("v"),
                "*\n   * @brief Return the vector multiplied by the provided value.\n   * @param v "
                "Value the vector should be scaled by.\n   * @return Resultant scaled vector.\n")
           .def("__truediv__",
-               py::overload_cast<const int &>(&espp::Vector2d::operator/, py::const_), py::arg("v"),
+               py::overload_cast<const int &>(&espp::Vector2d<int>::operator/, py::const_),
+               py::arg("v"),
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        value.\n   * @param v Value the vector should be divided by.\n   * "
                "@return Resultant scaled vector.\n")
-          .def("__itruediv__", py::overload_cast<const int &>(&espp::Vector2d::operator/=),
+          .def("__itruediv__", py::overload_cast<const int &>(&espp::Vector2d<int>::operator/=),
                py::arg("v"),
                "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
                "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__truediv__",
-               py::overload_cast<const espp::Vector2d &>(&espp::Vector2d::operator/, py::const_),
+               py::overload_cast<const espp::Vector2d<int> &>(&espp::Vector2d<int>::operator/,
+                                                              py::const_),
                py::arg("v"),
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        vector value. Scales x and y independently.\n   * @param v Vector values "
                "the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__itruediv__",
-               py::overload_cast<const espp::Vector2d &>(&espp::Vector2d::operator/=), py::arg("v"),
+               py::overload_cast<const espp::Vector2d<int> &>(&espp::Vector2d<int>::operator/=),
+               py::arg("v"),
                "*\n   * @brief Return the vector divided by the provided vector values.\n   * "
                "@param v Vector of values the vector should be divided by.\n   * @return Resultant "
                "scaled vector.\n")
-          .def("dot", &espp::Vector2d::dot, py::arg("other"),
+          .def("dot", &espp::Vector2d<int>::dot, py::arg("other"),
                "*\n   * @brief Dot product of this vector with another vector.\n   * @param other "
                "The second vector\n   * @return The dot product (x1*x2 + y1*y2)\n")
-          .def("normalized", &espp::Vector2d::normalized,
+          .def("normalized", &espp::Vector2d<int>::normalized,
                "*\n   * @brief Return normalized (unit length) version of the vector.\n   * "
                "@return The normalized vector.\n");
   auto pyClassVector2d_float =
@@ -693,10 +692,10 @@ void py_init_module_espp_lib(py::module &m) {
           "*\n * @brief Container representing a 2 dimensional vector.\n *\n * Provides "
           "getters/setters, index operator, and vector / scalar math\n * utilities.\n *\n * "
           "\\section vector_ex1 Example\n * \\snippet math_example.cpp vector2 example\n")
-          .def(py::init<float, float>(), py::arg("x") = T(0), py::arg("y") = T(0),
+          .def(py::init<float, float>(), py::arg("x") = 0, py::arg("y") = 0,
                "*\n   * @brief Constructor for the vector, defaults to 0,0.\n   * @param x The "
                "starting X value.\n   * @param y The starting Y value.\n")
-          .def(py::init<const espp::Vector2d &>(), py::arg("other"),
+          .def(py::init<const espp::Vector2d<float> &>(), py::arg("other"),
                "*\n   * @brief Vector copy constructor.\n   * @param other Vector to copy.\n")
           .def("magnitude", &espp::Vector2d<float>::magnitude,
                "*\n   * @brief Returns vector magnitude: ||v||.\n   * @return The magnitude.\n")
@@ -715,7 +714,7 @@ void py_init_module_espp_lib(py::module &m) {
                "*\n   * @brief Setter for the y value.\n   * @param v New value for \\c y.\n")
           .def(
               "__lt__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<float> &self, const espp::Vector2d<float> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) < 0; };
 
                 return cmp(other);
@@ -726,7 +725,7 @@ void py_init_module_espp_lib(py::module &m) {
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
           .def(
               "__le__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<float> &self, const espp::Vector2d<float> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) <= 0; };
 
                 return cmp(other);
@@ -737,7 +736,7 @@ void py_init_module_espp_lib(py::module &m) {
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
           .def(
               "__eq__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<float> &self, const espp::Vector2d<float> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) == 0; };
 
                 return cmp(other);
@@ -748,7 +747,7 @@ void py_init_module_espp_lib(py::module &m) {
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
           .def(
               "__ge__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<float> &self, const espp::Vector2d<float> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) >= 0; };
 
                 return cmp(other);
@@ -759,7 +758,7 @@ void py_init_module_espp_lib(py::module &m) {
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
           .def(
               "__gt__",
-              [](const espp::Vector2d &self, const espp::Vector2d &other) -> bool {
+              [](const espp::Vector2d<float> &self, const espp::Vector2d<float> &other) -> bool {
                 auto cmp = [&self](auto &&other) -> bool { return self.operator<=>(other) > 0; };
 
                 return cmp(other);
@@ -768,7 +767,7 @@ void py_init_module_espp_lib(py::module &m) {
               "*\n   * @brief Spaceship operator for comparing two vectors.\n   * @param other The "
               "vector to compare against.\n   * @return -1 if this vector is less than \\p other, "
               "0 if they are equal, 1 if\n   *         this vector is greater than \\p other.\n")
-          .def("__eq__", &espp::Vector2d::operator==, py::arg("other"),
+          .def("__eq__", &espp::Vector2d<float>::operator==, py::arg("other"),
                "*\n   * @brief Equality operator for comparing two vectors.\n   * @param other The "
                "vector to compare against.\n   * @return True if the vectors are equal, False "
                "otherwise.\n")
@@ -777,58 +776,61 @@ void py_init_module_espp_lib(py::module &m) {
                "reference to the element.\n   * @param index The index to return.\n   * @return "
                "Mutable reference to the element at \\p index.\n")
           .def(
-              "__neg__", [](espp::Vector2d &self) { return self.operator-(); },
+              "__neg__", [](espp::Vector2d<float> &self) { return self.operator-(); },
               "*\n   * @brief Negate the vector.\n   * @return The new vector which is the "
               "negative.\n")
           .def("__sub__",
-               py::overload_cast<const espp::Vector2d &>(&espp::Vector2d::operator-, py::const_),
+               py::overload_cast<const espp::Vector2d<float> &>(&espp::Vector2d<float>::operator-,
+                                                                py::const_),
                py::arg("rhs"),
                "*\n   * @brief Return a new vector which is the provided vector subtracted from\n  "
                " *        this vector.\n   * @param rhs The vector to subtract from this vector.\n "
                "  * @return Resultant vector subtraction.\n")
-          .def("__isub__", &espp::Vector2d::operator-=, py::arg("rhs"),
+          .def("__isub__", &espp::Vector2d<float>::operator-=, py::arg("rhs"),
                "*\n   * @brief Return the provided vector subtracted from this vector.\n   * "
                "@param rhs The vector to subtract from this vector.\n   * @return Resultant vector "
                "subtraction.\n")
-          .def("__add__", &espp::Vector2d::operator+, py::arg("rhs"),
+          .def("__add__", &espp::Vector2d<float>::operator+, py::arg("rhs"),
                "*\n   * @brief Return a new vector, which is the addition of this vector and the\n "
                "  *        provided vector.\n   * @param rhs The vector to add to this vector.\n   "
                "* @return Resultant vector addition.\n")
-          .def("__iadd__", &espp::Vector2d::operator+=, py::arg("rhs"),
+          .def("__iadd__", &espp::Vector2d<float>::operator+=, py::arg("rhs"),
                "*\n   * @brief Return the vector added with the provided vector.\n   * @param rhs "
                "The vector to add to this vector.\n   * @return Resultant vector addition.\n")
-          .def("__mul__", &espp::Vector2d::operator*, py::arg("v"),
+          .def("__mul__", &espp::Vector2d<float>::operator*, py::arg("v"),
                "*\n   * @brief Return a scaled version of the vector, multiplied by the provided\n "
                "  *        value.\n   * @param v Value the vector should be multiplied by.\n   * "
                "@return Resultant scaled vector.\n")
-          .def("__imul__", &espp::Vector2d::operator*=, py::arg("v"),
+          .def("__imul__", &espp::Vector2d<float>::operator*=, py::arg("v"),
                "*\n   * @brief Return the vector multiplied by the provided value.\n   * @param v "
                "Value the vector should be scaled by.\n   * @return Resultant scaled vector.\n")
           .def("__truediv__",
-               py::overload_cast<const float &>(&espp::Vector2d::operator/, py::const_),
+               py::overload_cast<const float &>(&espp::Vector2d<float>::operator/, py::const_),
                py::arg("v"),
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        value.\n   * @param v Value the vector should be divided by.\n   * "
                "@return Resultant scaled vector.\n")
-          .def("__itruediv__", py::overload_cast<const float &>(&espp::Vector2d::operator/=),
+          .def("__itruediv__", py::overload_cast<const float &>(&espp::Vector2d<float>::operator/=),
                py::arg("v"),
                "*\n   * @brief Return the vector divided by the provided value.\n   * @param v "
                "Value the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__truediv__",
-               py::overload_cast<const espp::Vector2d &>(&espp::Vector2d::operator/, py::const_),
+               py::overload_cast<const espp::Vector2d<float> &>(&espp::Vector2d<float>::operator/,
+                                                                py::const_),
                py::arg("v"),
                "*\n   * @brief Return a scaled version of the vector, divided by the provided\n   "
                "*        vector value. Scales x and y independently.\n   * @param v Vector values "
                "the vector should be divided by.\n   * @return Resultant scaled vector.\n")
           .def("__itruediv__",
-               py::overload_cast<const espp::Vector2d &>(&espp::Vector2d::operator/=), py::arg("v"),
+               py::overload_cast<const espp::Vector2d<float> &>(&espp::Vector2d<float>::operator/=),
+               py::arg("v"),
                "*\n   * @brief Return the vector divided by the provided vector values.\n   * "
                "@param v Vector of values the vector should be divided by.\n   * @return Resultant "
                "scaled vector.\n")
-          .def("dot", &espp::Vector2d::dot, py::arg("other"),
+          .def("dot", &espp::Vector2d<float>::dot, py::arg("other"),
                "*\n   * @brief Dot product of this vector with another vector.\n   * @param other "
                "The second vector\n   * @return The dot product (x1*x2 + y1*y2)\n")
-          .def("normalized", &espp::Vector2d::normalized,
+          .def("normalized", &espp::Vector2d<float>::normalized,
                "*\n   * @brief Return normalized (unit length) version of the vector.\n   * "
                "@return The normalized vector.\n");
   ////////////////////    </generated_from:vector2d.hpp>    ////////////////////
@@ -878,7 +880,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of RtspClient
 
   pyClassRtspClient
-      .def(py::init<>()) // implicit default constructor
       .def("send_request", &espp::RtspClient::send_request, py::arg("method"), py::arg("path"),
            py::arg("extra_headers"), py::arg("ec"),
            "/ Send an RTSP request to the server\n/ \note This is a blocking call\n/ \note This "
@@ -968,7 +969,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of RtspServer
 
   pyClassRtspServer
-      .def(py::init<>()) // implicit default constructor
       .def("set_session_log_level", &espp::RtspServer::set_session_log_level, py::arg("log_level"),
            "/ @brief Sets the log level for the RTSP sessions created by this server\n/ @note This "
            "does not affect the log level of the RTSP server itself\n/ @note This does not change "
@@ -1046,7 +1046,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Socket
 
   pyClassSocket
-      .def(py::init<>()) // implicit default constructor
       .def(
           "is_valid", [](espp::Socket &self) { return self.is_valid(); },
           "*\n   * @brief Is the socket valid.\n   * @return True if the socket file descriptor is "
@@ -1129,7 +1128,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of TcpSocket
 
   pyClassTcpSocket
-      .def(py::init<>()) // implicit default constructor
       .def("reinit", &espp::TcpSocket::reinit,
            "*\n   * @brief Reinitialize the socket, cleaning it up if first it is already\n   *    "
            "    initalized.\n")
@@ -1237,7 +1235,7 @@ void py_init_module_espp_lib(py::module &m) {
                                bool is_multicast_endpoint = {false},
                                bool wait_for_response = {false}, size_t response_size = {0},
                                espp::Socket::response_callback_fn on_response_callback = {nullptr},
-                               std::chrono::duration<float> response_timeout = {0.5f}) {
+                               std::chrono::duration<float> response_timeout = 0.5f) {
                    auto r = std::make_unique<espp::UdpSocket::SendConfig>();
                    r->ip_address = ip_address;
                    r->port = port;
@@ -1285,7 +1283,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of UdpSocket
 
   pyClassUdpSocket
-      .def(py::init<>()) // implicit default constructor
       .def("send",
            py::overload_cast<const std::vector<uint8_t> &, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -1416,7 +1413,7 @@ void py_init_module_espp_lib(py::module &m) {
             "callback.\n")
             .def(py::init<>(
                      [](espp::Task::simple_callback_fn callback = espp::Task::simple_callback_fn(),
-                        BaseConfig task_config = BaseConfig(),
+                        espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
                         espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
                        auto r = std::make_unique<espp::Task::SimpleConfig>();
                        r->callback = callback;
@@ -1425,7 +1422,7 @@ void py_init_module_espp_lib(py::module &m) {
                        return r;
                      }),
                  py::arg("callback") = espp::Task::simple_callback_fn(),
-                 py::arg("task_config") = BaseConfig(),
+                 py::arg("task_config") = espp::Task::BaseConfig(),
                  py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
             .def_readwrite("callback", &espp::Task::SimpleConfig::callback, "*< Callback function")
             .def_readwrite("task_config", &espp::Task::SimpleConfig::task_config,
@@ -1460,7 +1457,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Task
 
   pyClassTask
-      .def(py::init<>()) // implicit default constructor
       .def_static("make_unique",
                   py::overload_cast<const espp::Task::Config &>(&espp::Task::make_unique),
                   py::arg("config"),
@@ -1533,9 +1529,9 @@ void py_init_module_espp_lib(py::module &m) {
             .def(py::init<>([](std::string_view name = std::string_view(),
                                std::chrono::duration<float> period = std::chrono::duration<float>(),
                                std::chrono::duration<float> delay = {0},
-                               callback_fn callback = callback_fn(), bool auto_start = {true},
-                               size_t stack_size_bytes = {4096}, size_t priority = {0},
-                               int core_id = {-1},
+                               espp::Timer::callback_fn callback = espp::Timer::callback_fn(),
+                               bool auto_start = {true}, size_t stack_size_bytes = {4096},
+                               size_t priority = {0}, int core_id = {-1},
                                espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
                    auto r = std::make_unique<espp::Timer::Config>();
                    r->name = name;
@@ -1552,9 +1548,10 @@ void py_init_module_espp_lib(py::module &m) {
                  py::arg("name") = std::string_view(),
                  py::arg("period") = std::chrono::duration<float>(),
                  py::arg("delay") = std::chrono::duration<float>{0},
-                 py::arg("callback") = callback_fn(), py::arg("auto_start") = bool{true},
-                 py::arg("stack_size_bytes") = size_t{4096}, py::arg("priority") = size_t{0},
-                 py::arg("core_id") = int{-1}, py::arg("log_level") = espp::Logger::Verbosity::WARN)
+                 py::arg("callback") = espp::Timer::callback_fn(),
+                 py::arg("auto_start") = bool{true}, py::arg("stack_size_bytes") = size_t{4096},
+                 py::arg("priority") = size_t{0}, py::arg("core_id") = int{-1},
+                 py::arg("log_level") = espp::Logger::Verbosity::WARN)
             .def_readwrite("name", &espp::Timer::Config::name, "/< The name of the timer.")
             .def_readwrite(
                 "period", &espp::Timer::Config::period,
@@ -1577,7 +1574,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Timer
 
   pyClassTimer
-      .def(py::init<>()) // implicit default constructor
       .def(
           "start", [](espp::Timer &self) { return self.start(); },
           "/ @brief Start the timer.\n/ @details Starts the timer. Does nothing if the timer is "

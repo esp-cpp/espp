@@ -225,6 +225,8 @@ class Hsv:
         """
         pass
 
+# namespace espp
+
 ####################    </generated_from:color.hpp>    ####################
 
 
