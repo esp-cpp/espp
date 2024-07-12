@@ -1,3 +1,5 @@
+#pragma once
+
 #include "fmt/format.h"
 
 // NOTE: right now it seems we cannot use the generic version that works in

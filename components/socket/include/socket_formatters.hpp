@@ -1,3 +1,5 @@
+#pragma once
+
 #include "format.hpp"
 
 // for allowing easy serialization/printing of the

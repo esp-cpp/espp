@@ -64,9 +64,9 @@ public:
    */
   Rgb &operator+=(const Rgb &rhs);
 
-  bool operator==(const Rgb &rhs) { return r == rhs.r && g == rhs.g && b == rhs.b; }
+  bool operator==(const Rgb &rhs) const = default;
 
-  bool operator!=(const Rgb &rhs) { return !(*this == rhs); }
+  bool operator!=(const Rgb &rhs) const = default;
 
   /**
    * @brief Get a HSV representation of this RGB color.
@@ -109,9 +109,9 @@ public:
 
   Hsv &operator=(const Hsv &other) = default;
 
-  bool operator==(const Hsv &rhs) { return h == rhs.h && s == rhs.s && v == rhs.v; }
+  bool operator==(const Hsv &rhs) const = default;
 
-  bool operator!=(const Hsv &rhs) { return !(*this == rhs); }
+  bool operator!=(const Hsv &rhs) const = default;
 
   /**
    * @brief Get a RGB representation of this HSV color.
@@ -120,3 +120,5 @@ public:
   Rgb rgb() const;
 };
 } // namespace espp
+
+#include "color_formatters.hpp"
