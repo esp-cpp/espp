@@ -102,12 +102,13 @@ public:
    *       instead.
    */
   struct Config {
-    std::string name;              /**< Name of the task */
-    callback_fn callback;          /**< Callback function  */
-    size_t stack_size_bytes{4096}; /**< Stack Size (B) allocated to the task. */
+    std::string name;                 /**< Name of the task */
+    espp::Task::callback_fn callback; /**< Callback function  */
+    size_t stack_size_bytes{4096};    /**< Stack Size (B) allocated to the task. */
     size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
     int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
-    Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
+    espp::Logger::Verbosity log_level{
+        espp::Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
 
   /**
@@ -116,9 +117,10 @@ public:
    *       or mutex in the callback.
    */
   struct SimpleConfig {
-    simple_callback_fn callback;                          /**< Callback function  */
-    BaseConfig task_config;                               /**< Base configuration for the task. */
-    Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
+    espp::Task::simple_callback_fn callback; /**< Callback function  */
+    BaseConfig task_config;                  /**< Base configuration for the task. */
+    espp::Logger::Verbosity log_level{
+        espp::Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
 
   /**
@@ -128,28 +130,29 @@ public:
    *       wait_until.
    */
   struct AdvancedConfig {
-    callback_fn callback;                                 /**< Callback function  */
-    BaseConfig task_config;                               /**< Base configuration for the task. */
-    Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
+    espp::Task::callback_fn callback;   /**< Callback function  */
+    espp::Task::BaseConfig task_config; /**< Base configuration for the task. */
+    espp::Logger::Verbosity log_level{
+        espp::Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
 
   /**
    * @brief Construct a new Task object using the Config struct.
    * @param config Config struct to initialize the Task with.
    */
-  explicit Task(const Config &config);
+  explicit Task(const espp::Task::Config &config);
 
   /**
    *  @brief Construct a new Task object using the SimpleConfig struct.
    *  @param config SimpleConfig struct to initialize the Task with.
    */
-  explicit Task(const SimpleConfig &config);
+  explicit Task(const espp::Task::SimpleConfig &config);
 
   /**
    *  @brief Construct a new Task object using the AdvancedConfig struct.
    *  @param config AdvancedConfig struct to initialize the Task with.
    */
-  explicit Task(const AdvancedConfig &config);
+  explicit Task(const espp::Task::AdvancedConfig &config);
 
   /**
    * @brief Get a unique pointer to a new task created with \p config.
@@ -157,7 +160,7 @@ public:
    * @param config Config struct to initialize the Task with.
    * @return std::unique_ptr<Task> pointer to the newly created task.
    */
-  static std::unique_ptr<Task> make_unique(const Config &config);
+  static std::unique_ptr<Task> make_unique(const espp::Task::Config &config);
 
   /**
    * @brief Get a unique pointer to a new task created with \p config.
@@ -165,7 +168,7 @@ public:
    * @param config SimpleConfig struct to initialize the Task with.
    * @return std::unique_ptr<Task> pointer to the newly created task.
    */
-  static std::unique_ptr<Task> make_unique(const SimpleConfig &config);
+  static std::unique_ptr<Task> make_unique(const espp::Task::SimpleConfig &config);
 
   /**
    * @brief Get a unique pointer to a new task created with \p config.
@@ -173,7 +176,7 @@ public:
    * @param config AdvancedConfig struct to initialize the Task with.
    * @return std::unique_ptr<Task> pointer to the newly created task.
    */
-  static std::unique_ptr<Task> make_unique(const AdvancedConfig &config);
+  static std::unique_ptr<Task> make_unique(const espp::Task::AdvancedConfig &config);
 
   /**
    * @brief Destroy the task, stopping it if it was started.

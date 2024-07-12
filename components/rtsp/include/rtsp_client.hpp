@@ -38,7 +38,8 @@ public:
     std::string path{"/mjpeg/1"}; ///< The path to the RTSP stream on the server. Will be appended
                                   ///< to the server address and port to form the full path of the
                                   ///< form "rtsp://<server_address>:<rtsp_port><path>"
-    jpeg_frame_callback_t on_jpeg_frame; ///< The callback to call when a JPEG frame is received
+    espp::RtspClient::jpeg_frame_callback_t
+        on_jpeg_frame; ///< The callback to call when a JPEG frame is received
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::INFO; ///< The verbosity of the logger
   };

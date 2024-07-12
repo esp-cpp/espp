@@ -44,7 +44,8 @@ public:
               ///< up into multiple packets if they are larger than this. It seems that 1500 works
               ///< well for sending, but is too large for the esp32 (camera-display) to receive
               ///< properly.
-    Logger::Verbosity log_level = Logger::Verbosity::WARN; ///< The log level for the RTSP server
+    espp::Logger::Verbosity log_level =
+        espp::Logger::Verbosity::WARN; ///< The log level for the RTSP server
   };
 
   /// @brief Construct an RTSP server

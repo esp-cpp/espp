@@ -50,22 +50,23 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # ////////////////////////////////////////////////////////////////////
     #  template<typename T> T MaxValue(const std::vector<T>& values);
     # will be published as: max_value_int and max_value_float
-    options.fn_template_options.add_specialization("^Bezier$", ["int", "float"], add_suffix_to_function_name=True)
     options.fn_template_options.add_specialization("^operator$", ["int", "float"], add_suffix_to_function_name=True)
-    options.fn_template_options.add_specialization("^RangeMapper$", ["int", "float"], add_suffix_to_function_name=True)
     options.fn_template_options.add_specialization("^get_center$", ["int", "float"], add_suffix_to_function_name=True)
-    options.fn_template_options.add_specialization("^sgn$", ["int", "float"], add_suffix_to_function_name=True)
+    options.fn_template_options.add_specialization(".*", ["int", "float"], add_suffix_to_function_name=True)
     options.fn_template_options.add_specialization("^to_time_t$", ["std::filesystem::file_time_type"], add_suffix_to_function_name=True)
     #  template<typename T> T MaxValue(const std::vector<T>& values);
     # will be published as: max_value_int and max_value_float
     # options.fn_template_options.add_specialization("^Bezier$", ["int", "float"], add_suffix_to_function_name=False)
 
+    options.class_template_options.add_specialization("^(Range|Bezier|Vector2)", ["int", "float"])
+
     # ////////////////////////////////////////////////////////////////////
     # Return values policy
     # ////////////////////////////////////////////////////////////////////
-    # `Widget& GetWidgetSingleton()` returns a reference, that python should not free,
-    # so we force the reference policy to be 'reference' instead of 'automatic'
-    options.fn_return_force_policy_reference_for_references__regex = "Singleton$"
+    # `FileSystem& get()` and `EventManager& get()` return references, that
+    # python should not free, so we force the reference policy to be 'reference'
+    # instead of 'automatic'
+    options.fn_return_force_policy_reference_for_references__regex = "^get$"
 
     # ////////////////////////////////////////////////////////////////////
     #  Boxed types
@@ -86,7 +87,7 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # Format the python stubs with black
     # ////////////////////////////////////////////////////////////////////
     # Set to True if you want the stub file to be formatted with black
-    options.python_run_black_formatter = True
+    options.python_run_black_formatter = False
 
     return options
 
@@ -96,32 +97,32 @@ def autogenerate() -> None:
     output_dir = repository_dir + "/lib/python_bindings"
 
     include_dir = repository_dir + "/components/"
-    header_files = [#include_dir + "base_component/include/base_component.hpp",
+    header_files = [include_dir + "base_component/include/base_component.hpp",
+                    include_dir + "color/include/color.hpp",
                     include_dir + "csv/include/csv.hpp",
                     include_dir + "event_manager/include/event_manager.hpp",
                     include_dir + "file_system/include/file_system.hpp",
                     include_dir + "ftp/include/ftp_server.hpp",
+                    include_dir + "math/include/bezier.hpp",
+                    include_dir + "math/include/fast_math.hpp",
                     include_dir + "math/include/gaussian.hpp",
+                    include_dir + "math/include/range_mapper.hpp", # have to set class template options
+                    include_dir + "math/include/vector2d.hpp", # have to set class template options
                     # include_dir + "logger/include/logger.hpp",
-                    include_dir + "task/include/task.hpp",
-                    include_dir + "socket/include/tcp_socket.hpp",
-                    include_dir + "state_machine/include/deep_history_state.hpp",
-                    include_dir + "state_machine/include/shallow_history_state.hpp",
-                    include_dir + "state_machine/include/state_base.hpp",
+                    include_dir + "rtsp/include/rtsp_client.hpp",
                     include_dir + "rtsp/include/rtsp_server.hpp",
-                    # include_dir + "math/include/fast_math.hpp",
+                    include_dir + "socket/include/socket.hpp",
+                    include_dir + "socket/include/tcp_socket.hpp",
+                    include_dir + "socket/include/udp_socket.hpp",
+                    # include_dir + "state_machine/include/deep_history_state.hpp",
+                    # include_dir + "state_machine/include/shallow_history_state.hpp",
+                    # include_dir + "state_machine/include/state_base.hpp",
+                    include_dir + "task/include/task.hpp",
+                    include_dir + "timer/include/timer.hpp",
 
                     # include_dir + "state_machine/include/magic_enum.hpp",
-                    # include_dir + "timer/include/timer.hpp",
-                    # include_dir + "socket/include/udp_socket.hpp",
-                    # include_dir + "math/include/vector2d.hpp",
-
-                    # include_dir + "math/include/range_mapper.hpp",
-                    # include_dir + "rtsp/include/rtsp_client.hpp",
                     # include_dir + "tabulate/include/tabulate.hpp",
                     # include_dir + "serialization/include/serialization.hpp",
-                    # include_dir + "math/include/bezier.hpp",
-                    include_dir + "color/include/color.hpp",
     ]
 
     litgen.write_generated_code_for_files(

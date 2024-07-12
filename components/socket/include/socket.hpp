@@ -114,7 +114,7 @@ public:
    * @param logger_config configuration for the logger associated with the
    *        socket.
    */
-  explicit Socket(int socket_fd, const Logger::Config &logger_config);
+  explicit Socket(int socket_fd, const espp::Logger::Config &logger_config);
 
   /**
    * @brief Initialize the socket (calling init()).
@@ -122,7 +122,7 @@ public:
    * @param logger_config configuration for the logger associated with the
    *        socket.
    */
-  explicit Socket(Type type, const Logger::Config &logger_config);
+  explicit Socket(Type type, const espp::Logger::Config &logger_config);
 
   /**
    * @brief Tear down any resources associted with the socket.
@@ -216,15 +216,4 @@ protected:
 };
 } // namespace espp
 
-// for allowing easy serialization/printing of the
-// espp::Socket::Info
-template <> struct fmt::formatter<espp::Socket::Info> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(espp::Socket::Info const &info, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "{}:{}", info.address, info.port);
-  }
-};
+#include "socket_formatters.hpp"

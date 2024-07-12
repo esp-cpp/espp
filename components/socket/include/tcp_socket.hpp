@@ -23,7 +23,7 @@ struct TcpTransmitConfig {
   bool wait_for_response{false}; /**< Whether to wait for a response from the remote or not. */
   size_t response_size{
       0}; /**< If waiting for a response, this is the maximum size response we will receive. */
-  Socket::response_callback_fn on_response_callback{
+  espp::Socket::response_callback_fn on_response_callback{
       nullptr}; /**< If waiting for a response, this is an optional handler which is provided the
                    response data. */
   std::chrono::duration<float> response_timeout{
@@ -52,8 +52,8 @@ public:
    * @brief Config struct for the TCP socket.
    */
   struct Config {
-    Logger::Verbosity log_level{
-        Logger::Verbosity::WARN}; /**< Verbosity level for the TCP socket logger. */
+    espp::Logger::Verbosity log_level{
+        espp::Logger::Verbosity::WARN}; /**< Verbosity level for the TCP socket logger. */
   };
 
   /**
