@@ -235,7 +235,6 @@ bool Socket::init(Socket::Type type) {
     logger_.error("Cannot create socket: {} - '{}'", errno, strerror(errno));
     return false;
   }
-  // cppcheck-suppress knownConditionTrueFalse
   if (!enable_reuse()) {
     logger_.error("Cannot enable reuse: {} - '{}'", errno, strerror(errno));
     return false;
