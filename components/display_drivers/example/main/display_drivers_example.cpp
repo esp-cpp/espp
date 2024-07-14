@@ -207,7 +207,7 @@ extern "C" void app_main(void) {
   bool mirror_x = false;
   bool mirror_y = false;
   using DisplayDriver = espp::Ili9341;
-  auto rotation = Display::Rotation::LANDSCAPE;
+  auto rotation = espp::DisplayRotation::LANDSCAPE;
   //! [wrover_kit_config example]
 #elif CONFIG_HARDWARE_TTGO
   //! [ttgo_config example]
@@ -231,7 +231,7 @@ extern "C" void app_main(void) {
   bool mirror_x = false;
   bool mirror_y = false;
   using DisplayDriver = espp::St7789;
-  auto rotation = Display::Rotation::PORTRAIT;
+  auto rotation = espp::DisplayRotation::PORTRAIT;
   //! [ttgo_config example]
 #elif CONFIG_HARDWARE_BOX
   //! [box_config example]
@@ -255,7 +255,7 @@ extern "C" void app_main(void) {
   bool mirror_x = true;
   bool mirror_y = true;
   using DisplayDriver = espp::St7789;
-  auto rotation = Display::Rotation::LANDSCAPE;
+  auto rotation = espp::DisplayRotation::LANDSCAPE;
   //! [box_config example]
 #elif CONFIG_SMARTKNOB_HA
   //! [smartknob_config example]
@@ -279,7 +279,7 @@ extern "C" void app_main(void) {
   bool mirror_x = true;
   bool mirror_y = true;
   using DisplayDriver = espp::Gc9a01;
-  auto rotation = Display::Rotation::LANDSCAPE;
+  auto rotation = espp::DisplayRotation::LANDSCAPE;
   //! [smartknob_config example]
 #endif
 
@@ -334,8 +334,7 @@ extern "C" void app_main(void) {
                                   .flush_callback = DisplayDriver::flush,
                                   .backlight_pin = backlight,
                                   .backlight_on_value = backlight_on_value,
-                                  .rotation = rotation,
-                                  .software_rotation_enabled = true});
+                                  .rotation = rotation});
 
     // initialize the gui
     Gui gui({});

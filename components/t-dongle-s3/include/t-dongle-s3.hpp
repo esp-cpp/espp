@@ -194,7 +194,7 @@ protected:
   static constexpr bool backlight_value = false;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
-  static constexpr auto rotation = espp::Display<Pixel>::Rotation::PORTRAIT;
+  static constexpr auto rotation = espp::DisplayRotation::PORTRAIT;
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = false;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_38;
