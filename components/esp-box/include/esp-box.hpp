@@ -296,6 +296,9 @@ protected:
     static constexpr bool reset_value = true;               // was false on ESP32-S3-BOX
     static constexpr gpio_num_t i2s_ws_io = GPIO_NUM_45;    // was 47 on ESP32-S3-BOX
     static constexpr bool touch_invert_x = false;           // was true on ESP32-S3-BOX
+    static constexpr auto touch_interrupt_level = espp::Interrupt::ActiveLevel::HIGH;
+    static constexpr auto touch_interrupt_type = espp::Interrupt::Type::RISING_EDGE;
+    static constexpr auto touch_interrupt_pullup_enabled = false;
   };                                                        // struct box3
 
   // box:
@@ -304,6 +307,9 @@ protected:
     static constexpr bool reset_value = false;
     static constexpr gpio_num_t i2s_ws_io = GPIO_NUM_47;
     static constexpr bool touch_invert_x = true;
+    static constexpr auto touch_interrupt_level = espp::Interrupt::ActiveLevel::LOW;
+    static constexpr auto touch_interrupt_type = espp::Interrupt::Type::FALLING_EDGE;
+    static constexpr auto touch_interrupt_pullup_enabled = true;
   }; // struct box
 
   // set by the detect() method using the box3 and box namespaces
@@ -311,6 +317,9 @@ protected:
   bool reset_value;
   gpio_num_t i2s_ws_io;
   bool touch_invert_x;
+  espp::Interrupt::ActiveLevel touch_interrupt_level;
+  espp::Interrupt::Type touch_interrupt_type;
+  bool touch_interrupt_pullup_enabled;
 
   // common:
   // internal i2c (touchscreen, audio codec)
@@ -369,6 +378,8 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
+  // NOTE: the active level, interrupt type, and pullup configuration is set by
+  // detect(), since it depends on the box type
   espp::Interrupt::PinConfig touch_interrupt_pin_{
       .gpio_num = touch_interrupt,
       .callback =
@@ -377,9 +388,7 @@ protected:
             if (touch_callback_) {
               touch_callback_(touchpad_data());
             }
-          },
-      .active_level = espp::Interrupt::ActiveLevel::HIGH,
-      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+          }};
 
   // we'll only add each interrupt pin if the initialize method is called
   espp::Interrupt interrupts_{
