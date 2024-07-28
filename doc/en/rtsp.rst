@@ -34,6 +34,12 @@ a hardware encoder for H.264 or H.265.
 Additionally, the server currently only supports UDP transport for RTP and RTCP
 packets. TCP transport is not supported.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   rtsp_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

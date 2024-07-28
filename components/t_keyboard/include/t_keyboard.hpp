@@ -77,9 +77,14 @@ public:
   uint8_t get_key() const { return pressed_key_; }
 
   /// \brief Read a key from the keyboard.
-  /// \details This function reads a key from the keyboard.
+  /// \details This function reads a key from the keyboard. It will return 0 and
+  ///          set the error code if an error occurs. If the keyboard task is
+  ///          running, it will return 0 and set the error code.
+  ///          If the keyboard task is not running, it will return the key that
+  ///          was read, and update the currently pressed key.
   /// \param ec The error code to set if an error occurs.
   /// \return The key that was read.
+  /// \see get_key()
   /// \note This function will return 0 if no key was read.
   /// \note This function will return 0 if an error occurs.
   /// \note This function will set the error code if the keyboard task is
@@ -90,7 +95,13 @@ public:
       ec = std::make_error_code(std::errc::operation_in_progress);
       return 0;
     }
-    return read_u8(ec);
+    auto key = read_u8(ec);
+    if (ec) {
+      logger_.error("Failed to get key: {}", ec.message());
+      return 0;
+    }
+    pressed_key_ = key;
+    return key;
   }
 
   /// \brief Start the keyboard task.

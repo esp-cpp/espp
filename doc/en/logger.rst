@@ -16,6 +16,12 @@ runtime.
 
 Code examples for the logging API are provided in the `logger` example folder.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   logger_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

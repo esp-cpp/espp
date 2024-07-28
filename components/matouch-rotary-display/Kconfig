@@ -1,0 +1,8 @@
+menu "Matouch Rotary Display Configuration"
+    config MATOUCH_INTERRUPT_STACK_SIZE
+        int "Interrupt stack size"
+        default 4096
+        help
+            Size of the stack used for the interrupt handler. Shared by the
+            button callback and the touch callbacks.
+endmenu

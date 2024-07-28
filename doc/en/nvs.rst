@@ -15,6 +15,12 @@ writing, and committing key-value pairs within these namespaces.
 
 Code examples for the NVS and NVSHandle API are provided in the `nvs` example folder.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   nvs_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

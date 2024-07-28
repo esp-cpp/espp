@@ -13,6 +13,12 @@ It's pretty sweet and the component provides the implementation of the two
 channel FOC motor controller, along with other peripheral classes such as the
 ADC, LEDs, and I2C.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   motorgo_mini_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

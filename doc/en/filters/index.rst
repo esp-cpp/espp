@@ -4,6 +4,7 @@ Filter APIs
 .. toctree::
     :maxdepth: 1
 
+    filters_example
     biquad
     butterworth
     lowpass

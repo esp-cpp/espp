@@ -11,8 +11,16 @@ namespace espp::state_machine {
  */
 class DeepHistoryState : public StateBase {
 public:
+  /**
+   * @brief Construct a new Deep History State object
+   */
   DeepHistoryState()
       : StateBase() {}
+
+  /**
+   * @brief Construct a new Deep History State object
+   * @param _parent The parent state of this state
+   */
   explicit DeepHistoryState(StateBase *_parent)
       : StateBase(_parent) {}
 

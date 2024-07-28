@@ -69,6 +69,7 @@ public:
   static uint8_t byte2bcd(uint8_t value) { return ((value / 10) << 4) + value % 10; }
 
   /// @brief Get the date and time.
+  /// @param ec The error code.
   /// @return The date and time.
   DateTime get_date_time(std::error_code &ec) {
     DateTime dt;
@@ -83,6 +84,7 @@ public:
 
   /// @brief Set the date and time.
   /// @param dt The date and time.
+  /// @param ec The error code.
   void set_date_time(const DateTime &dt, std::error_code &ec) {
     set_date(dt.date, ec);
     if (ec)
@@ -91,6 +93,7 @@ public:
   }
 
   /// @brief Get the date.
+  /// @param ec The error code.
   /// @return The date.
   Date get_date(std::error_code &ec) {
     logger_.info("getting date");
@@ -110,6 +113,7 @@ public:
 
   /// @brief Set the date.
   /// @param d The date.
+  /// @param ec The error code.
   void set_date(const Date &d, std::error_code &ec) {
     logger_.info("setting date");
     const uint8_t data[] = {byte2bcd(d.day), byte2bcd(d.weekday),
@@ -119,6 +123,7 @@ public:
   }
 
   /// @brief Get the time.
+  /// @param ec The error code.
   /// @return The time.
   Time get_time(std::error_code &ec) {
     logger_.info("getting time");
@@ -136,6 +141,7 @@ public:
 
   /// @brief Set the time.
   /// @param t The time.
+  /// @param ec The error code.
   void set_time(const Time &t, std::error_code &ec) {
     logger_.info("Setting time");
     const uint8_t data[] = {byte2bcd(t.second), byte2bcd(t.minute), byte2bcd(t.hour)};
@@ -174,17 +180,28 @@ protected:
 };
 } // namespace espp
 
+/// @brief Compare two Date objects.
+/// @param lhs The left hand side.
+/// @param rhs The right hand side.
+/// @return True if the objects are equal.
 [[maybe_unused]] static bool operator==(const espp::Bm8563::Date &lhs,
                                         const espp::Bm8563::Date &rhs) {
   return lhs.year == rhs.year && lhs.month == rhs.month && lhs.weekday == rhs.weekday &&
          lhs.day == rhs.day;
 }
 
+/// @brief Compare two Time objects.
+/// @param lhs The left hand side.
+/// @param rhs The right hand side.
 [[maybe_unused]] static bool operator==(const espp::Bm8563::Time &lhs,
                                         const espp::Bm8563::Time &rhs) {
   return lhs.hour == rhs.hour && lhs.minute == rhs.minute && lhs.second == rhs.second;
 }
 
+/// @brief Compare two DateTime objects.
+/// @param lhs The left hand side.
+/// @param rhs The right hand side.
+/// @return True if the objects are equal.
 [[maybe_unused]] static bool operator==(const espp::Bm8563::DateTime &lhs,
                                         const espp::Bm8563::DateTime &rhs) {
   return lhs.date == rhs.date && lhs.time == rhs.time;

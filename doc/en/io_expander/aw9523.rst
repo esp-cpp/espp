@@ -6,6 +6,12 @@ outputs, interrupts, etc. via a serial interface such as I2C. It also supports
 dimming control for LEDs attached to the expander's port pins, when those pins
 are configured into a special LED mode.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   aw9523_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

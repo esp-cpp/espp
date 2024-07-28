@@ -19,6 +19,12 @@ The `BldcMotor` should be configured with a `BldcDriver` and optional `Sensor`
 (for angle & speed of the motor), and optional `CurrentSensor` (for measuring
 the phase currents of the motor and providing torque control).
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   bldc_motor_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference

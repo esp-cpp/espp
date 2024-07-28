@@ -8,6 +8,12 @@ equivalent to including both `tabulate/table.hpp`. Please see the documentation
 for tabulate if you have any questions about usage beyond the examples provided
 here.
 
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   tabulate_example
+
 .. ---------------------------- API Reference ----------------------------------
 
 API Reference
