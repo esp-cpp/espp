@@ -55,7 +55,6 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # Publish bindings for template functions
     # ////////////////////////////////////////////////////////////////////
     options.fn_template_options.add_specialization(r"^sgn$", ["int", "float"], add_suffix_to_function_name=True)
-    options.fn_template_options.add_specialization(r"^to_time_t$", ["std::filesystem::file_time_type"], add_suffix_to_function_name=True)
 
     # ////////////////////////////////////////////////////////////////////
     # Return values policy
@@ -98,7 +97,7 @@ def autogenerate() -> None:
                     include_dir + "color/include/color.hpp",
                     include_dir + "csv/include/csv.hpp",
                     include_dir + "event_manager/include/event_manager.hpp",
-                    include_dir + "file_system/include/file_system.hpp",
+                    # include_dir + "file_system/include/file_system.hpp",
                     include_dir + "ftp/include/ftp_server.hpp",
                     include_dir + "math/include/bezier.hpp", # have to set class template options
                     include_dir + "math/include/fast_math.hpp",
@@ -106,10 +105,10 @@ def autogenerate() -> None:
                     include_dir + "math/include/range_mapper.hpp", # have to set class template options
                     include_dir + "math/include/vector2d.hpp", # have to set class template options
                     # include_dir + "logger/include/logger.hpp",
-                    include_dir + "rtsp/include/jpeg_frame.hpp",
-                    include_dir + "rtsp/include/jpeg_header.hpp",
-                    include_dir + "rtsp/include/rtsp_client.hpp",
-                    include_dir + "rtsp/include/rtsp_server.hpp",
+                    # include_dir + "rtsp/include/jpeg_frame.hpp",
+                    # include_dir + "rtsp/include/jpeg_header.hpp",
+                    # include_dir + "rtsp/include/rtsp_client.hpp",
+                    # include_dir + "rtsp/include/rtsp_server.hpp",
                     include_dir + "socket/include/socket.hpp",
                     include_dir + "socket/include/tcp_socket.hpp",
                     include_dir + "socket/include/udp_socket.hpp",

@@ -57,9 +57,9 @@ public:
     std::string_view name; ///< The name of the timer.
     std::chrono::duration<float>
         period; ///< The period of the timer. If 0, the timer callback will only be called once.
-    std::chrono::duration<float> delay{
-        0}; ///< The delay before the first execution of the timer callback after start() is called.
-    callback_fn callback;  ///< The callback function to call when the timer expires.
+    std::chrono::duration<float> delay = std::chrono::duration<float>(
+        0); ///< The delay before the first execution of the timer callback after start() is called.
+    espp::Timer::callback_fn callback; ///< The callback function to call when the timer expires.
     bool auto_start{true}; ///< If true, the timer will start automatically when constructed.
     size_t stack_size_bytes{4096}; ///< The stack size of the task that runs the timer.
     size_t priority{0}; ///< Priority of the timer, 0 is lowest priority on ESP / FreeRTOS.

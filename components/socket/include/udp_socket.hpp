@@ -58,8 +58,8 @@ public:
     espp::Socket::response_callback_fn on_response_callback{
         nullptr}; /**< If waiting for a response, this is an optional handler which is provided the
                      response data. */
-    std::chrono::duration<float> response_timeout{
-        0.5f}; /**< If waiting for a response, this is the maximum timeout to wait. */
+    std::chrono::duration<float> response_timeout = std::chrono::duration<float>(
+        0.5f); /**< If waiting for a response, this is the maximum timeout to wait. */
   };
 
   struct Config {
