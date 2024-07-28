@@ -44,22 +44,18 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # Override virtual methods in python
     # ////////////////////////////////////////////////////////////////////
     # The virtual methods of this class can be overriden in python
-    options.class_override_virtual_methods_in_python__regex = "^Animal$"
+    options.class_template_options.add_specialization(r"Bezier", ["espp::Vector2f"])
+    options.class_template_options.add_specialization(r"Bezier::Config", ["espp::Vector2f"])
+    options.class_template_options.add_specialization(r"Bezier::WeightedConfig", ["espp::Vector2f"])
+    options.class_template_options.add_specialization(r"RangeMapper", ["int", "float"])
+    options.class_template_options.add_specialization(r"RangeMapper::Config", ["int", "float"])
+    options.class_template_options.add_specialization(r"Vector2d", ["int", "float"])
 
     # ////////////////////////////////////////////////////////////////////
     # Publish bindings for template functions
     # ////////////////////////////////////////////////////////////////////
-    #  template<typename T> T MaxValue(const std::vector<T>& values);
-    # will be published as: max_value_int and max_value_float
-    options.fn_template_options.add_specialization("^operator$", ["int", "float"], add_suffix_to_function_name=True)
-    options.fn_template_options.add_specialization("^get_center$", ["int", "float"], add_suffix_to_function_name=True)
-    options.fn_template_options.add_specialization(".*", ["int", "float"], add_suffix_to_function_name=True)
-    options.fn_template_options.add_specialization("^to_time_t$", ["std::filesystem::file_time_type"], add_suffix_to_function_name=True)
-    #  template<typename T> T MaxValue(const std::vector<T>& values);
-    # will be published as: max_value_int and max_value_float
-    # options.fn_template_options.add_specialization("^Bezier$", ["int", "float"], add_suffix_to_function_name=False)
-
-    options.class_template_options.add_specialization("^RangeMapper|Bezier|Vector2d", ["int", "float"])
+    options.fn_template_options.add_specialization(r"^sgn$", ["int", "float"], add_suffix_to_function_name=True)
+    options.fn_template_options.add_specialization(r"^to_time_t$", ["std::filesystem::file_time_type"], add_suffix_to_function_name=True)
 
     # ////////////////////////////////////////////////////////////////////
     # Return values policy
