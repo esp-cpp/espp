@@ -332,6 +332,7 @@ extern "C" void app_main(void) {
                                   .height = height,
                                   .pixel_buffer_size = pixel_buffer_size,
                                   .flush_callback = DisplayDriver::flush,
+                                  .rotation_callback = DisplayDriver::rotate,
                                   .backlight_pin = backlight,
                                   .backlight_on_value = backlight_on_value,
                                   .rotation = rotation});

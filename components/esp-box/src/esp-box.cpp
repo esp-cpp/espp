@@ -314,6 +314,7 @@ bool EspBox::initialize_display(size_t pixel_buffer_size) {
       .height = lcd_height_,
       .pixel_buffer_size = pixel_buffer_size,
       .flush_callback = DisplayDriver::flush,
+      .rotation_callback = DisplayDriver::rotate,
       .backlight_pin = backlight_io,
       .backlight_on_value = backlight_value,
       .task_config =
