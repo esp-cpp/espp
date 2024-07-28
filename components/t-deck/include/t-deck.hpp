@@ -278,8 +278,9 @@ protected:
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
   static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE_INVERTED;
-  static constexpr bool mirror_x = true;
-  static constexpr bool mirror_y = true;
+  static constexpr bool mirror_x = false;
+  static constexpr bool mirror_y = false;
+  static constexpr bool swap_xy = false;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_42;
   using DisplayDriver = espp::St7789;
 

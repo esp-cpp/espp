@@ -189,14 +189,15 @@ protected:
   static constexpr gpio_num_t lcd_sclk_io = GPIO_NUM_5;
   static constexpr gpio_num_t lcd_reset_io = GPIO_NUM_1;
   static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_2;
-  static constexpr int lcd_offset_x = 26;
-  static constexpr int lcd_offset_y = 0;
+  static constexpr int lcd_offset_x = 0;
+  static constexpr int lcd_offset_y = 26;
   static constexpr bool backlight_value = false;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
   static constexpr auto rotation = espp::DisplayRotation::PORTRAIT;
+  static constexpr bool swap_xy = true;
   static constexpr bool mirror_x = false;
-  static constexpr bool mirror_y = false;
+  static constexpr bool mirror_y = true;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_38;
   using DisplayDriver = espp::St7789;
 

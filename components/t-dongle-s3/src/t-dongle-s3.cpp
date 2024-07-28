@@ -162,6 +162,7 @@ bool TDongleS3::initialize_lcd() {
       .invert_colors = invert_colors,
       .offset_x = lcd_offset_x,
       .offset_y = lcd_offset_y,
+      .swap_xy = swap_xy,
       .mirror_x = mirror_x,
       .mirror_y = mirror_y});
   return true;
