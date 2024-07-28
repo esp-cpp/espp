@@ -20,7 +20,7 @@ public:
    * @param x The starting X value.
    * @param y The starting Y value.
    */
-  explicit Vector2d(T x = T(0), T y = T(0))
+  explicit Vector2d(T x = 0, T y = 0)
       : x_(x)
       , y_(y) {}
 

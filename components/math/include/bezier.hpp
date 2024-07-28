@@ -67,13 +67,7 @@ public:
    * @param t The evaluation parameter, [0, 1].
    * @return The bezier evaluated at \p t.
    */
-  T at(float t) const {
-    if (weighted_) {
-      return weighted_eval(t);
-    } else {
-      return eval(t);
-    }
-  }
+  T at(float t) const { return weighted_ ? weighted_eval(t) : eval(t); }
 
   /**
    * @brief Evaluate the bezier at \p t.

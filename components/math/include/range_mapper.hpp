@@ -42,24 +42,24 @@ public:
    */
   struct Config {
     T center; /**< Center value for the input range. */
-    T center_deadband{
-        T(0)}; /**< Deadband amount around (+-) the center for which output will be 0. */
-    T minimum; /**< Minimum value for the input range. */
-    T maximum; /**< Maximum value for the input range. */
-    T range_deadband{T(0)}; /**< Deadband amount around the minimum and maximum for which output
-                         will be min/max output. */
-    T output_center{T(0)};  /**< The center for the output. Default 0. */
-    T output_range{T(1)}; /**< The range (+/-) from the center for the output. Default 1. @note Will
+    T center_deadband =
+        0;                /**< Deadband amount around (+-) the center for which output will be 0. */
+    T minimum;            /**< Minimum value for the input range. */
+    T maximum;            /**< Maximum value for the input range. */
+    T range_deadband = 0; /**< Deadband amount around the minimum and maximum for which output will
+                             be min/max output. */
+    T output_center = 0;  /**< The center for the output. Default 0. */
+    T output_range = 1;   /**< The range (+/-) from the center for the output. Default 1. @note Will
                              be passed through std::abs() to ensure it is positive. */
-    bool invert_output{
-        false}; /**< Whether to invert the output (default false). @note If true will flip the sign
-                   of the output after converting from the input distribution. */
+    bool invert_output =
+        false; /**< Whether to invert the output (default false). @note If true will flip the sign
+                  of the output after converting from the input distribution. */
   };
 
   /**
    * Initialize the range mapper with no config.
    */
-  RangeMapper() = default;
+  RangeMapper() {}
 
   /**
    * @brief Initialize the RangeMapper.
@@ -76,10 +76,6 @@ public:
    *       will be ignored.
    */
   void configure(const Config &config) {
-    if (config.output_range == T(0)) {
-      return;
-    }
-
     center_ = config.center;
     center_deadband_ = std::abs(config.center_deadband);
     minimum_ = config.minimum;
@@ -90,9 +86,13 @@ public:
     output_min_ = output_center_ - output_range_;
     output_max_ = output_center_ + output_range_;
     // positive range is the range from the (center + center_deadband) to (max - range_deadband)
-    pos_range_ = (maximum_ - range_deadband_ - (center_ + center_deadband_)) / output_range_;
+    pos_range_ = output_range_
+                     ? (maximum_ - range_deadband_ - (center_ + center_deadband_)) / output_range_
+                     : 0;
     // negative range is the range from the (center - center_deadband) to (min + range_deadband)
-    neg_range_ = (center_ - center_deadband_ - (minimum_ + range_deadband_)) / output_range_;
+    neg_range_ = output_range_
+                     ? (center_ - center_deadband_ - (minimum_ + range_deadband_)) / output_range_
+                     : 0;
     invert_output_ = config.invert_output;
   }
 

@@ -20,9 +20,9 @@ public:
   struct Config {
     float gamma; ///< Slope of the gaussian, range [0, 1]. 0 is more of a thin spike from 0 up to
                  ///< max output (alpha), 1 is more of a small wave around the max output (alpha).
-    float alpha = 1.0f; ///< Max amplitude of the gaussian output, defautls to 1.0.
-    float beta =
-        0.5f; ///< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].
+    float alpha{1.0f}; ///< Max amplitude of the gaussian output, defautls to 1.0.
+    float beta{
+        0.5f}; ///< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].
   };
 
   /**
