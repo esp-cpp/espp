@@ -403,6 +403,49 @@ void py_init_module_espp_lib(py::module &m) {
   ////////////////////    </generated_from:ftp_server.hpp>    ////////////////////
 
   ////////////////////    <generated_from:bezier.hpp>    ////////////////////
+  auto pyClassBezier_espp_Vector2f = py::class_<espp::Bezier<espp::Vector2f>>(
+      m, "Bezier_espp_Vector2f",
+      "*\n * @brief Implements rational / weighted and unweighted cubic bezier curves\n *        "
+      "between control points.\n * @note See https://pomax.github.io/bezierinfo/ for information "
+      "on bezier\n *       curves.\n * @note Template class which can be used individually on "
+      "floating point\n *       values directly or on containers such as Vector2<float>.\n * "
+      "@tparam T The type of the control points, e.g. float or Vector2<float>.\n * @note The "
+      "bezier curve is defined by 4 control points, P0, P1, P2, P3.\n *      The curve is defined "
+      "by the equation:\n *      \\f$B(t) = (1-t)^3 * P0 + 3 * (1-t)^2 * t * P1 + 3 * (1-t) * t^2 "
+      "* P2 + t^3 * P3\\f$\n *      where t is the evaluation parameter, [0, 1].\n *\n * @note The "
+      "weighted bezier curve is defined by 4 control points, P0, P1, P2, P3\n *      and 4 "
+      "weights, W0, W1, W2, W3.\n *      The curve is defined by the equation:\n *      \\f$B(t) = "
+      "(W0 * (1-t)^3 * P0 + W1 * 3 * (1-t)^2 * t * P1 + W2 * 3 * (1-t) * t^2 * P2 + W3 *\n * t^3 * "
+      "P3) / (W0 + W1 + W2 + W3)\\f$ where t is the evaluation parameter, [0, 1].\n *\n * "
+      "\\section bezier_ex1 Example\n * \\snippet math_example.cpp bezier example\n");
+
+  { // inner classes & enums of Bezier_espp_Vector2f
+    auto pyClassBezier_ClassConfig =
+        py::class_<espp::Bezier<espp::Vector2f>::Config>(
+            pyClassBezier_espp_Vector2f, "Config",
+            "*\n   * @brief Unweighted cubic bezier configuration for 4 control points.\n")
+            .def(py::init<>()) // implicit default constructor
+            .def_readwrite("control_points", &espp::Bezier<espp::Vector2f>::Config::control_points,
+                           "/< Array of 4 control points");
+    auto pyClassBezier_ClassWeightedConfig =
+        py::class_<espp::Bezier<espp::Vector2f>::WeightedConfig>(
+            pyClassBezier_espp_Vector2f, "WeightedConfig",
+            "*\n   * @brief Weighted cubic bezier configuration for 4 control points with\n   *    "
+            "    individual weights.\n")
+            .def(py::init<>()) // implicit default constructor
+            .def_readwrite("control_points",
+                           &espp::Bezier<espp::Vector2f>::WeightedConfig::control_points,
+                           "/< Array of 4 control points")
+            .def_readwrite("weights", &espp::Bezier<espp::Vector2f>::WeightedConfig::weights,
+                           "/< Array of 4 weights, default is array of 1.0");
+  } // end of inner classes & enums of Bezier_espp_Vector2f
+
+  pyClassBezier_espp_Vector2f
+      .def(py::init<>()) // implicit default constructor
+      .def("__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
+           "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around "
+           "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
+           "bezier evaluated at \\p t.\n");
   ////////////////////    </generated_from:bezier.hpp>    ////////////////////
 
   ////////////////////    <generated_from:fast_math.hpp>    ////////////////////
@@ -497,7 +540,8 @@ void py_init_module_espp_lib(py::module &m) {
                    r->beta = beta;
                    return r;
                  }),
-                 py::arg("gamma") = float(), py::arg("alpha") = 1.0f, py::arg("beta") = 0.5f)
+                 py::arg("gamma") = float(), py::arg("alpha") = float{1.0f},
+                 py::arg("beta") = float{0.5f})
             .def_readwrite(
                 "gamma", &espp::Gaussian::Config::gamma,
                 "/< Slope of the gaussian, range [0, 1]. 0 is more of a thin spike from 0 up to")
@@ -508,24 +552,43 @@ void py_init_module_espp_lib(py::module &m) {
                 "/< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].");
   } // end of inner classes & enums of Gaussian
 
-  pyClassGaussian.def(py::init<espp::Gaussian::Config>())
-      .def("gamma", &espp::Gaussian::gamma, py::arg("g"),
-           "*\n   * @brief Set / Update the gamma (shape) value.\n   * @param g New gamma (shape) "
-           "to use.\n")
-      .def(
+  pyClassGaussian
+      .def(py::init<>()) // implicit default constructor
+      .def_property(
+          "gamma", [](espp::Gaussian &self) { return self.gamma(); },
+          [](espp::Gaussian &self, float g) { self.gamma(g); },
+          "*\n   * @brief Get the currently configured gamma (shape) value.\n   * @return The "
+          "current gamma (shape) value.\n",
+          "*\n   * @brief Set / Update the gamma (shape) value.\n   * @param g New gamma (shape) "
+          "to use.\n")
+      .def_property(
           "alpha", [](espp::Gaussian &self) { return self.alpha(); },
+          [](espp::Gaussian &self, float a) { self.alpha(a); },
           "*\n   * @brief Get the currently configured alpha (scaling) value.\n   * @return The "
-          "current alpha (scaler) value.\n")
-      .def("alpha", py::overload_cast<float>(&espp::Gaussian::alpha), py::arg("a"),
-           "*\n   * @brief Set / Update the alpha (scaling) value.\n   * @param a New alpha "
-           "(scaler) to use.\n")
-      .def(
+          "current alpha (scaler) value.\n",
+          "*\n   * @brief Set / Update the alpha (scaling) value.\n   * @param a New alpha "
+          "(scaler) to use.\n")
+      .def_property(
+          "alpha", [](espp::Gaussian &self) { return self.alpha(); },
+          [](espp::Gaussian &self, float a) { self.alpha(a); },
+          "*\n   * @brief Get the currently configured alpha (scaling) value.\n   * @return The "
+          "current alpha (scaler) value.\n",
+          "*\n   * @brief Set / Update the alpha (scaling) value.\n   * @param a New alpha "
+          "(scaler) to use.\n")
+      .def_property(
           "beta", [](espp::Gaussian &self) { return self.beta(); },
+          [](espp::Gaussian &self, float b) { self.beta(b); },
           "*\n   * @brief Get the currently configured beta (shifting) value.\n   * @return The "
-          "current beta (shifter) value [0, 1].\n")
-      .def("beta", py::overload_cast<float>(&espp::Gaussian::beta), py::arg("b"),
-           "*\n   * @brief Set / Update the beta (shifting) value.\n   * @param b New beta "
-           "(shifter) to use.\n")
+          "current beta (shifter) value [0, 1].\n",
+          "*\n   * @brief Set / Update the beta (shifting) value.\n   * @param b New beta "
+          "(shifter) to use.\n")
+      .def_property(
+          "beta", [](espp::Gaussian &self) { return self.beta(); },
+          [](espp::Gaussian &self, float b) { self.beta(b); },
+          "*\n   * @brief Get the currently configured beta (shifting) value.\n   * @return The "
+          "current beta (shifter) value [0, 1].\n",
+          "*\n   * @brief Set / Update the beta (shifting) value.\n   * @param b New beta "
+          "(shifter) to use.\n")
       .def("at", &espp::Gaussian::at, py::arg("t"),
            "*\n   * @brief Evaluate the gaussian at \\p t.\n   * @param t The evaluation "
            "parameter, [0, 1].\n   * @return The gaussian evaluated at \\p t.\n")
@@ -536,6 +599,248 @@ void py_init_module_espp_lib(py::module &m) {
   ////////////////////    </generated_from:gaussian.hpp>    ////////////////////
 
   ////////////////////    <generated_from:range_mapper.hpp>    ////////////////////
+  auto pyClassRangeMapper_int = py::class_<espp::RangeMapper<int>>(
+      m, "RangeMapper_int",
+      "*\n * @brief Template class for converting a value from an uncentered [minimum,\n *        "
+      "maximum] range into a centered output range (default [-1,1]). If\n *        provided a "
+      "non-zero deadband, it will convert all values within\n *        [center-deadband, "
+      "center+deadband] to be the configured\n *        output_center (default 0).\n *\n *        "
+      "The RangeMapper can be optionally configured to invert the input,\n *        so that it "
+      "will compute the input w.r.t. the configured min/max of\n *        the input range when "
+      "mapping to the output range - this will mean\n *        that a values within the ranges "
+      "[minimum, minimum+deadband] and\n *        [maximum-deadband, maximum] will all map to the "
+      "output_center and\n *        the input center will map to both output_max and output_min\n "
+      "*        depending on the sign of the input.\n *\n * @note When inverting the input range, "
+      "you are introducing a discontinuity\n *       between the input distribution and the output "
+      "distribution at the\n *       input center. Noise around the input's center value will "
+      "create\n *       oscillations in the output which will jump between output maximum\n *      "
+      " and output minimum. Therefore it is advised to use \\p invert_input\n *       sparignly, "
+      "and to set the values robustly.\n *\n *        The RangeMapper can be optionally configured "
+      "to invert the output,\n *        so that after converting from the input range to the "
+      "output range,\n *        it will flip the sign on the output.\n *\n * \\section "
+      "range_mapper_ex1 Example\n * \\snippet math_example.cpp range_mapper example\n");
+
+  { // inner classes & enums of RangeMapper_int
+    auto pyClassRangeMapper_ClassConfig =
+        py::class_<espp::RangeMapper<int>::Config>(
+            pyClassRangeMapper_int, "Config",
+            "*\n   *  @brief Configuration for the input uncentered range with optional\n   *  "
+            "values for the centered output range, default values of 0 output center\n   *  and 1 "
+            "output range provide a default output range between [-1, 1].\n")
+            .def(py::init<>([](int center = int(), int center_deadband = 0, int minimum = int(),
+                               int maximum = int(), int range_deadband = 0, int output_center = 0,
+                               int output_range = 1, bool invert_output = false) {
+                   auto r = std::make_unique<espp::RangeMapper<int>::Config>();
+                   r->center = center;
+                   r->center_deadband = center_deadband;
+                   r->minimum = minimum;
+                   r->maximum = maximum;
+                   r->range_deadband = range_deadband;
+                   r->output_center = output_center;
+                   r->output_range = output_range;
+                   r->invert_output = invert_output;
+                   return r;
+                 }),
+                 py::arg("center") = int(), py::arg("center_deadband") = 0,
+                 py::arg("minimum") = int(), py::arg("maximum") = int(),
+                 py::arg("range_deadband") = 0, py::arg("output_center") = 0,
+                 py::arg("output_range") = 1, py::arg("invert_output") = false)
+            .def_readwrite("center", &espp::RangeMapper<int>::Config::center,
+                           "*< Center value for the input range.")
+            .def_readwrite("center_deadband", &espp::RangeMapper<int>::Config::center_deadband,
+                           "*< Deadband amount around (+-) the center for which output will be 0.")
+            .def_readwrite("minimum", &espp::RangeMapper<int>::Config::minimum,
+                           "*< Minimum value for the input range.")
+            .def_readwrite("maximum", &espp::RangeMapper<int>::Config::maximum,
+                           "*< Maximum value for the input range.")
+            .def_readwrite("range_deadband", &espp::RangeMapper<int>::Config::range_deadband,
+                           "*< Deadband amount around the minimum and maximum for which output "
+                           "will be min/max output.")
+            .def_readwrite("output_center", &espp::RangeMapper<int>::Config::output_center,
+                           "*< The center for the output. Default 0.")
+            .def_readwrite("output_range", &espp::RangeMapper<int>::Config::output_range,
+                           "*< The range (+/-) from the center for the output. Default 1. @note "
+                           "Will be passed through std::abs() to ensure it is positive.")
+            .def_readwrite(
+                "invert_output", &espp::RangeMapper<int>::Config::invert_output,
+                "*< Whether to invert the output (default False). @note If True will flip the sign "
+                "of the output after converting from the input distribution.");
+  } // end of inner classes & enums of RangeMapper_int
+
+  pyClassRangeMapper_int.def(py::init<>())
+      .def("get_center_deadband", &espp::RangeMapper<int>::get_center_deadband,
+           "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
+           "   distribution\n   * @return Deadband around the center of the input distribution for "
+           "this\n   *         range mapper.\n")
+      .def("get_minimum", &espp::RangeMapper<int>::get_minimum,
+           "*\n   * @brief Return the configured minimum of the input distribution\n   * @return "
+           "Minimum of the input distribution for this range mapper.\n")
+      .def("get_maximum", &espp::RangeMapper<int>::get_maximum,
+           "*\n   * @brief Return the configured maximum of the input distribution\n   * @return "
+           "Maximum of the input distribution for this range mapper.\n")
+      .def(
+          "get_range", &espp::RangeMapper<int>::get_range,
+          "*\n   * @brief Return the configured range of the input distribution\n   * @note Always "
+          "positive.\n   * @return Range of the input distribution for this range mapper.\n")
+      .def("get_range_deadband", &espp::RangeMapper<int>::get_range_deadband,
+           "*\n   * @brief Return the configured deadband around the min/max of the input\n   *    "
+           "    distribution\n   * @return Deadband around the min/max of the input distribution "
+           "for this\n   *         range mapper.\n")
+      .def("get_output_center", &espp::RangeMapper<int>::get_output_center,
+           "*\n   * @brief Return the configured center of the output distribution\n   * @return "
+           "Center of the output distribution for this range mapper.\n")
+      .def("get_output_range", &espp::RangeMapper<int>::get_output_range,
+           "*\n   * @brief Return the configured range of the output distribution\n   * @note "
+           "Always positive.\n   * @return Range of the output distribution for this range "
+           "mapper.\n")
+      .def("get_output_min", &espp::RangeMapper<int>::get_output_min,
+           "*\n   * @brief Return the configured minimum of the output distribution\n   * @return "
+           "Minimum of the output distribution for this range mapper.\n")
+      .def("get_output_max", &espp::RangeMapper<int>::get_output_max,
+           "*\n   * @brief Return the configured maximum of the output distribution\n   * @return "
+           "Maximum of the output distribution for this range mapper.\n")
+      .def("set_center_deadband", &espp::RangeMapper<int>::set_center_deadband, py::arg("deadband"),
+           "*\n   * @brief Set the deadband around the center of the input distribution.\n   * "
+           "@param deadband The deadband to use around the center of the input\n   *        "
+           "distribution.\n   * @note The deadband must be non-negative.\n   * @note The deadband "
+           "is applied around the center value of the input\n   *       distribution.\n")
+      .def("set_range_deadband", &espp::RangeMapper<int>::set_range_deadband, py::arg("deadband"),
+           "*\n   * @brief Set the deadband around the min/max of the input distribution.\n   * "
+           "@param deadband The deadband to use around the min/max of the input\n   *        "
+           "distribution.\n   * @note The deadband must be non-negative.\n   * @note The deadband "
+           "is applied around the min/max values of the input\n   *       distribution.\n")
+      .def("map", &espp::RangeMapper<int>::map, py::arg("v"),
+           "*\n   * @brief Map a value \\p v from the input distribution into the configured\n   * "
+           "       output range (centered, default [-1,1]).\n   * @param v Value from the "
+           "(possibly uncentered and possibly inverted -\n   *        defined by the previously "
+           "configured Config) input distribution\n   * @return Value within the centered output "
+           "distribution.\n")
+      .def("unmap", &espp::RangeMapper<int>::unmap, py::arg("v"),
+           "*\n   * @brief Unmap a value \\p v from the configured output range (centered,\n   *   "
+           "     default [-1,1]) back into the input distribution.\n   * @param T&v Value from the "
+           "centered output distribution.\n   * @return Value within the input distribution.\n");
+  auto pyClassRangeMapper_float = py::class_<espp::RangeMapper<float>>(
+      m, "RangeMapper_float",
+      "*\n * @brief Template class for converting a value from an uncentered [minimum,\n *        "
+      "maximum] range into a centered output range (default [-1,1]). If\n *        provided a "
+      "non-zero deadband, it will convert all values within\n *        [center-deadband, "
+      "center+deadband] to be the configured\n *        output_center (default 0).\n *\n *        "
+      "The RangeMapper can be optionally configured to invert the input,\n *        so that it "
+      "will compute the input w.r.t. the configured min/max of\n *        the input range when "
+      "mapping to the output range - this will mean\n *        that a values within the ranges "
+      "[minimum, minimum+deadband] and\n *        [maximum-deadband, maximum] will all map to the "
+      "output_center and\n *        the input center will map to both output_max and output_min\n "
+      "*        depending on the sign of the input.\n *\n * @note When inverting the input range, "
+      "you are introducing a discontinuity\n *       between the input distribution and the output "
+      "distribution at the\n *       input center. Noise around the input's center value will "
+      "create\n *       oscillations in the output which will jump between output maximum\n *      "
+      " and output minimum. Therefore it is advised to use \\p invert_input\n *       sparignly, "
+      "and to set the values robustly.\n *\n *        The RangeMapper can be optionally configured "
+      "to invert the output,\n *        so that after converting from the input range to the "
+      "output range,\n *        it will flip the sign on the output.\n *\n * \\section "
+      "range_mapper_ex1 Example\n * \\snippet math_example.cpp range_mapper example\n");
+
+  { // inner classes & enums of RangeMapper_float
+    auto pyClassRangeMapper_ClassConfig =
+        py::class_<espp::RangeMapper<float>::Config>(
+            pyClassRangeMapper_float, "Config",
+            "*\n   *  @brief Configuration for the input uncentered range with optional\n   *  "
+            "values for the centered output range, default values of 0 output center\n   *  and 1 "
+            "output range provide a default output range between [-1, 1].\n")
+            .def(py::init<>([](float center = float(), float center_deadband = 0,
+                               float minimum = float(), float maximum = float(),
+                               float range_deadband = 0, float output_center = 0,
+                               float output_range = 1, bool invert_output = false) {
+                   auto r = std::make_unique<espp::RangeMapper<float>::Config>();
+                   r->center = center;
+                   r->center_deadband = center_deadband;
+                   r->minimum = minimum;
+                   r->maximum = maximum;
+                   r->range_deadband = range_deadband;
+                   r->output_center = output_center;
+                   r->output_range = output_range;
+                   r->invert_output = invert_output;
+                   return r;
+                 }),
+                 py::arg("center") = float(), py::arg("center_deadband") = 0,
+                 py::arg("minimum") = float(), py::arg("maximum") = float(),
+                 py::arg("range_deadband") = 0, py::arg("output_center") = 0,
+                 py::arg("output_range") = 1, py::arg("invert_output") = false)
+            .def_readwrite("center", &espp::RangeMapper<float>::Config::center,
+                           "*< Center value for the input range.")
+            .def_readwrite("center_deadband", &espp::RangeMapper<float>::Config::center_deadband,
+                           "*< Deadband amount around (+-) the center for which output will be 0.")
+            .def_readwrite("minimum", &espp::RangeMapper<float>::Config::minimum,
+                           "*< Minimum value for the input range.")
+            .def_readwrite("maximum", &espp::RangeMapper<float>::Config::maximum,
+                           "*< Maximum value for the input range.")
+            .def_readwrite("range_deadband", &espp::RangeMapper<float>::Config::range_deadband,
+                           "*< Deadband amount around the minimum and maximum for which output "
+                           "will be min/max output.")
+            .def_readwrite("output_center", &espp::RangeMapper<float>::Config::output_center,
+                           "*< The center for the output. Default 0.")
+            .def_readwrite("output_range", &espp::RangeMapper<float>::Config::output_range,
+                           "*< The range (+/-) from the center for the output. Default 1. @note "
+                           "Will be passed through std::abs() to ensure it is positive.")
+            .def_readwrite(
+                "invert_output", &espp::RangeMapper<float>::Config::invert_output,
+                "*< Whether to invert the output (default False). @note If True will flip the sign "
+                "of the output after converting from the input distribution.");
+  } // end of inner classes & enums of RangeMapper_float
+
+  pyClassRangeMapper_float.def(py::init<>())
+      .def("get_center_deadband", &espp::RangeMapper<float>::get_center_deadband,
+           "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
+           "   distribution\n   * @return Deadband around the center of the input distribution for "
+           "this\n   *         range mapper.\n")
+      .def("get_minimum", &espp::RangeMapper<float>::get_minimum,
+           "*\n   * @brief Return the configured minimum of the input distribution\n   * @return "
+           "Minimum of the input distribution for this range mapper.\n")
+      .def("get_maximum", &espp::RangeMapper<float>::get_maximum,
+           "*\n   * @brief Return the configured maximum of the input distribution\n   * @return "
+           "Maximum of the input distribution for this range mapper.\n")
+      .def(
+          "get_range", &espp::RangeMapper<float>::get_range,
+          "*\n   * @brief Return the configured range of the input distribution\n   * @note Always "
+          "positive.\n   * @return Range of the input distribution for this range mapper.\n")
+      .def("get_range_deadband", &espp::RangeMapper<float>::get_range_deadband,
+           "*\n   * @brief Return the configured deadband around the min/max of the input\n   *    "
+           "    distribution\n   * @return Deadband around the min/max of the input distribution "
+           "for this\n   *         range mapper.\n")
+      .def("get_output_center", &espp::RangeMapper<float>::get_output_center,
+           "*\n   * @brief Return the configured center of the output distribution\n   * @return "
+           "Center of the output distribution for this range mapper.\n")
+      .def("get_output_range", &espp::RangeMapper<float>::get_output_range,
+           "*\n   * @brief Return the configured range of the output distribution\n   * @note "
+           "Always positive.\n   * @return Range of the output distribution for this range "
+           "mapper.\n")
+      .def("get_output_min", &espp::RangeMapper<float>::get_output_min,
+           "*\n   * @brief Return the configured minimum of the output distribution\n   * @return "
+           "Minimum of the output distribution for this range mapper.\n")
+      .def("get_output_max", &espp::RangeMapper<float>::get_output_max,
+           "*\n   * @brief Return the configured maximum of the output distribution\n   * @return "
+           "Maximum of the output distribution for this range mapper.\n")
+      .def("set_center_deadband", &espp::RangeMapper<float>::set_center_deadband,
+           py::arg("deadband"),
+           "*\n   * @brief Set the deadband around the center of the input distribution.\n   * "
+           "@param deadband The deadband to use around the center of the input\n   *        "
+           "distribution.\n   * @note The deadband must be non-negative.\n   * @note The deadband "
+           "is applied around the center value of the input\n   *       distribution.\n")
+      .def("set_range_deadband", &espp::RangeMapper<float>::set_range_deadband, py::arg("deadband"),
+           "*\n   * @brief Set the deadband around the min/max of the input distribution.\n   * "
+           "@param deadband The deadband to use around the min/max of the input\n   *        "
+           "distribution.\n   * @note The deadband must be non-negative.\n   * @note The deadband "
+           "is applied around the min/max values of the input\n   *       distribution.\n")
+      .def("map", &espp::RangeMapper<float>::map, py::arg("v"),
+           "*\n   * @brief Map a value \\p v from the input distribution into the configured\n   * "
+           "       output range (centered, default [-1,1]).\n   * @param v Value from the "
+           "(possibly uncentered and possibly inverted -\n   *        defined by the previously "
+           "configured Config) input distribution\n   * @return Value within the centered output "
+           "distribution.\n")
+      .def("unmap", &espp::RangeMapper<float>::unmap, py::arg("v"),
+           "*\n   * @brief Unmap a value \\p v from the configured output range (centered,\n   *   "
+           "     default [-1,1]) back into the input distribution.\n   * @param T&v Value from the "
+           "centered output distribution.\n   * @return Value within the input distribution.\n");
   ////////////////////    </generated_from:range_mapper.hpp>    ////////////////////
 
   ////////////////////    <generated_from:vector2d.hpp>    ////////////////////
@@ -835,6 +1140,72 @@ void py_init_module_espp_lib(py::module &m) {
                "@return The normalized vector.\n");
   ////////////////////    </generated_from:vector2d.hpp>    ////////////////////
 
+  ////////////////////    <generated_from:jpeg_frame.hpp>    ////////////////////
+  auto pyClassJpegFrame =
+      py::class_<espp::JpegFrame>(
+          m, "JpegFrame",
+          "/ A class that represents a complete JPEG frame.\n/\n/ This class is used to collect "
+          "the JPEG scans that are received in RTP\n/ packets and to serialize them into a "
+          "complete JPEG frame.")
+          .def(py::init<const RtpJpegPacket &>(), py::arg("packet"),
+               "/ Construct a JpegFrame from a RtpJpegPacket.\n/\n/ This constructor will parse "
+               "the header of the packet and add the JPEG\n/ data to the frame.\n/\n/ @param "
+               "packet The packet to parse.")
+          .def(py::init<const char *, size_t>(), py::arg("data"), py::arg("size"),
+               "/ Construct a JpegFrame from buffer of jpeg data\n/ @param data The buffer "
+               "containing the jpeg data.\n/ @param size The size of the buffer.")
+          .def("get_header", &espp::JpegFrame::get_header,
+               "/ Get a reference to the header.\n/ @return A reference to the header.")
+          .def("get_width", &espp::JpegFrame::get_width,
+               "/ Get the width of the frame.\n/ @return The width of the frame.")
+          .def("get_height", &espp::JpegFrame::get_height,
+               "/ Get the height of the frame.\n/ @return The height of the frame.")
+          .def("is_complete", &espp::JpegFrame::is_complete,
+               "/ Check if the frame is complete.\n/ @return True if the frame is complete, False "
+               "otherwise.")
+          .def("append", &espp::JpegFrame::append, py::arg("packet"),
+               "/ Append a RtpJpegPacket to the frame.\n/ This will add the JPEG data to the "
+               "frame.\n/ @param packet The packet containing the scan to append.")
+          .def("add_scan", py::overload_cast<const RtpJpegPacket &>(&espp::JpegFrame::add_scan),
+               py::arg("packet"),
+               "/ Append a JPEG scan to the frame.\n/ This will add the JPEG data to the frame.\n/ "
+               "@note If the packet contains the EOI marker, the frame will be\n/       finalized, "
+               "and no further scans can be added.\n/ @param packet The packet containing the scan "
+               "to append.")
+          .def("get_data", &espp::JpegFrame::get_data,
+               "/ Get the serialized data.\n/ This will return the serialized data.\n/ @return The "
+               "serialized data.")
+          .def("get_scan_data", &espp::JpegFrame::get_scan_data,
+               "/ Get the scan data.\n/ This will return the scan data.\n/ @return The scan data.");
+  ////////////////////    </generated_from:jpeg_frame.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:jpeg_header.hpp>    ////////////////////
+  auto pyClassJpegHeader =
+      py::class_<espp::JpegHeader>(
+          m, "JpegHeader",
+          "/ A class to generate a JPEG header for a given image size and quantization tables.\n/ "
+          "The header is generated once and then cached for future use.\n/ The header is generated "
+          "according to the JPEG standard and is compatible with\n/ the ESP32 camera driver.")
+          .def(py::init<int, int, std::string_view, std::string_view>(), py::arg("width"),
+               py::arg("height"), py::arg("q0_table"), py::arg("q1_table"),
+               "/ Create a JPEG header for a given image size and quantization tables.\n/ @param "
+               "width The image width in pixels.\n/ @param height The image height in pixels.\n/ "
+               "@param q0_table The quantization table for the Y channel.\n/ @param q1_table The "
+               "quantization table for the Cb and Cr channels.")
+          .def(py::init<std::string_view>(), py::arg("data"),
+               "/ Create a JPEG header from a given JPEG header data.")
+          .def("get_width", &espp::JpegHeader::get_width,
+               "/ Get the image width.\n/ @return The image width in pixels.")
+          .def("get_height", &espp::JpegHeader::get_height,
+               "/ Get the image height.\n/ @return The image height in pixels.")
+          .def("get_data", &espp::JpegHeader::get_data,
+               "/ Get the JPEG header data.\n/ @return The JPEG header data.")
+          .def("get_quantization_table", &espp::JpegHeader::get_quantization_table,
+               py::arg("index"),
+               "/ Get the Quantization table at the index.\n/ @param index The index of the "
+               "quantization table.\n/ @return The quantization table.");
+  ////////////////////    </generated_from:jpeg_header.hpp>    ////////////////////
+
   ////////////////////    <generated_from:rtsp_client.hpp>    ////////////////////
   auto pyClassRtspClient = py::class_<espp::RtspClient>(
       m, "RtspClient",
@@ -880,6 +1251,7 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of RtspClient
 
   pyClassRtspClient
+      .def(py::init<>()) // implicit default constructor
       .def("send_request", &espp::RtspClient::send_request, py::arg("method"), py::arg("path"),
            py::arg("extra_headers"), py::arg("ec"),
            "/ Send an RTSP request to the server\n/ \note This is a blocking call\n/ \note This "
@@ -969,6 +1341,7 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of RtspServer
 
   pyClassRtspServer
+      .def(py::init<>()) // implicit default constructor
       .def("set_session_log_level", &espp::RtspServer::set_session_log_level, py::arg("log_level"),
            "/ @brief Sets the log level for the RTSP sessions created by this server\n/ @note This "
            "does not affect the log level of the RTSP server itself\n/ @note This does not change "
@@ -1046,6 +1419,7 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Socket
 
   pyClassSocket
+      .def(py::init<>()) // implicit default constructor
       .def(
           "is_valid", [](espp::Socket &self) { return self.is_valid(); },
           "*\n   * @brief Is the socket valid.\n   * @return True if the socket file descriptor is "
@@ -1128,6 +1502,7 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of TcpSocket
 
   pyClassTcpSocket
+      .def(py::init<>()) // implicit default constructor
       .def("reinit", &espp::TcpSocket::reinit,
            "*\n   * @brief Reinitialize the socket, cleaning it up if first it is already\n   *    "
            "    initalized.\n")
@@ -1235,7 +1610,7 @@ void py_init_module_espp_lib(py::module &m) {
                                bool is_multicast_endpoint = {false},
                                bool wait_for_response = {false}, size_t response_size = {0},
                                espp::Socket::response_callback_fn on_response_callback = {nullptr},
-                               std::chrono::duration<float> response_timeout = 0.5f) {
+                               std::chrono::duration<float> response_timeout = {0.5f}) {
                    auto r = std::make_unique<espp::UdpSocket::SendConfig>();
                    r->ip_address = ip_address;
                    r->port = port;
@@ -1283,6 +1658,7 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of UdpSocket
 
   pyClassUdpSocket
+      .def(py::init<>()) // implicit default constructor
       .def("send",
            py::overload_cast<const std::vector<uint8_t> &, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -1413,7 +1789,7 @@ void py_init_module_espp_lib(py::module &m) {
             "callback.\n")
             .def(py::init<>(
                      [](espp::Task::simple_callback_fn callback = espp::Task::simple_callback_fn(),
-                        espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
+                        BaseConfig task_config = BaseConfig(),
                         espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
                        auto r = std::make_unique<espp::Task::SimpleConfig>();
                        r->callback = callback;
@@ -1422,7 +1798,7 @@ void py_init_module_espp_lib(py::module &m) {
                        return r;
                      }),
                  py::arg("callback") = espp::Task::simple_callback_fn(),
-                 py::arg("task_config") = espp::Task::BaseConfig(),
+                 py::arg("task_config") = BaseConfig(),
                  py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
             .def_readwrite("callback", &espp::Task::SimpleConfig::callback, "*< Callback function")
             .def_readwrite("task_config", &espp::Task::SimpleConfig::task_config,
@@ -1457,6 +1833,7 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Task
 
   pyClassTask
+      .def(py::init<>()) // implicit default constructor
       .def_static("make_unique",
                   py::overload_cast<const espp::Task::Config &>(&espp::Task::make_unique),
                   py::arg("config"),
@@ -1574,6 +1951,7 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Timer
 
   pyClassTimer
+      .def(py::init<>()) // implicit default constructor
       .def(
           "start", [](espp::Timer &self) { return self.start(); },
           "/ @brief Start the timer.\n/ @details Starts the timer. Does nothing if the timer is "
