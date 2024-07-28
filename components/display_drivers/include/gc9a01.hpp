@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+
 #include "display_drivers.hpp"
 
 namespace espp {
@@ -274,6 +275,7 @@ public:
   static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,
                    uint32_t flags = 0) {
     std::scoped_lock lock{spi_mutex_};
+    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
     if (lcd_send_lines_) {
       lcd_send_lines_(area->x1 + offset_x_, area->y1 + offset_y_, area->x2 + offset_x_,
                       area->y2 + offset_y_, color_map, flags);

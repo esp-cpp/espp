@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "display_drivers.hpp"
 
 namespace espp {
@@ -52,6 +54,7 @@ public:
     dc_pin_ = config.data_command_pin;
     offset_x_ = config.offset_x;
     offset_y_ = config.offset_y;
+    swap_xy_ = config.swap_xy;
 
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
@@ -96,7 +99,7 @@ public:
     if (config.mirror_y) {
       ili_init_cmds[10].data[0] |= LCD_CMD_MY_BIT;
     }
-    if (config.swap_xy) {
+    if (swap_xy_) {
       ili_init_cmds[10].data[0] |= LCD_CMD_MV_BIT;
     }
 
@@ -109,6 +112,34 @@ public:
     } else {
       send_command(0x20);
     }
+  }
+
+  /**
+   * @brief Set the display rotation.
+   * @param rotation New display rotation.
+   */
+  static void rotate(const DisplayRotation &rotation) {
+    uint8_t data = 0;
+    switch (rotation) {
+    case DisplayRotation::LANDSCAPE:
+      data = 0x00;
+      break;
+    case DisplayRotation::PORTRAIT:
+      data |= LCD_CMD_MV_BIT | LCD_CMD_MX_BIT;
+      break;
+    case DisplayRotation::LANDSCAPE_INVERTED:
+      data |= LCD_CMD_MX_BIT | LCD_CMD_MY_BIT;
+      break;
+    case DisplayRotation::PORTRAIT_INVERTED:
+      data |= LCD_CMD_MV_BIT | LCD_CMD_MY_BIT;
+      break;
+    }
+    if (swap_xy_) {
+      data |= LCD_CMD_MV_BIT;
+    }
+    std::scoped_lock lock{spi_mutex_};
+    send_command(Command::madctl);
+    send_data(&data, 1);
   }
 
   /**
@@ -148,7 +179,7 @@ public:
     uint16_t end_y = ye + offset_y_;
 
     // Set the column (x) start / end addresses
-    send_command((uint8_t)Command::caset);
+    send_command(Command::caset);
     data[0] = (start_x >> 8) & 0xFF;
     data[1] = start_x & 0xFF;
     data[2] = (end_x >> 8) & 0xFF;
@@ -156,7 +187,7 @@ public:
     send_data(data, 4);
 
     // Set the row (y) start / end addresses
-    send_command((uint8_t)Command::raset);
+    send_command(Command::raset);
     data[0] = (start_y >> 8) & 0xFF;
     data[1] = start_y & 0xFF;
     data[2] = (end_y >> 8) & 0xFF;
@@ -173,12 +204,14 @@ public:
    */
   static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,
                    uint32_t flags = 0) {
+    std::scoped_lock lock{spi_mutex_};
+    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
     if (lcd_send_lines_) {
       lcd_send_lines_(area->x1 + offset_x_, area->y1 + offset_y_, area->x2 + offset_x_,
                       area->y2 + offset_y_, color_map, flags);
     } else {
       set_drawing_area(area);
-      send_command((uint8_t)Command::ramwr);
+      send_command(Command::ramwr);
       uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
       send_data(color_map, size * 2, flags);
     }
@@ -196,7 +229,7 @@ public:
     set_drawing_area(x, y, x + width, y + height);
 
     // Write the color data to controller RAM
-    send_command((uint8_t)Command::ramwr);
+    send_command(Command::ramwr);
     uint32_t size = width * height;
     static constexpr int max_bytes_to_send = 1024 * 2;
     uint16_t color_data[max_bytes_to_send];
@@ -215,6 +248,17 @@ public:
   static void send_command(uint8_t command) {
     uint16_t flags = 0;
     lcd_write_(&command, 1, flags);
+  }
+
+  /**
+   * @brief Sends the command, sets flags such that the pre-cb should set the
+   *        DC pin to command mode.
+   * @param command Command code to send
+   */
+  static void send_command(Command command) {
+    uint16_t flags = 0;
+    auto command_ = static_cast<uint8_t>(command);
+    lcd_write_(&command_, 1, flags);
   }
 
   /**
@@ -281,5 +325,7 @@ protected:
   static gpio_num_t dc_pin_;
   static int offset_x_;
   static int offset_y_;
+  static inline bool swap_xy_ = false;
+  static inline std::mutex spi_mutex_{};
 };
 } // namespace espp
