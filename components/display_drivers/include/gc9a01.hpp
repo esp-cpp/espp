@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "display_drivers.hpp"
 
 namespace espp {
@@ -99,6 +101,7 @@ public:
     dc_pin_ = config.data_command_pin;
     offset_x_ = config.offset_x;
     offset_y_ = config.offset_y;
+    swap_xy_ = config.swap_xy;
 
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
@@ -166,7 +169,7 @@ public:
     if (config.mirror_y) {
       gc_init_cmds[18].data[0] |= LCD_CMD_MY_BIT;
     }
-    if (config.swap_xy) {
+    if (swap_xy_) {
       gc_init_cmds[18].data[0] |= LCD_CMD_MV_BIT;
     }
 
@@ -182,13 +185,41 @@ public:
   }
 
   /**
+   * @brief Set the display rotation.
+   * @param rotation New display rotation.
+   */
+  static void rotate(const DisplayRotation &rotation) {
+    uint8_t data = 0;
+    switch (rotation) {
+    case DisplayRotation::LANDSCAPE:
+      data = 0x00;
+      break;
+    case DisplayRotation::PORTRAIT:
+      data |= LCD_CMD_MV_BIT | LCD_CMD_MX_BIT;
+      break;
+    case DisplayRotation::LANDSCAPE_INVERTED:
+      data |= LCD_CMD_MX_BIT | LCD_CMD_MY_BIT;
+      break;
+    case DisplayRotation::PORTRAIT_INVERTED:
+      data |= LCD_CMD_MV_BIT | LCD_CMD_MY_BIT;
+      break;
+    }
+    if (swap_xy_) {
+      data |= LCD_CMD_MV_BIT;
+    }
+    std::scoped_lock lock{spi_mutex_};
+    send_command(Command::madctl);
+    send_data(&data, 1);
+  }
+
+  /**
    * @brief Flush the pixel data for the provided area to the display.
    * @param *drv Pointer to the LVGL display driver.
    * @param *area Pointer to the structure describing the pixel area.
    * @param *color_map Pointer to array of colors to flush to the display.
    */
-  static void flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map) {
-    fill(drv, area, color_map, (1 << (int)display_drivers::Flags::FLUSH_BIT));
+  static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
+    fill(disp, area, color_map, (1 << (int)display_drivers::Flags::FLUSH_BIT));
   }
 
   /**
@@ -241,16 +272,18 @@ public:
    * @param *color_map Pointer to array of colors to flush to the display.
    * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
    */
-  static void fill(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map,
+  static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,
                    uint32_t flags = 0) {
+    std::scoped_lock lock{spi_mutex_};
+    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
     if (lcd_send_lines_) {
       lcd_send_lines_(area->x1 + offset_x_, area->y1 + offset_y_, area->x2 + offset_x_,
-                      area->y2 + offset_y_, (uint8_t *)color_map, flags);
+                      area->y2 + offset_y_, color_map, flags);
     } else {
       set_drawing_area(area);
       send_command(Command::ramwr);
       uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      send_data((uint8_t *)color_map, size * 2, flags);
+      send_data(color_map, size * 2, flags);
     }
   }
 
@@ -362,5 +395,7 @@ protected:
   static gpio_num_t dc_pin_;
   static int offset_x_;
   static int offset_y_;
+  static inline bool swap_xy_ = false;
+  static inline std::mutex spi_mutex_{};
 };
 } // namespace espp

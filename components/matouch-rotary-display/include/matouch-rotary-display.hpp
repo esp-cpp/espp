@@ -34,6 +34,9 @@ namespace espp {
 /// \snippet matouch_rotary_display_example.cpp matouch-rotary-display example
 class MatouchRotaryDisplay : public BaseComponent {
 public:
+  /// Alias for the pixel type used by the ESP-Box display
+  using Pixel = lv_color16_t;
+
   /// The data structure for the touchpad
   struct TouchpadData {
     uint8_t num_touch_points = 0; ///< The number of touch points
@@ -172,7 +175,7 @@ public:
 
   /// Get a shared pointer to the display
   /// \return A shared pointer to the display
-  std::shared_ptr<Display> display() const;
+  std::shared_ptr<Display<Pixel>> display() const;
 
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
@@ -186,13 +189,13 @@ public:
   /// \return The VRAM 0 pointer
   /// \note This is the memory used by LVGL for rendering
   /// \note This is null unless initialize_display() has been called
-  uint16_t *vram0() const;
+  Pixel *vram0() const;
 
   /// Get the VRAM 1 pointer (DMA memory used by LVGL)
   /// \return The VRAM 1 pointer
   /// \note This is the memory used by LVGL for rendering
   /// \note This is null unless initialize_display() has been called
-  uint16_t *vram1() const;
+  Pixel *vram1() const;
 
   /// Get the frame buffer 0 pointer
   /// \return The frame buffer 0 pointer
@@ -226,7 +229,7 @@ public:
   /// \note This method queues the data to be written to the LCD, only blocking
   ///      if there is an ongoing SPI transaction
   void write_lcd_frame(const uint16_t x, const uint16_t y, const uint16_t width,
-                       const uint16_t height, const uint8_t *data);
+                       const uint16_t height, uint8_t *data);
 
   /// Write lines to the LCD
   /// \param xs The x start coordinate
@@ -273,16 +276,16 @@ protected:
   static constexpr bool backlight_value = true;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = true;
-  static constexpr auto rotation = espp::Display::Rotation::LANDSCAPE_INVERTED;
-  static constexpr bool mirror_x = true;
-  static constexpr bool mirror_y = true;
+  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
+  static constexpr bool mirror_x = false;
+  static constexpr bool mirror_y = false;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_7;
   using DisplayDriver = espp::Gc9a01;
 
   // touch
   static constexpr bool touch_swap_xy = false;
-  static constexpr bool touch_invert_x = true;
-  static constexpr bool touch_invert_y = true;
+  static constexpr bool touch_invert_x = false;
+  static constexpr bool touch_invert_y = false;
   static constexpr gpio_num_t touch_reset = GPIO_NUM_16;
   static constexpr gpio_num_t touch_interrupt = GPIO_NUM_40;
 
@@ -337,7 +340,7 @@ protected:
   TouchpadData touchpad_data_;
 
   // display
-  std::shared_ptr<Display> display_;
+  std::shared_ptr<Display<Pixel>> display_;
   /// SPI bus for communication with the LCD
   spi_bus_config_t lcd_spi_bus_config_;
   spi_device_interface_config_t lcd_config_;

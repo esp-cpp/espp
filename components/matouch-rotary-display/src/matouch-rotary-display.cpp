@@ -178,7 +178,7 @@ MatouchRotaryDisplay::touchpad_convert(const MatouchRotaryDisplay::TouchpadData 
   if (touch_invert_y) {
     temp_data.y = lcd_height_ - (temp_data.y + 1);
   }
-  if (rotation == espp::Display::Rotation::LANDSCAPE_INVERTED) {
+  if (rotation == espp::DisplayRotation::LANDSCAPE_INVERTED) {
     // invert x and y
     temp_data.x = lcd_width_ - (temp_data.x + 1);
     temp_data.y = lcd_height_ - (temp_data.y + 1);
@@ -213,8 +213,8 @@ static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
   uint16_t user_flags = (uint32_t)(t->user);
   bool should_flush = user_flags & FLUSH_BIT;
   if (should_flush) {
-    lv_disp_t *disp = _lv_refr_get_disp_refreshing();
-    lv_disp_flush_ready(disp->driver);
+    lv_display_t *disp = _lv_refr_get_disp_refreshing();
+    lv_display_flush_ready(disp);
   }
 }
 
@@ -277,11 +277,12 @@ bool MatouchRotaryDisplay::initialize_display(size_t pixel_buffer_size) {
   }
   // initialize the display / lvgl
   using namespace std::chrono_literals;
-  display_ = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
+  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel>::AllocatingConfig{
       .width = lcd_width_,
       .height = lcd_height_,
       .pixel_buffer_size = pixel_buffer_size,
       .flush_callback = DisplayDriver::flush,
+      .rotation_callback = DisplayDriver::rotate,
       .backlight_pin = backlight_io,
       .backlight_on_value = backlight_value,
       .task_config =
@@ -304,7 +305,7 @@ bool MatouchRotaryDisplay::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
-std::shared_ptr<espp::Display> MatouchRotaryDisplay::display() const { return display_; }
+std::shared_ptr<espp::Display<MatouchRotaryDisplay::Pixel>> MatouchRotaryDisplay::display() const { return display_; }
 
 void IRAM_ATTR MatouchRotaryDisplay::lcd_wait_lines() {
   spi_transaction_t *rtrans;
@@ -408,28 +409,28 @@ void IRAM_ATTR MatouchRotaryDisplay::write_lcd_lines(int xs, int ys, int xe, int
 
 void MatouchRotaryDisplay::write_lcd_frame(const uint16_t xs, const uint16_t ys,
                                            const uint16_t width, const uint16_t height,
-                                           const uint8_t *data) {
+                                           uint8_t *data) {
   if (data) {
     // have data, fill the area with the color data
     lv_area_t area{.x1 = (lv_coord_t)(xs),
                    .y1 = (lv_coord_t)(ys),
                    .x2 = (lv_coord_t)(xs + width - 1),
                    .y2 = (lv_coord_t)(ys + height - 1)};
-    DisplayDriver::fill(nullptr, &area, (lv_color_t *)data);
+    DisplayDriver::fill(nullptr, &area, data);
   } else {
     // don't have data, so clear the area (set to 0)
     DisplayDriver::clear(xs, ys, width, height);
   }
 }
 
-uint16_t *MatouchRotaryDisplay::vram0() const {
+MatouchRotaryDisplay::Pixel *MatouchRotaryDisplay::vram0() const {
   if (!display_) {
     return nullptr;
   }
   return display_->vram0();
 }
 
-uint16_t *MatouchRotaryDisplay::vram1() const {
+MatouchRotaryDisplay::Pixel *MatouchRotaryDisplay::vram1() const {
   if (!display_) {
     return nullptr;
   }
