@@ -31,20 +31,20 @@ def my_litgen_options() -> litgen.LitgenOptions:
     #  - A class will publish only its public methods and members
     # To prevent the generation of the default constructor with named parameters
     # for a specific struct, you can use the following option:
-    options.struct_create_default_named_ctor__regex = r".*"
-    options.class_create_default_named_ctor__regex = r".*"
+    options.struct_create_default_named_ctor__regex = r".*" # default
+    options.class_create_default_named_ctor__regex = r"" # default
 
     # ///////////////////////////////////////////////////////////////////
     #  Exclude functions and/or parameters from the bindings
     # ///////////////////////////////////////////////////////////////////
     # We want to exclude `inline void priv_SetOptions(bool v) {}` from the bindings
     # priv_ is a prefix for private functions that we don't want to expose
-    options.fn_exclude_by_name__regex = "^priv_"
+    # options.fn_exclude_by_name__regex = "run_on_core" # NOTE: this doesn't work since it seems to be parsing that fails for Task::run_on_core
 
     # we'd like the following classes to be able to pick up new attributes
     # dynamically (within python):
     # -
-    options.class_dynamic_attributes__regex = r".*"
+    options.class_dynamic_attributes__regex = r".*" # expose all classes to support dynamic attributes
 
     # Inside `inline void SetOptions(bool v, bool priv_param = false) {}`,
     # we don't want to expose the private parameter priv_param
@@ -56,10 +56,10 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # ////////////////////////////////////////////////////////////////////
     # The virtual methods of this class can be overriden in python
     options.class_template_options.add_specialization(r"Bezier", ["espp::Vector2f"])
-    options.class_template_options.add_specialization(r"^Bezier::Config$", ["espp::Vector2f"])
-    options.class_template_options.add_specialization(r"^espp::Bezier::WeightedConfig$", ["espp::Vector2f"])
-    options.class_template_options.add_specialization(r"^RangeMapper$", ["int", "float"])
-    options.class_template_options.add_specialization(r"^RangeMapper::Config$", ["int", "float"])
+    options.class_template_options.add_specialization(r"Bezier::Config", ["espp::Vector2f"])
+    options.class_template_options.add_specialization(r"Bezier::WeightedConfig", ["espp::Vector2f"])
+    options.class_template_options.add_specialization(r"RangeMapper", ["int", "float"])
+    options.class_template_options.add_specialization(r"RangeMapper::Config", ["int", "float"])
     options.class_template_options.add_specialization(r"Vector2d", ["int", "float"])
 
     # ////////////////////////////////////////////////////////////////////
@@ -108,15 +108,15 @@ def autogenerate() -> None:
                     include_dir + "color/include/color.hpp",
                     include_dir + "csv/include/csv.hpp",
                     include_dir + "event_manager/include/event_manager.hpp",
-                    # include_dir + "file_system/include/file_system.hpp",
+                    # include_dir + "file_system/include/file_system.hpp", # can't deal with singleton that does not support constructor / destructor
                     include_dir + "ftp/include/ftp_server.hpp",
                     # include_dir + "ftp/include/ftp_client_session.hpp", can't deal with tcpsocket unique ptr in constructor
+                    include_dir + "logger/include/logger.hpp",
                     include_dir + "math/include/bezier.hpp", # have to set class template options
                     include_dir + "math/include/fast_math.hpp",
                     include_dir + "math/include/gaussian.hpp",
                     include_dir + "math/include/range_mapper.hpp", # have to set class template options
                     include_dir + "math/include/vector2d.hpp", # have to set class template options
-                    include_dir + "logger/include/logger.hpp",
                     # include_dir + "rtsp/include/jpeg_frame.hpp",
                     # include_dir + "rtsp/include/jpeg_header.hpp",
                     # include_dir + "rtsp/include/rtsp_client.hpp",
@@ -124,14 +124,19 @@ def autogenerate() -> None:
                     include_dir + "socket/include/socket.hpp",
                     include_dir + "socket/include/tcp_socket.hpp",
                     include_dir + "socket/include/udp_socket.hpp",
-                    # include_dir + "state_machine/include/deep_history_state.hpp",
-                    # include_dir + "state_machine/include/shallow_history_state.hpp",
-                    # include_dir + "state_machine/include/state_base.hpp",
                     include_dir + "task/include/task.hpp",
                     include_dir + "timer/include/timer.hpp",
 
+                    # state machine:
+                    # include_dir + "state_machine/include/deep_history_state.hpp",
+                    # include_dir + "state_machine/include/shallow_history_state.hpp",
+                    # include_dir + "state_machine/include/state_base.hpp",
                     # include_dir + "state_machine/include/magic_enum.hpp",
+
+                    # tabulate (template header):
                     # include_dir + "tabulate/include/tabulate.hpp",
+
+                    # serialization (template header):
                     # include_dir + "serialization/include/serialization.hpp",
     ]
 
