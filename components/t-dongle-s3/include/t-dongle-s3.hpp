@@ -26,6 +26,9 @@ namespace espp {
 /// \snippet t_dongle_s3_example.cpp t-dongle-s3 example
 class TDongleS3 : public BaseComponent {
 public:
+  /// Alias for the pixel type used by the T-Dongle-S3 display
+  using Pixel = lv_color16_t;
+
   /// @brief Access the singleton instance of the TDongleS3 class
   /// @return Reference to the singleton instance of the TDongleS3 class
   static TDongleS3 &get() {
@@ -94,7 +97,7 @@ public:
 
   /// Get a shared pointer to the display
   /// \return A shared pointer to the display
-  std::shared_ptr<Display> display() const;
+  std::shared_ptr<Display<Pixel>> display() const;
 
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
@@ -108,13 +111,13 @@ public:
   /// \return The VRAM 0 pointer
   /// \note This is the memory used by LVGL for rendering
   /// \note This is null unless initialize_display() has been called
-  uint16_t *vram0() const;
+  Pixel *vram0() const;
 
   /// Get the VRAM 1 pointer (DMA memory used by LVGL)
   /// \return The VRAM 1 pointer
   /// \note This is the memory used by LVGL for rendering
   /// \note This is null unless initialize_display() has been called
-  uint16_t *vram1() const;
+  Pixel *vram1() const;
 
   /// Get the frame buffer 0 pointer
   /// \return The frame buffer 0 pointer
@@ -148,7 +151,7 @@ public:
   /// \note This method queues the data to be written to the LCD, only blocking
   ///      if there is an ongoing SPI transaction
   void write_lcd_frame(const uint16_t x, const uint16_t y, const uint16_t width,
-                       const uint16_t height, const uint8_t *data);
+                       const uint16_t height, uint8_t *data);
 
   /// Write lines to the LCD
   /// \param xs The x start coordinate
@@ -186,14 +189,15 @@ protected:
   static constexpr gpio_num_t lcd_sclk_io = GPIO_NUM_5;
   static constexpr gpio_num_t lcd_reset_io = GPIO_NUM_1;
   static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_2;
-  static constexpr int lcd_offset_x = 26;
-  static constexpr int lcd_offset_y = 0;
+  static constexpr int lcd_offset_x = 0;
+  static constexpr int lcd_offset_y = 26;
   static constexpr bool backlight_value = false;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
-  static constexpr auto rotation = espp::Display::Rotation::PORTRAIT;
+  static constexpr auto rotation = espp::DisplayRotation::PORTRAIT_INVERTED;
+  static constexpr bool swap_xy = true;
   static constexpr bool mirror_x = false;
-  static constexpr bool mirror_y = false;
+  static constexpr bool mirror_y = true;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_38;
   using DisplayDriver = espp::St7789;
 
@@ -204,7 +208,7 @@ protected:
   spi_device_handle_t led_handle_{nullptr};
 
   // display
-  std::shared_ptr<Display> display_;
+  std::shared_ptr<Display<Pixel>> display_;
   /// SPI bus for communication with the LCD
   spi_bus_config_t lcd_spi_bus_config_;
   spi_device_interface_config_t lcd_config_;

@@ -81,8 +81,8 @@ public:
   lv_indev_t *get_home_button_input_device() { return indev_button_; }
 
 protected:
-  static void touchpad_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
-    TouchpadInput *tpi = (TouchpadInput *)drv->user_data;
+  static void touchpad_read(lv_indev_t *drv, lv_indev_data_t *data) {
+    TouchpadInput *tpi = (TouchpadInput *)lv_indev_get_user_data(drv);
     if (tpi) {
       tpi->touchpad_read_impl(data);
     }
@@ -115,8 +115,8 @@ protected:
     }
   }
 
-  static void home_button_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
-    const TouchpadInput *tpi = (const TouchpadInput *)drv->user_data;
+  static void home_button_read(lv_indev_t *drv, lv_indev_data_t *data) {
+    const TouchpadInput *tpi = (const TouchpadInput *)lv_indev_get_user_data(drv);
     if (tpi) {
       tpi->home_button_read_impl(data);
     }
@@ -129,30 +129,28 @@ protected:
   void init() {
     using namespace std::placeholders;
     logger_.info("Add TP input device to LVGL");
-    lv_indev_drv_init(&indev_drv_tp_);
-    indev_drv_tp_.type = LV_INDEV_TYPE_POINTER;
-    indev_drv_tp_.read_cb = &TouchpadInput::touchpad_read;
-    indev_drv_tp_.user_data = (void *)this;
-    indev_touchpad_ = lv_indev_drv_register(&indev_drv_tp_);
-    if (!indev_touchpad_) {
+    indev_tp_ = lv_indev_create();
+    if (!indev_tp_) {
       logger_.error("Failed to register touchpad input device!");
       return;
     }
+    lv_indev_set_type(indev_tp_, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev_tp_, &TouchpadInput::touchpad_read);
+    lv_indev_set_user_data(indev_tp_, (void *)this);
 
     logger_.info("Add HOME button input to LVGL");
-    lv_indev_drv_init(&indev_drv_btn_);
-    indev_drv_btn_.type = LV_INDEV_TYPE_BUTTON;
-    indev_drv_btn_.read_cb = &TouchpadInput::home_button_read;
-    indev_drv_btn_.user_data = (void *)this;
-    indev_button_ = lv_indev_drv_register(&indev_drv_btn_);
-    if (!indev_button_) {
+    indev_btn_ = lv_indev_create();
+    if (!indev_btn_) {
       logger_.error("Failed to register home button input device!");
       return;
     }
+    lv_indev_set_type(indev_btn_, LV_INDEV_TYPE_BUTTON);
+    lv_indev_set_read_cb(indev_btn_, &TouchpadInput::home_button_read);
+    lv_indev_set_user_data(indev_btn_, (void *)this);
 
-    auto disp = lv_disp_get_default();
-    screen_size_x_ = (uint16_t)lv_disp_get_hor_res(disp);
-    screen_size_y_ = (uint16_t)lv_disp_get_ver_res(disp);
+    auto disp = lv_display_get_default();
+    screen_size_x_ = (uint16_t)lv_display_get_horizontal_resolution(disp);
+    screen_size_y_ = (uint16_t)lv_display_get_vertical_resolution(disp);
   }
 
   touchpad_read_fn touchpad_read_;
@@ -162,9 +160,9 @@ protected:
   std::atomic<bool> invert_x_{false};
   std::atomic<bool> invert_y_{false};
   std::atomic<bool> home_button_pressed_{false};
-  lv_indev_drv_t indev_drv_tp_;
+  lv_indev_t *indev_tp_;
   lv_indev_t *indev_touchpad_;
-  lv_indev_drv_t indev_drv_btn_;
+  lv_indev_t *indev_btn_;
   lv_indev_t *indev_button_;
 };
 } // namespace espp
