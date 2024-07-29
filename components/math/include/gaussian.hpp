@@ -30,45 +30,9 @@ public:
    * @param config Config structure for the gaussian.
    */
   explicit Gaussian(const Config &config)
-      : gamma_(config.gamma)
-      , alpha_(config.alpha)
-      , beta_(config.beta) {}
-
-  /**
-   * @brief Get the currently configured gamma (shape).
-   * @return The current gamma (shape) value [0, 1].
-   */
-  float gamma() const { return gamma_; }
-
-  /**
-   * @brief Set / Update the gamma (shape) value.
-   * @param g New gamma (shape) to use.
-   */
-  void gamma(float g) { gamma_ = g; }
-
-  /**
-   * @brief Get the currently configured alpha (scaling) value.
-   * @return The current alpha (scaler) value.
-   */
-  float alpha() const { return alpha_; }
-
-  /**
-   * @brief Set / Update the alpha (scaling) value.
-   * @param a New alpha (scaler) to use.
-   */
-  void alpha(float a) { alpha_ = a; }
-
-  /**
-   * @brief Get the currently configured beta (shifting) value.
-   * @return The current beta (shifter) value [0, 1].
-   */
-  float beta() const { return beta_; }
-
-  /**
-   * @brief Set / Update the beta (shifting) value.
-   * @param b New beta (shifter) to use.
-   */
-  void beta(float b) { beta_ = b; }
+      : gamma(config.gamma)
+      , alpha(config.alpha)
+      , beta(config.beta) {}
 
   /**
    * @brief Evaluate the gaussian at \p t.
@@ -76,9 +40,9 @@ public:
    * @return The gaussian evaluated at \p t.
    */
   float at(float t) const {
-    float tmb_y = (t - beta_) / gamma_;  // (t - B) / y
+    float tmb_y = (t - beta) / gamma;    // (t - B) / y
     float power = -0.5f * tmb_y * tmb_y; // -(t - B)^2 / 2y^2
-    return alpha_ * exp(power);
+    return alpha * exp(power);
   }
 
   /**
@@ -89,9 +53,10 @@ public:
    */
   float operator()(float t) const { return at(t); }
 
-protected:
-  float gamma_;
-  float alpha_;
-  float beta_;
+  float gamma; ///<! Slope of the gaussian, range [0, 1]. 0 is more of a thin spike from 0 up to
+               ///   max output (alpha), 1 is more of a small wave around the max output (alpha).
+  float alpha; ///<! Max amplitude of the gaussian output, defautls to 1.0.
+  float beta;  ///<! Shifting / Beta value for the gaussian, default to be
+               ///   symmetric at 0.5 in range [0,1].
 };
 } // namespace espp

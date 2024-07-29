@@ -100,7 +100,7 @@ extern "C" void app_main(void) {
       fmt::print("{}", t);
       for (auto g : gammas) {
         // update the gamma
-        gaussian.gamma(g);
+        gaussian.gamma = g;
         // evaluate it
         float v = gaussian(t);
         // print it
