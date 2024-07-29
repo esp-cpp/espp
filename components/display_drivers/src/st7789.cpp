@@ -6,3 +6,5 @@ gpio_num_t espp::St7789::reset_pin_;
 gpio_num_t espp::St7789::dc_pin_;
 int espp::St7789::offset_x_;
 int espp::St7789::offset_y_;
+bool espp::St7789::swap_xy_ = false;
+std::mutex espp::St7789::spi_mutex_;

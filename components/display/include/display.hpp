@@ -14,16 +14,16 @@
 
 namespace espp {
 
-  /**
-   *  @brief Possible orientations of the display.
-   */
-  enum class DisplayRotation : uint8_t { LANDSCAPE, PORTRAIT, LANDSCAPE_INVERTED, PORTRAIT_INVERTED };
+/**
+ *  @brief Possible orientations of the display.
+ */
+enum class DisplayRotation : uint8_t { LANDSCAPE, PORTRAIT, LANDSCAPE_INVERTED, PORTRAIT_INVERTED };
 
-  /**
-   *  @brief Signals used by LVGL to let the post_transfer_callback know
-   *         whether or not to call lv_disp_flush_ready.
-   */
-  enum class DisplaySignal : uint32_t { NONE, FLUSH };
+/**
+ *  @brief Signals used by LVGL to let the post_transfer_callback know
+ *         whether or not to call lv_disp_flush_ready.
+ */
+enum class DisplaySignal : uint32_t { NONE, FLUSH };
 
 /**
  * @brief Wrapper class around LVGL display buffer and display driver.
@@ -36,8 +36,8 @@ namespace espp {
  *  For more information, see
  *  https://docs.lvgl.io/9.1/porting/display.html#display-interface
  *
- * @tparam Pixel The pixel format to be used for the display. This allows the class to be used with displays
- *               of different color depths and formats.
+ * @tparam Pixel The pixel format to be used for the display. This allows the class to be used with
+ * displays of different color depths and formats.
  */
 template <typename Pixel> class Display : public BaseComponent {
 public:
@@ -61,7 +61,8 @@ public:
     size_t height;            /**< Height of the display, in pixels. */
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
     flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
-    rotation_fn rotation_callback{nullptr}; /**< Function used to configure display with new rotation setting. */
+    rotation_fn rotation_callback{
+        nullptr};             /**< Function used to configure display with new rotation setting. */
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
@@ -76,7 +77,8 @@ public:
     uint32_t allocation_flags{
         MALLOC_CAP_8BIT |
         MALLOC_CAP_DMA}; /**< For configuring how the display buffer is allocated*/
-    DisplayRotation rotation{DisplayRotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
+    DisplayRotation rotation{
+        DisplayRotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
     bool software_rotation_enabled{
         true}; /**< Enable LVGL software display rotation, incurs additional overhead. */
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity for the Display logger_. */
@@ -94,7 +96,8 @@ public:
     size_t height; /**< Height of the display, in pixels. */
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
     flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
-    rotation_fn rotation_callback{nullptr};  /**< Function used to configure display with new rotation setting. */
+    rotation_fn rotation_callback{
+        nullptr};             /**< Function used to configure display with new rotation setting. */
     gpio_num_t backlight_pin; /**< GPIO pin for the backlight. */
     bool backlight_on_value{
         true}; /**< Value to write to the backlight pin to turn the backlight on. */
@@ -103,8 +106,9 @@ public:
                                  .priority = 20,
                                  .core_id = 0}; /**< Task configuration. */
     std::chrono::duration<float> update_period{
-        0.01};                              /**< How frequently to run the update function. */
-    DisplayRotation rotation{DisplayRotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
+        0.01}; /**< How frequently to run the update function. */
+    DisplayRotation rotation{
+        DisplayRotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
     bool software_rotation_enabled{
         true}; /**< Enable LVGL software display rotation, incurs additional overhead. */
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity for the Display logger_. */
@@ -140,8 +144,7 @@ public:
       assert(vram_1_ != NULL);
     }
     created_vram_ = true;
-    init(config.flush_callback, config.rotation_callback, config.rotation,
-         config.task_config);
+    init(config.flush_callback, config.rotation_callback, config.rotation, config.task_config);
     set_brightness(1.0f);
   }
 
@@ -168,8 +171,7 @@ public:
                                .duty_resolution = LEDC_TIMER_10_BIT})
       , update_period_(config.update_period) {
     logger_.debug("Initializing with non-allocating config!");
-    init(config.flush_callback, config.rotation_callback, config.rotation,
-         config.task_config);
+    init(config.flush_callback, config.rotation_callback, config.rotation, config.task_config);
   }
 
   /**
@@ -271,7 +273,7 @@ protected:
    * @brief LVGL event handler.
    */
   static void event_cb(lv_event_t *event) {
-    if(event->code == LV_EVENT_RESOLUTION_CHANGED) {
+    if (event->code == LV_EVENT_RESOLUTION_CHANGED) {
       auto rotation = lv_display_get_rotation(lv_display_get_default());
       auto rotation_callback = reinterpret_cast<rotation_fn>(lv_event_get_user_data(event));
       if (rotation_callback != nullptr) {
@@ -289,7 +291,8 @@ protected:
    * @param rotation Default / initial rotation of the display.
    * @param task_config Configuration for the task that runs the lvgl tick
    */
-  void init(flush_fn flush_callback, rotation_fn rotation_callback, DisplayRotation rotation, const Task::BaseConfig &task_config) {
+  void init(flush_fn flush_callback, rotation_fn rotation_callback, DisplayRotation rotation,
+            const Task::BaseConfig &task_config) {
     lv_init();
 
     display_ = lv_display_create(width_, height_);
