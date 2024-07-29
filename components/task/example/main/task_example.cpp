@@ -1,6 +1,7 @@
 #include <chrono>
 #include <vector>
 
+#include "run_on_core.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
@@ -342,8 +343,8 @@ extern "C" void app_main(void) {
 
     // test running a function that returns void on a specific core
     auto task_fn = []() -> void { fmt::print("Void Task running on core {}\n", xPortGetCoreID()); };
-    espp::Task::run_on_core(task_fn, 0, 3 * 1024);
-    espp::Task::run_on_core(task_fn, 1, 3 * 1024);
+    espp::task::run_on_core(task_fn, 0, 3 * 1024);
+    espp::task::run_on_core(task_fn, 1, 3 * 1024);
     fmt::print("Void Function returned\n");
 
     // test running a function that returns bool on a specific core
@@ -352,9 +353,9 @@ extern "C" void app_main(void) {
       fmt::print("Bool Task running on core {}\n", core_id);
       return core_id == 1;
     };
-    auto result0 = espp::Task::run_on_core(task_fn2, 0, 3 * 1024);
+    auto result0 = espp::task::run_on_core(task_fn2, 0, 3 * 1024);
     fmt::print("Bool Function returned {}\n", result0);
-    auto result1 = espp::Task::run_on_core(task_fn2, 1, 3 * 1024);
+    auto result1 = espp::task::run_on_core(task_fn2, 1, 3 * 1024);
     fmt::print("Bool Function returned {}\n", result1);
 
     // test running a function that returns esp_err_t on a specific core
@@ -363,9 +364,9 @@ extern "C" void app_main(void) {
       fmt::print("esp_err_t Task running on core {}\n", core_id);
       return core_id == 1 ? ESP_OK : ESP_FAIL;
     };
-    auto err0 = espp::Task::run_on_core(task_fn3, 0, 3 * 1024);
+    auto err0 = espp::task::run_on_core(task_fn3, 0, 3 * 1024);
     fmt::print("esp_err_t Function returned {}\n", esp_err_to_name(err0));
-    auto err1 = espp::Task::run_on_core(task_fn3, 1, 3 * 1024);
+    auto err1 = espp::task::run_on_core(task_fn3, 1, 3 * 1024);
     fmt::print("esp_err_t Function returned {}\n", esp_err_to_name(err1));
     //! [run on core example]
   }
