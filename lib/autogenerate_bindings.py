@@ -27,6 +27,10 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # - Litgen will automatically add a default constructor with named parameters
     #   for structs that have no constructor defined in C++.
     #  - A class will publish only its public methods and members
+    # To prevent the generation of the default constructor with named parameters
+    # for a specific struct, you can use the following option:
+    # options.struct_create_default_named_ctor__regex = r".*"
+    options.class_create_default_named_ctor__regex = r".*"
 
     # ///////////////////////////////////////////////////////////////////
     #  Exclude functions and/or parameters from the bindings
@@ -35,26 +39,31 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # priv_ is a prefix for private functions that we don't want to expose
     options.fn_exclude_by_name__regex = "^priv_"
 
+    # we'd like the following classes to be able to pick up new attributes
+    # dynamically (within python):
+    # -
+    # options.class_dynamic_attributes__regex = r".*"
+
     # Inside `inline void SetOptions(bool v, bool priv_param = false) {}`,
     # we don't want to expose the private parameter priv_param
     # (it is possible since it has a default value)
-    options.fn_params_exclude_names__regex = "^priv_"
+    # options.fn_params_exclude_names__regex = "^priv_"
 
     # ////////////////////////////////////////////////////////////////////
     # Override virtual methods in python
     # ////////////////////////////////////////////////////////////////////
     # The virtual methods of this class can be overriden in python
     options.class_template_options.add_specialization(r"Bezier", ["espp::Vector2f"])
-    options.class_template_options.add_specialization(r"Bezier::Config", ["espp::Vector2f"])
-    options.class_template_options.add_specialization(r"Bezier::WeightedConfig", ["espp::Vector2f"])
-    options.class_template_options.add_specialization(r"RangeMapper", ["int", "float"])
-    options.class_template_options.add_specialization(r"RangeMapper::Config", ["int", "float"])
+    options.class_template_options.add_specialization(r"^Bezier::Config$", ["espp::Vector2f"])
+    options.class_template_options.add_specialization(r"^espp::Bezier::WeightedConfig$", ["espp::Vector2f"])
+    options.class_template_options.add_specialization(r"^RangeMapper$", ["int", "float"])
+    options.class_template_options.add_specialization(r"^RangeMapper::Config$", ["int", "float"])
     options.class_template_options.add_specialization(r"Vector2d", ["int", "float"])
 
     # ////////////////////////////////////////////////////////////////////
     # Publish bindings for template functions
     # ////////////////////////////////////////////////////////////////////
-    options.fn_template_options.add_specialization(r"^sgn$", ["int", "float"], add_suffix_to_function_name=True)
+    options.fn_template_options.add_specialization(r"^sgn$", ["int", "float"], add_suffix_to_function_name=False)
 
     # ////////////////////////////////////////////////////////////////////
     # Return values policy

@@ -219,173 +219,6 @@ void py_init_module_espp_lib(py::module &m) {
                "subscriber was removed, False if it was not\n   *         registered.\n");
   ////////////////////    </generated_from:event_manager.hpp>    ////////////////////
 
-  ////////////////////    <generated_from:file_system.hpp>    ////////////////////
-  auto pyClassFileSystem = py::class_<espp::FileSystem>(
-      m, "FileSystem",
-      "/ @brief File system class\n/ @details\n/ This class is a singleton and should be accessed "
-      "via the get() method.\n/ The class is responsible for mounting the file system and "
-      "providing\n/ access to the file system. It is configured via the menuconfig system and "
-      "will\n/ use the partition with the label specified in the menuconfig. The partition\n/ must "
-      "be formatted with the LittleFS file system. The file system is mounted\n/ at the root "
-      "directory of the partition such that all files will be stored\n/ under the path "
-      "\"/<partition_label>/\".\n/ @see get_partition_label()\n/\n/ The class provides methods to "
-      "get the amount of free, used and total space\n/ on the file system. It also provides a "
-      "method to get a human readable string\n/ for a byte size.\n/\n/ \\section fs_ex1 File "
-      "System Info Example\n/ \\snippet file_system_example.cpp file_system info example\n/ "
-      "\\section fs_ex2 File System POSIX / NEWLIB Example\n/ \\snippet file_system_example.cpp "
-      "file_system posix example\n/ \\section fs_ex3 File System Info std::filesystem Example\n/ "
-      "\\snippet file_system_example.cpp file_system std filesystem example");
-
-  { // inner classes & enums of FileSystem
-    auto pyClassFileSystem_ClassListConfig =
-        py::class_<espp::FileSystem::ListConfig>(
-            pyClassFileSystem, "ListConfig",
-            "/ @brief Config for listing the contents of a directory\n/ @details\n/ This struct is "
-            "used to configure the output of the list_directory() method.\n/ It contains boolean "
-            "values for each of the fields to include in the output.")
-            .def(py::init<>([](bool type = true, bool permissions = true,
-                               bool number_of_links = true, bool owner = true, bool group = true,
-                               bool size = true, bool date_time = true, bool recursive = false) {
-                   auto r = std::make_unique<espp::FileSystem::ListConfig>();
-                   r->type = type;
-                   r->permissions = permissions;
-                   r->number_of_links = number_of_links;
-                   r->owner = owner;
-                   r->group = group;
-                   r->size = size;
-                   r->date_time = date_time;
-                   r->recursive = recursive;
-                   return r;
-                 }),
-                 py::arg("type") = true, py::arg("permissions") = true,
-                 py::arg("number_of_links") = true, py::arg("owner") = true,
-                 py::arg("group") = true, py::arg("size") = true, py::arg("date_time") = true,
-                 py::arg("recursive") = false)
-            .def_readwrite("type", &espp::FileSystem::ListConfig::type,
-                           "/< The type of the file (directory, file, etc.)")
-            .def_readwrite("permissions", &espp::FileSystem::ListConfig::permissions,
-                           "/< The permissions of the file")
-            .def_readwrite("number_of_links", &espp::FileSystem::ListConfig::number_of_links,
-                           "/< The number of links to the file")
-            .def_readwrite("owner", &espp::FileSystem::ListConfig::owner,
-                           "/< The owner of the file")
-            .def_readwrite("group", &espp::FileSystem::ListConfig::group,
-                           "/< The group of the file")
-            .def_readwrite("size", &espp::FileSystem::ListConfig::size, "/< The size of the file")
-            .def_readwrite("date_time", &espp::FileSystem::ListConfig::date_time,
-                           "/< The date and time of the file")
-            .def_readwrite("recursive", &espp::FileSystem::ListConfig::recursive,
-                           "/< Whether to list the contents of subdirectories");
-  } // end of inner classes & enums of FileSystem
-
-  pyClassFileSystem
-      .def_static(
-          "human_readable", &espp::FileSystem::human_readable, py::arg("bytes"),
-          "/ @brief Get a human readable string for a byte size\n/ @details\n/ This method returns "
-          "a human readable string for a byte size.\n/ It is copied from the example on the "
-          "page:\n/ https://en.cppreference.com/w/cpp/filesystem/file_size\n/ @param bytes The "
-          "byte size\n/ @return The human readable string")
-      .def_static("get_mount_point", &espp::FileSystem::get_mount_point,
-                  "/ @brief Get the mount point\n/ @details\n/ The mount point is the root "
-                  "directory of the file system.\n/ It is the root directory of the partition with "
-                  "the partition label.\n/ @see get_root_path()\n/ @return The mount point")
-      .def_static("get_root_path", &espp::FileSystem::get_root_path,
-                  "/ @brief Get the root path\n/ @details\n/ The root path is the root directory "
-                  "of the file system.\n/ @see get_mount_point()\n/ @return The root path")
-      .def_static("to_string",
-                  py::overload_cast<const std::filesystem::perms &>(&espp::FileSystem::to_string),
-                  py::arg("permissions"),
-                  "/ @brief Convert file permissions to a string\n/ @details This method converts "
-                  "file permissions to a string in the format \"rwxrwxrwx\".\n/ @param permissions "
-                  "The file permissions\n/ @return The file permissions as a string")
-      .def_static("to_string", py::overload_cast<time_t>(&espp::FileSystem::to_string),
-                  py::arg("time"),
-                  "/ @brief Convert a time_t to a string\n/ @details This method converts a time_t "
-                  "to a string in the format \"Jan 01 00:00\".\n/ @param time The time_t to "
-                  "convert\n/ @return The time as a string")
-      .def_static("get", &espp::FileSystem::get,
-                  "/ @brief Access the singleton instance of the file system\n/ @return Reference "
-                  "to the file system instance",
-                  pybind11::return_value_policy::reference)
-      .def(py::init<const espp::FileSystem &>(), py::arg("param_0"))
-      .def(py::init<espp::FileSystem &&>(), py::arg("param_0"))
-      .def("get_free_space", &espp::FileSystem::get_free_space,
-           "/ @brief Get the amount of free space on the file system\n/ @return The amount of free "
-           "space in bytes")
-      .def("get_total_space", &espp::FileSystem::get_total_space,
-           "/ @brief Get the total amount of space on the file system\n/ @return The total amount "
-           "of space in bytes")
-      .def("get_used_space", &espp::FileSystem::get_used_space,
-           "/ @brief Get the amount of used space on the file system\n/ @return The amount of used "
-           "space in bytes")
-      .def("get_file_time_as_string", &espp::FileSystem::get_file_time_as_string, py::arg("path"),
-           "/ @brief Get the time of a file as a string\n/ @details This method gets the time of a "
-           "file as a string in the format \"Jan 01 00:00\".\n/ @param path The path to the "
-           "file\n/ @return The time of the file as a string\n/ @see file_time_to_string()")
-      .def("get_files_in_path", &espp::FileSystem::get_files_in_path, py::arg("path"),
-           py::arg("include_directories") = false, py::arg("recursive") = false,
-           "/ @brief Get a vector of files in a directory\n/ @details This method returns a vector "
-           "of paths to the files in a directory.\n/ @param path The path to the directory\n/ "
-           "@param include_directories Whether to include directories in the output\n/ @param "
-           "recursive Whether to include files in subdirectories\n/ @return A vector of paths to "
-           "the files in the directory")
-      .def("remove", &espp::FileSystem::remove, py::arg("path"), py::arg("ec"),
-           "/ @brief Completely remove a file or directory (including contents)\n/ @details This "
-           "method removes a file or directory and all of its contents.\n/          If the path is "
-           "a directory, it will iterate over the contents\n/          and remove them "
-           "recursively. If the path is a file, it will\n/          remove the file. If the path "
-           "does not exist, it will return False.\n/ @param path The path to the file or "
-           "directory\n/ @param ec The error code to set if an error occurs\n/ @return Whether the "
-           "file or directory was successfully removed")
-      .def("remove_contents", &espp::FileSystem::remove_contents, py::arg("path"), py::arg("ec"),
-           "/ @brief Remove the contents of a directory, but not the directory itself\n/ @details "
-           "This method removes the contents of a directory, but not the\n/          directory "
-           "itself. If the path is not a directory, it will return\n/          False. If the path "
-           "does not exist, it will return False. If the\n/          path is a directory, it will "
-           "iterate over the contents and remove\n/          them recursively.\n/ @param path The "
-           "path to the directory\n/ @param ec The error code to set if an error occurs\n/ @return "
-           "Whether the contents of the directory were successfully removed")
-      .def("list_directory",
-           py::overload_cast<const std::filesystem::path &, const espp::FileSystem::ListConfig &,
-                             const std::string &>(&espp::FileSystem::list_directory),
-           py::arg("path"), py::arg("config"), py::arg("prefix") = "",
-           "/ @brief List the contents of a directory\n/ @details\n/ This method lists the "
-           "contents of a directory. It returns a string\n/ containing the contents of the "
-           "directory. The contents are formatted\n/ according to the config. The config is a "
-           "struct with boolean values\n/ for each of the fields to include in the output. The "
-           "fields are:\n/ - type: The type of the file (directory, file, etc.)\n/ - permissions: "
-           "The permissions of the file\n/ - number_of_links: The number of links to the file\n/ - "
-           "owner: The owner of the file\n/ - group: The group of the file\n/ - size: The size of "
-           "the file\n/ - date_time: The date and time of the file\n/ - recursive: Whether to list "
-           "the contents of subdirectories\n/ @param path The path to the directory\n/ @param "
-           "config The config for the output\n/ @param prefix The prefix to use for the output\n/ "
-           "@return The contents of the directory")
-      .def("list_directory",
-           py::overload_cast<const std::string &, const espp::FileSystem::ListConfig &,
-                             const std::string &>(&espp::FileSystem::list_directory),
-           py::arg("path"), py::arg("config"), py::arg("prefix") = "",
-           "/ @brief List the contents of a directory\n/ @details\n/ This method lists the "
-           "contents of a directory. It returns a string\n/ containing the contents of the "
-           "directory. The contents are formatted\n/ according to the config. The config is a "
-           "struct with boolean values\n/ for each of the fields to include in the output. The "
-           "fields are:\n/ - type: The type of the file (directory, file, etc.)\n/ - permissions: "
-           "The permissions of the file\n/ - number_of_links: The number of links to the file\n/ - "
-           "owner: The owner of the file\n/ - group: The group of the file\n/ - size: The size of "
-           "the file\n/ - date_time: The date and time of the file\n/ - recursive: Whether to list "
-           "the contents of subdirectories\n/ @param path The path to the directory\n/ @param "
-           "config The config for the output\n/ @param prefix The prefix to use for the output\n/ "
-           "@return The contents of the directory")
-      .def_static(
-          "to_time_t_filesystem_file_time_type",
-          &espp::FileSystem::to_time_t<std::filesystem::file_time_type>, py::arg("tp"),
-          "/ Function to convert a time_point to a time_t.\n/ \\details This function converts a "
-          "time_point to a time_t. This function\n/     is needed because the standard library "
-          "does not provide a function to\n/     convert a time_point to a time_t (until c++20 but "
-          "support seems lacking\n/     on esp32). This function is taken from\n/     "
-          "https://stackoverflow.com/a/61067330\n/ \tparam TP The type of the time_point.\n/ "
-          "\\param tp The time_point to convert.\n/ \\return The time_t.");
-  ////////////////////    </generated_from:file_system.hpp>    ////////////////////
-
   ////////////////////    <generated_from:ftp_server.hpp>    ////////////////////
   auto pyClassFtpServer =
       py::class_<espp::FtpServer>(m, "FtpServer", "/ \\brief A class that implements a FTP server.")
@@ -440,12 +273,11 @@ void py_init_module_espp_lib(py::module &m) {
                            "/< Array of 4 weights, default is array of 1.0");
   } // end of inner classes & enums of Bezier_espp_Vector2f
 
-  pyClassBezier_espp_Vector2f
-      .def(py::init<>()) // implicit default constructor
-      .def("__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
-           "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around "
-           "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
-           "bezier evaluated at \\p t.\n");
+  pyClassBezier_espp_Vector2f.def(
+      "__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
+      "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around the "
+      "at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The bezier "
+      "evaluated at \\p t.\n");
   ////////////////////    </generated_from:bezier.hpp>    ////////////////////
 
   ////////////////////    <generated_from:fast_math.hpp>    ////////////////////
@@ -463,10 +295,10 @@ void py_init_module_espp_lib(py::module &m) {
         "https://en.wikipedia.org/wiki/Fast_inverse_square_root\n * @param value Value to take the "
         "square root of.\n * @return Approximation of the square root of value.\n");
 
-  m.def("sgn_int", espp::sgn<int>, py::arg("x"),
+  m.def("sgn", py::overload_cast<int>(espp::sgn<int>), py::arg("x"),
         "*\n * @brief Get the sign of a number (+1, 0, or -1)\n * @param x Value to get the sign "
         "of\n * @return Sign of x: -1 if x < 0, 0 if x == 0, or +1 if x > 0\n");
-  m.def("sgn_float", espp::sgn<float>, py::arg("x"),
+  m.def("sgn", py::overload_cast<float>(espp::sgn<float>), py::arg("x"),
         "*\n * @brief Get the sign of a number (+1, 0, or -1)\n * @param x Value to get the sign "
         "of\n * @return Sign of x: -1 if x < 0, 0 if x == 0, or +1 if x > 0\n");
 
@@ -533,7 +365,7 @@ void py_init_module_espp_lib(py::module &m) {
         py::class_<espp::Gaussian::Config>(
             pyClassGaussian, "Config",
             "*\n   * @brief Configuration structure for initializing the gaussian.\n")
-            .def(py::init<>([](float gamma = float(), float alpha = 1.0f, float beta = 0.5f) {
+            .def(py::init<>([](float gamma = float(), float alpha = {1.0f}, float beta = {0.5f}) {
                    auto r = std::make_unique<espp::Gaussian::Config>();
                    r->gamma = gamma;
                    r->alpha = alpha;
@@ -553,49 +385,17 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Gaussian
 
   pyClassGaussian
-      .def(py::init<>()) // implicit default constructor
-      .def_property(
-          "gamma", [](espp::Gaussian &self) { return self.gamma(); },
-          [](espp::Gaussian &self, float g) { self.gamma(g); },
-          "*\n   * @brief Get the currently configured gamma (shape) value.\n   * @return The "
-          "current gamma (shape) value.\n",
-          "*\n   * @brief Set / Update the gamma (shape) value.\n   * @param g New gamma (shape) "
-          "to use.\n")
-      .def_property(
-          "alpha", [](espp::Gaussian &self) { return self.alpha(); },
-          [](espp::Gaussian &self, float a) { self.alpha(a); },
-          "*\n   * @brief Get the currently configured alpha (scaling) value.\n   * @return The "
-          "current alpha (scaler) value.\n",
-          "*\n   * @brief Set / Update the alpha (scaling) value.\n   * @param a New alpha "
-          "(scaler) to use.\n")
-      .def_property(
-          "alpha", [](espp::Gaussian &self) { return self.alpha(); },
-          [](espp::Gaussian &self, float a) { self.alpha(a); },
-          "*\n   * @brief Get the currently configured alpha (scaling) value.\n   * @return The "
-          "current alpha (scaler) value.\n",
-          "*\n   * @brief Set / Update the alpha (scaling) value.\n   * @param a New alpha "
-          "(scaler) to use.\n")
-      .def_property(
-          "beta", [](espp::Gaussian &self) { return self.beta(); },
-          [](espp::Gaussian &self, float b) { self.beta(b); },
-          "*\n   * @brief Get the currently configured beta (shifting) value.\n   * @return The "
-          "current beta (shifter) value [0, 1].\n",
-          "*\n   * @brief Set / Update the beta (shifting) value.\n   * @param b New beta "
-          "(shifter) to use.\n")
-      .def_property(
-          "beta", [](espp::Gaussian &self) { return self.beta(); },
-          [](espp::Gaussian &self, float b) { self.beta(b); },
-          "*\n   * @brief Get the currently configured beta (shifting) value.\n   * @return The "
-          "current beta (shifter) value [0, 1].\n",
-          "*\n   * @brief Set / Update the beta (shifting) value.\n   * @param b New beta "
-          "(shifter) to use.\n")
-      .def("at", &espp::Gaussian::at, py::arg("t"),
-           "*\n   * @brief Evaluate the gaussian at \\p t.\n   * @param t The evaluation "
-           "parameter, [0, 1].\n   * @return The gaussian evaluated at \\p t.\n")
       .def("__call__", &espp::Gaussian::operator(), py::arg("t"),
            "*\n   * @brief Evaluate the gaussian at \\p t.\n   * @note Convienience wrapper around "
            "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
-           "gaussian evaluated at \\p t.\n");
+           "gaussian evaluated at \\p t.\n")
+      .def_readwrite(
+          "gamma", &espp::Gaussian::gamma,
+          "/<! Slope of the gaussian, range [0, 1]. 0 is more of a thin spike from 0 up to")
+      .def_readwrite("alpha", &espp::Gaussian::alpha,
+                     "/<! Max amplitude of the gaussian output, defautls to 1.0.")
+      .def_readwrite("beta", &espp::Gaussian::beta,
+                     "/<! Shifting / Beta value for the gaussian, default to be");
   ////////////////////    </generated_from:gaussian.hpp>    ////////////////////
 
   ////////////////////    <generated_from:range_mapper.hpp>    ////////////////////
@@ -655,16 +455,17 @@ void py_init_module_espp_lib(py::module &m) {
                            "*< Maximum value for the input range.")
             .def_readwrite("range_deadband", &espp::RangeMapper<int>::Config::range_deadband,
                            "*< Deadband amount around the minimum and maximum for which output "
-                           "will be min/max output.")
+                           "will\n                             be min/max output.")
             .def_readwrite("output_center", &espp::RangeMapper<int>::Config::output_center,
                            "*< The center for the output. Default 0.")
-            .def_readwrite("output_range", &espp::RangeMapper<int>::Config::output_range,
-                           "*< The range (+/-) from the center for the output. Default 1. @note "
-                           "Will be passed through std::abs() to ensure it is positive.")
             .def_readwrite(
-                "invert_output", &espp::RangeMapper<int>::Config::invert_output,
-                "*< Whether to invert the output (default False). @note If True will flip the sign "
-                "of the output after converting from the input distribution.");
+                "output_range", &espp::RangeMapper<int>::Config::output_range,
+                "*< The range (+/-) from the center for the output. Default 1. @note Will\n        "
+                "                     be passed through std::abs() to ensure it is positive.")
+            .def_readwrite("invert_output", &espp::RangeMapper<int>::Config::invert_output,
+                           "*< Whether to invert the output (default False). @note If True will "
+                           "flip the sign\n                  of the output after converting from "
+                           "the input distribution.");
   } // end of inner classes & enums of RangeMapper_int
 
   pyClassRangeMapper_int.def(py::init<>())
@@ -776,16 +577,17 @@ void py_init_module_espp_lib(py::module &m) {
                            "*< Maximum value for the input range.")
             .def_readwrite("range_deadband", &espp::RangeMapper<float>::Config::range_deadband,
                            "*< Deadband amount around the minimum and maximum for which output "
-                           "will be min/max output.")
+                           "will\n                             be min/max output.")
             .def_readwrite("output_center", &espp::RangeMapper<float>::Config::output_center,
                            "*< The center for the output. Default 0.")
-            .def_readwrite("output_range", &espp::RangeMapper<float>::Config::output_range,
-                           "*< The range (+/-) from the center for the output. Default 1. @note "
-                           "Will be passed through std::abs() to ensure it is positive.")
             .def_readwrite(
-                "invert_output", &espp::RangeMapper<float>::Config::invert_output,
-                "*< Whether to invert the output (default False). @note If True will flip the sign "
-                "of the output after converting from the input distribution.");
+                "output_range", &espp::RangeMapper<float>::Config::output_range,
+                "*< The range (+/-) from the center for the output. Default 1. @note Will\n        "
+                "                     be passed through std::abs() to ensure it is positive.")
+            .def_readwrite("invert_output", &espp::RangeMapper<float>::Config::invert_output,
+                           "*< Whether to invert the output (default False). @note If True will "
+                           "flip the sign\n                  of the output after converting from "
+                           "the input distribution.");
   } // end of inner classes & enums of RangeMapper_float
 
   pyClassRangeMapper_float.def(py::init<>())
@@ -1140,226 +942,6 @@ void py_init_module_espp_lib(py::module &m) {
                "@return The normalized vector.\n");
   ////////////////////    </generated_from:vector2d.hpp>    ////////////////////
 
-  ////////////////////    <generated_from:jpeg_frame.hpp>    ////////////////////
-  auto pyClassJpegFrame =
-      py::class_<espp::JpegFrame>(
-          m, "JpegFrame",
-          "/ A class that represents a complete JPEG frame.\n/\n/ This class is used to collect "
-          "the JPEG scans that are received in RTP\n/ packets and to serialize them into a "
-          "complete JPEG frame.")
-          .def(py::init<const RtpJpegPacket &>(), py::arg("packet"),
-               "/ Construct a JpegFrame from a RtpJpegPacket.\n/\n/ This constructor will parse "
-               "the header of the packet and add the JPEG\n/ data to the frame.\n/\n/ @param "
-               "packet The packet to parse.")
-          .def(py::init<const char *, size_t>(), py::arg("data"), py::arg("size"),
-               "/ Construct a JpegFrame from buffer of jpeg data\n/ @param data The buffer "
-               "containing the jpeg data.\n/ @param size The size of the buffer.")
-          .def("get_header", &espp::JpegFrame::get_header,
-               "/ Get a reference to the header.\n/ @return A reference to the header.")
-          .def("get_width", &espp::JpegFrame::get_width,
-               "/ Get the width of the frame.\n/ @return The width of the frame.")
-          .def("get_height", &espp::JpegFrame::get_height,
-               "/ Get the height of the frame.\n/ @return The height of the frame.")
-          .def("is_complete", &espp::JpegFrame::is_complete,
-               "/ Check if the frame is complete.\n/ @return True if the frame is complete, False "
-               "otherwise.")
-          .def("append", &espp::JpegFrame::append, py::arg("packet"),
-               "/ Append a RtpJpegPacket to the frame.\n/ This will add the JPEG data to the "
-               "frame.\n/ @param packet The packet containing the scan to append.")
-          .def("add_scan", py::overload_cast<const RtpJpegPacket &>(&espp::JpegFrame::add_scan),
-               py::arg("packet"),
-               "/ Append a JPEG scan to the frame.\n/ This will add the JPEG data to the frame.\n/ "
-               "@note If the packet contains the EOI marker, the frame will be\n/       finalized, "
-               "and no further scans can be added.\n/ @param packet The packet containing the scan "
-               "to append.")
-          .def("get_data", &espp::JpegFrame::get_data,
-               "/ Get the serialized data.\n/ This will return the serialized data.\n/ @return The "
-               "serialized data.")
-          .def("get_scan_data", &espp::JpegFrame::get_scan_data,
-               "/ Get the scan data.\n/ This will return the scan data.\n/ @return The scan data.");
-  ////////////////////    </generated_from:jpeg_frame.hpp>    ////////////////////
-
-  ////////////////////    <generated_from:jpeg_header.hpp>    ////////////////////
-  auto pyClassJpegHeader =
-      py::class_<espp::JpegHeader>(
-          m, "JpegHeader",
-          "/ A class to generate a JPEG header for a given image size and quantization tables.\n/ "
-          "The header is generated once and then cached for future use.\n/ The header is generated "
-          "according to the JPEG standard and is compatible with\n/ the ESP32 camera driver.")
-          .def(py::init<int, int, std::string_view, std::string_view>(), py::arg("width"),
-               py::arg("height"), py::arg("q0_table"), py::arg("q1_table"),
-               "/ Create a JPEG header for a given image size and quantization tables.\n/ @param "
-               "width The image width in pixels.\n/ @param height The image height in pixels.\n/ "
-               "@param q0_table The quantization table for the Y channel.\n/ @param q1_table The "
-               "quantization table for the Cb and Cr channels.")
-          .def(py::init<std::string_view>(), py::arg("data"),
-               "/ Create a JPEG header from a given JPEG header data.")
-          .def("get_width", &espp::JpegHeader::get_width,
-               "/ Get the image width.\n/ @return The image width in pixels.")
-          .def("get_height", &espp::JpegHeader::get_height,
-               "/ Get the image height.\n/ @return The image height in pixels.")
-          .def("get_data", &espp::JpegHeader::get_data,
-               "/ Get the JPEG header data.\n/ @return The JPEG header data.")
-          .def("get_quantization_table", &espp::JpegHeader::get_quantization_table,
-               py::arg("index"),
-               "/ Get the Quantization table at the index.\n/ @param index The index of the "
-               "quantization table.\n/ @return The quantization table.");
-  ////////////////////    </generated_from:jpeg_header.hpp>    ////////////////////
-
-  ////////////////////    <generated_from:rtsp_client.hpp>    ////////////////////
-  auto pyClassRtspClient = py::class_<espp::RtspClient>(
-      m, "RtspClient",
-      "/ A class for interacting with an RTSP server using RTP and RTCP over UDP\n/\n/ This class "
-      "is used to connect to an RTSP server and receive JPEG frames\n/ over RTP. It uses the TCP "
-      "socket to send RTSP requests and receive RTSP\n/ responses. It uses the UDP socket to "
-      "receive RTP and RTCP packets.\n/\n/ The RTSP client is designed to be used with the RTSP "
-      "server in the\n/ [camera-streamer]https://github.com/esp-cpp/camera-streamer) project, but "
-      "it\n/ should work with any RTSP server that sends JPEG frames over RTP.\n/\n/ \\section "
-      "RtspClient Example\n/ \\snippet rtsp_example.cpp rtsp_client_example");
-
-  { // inner classes & enums of RtspClient
-    auto pyClassRtspClient_ClassConfig =
-        py::class_<espp::RtspClient::Config>(pyClassRtspClient, "Config",
-                                             "/ Configuration for the RTSP client")
-            .def(py::init<>([](std::string server_address = std::string(), int rtsp_port = {8554},
-                               std::string path = {"/mjpeg/1"},
-                               espp::RtspClient::jpeg_frame_callback_t on_jpeg_frame =
-                                   espp::RtspClient::jpeg_frame_callback_t(),
-                               espp::Logger::Verbosity log_level = espp::Logger::Verbosity::INFO) {
-                   auto r = std::make_unique<espp::RtspClient::Config>();
-                   r->server_address = server_address;
-                   r->rtsp_port = rtsp_port;
-                   r->path = path;
-                   r->on_jpeg_frame = on_jpeg_frame;
-                   r->log_level = log_level;
-                   return r;
-                 }),
-                 py::arg("server_address") = std::string(), py::arg("rtsp_port") = int{8554},
-                 py::arg("path") = std::string{"/mjpeg/1"},
-                 py::arg("on_jpeg_frame") = espp::RtspClient::jpeg_frame_callback_t(),
-                 py::arg("log_level") = espp::Logger::Verbosity::INFO)
-            .def_readwrite("server_address", &espp::RtspClient::Config::server_address,
-                           "/< The server IP Address to connect to")
-            .def_readwrite("rtsp_port", &espp::RtspClient::Config::rtsp_port,
-                           "/< The port of the RTSP server")
-            .def_readwrite("path", &espp::RtspClient::Config::path,
-                           "/< The path to the RTSP stream on the server. Will be appended")
-            .def_readwrite("on_jpeg_frame", &espp::RtspClient::Config::on_jpeg_frame,
-                           "/< The callback to call when a JPEG frame is received")
-            .def_readwrite("log_level", &espp::RtspClient::Config::log_level,
-                           "/< The verbosity of the logger");
-  } // end of inner classes & enums of RtspClient
-
-  pyClassRtspClient
-      .def(py::init<>()) // implicit default constructor
-      .def("send_request", &espp::RtspClient::send_request, py::arg("method"), py::arg("path"),
-           py::arg("extra_headers"), py::arg("ec"),
-           "/ Send an RTSP request to the server\n/ \note This is a blocking call\n/ \note This "
-           "will parse the response and set the session ID if it is\n/      present in the "
-           "response. If the response is not a 200 OK, then\n/      an error code will be set and "
-           "the response will be returned.\n/      If the response is a 200 OK, then the response "
-           "will be returned\n/      and the error code will be set to success.\n/ \\param method "
-           "The method to use for connecting.\n/       Options are \"OPTIONS\", \"DESCRIBE\", "
-           "\"SETUP\", \"PLAY\", and \"TEARDOWN\"\n/ \\param path The path to the RTSP stream on "
-           "the server.\n/ \\param extra_headers Any extra headers to send with the request. "
-           "These\n/      will be added to the request after the CSeq and Session headers. The\n/  "
-           "    key is the header name and the value is the header value. For example,\n/      "
-           "{\"Accept\": \"application/sdp\"} will add \"Accept: application/sdp\" to the\n/      "
-           "request. The \"User-Agent\" header will be added automatically. The\n/      \"CSeq\" "
-           "and \"Session\" headers will be added automatically.\n/      The \"Accept\" header "
-           "will be added automatically. The \"Transport\"\n/      header will be added "
-           "automatically for the \"SETUP\" method. Defaults to\n/      an empty map.\n/ \\param "
-           "ec The error code to set if an error occurs\n/ \\return The response from the server")
-      .def("connect", &espp::RtspClient::connect, py::arg("ec"),
-           "/ Connect to the RTSP server\n/ Connects to the RTSP server and sends the OPTIONS "
-           "request.\n/ \\param ec The error code to set if an error occurs")
-      .def("disconnect", &espp::RtspClient::disconnect, py::arg("ec"),
-           "/ Disconnect from the RTSP server\n/ Disconnects from the RTSP server and sends the "
-           "TEARDOWN request.\n/ \\param ec The error code to set if an error occurs")
-      .def("describe", &espp::RtspClient::describe, py::arg("ec"),
-           "/ Describe the RTSP stream\n/ Sends the DESCRIBE request to the RTSP server and parses "
-           "the response.\n/ \\param ec The error code to set if an error occurs")
-      .def("setup", py::overload_cast<std::error_code &>(&espp::RtspClient::setup), py::arg("ec"),
-           "/ Setup the RTSP stream\n/ \note Starts the RTP and RTCP threads.\n/ Sends the SETUP "
-           "request to the RTSP server and parses the response.\n/ \note The default ports are "
-           "5000 and 5001 for RTP and RTCP respectively.\n/ \\param ec The error code to set if an "
-           "error occurs")
-      .def("setup", py::overload_cast<size_t, size_t, std::error_code &>(&espp::RtspClient::setup),
-           py::arg("rtp_port"), py::arg("rtcp_port"), py::arg("ec"),
-           "/ Setup the RTSP stream\n/ Sends the SETUP request to the RTSP server and parses the "
-           "response.\n/ \note Starts the RTP and RTCP threads.\n/ \\param rtp_port The RTP client "
-           "port\n/ \\param rtcp_port The RTCP client port\n/ \\param ec The error code to set if "
-           "an error occurs")
-      .def("play", &espp::RtspClient::play, py::arg("ec"),
-           "/ Play the RTSP stream\n/ Sends the PLAY request to the RTSP server and parses the "
-           "response.\n/ \\param ec The error code to set if an error occurs")
-      .def("pause", &espp::RtspClient::pause, py::arg("ec"),
-           "/ Pause the RTSP stream\n/ Sends the PAUSE request to the RTSP server and parses the "
-           "response.\n/ \\param ec The error code to set if an error occurs")
-      .def("teardown", &espp::RtspClient::teardown, py::arg("ec"),
-           "/ Teardown the RTSP stream\n/ Sends the TEARDOWN request to the RTSP server and parses "
-           "the response.\n/ \\param ec The error code to set if an error occurs");
-  ////////////////////    </generated_from:rtsp_client.hpp>    ////////////////////
-
-  ////////////////////    <generated_from:rtsp_server.hpp>    ////////////////////
-  auto pyClassRtspServer = py::class_<espp::RtspServer>(
-      m, "RtspServer",
-      "/ Class for streaming MJPEG data from a camera using RTSP + RTP\n/ Starts a TCP socket to "
-      "listen for RTSP connections, and then spawns off a\n/ new RTSP session for each "
-      "connection.\n/ @see RtspSession\n/ @note This class does not currently send RTCP "
-      "packets\n/\n/ \\section RtspServer example\n/ \\snippet rtsp_example.cpp "
-      "rtsp_server_example");
-
-  { // inner classes & enums of RtspServer
-    auto pyClassRtspServer_ClassConfig =
-        py::class_<espp::RtspServer::Config>(pyClassRtspServer, "Config",
-                                             "/ @brief Configuration for the RTSP server")
-            .def(py::init<>([](std::string server_address = std::string(), int port = int(),
-                               std::string path = std::string(), size_t max_data_size = 1000,
-                               espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
-                   auto r = std::make_unique<espp::RtspServer::Config>();
-                   r->server_address = server_address;
-                   r->port = port;
-                   r->path = path;
-                   r->max_data_size = max_data_size;
-                   r->log_level = log_level;
-                   return r;
-                 }),
-                 py::arg("server_address") = std::string(), py::arg("port") = int(),
-                 py::arg("path") = std::string(), py::arg("max_data_size") = 1000,
-                 py::arg("log_level") = espp::Logger::Verbosity::WARN)
-            .def_readwrite("server_address", &espp::RtspServer::Config::server_address,
-                           "/< The ip address of the server")
-            .def_readwrite("port", &espp::RtspServer::Config::port, "/< The port to listen on")
-            .def_readwrite("path", &espp::RtspServer::Config::path,
-                           "/< The path to the RTSP stream")
-            .def_readwrite("max_data_size", &espp::RtspServer::Config::max_data_size,
-                           "/< The maximum size of RTP packet data for the MJPEG stream. Frames "
-                           "will be broken")
-            .def_readwrite("log_level", &espp::RtspServer::Config::log_level,
-                           "/< The log level for the RTSP server");
-  } // end of inner classes & enums of RtspServer
-
-  pyClassRtspServer
-      .def(py::init<>()) // implicit default constructor
-      .def("set_session_log_level", &espp::RtspServer::set_session_log_level, py::arg("log_level"),
-           "/ @brief Sets the log level for the RTSP sessions created by this server\n/ @note This "
-           "does not affect the log level of the RTSP server itself\n/ @note This does not change "
-           "the log level of any sessions that have\n/       already been created\n/ @param "
-           "log_level The log level to set")
-      .def("start", &espp::RtspServer::start,
-           "/ @brief Start the RTSP server\n/ Starts the accept task, session task, and binds the "
-           "RTSP socket\n/ @return True if the server was started successfully, False otherwise")
-      .def("stop", &espp::RtspServer::stop,
-           "/ @brief Stop the FTP server\n/ Stops the accept task, session task, and closes the "
-           "RTSP socket")
-      .def("send_frame", &espp::RtspServer::send_frame, py::arg("frame"),
-           "/ @brief Send a frame over the RTSP connection\n/ Converts the full JPEG frame into a "
-           "series of simplified RTP/JPEG\n/ packets and stores it to be sent over the RTP socket, "
-           "but does not\n/ actually send it\n/ @note Overwrites any existing frame that has not "
-           "been sent\n/ @param frame The frame to send");
-  ////////////////////    </generated_from:rtsp_server.hpp>    ////////////////////
-
   ////////////////////    <generated_from:socket.hpp>    ////////////////////
   auto pyClassSocket =
       py::class_<espp::Socket>(m, "Socket",
@@ -1419,7 +1001,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Socket
 
   pyClassSocket
-      .def(py::init<>()) // implicit default constructor
       .def(
           "is_valid", [](espp::Socket &self) { return self.is_valid(); },
           "*\n   * @brief Is the socket valid.\n   * @return True if the socket file descriptor is "
@@ -1502,7 +1083,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of TcpSocket
 
   pyClassTcpSocket
-      .def(py::init<>()) // implicit default constructor
       .def("reinit", &espp::TcpSocket::reinit,
            "*\n   * @brief Reinitialize the socket, cleaning it up if first it is already\n   *    "
            "    initalized.\n")
@@ -1610,7 +1190,8 @@ void py_init_module_espp_lib(py::module &m) {
                                bool is_multicast_endpoint = {false},
                                bool wait_for_response = {false}, size_t response_size = {0},
                                espp::Socket::response_callback_fn on_response_callback = {nullptr},
-                               std::chrono::duration<float> response_timeout = {0.5f}) {
+                               std::chrono::duration<float> response_timeout =
+                                   std::chrono::duration<float>(0.5f)) {
                    auto r = std::make_unique<espp::UdpSocket::SendConfig>();
                    r->ip_address = ip_address;
                    r->port = port;
@@ -1625,7 +1206,7 @@ void py_init_module_espp_lib(py::module &m) {
                  py::arg("is_multicast_endpoint") = bool{false},
                  py::arg("wait_for_response") = bool{false}, py::arg("response_size") = size_t{0},
                  py::arg("on_response_callback") = espp::Socket::response_callback_fn{nullptr},
-                 py::arg("response_timeout") = std::chrono::duration<float>{0.5f})
+                 py::arg("response_timeout") = std::chrono::duration<float>(0.5f))
             .def_readwrite("ip_address", &espp::UdpSocket::SendConfig::ip_address,
                            "*< Address to send data to.")
             .def_readwrite("port", &espp::UdpSocket::SendConfig::port,
@@ -1658,7 +1239,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of UdpSocket
 
   pyClassUdpSocket
-      .def(py::init<>()) // implicit default constructor
       .def("send",
            py::overload_cast<const std::vector<uint8_t> &, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -1789,7 +1369,7 @@ void py_init_module_espp_lib(py::module &m) {
             "callback.\n")
             .def(py::init<>(
                      [](espp::Task::simple_callback_fn callback = espp::Task::simple_callback_fn(),
-                        BaseConfig task_config = BaseConfig(),
+                        espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
                         espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
                        auto r = std::make_unique<espp::Task::SimpleConfig>();
                        r->callback = callback;
@@ -1798,7 +1378,7 @@ void py_init_module_espp_lib(py::module &m) {
                        return r;
                      }),
                  py::arg("callback") = espp::Task::simple_callback_fn(),
-                 py::arg("task_config") = BaseConfig(),
+                 py::arg("task_config") = espp::Task::BaseConfig(),
                  py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
             .def_readwrite("callback", &espp::Task::SimpleConfig::callback, "*< Callback function")
             .def_readwrite("task_config", &espp::Task::SimpleConfig::task_config,
@@ -1833,7 +1413,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Task
 
   pyClassTask
-      .def(py::init<>()) // implicit default constructor
       .def_static("make_unique",
                   py::overload_cast<const espp::Task::Config &>(&espp::Task::make_unique),
                   py::arg("config"),
@@ -1905,7 +1484,7 @@ void py_init_module_espp_lib(py::module &m) {
                                         "/ @brief The configuration for the timer.")
             .def(py::init<>([](std::string_view name = std::string_view(),
                                std::chrono::duration<float> period = std::chrono::duration<float>(),
-                               std::chrono::duration<float> delay = {0},
+                               std::chrono::duration<float> delay = std::chrono::duration<float>(0),
                                espp::Timer::callback_fn callback = espp::Timer::callback_fn(),
                                bool auto_start = {true}, size_t stack_size_bytes = {4096},
                                size_t priority = {0}, int core_id = {-1},
@@ -1924,7 +1503,7 @@ void py_init_module_espp_lib(py::module &m) {
                  }),
                  py::arg("name") = std::string_view(),
                  py::arg("period") = std::chrono::duration<float>(),
-                 py::arg("delay") = std::chrono::duration<float>{0},
+                 py::arg("delay") = std::chrono::duration<float>(0),
                  py::arg("callback") = espp::Timer::callback_fn(),
                  py::arg("auto_start") = bool{true}, py::arg("stack_size_bytes") = size_t{4096},
                  py::arg("priority") = size_t{0}, py::arg("core_id") = int{-1},
@@ -1951,7 +1530,6 @@ void py_init_module_espp_lib(py::module &m) {
   } // end of inner classes & enums of Timer
 
   pyClassTimer
-      .def(py::init<>()) // implicit default constructor
       .def(
           "start", [](espp::Timer &self) { return self.start(); },
           "/ @brief Start the timer.\n/ @details Starts the timer. Does nothing if the timer is "
