@@ -274,7 +274,9 @@ protected:
     if(event->code == LV_EVENT_RESOLUTION_CHANGED) {
       auto rotation = lv_display_get_rotation(lv_display_get_default());
       auto rotation_callback = reinterpret_cast<rotation_fn>(lv_event_get_user_data(event));
-      rotation_callback(static_cast<DisplayRotation>(rotation));
+      if (rotation_callback != nullptr) {
+        rotation_callback(static_cast<DisplayRotation>(rotation));
+      }
     }
   };
 
