@@ -236,6 +236,81 @@ void py_init_module_espp_lib(py::module &m) {
           .def("stop", &espp::FtpServer::stop, "/ \\brief Stop the FTP server.");
   ////////////////////    </generated_from:ftp_server.hpp>    ////////////////////
 
+  ////////////////////    <generated_from:logger.hpp>    ////////////////////
+  auto pyClassLogger = py::class_<espp::Logger>(
+      m, "Logger", py::dynamic_attr(),
+      "*\n * @brief Logger provides a wrapper around nicer / more robust formatting than\n * "
+      "standard ESP_LOG* macros with the ability to change the log level at\n * run-time. Logger "
+      "currently is a light wrapper around libfmt (future\n * std::format).\n *\n * To save on "
+      "code size, the logger has the ability to be compiled out based on\n * the log level set in "
+      "the sdkconfig. This means that if the log level is set to\n * ERROR, all debug, info, and "
+      "warn logs will be compiled out. This is done by\n * checking the log level at compile time "
+      "and only compiling in the functions\n * that are needed.\n *\n * \\section logger_ex1 Basic "
+      "Example\n * \\snippet logger_example.cpp Logger example\n * \\section logger_ex2 Threaded "
+      "Logging and Verbosity Example\n * \\snippet logger_example.cpp MultiLogger example\n");
+
+  { // inner classes & enums of Logger
+    py::enum_<espp::Logger::Verbosity>(
+        pyClassLogger, "Verbosity", py::arithmetic(),
+        "*\n   *   Verbosity levels for the logger, in order of increasing priority.\n")
+        .value("debug", espp::Logger::Verbosity::DEBUG, "*< Debug level verbosity.")
+        .value("info", espp::Logger::Verbosity::INFO, "*< Info level verbosity.")
+        .value("warn", espp::Logger::Verbosity::WARN, "*< Warn level verbosity.")
+        .value("error", espp::Logger::Verbosity::ERROR, "*< Error level verbosity.")
+        .value("none", espp::Logger::Verbosity::NONE,
+               "*< No verbosity - logger will not print anything.");
+    auto pyClassLogger_ClassConfig =
+        py::class_<espp::Logger::Config>(pyClassLogger, "Config", py::dynamic_attr(),
+                                         "*\n   * @brief Configuration struct for the logger.\n")
+            .def(py::init<>(
+                     [](std::string_view tag = std::string_view(), bool include_time = {true},
+                        std::chrono::duration<float> rate_limit = std::chrono::duration<float>(0),
+                        espp::Logger::Verbosity level = espp::Logger::Verbosity::WARN) {
+                       auto r = std::make_unique<espp::Logger::Config>();
+                       r->tag = tag;
+                       r->include_time = include_time;
+                       r->rate_limit = rate_limit;
+                       r->level = level;
+                       return r;
+                     }),
+                 py::arg("tag") = std::string_view(), py::arg("include_time") = bool{true},
+                 py::arg("rate_limit") = std::chrono::duration<float>(0),
+                 py::arg("level") = espp::Logger::Verbosity::WARN)
+            .def_readwrite("tag", &espp::Logger::Config::tag,
+                           "*< The TAG that will be prepended to all logs.")
+            .def_readwrite("include_time", &espp::Logger::Config::include_time,
+                           "*< Include the time in the log.")
+            .def_readwrite(
+                "rate_limit", &espp::Logger::Config::rate_limit,
+                "*< The rate limit for the logger. Optional, if <= 0 no\nrate limit. @note Only "
+                "calls that have _rate_limited suffixed will be rate limited.")
+            .def_readwrite("level", &espp::Logger::Config::level,
+                           "*< The verbosity level for the logger.");
+  } // end of inner classes & enums of Logger
+
+  pyClassLogger
+      .def("set_verbosity", &espp::Logger::set_verbosity, py::arg("level"),
+           "*\n   * @brief Change the verbosity for the logger. \\sa Logger::Verbosity\n   * "
+           "@param level new verbosity level\n")
+      .def("set_tag", &espp::Logger::set_tag, py::arg("tag"),
+           "*\n   * @brief Change the tag for the logger.\n   * @param tag The new tag.\n")
+      .def("get_tag", &espp::Logger::get_tag,
+           "*\n   * @brief Get the current tag for the logger.\n   * @return A const reference to "
+           "the current tag.\n")
+      .def("set_include_time", &espp::Logger::set_include_time, py::arg("include_time"),
+           "*\n   * @brief Whether to include the time in the log.\n   * @param include_time "
+           "Whether to include the time in the log.\n   * @note The time is in seconds since boot "
+           "and is represented as a floating\n   *       point number with precision to the "
+           "millisecond.\n")
+      .def("set_rate_limit", &espp::Logger::set_rate_limit, py::arg("rate_limit"),
+           "*\n   * @brief Change the rate limit for the logger.\n   * @param rate_limit The new "
+           "rate limit.\n   * @note Only calls that have _rate_limited suffixed will be rate "
+           "limited.\n")
+      .def("get_rate_limit", &espp::Logger::get_rate_limit,
+           "*\n   * @brief Get the current rate limit for the logger.\n   * @return The current "
+           "rate limit.\n");
+  ////////////////////    </generated_from:logger.hpp>    ////////////////////
+
   ////////////////////    <generated_from:bezier.hpp>    ////////////////////
   auto pyClassBezier_espp_Vector2f = py::class_<espp::Bezier<espp::Vector2f>>(
       m, "Bezier_espp_Vector2f", py::dynamic_attr(),
@@ -276,9 +351,9 @@ void py_init_module_espp_lib(py::module &m) {
 
   pyClassBezier_espp_Vector2f.def(
       "__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
-      "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around the "
-      "at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The bezier "
-      "evaluated at \\p t.\n");
+      "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around "
+      "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
+      "bezier evaluated at \\p t.\n");
   ////////////////////    </generated_from:bezier.hpp>    ////////////////////
 
   ////////////////////    <generated_from:fast_math.hpp>    ////////////////////
@@ -943,81 +1018,6 @@ void py_init_module_espp_lib(py::module &m) {
                "@return The normalized vector.\n");
   ////////////////////    </generated_from:vector2d.hpp>    ////////////////////
 
-  ////////////////////    <generated_from:logger.hpp>    ////////////////////
-  auto pyClassLogger = py::class_<espp::Logger>(
-      m, "Logger", py::dynamic_attr(),
-      "*\n * @brief Logger provides a wrapper around nicer / more robust formatting than\n * "
-      "standard ESP_LOG* macros with the ability to change the log level at\n * run-time. Logger "
-      "currently is a light wrapper around libfmt (future\n * std::format).\n *\n * To save on "
-      "code size, the logger has the ability to be compiled out based on\n * the log level set in "
-      "the sdkconfig. This means that if the log level is set to\n * ERROR, all debug, info, and "
-      "warn logs will be compiled out. This is done by\n * checking the log level at compile time "
-      "and only compiling in the functions\n * that are needed.\n *\n * \\section logger_ex1 Basic "
-      "Example\n * \\snippet logger_example.cpp Logger example\n * \\section logger_ex2 Threaded "
-      "Logging and Verbosity Example\n * \\snippet logger_example.cpp MultiLogger example\n");
-
-  { // inner classes & enums of Logger
-    py::enum_<espp::Logger::Verbosity>(
-        pyClassLogger, "Verbosity", py::arithmetic(),
-        "*\n   *   Verbosity levels for the logger, in order of increasing priority.\n")
-        .value("debug", espp::Logger::Verbosity::DEBUG, "*< Debug level verbosity.")
-        .value("info", espp::Logger::Verbosity::INFO, "*< Info level verbosity.")
-        .value("warn", espp::Logger::Verbosity::WARN, "*< Warn level verbosity.")
-        .value("error", espp::Logger::Verbosity::ERROR, "*< Error level verbosity.")
-        .value("none", espp::Logger::Verbosity::NONE,
-               "*< No verbosity - logger will not print anything.");
-    auto pyClassLogger_ClassConfig =
-        py::class_<espp::Logger::Config>(pyClassLogger, "Config", py::dynamic_attr(),
-                                         "*\n   * @brief Configuration struct for the logger.\n")
-            .def(py::init<>(
-                     [](std::string_view tag = std::string_view(), bool include_time = {true},
-                        std::chrono::duration<float> rate_limit = std::chrono::duration<float>(0),
-                        espp::Logger::Verbosity level = espp::Logger::Verbosity::WARN) {
-                       auto r = std::make_unique<espp::Logger::Config>();
-                       r->tag = tag;
-                       r->include_time = include_time;
-                       r->rate_limit = rate_limit;
-                       r->level = level;
-                       return r;
-                     }),
-                 py::arg("tag") = std::string_view(), py::arg("include_time") = bool{true},
-                 py::arg("rate_limit") = std::chrono::duration<float>(0),
-                 py::arg("level") = espp::Logger::Verbosity::WARN)
-            .def_readwrite("tag", &espp::Logger::Config::tag,
-                           "*< The TAG that will be prepended to all logs.")
-            .def_readwrite("include_time", &espp::Logger::Config::include_time,
-                           "*< Include the time in the log.")
-            .def_readwrite(
-                "rate_limit", &espp::Logger::Config::rate_limit,
-                "*< The rate limit for the logger. Optional, if <= 0 no rate limit. @note Only "
-                "calls\n               that have _rate_limited suffixed will be rate limited.")
-            .def_readwrite("level", &espp::Logger::Config::level,
-                           "*< The verbosity level for the logger.");
-  } // end of inner classes & enums of Logger
-
-  pyClassLogger
-      .def("set_verbosity", &espp::Logger::set_verbosity, py::arg("level"),
-           "*\n   * @brief Change the verbosity for the logger. \\sa Logger::Verbosity\n   * "
-           "@param level new verbosity level\n")
-      .def("set_tag", &espp::Logger::set_tag, py::arg("tag"),
-           "*\n   * @brief Change the tag for the logger.\n   * @param tag The new tag.\n")
-      .def("get_tag", &espp::Logger::get_tag,
-           "*\n   * @brief Get the current tag for the logger.\n   * @return A const reference to "
-           "the current tag.\n")
-      .def("set_include_time", &espp::Logger::set_include_time, py::arg("include_time"),
-           "*\n   * @brief Whether to include the time in the log.\n   * @param include_time "
-           "Whether to include the time in the log.\n   * @note The time is in seconds since boot "
-           "and is represented as a floating\n   *       point number with precision to the "
-           "millisecond.\n")
-      .def("set_rate_limit", &espp::Logger::set_rate_limit, py::arg("rate_limit"),
-           "*\n   * @brief Change the rate limit for the logger.\n   * @param rate_limit The new "
-           "rate limit.\n   * @note Only calls that have _rate_limited suffixed will be rate "
-           "limited.\n")
-      .def("get_rate_limit", &espp::Logger::get_rate_limit,
-           "*\n   * @brief Get the current rate limit for the logger.\n   * @return The current "
-           "rate limit.\n");
-  ////////////////////    </generated_from:logger.hpp>    ////////////////////
-
   ////////////////////    <generated_from:socket.hpp>    ////////////////////
   auto pyClassSocket =
       py::class_<espp::Socket>(m, "Socket", py::dynamic_attr(),
@@ -1178,8 +1178,8 @@ void py_init_module_espp_lib(py::module &m) {
                 "*< If waiting for a response, this is the maximum size response we will receive.")
             .def_readwrite("on_response_callback",
                            &espp::TcpSocket::TransmitConfig::on_response_callback,
-                           "*< If waiting for a response, this is an optional handler which is "
-                           "provided the\n                   response data.")
+                           "*< If waiting for a\n                   response, this is an optional "
+                           "handler which is provided the response data.")
             .def_readwrite("response_timeout", &espp::TcpSocket::TransmitConfig::response_timeout,
                            "*< If waiting for a response, this is the maximum timeout to wait.")
             .def_static("default", &espp::TcpSocket::TransmitConfig::Default);
