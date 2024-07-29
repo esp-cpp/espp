@@ -310,7 +310,7 @@ bool EspBox::initialize_display(size_t pixel_buffer_size) {
   }
   // initialize the display / lvgl
   using namespace std::chrono_literals;
-  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel >::AllocatingConfig{
+  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel>::AllocatingConfig{
       .width = lcd_width_,
       .height = lcd_height_,
       .pixel_buffer_size = pixel_buffer_size,

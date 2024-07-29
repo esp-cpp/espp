@@ -116,8 +116,9 @@ extern "C" void app_main(void) {
     {
       std::lock_guard<std::mutex> lock(lvgl_mutex);
       int encoder_count = mt_display.encoder_value();
-      lv_label_set_text_fmt(
-                            label, "Touch the screen!\nPress the button to clear circles.\nEncoder: %d", encoder_count);
+      lv_label_set_text_fmt(label,
+                            "Touch the screen!\nPress the button to clear circles.\nEncoder: %d",
+                            encoder_count);
     }
     // sleep for the remaining time
     auto end = esp_timer_get_time();

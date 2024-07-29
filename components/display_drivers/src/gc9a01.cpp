@@ -6,3 +6,5 @@ gpio_num_t espp::Gc9a01::reset_pin_;
 gpio_num_t espp::Gc9a01::dc_pin_;
 int espp::Gc9a01::offset_x_;
 int espp::Gc9a01::offset_y_;
+bool espp::Gc9a01::swap_xy_ = false;
+std::mutex espp::Gc9a01::spi_mutex_;
