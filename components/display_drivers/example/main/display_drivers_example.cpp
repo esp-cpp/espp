@@ -131,9 +131,9 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
   trans[0].tx_data[0] = (uint8_t)espp::Gc9a01::Command::caset;
 #endif
   trans[1].tx_data[0] = (xs) >> 8;
-  trans[1].tx_data[1] = (xs) & 0xff;
+  trans[1].tx_data[1] = (xs)&0xff;
   trans[1].tx_data[2] = (xe) >> 8;
-  trans[1].tx_data[3] = (xe) & 0xff;
+  trans[1].tx_data[3] = (xe)&0xff;
 #if CONFIG_HARDWARE_WROVER_KIT
   trans[2].tx_data[0] = (uint8_t)espp::Ili9341::Command::raset;
 #elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
@@ -142,9 +142,9 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
   trans[2].tx_data[0] = (uint8_t)espp::Gc9a01::Command::raset;
 #endif
   trans[3].tx_data[0] = (ys) >> 8;
-  trans[3].tx_data[1] = (ys) & 0xff;
+  trans[3].tx_data[1] = (ys)&0xff;
   trans[3].tx_data[2] = (ye) >> 8;
-  trans[3].tx_data[3] = (ye) & 0xff;
+  trans[3].tx_data[3] = (ye)&0xff;
 #if CONFIG_HARDWARE_WROVER_KIT
   trans[4].tx_data[0] = (uint8_t)espp::Ili9341::Command::ramwr;
 #elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
