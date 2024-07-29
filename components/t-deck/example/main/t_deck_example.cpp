@@ -24,6 +24,7 @@ extern "C" void app_main(void) {
   auto keypress_callback = [&](uint8_t key) {
     logger.info("Key pressed: {}", key);
     if (key == 8) {
+      std::lock_guard<std::mutex> lock(lvgl_mutex);
       clear_circles();
     }
   };

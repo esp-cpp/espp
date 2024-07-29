@@ -296,7 +296,7 @@ protected:
   static constexpr bool backlight_value = true;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
-  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE_INVERTED;
+  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = false;
   static constexpr bool swap_xy = false;
@@ -305,8 +305,8 @@ protected:
 
   // touch
   static constexpr bool touch_swap_xy = true;
-  static constexpr bool touch_invert_x = true;
-  static constexpr bool touch_invert_y = false;
+  static constexpr bool touch_invert_x = false;
+  static constexpr bool touch_invert_y = true;
   static constexpr gpio_num_t touch_interrupt = GPIO_NUM_16;
 
   // TODO: allow core id configuration

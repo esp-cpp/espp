@@ -345,9 +345,10 @@ protected:
   static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_4;
   static constexpr bool backlight_value = true;
   static constexpr bool invert_colors = true;
-  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
-  static constexpr bool mirror_x = true;
-  static constexpr bool mirror_y = true;
+  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE_INVERTED;
+  static constexpr bool mirror_x = false;
+  static constexpr bool mirror_y = false;
+  static constexpr bool swap_xy = false;
   using DisplayDriver = espp::St7789;
 
   // touch

@@ -276,16 +276,16 @@ protected:
   static constexpr bool backlight_value = true;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = true;
-  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE_INVERTED;
-  static constexpr bool mirror_x = true;
-  static constexpr bool mirror_y = true;
+  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
+  static constexpr bool mirror_x = false;
+  static constexpr bool mirror_y = false;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_7;
   using DisplayDriver = espp::Gc9a01;
 
   // touch
   static constexpr bool touch_swap_xy = false;
-  static constexpr bool touch_invert_x = true;
-  static constexpr bool touch_invert_y = true;
+  static constexpr bool touch_invert_x = false;
+  static constexpr bool touch_invert_y = false;
   static constexpr gpio_num_t touch_reset = GPIO_NUM_16;
   static constexpr gpio_num_t touch_interrupt = GPIO_NUM_40;
 

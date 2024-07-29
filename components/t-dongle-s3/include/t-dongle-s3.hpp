@@ -194,7 +194,7 @@ protected:
   static constexpr bool backlight_value = false;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
-  static constexpr auto rotation = espp::DisplayRotation::PORTRAIT;
+  static constexpr auto rotation = espp::DisplayRotation::PORTRAIT_INVERTED;
   static constexpr bool swap_xy = true;
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = true;
