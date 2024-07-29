@@ -437,6 +437,72 @@ class FtpServer:
 ####################    </generated_from:ftp_server.hpp>    ####################
 
 
+####################    <generated_from:ftp_client_session.hpp>    ####################
+
+
+
+
+
+
+class FtpClientSession:
+    """/ Class representing a client that is connected to the FTP server. This
+    / class is used by the FtpServer class to handle the client's requests.
+    """
+    def __init__(
+        self,
+        id: int,
+        local_address: std.string_view,
+        socket: TcpSocket,
+        root_path: std.filesystem.path
+        ) -> None:
+        pass
+
+
+    def id(self) -> int:
+        """/ \brief Get the id of the client session.
+        / \return The id of the client session.
+        """
+        pass
+
+    def current_directory(self) -> std.filesystem.path:
+        """/ \brief Get the current directory of the client session.
+        / \return The current directory of the client session.
+        """
+        pass
+
+    def is_connected(self) -> bool:
+        """/ \brief Check if the client session has a valid control connection.
+        / \details This function checks if the client session has a valid control
+        /     connection. A control connection is valid if the control socket is
+        /     valid and connected.
+        / \return True if the control connection is valid, False otherwise.
+        """
+        pass
+
+    def is_passive_data_connection(self) -> bool:
+        """/ \brief Check if the client is using a passive data connection.
+        / \details This function checks if the client is using a passive data
+        /     connection. A client is using a passive data connection if the
+        /     client has sent a PASV command and the session was able to create
+        /     a passive socket.
+        / \return True if the client is using a passive data connection, False
+        /     otherwise.
+        """
+        pass
+
+    def is_alive(self) -> bool:
+        """/ \brief Check if the client session is alive.
+        / \details This function checks if the client session is alive. A client
+        /     session is alive if the task is running.
+        / \return True if the client session is alive, False otherwise.
+        """
+        pass
+
+
+
+####################    </generated_from:ftp_client_session.hpp>    ####################
+
+
 ####################    <generated_from:bezier.hpp>    ####################
 
 
@@ -1683,6 +1749,130 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 ####################    </generated_from:vector2d.hpp>    ####################
 
 
+####################    <generated_from:logger.hpp>    ####################
+
+
+
+
+
+class Logger:
+    """*
+     * @brief Logger provides a wrapper around nicer / more robust formatting than
+     * standard ESP_LOG* macros with the ability to change the log level at
+     * run-time. Logger currently is a light wrapper around libfmt (future
+     * std::format).
+     *
+     * To save on code size, the logger has the ability to be compiled out based on
+     * the log level set in the sdkconfig. This means that if the log level is set to
+     * ERROR, all debug, info, and warn logs will be compiled out. This is done by
+     * checking the log level at compile time and only compiling in the functions
+     * that are needed.
+     *
+     * \section logger_ex1 Basic Example
+     * \snippet logger_example.cpp Logger example
+     * \section logger_ex2 Threaded Logging and Verbosity Example
+     * \snippet logger_example.cpp MultiLogger example
+
+    """
+    class Verbosity(enum.Enum):
+        """*
+           *   Verbosity levels for the logger, in order of increasing priority.
+
+        """
+        debug = enum.auto()                                                     # (= 0)  #*< Debug level verbosity.
+        info = enum.auto()                                                      # (= 1)  #*< Info level verbosity.
+        warn = enum.auto()                                                      # (= 2)  #*< Warn level verbosity.
+        error = enum.auto()                                                     # (= 3)  #*< Error level verbosity.
+        none = enum.auto()                                                      # (= 4)  #*< No verbosity - logger will not print anything.
+
+    class Config:
+        """*
+           * @brief Configuration struct for the logger.
+
+        """
+        tag: std.string_view                                                    #*< The TAG that will be prepended to all logs.
+        include_time: bool = bool(True)                                         #*< Include the time in the log.
+        rate_limit: std.chrono.duration<float> = std.chrono.duration<float>(0)  #*< The rate limit for the logger. Optional, if <= 0 no rate limit. @note Only calls
+                       that have _rate_limited suffixed will be rate limited.
+        level: Verbosity = Verbosity.warn                                       #*< The verbosity level for the logger.
+        def __init__(
+            self,
+            tag: std.string_view = std.string_view(),
+            include_time: bool = bool(True),
+            rate_limit: std.chrono.duration<float> = std.chrono.duration<float>(0),
+            level: Verbosity = Verbosity.warn
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    def set_verbosity(self, level: Logger.Verbosity) -> None:
+        """*
+           * @brief Change the verbosity for the logger. \sa Logger::Verbosity
+           * @param level new verbosity level
+
+        """
+        pass
+
+    def set_tag(self, tag: std.string_view) -> None:
+        """*
+           * @brief Change the tag for the logger.
+           * @param tag The new tag.
+
+        """
+        pass
+
+    def get_tag(self) -> str:
+        """*
+           * @brief Get the current tag for the logger.
+           * @return A const reference to the current tag.
+
+        """
+        pass
+
+    def set_include_time(self, include_time: bool) -> None:
+        """*
+           * @brief Whether to include the time in the log.
+           * @param include_time Whether to include the time in the log.
+           * @note The time is in seconds since boot and is represented as a floating
+           *       point number with precision to the millisecond.
+
+        """
+        pass
+
+    def set_rate_limit(self, rate_limit: std.chrono.duration<float>) -> None:
+        """*
+           * @brief Change the rate limit for the logger.
+           * @param rate_limit The new rate limit.
+           * @note Only calls that have _rate_limited suffixed will be rate limited.
+
+        """
+        pass
+
+    def get_rate_limit(self) -> std.chrono.duration<float>:
+        """*
+           * @brief Get the current rate limit for the logger.
+           * @return The current rate limit.
+
+        """
+        pass
+
+
+
+
+
+
+
+
+
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+####################    </generated_from:logger.hpp>    ####################
+
+
 ####################    <generated_from:socket.hpp>    ####################
 
 
@@ -1880,7 +2070,6 @@ class Socket:
 
 
 
-
 class TcpSocket:
     """*
      *   @brief Class for managing sending and receiving data using TCP/IP. Can be
@@ -1903,10 +2092,10 @@ class TcpSocket:
            * @brief Config struct for the TCP socket.
 
         """
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.WARN)  #*< Verbosity level for the TCP socket logger.
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Verbosity level for the TCP socket logger.
         def __init__(
             self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -1919,6 +2108,31 @@ class TcpSocket:
         ip_address: str                                                                       #*< Address to send data to.
         port: int                                                                             #*< Port number to send data to.
         def __init__(self, ip_address: str = "", port: int = int()) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+    class TransmitConfig:
+        """*
+           * @brief Config struct for sending data to a remote TCP socket.
+           * @note This is only used when waiting for a response from the remote.
+
+        """
+        wait_for_response: bool = False                                                       #*< Whether to wait for a response from the remote or not.
+        response_size: int = 0                                                                #*< If waiting for a response, this is the maximum size response we will receive.
+        on_response_callback: espp.Socket.response_callback_fn = None                         #*< If waiting for a response, this is an optional handler which is provided the
+                           response data.
+        response_timeout: std.chrono.duration<float> = std.chrono.duration<float>(0.5)        #*< If waiting for a response, this is the maximum timeout to wait.
+
+        @staticmethod
+        def default() -> TcpSocket.TransmitConfig:
+            pass
+        def __init__(
+            self,
+            wait_for_response: bool = False,
+            response_size: int = 0,
+            on_response_callback: Socket.response_callback_fn = None,
+            response_timeout: std.chrono.duration<float> = std.chrono.duration<float>(0.5)
+            ) -> None:
             """Auto-generated default constructor with named params"""
             pass
 
@@ -1968,24 +2182,63 @@ class TcpSocket:
     def transmit(
         self,
         data: List[int],
-        transmit_config: detail.TcpTransmitConfig = detail.TcpTransmitConfig()
+        transmit_config: TcpSocket.TransmitConfig = TcpSocket.TransmitConfig.Default()
         ) -> bool:
+        """*
+           * @brief Send data to the endpoint already connected to by TcpSocket::connect.
+           *        Can be configured to block waiting for a response from the remote.
+           *
+           *        If response is requested, a callback can be provided in
+           *        send_config which will be provided the response data for
+           *        processing.
+           * @param data vector of bytes to send to the remote endpoint.
+           * @param transmit_config TransmitConfig struct indicating whether to wait for a
+           *        response.
+           * @return True if the data was sent, False otherwise.
+
+        """
         pass
 
     @overload
     def transmit(
         self,
         data: List[char],
-        transmit_config: detail.TcpTransmitConfig = detail.TcpTransmitConfig()
+        transmit_config: TcpSocket.TransmitConfig = TcpSocket.TransmitConfig.Default()
         ) -> bool:
+        """*
+           * @brief Send data to the endpoint already connected to by TcpSocket::connect.
+           *        Can be configured to block waiting for a response from the remote.
+           *
+           *        If response is requested, a callback can be provided in
+           *        send_config which will be provided the response data for
+           *        processing.
+           * @param data vector of bytes to send to the remote endpoint.
+           * @param transmit_config TransmitConfig struct indicating whether to wait for a
+           *        response.
+           * @return True if the data was sent, False otherwise.
+
+        """
         pass
 
     @overload
     def transmit(
         self,
         data: std.string_view,
-        transmit_config: detail.TcpTransmitConfig = detail.TcpTransmitConfig()
+        transmit_config: TcpSocket.TransmitConfig = TcpSocket.TransmitConfig.Default()
         ) -> bool:
+        """*
+           * @brief Send data to the endpoint already connected to by TcpSocket::connect.
+           *        Can be configured to block waiting for a response from the remote.
+           *
+           *        If response is requested, a callback can be provided in
+           *        send_config which will be provided the response data for
+           *        processing.
+           * @param data string view of bytes to send to the remote endpoint.
+           * @param transmit_config TransmitConfig struct indicating whether to wait for a
+           *        response.
+           * @return True if the data was sent, False otherwise.
+
+        """
         pass
 
     @overload
@@ -2131,10 +2384,10 @@ class UdpSocket:
             pass
 
     class Config:
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.WARN)             #*< Verbosity level for the UDP socket logger.
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)             #*< Verbosity level for the UDP socket logger.
         def __init__(
             self,
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -2298,7 +2551,7 @@ class Task:
         stack_size_bytes: int = int(4096)                                                     #*< Stack Size (B) allocated to the task.
         priority: int = int(0)                                                                #*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.
         core_id: int = int(-1)                                                                #*< Core ID of the task, -1 means it is not pinned to any core.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.WARN)  #*< Log verbosity for the task.
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Log verbosity for the task.
         def __init__(
             self,
             name: str = "",
@@ -2306,7 +2559,7 @@ class Task:
             stack_size_bytes: int = int(4096),
             priority: int = int(0),
             core_id: int = int(-1),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -2319,13 +2572,13 @@ class Task:
 
         """
         callback: espp.Task.simple_callback_fn                                                #*< Callback function
-        task_config: BaseConfig                                                               #*< Base configuration for the task.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.WARN)  #*< Log verbosity for the task.
+        task_config: espp.Task.BaseConfig                                                     #*< Base configuration for the task.
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Log verbosity for the task.
         def __init__(
             self,
             callback: Task.simple_callback_fn = Task.simple_callback_fn(),
-            task_config: BaseConfig = BaseConfig(),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
+            task_config: Task.BaseConfig = Task.BaseConfig(),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -2340,12 +2593,12 @@ class Task:
         """
         callback: espp.Task.callback_fn                                                       #*< Callback function
         task_config: espp.Task.BaseConfig                                                     #*< Base configuration for the task.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.WARN)  #*< Log verbosity for the task.
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Log verbosity for the task.
         def __init__(
             self,
             callback: Task.callback_fn = Task.callback_fn(),
             task_config: Task.BaseConfig = Task.BaseConfig(),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -2494,7 +2747,7 @@ class Timer:
         stack_size_bytes: int = int(4096)                              #/< The stack size of the task that runs the timer.
         priority: int = int(0)                                         #/< Priority of the timer, 0 is lowest priority on ESP / FreeRTOS.
         core_id: int = int(-1)                                         #/< Core ID of the timer, -1 means it is not pinned to any core.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity.WARN  #/< The log level for the timer.
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity.warn  #/< The log level for the timer.
         def __init__(
             self,
             name: std.string_view = std.string_view(),
@@ -2506,7 +2759,7 @@ class Timer:
             stack_size_bytes: int = int(4096),
             priority: int = int(0),
             core_id: int = int(-1),
-            log_level: Logger.Verbosity = Logger.Verbosity.WARN
+            log_level: Logger.Verbosity = Logger.Verbosity.warn
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass

@@ -10,6 +10,7 @@
 #include "event_manager.hpp"
 #include "fast_math.hpp"
 #include "file_system.hpp"
+#include "ftp_client_session.hpp"
 #include "ftp_server.hpp"
 #include "gaussian.hpp"
 // TODO: these are not working

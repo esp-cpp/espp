@@ -13,6 +13,8 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # The namespace espp is the C++ root namespace for the generated bindings
     # (i.e. no submodule will be generated for it in the python bindings)
     options.namespaces_root = ["espp"]
+    # we don't actualy want to exclude the detail namespace
+    options.namespace_exclude__regex = r"[Ii]nternal" # default was r"[Ii]nternal|[Dd]etail"
 
     # //////////////////////////////////////////////////////////////////
     # Basic functions bindings
@@ -29,7 +31,7 @@ def my_litgen_options() -> litgen.LitgenOptions:
     #  - A class will publish only its public methods and members
     # To prevent the generation of the default constructor with named parameters
     # for a specific struct, you can use the following option:
-    # options.struct_create_default_named_ctor__regex = r".*"
+    options.struct_create_default_named_ctor__regex = r".*"
     options.class_create_default_named_ctor__regex = r".*"
 
     # ///////////////////////////////////////////////////////////////////
@@ -42,7 +44,7 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # we'd like the following classes to be able to pick up new attributes
     # dynamically (within python):
     # -
-    # options.class_dynamic_attributes__regex = r".*"
+    options.class_dynamic_attributes__regex = r".*"
 
     # Inside `inline void SetOptions(bool v, bool priv_param = false) {}`,
     # we don't want to expose the private parameter priv_param
@@ -108,12 +110,13 @@ def autogenerate() -> None:
                     include_dir + "event_manager/include/event_manager.hpp",
                     # include_dir + "file_system/include/file_system.hpp",
                     include_dir + "ftp/include/ftp_server.hpp",
+                    # include_dir + "ftp/include/ftp_client_session.hpp", can't deal with tcpsocket unique ptr in constructor
                     include_dir + "math/include/bezier.hpp", # have to set class template options
                     include_dir + "math/include/fast_math.hpp",
                     include_dir + "math/include/gaussian.hpp",
                     include_dir + "math/include/range_mapper.hpp", # have to set class template options
                     include_dir + "math/include/vector2d.hpp", # have to set class template options
-                    # include_dir + "logger/include/logger.hpp",
+                    include_dir + "logger/include/logger.hpp",
                     # include_dir + "rtsp/include/jpeg_frame.hpp",
                     # include_dir + "rtsp/include/jpeg_header.hpp",
                     # include_dir + "rtsp/include/rtsp_client.hpp",
