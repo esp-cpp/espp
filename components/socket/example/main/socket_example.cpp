@@ -344,7 +344,7 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
     std::vector<uint8_t> data{0, 1, 2, 3, 4};
     std::transform(data.begin(), data.end(), data.begin(),
                    [](const auto &d) { return d + iterations; });
-    auto transmit_config = espp::detail::TcpTransmitConfig{
+    auto transmit_config = espp::TcpSocket::TransmitConfig{
         .wait_for_response = true,
         .response_size = 128,
         .on_response_callback =

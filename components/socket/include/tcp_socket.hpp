@@ -11,26 +11,6 @@
 #include "task.hpp"
 
 namespace espp {
-namespace detail {
-/**
- * @brief Config struct for sending data to a remote TCP socket.
- * @note This is only used when waiting for a response from the remote.
- * @note This must be outside the TcpSocket class because of a gcc bug that
- *       still has not been fixed. See
- *       https://stackoverflow.com/questions/53408962/try-to-understand-compiler-error-message-default-member-initializer-required-be
- */
-struct TcpTransmitConfig {
-  bool wait_for_response{false}; /**< Whether to wait for a response from the remote or not. */
-  size_t response_size{
-      0}; /**< If waiting for a response, this is the maximum size response we will receive. */
-  espp::Socket::response_callback_fn on_response_callback{
-      nullptr}; /**< If waiting for a response, this is an optional handler which is provided the
-                   response data. */
-  std::chrono::duration<float> response_timeout{
-      0.5f}; /**< If waiting for a response, this is the maximum timeout to wait. */
-};
-} // namespace detail
-
 /**
  *   @brief Class for managing sending and receiving data using TCP/IP. Can be
  *          used to create client or server sockets.
@@ -62,6 +42,22 @@ public:
   struct ConnectConfig {
     std::string ip_address; /**< Address to send data to. */
     size_t port;            /**< Port number to send data to.*/
+  };
+
+  /**
+   * @brief Config struct for sending data to a remote TCP socket.
+   * @note This is only used when waiting for a response from the remote.
+   */
+  struct TransmitConfig {
+    bool wait_for_response = false; /**< Whether to wait for a response from the remote or not. */
+    size_t response_size =
+        0; /**< If waiting for a response, this is the maximum size response we will receive. */
+    espp::Socket::response_callback_fn on_response_callback = nullptr; /**< If waiting for a
+                   response, this is an optional handler which is provided the response data. */
+    std::chrono::duration<float> response_timeout = std::chrono::duration<float>(
+        0.5f); /**< If waiting for a response, this is the maximum timeout to wait. */
+
+    static TransmitConfig Default() { return {}; }
   };
 
   /**
@@ -114,12 +110,12 @@ public:
    *        send_config which will be provided the response data for
    *        processing.
    * @param data vector of bytes to send to the remote endpoint.
-   * @param transmit_config detail::TcpTransmitConfig struct indicating whether to wait for a
+   * @param transmit_config TransmitConfig struct indicating whether to wait for a
    *        response.
    * @return true if the data was sent, false otherwise.
    */
   bool transmit(const std::vector<uint8_t> &data,
-                const detail::TcpTransmitConfig &transmit_config = {});
+                const TransmitConfig &transmit_config = TransmitConfig::Default());
 
   /**
    * @brief Send data to the endpoint already connected to by TcpSocket::connect.
@@ -129,12 +125,12 @@ public:
    *        send_config which will be provided the response data for
    *        processing.
    * @param data vector of bytes to send to the remote endpoint.
-   * @param transmit_config detail::TcpTransmitConfig struct indicating whether to wait for a
+   * @param transmit_config TransmitConfig struct indicating whether to wait for a
    *        response.
    * @return true if the data was sent, false otherwise.
    */
   bool transmit(const std::vector<char> &data,
-                const detail::TcpTransmitConfig &transmit_config = {});
+                const TransmitConfig &transmit_config = TransmitConfig::Default());
 
   /**
    * @brief Send data to the endpoint already connected to by TcpSocket::connect.
@@ -144,11 +140,12 @@ public:
    *        send_config which will be provided the response data for
    *        processing.
    * @param data string view of bytes to send to the remote endpoint.
-   * @param transmit_config detail::TcpTransmitConfig struct indicating whether to wait for a
+   * @param transmit_config TransmitConfig struct indicating whether to wait for a
    *        response.
    * @return true if the data was sent, false otherwise.
    */
-  bool transmit(std::string_view data, const detail::TcpTransmitConfig &transmit_config = {});
+  bool transmit(std::string_view data,
+                const TransmitConfig &transmit_config = TransmitConfig::Default());
 
   /**
    * @brief Call read on the socket, assuming it has already been configured

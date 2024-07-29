@@ -38,7 +38,7 @@ RtspClient::send_request(const std::string &method, const std::string &path,
   request += "Accept: application/sdp\r\n";
   request += "\r\n";
   std::string response;
-  auto transmit_config = espp::detail::TcpTransmitConfig{
+  auto transmit_config = espp::TcpSocket::TransmitConfig{
       .wait_for_response = true,
       .response_size = 1024,
       .on_response_callback =

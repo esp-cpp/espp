@@ -165,12 +165,12 @@ protected:
     command_string += "\r\n";
     logger_.debug("Sending command:\n{}", command_string);
     std::string response_string;
-    detail::TcpTransmitConfig config{
+    TcpSocket::TransmitConfig config{
         .wait_for_response = true,
         .response_size = 1024, // in bytes
         .on_response_callback =
             [&response_string](const std::string_view data) { response_string += data; },
-        .response_timeout = 1.0f, // in seconds
+        .response_timeout = std::chrono::duration<float>(1.0f), // in seconds
     };
     if (!control_socket_.transmit(command_string, config)) {
       logger_.error("Failed to send command");
@@ -200,7 +200,7 @@ protected:
       return false;
     }
     // get the code
-    std::string code_string = response_line.substr(0, 3);
+    std::string code_string = std::string(response_line.substr(0, 3));
     // parse the code string without using stoi since it throws exceptions
     // and we don't want to use exceptions in this library
     code = 0;

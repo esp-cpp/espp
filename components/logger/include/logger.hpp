@@ -66,10 +66,11 @@ public:
   struct Config {
     std::string_view tag;    /**< The TAG that will be prepended to all logs. */
     bool include_time{true}; /**< Include the time in the log. */
-    std::chrono::duration<float> rate_limit{
-        0}; /**< The rate limit for the logger. Optional, if <= 0 no rate limit. @note Only calls
-               that have _rate_limited suffixed will be rate limited. */
-    Verbosity level = Verbosity::WARN; /**< The verbosity level for the logger. */
+    std::chrono::duration<float> rate_limit =
+        std::chrono::duration<float>(0); /**< The rate limit for the logger. Optional, if <= 0 no
+rate limit. @note Only calls that have _rate_limited suffixed will be rate limited. */
+    espp::Logger::Verbosity level =
+        espp::Logger::Verbosity::WARN; /**< The verbosity level for the logger. */
   };
 
   /**

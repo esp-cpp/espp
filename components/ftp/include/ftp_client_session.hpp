@@ -44,7 +44,7 @@ namespace espp {
 class FtpClientSession : public BaseComponent {
 public:
   explicit FtpClientSession(int id, std::string_view local_address,
-                            std::unique_ptr<TcpSocket> socket,
+                            std::unique_ptr<espp::TcpSocket> socket,
                             const std::filesystem::path &root_path)
       : BaseComponent("FtpClientSession " + std::to_string(id))
       , id_(id)
@@ -166,7 +166,7 @@ protected:
   bool send_response(int status_code, std::string_view message, bool multiline = false) {
     std::string response =
         std::to_string(status_code) + (multiline ? "-" : " ") + std::string{message} + "\r\n";
-    detail::TcpTransmitConfig config{}; // default config, no wait for response.
+    TcpSocket::TransmitConfig config{}; // default config, no wait for response.
     if (!socket_->transmit(response, config)) {
       logger_.error("Failed to send response");
       return false;
@@ -249,7 +249,7 @@ protected:
       }
     }
     // send the data
-    detail::TcpTransmitConfig config{};
+    TcpSocket::TransmitConfig config{};
     bool success = data_socket_->transmit(data, config);
     // close the data socket
     data_socket_->close();
@@ -354,7 +354,7 @@ protected:
       }
     }
 
-    detail::TcpTransmitConfig config{};
+    TcpSocket::TransmitConfig config{};
     // open the file
     std::ifstream file(file_path, std::ios::in | std::ios::binary);
     if (!file.is_open()) {

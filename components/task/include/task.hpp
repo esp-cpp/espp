@@ -118,7 +118,7 @@ public:
    */
   struct SimpleConfig {
     espp::Task::simple_callback_fn callback; /**< Callback function  */
-    BaseConfig task_config;                  /**< Base configuration for the task. */
+    espp::Task::BaseConfig task_config;      /**< Base configuration for the task. */
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
