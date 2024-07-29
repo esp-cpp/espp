@@ -106,8 +106,7 @@ public:
    *       EncoderType::ROTATIONAL.
    * @return Number of revolutions, as a floating point number.
    */
-  template <EncoderType type = T>
-  typename std::enable_if<type == EncoderType::ROTATIONAL, float>::type get_revolutions() {
+  float get_revolutions() requires(T == EncoderType::ROTATIONAL) {
     auto raw = get_count();
     return (float)raw / (float)counts_per_revolution_;
   }
@@ -119,8 +118,7 @@ public:
    *       EncoderType::ROTATIONAL.
    * @return Number of radians, as a floating point number.
    */
-  template <EncoderType type = T>
-  typename std::enable_if<type == EncoderType::ROTATIONAL, float>::type get_radians() {
+  float get_radians() requires(T == EncoderType::ROTATIONAL) {
     return get_revolutions() * 2.0f * M_PI;
   }
 
@@ -131,10 +129,7 @@ public:
    *       EncoderType::ROTATIONAL.
    * @return Number of degrees, as a floating point number.
    */
-  template <EncoderType type = T>
-  typename std::enable_if<type == EncoderType::ROTATIONAL, float>::type get_degrees() {
-    return get_revolutions() * 360.0f;
-  }
+  float get_degrees() requires(T == EncoderType::ROTATIONAL) { return get_revolutions() * 360.0f; }
 
   /**
    * @brief Start the pulse count hardware.
