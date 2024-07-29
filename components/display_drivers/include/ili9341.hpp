@@ -325,7 +325,7 @@ protected:
   static gpio_num_t dc_pin_;
   static int offset_x_;
   static int offset_y_;
-  static inline bool swap_xy_ = false;
-  static inline std::mutex spi_mutex_{};
+  static bool swap_xy_;
+  static std::mutex spi_mutex_;
 };
 } // namespace espp

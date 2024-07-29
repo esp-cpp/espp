@@ -302,7 +302,7 @@ protected:
     static constexpr auto touch_interrupt_level = espp::Interrupt::ActiveLevel::HIGH;
     static constexpr auto touch_interrupt_type = espp::Interrupt::Type::RISING_EDGE;
     static constexpr auto touch_interrupt_pullup_enabled = false;
-  };                                                        // struct box3
+  }; // struct box3
 
   // box:
   struct box {
@@ -384,15 +384,13 @@ protected:
 
   // NOTE: the active level, interrupt type, and pullup configuration is set by
   // detect(), since it depends on the box type
-  espp::Interrupt::PinConfig touch_interrupt_pin_{
-      .gpio_num = touch_interrupt,
-      .callback =
-          [this](const auto &event) {
-            update_touch();
-            if (touch_callback_) {
-              touch_callback_(touchpad_data());
-            }
-          }};
+  espp::Interrupt::PinConfig touch_interrupt_pin_{.gpio_num = touch_interrupt,
+                                                  .callback = [this](const auto &event) {
+                                                    update_touch();
+                                                    if (touch_callback_) {
+                                                      touch_callback_(touchpad_data());
+                                                    }
+                                                  }};
 
   // we'll only add each interrupt pin if the initialize method is called
   espp::Interrupt interrupts_{

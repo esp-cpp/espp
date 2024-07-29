@@ -305,7 +305,9 @@ bool MatouchRotaryDisplay::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
-std::shared_ptr<espp::Display<MatouchRotaryDisplay::Pixel>> MatouchRotaryDisplay::display() const { return display_; }
+std::shared_ptr<espp::Display<MatouchRotaryDisplay::Pixel>> MatouchRotaryDisplay::display() const {
+  return display_;
+}
 
 void IRAM_ATTR MatouchRotaryDisplay::lcd_wait_lines() {
   spi_transaction_t *rtrans;
