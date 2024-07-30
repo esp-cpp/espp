@@ -5,10 +5,16 @@
 #include <string>
 #include <vector>
 
+// if we're on windows, we cannot include netinet/in.h and instead need to use
+// winsock2.h
+#if defined(_WIN32)
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#endif
 
 #if !defined(ESP_PLATFORM)
 #include <unistd.h>
