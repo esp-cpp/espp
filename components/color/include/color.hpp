@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "format.hpp"
+
 namespace espp {
 class Rgb;
 class Hsv;
@@ -132,6 +134,14 @@ public:
    */
   Rgb rgb() const;
 };
+
+[[maybe_unused]] static auto color_code(const Rgb &rgb) {
+  return fg(fmt::rgb(rgb.r * 255, rgb.g * 255, rgb.b * 255));
+}
+[[maybe_unused]] static auto color_code(const Hsv &hsv) {
+  auto rgb = hsv.rgb();
+  return fg(fmt::rgb(rgb.r * 255, rgb.g * 255, rgb.b * 255));
+}
 
 // equality operators
 [[maybe_unused]] static bool operator==(const Rgb &lhs, const Rgb &rhs) {
