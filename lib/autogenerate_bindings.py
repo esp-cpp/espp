@@ -56,11 +56,11 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # ////////////////////////////////////////////////////////////////////
     # The virtual methods of this class can be overriden in python
     options.class_template_options.add_specialization(r"Bezier", ["espp::Vector2f"])
-    options.class_template_options.add_specialization(r"Bezier::Config", ["espp::Vector2f"])
-    options.class_template_options.add_specialization(r"Bezier::WeightedConfig", ["espp::Vector2f"])
+    options.class_template_options.add_specialization(r"Bezier::Config", ["espp::Vector2f"]) # NOTE: this doesn't seem to work
+    options.class_template_options.add_specialization(r"Bezier::WeightedConfig", ["espp::Vector2f"]) # NOTE: this doesn't seem to work
     options.class_template_options.add_specialization(r"RangeMapper", ["int", "float"])
-    options.class_template_options.add_specialization(r"RangeMapper::Config", ["int", "float"])
-    options.class_template_options.add_specialization(r"Vector2d", ["int", "float"])
+    options.class_template_options.add_specialization(r"RangeMapper::Config", ["int", "float"]) # NOTE: this doesn't seem to work
+    options.class_template_options.add_specialization(r"Vector2d", ["int", "float"]) # NOTE: this still generates some bindings which are not specialized for some reason
 
     # ////////////////////////////////////////////////////////////////////
     # Publish bindings for template functions
