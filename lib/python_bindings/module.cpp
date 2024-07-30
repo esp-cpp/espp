@@ -5,10 +5,10 @@
 
 namespace py = pybind11;
 
-void py_init_module_espp_lib(py::module &m);
+void py_init_module_espp(py::module &m);
 
-// This builds the native python module `_espp_lib`
-// it will be wrapped in a standard python module `espp_lib`
+// This builds the native python module `espp`
+// it will be wrapped in a standard python module `espp`
 PYBIND11_MODULE(espp, m) {
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
@@ -16,5 +16,5 @@ PYBIND11_MODULE(espp, m) {
   m.attr("__version__") = "dev";
 #endif
 
-  py_init_module_espp_lib(m);
+  py_init_module_espp(m);
 }
