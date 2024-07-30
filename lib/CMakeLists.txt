@@ -65,6 +65,7 @@ include_directories(. ${EXTERNAL_INCLUDES} ${ESPP_INCLUDES})
 # add /utf-8 flag for MSVC
 if(MSVC)
   add_compile_options(/utf-8)
+endif()
 
 set(TARGET_NAME "espp_pc")
 # to build for python we need to have the python developer libraries installed
