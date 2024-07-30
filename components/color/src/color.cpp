@@ -24,6 +24,11 @@ Rgb::Rgb(const Rgb &rgb)
 Rgb::Rgb(const Hsv &hsv)
     : Rgb(hsv.rgb()) {}
 
+Rgb &Rgb::operator=(const Hsv &hsv) {
+  *this = hsv.rgb();
+  return *this;
+}
+
 Rgb Rgb::operator+(const Rgb &rhs) const {
   // divide by number of elements that went into it (blending) instead of just
   // addition (which would be more like the light model) so that we are better
@@ -94,6 +99,11 @@ Hsv::Hsv(const Hsv &hsv)
 
 Hsv::Hsv(const Rgb &rgb)
     : Hsv(rgb.hsv()) {}
+
+Hsv &Hsv::operator=(const Rgb &rgb) {
+  *this = rgb.hsv();
+  return *this;
+}
 
 Rgb Hsv::rgb() const {
   Rgb RGB;

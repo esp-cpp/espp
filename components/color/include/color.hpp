@@ -40,16 +40,27 @@ public:
 
   /**
    * @brief Construct an Rgb object from the provided Hsv object.
-   * @note This calls hsv.rgb() on the provided object, which means fthat
-   *       invalid HSV data (not in the ranges [0,360], [0,1], and [0,1])
-   *       could lead to bad RGB data. The Rgb constructor will automatically
-   *       convert the values to be in the proper range, but the perceived
-   *       color will be changed.
+   * @note This calls hsv.rgb() on the provided object, which means that invalid
+   *       HSV data (not in the ranges [0,360], [0,1], and [0,1]) could lead to
+   *       bad RGB data. The Rgb constructor will automatically convert the
+   *       values to be in the proper range, but the perceived color will be
+   *       changed.
    * @param hsv Hsv object to copy.
    */
   explicit Rgb(const Hsv &hsv);
 
+  /**
+   * @brief Assign the values of the provided Rgb object to this Rgb object.
+   * @param other The Rgb object to copy.
+   */
   Rgb &operator=(const Rgb &other) = default;
+
+  /**
+   * @brief Assign the values of the provided Hsv object to this Rgb object.
+   * @note This calls hsv.rgb() on the provided object, which means that
+   *       invalid HSV data (not in the ranges [0,360], [0,1], and [0,1])
+   */
+  Rgb &operator=(const Hsv &hsv);
 
   /**
    * @brief Perform additive color blending (averaging)
@@ -103,7 +114,17 @@ public:
    */
   explicit Hsv(const Rgb &rgb);
 
+  /**
+   * @brief Assign the values of the provided Hsv object to this Hsv object.
+   * @param other The Hsv object to copy.
+   */
   Hsv &operator=(const Hsv &other) = default;
+
+  /**
+   * @brief Assign the values of the provided Rgb object to this Hsv object.
+   * @param rgb The Rgb object to convert and copy.
+   */
+  Hsv &operator=(const Rgb &rgb);
 
   /**
    * @brief Get a RGB representation of this HSV color.
