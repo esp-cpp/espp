@@ -10,8 +10,8 @@
 #include <string>
 
 #include <dirent.h>
+#include <stdio.h>
 #include <sys/stat.h>
-#include <sys/stdio.h>
 #include <sys/types.h>
 
 #if defined(ESP_PLATFORM)
