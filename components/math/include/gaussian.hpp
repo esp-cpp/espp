@@ -23,6 +23,8 @@ public:
     float alpha = 1.0f; ///< Max amplitude of the gaussian output, defautls to 1.0.
     float beta =
         0.5f; ///< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].
+
+    bool operator==(const Config &rhs) const = default;
   };
 
   /**
