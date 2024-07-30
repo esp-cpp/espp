@@ -60,7 +60,7 @@ public:
   /// @note This does not change the log level of any sessions that have
   ///       already been created
   /// @param log_level The log level to set
-  void set_session_log_level(Logger::Verbosity log_level);
+  void set_session_log_level(espp::Logger::Verbosity log_level);
 
   /// @brief Start the RTSP server
   /// Starts the accept task, session task, and binds the RTSP socket
@@ -97,7 +97,7 @@ protected:
   std::mutex rtp_packets_mutex_;
   std::vector<std::unique_ptr<RtpJpegPacket>> rtp_packets_;
 
-  Logger::Verbosity session_log_level_{Logger::Verbosity::WARN};
+  espp::Logger::Verbosity session_log_level_{espp::Logger::Verbosity::WARN};
   std::mutex session_mutex_;
   std::unordered_map<int, std::unique_ptr<RtspSession>> sessions_;
 

@@ -26,15 +26,16 @@ class RtspSession : public BaseComponent {
 public:
   /// Configuration for the RTSP session
   struct Config {
-    std::string server_address;                            ///< The address of the server
-    std::string rtsp_path;                                 ///< The RTSP path of the session
-    Logger::Verbosity log_level = Logger::Verbosity::WARN; ///< The log level of the session
+    std::string server_address; ///< The address of the server
+    std::string rtsp_path;      ///< The RTSP path of the session
+    espp::Logger::Verbosity log_level =
+        espp::Logger::Verbosity::WARN; ///< The log level of the session
   };
 
   /// @brief Construct a new RtspSession object
   /// @param control_socket The control socket of the session
   /// @param config The configuration of the session
-  explicit RtspSession(std::unique_ptr<TcpSocket> control_socket, const Config &config);
+  explicit RtspSession(std::unique_ptr<espp::TcpSocket> control_socket, const Config &config);
 
   /// @brief Destroy the RtspSession object
   /// Stop the session task
@@ -74,12 +75,12 @@ public:
   /// Send an RTP packet to the client
   /// @param packet The RTP packet to send
   /// @return True if the packet was sent successfully, false otherwise
-  bool send_rtp_packet(const RtpPacket &packet);
+  bool send_rtp_packet(const espp::RtpPacket &packet);
 
   /// Send an RTCP packet to the client
   /// @param packet The RTCP packet to send
   /// @return True if the packet was sent successfully, false otherwise
-  bool send_rtcp_packet(const RtcpPacket &packet);
+  bool send_rtcp_packet(const espp::RtcpPacket &packet);
 
 protected:
   /// Send a response to a RTSP request
