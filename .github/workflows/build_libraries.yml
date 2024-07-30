@@ -10,26 +10,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_windows:
+  # build_windows:
 
-    runs-on: windows-latest
-    continue-on-error: false
+  #   runs-on: windows-latest
+  #   continue-on-error: false
 
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
-        fetch-depth: 0
+  #   steps:
+  #   - name: Checkout repo
+  #     uses: actions/checkout@v4
+  #     with:
+  #       submodules: 'recursive'
+  #       fetch-depth: 0
 
-    - name: Build libraries
-      working-directory: lib/
-      run: |
-        mkdir build
-        cd build
-        cmake ..
-        cmake --build .
-        cmake --install .
+  #   - name: Build libraries
+  #     working-directory: lib/
+  #     run: |
+  #       mkdir build
+  #       cd build
+  #       cmake ..
+  #       cmake --build .
+  #       cmake --install .
 
   build_linux:
 
