@@ -88,6 +88,8 @@ install(TARGETS ${TARGET_NAME}
 # and install the headers for use by the c++ code there
 install(DIRECTORY ${EXTERNAL_INCLUDES} DESTINATION ${PROJECT_SOURCE_DIR}/pc)
 install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
+# we have to make sure to install the magic_enum includes differently, since they're in different folders
+install(DIRECTORY ${EXTERNAL}/magic_enum/include/magic_enum/ DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
 # and install the espp.hpp file for use by the python scripts there
 install(FILES espp.hpp DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
 # Python binding
