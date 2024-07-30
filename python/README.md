@@ -20,9 +20,9 @@ To run a test, you can use the following commands:
 ```console
 python3 <test_name>.py
 # e.g.
-python task.py
+python3 task.py
 # or 
-python udp_client.py
+python3 udp_client.py
 ``` 
 
 Note: the `udp_client.py` script requires a running instance of the
@@ -30,6 +30,6 @@ Note: the `udp_client.py` script requires a running instance of the
 another terminal:
 
 ```console
-python udp_server.py
+python3 udp_server.py
 ```
 
