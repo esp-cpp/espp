@@ -17,6 +17,7 @@ public:
   RtpPacket();
 
   /// Construct an RtpPacket with a payload of size payload_size.
+  /// The packet_ vector is resized to RTP_HEADER_SIZE + payload_size.
   explicit RtpPacket(size_t payload_size);
 
   /// Construct an RtpPacket from a string_view.
