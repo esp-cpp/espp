@@ -34,7 +34,7 @@ namespace espp {
  * \section event_manager_ex1 Event Manager Example
  * \snippet event_manager_example.cpp event manager example
  */
-class EventManager : public BaseComponent {
+class EventManager : public espp::BaseComponent {
 public:
   /**
    * @brief Function definition for function prototypes to be called when

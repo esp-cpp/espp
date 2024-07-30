@@ -7,18 +7,22 @@
 
 // if we're on windows, we cannot include netinet/in.h and instead need to use
 // winsock2.h
-#if defined(_WIN32)
+#ifdef _MSC_VER
 #include <winsock2.h>
-#else
+#else // !_MSC_VER
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#endif
+#endif // _MSC_VER
 
 #if !defined(ESP_PLATFORM)
+#ifndef _MSC_VER
 #include <unistd.h>
-#endif
+#else
+#include <io.h>
+#endif // !_MSC_VER
+#endif // !ESP_PLATFORM
 
 #include <math.h>
 

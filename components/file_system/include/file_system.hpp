@@ -9,7 +9,13 @@
 #include <mutex>
 #include <string>
 
+// if we're on windows we can't include dirent.h
+#ifdef _MSC_VER
+
+#else // _MSC_VER
 #include <dirent.h>
+#endif // _MSC_VER
+
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -19,7 +25,11 @@
 #include <esp_littlefs.h>
 #include <esp_partition.h>
 #else // ESP_PLATFORM
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#include <io.h>
+#endif // !_MSC_VER
 #endif // ESP_PLATFORM
 
 #include "base_component.hpp"

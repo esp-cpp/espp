@@ -42,7 +42,7 @@ namespace espp {
  * \section run_on_core_ex1 Run on Core Example
  * \snippet task_example.cpp run on core example
  */
-class Task : public BaseComponent {
+class Task : public espp::BaseComponent {
 public:
   /**
    * @brief Task callback function signature.

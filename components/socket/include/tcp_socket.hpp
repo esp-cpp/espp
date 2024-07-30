@@ -4,7 +4,13 @@
 #include <string_view>
 #include <vector>
 
+// if we're on windows, we cannot include netinet/in.h and instead need to use
+// winsock2.h
+#ifdef _MSC_VER
+// already included in socket.hpp
+#else // _MSC_VER
 #include <netinet/tcp.h>
+#endif // _MSC_VER
 
 #include "logger.hpp"
 #include "socket.hpp"

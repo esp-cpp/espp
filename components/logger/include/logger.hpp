@@ -370,6 +370,6 @@ protected:
    *   Current verbosity of the logger. Determines what will be printed to
    *   console.
    */
-  std::atomic<Verbosity> level_;
+  std::atomic<espp::Logger::Verbosity> level_;
 };
 } // namespace espp
