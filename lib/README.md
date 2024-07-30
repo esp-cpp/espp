@@ -16,9 +16,12 @@ cmake:
 mkdir build
 cd build
 cmake ..
-make
-make install
+cmake --build .
+cmake --install .
 ```
+
+This is conveniently scripted up for you into [./build.sh](./build.sh), which
+you can simply run from your terminal.
 
 This will build and install the following files:
 

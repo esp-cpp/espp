@@ -3,5 +3,5 @@
 mkdir build
 cd build
 cmake ..
-make
-make install
+cmake --build .
+cmake --install .
