@@ -79,10 +79,10 @@ void py_init_module_espp(py::module &m) {
                "the values to copy.\n")
           .def(py::init<const espp::Hsv &>(), py::arg("hsv"),
                "*\n   * @brief Construct an Rgb object from the provided Hsv object.\n   * @note "
-               "This calls hsv.rgb() on the provided object, which means fthat\n   *       invalid "
-               "HSV data (not in the ranges [0,360], [0,1], and [0,1])\n   *       could lead to "
-               "bad RGB data. The Rgb constructor will automatically\n   *       convert the "
-               "values to be in the proper range, but the perceived\n   *       color will be "
+               "This calls hsv.rgb() on the provided object, which means that invalid\n   *       "
+               "HSV data (not in the ranges [0,360], [0,1], and [0,1]) could lead to\n   *       "
+               "bad RGB data. The Rgb constructor will automatically convert the\n   *       "
+               "values to be in the proper range, but the perceived color will be\n   *       "
                "changed.\n   * @param hsv Hsv object to copy.\n")
           .def("__add__", &espp::Rgb::operator+, py::arg("rhs"),
                "*\n   * @brief Perform additive color blending (averaging)\n   * @param rhs Other "
@@ -121,24 +121,13 @@ void py_init_module_espp(py::module &m) {
           .def("rgb", &espp::Hsv::rgb,
                "*\n   * @brief Get a RGB representation of this HSV color.\n   * @return An RGB "
                "object containing the RGB representation.\n");
-  ////////////////////    </generated_from:color.hpp>    ////////////////////
 
-  ////////////////////    <generated_from:csv.hpp>    ////////////////////
-  auto pyClass__csv_documentation__ =
-      py::class_<espp::__csv_documentation__>(
-          m, "__csv_documentation__", py::dynamic_attr(),
-          "*\n * @brief Comma Separated Value (CSV) reader/writer convenience wrapper around\n *   "
-          "     <a href=\"https://github.com/p-ranav/csv2\">p-ranav/csv2</a> which\n *        "
-          "exposes csv2::Reader and csv2::Writer classes for managing efficient\n *        "
-          "(lazy-loaded) parsing and serizaliztion of human-readable\n *        CSV-formatted "
-          "data.\n *\n * @note This class does not really exist or do anything, but it's the "
-          "only\n *       way I could figure out how to get this documentation built into the\n *  "
-          "     system :(\n *\n * \\section csv_ex1 CSV Reader Example\n * \\snippet "
-          "csv_example.cpp csv reader example\n * \\section csv_ex2 Complex CSV Writer Example\n * "
-          "\\snippet csv_example.cpp csv writer example\n")
-          .def(py::init<>()) // implicit default constructor
-      ;
-  ////////////////////    </generated_from:csv.hpp>    ////////////////////
+  m.def("color_code", py::overload_cast<const espp::Rgb &>(espp::color_code), py::arg("rgb"),
+        "\n(C++ auto return type)");
+
+  m.def("color_code", py::overload_cast<const espp::Hsv &>(espp::color_code), py::arg("hsv"),
+        "\n(C++ auto return type)");
+  ////////////////////    </generated_from:color.hpp>    ////////////////////
 
   ////////////////////    <generated_from:event_manager.hpp>    ////////////////////
   auto pyClassEventManager =
@@ -349,11 +338,13 @@ void py_init_module_espp(py::module &m) {
                            "/< Array of 4 weights, default is array of 1.0");
   } // end of inner classes & enums of Bezier_espp_Vector2f
 
-  pyClassBezier_espp_Vector2f.def(
-      "__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
-      "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around "
-      "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
-      "bezier evaluated at \\p t.\n");
+  pyClassBezier_espp_Vector2f.def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())
+      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig &>())
+      .def("__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
+           "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around "
+           "the "
+           "at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The bezier "
+           "evaluated at \\p t.\n");
   ////////////////////    </generated_from:bezier.hpp>    ////////////////////
 
   ////////////////////    <generated_from:fast_math.hpp>    ////////////////////
@@ -457,10 +448,11 @@ void py_init_module_espp(py::module &m) {
                            "/< Max amplitude of the gaussian output, defautls to 1.0.")
             .def_readwrite(
                 "beta", &espp::Gaussian::Config::beta,
-                "/< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].");
+                "/< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].")
+            .def("__eq__", &espp::Gaussian::Config::operator==, py::arg("rhs"));
   } // end of inner classes & enums of Gaussian
 
-  pyClassGaussian
+  pyClassGaussian.def(py::init<const espp::Gaussian::Config &>())
       .def("__call__", &espp::Gaussian::operator(), py::arg("t"),
            "*\n   * @brief Evaluate the gaussian at \\p t.\n   * @note Convienience wrapper around "
            "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "

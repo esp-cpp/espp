@@ -32,7 +32,7 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # To prevent the generation of the default constructor with named parameters
     # for a specific struct, you can use the following option:
     options.struct_create_default_named_ctor__regex = r".*" # default
-    options.class_create_default_named_ctor__regex = r"" # default
+    options.class_create_default_named_ctor__regex = r".*"
 
     # ///////////////////////////////////////////////////////////////////
     #  Exclude functions and/or parameters from the bindings
@@ -55,9 +55,9 @@ def my_litgen_options() -> litgen.LitgenOptions:
     # Override virtual methods in python
     # ////////////////////////////////////////////////////////////////////
     # The virtual methods of this class can be overriden in python
+    options.class_template_options.add_specialization(r"WeightedConfig", ["espp::Vector2f"]) # NOTE: this doesn't seem to work
     options.class_template_options.add_specialization(r"Bezier", ["espp::Vector2f"])
     options.class_template_options.add_specialization(r"Bezier::Config", ["espp::Vector2f"]) # NOTE: this doesn't seem to work
-    options.class_template_options.add_specialization(r"Bezier::WeightedConfig", ["espp::Vector2f"]) # NOTE: this doesn't seem to work
     options.class_template_options.add_specialization(r"RangeMapper", ["int", "float"])
     options.class_template_options.add_specialization(r"RangeMapper::Config", ["int", "float"]) # NOTE: this doesn't seem to work
     options.class_template_options.add_specialization(r"Vector2d", ["int", "float"]) # NOTE: this still generates some bindings which are not specialized for some reason
@@ -106,7 +106,6 @@ def autogenerate() -> None:
     include_dir = repository_dir + "/components/"
     header_files = [include_dir + "base_component/include/base_component.hpp",
                     include_dir + "color/include/color.hpp",
-                    include_dir + "csv/include/csv.hpp",
                     include_dir + "event_manager/include/event_manager.hpp",
                     # include_dir + "file_system/include/file_system.hpp", # can't deal with singleton that does not support constructor / destructor
                     include_dir + "ftp/include/ftp_server.hpp",
@@ -132,6 +131,9 @@ def autogenerate() -> None:
                     # include_dir + "state_machine/include/shallow_history_state.hpp",
                     # include_dir + "state_machine/include/state_base.hpp",
                     # include_dir + "state_machine/include/magic_enum.hpp",
+
+                    # csv (template header):
+                    # include_dir + "csv/include/csv.hpp",
 
                     # tabulate (template header):
                     # include_dir + "tabulate/include/tabulate.hpp",
