@@ -339,12 +339,11 @@ void py_init_module_espp(py::module &m) {
   } // end of inner classes & enums of Bezier_espp_Vector2f
 
   pyClassBezier_espp_Vector2f.def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())
-      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig &>())
+      .def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())
       .def("__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
            "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around "
-           "the "
-           "at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The bezier "
-           "evaluated at \\p t.\n");
+           "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
+           "bezier evaluated at \\p t.\n");
   ////////////////////    </generated_from:bezier.hpp>    ////////////////////
 
   ////////////////////    <generated_from:fast_math.hpp>    ////////////////////
@@ -425,7 +424,8 @@ void py_init_module_espp(py::module &m) {
       "\\f$y(t)=\\alpha\\exp(-\\frac{(t-\\beta)^2}{2\\gamma^2})\\f$.\n * @details Alows you to "
       "store the alpha, beta, and gamma coefficients as well\n *          as update them "
       "dynamically.\n *\n * \\section gaussian_ex1 Example\n * \\snippet math_example.cpp gaussian "
-      "example\n");
+      "example\n * \\section gaussian_ex2 Fade-In/Fade-Out Example\n * \\snippet math_example.cpp "
+      "gaussian fade in fade out example\n");
 
   { // inner classes & enums of Gaussian
     auto pyClassGaussian_ClassConfig =
@@ -457,13 +457,27 @@ void py_init_module_espp(py::module &m) {
            "*\n   * @brief Evaluate the gaussian at \\p t.\n   * @note Convienience wrapper around "
            "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
            "gaussian evaluated at \\p t.\n")
-      .def_readwrite(
-          "gamma", &espp::Gaussian::gamma,
-          "/<! Slope of the gaussian, range [0, 1]. 0 is more of a thin spike from 0 up to")
-      .def_readwrite("alpha", &espp::Gaussian::alpha,
-                     "/<! Max amplitude of the gaussian output, defautls to 1.0.")
-      .def_readwrite("beta", &espp::Gaussian::beta,
-                     "/<! Shifting / Beta value for the gaussian, default to be");
+      .def("update", &espp::Gaussian::update, py::arg("config"),
+           "*\n   * @brief Update the gaussian configuration.\n   * @param config The new "
+           "configuration.\n")
+      .def("set_config", &espp::Gaussian::set_config, py::arg("config"),
+           "*\n   * @brief Set the configuration of the gaussian.\n   * @param config The new "
+           "configuration.\n")
+      .def("get_config", &espp::Gaussian::get_config,
+           "*\n   * @brief Get the current configuration of the gaussian.\n   * @return The "
+           "current configuration.\n")
+      .def("get_gamma", &espp::Gaussian::get_gamma,
+           "*\n   * @brief Get the gamma value.\n   * @return The gamma value.\n")
+      .def("get_alpha", &espp::Gaussian::get_alpha,
+           "*\n   * @brief Get the alpha value.\n   * @return The alpha value.\n")
+      .def("get_beta", &espp::Gaussian::get_beta,
+           "*\n   * @brief Get the beta value.\n   * @return The beta value.\n")
+      .def("set_gamma", &espp::Gaussian::set_gamma, py::arg("gamma"),
+           "*\n   * @brief Set the gamma value.\n   * @param gamma The new gamma value.\n")
+      .def("set_alpha", &espp::Gaussian::set_alpha, py::arg("alpha"),
+           "*\n   * @brief Set the alpha value.\n   * @param alpha The new alpha value.\n")
+      .def("set_beta", &espp::Gaussian::set_beta, py::arg("beta"),
+           "*\n   * @brief Set the beta value.\n   * @param beta The new beta value.\n");
   ////////////////////    </generated_from:gaussian.hpp>    ////////////////////
 
   ////////////////////    <generated_from:range_mapper.hpp>    ////////////////////
@@ -536,7 +550,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_int
 
-  pyClassRangeMapper_int.def(py::init<>())
+  pyClassRangeMapper_int.def(py::init<const espp::RangeMapper<int>::Config &>())
       .def("get_center_deadband", &espp::RangeMapper<int>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
@@ -658,7 +672,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_float
 
-  pyClassRangeMapper_float.def(py::init<>())
+  pyClassRangeMapper_float.def(py::init<const espp::RangeMapper<float>::Config &>())
       .def("get_center_deadband", &espp::RangeMapper<float>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "

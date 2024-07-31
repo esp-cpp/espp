@@ -781,6 +781,8 @@ class Gaussian:
      *
      * \section gaussian_ex1 Example
      * \snippet math_example.cpp gaussian example
+     * \section gaussian_ex2 Fade-In/Fade-Out Example
+     * \snippet math_example.cpp gaussian fade in fade out example
 
     """
     class Config:
@@ -815,18 +817,80 @@ class Gaussian:
         """
         pass
 
-    gamma: float                   #/<! Slope of the gaussian, range [0, 1]. 0 is more of a thin spike from 0 up to
-    #/   max output (alpha), 1 is more of a small wave around the max output (alpha).
-    alpha: float                   #/<! Max amplitude of the gaussian output, defautls to 1.0.
-    beta: float                    #/<! Shifting / Beta value for the gaussian, default to be
-    #/   symmetric at 0.5 in range [0,1].
-    def __init__(
-        self,
-        gamma: float = float(),
-        alpha: float = float(),
-        beta: float = float()
-        ) -> None:
-        """Auto-generated default constructor with named params"""
+    def update(self, config: Gaussian.Config) -> None:
+        """*
+           * @brief Update the gaussian configuration.
+           * @param config The new configuration.
+
+        """
+        pass
+
+    def set_config(self, config: Gaussian.Config) -> None:
+        """*
+           * @brief Set the configuration of the gaussian.
+           * @param config The new configuration.
+
+        """
+        pass
+
+    def get_config(self) -> Gaussian.Config:
+        """*
+           * @brief Get the current configuration of the gaussian.
+           * @return The current configuration.
+
+        """
+        pass
+
+    def get_gamma(self) -> float:
+        """*
+           * @brief Get the gamma value.
+           * @return The gamma value.
+
+        """
+        pass
+
+    def get_alpha(self) -> float:
+        """*
+           * @brief Get the alpha value.
+           * @return The alpha value.
+
+        """
+        pass
+
+    def get_beta(self) -> float:
+        """*
+           * @brief Get the beta value.
+           * @return The beta value.
+
+        """
+        pass
+
+    def set_gamma(self, gamma: float) -> None:
+        """*
+           * @brief Set the gamma value.
+           * @param gamma The new gamma value.
+
+        """
+        pass
+
+    def set_alpha(self, alpha: float) -> None:
+        """*
+           * @brief Set the alpha value.
+           * @param alpha The new alpha value.
+
+        """
+        pass
+
+    def set_beta(self, beta: float) -> None:
+        """*
+           * @brief Set the beta value.
+           * @param beta The new beta value.
+
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
         pass
 
 ####################    </generated_from:gaussian.hpp>    ####################
