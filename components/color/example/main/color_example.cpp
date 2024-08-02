@@ -31,6 +31,30 @@ extern "C" void app_main(void) {
     fmt::print(espp::color_code(grey_hsv.rgb()), "Grey HSV: {} --> RGB {}\n", grey_hsv,
                grey_hsv.rgb());
 
+    // test RGB from hex integer construction
+    fmt::print("RGB from hex:\n");
+    fmt::print("--------------\n");
+    uint32_t red_hex_int = 0xFF0000;
+    espp::Rgb red_hex(red_hex_int);
+    fmt::print(espp::color_code(red_hex), "Red from hex:   {0:d} == {0:x} ? {1}\n", red_hex,
+               red_hex.hex() == red_hex_int);
+    uint32_t green_hex_int = 0x00FF00;
+    espp::Rgb green_hex(green_hex_int);
+    fmt::print(espp::color_code(green_hex), "Green from hex: {0:d} == {0:x} ? {1}\n", green_hex,
+               green_hex.hex() == green_hex_int);
+    uint32_t blue_hex_int = 0x0000FF;
+    espp::Rgb blue_hex(blue_hex_int);
+    fmt::print(espp::color_code(blue_hex), "Blue from hex:  {0:d} == {0:x} ? {1}\n", blue_hex,
+               blue_hex.hex() == blue_hex_int);
+    uint32_t white_hex_int = 0xFFFFFF;
+    espp::Rgb white_hex(white_hex_int);
+    fmt::print(espp::color_code(white_hex), "White from hex: {0:d} == {0:x} ? {1}\n", white_hex,
+               white_hex.hex() == white_hex_int);
+    uint32_t grey_hex_int = 0x808080;
+    espp::Rgb grey_hex(grey_hex_int);
+    fmt::print(espp::color_code(grey_hex), "Grey from hex:  {0:d} == {0:x} ? {1}\n", grey_hex,
+               grey_hex.hex() == grey_hex_int);
+
     espp::Rgb white(1., 1., 1.);
     espp::Rgb black(0., 0., 0.);
     espp::Rgb red(1., 0., 0.);

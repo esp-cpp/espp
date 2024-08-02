@@ -24,6 +24,12 @@ Rgb::Rgb(const Rgb &rgb)
 Rgb::Rgb(const Hsv &hsv)
     : Rgb(hsv.rgb()) {}
 
+Rgb::Rgb(const uint32_t &hex) {
+  r = ((hex >> 16) & 0xFF) / 255.0f;
+  g = ((hex >> 8) & 0xFF) / 255.0f;
+  b = (hex & 0xFF) / 255.0f;
+}
+
 Rgb &Rgb::operator=(const Hsv &hsv) {
   *this = hsv.rgb();
   return *this;
@@ -81,6 +87,14 @@ Hsv Rgb::hsv() const {
   }
 
   return HSV;
+}
+
+uint32_t Rgb::hex() const {
+  uint32_t hex = 0;
+  hex |= static_cast<uint32_t>(r * 255) << 16;
+  hex |= static_cast<uint32_t>(g * 255) << 8;
+  hex |= static_cast<uint32_t>(b * 255);
+  return hex;
 }
 
 Hsv::Hsv(const float &_h, const float &_s, const float &_v)
