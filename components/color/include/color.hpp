@@ -52,6 +52,13 @@ public:
   explicit Rgb(const Hsv &hsv);
 
   /**
+   * @brief Construct an Rgb object from the provided hex value.
+   * @param hex Hex value to convert to RGB. The hex value should be in the
+   *        format 0xRRGGBB.
+   */
+  explicit Rgb(const uint32_t &hex);
+
+  /**
    * @brief Assign the values of the provided Rgb object to this Rgb object.
    * @param other The Rgb object to copy.
    */
@@ -82,6 +89,12 @@ public:
    * @return An HSV object containing the HSV representation.
    */
   Hsv hsv() const;
+
+  /**
+   * @brief Get the hex representation of this RGB color.
+   * @return The hex representation of this RGB color.
+   */
+  uint32_t hex() const;
 };
 
 /**
@@ -163,12 +176,35 @@ public:
 // for allowing easy serialization/printing of the
 // Rgb
 template <> struct fmt::formatter<espp::Rgb> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
+  // Presentation format: 'f' - floating [0,1] (default), 'd' - integer [0,255], 'x' - hex integer.
+  char presentation = 'f';
+
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
+    // Parse the presentation format and store it in the formatter:
+    auto it = ctx.begin(), end = ctx.end();
+    if (it != end && (*it == 'f' || *it == 'd' || *it == 'x'))
+      presentation = *it++;
+
+    // TODO: Check if reached the end of the range:
+    // if (it != end && *it != '}') throw format_error("invalid format");
+
+    // Return an iterator past the end of the parsed range:
+    return it;
   }
 
   template <typename FormatContext> auto format(espp::Rgb const &rgb, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "({}, {}, {})", rgb.r, rgb.g, rgb.b);
+    switch (presentation) {
+    case 'f':
+      return fmt::format_to(ctx.out(), "({}, {}, {})", rgb.r, rgb.g, rgb.b);
+    case 'd':
+      return fmt::format_to(ctx.out(), "({}, {}, {})", static_cast<int>(rgb.r * 255),
+                            static_cast<int>(rgb.g * 255), static_cast<int>(rgb.b * 255));
+    case 'x':
+      return fmt::format_to(ctx.out(), "{:#08X}", rgb.hex());
+    default:
+      // shouldn't get here!
+      return fmt::format_to(ctx.out(), "({}, {}, {})", rgb.r, rgb.g, rgb.b);
+    }
   }
 };
 
