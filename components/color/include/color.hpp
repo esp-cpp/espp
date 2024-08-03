@@ -52,6 +52,13 @@ public:
   explicit Rgb(const Hsv &hsv);
 
   /**
+   * @brief Construct an Rgb object from the provided hex value.
+   * @param hex Hex value to convert to RGB. The hex value should be in the
+   *        format 0xRRGGBB.
+   */
+  explicit Rgb(const uint32_t &hex);
+
+  /**
    * @brief Assign the values of the provided Rgb object to this Rgb object.
    * @param other The Rgb object to copy.
    */
@@ -86,6 +93,12 @@ public:
    * @return An HSV object containing the HSV representation.
    */
   Hsv hsv() const;
+
+  /**
+   * @brief Get the hex representation of this RGB color.
+   * @return The hex representation of this RGB color.
+   */
+  uint32_t hex() const;
 };
 
 /**
