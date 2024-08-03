@@ -138,6 +138,7 @@ std::vector<std::filesystem::path> FileSystem::get_files_in_path(const std::file
     return {};
   }
   std::vector<std::filesystem::path> files;
+#if defined(ESP_PLATFORM)
   // NOTE: we cannot use std::filesystem::directory_iterator because it is not implemented in
   // esp-idf
   DIR *dir = opendir(path.c_str());
@@ -171,6 +172,26 @@ std::vector<std::filesystem::path> FileSystem::get_files_in_path(const std::file
     }
   }
   closedir(dir);
+#else
+  for (const auto &entry : fs::directory_iterator(path)) {
+    auto file_path = entry.path();
+    file_status = fs::status(file_path, ec);
+    if (ec) {
+      logger_.warn("Failed to get status for file: {}", file_path.string());
+    }
+    if (fs::is_directory(file_status)) {
+      if (include_directories) {
+        files.push_back(file_path);
+      }
+      if (recursive) {
+        auto sub_files = get_files_in_path(file_path, include_directories, recursive);
+        files.insert(files.end(), sub_files.begin(), sub_files.end());
+      }
+    } else {
+      files.push_back(file_path);
+    }
+  }
+#endif
   return files;
 }
 
@@ -191,12 +212,20 @@ bool FileSystem::remove(const std::filesystem::path &path, std::error_code &ec) 
 
 bool FileSystem::remove_file(const std::filesystem::path &path) {
   logger_.debug("Removing file: {}", path.string());
+#if defined(ESP_PLATFORM)
   return unlink(path.c_str()) == 0;
+#else
+  return std::filesystem::remove(path);
+#endif
 }
 
 bool FileSystem::remove_directory(const std::filesystem::path &path) {
   logger_.debug("Removing directory: {}", path.string());
+#if defined(ESP_PLATFORM)
   return rmdir(path.c_str()) == 0;
+#else
+  return std::filesystem::remove(path);
+#endif
 }
 
 bool FileSystem::remove_contents(const std::filesystem::path &path, std::error_code &ec) {
@@ -217,6 +246,7 @@ bool FileSystem::remove_contents(const std::filesystem::path &path, std::error_c
 std::string FileSystem::list_directory(const std::string &path, const ListConfig &config,
                                        const std::string &prefix) {
   std::string result;
+#if defined(ESP_PLATFORM)
   DIR *dir = opendir(path.c_str());
   if (dir == nullptr) {
     return result;
@@ -279,6 +309,54 @@ std::string FileSystem::list_directory(const std::string &path, const ListConfig
     }
   }
   closedir(dir);
+#else
+  for (const auto &entry : std::filesystem::directory_iterator(path)) {
+    auto file_path = entry.path();
+    auto file_status = std::filesystem::status(file_path);
+    if (config.type) {
+      if (std::filesystem::is_directory(file_status)) {
+        result += "d";
+      } else if (std::filesystem::is_regular_file(file_status)) {
+        result += "-";
+      } else {
+        result += "?";
+      }
+    }
+    if (config.permissions) {
+      auto perms = file_status.permissions();
+      result += to_string(perms);
+      result += " ";
+    }
+    if (config.number_of_links) {
+      result += "1 ";
+    }
+    if (config.owner) {
+      result += "owner ";
+    }
+    if (config.group) {
+      result += "group ";
+    }
+    if (config.size) {
+      if (std::filesystem::is_regular_file(file_status)) {
+        result += fmt::format("{:>8} ", human_readable(std::filesystem::file_size(file_path)));
+      } else {
+        result += fmt::format("{:>8} ", "");
+      }
+    }
+    if (config.date_time) {
+      result += fmt::format("{:>12} ", get_file_time_as_string(file_path));
+    }
+    std::string relative_name = "";
+    if (prefix.size())
+      relative_name += prefix + "/";
+    relative_name += entry.path().filename().string();
+    result += relative_name;
+    result += "\r\n";
+    if (config.recursive && std::filesystem::is_directory(file_status)) {
+      result += list_directory(file_path, config, relative_name);
+    }
+  }
+#endif
   return result;
 }
 
