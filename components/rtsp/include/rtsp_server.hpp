@@ -77,7 +77,7 @@ public:
   /// actually send it
   /// @note Overwrites any existing frame that has not been sent
   /// @param frame The frame to send
-  void send_frame(const JpegFrame &frame);
+  void send_frame(const espp::JpegFrame &frame);
 
 protected:
   bool accept_task_function(std::mutex &m, std::condition_variable &cv);
@@ -90,16 +90,16 @@ protected:
   int port_;                   ///< the port of the RTSP server
   std::string path_;           ///< the path of the RTSP server, e.g. rtsp:://<ip>:<port>/<path>
 
-  TcpSocket rtsp_socket_;
+  espp::TcpSocket rtsp_socket_;
 
   size_t max_data_size_;
 
   std::mutex rtp_packets_mutex_;
-  std::vector<std::unique_ptr<RtpJpegPacket>> rtp_packets_;
+  std::vector<std::unique_ptr<espp::RtpJpegPacket>> rtp_packets_;
 
   espp::Logger::Verbosity session_log_level_{espp::Logger::Verbosity::WARN};
   std::mutex session_mutex_;
-  std::unordered_map<int, std::unique_ptr<RtspSession>> sessions_;
+  std::unordered_map<int, std::unique_ptr<espp::RtspSession>> sessions_;
 
   std::unique_ptr<Task> accept_task_;
   std::unique_ptr<Task> session_task_;

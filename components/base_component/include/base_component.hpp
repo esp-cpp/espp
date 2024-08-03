@@ -29,7 +29,7 @@ public:
   /// \param level The verbosity level to use for the logger
   /// \sa Logger::Verbosity
   /// \sa Logger::set_verbosity
-  void set_log_level(Logger::Verbosity level) { logger_.set_verbosity(level); }
+  void set_log_level(espp::Logger::Verbosity level) { logger_.set_verbosity(level); }
 
   /// Set the log verbosity for the logger
   /// \param level The verbosity level to use for the logger
@@ -37,7 +37,7 @@ public:
   /// \sa set_log_level
   /// \sa Logger::Verbosity
   /// \sa Logger::set_verbosity
-  void set_log_verbosity(Logger::Verbosity level) { set_log_level(level); }
+  void set_log_verbosity(espp::Logger::Verbosity level) { set_log_level(level); }
 
   /// Get the log verbosity for the logger
   /// \return The verbosity level of the logger
@@ -58,13 +58,14 @@ public:
 protected:
   BaseComponent() = default;
 
-  explicit BaseComponent(std::string_view tag, Logger::Verbosity level = Logger::Verbosity::WARN)
+  explicit BaseComponent(std::string_view tag,
+                         espp::Logger::Verbosity level = espp::Logger::Verbosity::WARN)
       : logger_({.tag = tag, .level = level}) {}
 
-  explicit BaseComponent(const Logger::Config &logger_config)
+  explicit BaseComponent(const espp::Logger::Config &logger_config)
       : logger_(logger_config) {}
 
   /// The logger for this component
-  Logger logger_ = espp::Logger({.tag = "BaseComponent", .level = Logger::Verbosity::INFO});
+  Logger logger_ = espp::Logger({.tag = "BaseComponent", .level = espp::Logger::Verbosity::INFO});
 };
 } // namespace espp

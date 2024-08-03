@@ -72,7 +72,7 @@ void RtspServer::stop() {
   rtsp_socket_.close();
 }
 
-void RtspServer::send_frame(const JpegFrame &frame) {
+void RtspServer::send_frame(const espp::JpegFrame &frame) {
   // get the frame scan data
   auto frame_header = frame.get_header();
   auto frame_data = frame.get_scan_data();
@@ -95,7 +95,7 @@ void RtspServer::send_frame(const JpegFrame &frame) {
   for (size_t i = 0; i < num_packets; i++) {
     // get the start and end indices for the current packet
     size_t start_index = i * max_data_size_;
-    size_t end_index = std::min(start_index + max_data_size_, frame_data.size());
+    size_t end_index = std::min<size_t>(start_index + max_data_size_, frame_data.size());
 
     static const int type_specific = 0;
     static const int fragment_type = 0;
@@ -105,15 +105,15 @@ void RtspServer::send_frame(const JpegFrame &frame) {
     // if this is the first packet, it has the quantization tables
     if (i == 0) {
       // use the original q value and include the quantization tables
-      packet =
-          std::make_unique<RtpJpegPacket>(type_specific, fragment_type, 128, width, height, q0, q1,
-                                          frame_data.substr(start_index, end_index - start_index));
+      packet = std::make_unique<espp::RtpJpegPacket>(
+          type_specific, fragment_type, 128, width, height, q0, q1,
+          frame_data.substr(start_index, end_index - start_index));
     } else {
       // use a different q value (less than 128) and don't include the
       // quantization tables
-      packet =
-          std::make_unique<RtpJpegPacket>(type_specific, offset, fragment_type, 96, width, height,
-                                          frame_data.substr(start_index, end_index - start_index));
+      packet = std::make_unique<espp::RtpJpegPacket>(
+          type_specific, offset, fragment_type, 96, width, height,
+          frame_data.substr(start_index, end_index - start_index));
     }
 
     // set the payload type to 26 (JPEG)
