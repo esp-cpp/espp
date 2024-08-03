@@ -1,21 +1,18 @@
 #pragma once
 
-#include <functional>
-#include <optional>
-#include <string>
-#include <vector>
-
 // if we're on windows, we cannot include netinet/in.h and instead need to use
 #ifdef _MSC_VER
-/* See http://stackoverflow.com/questions/12765743/getaddrinfo-on-win32 */
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0501 /* Windows XP. */
-#endif
 extern "C" {
-#include <Ws2tcpip.h>
-#include <winsock2.h>
+// /* See http://stackoverflow.com/questions/12765743/getaddrinfo-on-win32 */
+// #ifndef _WIN32_WINNT
+// #define _WIN32_WINNT 0x0501 /* Windows XP. */
+// #endif
+#define WIN32_LEAN_AND_MEAN
+#include <WS2tcpip.h>
+#include <WinSock2.h>
+#include <Windows.h>
+#include <io.h>
 }
-// #include <io.h>
 typedef unsigned int sock_type_t;
 #else
 /* Assume that any non-Windows platform uses POSIX-style sockets instead. */
@@ -27,6 +24,11 @@ typedef unsigned int sock_type_t;
 #include <unistd.h> /* Needed for close() */
 typedef int sock_type_t;
 #endif
+
+#include <functional>
+#include <optional>
+#include <string>
+#include <vector>
 
 #include <math.h>
 
