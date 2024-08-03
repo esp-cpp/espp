@@ -136,6 +136,16 @@ class Rgb:
         """
         pass
 
+    @overload
+    def __init__(self, hex: int) -> None:
+        """*
+           * @brief Construct an Rgb object from the provided hex value.
+           * @param hex Hex value to convert to RGB. The hex value should be in the
+           *        format 0xRRGGBB.
+
+        """
+        pass
+
 
 
     def __add__(self, rhs: Rgb) -> Rgb:
@@ -165,6 +175,14 @@ class Rgb:
         """*
            * @brief Get a HSV representation of this RGB color.
            * @return An HSV object containing the HSV representation.
+
+        """
+        pass
+
+    def hex(self) -> int:
+        """*
+           * @brief Get the hex representation of this RGB color.
+           * @return The hex representation of this RGB color.
 
         """
         pass

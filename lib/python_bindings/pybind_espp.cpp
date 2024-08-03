@@ -84,6 +84,10 @@ void py_init_module_espp(py::module &m) {
                "bad RGB data. The Rgb constructor will automatically convert the\n   *       "
                "values to be in the proper range, but the perceived color will be\n   *       "
                "changed.\n   * @param hsv Hsv object to copy.\n")
+          .def(py::init<const uint32_t &>(), py::arg("hex"),
+               "*\n   * @brief Construct an Rgb object from the provided hex value.\n   * @param "
+               "hex Hex value to convert to RGB. The hex value should be in the\n   *        "
+               "format 0xRRGGBB.\n")
           .def("__add__", &espp::Rgb::operator+, py::arg("rhs"),
                "*\n   * @brief Perform additive color blending (averaging)\n   * @param rhs Other "
                "color to add to this color to create the resultant color\n   * @return Resultant "
@@ -95,7 +99,10 @@ void py_init_module_espp(py::module &m) {
           .def("__ne__", &espp::Rgb::operator!=, py::arg("rhs"))
           .def("hsv", &espp::Rgb::hsv,
                "*\n   * @brief Get a HSV representation of this RGB color.\n   * @return An HSV "
-               "object containing the HSV representation.\n");
+               "object containing the HSV representation.\n")
+          .def("hex", &espp::Rgb::hex,
+               "*\n   * @brief Get the hex representation of this RGB color.\n   * @return The hex "
+               "representation of this RGB color.\n");
 
   auto pyClassHsv =
       py::class_<espp::Hsv>(m, "Hsv", py::dynamic_attr(),
@@ -339,7 +346,7 @@ void py_init_module_espp(py::module &m) {
   } // end of inner classes & enums of Bezier_espp_Vector2f
 
   pyClassBezier_espp_Vector2f.def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())
-      .def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())
+      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig &>())
       .def("__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
            "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around "
            "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
@@ -452,7 +459,8 @@ void py_init_module_espp(py::module &m) {
             .def("__eq__", &espp::Gaussian::Config::operator==, py::arg("rhs"));
   } // end of inner classes & enums of Gaussian
 
-  pyClassGaussian.def(py::init<const espp::Gaussian::Config &>())
+  pyClassGaussian
+      .def(py::init<espp::Gaussian::Config>()) // implicit default constructor
       .def("__call__", &espp::Gaussian::operator(), py::arg("t"),
            "*\n   * @brief Evaluate the gaussian at \\p t.\n   * @note Convienience wrapper around "
            "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
@@ -550,7 +558,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_int
 
-  pyClassRangeMapper_int.def(py::init<const espp::RangeMapper<int>::Config &>())
+  pyClassRangeMapper_int.def(py::init<espp::RangeMapper<int>::Config>())
       .def("get_center_deadband", &espp::RangeMapper<int>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
@@ -672,7 +680,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_float
 
-  pyClassRangeMapper_float.def(py::init<const espp::RangeMapper<float>::Config &>())
+  pyClassRangeMapper_float.def(py::init<espp::RangeMapper<float>::Config>())
       .def("get_center_deadband", &espp::RangeMapper<float>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
@@ -1083,6 +1091,10 @@ void py_init_module_espp(py::module &m) {
   } // end of inner classes & enums of Socket
 
   pyClassSocket
+      .def(
+          "is_valid", [](espp::Socket &self) { return self.is_valid(); },
+          "*\n   * @brief Is the socket valid.\n   * @return True if the socket file descriptor is "
+          ">= 0.\n")
       .def_static("is_valid", py::overload_cast<int>(&espp::Socket::is_valid), py::arg("socket_fd"),
                   "*\n   * @brief Is the socket valid.\n   * @param socket_fd Socket file "
                   "descriptor.\n   * @return True if the socket file descriptor is >= 0.\n")
@@ -1191,7 +1203,7 @@ void py_init_module_espp(py::module &m) {
             .def_static("default", &espp::TcpSocket::TransmitConfig::Default);
   } // end of inner classes & enums of TcpSocket
 
-  pyClassTcpSocket.def(py::init<const espp::TcpSocket::Config &>())
+  pyClassTcpSocket.def(py::init<espp::TcpSocket::Config>())
       .def("reinit", &espp::TcpSocket::reinit,
            "*\n   * @brief Reinitialize the socket, cleaning it up if first it is already\n   *    "
            "    initalized.\n")
@@ -1370,7 +1382,7 @@ void py_init_module_espp(py::module &m) {
                            "*< Verbosity level for the UDP socket logger.");
   } // end of inner classes & enums of UdpSocket
 
-  pyClassUdpSocket.def(py::init<const espp::UdpSocket::Config &>())
+  pyClassUdpSocket.def(py::init<espp::UdpSocket::Config>())
       .def("send",
            py::overload_cast<const std::vector<uint8_t> &, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
