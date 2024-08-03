@@ -30,7 +30,7 @@ jobs:
     - name: Build libraries
       working-directory: lib/
       run: |
-        pwsh -File .\build.ps1
+        pwsh -File .\build_cloud.ps1
 
   build_linux:
 
