@@ -6,7 +6,7 @@ bool FileSystem::read_only_ = false;
 bool FileSystem::grow_on_mount_ = true;
 
 FileSystem::FileSystem()
-    : BaseComponent("FileSystem") {
+    : espp::BaseComponent("FileSystem") {
   init();
 }
 

@@ -46,7 +46,7 @@ namespace espp {
 /// \snippet file_system_example.cpp file_system posix example
 /// \section fs_ex3 File System Info std::filesystem Example
 /// \snippet file_system_example.cpp file_system std filesystem example
-class FileSystem : public BaseComponent {
+class FileSystem : public espp::BaseComponent {
 public:
 #if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
   /// @brief Set whether to mount the file system as read only

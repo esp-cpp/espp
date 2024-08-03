@@ -130,7 +130,7 @@ public:
 
 protected:
   EventManager()
-      : BaseComponent("Event Manager") {}
+      : espp::BaseComponent("Event Manager") {}
 
   struct SubscriberData {
     std::mutex m;
