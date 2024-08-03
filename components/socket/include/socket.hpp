@@ -11,8 +11,10 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501 /* Windows XP. */
 #endif
+extern "C" {
 #include <Ws2tcpip.h>
 #include <winsock2.h>
+}
 // #include <io.h>
 typedef unsigned int sock_type_t;
 #else
