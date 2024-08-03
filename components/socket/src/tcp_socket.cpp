@@ -126,7 +126,7 @@ size_t TcpSocket::receive(uint8_t *data, size_t max_num_bytes) {
   }
   logger_.info("Receiving up to {} bytes", max_num_bytes);
   // now actually read data from the socket
-  int num_bytes_received = ::recv(socket_, data, max_num_bytes, 0);
+  int num_bytes_received = ::recv(socket_, (char *)data, max_num_bytes, 0);
   // if we didn't receive anything return false and don't do anything else
   if (num_bytes_received < 0) {
     // if we got an error, log it and return 0
@@ -195,7 +195,7 @@ std::unique_ptr<TcpSocket> TcpSocket::accept() {
   return std::unique_ptr<TcpSocket>(new TcpSocket(accepted_socket, connected_client_info));
 }
 
-TcpSocket::TcpSocket(int socket_fd, const Socket::Info &remote_info)
+TcpSocket::TcpSocket(sock_type_t socket_fd, const Socket::Info &remote_info)
     : Socket(socket_fd, Logger::Config{.tag = "TcpSocket", .level = Logger::Verbosity::WARN})
     , remote_info_(remote_info) {
   connected_ = true;
@@ -210,7 +210,7 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
   }
   int optval = 1;
   // enable keepalive
-  auto err = setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE, &optval, sizeof(optval));
+  auto err = setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE, (const char *)&optval, sizeof(optval));
   if (err < 0) {
     logger_.error("Unable to set keepalive: {} - '{}'", errno, strerror(errno));
     return false;
@@ -221,7 +221,7 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
 #else
   // set the idle time
   optval = idle_time.count();
-  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPIDLE, &optval, sizeof(optval));
+  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPIDLE, (const char *)&optval, sizeof(optval));
   if (err < 0) {
     logger_.error("Unable to set keepalive idle time: {} - '{}'", errno, strerror(errno));
     return false;
@@ -230,14 +230,14 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
 
   // set the interval
   optval = interval.count();
-  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPINTVL, &optval, sizeof(optval));
+  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPINTVL, (const char *)&optval, sizeof(optval));
   if (err < 0) {
     logger_.error("Unable to set keepalive interval: {} - '{}'", errno, strerror(errno));
     return false;
   }
   // set the max probes
   optval = max_probes;
-  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPCNT, &optval, sizeof(optval));
+  err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPCNT, (const char *)&optval, sizeof(optval));
   if (err < 0) {
     logger_.error("Unable to set keepalive max probes: {} - '{}'", errno, strerror(errno));
     return false;

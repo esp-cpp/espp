@@ -84,7 +84,7 @@ bool UdpSocket::receive(size_t max_num_bytes, std::vector<uint8_t> &data,
   std::unique_ptr<uint8_t[]> receive_buffer(new uint8_t[max_num_bytes]());
   // now actually receive
   logger_.info("Receiving up to {} bytes", max_num_bytes);
-  int num_bytes_received = recvfrom(socket_, receive_buffer.get(), max_num_bytes, 0,
+  int num_bytes_received = recvfrom(socket_, (char *)receive_buffer.get(), max_num_bytes, 0,
                                     (struct sockaddr *)remote_address, &socklen);
   // if we didn't receive anything return false and don't do anything else
   if (num_bytes_received < 0) {
@@ -171,7 +171,7 @@ bool UdpSocket::server_task_function(size_t buffer_size, std::mutex &m,
   // sendto
   logger_.info("Server responding to {} with message of length {}", sender_info, response.size());
   auto sender_address = sender_info.ipv4_ptr();
-  int num_bytes_sent = sendto(socket_, response.data(), response.size(), 0,
+  int num_bytes_sent = sendto(socket_, (const char *)response.data(), response.size(), 0,
                               (struct sockaddr *)sender_address, sizeof(*sender_address));
   if (num_bytes_sent < 0) {
     logger_.error("Error occurred responding: {} - '{}'", errno, strerror(errno));

@@ -145,17 +145,25 @@ bool Socket::enable_reuse() {
 #else // CONFIG_LWIP_SO_REUSE || !defined(ESP_PLATFORM)
   int err = 0;
   int enabled = 1;
-  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char *)&enabled, sizeof(enabled));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEADDR\n");
     return false;
   }
 #if !defined(ESP_PLATFORM)
-  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &enabled, sizeof(enabled));
+#if _MSC_VER
+  err = setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, (const char *)&enabled, sizeof(enabled));
+  if (err < 0) {
+    fmt::print(fg(fmt::color::red), "Couldn't set SO_BROADCAST\n");
+    return false;
+  }
+#else
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (const char *)&enabled, sizeof(enabled));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT\n");
     return false;
   }
+#endif // _MSC_VER
 #endif // !defined(ESP_PLATFORM)
   return true;
 #endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
@@ -164,13 +172,15 @@ bool Socket::enable_reuse() {
 bool Socket::make_multicast(uint8_t time_to_live, uint8_t loopback_enabled) {
   int err = 0;
   // Assign multicast TTL - separate from normal interface TTL
-  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, &time_to_live, sizeof(uint8_t));
+  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, (const char *)&time_to_live,
+                   sizeof(uint8_t));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_TTL\n");
     return false;
   }
   // select whether multicast traffic should be received by this device, too
-  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback_enabled, sizeof(uint8_t));
+  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP, (const char *)&loopback_enabled,
+                   sizeof(uint8_t));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_LOOP\n");
     return false;
@@ -190,8 +200,12 @@ bool Socket::add_multicast_group(const std::string &multicast_group) {
 #else
   imreq.imr_interface.s_addr = htonl(INADDR_ANY);
   // Configure multicast address to listen to
+#if _MSC_VER
+  err = inet_pton(AF_INET, multicast_group.c_str(), &imreq.imr_multiaddr);
+#else
   err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr);
-#endif
+#endif // _MSC_VER
+#endif // defined(ESP_PLATFORM)
 
   if (err != 1 || !IN_MULTICAST(ntohl(imreq.imr_multiaddr.s_addr))) {
     // it's not actually a multicast address, so return false?
@@ -202,14 +216,16 @@ bool Socket::add_multicast_group(const std::string &multicast_group) {
   // Assign the IPv4 multicast source interface, via its IP
   // (only necessary if this socket is IPV4 only)
   struct in_addr iaddr;
-  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, &iaddr, sizeof(struct in_addr));
+  err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, (const char *)&iaddr,
+                   sizeof(struct in_addr));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_IF: {} - '{}'\n", errno,
                strerror(errno));
     return false;
   }
 
-  err = setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &imreq, sizeof(struct ip_mreq));
+  err = setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&imreq,
+                   sizeof(struct ip_mreq));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set IP_ADD_MEMBERSHIP: {} - '{}'\n", errno,
                strerror(errno));

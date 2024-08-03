@@ -50,8 +50,11 @@ set(ESPP_SOURCES
   ${COMPONENTS}/event_manager/src/event_manager.cpp
   ${COMPONENTS}/logger/src/logger.cpp
   ${COMPONENTS}/file_system/src/file_system.cpp
+  ${COMPONENTS}/rtsp/src/rtcp_packet.cpp
+  ${COMPONENTS}/rtsp/src/rtp_packet.cpp
   ${COMPONENTS}/rtsp/src/rtsp_client.cpp
   ${COMPONENTS}/rtsp/src/rtsp_server.cpp
+  ${COMPONENTS}/rtsp/src/rtsp_session.cpp
   ${COMPONENTS}/task/src/task.cpp
   ${COMPONENTS}/timer/src/timer.cpp
   ${COMPONENTS}/socket/src/socket.cpp
@@ -95,6 +98,7 @@ add_library( # Specifies the name of the library.
              ${ESPP_SOURCES} )
 set_property(TARGET ${TARGET_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_options(${TARGET_NAME} PRIVATE "${LINK_ARG}")
+target_link_libraries(${TARGET_NAME} ${EXTERNAL_LIBS})
 target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)
 
 # and install it into the hardware_tests/pc folder for use by the python scripts there
