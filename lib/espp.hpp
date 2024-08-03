@@ -2,6 +2,12 @@
 
 #include "socket_msvc.hpp"
 
+#if _MSC_VER
+extern "C" {
+#include "wcswidth.h"
+}
+#endif
+
 #include <cli/cli.h>
 #include <cli/clifilesession.h>
 

@@ -60,6 +60,16 @@ set(ESPP_SOURCES
   espp.cpp
 )
 
+# if we're on windows, we need to add wcswidth.c to the sources
+if(MSVC)
+  list(APPEND ESPP_SOURCES wcswidth.c)
+endif()
+
+# if we're on Windows, we need to link against ws2_32
+if(WIN32)
+  set(EXTERNAL_LIBS ws2_32)
+endif()
+
 include_directories(. ${EXTERNAL_INCLUDES} ${ESPP_INCLUDES})
 
 set(LINK_ARG "--whole-archive")
