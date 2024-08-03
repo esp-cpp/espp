@@ -71,7 +71,7 @@ public:
    * @note Enables keepalive on the socket.
    * @param config Config for the socket.
    */
-  explicit TcpSocket(const Config &config);
+  explicit TcpSocket(const espp::TcpSocket::Config &config);
 
   /**
    * @brief Tear down any resources associted with the socket.
@@ -100,13 +100,13 @@ public:
    * @param connect_config ConnectConfig struct describing the server endpoint.
    * @return true if the client successfully connected to the server.
    */
-  bool connect(const ConnectConfig &connect_config);
+  bool connect(const espp::TcpSocket::ConnectConfig &connect_config);
 
   /**
    * @brief Get the remote endpoint info.
    * @return The remote endpoint info.
    */
-  const Socket::Info &get_remote_info() const;
+  const espp::Socket::Info &get_remote_info() const;
 
   /**
    * @brief Send data to the endpoint already connected to by TcpSocket::connect.
@@ -121,7 +121,8 @@ public:
    * @return true if the data was sent, false otherwise.
    */
   bool transmit(const std::vector<uint8_t> &data,
-                const TransmitConfig &transmit_config = TransmitConfig::Default());
+                const espp::TcpSocket::TransmitConfig &transmit_config =
+                    espp::TcpSocket::TransmitConfig::Default());
 
   /**
    * @brief Send data to the endpoint already connected to by TcpSocket::connect.
@@ -136,7 +137,8 @@ public:
    * @return true if the data was sent, false otherwise.
    */
   bool transmit(const std::vector<char> &data,
-                const TransmitConfig &transmit_config = TransmitConfig::Default());
+                const espp::TcpSocket::TransmitConfig &transmit_config =
+                    espp::TcpSocket::TransmitConfig::Default());
 
   /**
    * @brief Send data to the endpoint already connected to by TcpSocket::connect.
@@ -150,8 +152,8 @@ public:
    *        response.
    * @return true if the data was sent, false otherwise.
    */
-  bool transmit(std::string_view data,
-                const TransmitConfig &transmit_config = TransmitConfig::Default());
+  bool transmit(std::string_view data, const espp::TcpSocket::TransmitConfig &transmit_config =
+                                           espp::TcpSocket::TransmitConfig::Default());
 
   /**
    * @brief Call read on the socket, assuming it has already been configured
@@ -200,7 +202,7 @@ public:
    * @return A unique pointer to a TcpClientSession if a connection was
    *         accepted, nullptr otherwise.
    */
-  std::unique_ptr<TcpSocket> accept();
+  std::unique_ptr<espp::TcpSocket> accept();
 
 protected:
   /**
@@ -212,13 +214,13 @@ protected:
    * @param socket_fd The socket file descriptor for the connection.
    * @param remote_info The remote endpoint info.
    */
-  explicit TcpSocket(int socket_fd, const Socket::Info &remote_info);
+  explicit TcpSocket(sock_type_t socket_fd, const espp::Socket::Info &remote_info);
 
   bool set_keepalive(const std::chrono::seconds &idle_time = std::chrono::seconds{60},
                      const std::chrono::seconds &interval = std::chrono::seconds{10},
                      int max_probes = 5);
 
   bool connected_{false};
-  Socket::Info remote_info_{};
+  espp::Socket::Info remote_info_{};
 };
 } // namespace espp

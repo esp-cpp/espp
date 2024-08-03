@@ -275,13 +275,13 @@ void Socket::cleanup() {
 #ifdef _MSC_VER
     status = shutdown(socket_, SD_BOTH);
     if (status == 0) {
-      status = closesocket(socket_);
+      closesocket(socket_);
     }
     socket_ = INVALID_SOCKET;
 #else
     status = shutdown(socket_, SHUT_RDWR);
     if (status == 0) {
-      status = close(socket_);
+      close(socket_);
     }
     socket_ = -1;
 #endif
