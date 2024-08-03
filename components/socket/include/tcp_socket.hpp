@@ -1,19 +1,8 @@
 #pragma once
 
-// if we're on windows, we cannot include netinet/in.h
-#ifdef _MSC_VER
-extern "C" {
-// /* See http://stackoverflow.com/questions/12765743/getaddrinfo-on-win32 */
-// #ifndef _WIN32_WINNT
-// #define _WIN32_WINNT 0x0501 /* Windows XP. */
-// #endif
-#define WIN32_LEAN_AND_MEAN
-#include <WS2tcpip.h>
-#include <WinSock2.h>
-#include <Windows.h>
-#include <io.h>
-}
-#else
+#include "socket_msvc.hpp"
+
+#ifndef _MSC_VER
 #include <netinet/tcp.h>
 #endif // _MSC_VER
 
