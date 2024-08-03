@@ -90,13 +90,13 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * \sa Logger::Verbosity
    *
    */
-  Verbosity get_verbosity() const { return level_; }
+  espp::Logger::Verbosity get_verbosity() const { return level_; }
 
   /**
    * @brief Change the verbosity for the logger. \sa Logger::Verbosity
    * @param level new verbosity level
    */
-  void set_verbosity(const Verbosity level) { level_ = level; }
+  void set_verbosity(const espp::Logger::Verbosity level) { level_ = level; }
 
   /**
    * @brief Change the tag for the logger.
