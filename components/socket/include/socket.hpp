@@ -6,23 +6,25 @@
 #include <vector>
 
 // if we're on windows, we cannot include netinet/in.h and instead need to use
-// winsock2.h
 #ifdef _MSC_VER
+/* See http://stackoverflow.com/questions/12765743/getaddrinfo-on-win32 */
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501 /* Windows XP. */
+#endif
+#include <Ws2tcpip.h>
 #include <winsock2.h>
-#else // !_MSC_VER
+// #include <io.h>
+typedef unsigned int sock_type_t;
+#else
+/* Assume that any non-Windows platform uses POSIX-style sockets instead. */
 #include <arpa/inet.h>
+#include <netdb.h> /* Needed for getaddrinfo() and freeaddrinfo() */
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#endif // _MSC_VER
-
-#if !defined(ESP_PLATFORM)
-#ifndef _MSC_VER
-#include <unistd.h>
-#else
-#include <io.h>
-#endif // !_MSC_VER
-#endif // !ESP_PLATFORM
+#include <unistd.h> /* Needed for close() */
+typedef int sock_type_t;
+#endif
 
 #include <math.h>
 
@@ -124,7 +126,7 @@ public:
    * @param logger_config configuration for the logger associated with the
    *        socket.
    */
-  explicit Socket(int socket_fd, const espp::Logger::Config &logger_config);
+  explicit Socket(sock_type_t socket_fd, const espp::Logger::Config &logger_config);
 
   /**
    * @brief Initialize the socket (calling init()).
@@ -150,7 +152,7 @@ public:
    * @param socket_fd Socket file descriptor.
    * @return true if the socket file descriptor is >= 0.
    */
-  static bool is_valid(int socket_fd);
+  static bool is_valid_fd(sock_type_t socket_fd);
 
   /**
    * @brief Get the Socket::Info for the socket.
@@ -222,7 +224,7 @@ protected:
   static constexpr int address_family_{AF_INET};
   static constexpr int ip_protocol_{IPPROTO_IP};
 
-  int socket_;
+  sock_type_t socket_;
 };
 } // namespace espp
 

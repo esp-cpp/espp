@@ -58,21 +58,48 @@ void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
   memcpy(&raw, &source_address, sizeof(source_address));
 }
 
-Socket::Socket(int socket_fd, const Logger::Config &logger_config)
+[[maybe_unused]] static bool _socket_initialized = false;
+Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
     : BaseComponent(logger_config) {
   socket_ = socket_fd;
+#ifdef _MSC_VER
+  if (!_socket_initialized) {
+    WSADATA wsa_data;
+    WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    _socket_initialized = true;
+  }
+#endif
 }
 
 Socket::Socket(Type type, const Logger::Config &logger_config)
     : BaseComponent(logger_config) {
   init(type);
+#ifdef _MSC_VER
+  if (!_socket_initialized) {
+    WSADATA wsa_data;
+    WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    _socket_initialized = true;
+  }
+#endif
 }
 
 Socket::~Socket() { cleanup(); }
 
-bool Socket::is_valid() const { return socket_ >= 0; }
+bool Socket::is_valid() const {
+#if _MSC_VER
+  return socket_ != INVALID_SOCKET;
+#else
+  return socket_ >= 0;
+#endif
+}
 
-bool Socket::is_valid(int socket_fd) { return socket_fd >= 0; }
+bool Socket::is_valid_fd(sock_type_t socket_fd) {
+#if _MSC_VER
+  return socket_fd != INVALID_SOCKET;
+#else
+  return socket_fd >= 0;
+#endif
+}
 
 std::optional<Socket::Info> Socket::get_ipv4_info() {
   struct sockaddr_storage addr;
@@ -244,9 +271,21 @@ bool Socket::init(Socket::Type type) {
 
 void Socket::cleanup() {
   if (is_valid()) {
-    shutdown(socket_, 0);
-    close(socket_);
+    int status = 0;
+#ifdef _MSC_VER
+    status = shutdown(socket_, SD_BOTH);
+    if (status == 0) {
+      status = closesocket(socket_);
+    }
+    socket_ = INVALID_SOCKET;
+#else
+    status = shutdown(socket_, SHUT_RDWR);
+    if (status == 0) {
+      status = close(socket_);
+    }
     socket_ = -1;
+#endif
+
     logger_.info("Closed socket");
   }
 }

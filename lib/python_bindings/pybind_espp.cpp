@@ -1095,7 +1095,8 @@ void py_init_module_espp(py::module &m) {
           "is_valid", [](espp::Socket &self) { return self.is_valid(); },
           "*\n   * @brief Is the socket valid.\n   * @return True if the socket file descriptor is "
           ">= 0.\n")
-      .def_static("is_valid", py::overload_cast<int>(&espp::Socket::is_valid), py::arg("socket_fd"),
+      .def_static("is_valid_fd", py::overload_cast<sock_type_t>(&espp::Socket::is_valid_fd),
+                  py::arg("socket_fd"),
                   "*\n   * @brief Is the socket valid.\n   * @param socket_fd Socket file "
                   "descriptor.\n   * @return True if the socket file descriptor is >= 0.\n")
       .def("get_ipv4_info", &espp::Socket::get_ipv4_info,
