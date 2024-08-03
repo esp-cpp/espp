@@ -30,7 +30,10 @@ jobs:
     - name: Build libraries
       working-directory: lib/
       run: |
-        pwsh -File .\build_cloud.ps1
+        mkdir build
+        cd build
+        cmake ..
+        cmake --build . --config Release --target install
 
   build_linux:
 
