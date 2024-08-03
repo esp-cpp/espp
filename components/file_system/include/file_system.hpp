@@ -9,27 +9,17 @@
 #include <mutex>
 #include <string>
 
-// if we're on windows we can't include dirent.h
-#ifdef _MSC_VER
-
-#else // _MSC_VER
-#include <dirent.h>
-#endif // _MSC_VER
-
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #if defined(ESP_PLATFORM)
+#include <dirent.h>
+#include <unistd.h>
+
 #include <esp_err.h>
 #include <esp_littlefs.h>
 #include <esp_partition.h>
-#else // ESP_PLATFORM
-#ifndef _MSC_VER
-#include <unistd.h>
-#else
-#include <io.h>
-#endif // !_MSC_VER
 #endif // ESP_PLATFORM
 
 #include "base_component.hpp"
