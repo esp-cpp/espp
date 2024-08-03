@@ -13,6 +13,14 @@
 
 #include "format.hpp"
 
+// Undefine the logger verbosity levels to avoid conflicts with windows / msvc
+#ifdef _MSC_VER
+#undef ERROR
+#undef WARN
+#undef INFO
+#undef DEBUG
+#endif
+
 namespace espp {
 
 /**
@@ -153,7 +161,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   template <typename... Args> void debug(std::string_view rt_fmt_str, Args &&...args) {
 #if ESPP_LOGGER_DEBUG_ENABLED
-    if (level_ > Verbosity::DEBUG)
+    if (level_ > espp::Logger::Verbosity::DEBUG)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
@@ -173,7 +181,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   template <typename... Args> void info(std::string_view rt_fmt_str, Args &&...args) {
 #if ESPP_LOGGER_INFO_ENABLED
-    if (level_ > Verbosity::INFO)
+    if (level_ > espp::Logger::Verbosity::INFO)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
@@ -193,7 +201,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   template <typename... Args> void warn(std::string_view rt_fmt_str, Args &&...args) {
 #if ESPP_LOGGER_WARN_ENABLED
-    if (level_ > Verbosity::WARN)
+    if (level_ > espp::Logger::Verbosity::WARN)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
@@ -213,7 +221,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   template <typename... Args> void error(std::string_view rt_fmt_str, Args &&...args) {
 #if ESPP_LOGGER_ERROR_ENABLED
-    if (level_ > Verbosity::ERROR)
+    if (level_ > espp::Logger::Verbosity::ERROR)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
@@ -235,7 +243,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   template <typename... Args> void debug_rate_limited(std::string_view rt_fmt_str, Args &&...args) {
 #if ESPP_LOGGER_DEBUG_ENABLED
-    if (level_ > Verbosity::DEBUG)
+    if (level_ > espp::Logger::Verbosity::DEBUG)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
       auto now = std::chrono::high_resolution_clock::now();
@@ -257,7 +265,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   template <typename... Args> void info_rate_limited(std::string_view rt_fmt_str, Args &&...args) {
 #if ESPP_LOGGER_INFO_ENABLED
-    if (level_ > Verbosity::INFO)
+    if (level_ > espp::Logger::Verbosity::INFO)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
       auto now = std::chrono::high_resolution_clock::now();
@@ -279,7 +287,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   template <typename... Args> void warn_rate_limited(std::string_view rt_fmt_str, Args &&...args) {
 #if ESPP_LOGGER_WARN_ENABLED
-    if (level_ > Verbosity::WARN)
+    if (level_ > espp::Logger::Verbosity::WARN)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
       auto now = std::chrono::high_resolution_clock::now();
@@ -301,7 +309,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   template <typename... Args> void error_rate_limited(std::string_view rt_fmt_str, Args &&...args) {
 #if ESPP_LOGGER_ERROR_ENABLED
-    if (level_ > Verbosity::ERROR)
+    if (level_ > espp::Logger::Verbosity::ERROR)
       return;
     if (rate_limit_ > std::chrono::duration<float>::zero()) {
       auto now = std::chrono::high_resolution_clock::now();
@@ -340,36 +348,14 @@ protected:
 #endif
   }
 
-  /**
-   *   Mutex for the tag.
-   */
-  std::mutex tag_mutex_;
-
-  /**
-   *   Name given to the logger to be prepended to all logs.
-   */
-  std::string tag_;
-
-  /**
-   *   Rate limit for the logger. If set to 0, no rate limiting will be
-   *   performed.
-   */
-  std::chrono::duration<float> rate_limit_{0.0f};
-
-  /**
-   *   Last time a log was printed. Used for rate limiting.
-   */
-  std::chrono::high_resolution_clock::time_point last_print_{};
-
-  /**
-   *   Whether to include the time in the log.
-   */
-  std::atomic<bool> include_time_{true};
-
-  /**
-   *   Current verbosity of the logger. Determines what will be printed to
-   *   console.
-   */
-  std::atomic<espp::Logger::Verbosity> level_;
+  std::mutex tag_mutex_; ///< Mutex for the tag.
+  std::string tag_;      ///< Name of the logger to be prepended to all logs.
+  std::chrono::duration<float> rate_limit_{
+      0.0f}; ///< Rate limit for the logger. If set to 0, no rate limiting will be performed.
+  std::chrono::high_resolution_clock::time_point
+      last_print_{};                     ///< Last time a log was printed. Used for rate limiting.
+  std::atomic<bool> include_time_{true}; ///< Whether to include the time in the log.
+  std::atomic<espp::Logger::Verbosity> level_ =
+      espp::Logger::Verbosity::WARN; ///< Current verbosity level of the logger.
 };
 } // namespace espp
