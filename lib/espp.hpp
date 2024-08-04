@@ -2,7 +2,7 @@
 
 #include "socket_msvc.hpp"
 
-#if _MSC_VER
+#ifdef _MSC_VER
 extern "C" {
 // NOTE: needed for tabulate
 #include "wcswidth.h"

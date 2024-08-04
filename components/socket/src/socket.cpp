@@ -86,7 +86,7 @@ Socket::Socket(Type type, const Logger::Config &logger_config)
 Socket::~Socket() { cleanup(); }
 
 bool Socket::is_valid() const {
-#if _MSC_VER
+#ifdef _MSC_VER
   return socket_ != INVALID_SOCKET;
 #else
   return socket_ >= 0;
@@ -94,7 +94,7 @@ bool Socket::is_valid() const {
 }
 
 bool Socket::is_valid_fd(sock_type_t socket_fd) {
-#if _MSC_VER
+#ifdef _MSC_VER
   return socket_fd != INVALID_SOCKET;
 #else
   return socket_fd >= 0;
@@ -139,7 +139,7 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
 }
 
 bool Socket::enable_reuse() {
-#if _MSC_VER
+#ifdef _MSC_VER
   return true;
 #else
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
@@ -196,7 +196,7 @@ bool Socket::add_multicast_group(const std::string &multicast_group) {
 #else
   imreq.imr_interface.s_addr = htonl(INADDR_ANY);
   // Configure multicast address to listen to
-#if _MSC_VER
+#ifdef _MSC_VER
   err = inet_pton(AF_INET, multicast_group.c_str(), &imreq.imr_multiaddr);
 #else
   err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr);
