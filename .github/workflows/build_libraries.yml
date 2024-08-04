@@ -35,6 +35,12 @@ jobs:
         cmake ..
         cmake --build . --config Release --target install
 
+    - name: Upload output folder
+      uses: actions/upload-artifact@v2
+      with:
+        name: libespp_windows
+        path: lib/pc
+
   build_linux:
 
     runs-on: ubuntu-latest
@@ -56,6 +62,12 @@ jobs:
       working-directory: lib/
       run: |
         ./build.sh
+
+    - name: Upload output folder
+      uses: actions/upload-artifact@v2
+      with:
+        name: libespp_linux
+        path: lib/pc
 
   build_macos:
 
@@ -83,3 +95,9 @@ jobs:
       working-directory: lib/
       run: |
         ./build.sh
+
+    - name: Upload output folder
+      uses: actions/upload-artifact@v2
+      with:
+        name: libespp_macos
+        path: lib/pc
