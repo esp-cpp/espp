@@ -139,6 +139,9 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
 }
 
 bool Socket::enable_reuse() {
+#if _MSC_VER
+  return true;
+#else
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
   fmt::print(fg(fmt::color::red), "CONFIG_LWIP_SO_REUSE not defined!\n");
   return false;
@@ -151,22 +154,15 @@ bool Socket::enable_reuse() {
     return false;
   }
 #if !defined(ESP_PLATFORM)
-#if _MSC_VER
-  err = setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, (const char *)&enabled, sizeof(enabled));
-  if (err < 0) {
-    fmt::print(fg(fmt::color::red), "Couldn't set SO_BROADCAST\n");
-    return false;
-  }
-#else
   err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (const char *)&enabled, sizeof(enabled));
   if (err < 0) {
     fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT\n");
     return false;
   }
-#endif // _MSC_VER
 #endif // !defined(ESP_PLATFORM)
   return true;
 #endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
+#endif // _MSC_VER
 }
 
 bool Socket::make_multicast(uint8_t time_to_live, uint8_t loopback_enabled) {
