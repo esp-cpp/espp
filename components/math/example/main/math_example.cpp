@@ -76,40 +76,83 @@ extern "C" void app_main(void) {
 
   logger.info("=== gaussian ===");
   {
-    //! [gaussian example]
-    std::array<float, 4> gammas = {
-        0.10f,
-        0.15f,
-        0.20f,
-        0.25f,
-    };
-    espp::Gaussian gaussian({
-        .gamma = gammas[0],
-        .alpha = 1.0f, // default
-        .beta = 0.5f,  // default
-    });
-    float t = 0;
-    fmt::print("% t");
-    for (auto g : gammas) {
-      fmt::print(", gaussian({})", g);
-    }
-    fmt::print("\n");
-    float increment = 0.05f;
-    int num_increments = 1.0f / increment;
-    for (int i = 0; i <= num_increments; i++) {
-      fmt::print("{}", t);
+    {
+      //! [gaussian example]
+      std::array<float, 4> gammas = {
+          0.10f,
+          0.15f,
+          0.20f,
+          0.25f,
+      };
+      espp::Gaussian gaussian({
+          .gamma = gammas[0],
+          .alpha = 1.0f, // default
+          .beta = 0.5f,  // default
+      });
+      float t = 0;
+      fmt::print("% t");
       for (auto g : gammas) {
-        // update the gamma
-        gaussian.gamma(g);
-        // evaluate it
-        float v = gaussian(t);
-        // print it
-        fmt::print(", {}", v);
+        fmt::print(", gaussian({})", g);
       }
       fmt::print("\n");
-      t += increment;
+      float increment = 0.05f;
+      int num_increments = 1.0f / increment;
+      for (int i = 0; i <= num_increments; i++) {
+        fmt::print("{}", t);
+        for (auto g : gammas) {
+          // update the gamma
+          gaussian.set_gamma(g);
+          // evaluate it
+          float v = gaussian(t);
+          // print it
+          fmt::print(", {}", v);
+        }
+        fmt::print("\n");
+        t += increment;
+      }
+      //! [gaussian example]
     }
-    //! [gaussian example]
+
+    {
+      //! [gaussian fade in fade out example]
+      std::array<float, 8> gammas = {
+          0.10f, 0.15f, 0.20f, 0.25f, 0.30f, 0.35f, 0.40f, 0.45f,
+      };
+      espp::Gaussian fade_in({
+          .gamma = gammas[0],
+          .alpha = 1.0f, // default
+          .beta = 1.0f,  // default
+      });
+      espp::Gaussian fade_out({
+          .gamma = gammas[0],
+          .alpha = 1.0f, // default
+          .beta = 0.0f,  // default
+      });
+      float t = 0;
+      fmt::print("% t");
+      for (auto g : gammas) {
+        fmt::print(", fade_in({}), fade_out({})", g, g);
+      }
+      fmt::print("\n");
+      float increment = 0.05f;
+      int num_increments = 1.0f / increment;
+      for (int i = 0; i <= num_increments; i++) {
+        fmt::print("{}", t);
+        for (auto g : gammas) {
+          // update the gamma
+          fade_in.set_gamma(g);
+          fade_out.set_gamma(g);
+          // evaluate it
+          float in = fade_in(t);
+          float out = fade_out(t);
+          // print it
+          fmt::print(", {}, {}", in, out);
+        }
+        fmt::print("\n");
+        t += increment;
+      }
+      //! [gaussian fade in fade out example]
+    }
   }
 
   logger.info("=== range mapper ===");

@@ -57,9 +57,9 @@ public:
     std::string_view name; ///< The name of the timer.
     std::chrono::duration<float>
         period; ///< The period of the timer. If 0, the timer callback will only be called once.
-    std::chrono::duration<float> delay{
-        0}; ///< The delay before the first execution of the timer callback after start() is called.
-    callback_fn callback;  ///< The callback function to call when the timer expires.
+    std::chrono::duration<float> delay = std::chrono::duration<float>(
+        0); ///< The delay before the first execution of the timer callback after start() is called.
+    espp::Timer::callback_fn callback; ///< The callback function to call when the timer expires.
     bool auto_start{true}; ///< If true, the timer will start automatically when constructed.
     size_t stack_size_bytes{4096}; ///< The stack size of the task that runs the timer.
     size_t priority{0}; ///< Priority of the timer, 0 is lowest priority on ESP / FreeRTOS.
@@ -70,42 +70,15 @@ public:
 
   /// @brief Construct a new Timer object
   /// @param config The configuration for the timer.
-  explicit Timer(const Config &config)
-      : BaseComponent(config.name, config.log_level)
-      , period_(std::chrono::duration_cast<std::chrono::microseconds>(config.period))
-      , delay_(std::chrono::duration_cast<std::chrono::microseconds>(config.delay))
-      , callback_(config.callback) {
-    // set the logger rate limit
-    logger_.set_rate_limit(std::chrono::milliseconds(100));
-    // make the task
-    task_ = espp::Task::make_unique({
-        .name = std::string(config.name) + "_task",
-        .callback = std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1,
-                              std::placeholders::_2),
-        .stack_size_bytes = config.stack_size_bytes,
-        .priority = config.priority,
-        .core_id = config.core_id,
-        .log_level = config.log_level,
-    });
-    period_float = std::chrono::duration<float>(period_).count();
-    delay_float = std::chrono::duration<float>(delay_).count();
-    if (config.auto_start) {
-      start();
-    }
-  }
+  explicit Timer(const Config &config);
 
   /// @brief Destroy the Timer object
   /// @details Cancels the timer if it is running.
-  ~Timer() { cancel(); }
+  ~Timer();
 
   /// @brief Start the timer.
   /// @details Starts the timer. Does nothing if the timer is already running.
-  void start() {
-    logger_.info("starting with period {:.3f} s and delay {:.3f} s", period_float, delay_float);
-    running_ = true;
-    // start the task
-    task_->start();
-  }
+  void start();
 
   /// @brief Start the timer with a delay.
   /// @details Starts the timer with a delay. If the timer is already running,
@@ -114,32 +87,15 @@ public:
   ///          with the delay. Overwrites any previous delay that might have
   ///          been set.
   /// @param delay The delay before the first execution of the timer callback.
-  void start(std::chrono::duration<float> delay) {
-    if (delay.count() < 0) {
-      logger_.warn("delay cannot be negative, not starting");
-      return;
-    }
-    if (is_running()) {
-      logger_.info("restarting with delay {:.3f} s", delay.count());
-      cancel();
-    }
-    delay_ = std::chrono::duration_cast<std::chrono::microseconds>(delay);
-    delay_float = std::chrono::duration<float>(delay_).count();
-    start();
-  }
+  void start(const std::chrono::duration<float> &delay);
 
   /// @brief Stop the timer, same as cancel().
   /// @details Stops the timer, same as cancel().
-  void stop() { cancel(); }
+  void stop();
 
   /// @brief Cancel the timer.
   /// @details Cancels the timer.
-  void cancel() {
-    logger_.info("canceling");
-    running_ = false;
-    // cancel the task
-    task_->stop();
-  }
+  void cancel();
 
   /// @brief Set the period of the timer.
   /// @details Sets the period of the timer.
@@ -148,81 +104,15 @@ public:
   /// @note If the period is negative, the period will not be set / updated.
   /// @note If the timer is running, the period will be updated after the
   ///       current period has elapsed.
-  void set_period(std::chrono::duration<float> period) {
-    if (period.count() < 0) {
-      logger_.warn("period cannot be negative, not setting");
-      return;
-    }
-    period_ = std::chrono::duration_cast<std::chrono::microseconds>(period);
-    period_float = std::chrono::duration<float>(period_).count();
-    logger_.info("setting period to {:.3f} s", period_float);
-  }
+  void set_period(const std::chrono::duration<float> &period);
 
   /// @brief Check if the timer is running.
   /// @details Checks if the timer is running.
   /// @return true if the timer is running, false otherwise.
-  bool is_running() const { return running_ && task_->is_running(); }
+  bool is_running() const;
 
 protected:
-  bool timer_callback_fn(std::mutex &m, std::condition_variable &cv) {
-    logger_.debug("callback entered");
-    if (!running_) {
-      // stop the timer, the timer was canceled
-      logger_.debug("timer was canceled, stopping");
-      return true;
-    }
-    if (!callback_) {
-      // stop the timer, the callback is null
-      logger_.debug("callback is null, stopping");
-      running_ = false;
-      return true;
-    }
-    // initial delay, if any - this is only used the first time the timer
-    // runs
-    if (delay_float > 0) {
-      auto start_time = std::chrono::steady_clock::now();
-      logger_.debug("waiting for delay {:.3f} s", delay_float);
-      std::unique_lock<std::mutex> lock(m);
-      cv.wait_until(lock, start_time + delay_);
-      if (!running_) {
-        logger_.debug("delay canceled, stopping");
-        return true;
-      }
-      // now set the delay to 0
-      delay_ = std::chrono::microseconds(0);
-      delay_float = 0;
-    }
-    // now run the callback
-    auto start_time = std::chrono::steady_clock::now();
-    logger_.debug("running callback");
-    bool requested_stop = callback_();
-    if (requested_stop || period_float <= 0) {
-      // stop the timer if requested or if the period is <= 0
-      logger_.debug("callback requested stop or period is <= 0, stopping");
-      running_ = false;
-      return true;
-    }
-    auto end = std::chrono::steady_clock::now();
-    float elapsed = std::chrono::duration<float>(end - start_time).count();
-    if (elapsed > period_float) {
-      // if the callback took longer than the period, then we should just
-      // return and run the callback again immediately
-      logger_.warn_rate_limited("callback took longer ({:.3f} s) than period ({:.3f} s)", elapsed,
-                                period_float);
-      return false;
-    }
-    // now wait for the period (taking into account the time it took to run
-    // the callback)
-    {
-      std::unique_lock<std::mutex> lock(m);
-      cv.wait_until(lock, start_time + period_);
-      // Note: we don't care about cv_retval here because we are going to
-      // return from the function anyway. If the timer was canceled, then
-      // the task will be stopped and the callback will not be called again.
-    }
-    // keep the timer running
-    return false;
-  }
+  bool timer_callback_fn(std::mutex &m, std::condition_variable &cv);
 
   std::chrono::microseconds period_{0}; ///< The period of the timer. If 0, the timer will run once.
   std::chrono::microseconds delay_{0};  ///< The delay before the timer starts.

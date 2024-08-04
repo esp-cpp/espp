@@ -11,6 +11,8 @@ namespace espp {
  *
  * \section gaussian_ex1 Example
  * \snippet math_example.cpp gaussian example
+ * \section gaussian_ex2 Fade-In/Fade-Out Example
+ * \snippet math_example.cpp gaussian fade in fade out example
  */
 class Gaussian {
 public:
@@ -20,9 +22,9 @@ public:
   struct Config {
     float gamma; ///< Slope of the gaussian, range [0, 1]. 0 is more of a thin spike from 0 up to
                  ///< max output (alpha), 1 is more of a small wave around the max output (alpha).
-    float alpha = 1.0f; ///< Max amplitude of the gaussian output, defautls to 1.0.
-    float beta =
-        0.5f; ///< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].
+    float alpha{1.0f}; ///< Max amplitude of the gaussian output, defautls to 1.0.
+    float beta{
+        0.5f}; ///< Beta value for the gaussian, default to be symmetric at 0.5 in range [0,1].
 
     bool operator==(const Config &rhs) const = default;
   };
@@ -35,42 +37,6 @@ public:
       : gamma_(config.gamma)
       , alpha_(config.alpha)
       , beta_(config.beta) {}
-
-  /**
-   * @brief Get the currently configured gamma (shape).
-   * @return The current gamma (shape) value [0, 1].
-   */
-  float gamma() const { return gamma_; }
-
-  /**
-   * @brief Set / Update the gamma (shape) value.
-   * @param g New gamma (shape) to use.
-   */
-  void gamma(float g) { gamma_ = g; }
-
-  /**
-   * @brief Get the currently configured alpha (scaling) value.
-   * @return The current alpha (scaler) value.
-   */
-  float alpha() const { return alpha_; }
-
-  /**
-   * @brief Set / Update the alpha (scaling) value.
-   * @param a New alpha (scaler) to use.
-   */
-  void alpha(float a) { alpha_ = a; }
-
-  /**
-   * @brief Get the currently configured beta (shifting) value.
-   * @return The current beta (shifter) value [0, 1].
-   */
-  float beta() const { return beta_; }
-
-  /**
-   * @brief Set / Update the beta (shifting) value.
-   * @param b New beta (shifter) to use.
-   */
-  void beta(float b) { beta_ = b; }
 
   /**
    * @brief Evaluate the gaussian at \p t.
@@ -91,9 +57,69 @@ public:
    */
   float operator()(float t) const { return at(t); }
 
+  /**
+   * @brief Update the gaussian configuration.
+   * @param config The new configuration.
+   */
+  void update(const Config &config) {
+    gamma_ = config.gamma;
+    alpha_ = config.alpha;
+    beta_ = config.beta;
+  }
+
+  /**
+   * @brief Set the configuration of the gaussian.
+   * @param config The new configuration.
+   */
+  void set_config(const Config &config) { update(config); }
+
+  /**
+   * @brief Get the current configuration of the gaussian.
+   * @return The current configuration.
+   */
+  Config get_config() const { return {.gamma = gamma_, .alpha = alpha_, .beta = beta_}; }
+
+  /**
+   * @brief Get the gamma value.
+   * @return The gamma value.
+   */
+  float get_gamma() const { return gamma_; }
+
+  /**
+   * @brief Get the alpha value.
+   * @return The alpha value.
+   */
+  float get_alpha() const { return alpha_; }
+
+  /**
+   * @brief Get the beta value.
+   * @return The beta value.
+   */
+  float get_beta() const { return beta_; }
+
+  /**
+   * @brief Set the gamma value.
+   * @param gamma The new gamma value.
+   */
+  void set_gamma(float gamma) { gamma_ = gamma; }
+
+  /**
+   * @brief Set the alpha value.
+   * @param alpha The new alpha value.
+   */
+  void set_alpha(float alpha) { alpha_ = alpha; }
+
+  /**
+   * @brief Set the beta value.
+   * @param beta The new beta value.
+   */
+  void set_beta(float beta) { beta_ = beta; }
+
 protected:
-  float gamma_;
-  float alpha_;
-  float beta_;
+  float gamma_; ///<! Slope of the gaussian, range [0, 1]. 0 is more of a thin spike from 0 up to
+                ///   max output (alpha), 1 is more of a small wave around the max output (alpha).
+  float alpha_; ///<! Max amplitude of the gaussian output, defautls to 1.0.
+  float beta_;  ///<! Shifting / Beta value for the gaussian, default to be
+                ///   symmetric at 0.5 in range [0,1].
 };
 } // namespace espp

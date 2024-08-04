@@ -1,16 +1,6 @@
 import time
 
-try:
-    print("trying to import espp...")
-    import espp
-except ImportError:
-    print("espp not found, trying to import from ../lib/pc")
-    print("NOTE: in general, you should add espp/lib/pc to your PYTHONPATH")
-    import sys
-    sys.path.append("../lib/pc")
-    import espp
-else:
-    print("espp imported")
+from support_loader import espp
 
 start = time.time()
 def task_func():
@@ -20,10 +10,10 @@ def task_func():
     time.sleep(.5)
     return False # we don't want to stop the task
 
-task = espp.Task(espp.TaskSimpleConfig(
+task = espp.Task(espp.Task.SimpleConfig(
     task_func, #function
     # config
-    espp.TaskBaseConfig("test task")
+    espp.Task.BaseConfig("test task")
 ))
 task.start()
 

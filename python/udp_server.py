@@ -1,16 +1,6 @@
 import time
 
-try:
-    print("trying to import espp...")
-    import espp
-except ImportError:
-    print("espp not found, trying to import from ../lib/pc")
-    print("NOTE: in general, you should add espp/lib/pc to your PYTHONPATH")
-    import sys
-    sys.path.append("../lib/pc")
-    import espp
-else:
-    print("espp imported")
+from support_loader import espp
 
 start = time.time()
 def on_receive_data(data, sender_info):
@@ -27,17 +17,17 @@ def on_receive_data(data, sender_info):
     ret_data = [ord(x) for x in ret_data]
     return ret_data
 
-udp_client = espp.UdpSocket(espp.UdpSocketConfig(espp.Verbosity.DEBUG))
+udp_client = espp.UdpSocket(espp.UdpSocket.Config(espp.Logger.Verbosity.debug))
 port = 5555
 buffer_size = 1024
-receive_config = espp.UdpReceiveConfig(
+receive_config = espp.UdpSocket.ReceiveConfig(
     port,
     buffer_size,
     False,
     '',
     on_receive_data
 )
-udp_client.start_receiving(espp.TaskConfig("udp_task", None), receive_config)
+udp_client.start_receiving(espp.Task.Config("udp_task", None), receive_config)
 
 time.sleep(10)
 

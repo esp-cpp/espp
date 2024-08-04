@@ -12,6 +12,7 @@
 #include "freertos/queue.h"
 
 #include "base_component.hpp"
+#include "run_on_core.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -231,7 +232,7 @@ protected:
       return;
     }
     auto install_fn = []() -> esp_err_t { return gpio_install_isr_service(0); };
-    auto err = espp::Task::run_on_core(install_fn, core_id);
+    auto err = espp::task::run_on_core(install_fn, core_id);
     if (err != ESP_OK) {
       logger_.error("Failed to install ISR service: {}", esp_err_to_name(err));
       return;

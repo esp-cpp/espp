@@ -198,6 +198,7 @@ INPUT += $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp
 INPUT += $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp
 INPUT += $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp
 INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
+INPUT += $(PROJECT_PATH)/components/task/include/run_on_core.hpp
 INPUT += $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp
 INPUT += $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp
 INPUT += $(PROJECT_PATH)/components/timer/include/timer.hpp

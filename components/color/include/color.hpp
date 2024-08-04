@@ -84,6 +84,10 @@ public:
    */
   Rgb &operator+=(const Rgb &rhs);
 
+  bool operator==(const Rgb &rhs) const = default;
+
+  bool operator!=(const Rgb &rhs) const = default;
+
   /**
    * @brief Get a HSV representation of this RGB color.
    * @return An HSV object containing the HSV representation.
@@ -135,6 +139,10 @@ public:
    */
   Hsv &operator=(const Hsv &other) = default;
 
+  bool operator==(const Hsv &rhs) const = default;
+
+  bool operator!=(const Hsv &rhs) const = default;
+
   /**
    * @brief Assign the values of the provided Rgb object to this Hsv object.
    * @param rgb The Rgb object to convert and copy.
@@ -156,66 +164,6 @@ public:
   return fg(fmt::rgb(rgb.r * 255, rgb.g * 255, rgb.b * 255));
 }
 
-// equality operators
-[[maybe_unused]] static bool operator==(const Rgb &lhs, const Rgb &rhs) {
-  return lhs.r == rhs.r && lhs.g == rhs.g && lhs.b == rhs.b;
-}
-
-[[maybe_unused]] static bool operator==(const Hsv &lhs, const Hsv &rhs) {
-  return lhs.h == rhs.h && lhs.s == rhs.s && lhs.v == rhs.v;
-}
-
-// inequality operators
-[[maybe_unused]] static bool operator!=(const Rgb &lhs, const Rgb &rhs) { return !(lhs == rhs); }
-
-[[maybe_unused]] static bool operator!=(const Hsv &lhs, const Hsv &rhs) { return !(lhs == rhs); }
 } // namespace espp
 
-#include "format.hpp"
-
-// for allowing easy serialization/printing of the
-// Rgb
-template <> struct fmt::formatter<espp::Rgb> {
-  // Presentation format: 'f' - floating [0,1] (default), 'd' - integer [0,255], 'x' - hex integer.
-  char presentation = 'f';
-
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
-    // Parse the presentation format and store it in the formatter:
-    auto it = ctx.begin(), end = ctx.end();
-    if (it != end && (*it == 'f' || *it == 'd' || *it == 'x'))
-      presentation = *it++;
-
-    // TODO: Check if reached the end of the range:
-    // if (it != end && *it != '}') throw format_error("invalid format");
-
-    // Return an iterator past the end of the parsed range:
-    return it;
-  }
-
-  template <typename FormatContext> auto format(espp::Rgb const &rgb, FormatContext &ctx) const {
-    switch (presentation) {
-    case 'f':
-      return fmt::format_to(ctx.out(), "({}, {}, {})", rgb.r, rgb.g, rgb.b);
-    case 'd':
-      return fmt::format_to(ctx.out(), "({}, {}, {})", static_cast<int>(rgb.r * 255),
-                            static_cast<int>(rgb.g * 255), static_cast<int>(rgb.b * 255));
-    case 'x':
-      return fmt::format_to(ctx.out(), "{:#08X}", rgb.hex());
-    default:
-      // shouldn't get here!
-      return fmt::format_to(ctx.out(), "({}, {}, {})", rgb.r, rgb.g, rgb.b);
-    }
-  }
-};
-
-// for allowing easy serialization/printing of the
-// Rgb
-template <> struct fmt::formatter<espp::Hsv> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext> auto format(espp::Hsv const &hsv, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "({}, {}, {})", hsv.h, hsv.s, hsv.v);
-  }
-};
+#include "color_formatters.hpp"

@@ -1,7 +1,8 @@
 #pragma once
 #include <string>
 
-namespace espp::state_machine {
+namespace espp {
+namespace state_machine {
 
 // Base Class for Events, abstract so you never instantiate.
 class EventBase {
@@ -31,60 +32,54 @@ public:
   /**
    * @brief Default constructor
    */
-  StateBase()
-      : _activeState(this)
-      , _parentState(nullptr) {}
+  StateBase();
 
   /**
    * @brief Constructor that sets the parent state.
    * @param[in] parent Pointer to parent state
    */
-  explicit StateBase(StateBase *parent)
-      : _activeState(this)
-      , _parentState(parent) {}
+  explicit StateBase(StateBase *parent);
 
   /**
    * @brief Destructor
    */
-  virtual ~StateBase(void) {}
+  virtual ~StateBase(void);
 
   /**
    * @brief Will be generated to call entry() then handle any child
    *  initialization. Finally calls makeActive on the leaf.
    */
-  virtual void initialize(void){};
+  virtual void initialize(void);
 
   /**
    * @brief Will be generated to run the entry() function defined in
    *  the model.
    */
-  virtual void entry(void){};
+  virtual void entry(void);
 
   /**
    * @brief Will be generated to run the exit() function defined in
    *   the model.
    */
-  virtual void exit(void){};
+  virtual void exit(void);
 
   /**
    * @brief Calls handleEvent on the activeLeaf.
    * @param[in] event Event needing to be handled
    * @return true if event is consumed, false otherwise
    */
-  virtual bool handleEvent(EventBase *event) { return false; }
+  virtual bool handleEvent(EventBase *event);
 
   /**
    * @brief Will be generated to run the tick() function defined in
    *  the model and then call _activeState->tick().
    */
-  virtual void tick(void) {
-    if (_activeState != this && _activeState != nullptr)
-      _activeState->tick();
-  };
+  virtual void tick(void);
 
   /**
+   * @brief Returns the timer period for the state.
    */
-  virtual double getTimerPeriod(void) { return 0; }
+  virtual double getTimerPeriod(void);
 
   /**
    * @brief Will be known from the model so will be generated in
@@ -93,91 +88,62 @@ public:
    *  during external transition handling.
    * @return Pointer to initial substate
    */
-  virtual StateBase *getInitial(void) { return this; };
+  virtual StateBase *getInitial(void);
 
   /**
    * @brief Recurses down to the leaf state and calls the exit
    *  actions as it unwinds.
    */
-  void exitChildren(void) {
-    if (_activeState != nullptr && _activeState != this) {
-      _activeState->exitChildren();
-      _activeState->exit();
-    }
-  }
+  void exitChildren(void);
 
   /**
    * @brief Will return _activeState if it exists, otherwise will
    *  return nullptr.
    * @return Pointer to last active substate
    */
-  StateBase *getActiveChild(void) { return _activeState; }
+  StateBase *getActiveChild(void);
 
   /**
    * @brief Will return the active leaf state, otherwise will return
    *  nullptr.
    * @return Pointer to last active leaf state.
    */
-  StateBase *getActiveLeaf(void) {
-    if (_activeState != nullptr && _activeState != this)
-      return _activeState->getActiveLeaf();
-    else
-      return this;
-  }
+  StateBase *getActiveLeaf(void);
 
   /**
    * @brief Make this state the active substate of its parent and
    *  then recurse up through the tree to the root.
    * @note Should only be called on leaf nodes!
    */
-  virtual void makeActive(void) {
-    if (_parentState != nullptr) {
-      _parentState->setActiveChild(this);
-      _parentState->makeActive();
-    }
-  }
+  virtual void makeActive(void);
 
   /**
    * @brief Update the active child state.
    */
-  void setActiveChild(StateBase *childState) { _activeState = childState; }
+  void setActiveChild(StateBase *childState);
 
   /**
    * @brief Sets the currentlyActive state to the last active state
    *  and re-initializes them.
    */
-  void setShallowHistory(void) {
-    if (_activeState != nullptr && _activeState != this) {
-      _activeState->entry();
-      _activeState->initialize();
-    } else {
-      initialize();
-    }
-  }
+  void setShallowHistory(void);
 
   /**
    * @brief Go to the last active leaf of this state. If none
    *  exists, re-initialize.
    */
-  void setDeepHistory(void) {
-    if (_activeState != nullptr && _activeState != this) {
-      _activeState->entry();
-      _activeState->setDeepHistory();
-    } else {
-      initialize();
-    }
-  }
+  void setDeepHistory(void);
 
   /**
    * @brief Will set the parent state.
    * @param[in] parent Pointer to parent state
    */
-  void setParentState(StateBase *parent) { _parentState = parent; }
+  void setParentState(StateBase *parent);
 
   /**
    * @brief Will return the parent state.
    */
-  StateBase *getParentState(void) { return _parentState; }
+  StateBase *getParentState(void);
 
   // Pointer to the currently or most recently active substate of this
   // state.
@@ -187,4 +153,5 @@ public:
   StateBase *_parentState;
 }; // class StateBase
 
-} // namespace espp::state_machine
+} // namespace state_machine
+} // namespace espp
