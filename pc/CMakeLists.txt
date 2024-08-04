@@ -13,6 +13,13 @@ MACRO(GEN_TESTS curdir)
       LANGUAGES CXX
       VERSION 1.0.0
     )
+    # settings for Windows / MSVC
+    set(EXTERNAL_LIBS "pthread")
+    if(MSVC)
+      add_compile_options(/utf-8 /D_USE_MATH_DEFINES /bigobj)
+      add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+      set(EXTERNAL_LIBS "")
+    endif()
 	  add_executable(${TEST_NAME} ${test_file})
     target_include_directories(${TEST_NAME} PRIVATE
       ${curdir}/../lib/pc/include)
@@ -20,7 +27,7 @@ MACRO(GEN_TESTS curdir)
       ${curdir}/../lib/pc)
     target_link_libraries(${TEST_NAME}
       PRIVATE espp_pc
-      PRIVATE pthread
+      PRIVATE ${EXTERNAL_LIBS}
     )
     install(TARGETS ${TEST_NAME} RUNTIME DESTINATION "bin")
   ENDFOREACH()

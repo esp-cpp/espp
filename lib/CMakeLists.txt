@@ -110,7 +110,7 @@ install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
 # we have to make sure to install the magic_enum includes differently, since they're in different folders
 install(DIRECTORY ${EXTERNAL}/magic_enum/include/magic_enum/ DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
 # and install the espp.hpp file for use by the python scripts there
-install(FILES espp.hpp DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
+install(FILES espp.hpp wcswidth.h DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
 
 add_subdirectory(pybind11)
 
