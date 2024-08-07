@@ -272,10 +272,12 @@ public:
    */
   bool stop() {
     logger_.debug("Stopping task");
-    started_ = false;
-    cv_.notify_all();
-    if (thread_.joinable()) {
-      thread_.join();
+    if (started_) {
+      started_ = false;
+      cv_.notify_all();
+      if (thread_.joinable()) {
+        thread_.join();
+      }
     }
     logger_.debug("Task stopped");
     return true;
