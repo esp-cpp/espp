@@ -211,6 +211,19 @@ protected:
   bool init(Type type);
 
   /**
+   * @brief Get the string representation of the last error that occurred.
+   * @return string representation of the last error that occurred.
+   */
+  std::string error_string() const;
+
+  /**
+   * @brief Get the string representation of the last error that occurred.
+   * @param error error code to get the string representation of.
+   * @return string representation of the last error that occurred.
+   */
+  std::string error_string(int error) const;
+
+  /**
    *  @brief If the socket was created, we shut it down and close it here.
    */
   void cleanup();

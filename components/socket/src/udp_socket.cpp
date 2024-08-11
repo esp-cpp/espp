@@ -23,15 +23,17 @@ bool UdpSocket::send(std::string_view data, const UdpSocket::SendConfig &send_co
   if (send_config.is_multicast_endpoint) {
     // configure it for multicast
     if (!make_multicast()) {
-      logger_.error("Cannot make multicast: {} - '{}'", errno, strerror(errno));
+      logger_.error("Cannot make multicast: {}", error_string());
       return false;
     }
   }
-  // set the receive timeout
-  if (!set_receive_timeout(send_config.response_timeout)) {
-    logger_.error("Could not set receive timeout to {}: {} - '{}'",
-                  send_config.response_timeout.count(), errno, strerror(errno));
-    return false;
+  if (send_config.wait_for_response) {
+    // set the receive timeout
+    if (!set_receive_timeout(send_config.response_timeout)) {
+      logger_.error("Could not set receive timeout to {}: {}", send_config.response_timeout.count(),
+                    error_string());
+      return false;
+    }
   }
   // sendto
   Socket::Info server_info;
@@ -42,7 +44,7 @@ bool UdpSocket::send(std::string_view data, const UdpSocket::SendConfig &send_co
   int num_bytes_sent = sendto(socket_, data.data(), data.size(), 0,
                               (struct sockaddr *)server_address, sizeof(*server_address));
   if (num_bytes_sent < 0) {
-    logger_.error("Error occurred during sending: {} - '{}'", errno, strerror(errno));
+    logger_.error("Error occurred during sending: {}", error_string());
     return false;
   }
   logger_.debug("Client sent {} bytes", num_bytes_sent);
@@ -88,7 +90,7 @@ bool UdpSocket::receive(size_t max_num_bytes, std::vector<uint8_t> &data,
                                     (struct sockaddr *)remote_address, &socklen);
   // if we didn't receive anything return false and don't do anything else
   if (num_bytes_received < 0) {
-    logger_.error("Receive failed: {} - '{}'", errno, strerror(errno));
+    logger_.error("Receive failed: {}", error_string());
     return false;
   }
   // we received data, so call the callback function if one was provided.
@@ -119,19 +121,18 @@ bool UdpSocket::start_receiving(Task::Config &task_config,
   server_addr.sin_port = htons(receive_config.port);
   int err = bind(socket_, (struct sockaddr *)&server_addr, sizeof(server_addr));
   if (err < 0) {
-    logger_.error("Unable to bind: {} - '{}'", errno, strerror(errno));
+    logger_.error("Unable to bind: {}", error_string());
     return false;
   }
   if (receive_config.is_multicast_endpoint) {
     // enable multicast
     if (!make_multicast()) {
-      logger_.error("Unable to make bound socket multicast: {} - '{}'", errno, strerror(errno));
+      logger_.error("Unable to make bound socket multicast: {}", error_string());
       return false;
     }
     // add multicast group
     if (!add_multicast_group(receive_config.multicast_group)) {
-      logger_.error("Unable to add multicast group to bound socket: {} - '{}'", errno,
-                    strerror(errno));
+      logger_.error("Unable to add multicast group to bound socket: {}", error_string());
       return false;
     }
   }
@@ -174,7 +175,7 @@ bool UdpSocket::server_task_function(size_t buffer_size, std::mutex &m,
   int num_bytes_sent = sendto(socket_, (const char *)response.data(), response.size(), 0,
                               (struct sockaddr *)sender_address, sizeof(*sender_address));
   if (num_bytes_sent < 0) {
-    logger_.error("Error occurred responding: {} - '{}'", errno, strerror(errno));
+    logger_.error("Error occurred responding: {}", error_string());
   }
   logger_.info("Server responded with {} bytes", num_bytes_sent);
   // don't want to stop the task

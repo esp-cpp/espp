@@ -61,26 +61,34 @@ void Socket::Info::from_sockaddr(const struct sockaddr_in6 &source_address) {
 [[maybe_unused]] static bool _socket_initialized = false;
 Socket::Socket(sock_type_t socket_fd, const Logger::Config &logger_config)
     : BaseComponent(logger_config) {
-  socket_ = socket_fd;
 #ifdef _MSC_VER
   if (!_socket_initialized) {
+    logger_.debug("Initializing Winsock");
     WSADATA wsa_data;
-    WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    int err = WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    if (err != 0) {
+      logger_.error("WSAStartup failed: {}", error_string(err));
+    }
     _socket_initialized = true;
   }
 #endif
+  socket_ = socket_fd;
 }
 
 Socket::Socket(Type type, const Logger::Config &logger_config)
     : BaseComponent(logger_config) {
-  init(type);
 #ifdef _MSC_VER
   if (!_socket_initialized) {
+    logger_.debug("Initializing Winsock");
     WSADATA wsa_data;
-    WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    int err = WSAStartup(MAKEWORD(1, 1), &wsa_data);
+    if (err != 0) {
+      logger_.error("WSAStartup failed: {}", error_string(err));
+    }
     _socket_initialized = true;
   }
 #endif
+  init(type);
 }
 
 Socket::~Socket() { cleanup(); }
@@ -105,7 +113,7 @@ std::optional<Socket::Info> Socket::get_ipv4_info() {
   struct sockaddr_storage addr;
   socklen_t addr_len = sizeof(addr);
   if (getsockname(socket_, (struct sockaddr *)&addr, &addr_len) < 0) {
-    logger_.error("getsockname() failed: {} - {}", errno, strerror(errno));
+    logger_.error("getsockname() failed: {}", error_string());
     return {};
   }
   Info info;
@@ -139,9 +147,6 @@ bool Socket::set_receive_timeout(const std::chrono::duration<float> &timeout) {
 }
 
 bool Socket::enable_reuse() {
-#ifdef _MSC_VER
-  return true;
-#else
 #if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
   fmt::print(fg(fmt::color::red), "CONFIG_LWIP_SO_REUSE not defined!\n");
   return false;
@@ -150,19 +155,27 @@ bool Socket::enable_reuse() {
   int enabled = 1;
   err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (const char *)&enabled, sizeof(enabled));
   if (err < 0) {
-    fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEADDR\n");
+    fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEADDR: {}\n", error_string());
     return false;
   }
 #if !defined(ESP_PLATFORM)
-  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (const char *)&enabled, sizeof(enabled));
+#ifdef _MSC_VER
+  // NOTE: according to stackoverflow, we have to set broadcast instead of reuseport
+  err = setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, (const char *)&enabled, sizeof(enabled));
   if (err < 0) {
-    fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT\n");
+    fmt::print(fg(fmt::color::red), "Couldn't set SO_BROADCAST: {}\n", error_string());
     return false;
   }
+#else
+  err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, (const char *)&enabled, sizeof(enabled));
+  if (err < 0) {
+    fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT: {}\n", error_string());
+    return false;
+  }
+#endif // _MSC_VER
 #endif // !defined(ESP_PLATFORM)
   return true;
 #endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
-#endif // _MSC_VER
 }
 
 bool Socket::make_multicast(uint8_t time_to_live, uint8_t loopback_enabled) {
@@ -171,14 +184,14 @@ bool Socket::make_multicast(uint8_t time_to_live, uint8_t loopback_enabled) {
   err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, (const char *)&time_to_live,
                    sizeof(uint8_t));
   if (err < 0) {
-    fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_TTL\n");
+    fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_TTL: {}\n", error_string());
     return false;
   }
   // select whether multicast traffic should be received by this device, too
   err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP, (const char *)&loopback_enabled,
                    sizeof(uint8_t));
   if (err < 0) {
-    fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_LOOP\n");
+    fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_LOOP: {}\n", error_string());
     return false;
   }
   return true;
@@ -215,16 +228,14 @@ bool Socket::add_multicast_group(const std::string &multicast_group) {
   err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, (const char *)&iaddr,
                    sizeof(struct in_addr));
   if (err < 0) {
-    fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_IF: {} - '{}'\n", errno,
-               strerror(errno));
+    fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_IF: {}\n", error_string());
     return false;
   }
 
   err = setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char *)&imreq,
                    sizeof(struct ip_mreq));
   if (err < 0) {
-    fmt::print(fg(fmt::color::red), "Couldn't set IP_ADD_MEMBERSHIP: {} - '{}'\n", errno,
-               strerror(errno));
+    fmt::print(fg(fmt::color::red), "Couldn't set IP_ADD_MEMBERSHIP: {}\n", error_string());
     return false;
   }
 
@@ -248,7 +259,7 @@ int Socket::select(const std::chrono::microseconds &timeout) {
   tv.tv_usec = std::chrono::duration_cast<std::chrono::microseconds>(timeout).count() % 1000000;
   int retval = ::select(nfds, &readfds, &writefds, &exceptfds, &tv);
   if (retval < 0) {
-    logger_.error("select failed: {} - '{}'", errno, strerror(errno));
+    logger_.error("select failed: {}", error_string());
     return -1;
   }
   if (retval == 0) {
@@ -271,14 +282,49 @@ bool Socket::init(Socket::Type type) {
   // actually make the socket
   socket_ = socket(address_family_, (int)type, ip_protocol_);
   if (!is_valid()) {
-    logger_.error("Cannot create socket: {} - '{}'", errno, strerror(errno));
+    logger_.error("Cannot create socket: {}", error_string());
     return false;
   }
   if (!enable_reuse()) {
-    logger_.error("Cannot enable reuse: {} - '{}'", errno, strerror(errno));
+    logger_.error("Cannot enable reuse: {}", error_string());
     return false;
   }
   return true;
+}
+
+std::string Socket::error_string() const {
+#ifdef _MSC_VER
+  int err = WSAGetLastError();
+  return error_string(err);
+#else
+  return error_string(errno);
+#endif
+}
+
+std::string Socket::error_string(int err) const {
+#ifdef _MSC_VER
+  if (err == WSAEWOULDBLOCK) {
+    return "WSAEWOULDBLOCK";
+  } else if (err == WSAECONNRESET) {
+    return "WSAECONNRESET";
+  } else if (err == WSAECONNABORTED) {
+    return "WSAECONNABORTED";
+  } else if (err == WSAECONNREFUSED) {
+    return "WSAECONNREFUSED";
+  } else if (err == WSAETIMEDOUT) {
+    return "WSAETIMEDOUT";
+  } else if (err = WSAEINTR) {
+    return "WSAEINTR";
+  } else if (err == WSAENOTSOCK) {
+    return "WSAENOTSOCK";
+  } else if (err == WSANOTINITIALISED) {
+    return "WSANOTINITIALISED";
+  } else {
+    return fmt::format("Unknown error: {0} ({0:#x})", (int)err);
+  }
+#else
+  return fmt::format("{} - '{}'", err, strerror(err));
+#endif
 }
 
 void Socket::cleanup() {

@@ -37,7 +37,7 @@ bool TcpSocket::connect(const TcpSocket::ConnectConfig &connect_config) {
   // connect
   int error = ::connect(socket_, (struct sockaddr *)server_address, sizeof(*server_address));
   if (error != 0) {
-    logger_.error("Could not connect to the server: {} - '{}'", errno, strerror(errno));
+    logger_.error("Could not connect to the server: {}", error_string());
     return false;
   }
   connected_ = true;
@@ -61,15 +61,15 @@ bool TcpSocket::transmit(std::string_view data, const TransmitConfig &transmit_c
   }
   // set the receive timeout
   if (!set_receive_timeout(transmit_config.response_timeout)) {
-    logger_.error("Could not set receive timeout to {}: {} - '{}'",
-                  transmit_config.response_timeout.count(), errno, strerror(errno));
+    logger_.error("Could not set receive timeout to {}: {}",
+                  transmit_config.response_timeout.count(), error_string());
     return false;
   }
   // write
   logger_.info("Client sending {} bytes", data.size());
   int num_bytes_sent = write(socket_, data.data(), data.size());
   if (num_bytes_sent < 0) {
-    logger_.error("Error occurred during sending: {} - '{}'", errno, strerror(errno));
+    logger_.error("Error occurred during sending: {}", error_string());
     // update our connection state here since remote end was likely closed...
     connected_ = false;
     return false;
@@ -130,7 +130,7 @@ size_t TcpSocket::receive(uint8_t *data, size_t max_num_bytes) {
   // if we didn't receive anything return false and don't do anything else
   if (num_bytes_received < 0) {
     // if we got an error, log it and return 0
-    logger_.debug("Receive failed: {} - '{}'", errno, strerror(errno));
+    logger_.debug("Receive failed: {}", error_string());
     return 0;
   } else if (num_bytes_received == 0) {
     logger_.warn("Remote socket closed!");
@@ -155,7 +155,7 @@ bool TcpSocket::bind(int port) {
   server_addr.sin_port = htons(port);
   auto err = ::bind(socket_, (struct sockaddr *)&server_addr, sizeof(server_addr));
   if (err < 0) {
-    logger_.error("Unable to bind: {} - '{}'", errno, strerror(errno));
+    logger_.error("Unable to bind: {}", error_string());
     return false;
   }
   return true;
@@ -168,7 +168,7 @@ bool TcpSocket::listen(int max_pending_connections) {
   }
   auto err = ::listen(socket_, max_pending_connections);
   if (err < 0) {
-    logger_.error("Unable to listen: {} - '{}'", errno, strerror(errno));
+    logger_.error("Unable to listen: {}", error_string());
     return false;
   }
   return true;
@@ -185,7 +185,7 @@ std::unique_ptr<TcpSocket> TcpSocket::accept() {
   // accept connection
   auto accepted_socket = ::accept(socket_, (struct sockaddr *)sender_address, &socklen);
   if (accepted_socket < 0) {
-    logger_.error("Could not accept connection: {} - '{}'", errno, strerror(errno));
+    logger_.error("Could not accept connection: {}", error_string());
     return nullptr;
   }
   connected_client_info.update();
@@ -212,7 +212,7 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
   // enable keepalive
   auto err = setsockopt(socket_, SOL_SOCKET, SO_KEEPALIVE, (const char *)&optval, sizeof(optval));
   if (err < 0) {
-    logger_.error("Unable to set keepalive: {} - '{}'", errno, strerror(errno));
+    logger_.error("Unable to set keepalive: {}", error_string());
     return false;
   }
 
@@ -223,7 +223,7 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
   optval = idle_time.count();
   err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPIDLE, (const char *)&optval, sizeof(optval));
   if (err < 0) {
-    logger_.error("Unable to set keepalive idle time: {} - '{}'", errno, strerror(errno));
+    logger_.error("Unable to set keepalive idle time: {}", error_string());
     return false;
   }
 #endif
@@ -232,14 +232,14 @@ bool TcpSocket::set_keepalive(const std::chrono::seconds &idle_time,
   optval = interval.count();
   err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPINTVL, (const char *)&optval, sizeof(optval));
   if (err < 0) {
-    logger_.error("Unable to set keepalive interval: {} - '{}'", errno, strerror(errno));
+    logger_.error("Unable to set keepalive interval: {}", error_string());
     return false;
   }
   // set the max probes
   optval = max_probes;
   err = setsockopt(socket_, IPPROTO_TCP, TCP_KEEPCNT, (const char *)&optval, sizeof(optval));
   if (err < 0) {
-    logger_.error("Unable to set keepalive max probes: {} - '{}'", errno, strerror(errno));
+    logger_.error("Unable to set keepalive max probes: {}", error_string());
     return false;
   }
   return true;
