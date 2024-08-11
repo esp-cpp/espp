@@ -3,4 +3,4 @@
 mkdir build
 cd build
 cmake ..
-cmake --build . --config Release --target install
+cmake --build . --config Release
