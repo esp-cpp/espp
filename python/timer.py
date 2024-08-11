@@ -1,16 +1,6 @@
 import time
 
-try:
-    print("trying to import espp...")
-    import espp
-except ImportError:
-    print("espp not found, trying to import from ../lib/pc")
-    print("NOTE: in general, you should add espp/lib/pc to your PYTHONPATH")
-    import sys
-    sys.path.append("../lib/pc")
-    import espp
-else:
-    print("espp imported")
+from support_loader import espp
 
 start = time.time()
 def timer_func():
@@ -19,7 +9,7 @@ def timer_func():
     print(f"[{elapsed:.3f}] Hello from timer")
     return False # we don't want to stop the timer
 
-timer = espp.Timer(espp.TimerConfig(
+timer = espp.Timer(espp.Timer.Config(
     "test timer", #name
     0.5, # period
     0.0, # delay
@@ -28,7 +18,7 @@ timer = espp.Timer(espp.TimerConfig(
     4096, # stack size (unused except on ESP)
     1, # priority (unused except on ESP)
     -1, # core (unused except on ESP)
-    espp.Verbosity.NONE
+    espp.Logger.Verbosity.none
 ))
 
 time.sleep(5)

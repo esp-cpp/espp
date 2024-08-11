@@ -23,3 +23,4 @@ API Reference
 -------------
 
 .. include-build-file:: inc/task.inc
+.. include-build-file:: inc/run_on_core.inc

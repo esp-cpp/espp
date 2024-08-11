@@ -10,7 +10,6 @@
 #include <string>
 #include <vector>
 
-#include <dirent.h>
 #include <sys/types.h>
 
 #if defined(ESP_PLATFORM)
@@ -20,23 +19,9 @@
 #endif
 
 #include "base_component.hpp"
+#include "file_system.hpp"
 #include "task.hpp"
 #include "tcp_socket.hpp"
-
-/// Function to convert a time_point to a time_t.
-/// \details This function converts a time_point to a time_t. This function
-///     is needed because the standard library does not provide a function to
-///     convert a time_point to a time_t (until c++20 but support seems lacking
-///     on esp32). This function is taken from
-///     https://stackoverflow.com/a/61067330
-/// \tparam TP The type of the time_point.
-/// \param tp The time_point to convert.
-/// \return The time_t.
-template <typename TP> std::time_t to_time_t(TP tp) {
-  using namespace std::chrono;
-  auto sctp = time_point_cast<system_clock::duration>(tp - TP::clock::now() + system_clock::now());
-  return system_clock::to_time_t(sctp);
-}
 
 namespace espp {
 /// Class representing a client that is connected to the FTP server. This
@@ -44,7 +29,7 @@ namespace espp {
 class FtpClientSession : public BaseComponent {
 public:
   explicit FtpClientSession(int id, std::string_view local_address,
-                            std::unique_ptr<TcpSocket> socket,
+                            std::unique_ptr<espp::TcpSocket> socket,
                             const std::filesystem::path &root_path)
       : BaseComponent("FtpClientSession " + std::to_string(id))
       , id_(id)
@@ -166,7 +151,7 @@ protected:
   bool send_response(int status_code, std::string_view message, bool multiline = false) {
     std::string response =
         std::to_string(status_code) + (multiline ? "-" : " ") + std::string{message} + "\r\n";
-    detail::TcpTransmitConfig config{}; // default config, no wait for response.
+    TcpSocket::TransmitConfig config{}; // default config, no wait for response.
     if (!socket_->transmit(response, config)) {
       logger_.error("Failed to send response");
       return false;
@@ -249,7 +234,7 @@ protected:
       }
     }
     // send the data
-    detail::TcpTransmitConfig config{};
+    TcpSocket::TransmitConfig config{};
     bool success = data_socket_->transmit(data, config);
     // close the data socket
     data_socket_->close();
@@ -354,7 +339,7 @@ protected:
       }
     }
 
-    detail::TcpTransmitConfig config{};
+    TcpSocket::TransmitConfig config{};
     // open the file
     std::ifstream file(file_path, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
@@ -790,7 +775,9 @@ protected:
     }
 
     // get the directory listing
-    std::string directory_listing = list_directory(current_directory_);
+    espp::FileSystem::ListConfig config{};
+    std::string directory_listing =
+        espp::FileSystem::get().list_directory(current_directory_, config);
 
     logger_.debug("Directory listing:\n{}", directory_listing);
     if (!send_data(directory_listing)) {
@@ -925,12 +912,11 @@ protected:
     if (!std::filesystem::is_regular_file(full_path)) {
       return send_response(550, "Not a regular file.");
     }
-    // NOTE: cannot use std::filesystem::remove because it does not work on
-    //       littlefs, it calls POSIX remove() which is not implemented
-    //       properly. Instead, we use unlink() directly.
-    if (unlink(full_path.string().data()) != 0) {
-      logger_.error("Failed to delete file: {}", strerror(errno));
-      return send_response(550, "Failed to delete file.");
+    std::error_code ec;
+    espp::FileSystem::get().remove(full_path, ec);
+    if (ec) {
+      logger_.error("Failed to delete file: {}", ec.message());
+      return send_response(550, fmt::format("Failed to delete file: {}", ec.message()));
     }
     return send_response(250, "Requested file action okay, completed.");
   }
@@ -954,12 +940,11 @@ protected:
     if (!std::filesystem::is_directory(full_path)) {
       return send_response(550, "Not a directory.");
     }
-    // NOTE: cannot use std::filesystem::remove because it does not work on
-    //       littlefs, it calls POSIX remove() which is not implemented
-    //       properly. Instead, we use rmdir() directly.
-    if (rmdir(full_path.string().data()) != 0) {
-      logger_.error("Failed to delete directory: {}", strerror(errno));
-      return send_response(550, "Failed to delete directory.");
+    std::error_code ec;
+    espp::FileSystem::get().remove(full_path, ec);
+    if (ec) {
+      logger_.error("Failed to delete directory: {}", ec.message());
+      return send_response(550, fmt::format("Failed to delete directory: {}", ec.message()));
     }
     return send_response(250, "Requested file action okay, completed.");
   }
@@ -1049,95 +1034,6 @@ protected:
   bool handle_unknown(std::string_view request) {
     logger_.error("Unknown reqeust: '{}'", request);
     return send_response(500, "Syntax error, command unrecognized.");
-  }
-
-  /// @brief List the contents of a directory
-  /// @param path The path to list
-  /// @return A string containing the contents of the directory
-  std::string list_directory(const std::filesystem::path &path) {
-    return list_directory(path.string());
-  }
-
-  /// @brief List the contents of a directory
-  /// @param path The path to list
-  /// @return A string containing the contents of the directory
-  std::string list_directory(const std::string &path) {
-    std::string result;
-    DIR *dir = opendir(path.c_str());
-    if (dir == nullptr) {
-      return result;
-    }
-    struct dirent *entry;
-    namespace fs = std::filesystem;
-    while ((entry = readdir(dir)) != nullptr) {
-      // skip the current and parent directories
-      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-        continue;
-      }
-      // use the config to determine output
-      std::error_code ec;
-      auto file_path = fs::path{path} / entry->d_name;
-      auto file_status = fs::status(file_path, ec);
-      if (ec) {
-        logger_.warn("Failed to get status for file: {}", file_path.string());
-        continue;
-      }
-
-      // type
-      if (fs::is_directory(file_status)) {
-        result += "d";
-      } else if (fs::is_regular_file(file_status)) {
-        result += "-";
-      } else {
-        result += "?";
-      }
-
-      // permissions
-      auto perms = file_status.permissions();
-      result += (perms & fs::perms::owner_read) != fs::perms::none ? "r" : "-";
-      result += (perms & fs::perms::owner_write) != fs::perms::none ? "w" : "-";
-      result += (perms & fs::perms::owner_exec) != fs::perms::none ? "x" : "-";
-      result += (perms & fs::perms::group_read) != fs::perms::none ? "r" : "-";
-      result += (perms & fs::perms::group_write) != fs::perms::none ? "w" : "-";
-      result += (perms & fs::perms::group_exec) != fs::perms::none ? "x" : "-";
-      result += (perms & fs::perms::others_read) != fs::perms::none ? "r" : "-";
-      result += (perms & fs::perms::others_write) != fs::perms::none ? "w" : "-";
-      result += (perms & fs::perms::others_exec) != fs::perms::none ? "x" : "-";
-      result += " ";
-
-      // number of links
-      result += "1 ";
-
-      // owner and group
-      result += "owner ";
-      result += "group ";
-
-      // size
-      if (fs::is_regular_file(file_status)) {
-        result += fmt::format("{:>8} ", fs::file_size(file_path, ec));
-      } else {
-        result += fmt::format("{:>7}0 ", "");
-      }
-
-      // date
-      auto ftime = fs::last_write_time(file_path, ec);
-      if (ec) {
-        result += "Jan 01 00:00 ";
-      } else {
-        // NOTE: std::chrono::system_clock::to_time_t is not implemented in ESP-IDF
-        // auto cftime = std::chrono::system_clock::to_time_t(ftime);
-        auto cftime = to_time_t(ftime);
-        std::tm tm = *std::localtime(&cftime);
-        char buffer[80];
-        std::strftime(buffer, sizeof(buffer), "%b %d %H:%M", &tm);
-        result += fmt::format("{:>12} ", buffer);
-      }
-
-      result += entry->d_name;
-      result += "\r\n";
-    }
-    closedir(dir);
-    return result;
   }
 
 private:

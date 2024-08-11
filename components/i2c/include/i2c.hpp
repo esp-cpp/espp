@@ -6,7 +6,7 @@
 #include <driver/i2c.h>
 
 #include "base_component.hpp"
-#include "task.hpp"
+#include "run_on_core.hpp"
 
 #include "i2c_format_helpers.hpp"
 
@@ -89,7 +89,7 @@ public:
     auto install_fn = [i2c_port]() -> esp_err_t {
       return i2c_driver_install(i2c_port, I2C_MODE_MASTER, 0, 0, 0);
     };
-    err = espp::Task::run_on_core(install_fn, config_.isr_core_id);
+    err = espp::task::run_on_core(install_fn, config_.isr_core_id);
     if (err != ESP_OK) {
       logger_.error("install i2c driver failed {}", esp_err_to_name(err));
       ec = std::make_error_code(std::errc::io_error);

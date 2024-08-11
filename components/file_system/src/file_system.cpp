@@ -5,22 +5,75 @@ using namespace espp;
 bool FileSystem::read_only_ = false;
 bool FileSystem::grow_on_mount_ = true;
 
+FileSystem::FileSystem()
+    : espp::BaseComponent("FileSystem") {
+  init();
+}
+
+std::string FileSystem::get_mount_point() {
+#if defined(ESP_PLATFORM)
+  return "/" + std::string{get_partition_label()};
+#else
+  // return the current working directory
+  return std::filesystem::current_path().string();
+#endif
+}
+
+std::filesystem::path FileSystem::get_root_path() {
+#if defined(ESP_PLATFORM)
+  return std::filesystem::path{get_mount_point()};
+#else
+  // get current working directory
+  return std::filesystem::current_path();
+#endif
+}
+
 size_t FileSystem::get_free_space() const {
+#if defined(ESP_PLATFORM)
   size_t total, used;
   esp_littlefs_info(get_partition_label(), &total, &used);
   return total - used;
+#else
+  // use std::filesystem to get free space
+  std::error_code ec;
+  auto space = std::filesystem::space(get_root_path(), ec);
+  if (ec) {
+    return 0;
+  }
+  return space.free;
+#endif
 }
 
 size_t FileSystem::get_total_space() const {
+#if defined(ESP_PLATFORM)
   size_t total, used;
   esp_littlefs_info(get_partition_label(), &total, &used);
   return total;
+#else
+  // use std::filesystem to get total space
+  std::error_code ec;
+  auto space = std::filesystem::space(get_root_path(), ec);
+  if (ec) {
+    return 0;
+  }
+  return space.capacity;
+#endif
 }
 
 size_t FileSystem::get_used_space() const {
+#if defined(ESP_PLATFORM)
   size_t total, used;
   esp_littlefs_info(get_partition_label(), &total, &used);
   return used;
+#else
+  // use std::filesystem to get used space
+  std::error_code ec;
+  auto space = std::filesystem::space(get_root_path(), ec);
+  if (ec) {
+    return 0;
+  }
+  return space.capacity - space.free;
+#endif
 }
 
 std::string FileSystem::human_readable(size_t bytes) {
@@ -85,6 +138,7 @@ std::vector<std::filesystem::path> FileSystem::get_files_in_path(const std::file
     return {};
   }
   std::vector<std::filesystem::path> files;
+#if defined(ESP_PLATFORM)
   // NOTE: we cannot use std::filesystem::directory_iterator because it is not implemented in
   // esp-idf
   DIR *dir = opendir(path.c_str());
@@ -118,6 +172,26 @@ std::vector<std::filesystem::path> FileSystem::get_files_in_path(const std::file
     }
   }
   closedir(dir);
+#else
+  for (const auto &entry : fs::directory_iterator(path)) {
+    auto file_path = entry.path();
+    file_status = fs::status(file_path, ec);
+    if (ec) {
+      logger_.warn("Failed to get status for file: {}", file_path.string());
+    }
+    if (fs::is_directory(file_status)) {
+      if (include_directories) {
+        files.push_back(file_path);
+      }
+      if (recursive) {
+        auto sub_files = get_files_in_path(file_path, include_directories, recursive);
+        files.insert(files.end(), sub_files.begin(), sub_files.end());
+      }
+    } else {
+      files.push_back(file_path);
+    }
+  }
+#endif
   return files;
 }
 
@@ -138,12 +212,20 @@ bool FileSystem::remove(const std::filesystem::path &path, std::error_code &ec) 
 
 bool FileSystem::remove_file(const std::filesystem::path &path) {
   logger_.debug("Removing file: {}", path.string());
+#if defined(ESP_PLATFORM)
   return unlink(path.c_str()) == 0;
+#else
+  return std::filesystem::remove(path);
+#endif
 }
 
 bool FileSystem::remove_directory(const std::filesystem::path &path) {
   logger_.debug("Removing directory: {}", path.string());
+#if defined(ESP_PLATFORM)
   return rmdir(path.c_str()) == 0;
+#else
+  return std::filesystem::remove(path);
+#endif
 }
 
 bool FileSystem::remove_contents(const std::filesystem::path &path, std::error_code &ec) {
@@ -164,6 +246,7 @@ bool FileSystem::remove_contents(const std::filesystem::path &path, std::error_c
 std::string FileSystem::list_directory(const std::string &path, const ListConfig &config,
                                        const std::string &prefix) {
   std::string result;
+#if defined(ESP_PLATFORM)
   DIR *dir = opendir(path.c_str());
   if (dir == nullptr) {
     return result;
@@ -226,10 +309,59 @@ std::string FileSystem::list_directory(const std::string &path, const ListConfig
     }
   }
   closedir(dir);
+#else
+  for (const auto &entry : std::filesystem::directory_iterator(path)) {
+    auto file_path = entry.path();
+    auto file_status = std::filesystem::status(file_path);
+    if (config.type) {
+      if (std::filesystem::is_directory(file_status)) {
+        result += "d";
+      } else if (std::filesystem::is_regular_file(file_status)) {
+        result += "-";
+      } else {
+        result += "?";
+      }
+    }
+    if (config.permissions) {
+      auto perms = file_status.permissions();
+      result += to_string(perms);
+      result += " ";
+    }
+    if (config.number_of_links) {
+      result += "1 ";
+    }
+    if (config.owner) {
+      result += "owner ";
+    }
+    if (config.group) {
+      result += "group ";
+    }
+    if (config.size) {
+      if (std::filesystem::is_regular_file(file_status)) {
+        result += fmt::format("{:>8} ", human_readable(std::filesystem::file_size(file_path)));
+      } else {
+        result += fmt::format("{:>8} ", "");
+      }
+    }
+    if (config.date_time) {
+      result += fmt::format("{:>12} ", get_file_time_as_string(file_path));
+    }
+    std::string relative_name = "";
+    if (prefix.size())
+      relative_name += prefix + "/";
+    relative_name += entry.path().filename().string();
+    result += relative_name;
+    result += "\r\n";
+    if (config.recursive && std::filesystem::is_directory(file_status)) {
+      result += list_directory(file_path, config, relative_name);
+    }
+  }
+#endif
   return result;
 }
 
 void FileSystem::init() {
+#if defined(ESP_PLATFORM)
   logger_.debug("Initializing file system");
   esp_err_t err;
 
@@ -270,4 +402,7 @@ void FileSystem::init() {
     logger_.debug("Creating root directory");
     std::filesystem::create_directory(root_path);
   }
+#else
+  logger_.debug("Not on ESP platform, no need to initialize file system");
+#endif
 }

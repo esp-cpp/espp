@@ -1,18 +1,24 @@
 #pragma once
 
+#include "socket_msvc.hpp"
+
+#ifdef _MSC_VER
+typedef unsigned int sock_type_t;
+#else
+/* Assume that any non-Windows platform uses POSIX-style sockets instead. */
+#include <arpa/inet.h>
+#include <netdb.h> /* Needed for getaddrinfo() and freeaddrinfo() */
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h> /* Needed for close() */
+typedef int sock_type_t;
+#endif
+
 #include <functional>
 #include <optional>
 #include <string>
 #include <vector>
-
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-
-#if !defined(ESP_PLATFORM)
-#include <unistd.h>
-#endif
 
 #include <math.h>
 
@@ -50,86 +56,44 @@ public:
      * @param addr IPv4 address string
      * @param prt port number
      */
-    void init_ipv4(const std::string &addr, size_t prt) {
-      address = addr;
-      port = prt;
-      auto server_address = ipv4_ptr();
-      server_address->sin_family = AF_INET;
-      server_address->sin_addr.s_addr = inet_addr(address.c_str());
-      server_address->sin_port = htons(port);
-    }
+    void init_ipv4(const std::string &addr, size_t prt);
 
     /**
      * @brief Gives access to IPv4 sockaddr structure (sockaddr_in) for use
      *        with low level socket calls like sendto / recvfrom.
      * @return *sockaddr_in pointer to ipv4 data structure
      */
-    struct sockaddr_in *ipv4_ptr() {
-      return (struct sockaddr_in *)&raw;
-    }
+    struct sockaddr_in *ipv4_ptr();
 
     /**
      * @brief Gives access to IPv6 sockaddr structure (sockaddr_in6) for use
      *        with low level socket calls like sendto / recvfrom.
      * @return *sockaddr_in6 pointer to ipv6 data structure
      */
-    struct sockaddr_in6 *ipv6_ptr() {
-      return (struct sockaddr_in6 *)&raw;
-    }
+    struct sockaddr_in6 *ipv6_ptr();
 
     /**
      * @brief Will update address and port based on the curent data in raw.
      */
-    void update() {
-      if (raw.ss_family == PF_INET) {
-        address = inet_ntoa(((struct sockaddr_in *)&raw)->sin_addr);
-        port = ((struct sockaddr_in *)&raw)->sin_port;
-      } else if (raw.ss_family == PF_INET6) {
-#if defined(ESP_PLATFORM)
-        address = inet_ntoa(((struct sockaddr_in6 *)&raw)->sin6_addr);
-#else
-        char str[INET6_ADDRSTRLEN];
-        inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)&raw)->sin6_addr), str, INET6_ADDRSTRLEN);
-        address = str;
-#endif
-        port = ((struct sockaddr_in6 *)&raw)->sin6_port;
-      }
-    }
+    void update();
 
     /**
      * @brief Fill this Info from the provided sockaddr struct.
      * @param &source_address sockaddr info filled out by recvfrom.
      */
-    void from_sockaddr(const struct sockaddr_storage &source_address) {
-      memcpy(&raw, &source_address, sizeof(source_address));
-      update();
-    }
+    void from_sockaddr(const struct sockaddr_storage &source_address);
 
     /**
      * @brief Fill this Info from the provided sockaddr struct.
      * @param &source_address sockaddr info filled out by recvfrom.
      */
-    void from_sockaddr(const struct sockaddr_in &source_address) {
-      memcpy(&raw, &source_address, sizeof(source_address));
-      address = inet_ntoa(source_address.sin_addr);
-      port = source_address.sin_port;
-    }
+    void from_sockaddr(const struct sockaddr_in &source_address);
 
     /**
      * @brief Fill this Info from the provided sockaddr struct.
      * @param &source_address sockaddr info filled out by recvfrom.
      */
-    void from_sockaddr(const struct sockaddr_in6 &source_address) {
-#if defined(ESP_PLATFORM)
-      address = inet_ntoa(source_address.sin6_addr);
-#else
-      char str[INET6_ADDRSTRLEN];
-      inet_ntop(AF_INET6, &(source_address.sin6_addr), str, INET6_ADDRSTRLEN);
-      address = str;
-#endif
-      port = source_address.sin6_port;
-      memcpy(&raw, &source_address, sizeof(source_address));
-    }
+    void from_sockaddr(const struct sockaddr_in6 &source_address);
   };
 
   /**
@@ -156,10 +120,7 @@ public:
    * @param logger_config configuration for the logger associated with the
    *        socket.
    */
-  explicit Socket(int socket_fd, const Logger::Config &logger_config)
-      : BaseComponent(logger_config) {
-    socket_ = socket_fd;
-  }
+  explicit Socket(sock_type_t socket_fd, const espp::Logger::Config &logger_config);
 
   /**
    * @brief Initialize the socket (calling init()).
@@ -167,28 +128,25 @@ public:
    * @param logger_config configuration for the logger associated with the
    *        socket.
    */
-  explicit Socket(Type type, const Logger::Config &logger_config)
-      : BaseComponent(logger_config) {
-    init(type);
-  }
+  explicit Socket(Type type, const espp::Logger::Config &logger_config);
 
   /**
    * @brief Tear down any resources associted with the socket.
    */
-  ~Socket() { cleanup(); }
+  ~Socket();
 
   /**
    * @brief Is the socket valid.
    * @return true if the socket file descriptor is >= 0.
    */
-  bool is_valid() const { return socket_ >= 0; }
+  bool is_valid() const;
 
   /**
    * @brief Is the socket valid.
    * @param socket_fd Socket file descriptor.
    * @return true if the socket file descriptor is >= 0.
    */
-  static bool is_valid(int socket_fd) { return socket_fd >= 0; }
+  static bool is_valid_fd(sock_type_t socket_fd);
 
   /**
    * @brief Get the Socket::Info for the socket.
@@ -197,75 +155,21 @@ public:
    *          structure.
    * @return Socket::Info for the socket.
    */
-  std::optional<Info> get_ipv4_info() {
-    struct sockaddr_storage addr;
-    socklen_t addr_len = sizeof(addr);
-    if (getsockname(socket_, (struct sockaddr *)&addr, &addr_len) < 0) {
-      logger_.error("getsockname() failed: {} - {}", errno, strerror(errno));
-      return {};
-    }
-    Info info;
-    info.from_sockaddr(addr);
-    return info;
-  }
+  std::optional<Info> get_ipv4_info();
 
   /**
    * @brief Set the receive timeout on the provided socket.
    * @param timeout requested timeout, must be > 0.
    * @return true if SO_RECVTIMEO was successfully set.
    */
-  bool set_receive_timeout(const std::chrono::duration<float> &timeout) {
-    float seconds = timeout.count();
-    if (seconds <= 0) {
-      return true;
-    }
-    float intpart;
-    float fractpart = modf(seconds, &intpart);
-    const time_t response_timeout_s = (int)intpart;
-    const time_t response_timeout_us = (int)(fractpart * 1E6);
-    //// Alternatively we could do this:
-    // int microseconds =
-    // (int)(std::chrono::duration_cast<std::chrono::microseconds>(timeout).count()) % (int)1E6;
-    // const time_t response_timeout_s = floor(seconds);
-    // const time_t response_timeout_us = microseconds;
-
-    struct timeval tv;
-    tv.tv_sec = response_timeout_s;
-    tv.tv_usec = response_timeout_us;
-    int err = setsockopt(socket_, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv));
-    if (err < 0) {
-      return false;
-    }
-    return true;
-  }
+  bool set_receive_timeout(const std::chrono::duration<float> &timeout);
 
   /**
    * @brief Allow others to use this address/port combination after we're done
    *        with it.
    * @return true if SO_REUSEADDR and SO_REUSEPORT were successfully set.
    */
-  bool enable_reuse() {
-#if !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
-    fmt::print(fg(fmt::color::red), "CONFIG_LWIP_SO_REUSE not defined!\n");
-    return false;
-#else // CONFIG_LWIP_SO_REUSE || !defined(ESP_PLATFORM)
-    int err = 0;
-    int enabled = 1;
-    err = setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
-    if (err < 0) {
-      fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEADDR\n");
-      return false;
-    }
-#if !defined(ESP_PLATFORM)
-    err = setsockopt(socket_, SOL_SOCKET, SO_REUSEPORT, &enabled, sizeof(enabled));
-    if (err < 0) {
-      fmt::print(fg(fmt::color::red), "Couldn't set SO_REUSEPORT\n");
-      return false;
-    }
-#endif // !defined(ESP_PLATFORM)
-    return true;
-#endif // !CONFIG_LWIP_SO_REUSE && defined(ESP_PLATFORM)
-  }
+  bool enable_reuse();
 
   /**
    * @brief Configure the socket to be multicast (if time_to_live > 0).
@@ -276,22 +180,7 @@ public:
    * @param loopback_enabled Whether to receive our own multicast packets.
    * @return true if IP_MULTICAST_TTL and IP_MULTICAST_LOOP were set.
    */
-  bool make_multicast(uint8_t time_to_live = 1, uint8_t loopback_enabled = true) {
-    int err = 0;
-    // Assign multicast TTL - separate from normal interface TTL
-    err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, &time_to_live, sizeof(uint8_t));
-    if (err < 0) {
-      fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_TTL\n");
-      return false;
-    }
-    // select whether multicast traffic should be received by this device, too
-    err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_LOOP, &loopback_enabled, sizeof(uint8_t));
-    if (err < 0) {
-      fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_LOOP\n");
-      return false;
-    }
-    return true;
-  }
+  bool make_multicast(uint8_t time_to_live = 1, uint8_t loopback_enabled = true);
 
   /**
    * @brief If this is a server socket, add it to the provided the multicast
@@ -305,131 +194,45 @@ public:
    * @param multicast_group multicast group to join.
    * @return true if IP_ADD_MEMBERSHIP was successfully set.
    */
-  bool add_multicast_group(const std::string &multicast_group) {
-    struct ip_mreq imreq;
-    int err = 0;
+  bool add_multicast_group(const std::string &multicast_group);
 
-    // Configure source interface
-#if defined(ESP_PLATFORM)
-    imreq.imr_interface.s_addr = IPADDR_ANY;
-    // Configure multicast address to listen to
-    err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr.s_addr);
-#else
-    imreq.imr_interface.s_addr = htonl(INADDR_ANY);
-    // Configure multicast address to listen to
-    err = inet_aton(multicast_group.c_str(), &imreq.imr_multiaddr);
-#endif
-
-    if (err != 1 || !IN_MULTICAST(ntohl(imreq.imr_multiaddr.s_addr))) {
-      // it's not actually a multicast address, so return false?
-      fmt::print(fg(fmt::color::red), "Not a valid multicast address ({})\n", multicast_group);
-      return false;
-    }
-
-    // Assign the IPv4 multicast source interface, via its IP
-    // (only necessary if this socket is IPV4 only)
-    struct in_addr iaddr;
-    err = setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_IF, &iaddr, sizeof(struct in_addr));
-    if (err < 0) {
-      fmt::print(fg(fmt::color::red), "Couldn't set IP_MULTICAST_IF: {} - '{}'\n", errno,
-                 strerror(errno));
-      return false;
-    }
-
-    err = setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, &imreq, sizeof(struct ip_mreq));
-    if (err < 0) {
-      fmt::print(fg(fmt::color::red), "Couldn't set IP_ADD_MEMBERSHIP: {} - '{}'\n", errno,
-                 strerror(errno));
-      return false;
-    }
-
-    return true;
-  }
-
-  int select(std::chrono::microseconds timeout) {
-    fd_set readfds;
-    fd_set writefds;
-    fd_set exceptfds;
-    FD_ZERO(&readfds);
-    FD_ZERO(&writefds);
-    FD_ZERO(&exceptfds);
-    FD_SET(socket_, &readfds);
-    FD_SET(socket_, &writefds);
-    FD_SET(socket_, &exceptfds);
-    int nfds = socket_ + 1;
-    // convert timeout to timeval
-    struct timeval tv;
-    tv.tv_sec = std::chrono::duration_cast<std::chrono::seconds>(timeout).count();
-    tv.tv_usec = std::chrono::duration_cast<std::chrono::microseconds>(timeout).count() % 1000000;
-    int retval = ::select(nfds, &readfds, &writefds, &exceptfds, &tv);
-    if (retval < 0) {
-      logger_.error("select failed: {} - '{}'", errno, strerror(errno));
-      return -1;
-    }
-    if (retval == 0) {
-      logger_.warn("select timed out");
-      return 0;
-    }
-    if (FD_ISSET(socket_, &readfds)) {
-      logger_.debug("select read");
-    }
-    if (FD_ISSET(socket_, &writefds)) {
-      logger_.debug("select write");
-    }
-    if (FD_ISSET(socket_, &exceptfds)) {
-      logger_.debug("select except");
-    }
-    return retval;
-  }
+  /**
+   * @brief Select on the socket for read events.
+   * @param timeout how long to wait for an event.
+   * @return number of events that occurred.
+   */
+  int select(const std::chrono::microseconds &timeout);
 
 protected:
   /**
    * @brief Create the TCP socket and enable reuse.
    * @return true if the socket was initialized properly, false otherwise
    */
-  bool init(Type type) {
-    // actually make the socket
-    socket_ = socket(address_family_, (int)type, ip_protocol_);
-    if (!is_valid()) {
-      logger_.error("Cannot create socket: {} - '{}'", errno, strerror(errno));
-      return false;
-    }
-    // cppcheck-suppress knownConditionTrueFalse
-    if (!enable_reuse()) {
-      logger_.error("Cannot enable reuse: {} - '{}'", errno, strerror(errno));
-      return false;
-    }
-    return true;
-  }
+  bool init(Type type);
+
+  /**
+   * @brief Get the string representation of the last error that occurred.
+   * @return string representation of the last error that occurred.
+   */
+  std::string error_string() const;
+
+  /**
+   * @brief Get the string representation of the last error that occurred.
+   * @param error error code to get the string representation of.
+   * @return string representation of the last error that occurred.
+   */
+  std::string error_string(int error) const;
 
   /**
    *  @brief If the socket was created, we shut it down and close it here.
    */
-  void cleanup() {
-    if (is_valid()) {
-      shutdown(socket_, 0);
-      close(socket_);
-      socket_ = -1;
-      logger_.info("Closed socket");
-    }
-  }
+  void cleanup();
 
   static constexpr int address_family_{AF_INET};
   static constexpr int ip_protocol_{IPPROTO_IP};
 
-  int socket_;
+  sock_type_t socket_;
 };
 } // namespace espp
 
-// for allowing easy serialization/printing of the
-// espp::Socket::Info
-template <> struct fmt::formatter<espp::Socket::Info> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(espp::Socket::Info const &info, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "{}:{}", info.address, info.port);
-  }
-};
+#include "socket_formatters.hpp"

@@ -20,7 +20,7 @@ public:
    * @param x The starting X value.
    * @param y The starting Y value.
    */
-  explicit Vector2d(T x = T(0), T y = T(0))
+  explicit Vector2d(T x = 0, T y = 0)
       : x_(x)
       , y_(y) {}
 
@@ -294,17 +294,4 @@ typedef Vector2d<uint8_t> Vector2u8; ///< Typedef for 8 bit integer 2D vectors.
 
 } // namespace espp
 
-#include "format.hpp"
-
-// for allowing easy serialization/printing of the
-// espp::Vector2d<type>
-template <typename Value> struct fmt::formatter<espp::Vector2d<Value>> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(espp::Vector2d<Value> const &v, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "({},{})", v.x(), v.y());
-  }
-};
+#include "vector2d_formatters.hpp"

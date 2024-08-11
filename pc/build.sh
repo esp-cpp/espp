@@ -3,4 +3,4 @@
 mkdir build
 cd build
 cmake ..
-make
+cmake --build . --config Release

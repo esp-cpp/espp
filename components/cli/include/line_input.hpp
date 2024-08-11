@@ -1,3 +1,7 @@
+#pragma once
+
+#if defined(ESP_PLATFORM)
+
 #include <sdkconfig.h>
 
 #if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
@@ -5,6 +9,7 @@
 #include <algorithm>
 #include <atomic>
 #include <deque>
+#include <functional>
 #include <iostream>
 #include <stdio.h>
 #include <string>
@@ -424,3 +429,5 @@ protected:
 } // namespace espp
 
 #endif // CONFIG_COMPILER_CXX_EXCEPTIONS
+
+#endif // ESP_PLATFORM
