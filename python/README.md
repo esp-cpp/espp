@@ -10,7 +10,10 @@ If you haven't done so yet, navigate to the `espp/lib` folder and run the
 following:
 
 ```console
+# if macos/linux:
 ./build.sh
+# if windows
+./build.ps1
 ```
 
 ## Quick Start
