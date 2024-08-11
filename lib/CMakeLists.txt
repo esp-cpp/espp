@@ -112,14 +112,20 @@ install(DIRECTORY ${EXTERNAL}/magic_enum/include/magic_enum/ DESTINATION ${PROJE
 # and install the espp.hpp file for use by the python scripts there
 install(FILES espp.hpp wcswidth.h DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
 
+# to build for python we need to have the python developer libraries installed
+find_package (Python3 REQUIRED COMPONENTS Interpreter Development.Module)
+
+# and we need to include the pybind11 library
 add_subdirectory(pybind11)
 
-# to build for python we need to have the python developer libraries installed
-find_package (Python3 COMPONENTS Interpreter Development)
+# python_add_library(_core MODULE
+#   ./python_bindings/module.cpp ./python_bindings/pybind_espp.cpp ${ESPP_SOURCES} WITH_SOABI)
+# target_link_libraries(_core PRIVATE pybind11::headers)
+# install(TARGETS _core DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
 
 # Python binding
-pybind11_add_module( espp
-                     ./python_bindings/module.cpp ./python_bindings/pybind_espp.cpp ${ESPP_SOURCES})
+pybind11_add_module(espp
+  ./python_bindings/module.cpp ./python_bindings/pybind_espp.cpp ${ESPP_SOURCES})
 target_compile_features(espp PRIVATE cxx_std_20)
 install(TARGETS espp
         LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
