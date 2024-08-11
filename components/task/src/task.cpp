@@ -35,9 +35,7 @@ std::unique_ptr<Task> Task::make_unique(const Task::AdvancedConfig &config) {
 Task::~Task() {
   logger_.debug("Destroying task");
   // stop the task if it was started
-  if (started_) {
-    stop();
-  }
+  stop();
   // ensure we stop the thread if it's still around
   if (thread_.joinable()) {
     thread_.join();
@@ -96,13 +94,15 @@ bool Task::start() {
 }
 
 bool Task::stop() {
-  logger_.debug("Stopping task");
-  started_ = false;
-  cv_.notify_all();
-  if (thread_.joinable()) {
-    thread_.join();
+  if (started_) {
+    logger_.debug("Stopping task");
+    started_ = false;
+    cv_.notify_all();
+    if (thread_.joinable()) {
+      thread_.join();
+    }
+    logger_.debug("Task stopped");
   }
-  logger_.debug("Task stopped");
   return true;
 }
 
