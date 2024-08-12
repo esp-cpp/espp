@@ -232,173 +232,6 @@ void py_init_module_espp(py::module &m) {
           .def("stop", &espp::FtpServer::stop, "/ \\brief Stop the FTP server.");
   ////////////////////    </generated_from:ftp_server.hpp>    ////////////////////
 
-  ////////////////////    <generated_from:joystick.hpp>    ////////////////////
-  auto pyClassJoystick = py::class_<espp::Joystick>(
-      m, "Joystick", py::dynamic_attr(),
-      "*\n *  @brief 2-axis Joystick with axis mapping / calibration.\n *\n * \\section "
-      "joystick_ex1 Basic Circular and Rectangular Joystick Example\n * \\snippet "
-      "joystick_example.cpp circular joystick example\n * \\section joystick_ex2 ADC Joystick "
-      "Example\n * \\snippet joystick_example.cpp adc joystick example\n");
-
-  { // inner classes & enums of Joystick
-    py::enum_<espp::Joystick::Type>(
-        pyClassJoystick, "Type", py::arithmetic(),
-        "*\n   * @brief Type of the joystick.\n   * @note When using a Type::CIRCULAR joystick, "
-        "it's recommended to set the\n   *       individual x/y calibration deadzones to be 0 and "
-        "to only use the\n   *       deadzone_radius field to set the deadzone around the "
-        "center.\n")
-        .value("rectangular", espp::Joystick::Type::RECTANGULAR,
-               "/< The default type of joystick. Uses the rangemappers for")
-        .value("circular", espp::Joystick::Type::CIRCULAR,
-               "/< The joystick is configured to have a circular output. This");
-    auto pyClassJoystick_ClassConfig =
-        py::class_<espp::Joystick::Config>(
-            pyClassJoystick, "Config", py::dynamic_attr(),
-            "*\n   *  @brief Configuration structure for the joystick.\n")
-            .def(
-                py::init<>([](espp::FloatRangeMapper::Config x_calibration =
-                                  espp::FloatRangeMapper::Config(),
-                              espp::FloatRangeMapper::Config y_calibration =
-                                  espp::FloatRangeMapper::Config(),
-                              espp::Joystick::Type type = {espp::Joystick::Type::RECTANGULAR},
-                              float center_deadzone_radius = {0}, float range_deadzone = {0},
-                              espp::Joystick::get_values_fn get_values = {nullptr},
-                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                  auto r = std::make_unique<espp::Joystick::Config>();
-                  r->x_calibration = x_calibration;
-                  r->y_calibration = y_calibration;
-                  r->type = type;
-                  r->center_deadzone_radius = center_deadzone_radius;
-                  r->range_deadzone = range_deadzone;
-                  r->get_values = get_values;
-                  r->log_level = log_level;
-                  return r;
-                }),
-                py::arg("x_calibration") = espp::FloatRangeMapper::Config(),
-                py::arg("y_calibration") = espp::FloatRangeMapper::Config(),
-                py::arg("type") = espp::Joystick::Type{espp::Joystick::Type::RECTANGULAR},
-                py::arg("center_deadzone_radius") = float{0}, py::arg("range_deadzone") = float{0},
-                py::arg("get_values") = espp::Joystick::get_values_fn{nullptr},
-                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
-            .def_readwrite("x_calibration", &espp::Joystick::Config::x_calibration,
-                           "*< Configuration for the x axis.")
-            .def_readwrite("y_calibration", &espp::Joystick::Config::y_calibration,
-                           "*< Configuration for the y axis.")
-            .def_readwrite("type", &espp::Joystick::Config::type,
-                           "*< The type of the joystick. See\n                                     "
-                           "            Type enum for more information.")
-            .def_readwrite(
-                "center_deadzone_radius", &espp::Joystick::Config::center_deadzone_radius,
-                "*< The radius of the unit circle's deadzone [0, 1.0] around the center, only "
-                "used\n        when the joystick is configured as Type::CIRCULAR.")
-            .def_readwrite(
-                "range_deadzone", &espp::Joystick::Config::range_deadzone,
-                "*< The deadzone around the edge of the unit circle, only used when\n              "
-                "            the joystick is configured as Type::CIRCULAR. This scales the output "
-                "so\n                          that the output appears to have magnitude 1 "
-                "(meaning it appears to be on\n                          the edge of the unit "
-                "circle) when the joystick value magnitude is within\n                          "
-                "the range [1-range_deadzone, 1].")
-            .def_readwrite("get_values", &espp::Joystick::Config::get_values,
-                           "*< Function to retrieve the latest\n                                   "
-                           "       unmapped joystick values. Required if\n                         "
-                           "                 you want to use update(), unused if\n                 "
-                           "                         you call update(float raw_x, float\n          "
-                           "                                raw_y).")
-            .def_readwrite("log_level", &espp::Joystick::Config::log_level,
-                           "*< Verbosity for the Joystick logger_.");
-  } // end of inner classes & enums of Joystick
-
-  pyClassJoystick.def(py::init<const espp::Joystick::Config &>())
-      .def(
-          "set_type", &espp::Joystick::set_type, py::arg("type"), py::arg("radius") = 0,
-          py::arg("range_deadzone") = 0,
-          "*\n   *  @brief Set the type of the joystick.\n   *  @param type The Type of the "
-          "joystick.\n   *  @param radius Optional radius parameter used when \\p type is\n   *    "
-          "     Type::CIRCULAR. When the magnitude of the joystick's mapped\n   *         position "
-          "vector is less than this value, the vector is set to\n   *         (0,0).\n   *  @param "
-          "range_deadzone Optional deadzone around the edge of the unit circle\n   *         when "
-          "\\p type is Type::CIRCULAR. This scales the output so that the\n   *         output "
-          "appears to have magnitude 1 (meaning it appears to be on the\n   *         edge of the "
-          "unit circle) if the magnitude of the mapped position\n   *         vector is greater "
-          "than 1-range_deadzone. Example: if the range\n   *         deadzone is 0.1, then the "
-          "output will be scaled so that the\n   *         magnitude of the output is 1 if the "
-          "magnitude of the mapped\n   *         position vector is greater than 0.9.\n   *  @note "
-          "If the Joystick is Type::CIRCULAR, the actual calibrations that are\n   *        saved "
-          "into the joystick will have 0 deadzone around the center value\n   *        and range "
-          "values, so that center and range deadzones are actually\n   *        applied on the "
-          "vector value instead of on the individual axes\n   *        independently.\n   *  @sa "
-          "set_center_deadzone_radius\n   *  @sa set_range_deadzone\n   *  @sa set_calibration\n")
-      .def("type", &espp::Joystick::type,
-           "*\n   * @brief Get the type of the joystick.\n   * @return The Type of the joystick.\n")
-      .def("set_center_deadzone_radius", &espp::Joystick::set_center_deadzone_radius,
-           py::arg("radius"),
-           "*\n   * @brief Sets the center deadzone radius.\n   * @note Radius is only applied "
-           "when \\p deadzone is Deadzone::CIRCULAR.\n   * @param radius Optional radius parameter "
-           "used when \\p deadzone is\n   *        Deadzone::CIRCULAR. When the magnitude of the "
-           "joystick's mapped\n   *        position vector is less than this value, the vector is "
-           "set to\n   *        (0,0).\n")
-      .def("center_deadzone_radius", &espp::Joystick::center_deadzone_radius,
-           "*\n   * @brief Get the center deadzone radius.\n   * @return The center deadzone "
-           "radius.\n")
-      .def("set_range_deadzone", &espp::Joystick::set_range_deadzone, py::arg("range_deadzone"),
-           "*\n   * @brief Sets the range deadzone.\n   * @note Range deadzone is only applied "
-           "when \\p deadzone is Deadzone::CIRCULAR.\n   * @param range_deadzone Optional deadzone "
-           "around the edge of the unit circle\n   *        when \\p deadzone is "
-           "Deadzone::CIRCULAR. This scales the output so\n   *        that the output appears to "
-           "have magnitude 1 (meaning it appears to\n   *        be on the edge of the unit "
-           "circle) if the magnitude of the mapped\n   *        position vector is greater than "
-           "1-range_deadzone. Example: if the\n   *        range deadzone is 0.1, then the output "
-           "will be scaled so that the\n   *        magnitude of the output is 1 if the magnitude "
-           "of the mapped position\n   *        vector is greater than 0.9.\n")
-      .def("range_deadzone", &espp::Joystick::range_deadzone,
-           "*\n   * @brief Get the range deadzone.\n   * @return The range deadzone.\n")
-      .def("set_calibration", &espp::Joystick::set_calibration, py::arg("x_calibration"),
-           py::arg("y_calibration"), py::arg("center_deadzone_radius") = 0,
-           py::arg("range_deadzone") = 0,
-           "*\n   * @brief Update the x and y axis mapping.\n   * @param x_calibration New x-axis "
-           "range mapping configuration to use.\n   * @param y_calibration New y-axis range "
-           "mapping configuration to use.\n   * @param center_deadzone_radius The radius of the "
-           "unit circle's deadzone [0,\n   *        1.0] around the center, only used when the "
-           "joystick is configured\n   *        as Type::CIRCULAR.\n   *  @param range_deadzone "
-           "Optional deadzone around the edge of the unit circle\n   *         when \\p type is "
-           "Type::CIRCULAR. This scales the output so that the\n   *         output appears to "
-           "have magnitude 1 (meaning it appears to be on the\n   *         edge of the unit "
-           "circle) if the magnitude of the mapped position\n   *         vector is greater than "
-           "1-range_deadzone. Example: if the range\n   *         deadzone is 0.1, then the output "
-           "will be scaled so that the\n   *         magnitude of the output is 1 if the magnitude "
-           "of the mapped\n   *         position vector is greater than 0.9.\n   * @note If the "
-           "Joystick is Type::CIRCULAR, the actual calibrations that are\n   *       saved into "
-           "the joystick will have 0 deadzone around the center and range values,\n   *       so "
-           "that center and range deadzones are actually applied on the vector value.\n   * @sa "
-           "set_center_deadzone_radius\n   * @sa set_range_deadzone\n")
-      .def(
-          "update", [](espp::Joystick &self) { return self.update(); },
-          "*\n   * @brief Read the raw values and use the calibration data to update the\n   *     "
-          "   position.\n   * @note Requires that the get_values_ function is set.\n")
-      .def("update", py::overload_cast<float, float>(&espp::Joystick::update), py::arg("raw_x"),
-           py::arg("raw_y"),
-           "*\n   * @brief Update the joystick's position using the provided raw x and y\n   *     "
-           "   values.\n   * @param raw_x The raw x-axis value.\n   * @param raw_y The raw y-axis "
-           "value.\n   * @note This function is useful when you have the raw values and don't "
-           "want\n   *       to use the get_values_ function.\n")
-      .def("x", &espp::Joystick::x,
-           "*\n   * @brief Get the most recently updated x axis calibrated position.\n   * @return "
-           "The most recent x-axis position (from when update() was last\n   *         called).\n")
-      .def("y", &espp::Joystick::y,
-           "*\n   * @brief Get the most recently updated y axis calibrated position.\n   * @return "
-           "The most recent y-axis position (from when update() was last\n   *         called).\n")
-      .def("position", &espp::Joystick::position,
-           "*\n   * @brief Get the most recently updated calibrated position.\n   * @return The "
-           "most recent position (from when update() was last called).\n")
-      .def("raw", &espp::Joystick::raw,
-           "*\n   * @brief Get the most recently updated raw / uncalibrated readings. This\n   *   "
-           "     function is useful for externally performing a calibration routine\n   *        "
-           "and creating updated calibration / mapper configuration\n   *        structures.\n   * "
-           "@return The most recent raw measurements (from when update() was last\n   *         "
-           "called).\n");
-  ////////////////////    </generated_from:joystick.hpp>    ////////////////////
-
   ////////////////////    <generated_from:logger.hpp>    ////////////////////
   auto pyClassLogger = py::class_<espp::Logger>(
       m, "Logger", py::dynamic_attr(),
@@ -2328,6 +2161,173 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Check if the timer is running.\n/ @details Checks if the timer is running.\n/ "
            "@return True if the timer is running, False otherwise.");
   ////////////////////    </generated_from:timer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:joystick.hpp>    ////////////////////
+  auto pyClassJoystick = py::class_<espp::Joystick>(
+      m, "Joystick", py::dynamic_attr(),
+      "*\n *  @brief 2-axis Joystick with axis mapping / calibration.\n *\n * \\section "
+      "joystick_ex1 Basic Circular and Rectangular Joystick Example\n * \\snippet "
+      "joystick_example.cpp circular joystick example\n * \\section joystick_ex2 ADC Joystick "
+      "Example\n * \\snippet joystick_example.cpp adc joystick example\n");
+
+  { // inner classes & enums of Joystick
+    py::enum_<espp::Joystick::Type>(
+        pyClassJoystick, "Type", py::arithmetic(),
+        "*\n   * @brief Type of the joystick.\n   * @note When using a Type::CIRCULAR joystick, "
+        "it's recommended to set the\n   *       individual x/y calibration deadzones to be 0 and "
+        "to only use the\n   *       deadzone_radius field to set the deadzone around the "
+        "center.\n")
+        .value("rectangular", espp::Joystick::Type::RECTANGULAR,
+               "/< The default type of joystick. Uses the rangemappers for")
+        .value("circular", espp::Joystick::Type::CIRCULAR,
+               "/< The joystick is configured to have a circular output. This");
+    auto pyClassJoystick_ClassConfig =
+        py::class_<espp::Joystick::Config>(
+            pyClassJoystick, "Config", py::dynamic_attr(),
+            "*\n   *  @brief Configuration structure for the joystick.\n")
+            .def(
+                py::init<>([](espp::FloatRangeMapper::Config x_calibration =
+                                  espp::FloatRangeMapper::Config(),
+                              espp::FloatRangeMapper::Config y_calibration =
+                                  espp::FloatRangeMapper::Config(),
+                              espp::Joystick::Type type = {espp::Joystick::Type::RECTANGULAR},
+                              float center_deadzone_radius = {0}, float range_deadzone = {0},
+                              espp::Joystick::get_values_fn get_values = {nullptr},
+                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r = std::make_unique<espp::Joystick::Config>();
+                  r->x_calibration = x_calibration;
+                  r->y_calibration = y_calibration;
+                  r->type = type;
+                  r->center_deadzone_radius = center_deadzone_radius;
+                  r->range_deadzone = range_deadzone;
+                  r->get_values = get_values;
+                  r->log_level = log_level;
+                  return r;
+                }),
+                py::arg("x_calibration") = espp::FloatRangeMapper::Config(),
+                py::arg("y_calibration") = espp::FloatRangeMapper::Config(),
+                py::arg("type") = espp::Joystick::Type{espp::Joystick::Type::RECTANGULAR},
+                py::arg("center_deadzone_radius") = float{0}, py::arg("range_deadzone") = float{0},
+                py::arg("get_values") = espp::Joystick::get_values_fn{nullptr},
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("x_calibration", &espp::Joystick::Config::x_calibration,
+                           "*< Configuration for the x axis.")
+            .def_readwrite("y_calibration", &espp::Joystick::Config::y_calibration,
+                           "*< Configuration for the y axis.")
+            .def_readwrite("type", &espp::Joystick::Config::type,
+                           "*< The type of the joystick. See\n                                     "
+                           "            Type enum for more information.")
+            .def_readwrite(
+                "center_deadzone_radius", &espp::Joystick::Config::center_deadzone_radius,
+                "*< The radius of the unit circle's deadzone [0, 1.0] around the center, only "
+                "used\n        when the joystick is configured as Type::CIRCULAR.")
+            .def_readwrite(
+                "range_deadzone", &espp::Joystick::Config::range_deadzone,
+                "*< The deadzone around the edge of the unit circle, only used when\n              "
+                "            the joystick is configured as Type::CIRCULAR. This scales the output "
+                "so\n                          that the output appears to have magnitude 1 "
+                "(meaning it appears to be on\n                          the edge of the unit "
+                "circle) when the joystick value magnitude is within\n                          "
+                "the range [1-range_deadzone, 1].")
+            .def_readwrite("get_values", &espp::Joystick::Config::get_values,
+                           "*< Function to retrieve the latest\n                                   "
+                           "       unmapped joystick values. Required if\n                         "
+                           "                 you want to use update(), unused if\n                 "
+                           "                         you call update(float raw_x, float\n          "
+                           "                                raw_y).")
+            .def_readwrite("log_level", &espp::Joystick::Config::log_level,
+                           "*< Verbosity for the Joystick logger_.");
+  } // end of inner classes & enums of Joystick
+
+  pyClassJoystick.def(py::init<const espp::Joystick::Config &>())
+      .def(
+          "set_type", &espp::Joystick::set_type, py::arg("type"), py::arg("radius") = 0,
+          py::arg("range_deadzone") = 0,
+          "*\n   *  @brief Set the type of the joystick.\n   *  @param type The Type of the "
+          "joystick.\n   *  @param radius Optional radius parameter used when \\p type is\n   *    "
+          "     Type::CIRCULAR. When the magnitude of the joystick's mapped\n   *         position "
+          "vector is less than this value, the vector is set to\n   *         (0,0).\n   *  @param "
+          "range_deadzone Optional deadzone around the edge of the unit circle\n   *         when "
+          "\\p type is Type::CIRCULAR. This scales the output so that the\n   *         output "
+          "appears to have magnitude 1 (meaning it appears to be on the\n   *         edge of the "
+          "unit circle) if the magnitude of the mapped position\n   *         vector is greater "
+          "than 1-range_deadzone. Example: if the range\n   *         deadzone is 0.1, then the "
+          "output will be scaled so that the\n   *         magnitude of the output is 1 if the "
+          "magnitude of the mapped\n   *         position vector is greater than 0.9.\n   *  @note "
+          "If the Joystick is Type::CIRCULAR, the actual calibrations that are\n   *        saved "
+          "into the joystick will have 0 deadzone around the center value\n   *        and range "
+          "values, so that center and range deadzones are actually\n   *        applied on the "
+          "vector value instead of on the individual axes\n   *        independently.\n   *  @sa "
+          "set_center_deadzone_radius\n   *  @sa set_range_deadzone\n   *  @sa set_calibration\n")
+      .def("type", &espp::Joystick::type,
+           "*\n   * @brief Get the type of the joystick.\n   * @return The Type of the joystick.\n")
+      .def("set_center_deadzone_radius", &espp::Joystick::set_center_deadzone_radius,
+           py::arg("radius"),
+           "*\n   * @brief Sets the center deadzone radius.\n   * @note Radius is only applied "
+           "when \\p deadzone is Deadzone::CIRCULAR.\n   * @param radius Optional radius parameter "
+           "used when \\p deadzone is\n   *        Deadzone::CIRCULAR. When the magnitude of the "
+           "joystick's mapped\n   *        position vector is less than this value, the vector is "
+           "set to\n   *        (0,0).\n")
+      .def("center_deadzone_radius", &espp::Joystick::center_deadzone_radius,
+           "*\n   * @brief Get the center deadzone radius.\n   * @return The center deadzone "
+           "radius.\n")
+      .def("set_range_deadzone", &espp::Joystick::set_range_deadzone, py::arg("range_deadzone"),
+           "*\n   * @brief Sets the range deadzone.\n   * @note Range deadzone is only applied "
+           "when \\p deadzone is Deadzone::CIRCULAR.\n   * @param range_deadzone Optional deadzone "
+           "around the edge of the unit circle\n   *        when \\p deadzone is "
+           "Deadzone::CIRCULAR. This scales the output so\n   *        that the output appears to "
+           "have magnitude 1 (meaning it appears to\n   *        be on the edge of the unit "
+           "circle) if the magnitude of the mapped\n   *        position vector is greater than "
+           "1-range_deadzone. Example: if the\n   *        range deadzone is 0.1, then the output "
+           "will be scaled so that the\n   *        magnitude of the output is 1 if the magnitude "
+           "of the mapped position\n   *        vector is greater than 0.9.\n")
+      .def("range_deadzone", &espp::Joystick::range_deadzone,
+           "*\n   * @brief Get the range deadzone.\n   * @return The range deadzone.\n")
+      .def("set_calibration", &espp::Joystick::set_calibration, py::arg("x_calibration"),
+           py::arg("y_calibration"), py::arg("center_deadzone_radius") = 0,
+           py::arg("range_deadzone") = 0,
+           "*\n   * @brief Update the x and y axis mapping.\n   * @param x_calibration New x-axis "
+           "range mapping configuration to use.\n   * @param y_calibration New y-axis range "
+           "mapping configuration to use.\n   * @param center_deadzone_radius The radius of the "
+           "unit circle's deadzone [0,\n   *        1.0] around the center, only used when the "
+           "joystick is configured\n   *        as Type::CIRCULAR.\n   *  @param range_deadzone "
+           "Optional deadzone around the edge of the unit circle\n   *         when \\p type is "
+           "Type::CIRCULAR. This scales the output so that the\n   *         output appears to "
+           "have magnitude 1 (meaning it appears to be on the\n   *         edge of the unit "
+           "circle) if the magnitude of the mapped position\n   *         vector is greater than "
+           "1-range_deadzone. Example: if the range\n   *         deadzone is 0.1, then the output "
+           "will be scaled so that the\n   *         magnitude of the output is 1 if the magnitude "
+           "of the mapped\n   *         position vector is greater than 0.9.\n   * @note If the "
+           "Joystick is Type::CIRCULAR, the actual calibrations that are\n   *       saved into "
+           "the joystick will have 0 deadzone around the center and range values,\n   *       so "
+           "that center and range deadzones are actually applied on the vector value.\n   * @sa "
+           "set_center_deadzone_radius\n   * @sa set_range_deadzone\n")
+      .def(
+          "update", [](espp::Joystick &self) { return self.update(); },
+          "*\n   * @brief Read the raw values and use the calibration data to update the\n   *     "
+          "   position.\n   * @note Requires that the get_values_ function is set.\n")
+      .def("update", py::overload_cast<float, float>(&espp::Joystick::update), py::arg("raw_x"),
+           py::arg("raw_y"),
+           "*\n   * @brief Update the joystick's position using the provided raw x and y\n   *     "
+           "   values.\n   * @param raw_x The raw x-axis value.\n   * @param raw_y The raw y-axis "
+           "value.\n   * @note This function is useful when you have the raw values and don't "
+           "want\n   *       to use the get_values_ function.\n")
+      .def("x", &espp::Joystick::x,
+           "*\n   * @brief Get the most recently updated x axis calibrated position.\n   * @return "
+           "The most recent x-axis position (from when update() was last\n   *         called).\n")
+      .def("y", &espp::Joystick::y,
+           "*\n   * @brief Get the most recently updated y axis calibrated position.\n   * @return "
+           "The most recent y-axis position (from when update() was last\n   *         called).\n")
+      .def("position", &espp::Joystick::position,
+           "*\n   * @brief Get the most recently updated calibrated position.\n   * @return The "
+           "most recent position (from when update() was last called).\n")
+      .def("raw", &espp::Joystick::raw,
+           "*\n   * @brief Get the most recently updated raw / uncalibrated readings. This\n   *   "
+           "     function is useful for externally performing a calibration routine\n   *        "
+           "and creating updated calibration / mapper configuration\n   *        structures.\n   * "
+           "@return The most recent raw measurements (from when update() was last\n   *         "
+           "called).\n");
+  ////////////////////    </generated_from:joystick.hpp>    ////////////////////
 
   // </litgen_pydef> // Autogenerated code end
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  AUTOGENERATED CODE END !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

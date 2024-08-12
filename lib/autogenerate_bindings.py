@@ -110,7 +110,6 @@ def autogenerate() -> None:
                     # include_dir + "file_system/include/file_system.hpp", # can't deal with singleton that does not support constructor / destructor
                     include_dir + "ftp/include/ftp_server.hpp",
                     # include_dir + "ftp/include/ftp_client_session.hpp", can't deal with tcpsocket unique ptr in constructor
-                    include_dir + "joystick/include/joystick.hpp",
                     include_dir + "logger/include/logger.hpp",
                     include_dir + "math/include/bezier.hpp", # have to set class template options
                     include_dir + "math/include/fast_math.hpp",
@@ -128,6 +127,9 @@ def autogenerate() -> None:
                     include_dir + "socket/include/udp_socket.hpp",
                     include_dir + "task/include/task.hpp",
                     include_dir + "timer/include/timer.hpp",
+
+                    # NOTE: this must come after vector2d.hpp since it depends on it!
+                    include_dir + "joystick/include/joystick.hpp",
 
                     # state machine:
                     # include_dir + "state_machine/include/deep_history_state.hpp",
