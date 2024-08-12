@@ -26,6 +26,27 @@ Timer::Timer(const Timer::Config &config)
   }
 }
 
+Timer::Timer(const Timer::AdvancedConfig &config)
+    : BaseComponent(config.task_config.name, config.log_level)
+    , period_(std::chrono::duration_cast<std::chrono::microseconds>(config.period))
+    , delay_(std::chrono::duration_cast<std::chrono::microseconds>(config.delay))
+    , callback_(config.callback) {
+  // set the logger rate limit
+  logger_.set_rate_limit(std::chrono::milliseconds(100));
+  // make the task
+  task_ = espp::Task::make_unique({
+      .callback =
+          std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1, std::placeholders::_2),
+      .task_config = config.task_config,
+      .log_level = config.log_level,
+  });
+  period_float = std::chrono::duration<float>(period_).count();
+  delay_float = std::chrono::duration<float>(delay_).count();
+  if (config.auto_start) {
+    start();
+  }
+}
+
 Timer::~Timer() { cancel(); }
 
 void Timer::start() {

@@ -47,6 +47,8 @@ namespace espp {
 /// \snippet timer_example.cpp timer oneshot restart example
 /// \section timer_ex6 Timer Update Period Example
 /// \snippet timer_example.cpp timer update period example
+/// \section timer_ex7 Timer AdvancedConfig Example
+/// \snippet timer_example.cpp timer advanced config example
 class Timer : public BaseComponent {
 public:
   typedef std::function<bool()>
@@ -68,9 +70,26 @@ public:
         espp::Logger::Verbosity::WARN; ///< The log level for the timer.
   };
 
+  /// @brief Advanced configuration for the timer.
+  struct AdvancedConfig {
+    std::chrono::duration<float>
+        period; ///< The period of the timer. If 0, the timer callback will only be called once.
+    std::chrono::duration<float> delay = std::chrono::duration<float>(
+        0); ///< The delay before the first execution of the timer callback after start() is called.
+    espp::Timer::callback_fn callback; ///< The callback function to call when the timer expires.
+    bool auto_start{true}; ///< If true, the timer will start automatically when constructed.
+    espp::Task::BaseConfig task_config; ///< The task configuration for the timer.
+    espp::Logger::Verbosity log_level =
+        espp::Logger::Verbosity::WARN; ///< The log level for the timer.
+  };
+
   /// @brief Construct a new Timer object
   /// @param config The configuration for the timer.
   explicit Timer(const Config &config);
+
+  /// @brief Construct a new Timer object
+  /// @param config The configuration for the timer.
+  explicit Timer(const AdvancedConfig &config);
 
   /// @brief Destroy the Timer object
   /// @details Cancels the timer if it is running.
