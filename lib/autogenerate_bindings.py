@@ -128,7 +128,7 @@ def autogenerate() -> None:
                     include_dir + "task/include/task.hpp",
                     include_dir + "timer/include/timer.hpp",
 
-                    # NOTE: this must come after vector2d.hpp since it depends on it!
+                    # NOTE: this must come after vector2d.hpp and range_mapper.hpp since it depends on them!
                     include_dir + "joystick/include/joystick.hpp",
 
                     # state machine:
