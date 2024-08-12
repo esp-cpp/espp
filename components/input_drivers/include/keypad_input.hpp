@@ -56,8 +56,8 @@ public:
   lv_indev_t *get_input_device() { return indev_keypad_; }
 
 protected:
-  static void keypad_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
-    KeypadInput *ki = (KeypadInput *)drv->user_data;
+  static void keypad_read(lv_indev_t *drv, lv_indev_data_t *data) {
+    KeypadInput *ki = (KeypadInput *)lv_indev_get_user_data(drv);
     if (ki) {
       ki->keypad_read_impl(data);
     }
@@ -95,18 +95,17 @@ protected:
   void init() {
     using namespace std::placeholders;
     logger_.info("Add keypad input device to LVGL");
-    lv_indev_drv_init(&indev_drv_keypad_);
-    indev_drv_keypad_.type = LV_INDEV_TYPE_KEYPAD;
-    indev_drv_keypad_.read_cb = &KeypadInput::keypad_read;
-    indev_drv_keypad_.user_data = (void *)this;
-    indev_keypad_ = lv_indev_drv_register(&indev_drv_keypad_);
+    indev_keypad_ = lv_indev_create();
     if (!indev_keypad_) {
       logger_.error("Failed to register keypad input device!");
+      return;
     }
+    lv_indev_set_type(indev_keypad_, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(indev_keypad_, &KeypadInput::keypad_read);
+    lv_indev_set_user_data(indev_keypad_, (void *)this);
   }
 
   read_fn read_;
-  lv_indev_drv_t indev_drv_keypad_;
   lv_indev_t *indev_keypad_;
 };
 } // namespace espp
