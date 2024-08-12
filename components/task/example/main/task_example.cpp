@@ -334,6 +334,55 @@ extern "C" void app_main(void) {
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
   fmt::print("Test ran for {:.03f} seconds\n", test_duration);
 
+  /**
+   * Show an example of a task which is stopped by multiple other tasks
+   * (ensuring that stop can be called multiple times from multiple other
+   * threads).
+   */
+  test_start = std::chrono::high_resolution_clock::now();
+  {
+    fmt::print("Task Request Stop From Multiple Threads example\n");
+    //! [Task Request Stop From Multiple Threads example]
+    auto task_fn = [&num_seconds_to_run](std::mutex &m, std::condition_variable &cv) {
+      static auto begin = std::chrono::high_resolution_clock::now();
+      auto now = std::chrono::high_resolution_clock::now();
+      auto elapsed = std::chrono::duration<float>(now - begin).count();
+      fmt::print("Task has run for {:.03f} seconds\n", elapsed);
+      // NOTE: sleeping in this way allows the sleep to exit early when the
+      // task is being stopped / destroyed
+      {
+        std::unique_lock<std::mutex> lk(m);
+        cv.wait_for(lk, 100ms);
+      }
+      // we don't want to stop yet, so return false
+      return false;
+    };
+    auto task = espp::Task({.name = "Multithreaded Stop Task",
+                            .callback = task_fn,
+                            .log_level = espp::Logger::Verbosity::DEBUG});
+    task.start();
+    auto stop_fn = [&task]() {
+      std::this_thread::sleep_for(1s);
+      auto thread = xTaskGetCurrentTaskHandle();
+      fmt::print("Stopping task from thread {}...\n", fmt::ptr(thread));
+      task.stop();
+    };
+    // make vector of threads to stop the task
+    static constexpr auto num_stopping_threads = 10;
+    std::vector<std::thread> threads;
+    for (size_t i = 0; i < num_stopping_threads; i++) {
+      threads.emplace_back(stop_fn);
+    }
+    while (task.is_started()) {
+      std::this_thread::sleep_for(50ms);
+    }
+    for (auto &t : threads) {
+      t.join();
+    }
+    fmt::print("Task successfully stopped by multiple threads!\n");
+    //! [Task Request Stop From Multiple Threads example]
+  }
+
   {
     //! [run on core example]
     fmt::print("Example main running on core {}\n", xPortGetCoreID());

@@ -97,7 +97,10 @@ bool Task::stop() {
   if (started_) {
     logger_.debug("Stopping task");
     started_ = false;
-    cv_.notify_all();
+    {
+      std::lock_guard<std::mutex> lock(cv_m_);
+      cv_.notify_all();
+    }
     if (thread_.joinable()) {
       thread_.join();
     }
