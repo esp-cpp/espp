@@ -1,6 +1,12 @@
 name: Build
 
-on: [pull_request]
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'components/**'
+      - 'external/**'
+      - '.github/workflows/build.yml'
 
 jobs:
   build:
