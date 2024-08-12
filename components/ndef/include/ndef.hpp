@@ -248,7 +248,7 @@ public:
    * @param type String view for the type of this packet
    * @param payload The payload data for the packet
    */
-  explicit Ndef(TNF tnf, std::string_view type, std::string_view payload)
+  explicit Ndef(espp::Ndef::TNF tnf, std::string_view type, std::string_view payload)
       : tnf_(tnf)
       , type_(type)
       , payload_(payload) {}
@@ -273,7 +273,7 @@ public:
    * @param uic UIC for the uri - helps shorten the uri text / NDEF record.
    * @return NDEF record object.
    */
-  static Ndef make_uri(std::string_view uri, Uic uic = Uic::NONE) {
+  static Ndef make_uri(std::string_view uri, espp::Ndef::Uic uic = espp::Ndef::Uic::NONE) {
     // prepend URI with identifier code
     std::vector<uint8_t> full;
     full.resize(1 + uri.size());
@@ -297,10 +297,12 @@ public:
   struct WifiConfig {
     std::string_view ssid; ///< SSID for the network
     std::string_view key;  ///< Security key / password for the network
-    WifiAuthenticationType authentication =
-        WifiAuthenticationType::WPA2_PERSONAL; ///< Authentication type the network uses.
-    WifiEncryptionType encryption = WifiEncryptionType::AES; ///< Encryption type the network uses.
-    uint64_t mac_address = 0xFFFFFFFFFFFF; ///< Broadcast MAC address FF:FF:FF:FF:FF:FF
+    espp::Ndef::WifiAuthenticationType authentication =
+        espp::Ndef::WifiAuthenticationType::WPA2_PERSONAL; ///< Authentication type the network
+                                                           ///< uses.
+    espp::Ndef::WifiEncryptionType encryption =
+        espp::Ndef::WifiEncryptionType::AES; ///< Encryption type the network uses.
+    uint64_t mac_address = 0xFFFFFFFFFFFF;   ///< Broadcast MAC address FF:FF:FF:FF:FF:FF
   };
 
   /**
@@ -308,7 +310,7 @@ public:
    * @param config WifiConfig describing the WiFi network.
    * @return NDEF record object.
    */
-  static Ndef make_wifi_config(const WifiConfig &config) {
+  static Ndef make_wifi_config(const espp::Ndef::WifiConfig &config) {
     // make the payload
     std::vector<uint8_t> _payload;
     add_wifi_field(_payload, WifiFieldId::SSID, config.ssid);
@@ -503,10 +505,11 @@ public:
    * @param tk Temporary key for the pairing (16 bytes, optional)
    * @return NDEF record object.
    */
-  static Ndef make_le_oob_pairing(uint64_t mac_addr, BleRole role, std::string_view name = "",
-                                  BtAppearance appearance = BtAppearance::UNKNOWN,
-                                  std::string_view random_value = "",
-                                  std::string_view confirm_value = "", std::string_view tk = "") {
+  static Ndef
+  make_le_oob_pairing(uint64_t mac_addr, espp::Ndef::BleRole role, std::string_view name = "",
+                      espp::Ndef::BtAppearance appearance = espp::Ndef::BtAppearance::UNKNOWN,
+                      std::string_view random_value = "", std::string_view confirm_value = "",
+                      std::string_view tk = "") {
     std::vector<uint8_t> data;
     // NOTE: for the extended inquiry response (EIR) data types see the
     // BT_HANDOVER_TYPE_ codes here:

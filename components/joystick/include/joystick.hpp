@@ -48,8 +48,8 @@ public:
    *  @brief Configuration structure for the joystick.
    */
   struct Config {
-    FloatRangeMapper::Config x_calibration; /**< Configuration for the x axis. */
-    FloatRangeMapper::Config y_calibration; /**< Configuration for the y axis. */
+    espp::FloatRangeMapper::Config x_calibration; /**< Configuration for the x axis. */
+    espp::FloatRangeMapper::Config y_calibration; /**< Configuration for the y axis. */
     espp::Joystick::Type type{espp::Joystick::Type::RECTANGULAR}; /**< The type of the joystick. See
                                                  Type enum for more information. */
     float center_deadzone_radius{
