@@ -25,6 +25,8 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/joystick/include
   ${ESPP_COMPONENTS}/logger/include
   ${ESPP_COMPONENTS}/math/include
+  ${ESPP_COMPONENTS}/ndef/include
+  ${ESPP_COMPONENTS}/pid/include
   ${ESPP_COMPONENTS}/rtsp/include
   ${ESPP_COMPONENTS}/serialization/include
   ${ESPP_COMPONENTS}/tabulate/include

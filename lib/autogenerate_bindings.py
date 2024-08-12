@@ -117,6 +117,8 @@ def autogenerate() -> None:
                     include_dir + "math/include/gaussian.hpp",
                     include_dir + "math/include/range_mapper.hpp", # have to set class template options
                     include_dir + "math/include/vector2d.hpp", # have to set class template options
+                    include_dir + "ndef/include/ndef.hpp",
+                    include_dir + "pid/include/pid.hpp",
                     # include_dir + "rtsp/include/jpeg_frame.hpp",
                     # include_dir + "rtsp/include/jpeg_header.hpp",
                     # include_dir + "rtsp/include/rtsp_client.hpp",
