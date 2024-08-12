@@ -354,6 +354,10 @@ extern "C" void app_main(void) {
         std::unique_lock<std::mutex> lk(m);
         cv.wait_for(lk, 100ms);
       }
+      // do some other work here which can't be preempted, this helps force the
+      // stopping threads to try to contend on the thread join within the stop
+      // call
+      std::this_thread::sleep_for(50ms);
       // we don't want to stop yet, so return false
       return false;
     };

@@ -34,12 +34,8 @@ std::unique_ptr<Task> Task::make_unique(const Task::AdvancedConfig &config) {
 
 Task::~Task() {
   logger_.debug("Destroying task");
-  // stop the task if it was started
   stop();
-  // ensure we stop the thread if it's still around
-  if (thread_.joinable()) {
-    thread_.join();
-  }
+  notify_and_join();
   logger_.debug("Task destroyed");
 }
 
@@ -79,34 +75,45 @@ bool Task::start() {
   }
 #endif
 
-  if (thread_.joinable()) {
-    thread_.join();
-  }
+  // ensure the thread is not running
+  notify_and_join();
 
   // set the atomic so that when the thread starts it won't immediately
   // exit.
   started_ = true;
-  // create and start the std::thread
-  thread_ = std::thread(&Task::thread_function, this);
-
+  {
+    std::lock_guard<std::mutex> lock(thread_mutex_);
+    // create and start the std::thread
+    thread_ = std::thread(&Task::thread_function, this);
+  }
   logger_.debug("Task started");
   return true;
 }
 
 bool Task::stop() {
   if (started_) {
-    logger_.debug("Stopping task");
     started_ = false;
-    {
-      std::lock_guard<std::mutex> lock(cv_m_);
-      cv_.notify_all();
-    }
+    logger_.debug("Stopping task");
+    notify_and_join();
+    logger_.debug("Task stopped");
+    return true;
+  } else {
+    logger_.debug("Task already stopped");
+    return false;
+  }
+}
+
+void Task::notify_and_join() {
+  {
+    std::lock_guard<std::mutex> lock(cv_m_);
+    cv_.notify_all();
+  }
+  {
+    std::lock_guard<std::mutex> lock(thread_mutex_);
     if (thread_.joinable()) {
       thread_.join();
     }
-    logger_.debug("Task stopped");
   }
-  return true;
 }
 
 bool Task::is_started() const { return started_; }

@@ -232,33 +232,29 @@ public:
 #endif
 
 protected:
+  /**
+   * @brief Function that is run in the task thread.
+   * @details Will call the callback function repeatedly until the task is
+   *          stopped or until the callback function returns true, indicating
+   *          that the task should stop.
+   */
   void thread_function();
 
   /**
-   * @brief Name of the task (used in logs and taks monitoring).
+   * @brief Notify the task to stop and join the thread.
    */
-  std::string name_;
+  void notify_and_join();
 
-  /**
-   * @brief Callback function called within Task::thread_function() when
-   * started.
-   */
-  callback_fn callback_;
-
-  /**
-   * @brief Simple callback function called within Task::thread_function() when
-   * started.
-   */
-  simple_callback_fn simple_callback_;
-
-  /**
-   * @brief Configuration for the task.
-   */
-  BaseConfig config_;
+  std::string name_;     ///< Name of the task, used in logs and task monitoring.
+  callback_fn callback_; ///< Callback function for the task. Called within Task::thread_function().
+  simple_callback_fn simple_callback_; ///< Simple callback function for the task. Called within
+                                       ///< Task::thread_function().
+  BaseConfig config_;                  ///< Configuration for the task.
 
   std::atomic<bool> started_{false};
   std::condition_variable cv_;
   std::mutex cv_m_;
+  std::mutex thread_mutex_;
   std::thread thread_;
 };
 } // namespace espp
