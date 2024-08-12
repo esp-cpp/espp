@@ -116,6 +116,8 @@ def autogenerate() -> None:
                     include_dir + "math/include/gaussian.hpp",
                     include_dir + "math/include/range_mapper.hpp", # have to set class template options
                     include_dir + "math/include/vector2d.hpp", # have to set class template options
+                    include_dir + "ndef/include/ndef.hpp",
+                    include_dir + "pid/include/pid.hpp",
                     # include_dir + "rtsp/include/jpeg_frame.hpp",
                     # include_dir + "rtsp/include/jpeg_header.hpp",
                     # include_dir + "rtsp/include/rtsp_client.hpp",
@@ -125,6 +127,9 @@ def autogenerate() -> None:
                     include_dir + "socket/include/udp_socket.hpp",
                     include_dir + "task/include/task.hpp",
                     include_dir + "timer/include/timer.hpp",
+
+                    # NOTE: this must come after vector2d.hpp and range_mapper.hpp since it depends on them!
+                    include_dir + "joystick/include/joystick.hpp",
 
                     # state machine:
                     # include_dir + "state_machine/include/deep_history_state.hpp",

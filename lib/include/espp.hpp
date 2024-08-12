@@ -25,7 +25,10 @@ extern "C" {
 // TODO: these are not working
 // #include "hid-rp.hpp"
 // #include "hid-rp-gamepad.hpp"
+#include "joystick.hpp"
 #include "logger.hpp"
+#include "ndef.hpp"
+#include "pid.hpp"
 #include "range_mapper.hpp"
 #include "rtsp_client.hpp"
 #include "rtsp_server.hpp"

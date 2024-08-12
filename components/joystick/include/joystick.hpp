@@ -48,10 +48,10 @@ public:
    *  @brief Configuration structure for the joystick.
    */
   struct Config {
-    FloatRangeMapper::Config x_calibration; /**< Configuration for the x axis. */
-    FloatRangeMapper::Config y_calibration; /**< Configuration for the y axis. */
-    Type type{Type::RECTANGULAR};           /**< The type of the joystick. See Type enum
-                                                           for more information. */
+    espp::FloatRangeMapper::Config x_calibration; /**< Configuration for the x axis. */
+    espp::FloatRangeMapper::Config y_calibration; /**< Configuration for the y axis. */
+    espp::Joystick::Type type{espp::Joystick::Type::RECTANGULAR}; /**< The type of the joystick. See
+                                                 Type enum for more information. */
     float center_deadzone_radius{
         0}; /**< The radius of the unit circle's deadzone [0, 1.0f] around the center, only used
         when the joystick is configured as Type::CIRCULAR. */
@@ -60,27 +60,20 @@ public:
                           that the output appears to have magnitude 1 (meaning it appears to be on
                           the edge of the unit circle) when the joystick value magnitude is within
                           the range [1-range_deadzone, 1]. */
-    get_values_fn get_values{nullptr}; /**< Function to retrieve the latest
+    espp::Joystick::get_values_fn get_values{nullptr}; /**< Function to retrieve the latest
                                           unmapped joystick values. Required if
                                           you want to use update(), unused if
                                           you call update(float raw_x, float
                                           raw_y). */
-    Logger::Verbosity log_level{
-        Logger::Verbosity::WARN}; /**< Verbosity for the Joystick logger_. */
+    espp::Logger::Verbosity log_level{
+        espp::Logger::Verbosity::WARN}; /**< Verbosity for the Joystick logger_. */
   };
 
   /**
    *  @brief Initalize the joystick using the provided configuration.
    *  @param config Config structure with initialization information.
    */
-  explicit Joystick(const Config &config)
-      : BaseComponent("Joystick", config.log_level)
-      , x_mapper_(config.x_calibration)
-      , y_mapper_(config.y_calibration)
-      , type_(config.type)
-      , center_deadzone_radius_(config.center_deadzone_radius)
-      , range_deadzone_(config.range_deadzone)
-      , get_values_(config.get_values) {}
+  explicit Joystick(const espp::Joystick::Config &config);
 
   /**
    *  @brief Set the type of the joystick.
@@ -106,23 +99,13 @@ public:
    *  @sa set_range_deadzone
    *  @sa set_calibration
    */
-  void set_type(Type type, float radius = 0, float range_deadzone = 0) {
-    type_ = type;
-    if (type_ == Type::CIRCULAR) {
-      x_mapper_.set_center_deadband(0);
-      y_mapper_.set_center_deadband(0);
-      x_mapper_.set_range_deadband(0);
-      y_mapper_.set_range_deadband(0);
-    }
-    set_center_deadzone_radius(radius);
-    set_range_deadzone(range_deadzone);
-  }
+  void set_type(espp::Joystick::Type type, float radius = 0, float range_deadzone = 0);
 
   /**
    * @brief Get the type of the joystick.
    * @return The Type of the joystick.
    */
-  Type type() const { return type_; }
+  espp::Joystick::Type type() const;
 
   /**
    * @brief Sets the center deadzone radius.
@@ -132,15 +115,13 @@ public:
    *        position vector is less than this value, the vector is set to
    *        (0,0).
    */
-  void set_center_deadzone_radius(float radius) {
-    center_deadzone_radius_ = std::clamp<float>(radius, 0, 1);
-  }
+  void set_center_deadzone_radius(float radius);
 
   /**
    * @brief Get the center deadzone radius.
    * @return The center deadzone radius.
    */
-  float center_deadzone_radius() const { return center_deadzone_radius_; }
+  float center_deadzone_radius() const;
 
   /**
    * @brief Sets the range deadzone.
@@ -154,15 +135,13 @@ public:
    *        magnitude of the output is 1 if the magnitude of the mapped position
    *        vector is greater than 0.9.
    */
-  void set_range_deadzone(float range_deadzone) {
-    range_deadzone_ = std::clamp<float>(range_deadzone, 0, 1);
-  }
+  void set_range_deadzone(float range_deadzone);
 
   /**
    * @brief Get the range deadzone.
    * @return The range deadzone.
    */
-  float range_deadzone() const { return range_deadzone_; }
+  float range_deadzone() const;
 
   /**
    * @brief Update the x and y axis mapping.
@@ -185,41 +164,16 @@ public:
    * @sa set_center_deadzone_radius
    * @sa set_range_deadzone
    */
-  void set_calibration(const FloatRangeMapper::Config &x_calibration,
-                       const FloatRangeMapper::Config &y_calibration,
-                       float center_deadzone_radius = 0, float range_deadzone = 0) {
-    x_mapper_.configure(x_calibration);
-    y_mapper_.configure(y_calibration);
-    if (type_ == Type::CIRCULAR) {
-      x_mapper_.set_center_deadband(0);
-      y_mapper_.set_center_deadband(0);
-      x_mapper_.set_range_deadband(0);
-      y_mapper_.set_range_deadband(0);
-    }
-    set_center_deadzone_radius(center_deadzone_radius);
-    set_range_deadzone(range_deadzone);
-  }
+  void set_calibration(const espp::FloatRangeMapper::Config &x_calibration,
+                       const espp::FloatRangeMapper::Config &y_calibration,
+                       float center_deadzone_radius = 0, float range_deadzone = 0);
 
   /**
    * @brief Read the raw values and use the calibration data to update the
    *        position.
    * @note Requires that the get_values_ function is set.
    */
-  void update() {
-    if (!get_values_) {
-      logger_.error("No function provided with which to get values!");
-      return;
-    }
-    float _x, _y;
-    logger_.info("Getting x,y values");
-    bool success = get_values_(&_x, &_y);
-    if (!success) {
-      logger_.error("Could not get values!");
-      return;
-    }
-    logger_.debug("Got x,y values: ({}, {})", _x, _y);
-    recalculate(_x, _y);
-  }
+  void update();
 
   /**
    * @brief Update the joystick's position using the provided raw x and y
@@ -229,27 +183,27 @@ public:
    * @note This function is useful when you have the raw values and don't want
    *       to use the get_values_ function.
    */
-  void update(float raw_x, float raw_y) { recalculate(raw_x, raw_y); }
+  void update(float raw_x, float raw_y);
 
   /**
    * @brief Get the most recently updated x axis calibrated position.
    * @return The most recent x-axis position (from when update() was last
    *         called).
    */
-  float x() const { return position_.x(); }
+  float x() const;
 
   /**
    * @brief Get the most recently updated y axis calibrated position.
    * @return The most recent y-axis position (from when update() was last
    *         called).
    */
-  float y() const { return position_.y(); }
+  float y() const;
 
   /**
    * @brief Get the most recently updated calibrated position.
    * @return The most recent position (from when update() was last called).
    */
-  Vector2f position() const { return position_; }
+  espp::Vector2f position() const;
 
   /**
    * @brief Get the most recently updated raw / uncalibrated readings. This
@@ -259,30 +213,12 @@ public:
    * @return The most recent raw measurements (from when update() was last
    *         called).
    */
-  Vector2f raw() const { return raw_; }
+  espp::Vector2f raw() const;
 
   friend struct fmt::formatter<Joystick>;
 
 protected:
-  void recalculate(float raw_x, float raw_y) {
-    raw_.x(raw_x);
-    raw_.y(raw_y);
-    position_.x(x_mapper_.map(raw_x));
-    position_.y(y_mapper_.map(raw_y));
-    if (type_ == Type::CIRCULAR) {
-      auto magnitude = position_.magnitude();
-      if (magnitude < center_deadzone_radius_) {
-        position_.x(0);
-        position_.y(0);
-      } else if (magnitude > 1.0f - range_deadzone_) {
-        position_ = position_.normalized();
-      } else {
-        const float magnitude_range = 1.0f - center_deadzone_radius_ - range_deadzone_;
-        const float new_magnitude = (magnitude - center_deadzone_radius_) / magnitude_range;
-        position_ = position_.normalized() * new_magnitude;
-      }
-    }
-  }
+  void recalculate(float raw_x, float raw_y);
 
   Vector2f raw_{};
   Vector2f position_{};
@@ -295,37 +231,4 @@ protected:
 };
 } // namespace espp
 
-// for allowing easy serialization/printing of the
-// Trigger class
-template <> struct fmt::formatter<espp::Joystick> {
-  // Presentation format: 'v' - value, 'r' - raw, 'b' - both.
-  char presentation = 'v';
-
-  // Parses format specifications of the form ['v' | 'r' | 'b'].
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
-    // Parse the presentation format and store it in the formatter:
-    auto it = ctx.begin(), end = ctx.end();
-    if (it != end && (*it == 'v' || *it == 'r' || *it == 'b'))
-      presentation = *it++;
-
-    // TODO: Check if reached the end of the range:
-    // if (it != end && *it != '}') throw format_error("invalid format");
-
-    // Return an iterator past the end of the parsed range:
-    return it;
-  }
-
-  template <typename FormatContext> auto format(espp::Joystick const &j, FormatContext &ctx) const {
-    switch (presentation) {
-    case 'v':
-      return fmt::format_to(ctx.out(), "{}", j.position_);
-    case 'r':
-      return fmt::format_to(ctx.out(), "{}", j.raw_);
-    case 'b':
-      return fmt::format_to(ctx.out(), "({} -> {})", j.raw_, j.position_);
-    default:
-      // shouldn't get here!
-      return fmt::format_to(ctx.out(), "{}", j.position_);
-    }
-  }
-};
+#include "joystick_formatters.hpp"

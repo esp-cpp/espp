@@ -459,8 +459,7 @@ void py_init_module_espp(py::module &m) {
             .def("__eq__", &espp::Gaussian::Config::operator==, py::arg("rhs"));
   } // end of inner classes & enums of Gaussian
 
-  pyClassGaussian
-      .def(py::init<espp::Gaussian::Config>()) // implicit default constructor
+  pyClassGaussian.def(py::init<const espp::Gaussian::Config &>())
       .def("__call__", &espp::Gaussian::operator(), py::arg("t"),
            "*\n   * @brief Evaluate the gaussian at \\p t.\n   * @note Convienience wrapper around "
            "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
@@ -558,7 +557,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_int
 
-  pyClassRangeMapper_int.def(py::init<espp::RangeMapper<int>::Config>())
+  pyClassRangeMapper_int.def(py::init<const espp::RangeMapper<int>::Config &>())
       .def("get_center_deadband", &espp::RangeMapper<int>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
@@ -680,7 +679,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_float
 
-  pyClassRangeMapper_float.def(py::init<espp::RangeMapper<float>::Config>())
+  pyClassRangeMapper_float.def(py::init<const espp::RangeMapper<float>::Config &>())
       .def("get_center_deadband", &espp::RangeMapper<float>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
@@ -1032,6 +1031,426 @@ void py_init_module_espp(py::module &m) {
                "@return The normalized vector.\n");
   ////////////////////    </generated_from:vector2d.hpp>    ////////////////////
 
+  ////////////////////    <generated_from:ndef.hpp>    ////////////////////
+  auto pyClassNdef = py::class_<espp::Ndef>(
+      m, "Ndef", py::dynamic_attr(),
+      "*\n * @brief implements serialization & deserialization logic for NFC Data\n *        "
+      "Exchange Format (NDEF) records which can be stored on and\n *        transmitted from NFC "
+      "devices.\n *\n * @details NDEF records can be composed the following way:\n *   "
+      "@code{.unparsed}\n *   Bit 7     6       5       4       3       2       1       0\n *   "
+      "------  ------  ------  ------  ------  ------  ------  ------\n *   [ MB ]  [ ME ]  [ CF ] "
+      " [ SR ]  [ IL ]  [        TNF         ]\n *   [                         TYPE LENGTH  (may "
+      "be 0)            ]\n *   [                       PAYLOAD LENGTH (1B or 4B, see SR)    ]\n * "
+      "  [                          ID LENGTH   (if IL)               ]\n *   [                    "
+      "     RECORD TYPE  (if TYPE LENGTH > 0)  ]\n *   [                              ID      (if "
+      "IL)               ]\n *   [                           PAYLOAD    (payload length bytes)]\n "
+      "*  @endcode\n *\n *  The first byte (Flags) has these bits:\n *  * Bits 0-3: TNF - Type "
+      "Name Format - describes record type (see TNF class)\n *  * Bit 3: IL - ID Length - "
+      "indicates if the ID Length Field is present or not\n *  * Bit 4: SR - Short Record - set to "
+      "1 if the payload length field is 1 byte (8\n *      bits / 0-255) or less, otherwise the "
+      "payload length is 4 bytes\n *  * Bit 5: CF - Chunk Flag - indicates if this is the first "
+      "record chunk or a\n *      middle record chunk, set to 0 for the first record of the "
+      "message and\n *      for subsequent records set to 1.\n *  * Bit 6: ME - Message End - 1 "
+      "indicates if this is the last record in the\n *      message\n *  * Bit 7: MB - Message "
+      "Begin - 1 indicates if this is the first record in the\n *      message\n *\n * @note Some "
+      "information about NDEF can be found:\n *       * "
+      "https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/\n *       * "
+      "https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html\n *       * "
+      "https://developer.android.com/reference/android/nfc/NdefMessage\n *       * "
+      "https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html\n *       * "
+      "https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef\n *\n");
+
+  { // inner classes & enums of Ndef
+    py::enum_<espp::Ndef::TNF>(
+        pyClassNdef, "TNF", py::arithmetic(),
+        "*\n   * @brief Type Name Format (TNF) field is a 3-bit value that describes the\n   *     "
+        "   record type.\n   *\n   * Some Common TNF::WELL_KNOWN record type strings:\n   *   * "
+        "Text (T)\n   *   * URI  (U)\n   *   * Smart Poster (Sp)\n   *   * Alternative Carrier "
+        "(ac)\n   *   * Handover Carrier (Hc)\n   *   * Handover Request (Hr)\n   *   * Handover "
+        "Select (Hs)\n")
+        .value("empty", espp::Ndef::TNF::EMPTY, "/< Record is empty")
+        .value("well_known", espp::Ndef::TNF::WELL_KNOWN,
+               "/< Type field contains a well-known RTD type name")
+        .value("mime_media", espp::Ndef::TNF::MIME_MEDIA,
+               "/< Type field contains a media type (RFC 2046)")
+        .value("absolute_uri", espp::Ndef::TNF::ABSOLUTE_URI,
+               "/< Type field contains an absolute URI (RFC 3986)")
+        .value("external_type", espp::Ndef::TNF::EXTERNAL_TYPE,
+               "/< Type field Contains an external type name")
+        .value("unknown", espp::Ndef::TNF::UNKNOWN,
+               "/< Payload type is unknown, type length must be 0.")
+        .value("unchanged", espp::Ndef::TNF::UNCHANGED,
+               "/< Indicates the payload is an intermediate or final chunk of a chunked NDEF")
+        .value("reserved", espp::Ndef::TNF::RESERVED,
+               "/< Reserved by the NFC forum for future use");
+    py::enum_<espp::Ndef::Uic>(
+        pyClassNdef, "Uic", py::arithmetic(),
+        "*\n   * URI Identifier Codes (UIC), See Table A-3 at\n   * "
+        "https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html\n   * and "
+        "https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef\n")
+        .value("none", espp::Ndef::Uic::NONE, "/< Exactly as written")
+        .value("http_www", espp::Ndef::Uic::HTTP_WWW, "/< http://www.")
+        .value("https_www", espp::Ndef::Uic::HTTPS_WWW, "/< https://www.")
+        .value("http", espp::Ndef::Uic::HTTP, "/< http://")
+        .value("https", espp::Ndef::Uic::HTTPS, "/< https://")
+        .value("tel", espp::Ndef::Uic::TEL, "/< tel:")
+        .value("mailto", espp::Ndef::Uic::MAILTO, "/< mailto:")
+        .value("ftp_anon", espp::Ndef::Uic::FTP_ANON, "/< ftp://anonymous:anonymous@")
+        .value("ftp_ftp", espp::Ndef::Uic::FTP_FTP, "/< ftp://ftp.")
+        .value("ftps", espp::Ndef::Uic::FTPS, "/< ftps://")
+        .value("sftp", espp::Ndef::Uic::SFTP, "/< sftp://")
+        .value("smb", espp::Ndef::Uic::SMB, "/< smb://")
+        .value("nfs", espp::Ndef::Uic::NFS, "/< nfs://")
+        .value("ftp", espp::Ndef::Uic::FTP, "/< ftp://")
+        .value("dav", espp::Ndef::Uic::DAV, "/< dav://")
+        .value("news", espp::Ndef::Uic::NEWS, "/< news:")
+        .value("telnet", espp::Ndef::Uic::TELNET, "/< telnet://")
+        .value("imap", espp::Ndef::Uic::IMAP, "/< imap:")
+        .value("rstp", espp::Ndef::Uic::RSTP, "/< rtsp://")
+        .value("urn", espp::Ndef::Uic::URN, "/< urn:")
+        .value("pop", espp::Ndef::Uic::POP, "/< pop:")
+        .value("sip", espp::Ndef::Uic::SIP, "/< sip:")
+        .value("sips", espp::Ndef::Uic::SIPS, "/< sips:")
+        .value("tftp", espp::Ndef::Uic::TFTP, "/< tftp:")
+        .value("btspp", espp::Ndef::Uic::BTSPP, "/< btspp://")
+        .value("btl2_cap", espp::Ndef::Uic::BTL2CAP, "/< btl2cap://")
+        .value("btgoep", espp::Ndef::Uic::BTGOEP, "/< btgoep://")
+        .value("tcpobex", espp::Ndef::Uic::TCPOBEX, "/< tcpobex://")
+        .value("irdaobex", espp::Ndef::Uic::IRDAOBEX, "/< irdaobex://")
+        .value("file", espp::Ndef::Uic::FILE, "/< file://")
+        .value("urn_epc_id", espp::Ndef::Uic::URN_EPC_ID, "/< urn:epc:id:")
+        .value("urn_epc_tag", espp::Ndef::Uic::URN_EPC_TAG, "/< urn:epc:tag:")
+        .value("urn_epc_pat", espp::Ndef::Uic::URN_EPC_PAT, "/< urn:epc:pat:")
+        .value("urn_epc_raw", espp::Ndef::Uic::URN_EPC_RAW, "/< urn:epc:raw:")
+        .value("urn_epc", espp::Ndef::Uic::URN_EPC, "/< urn:epc:")
+        .value("urn_nfc", espp::Ndef::Uic::URN_NFC, "/< urn:nfc:");
+    py::enum_<espp::Ndef::BtType>(pyClassNdef, "BtType", py::arithmetic(),
+                                  "*\n   * @brief Type of Bluetooth radios.\n")
+        .value("bredr", espp::Ndef::BtType::BREDR, "/< BT Classic")
+        .value("ble", espp::Ndef::BtType::BLE, "/< BT Low Energy");
+    py::enum_<espp::Ndef::BtAppearance>(pyClassNdef, "BtAppearance", py::arithmetic(),
+                                        "*\n   * @brief Some appearance codes for BLE radios.\n")
+        .value("unknown", espp::Ndef::BtAppearance::UNKNOWN, "/< Generic Unknown")
+        .value("phone", espp::Ndef::BtAppearance::PHONE, "/< Generic Phone")
+        .value("computer", espp::Ndef::BtAppearance::COMPUTER, "/< Generic Computer")
+        .value("watch", espp::Ndef::BtAppearance::WATCH, "/< Generic Watch")
+        .value("clock", espp::Ndef::BtAppearance::CLOCK, "/< Generic Clock")
+        .value("display", espp::Ndef::BtAppearance::DISPLAY, "/< Generic Display")
+        .value("remote_control", espp::Ndef::BtAppearance::REMOTE_CONTROL,
+               "/< Generic Remote Control")
+        .value("generic_hid", espp::Ndef::BtAppearance::GENERIC_HID, "/< Generic HID")
+        .value("keyboard", espp::Ndef::BtAppearance::KEYBOARD, "/< HID Keyboard")
+        .value("mouse", espp::Ndef::BtAppearance::MOUSE, "/< HID Mouse")
+        .value("joystick", espp::Ndef::BtAppearance::JOYSTICK, "/< HID Joystick")
+        .value("gamepad", espp::Ndef::BtAppearance::GAMEPAD, "/< HID Gamepad")
+        .value("touchpad", espp::Ndef::BtAppearance::TOUCHPAD, "/< HID Touchpad")
+        .value("gaming", espp::Ndef::BtAppearance::GAMING, "/< Generic Gaming group");
+    py::enum_<espp::Ndef::CarrierPowerState>(
+        pyClassNdef, "CarrierPowerState", py::arithmetic(),
+        "*\n   * @brief Power state of a BLE radio.\n   * @details Representation of the carrier "
+        "power state in a Handover Select\n   *          message.\n")
+        .value("inactive", espp::Ndef::CarrierPowerState::INACTIVE, "/< Carrier power is off")
+        .value("active", espp::Ndef::CarrierPowerState::ACTIVE, "/< Carrier power is on")
+        .value("activating", espp::Ndef::CarrierPowerState::ACTIVATING,
+               "/< Carrier power is turning on")
+        .value("unknown", espp::Ndef::CarrierPowerState::UNKNOWN,
+               "/< Carrier power state is unknown");
+    py::enum_<espp::Ndef::BtEir>(
+        pyClassNdef, "BtEir", py::arithmetic(),
+        "*\n   * @brief Extended Inquiry Response (EIR) codes for data types in BT and BLE\n   *   "
+        "     out of band (OOB) pairing NDEF records.\n")
+        .value("flags", espp::Ndef::BtEir::FLAGS,
+               "/< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode,")
+        .value("uuids_16_bit_partial", espp::Ndef::BtEir::UUIDS_16_BIT_PARTIAL,
+               "/< Incomplete list of 16 bit service class UUIDs")
+        .value("uuids_16_bit_complete", espp::Ndef::BtEir::UUIDS_16_BIT_COMPLETE,
+               "/< Complete list of 16 bit service class UUIDs")
+        .value("uuids_32_bit_partial", espp::Ndef::BtEir::UUIDS_32_BIT_PARTIAL,
+               "/< Incomplete list of 32 bit service class UUIDs")
+        .value("uuids_32_bit_complete", espp::Ndef::BtEir::UUIDS_32_BIT_COMPLETE,
+               "/< Complete list of 32 bit service class UUIDs")
+        .value("uuids_128_bit_partial", espp::Ndef::BtEir::UUIDS_128_BIT_PARTIAL,
+               "/< Incomplete list of 128 bit service class UUIDs")
+        .value("uuids_128_bit_complete", espp::Ndef::BtEir::UUIDS_128_BIT_COMPLETE,
+               "/< Complete list of 128 bit service class UUIDs")
+        .value("short_local_name", espp::Ndef::BtEir::SHORT_LOCAL_NAME,
+               "/< Shortened Bluetooth Local Name")
+        .value("long_local_name", espp::Ndef::BtEir::LONG_LOCAL_NAME,
+               "/< Complete Bluetooth Local Name")
+        .value("tx_power_level", espp::Ndef::BtEir::TX_POWER_LEVEL,
+               "/< TX Power level (1 byte), -127 dBm to +127 dBm")
+        .value("class_of_device", espp::Ndef::BtEir::CLASS_OF_DEVICE, "/< Class of Device")
+        .value("sp_hash_c192", espp::Ndef::BtEir::SP_HASH_C192, "/< Simple Pairing Hash C-192")
+        .value("sp_random_r192", espp::Ndef::BtEir::SP_RANDOM_R192,
+               "/< Simple Pairing Randomizer R-192")
+        .value("security_manager_tk", espp::Ndef::BtEir::SECURITY_MANAGER_TK,
+               "/< Security Manager TK Value (LE Legacy Pairing)")
+        .value(
+            "security_manager_flags", espp::Ndef::BtEir::SECURITY_MANAGER_FLAGS,
+            "/< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported")
+        .value("appearance", espp::Ndef::BtEir::APPEARANCE, "/< Appearance")
+        .value("mac", espp::Ndef::BtEir::MAC, "/< Bluetooth Device Address")
+        .value("le_role", espp::Ndef::BtEir::LE_ROLE, "/< LE Role")
+        .value("sp_hash_c256", espp::Ndef::BtEir::SP_HASH_C256, "/< Simple Pairing Hash C-256")
+        .value("sp_hash_r256", espp::Ndef::BtEir::SP_HASH_R256,
+               "/< Simple Pairing Randomizer R-256")
+        .value("le_sc_confirmation", espp::Ndef::BtEir::LE_SC_CONFIRMATION,
+               "/< LE Secure Connections Confirmation Value")
+        .value("le_sc_random", espp::Ndef::BtEir::LE_SC_RANDOM,
+               "/< LE Secure Connections Random Value");
+    py::enum_<espp::Ndef::BleRole>(
+        pyClassNdef, "BleRole", py::arithmetic(),
+        "*\n   * @brief Possible roles for BLE records to indicate support for.\n")
+        .value("peripheral_only", espp::Ndef::BleRole::PERIPHERAL_ONLY,
+               "/< Radio can only act as a peripheral")
+        .value("central_only", espp::Ndef::BleRole::CENTRAL_ONLY,
+               "/< Radio can only act as a central")
+        .value("peripheral_central", espp::Ndef::BleRole::PERIPHERAL_CENTRAL,
+               "/< Radio can act as both a peripheral and a central, but prefers peripheral")
+        .value("central_peripheral", espp::Ndef::BleRole::CENTRAL_PERIPHERAL,
+               "/< Radio can act as both a peripheral and a central, but prefers central");
+    py::enum_<espp::Ndef::WifiEncryptionType>(
+        pyClassNdef, "WifiEncryptionType", py::arithmetic(),
+        "*\n   * @brief Types of configurable encryption for WiFi networks\n")
+        .value("none", espp::Ndef::WifiEncryptionType::NONE, "/< No encryption")
+        .value("wep", espp::Ndef::WifiEncryptionType::WEP, "/< WEP")
+        .value("tkip", espp::Ndef::WifiEncryptionType::TKIP, "/< TKIP")
+        .value("aes", espp::Ndef::WifiEncryptionType::AES, "/< AES");
+    py::enum_<espp::Ndef::WifiAuthenticationType>(pyClassNdef, "WifiAuthenticationType",
+                                                  py::arithmetic(),
+                                                  "*\n   * @brief WiFi network authentication\n")
+        .value("open", espp::Ndef::WifiAuthenticationType::OPEN, "/< Open / no security")
+        .value("wpa_personal", espp::Ndef::WifiAuthenticationType::WPA_PERSONAL, "/< WPA personal")
+        .value("shared", espp::Ndef::WifiAuthenticationType::SHARED, "/< Shared key")
+        .value("wpa_enterprise", espp::Ndef::WifiAuthenticationType::WPA_ENTERPRISE,
+               "/< WPA enterprise")
+        .value("wpa2_enterprise", espp::Ndef::WifiAuthenticationType::WPA2_ENTERPRISE,
+               "/< WPA2 Enterprise")
+        .value("wpa2_personal", espp::Ndef::WifiAuthenticationType::WPA2_PERSONAL,
+               "/< WPA2 personal")
+        .value("wpa_wpa2_personal", espp::Ndef::WifiAuthenticationType::WPA_WPA2_PERSONAL,
+               "/< Both WPA and WPA2 personal");
+    auto pyClassNdef_ClassWifiConfig =
+        py::class_<espp::Ndef::WifiConfig>(
+            pyClassNdef, "WifiConfig", py::dynamic_attr(),
+            "*\n   * @brief Configuration structure for wifi configuration ndef structure.\n")
+            .def(py::init<>([](std::string_view ssid = std::string_view(),
+                               std::string_view key = std::string_view(),
+                               espp::Ndef::WifiAuthenticationType authentication =
+                                   espp::Ndef::WifiAuthenticationType::WPA2_PERSONAL,
+                               espp::Ndef::WifiEncryptionType encryption =
+                                   espp::Ndef::WifiEncryptionType::AES,
+                               uint64_t mac_address = 0xFFFFFFFFFFFF) {
+                   auto r = std::make_unique<espp::Ndef::WifiConfig>();
+                   r->ssid = ssid;
+                   r->key = key;
+                   r->authentication = authentication;
+                   r->encryption = encryption;
+                   r->mac_address = mac_address;
+                   return r;
+                 }),
+                 py::arg("ssid") = std::string_view(), py::arg("key") = std::string_view(),
+                 py::arg("authentication") = espp::Ndef::WifiAuthenticationType::WPA2_PERSONAL,
+                 py::arg("encryption") = espp::Ndef::WifiEncryptionType::AES,
+                 py::arg("mac_address") = 0xFFFFFFFFFFFF)
+            .def_readwrite("ssid", &espp::Ndef::WifiConfig::ssid, "/< SSID for the network")
+            .def_readwrite("key", &espp::Ndef::WifiConfig::key,
+                           "/< Security key / password for the network")
+            .def_readwrite("authentication", &espp::Ndef::WifiConfig::authentication,
+                           "/< Authentication type the network uses.")
+            .def_readwrite("encryption", &espp::Ndef::WifiConfig::encryption,
+                           "/< Encryption type the network uses.")
+            .def_readwrite("mac_address", &espp::Ndef::WifiConfig::mac_address,
+                           "/< Broadcast MAC address FF:FF:FF:FF:FF:FF");
+  } // end of inner classes & enums of Ndef
+
+  pyClassNdef
+      .def_readonly_static("handover_version", &espp::Ndef::HANDOVER_VERSION,
+                           "/< Connection Handover version 1.3")
+      .def(py::init<espp::Ndef::TNF, std::string_view, std::string_view>(), py::arg("tnf"),
+           py::arg("type"), py::arg("payload"),
+           "*\n   * @brief Makes an NDEF record with header and payload.\n   * @param tnf The TNF "
+           "for this packet.\n   * @param type String view for the type of this packet\n   * "
+           "@param payload The payload data for the packet\n")
+      .def_static("make_text", &espp::Ndef::make_text, py::arg("text"),
+                  "*\n   * @brief Static function to make an NDEF record for transmitting "
+                  "english\n   *        text.\n   * @param text The text that the NDEF record will "
+                  "hold.\n   * @return NDEF record object.\n")
+      .def_static("make_uri", &espp::Ndef::make_uri, py::arg("uri"),
+                  py::arg("uic") = espp::Ndef::Uic::NONE,
+                  "*\n   * @brief Static function to make an NDEF record for loading a URI.\n   * "
+                  "@param uri URI for the record to point to.\n   * @param uic UIC for the uri - "
+                  "helps shorten the uri text / NDEF record.\n   * @return NDEF record object.\n")
+      .def_static("make_android_launcher", &espp::Ndef::make_android_launcher, py::arg("uri"),
+                  "*\n   * @brief Static function to make an NDEF record for launching an Android "
+                  "App.\n   * @param uri URI for the android package / app to launch.\n   * "
+                  "@return NDEF record object.\n")
+      .def_static("make_wifi_config", &espp::Ndef::make_wifi_config, py::arg("config"),
+                  "*\n   * @brief Create a WiFi credential tag.\n   * @param config WifiConfig "
+                  "describing the WiFi network.\n   * @return NDEF record object.\n")
+      .def_static(
+          "make_collision_resolution_record", &espp::Ndef::make_collision_resolution_record,
+          py::arg("random_number"),
+          "\n   * @brief Create a collision resolution record.\n   * @param random_number Random "
+          "number to use for the collision resolution.\n   * @return NDEF record object.\n")
+      .def_static(
+          "make_handover_select", &espp::Ndef::make_handover_select, py::arg("carrier_data_ref"),
+          "*\n   * @brief Create a Handover Select record for a Bluetooth device.\n   * @see\n   * "
+          "https://members.nfc-forum.org/apps/group_public/download.php/18688/"
+          "NFCForum-AD-BTSSP_1_1.pdf\n   * @param carrier_data_ref Reference to the carrier data "
+          "record, which is the\n   *        record that contains the actual bluetooth data. This "
+          "should be the\n   *        same as the id of the carrier data record, such as '0'.\n   "
+          "* @return NDEF record object.\n")
+      .def_static("make_handover_request", &espp::Ndef::make_handover_request,
+                  py::arg("carrier_data_ref"),
+                  "*\n   * @brief Create a Handover request record for a Bluetooth device.\n   * "
+                  "@see\n   * "
+                  "https://members.nfc-forum.org/apps/group_public/download.php/18688/"
+                  "NFCForum-AD-BTSSP_1_1.pdf\n   * @param carrier_data_ref Reference to the "
+                  "carrier data record, which is the\n   *        record that contains the actual "
+                  "bluetooth data. This should be the\n   *        same as the id of the carrier "
+                  "data record, such as '0'.\n   * @return NDEF record object.\n")
+      .def_static(
+          "make_alternative_carrier", &espp::Ndef::make_alternative_carrier, py::arg("power_state"),
+          py::arg("carrier_data_ref"),
+          "*\n   * @brief Create a Handover Request record for a Bluetooth device.\n   * @details "
+          "See page 18 of https://core.ac.uk/download/pdf/250136576.pdf for more details.\n   * "
+          "@param power_state Power state of the alternative carrier.\n   * @param "
+          "carrier_data_ref Reference to the carrier data record, which is the\n   *        record "
+          "that contains the actual bluetooth data. This should be the\n   *        same as the id "
+          "of the carrier data record, such as '0'.\n   * @return NDEF record object.\n")
+      .def_static("make_oob_pairing", &espp::Ndef::make_oob_pairing, py::arg("mac_addr"),
+                  py::arg("device_class"), py::arg("name"), py::arg("random_value") = "",
+                  py::arg("confirm_value") = "",
+                  "*\n   * @brief Static function to make an NDEF record for BT classic OOB "
+                  "Pairing (Android).\n   * @param mac_addr 48 bit MAC Address of the BT radio\n   "
+                  "* @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be\n  "
+                  " *       0xf412a42e9e.\n   * @param device_class The bluetooth device class for "
+                  "this radio.\n   * @param name Name of the BT device.\n   * @param random_value "
+                  "The Simple pairing randomizer R for the pairing.\n   * @param confirm_value The "
+                  "Simple pairing hash C (confirm value) for the\n   *                      "
+                  "pairing.\n   * @return NDEF record object.\n")
+      .def_static(
+          "make_le_oob_pairing", &espp::Ndef::make_le_oob_pairing, py::arg("mac_addr"),
+          py::arg("role"), py::arg("name") = "",
+          py::arg("appearance") = espp::Ndef::BtAppearance::UNKNOWN, py::arg("random_value") = "",
+          py::arg("confirm_value") = "", py::arg("tk") = "",
+          "*\n   * @brief Static function to make an NDEF record for BLE OOB Pairing (Android).\n  "
+          " * @param mac_addr 48 bit MAC Address of the BLE radio.\n   * @note If the address is "
+          "e.g. f4:12:fa:42:fe:9e then the mac_addr should be\n   *       0xf412a42e9e.\n   * "
+          "@param role The BLE role of the device (central / peripheral / dual)\n   * @param name "
+          "Name of the BLE device. Optional.\n   * @param appearance BtAppearance of the device. "
+          "Optional.\n   * @param random_value The Simple pairing randomizer R for the pairing. "
+          "(16 bytes, optional)\n   * @param confirm_value The Simple pairing hash C (confirm "
+          "value) for the pairing. (16 bytes,\n   * optional)\n   * @param tk Temporary key for "
+          "the pairing (16 bytes, optional)\n   * @return NDEF record object.\n")
+      .def("serialize", &espp::Ndef::serialize, py::arg("message_begin") = true,
+           py::arg("message_end") = true,
+           "*\n   * @brief Serialize the NDEF record into a sequence of bytes.\n   * @param "
+           "message_begin True if this is the first record in the message.\n   * @param "
+           "message_end True if this is the last record in the message.\n   * @return The "
+           "vector<uint8_t> of bytes representing the NDEF record.\n")
+      .def("payload", &espp::Ndef::payload,
+           "*\n   * @brief Return just the payload as a vector of bytes.\n   * @return Payload of "
+           "the NDEF record as a vector of bytes.\n")
+      .def("set_id", &espp::Ndef::set_id, py::arg("id"),
+           "*\n   * @brief Set the payload ID of the NDEF record.\n   * @param id ID of the NDEF "
+           "record.\n")
+      .def("get_id", &espp::Ndef::get_id,
+           "*\n   * @brief Get the ID of the NDEF record.\n   * @return ID of the NDEF record.\n")
+      .def("get_size", &espp::Ndef::get_size,
+           "*\n   * @brief Get the number of bytes needed for the NDEF record.\n   * @return Size "
+           "of the NDEF record (bytes), for serialization.\n");
+  ////////////////////    </generated_from:ndef.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:pid.hpp>    ////////////////////
+  auto pyClassPid = py::class_<espp::Pid>(
+      m, "Pid", py::dynamic_attr(),
+      "*\n *  @brief Simple PID (proportional, integral, derivative) controller class\n *         "
+      "with integrator clamping, output clamping, and prevention of\n *         integrator windup "
+      "during output saturation. This class is\n *         thread-safe, so you can update(), "
+      "clear(), and change_gains() from\n *         multiple threads if needed.\n *\n * \\section "
+      "pid_ex1 Basic PID Example\n * \\snippet pid_example.cpp pid example\n * \\section pid_ex2 "
+      "Complex PID Example\n * \\snippet pid_example.cpp complex pid example\n");
+
+  { // inner classes & enums of Pid
+    auto pyClassPid_ClassConfig =
+        py::class_<espp::Pid::Config>(pyClassPid, "Config", py::dynamic_attr(), "")
+            .def(
+                py::init<>([](float kp = float(), float ki = float(), float kd = float(),
+                              float integrator_min = float(), float integrator_max = float(),
+                              float output_min = float(), float output_max = float(),
+                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r = std::make_unique<espp::Pid::Config>();
+                  r->kp = kp;
+                  r->ki = ki;
+                  r->kd = kd;
+                  r->integrator_min = integrator_min;
+                  r->integrator_max = integrator_max;
+                  r->output_min = output_min;
+                  r->output_max = output_max;
+                  r->log_level = log_level;
+                  return r;
+                }),
+                py::arg("kp") = float(), py::arg("ki") = float(), py::arg("kd") = float(),
+                py::arg("integrator_min") = float(), py::arg("integrator_max") = float(),
+                py::arg("output_min") = float(), py::arg("output_max") = float(),
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("kp", &espp::Pid::Config::kp, "*< Proportional gain.")
+            .def_readwrite(
+                "ki", &espp::Pid::Config::ki,
+                "*< Integral gain. @note should not be pre-multiplied by the time constant.")
+            .def_readwrite(
+                "kd", &espp::Pid::Config::kd,
+                "*< Derivative gain. @note should not be pre-divided by the time-constant.")
+            .def_readwrite(
+                "integrator_min", &espp::Pid::Config::integrator_min,
+                "*< Minimum value the integrator can wind down to. @note Operates at the\n         "
+                "                    same scale as \\p output_min and \\p output_max. Could be 0 "
+                "or negative.\n                             Can have different magnitude from "
+                "integrator_max for asymmetric\n                             response.")
+            .def_readwrite(
+                "integrator_max", &espp::Pid::Config::integrator_max,
+                "*< Maximum value the integrator can wind up to. @note Operates at the\n           "
+                "                  same scale as \\p output_min and \\p output_max.")
+            .def_readwrite("output_min", &espp::Pid::Config::output_min,
+                           "*< Limit the minimum output value. Can be a different magnitude from "
+                           "output\n                         max for asymmetric output behavior.")
+            .def_readwrite("output_max", &espp::Pid::Config::output_max,
+                           "*< Limit the maximum output value.")
+            .def_readwrite("log_level", &espp::Pid::Config::log_level,
+                           "*< Verbosity for the adc logger.");
+  } // end of inner classes & enums of Pid
+
+  pyClassPid.def(py::init<const espp::Pid::Config &>())
+      .def("set_config", &espp::Pid::set_config, py::arg("config"), py::arg("reset_state") = true,
+           "*\n   * @brief Change the gains and other configuration for the PID controller.\n   * "
+           "@param config Configuration struct with new gains and sampling time.\n   * @param "
+           "reset_state Reset / clear the PID controller state.\n")
+      .def("clear", &espp::Pid::clear, "*\n   * @brief Clear the PID controller state.\n")
+      .def("update", &espp::Pid::update, py::arg("error"),
+           "*\n   * @brief Update the PID controller with the latest error measurement,\n   *      "
+           "  getting the output control signal in return.\n   *\n   * @note Tracks invocation "
+           "timing to better compute time-accurate\n   *       integral/derivative signals.\n   "
+           "*\n   * @param error Latest error signal.\n   * @return The output control signal "
+           "based on the PID state and error.\n")
+      .def("__call__", &espp::Pid::operator(), py::arg("error"),
+           "*\n   * @brief Update the PID controller with the latest error measurement,\n   *      "
+           "  getting the output control signal in return.\n   *\n   * @note Tracks invocation "
+           "timing to better compute time-accurate\n   *       integral/derivative signals.\n   "
+           "*\n   * @param error Latest error signal.\n   * @return The output control signal "
+           "based on the PID state and error.\n")
+      .def("get_error", &espp::Pid::get_error,
+           "*\n   * @brief Get the current error (as of the last time update() or operator()\n   * "
+           "       were called)\n   * @return Most recent error.\n")
+      .def("get_integrator", &espp::Pid::get_integrator,
+           "*\n   * @brief Get the current integrator (as of the last time update() or\n   *       "
+           " operator() were called)\n   * @return Most recent integrator value.\n")
+      .def("get_config", &espp::Pid::get_config,
+           "*\n   * @brief Get the configuration for the PID (gains, etc.).\n   * @return Config "
+           "structure containing gains, etc.\n");
+  ////////////////////    </generated_from:pid.hpp>    ////////////////////
+
   ////////////////////    <generated_from:socket.hpp>    ////////////////////
   auto pyClassSocket =
       py::class_<espp::Socket>(m, "Socket", py::dynamic_attr(),
@@ -1091,12 +1510,10 @@ void py_init_module_espp(py::module &m) {
   } // end of inner classes & enums of Socket
 
   pyClassSocket
-      .def(
-          "is_valid", [](espp::Socket &self) { return self.is_valid(); },
-          "*\n   * @brief Is the socket valid.\n   * @return True if the socket file descriptor is "
-          ">= 0.\n")
-      .def_static("is_valid_fd", py::overload_cast<sock_type_t>(&espp::Socket::is_valid_fd),
-                  py::arg("socket_fd"),
+      .def("is_valid", &espp::Socket::is_valid,
+           "*\n   * @brief Is the socket valid.\n   * @return True if the socket file descriptor "
+           "is >= 0.\n")
+      .def_static("is_valid_fd", &espp::Socket::is_valid_fd, py::arg("socket_fd"),
                   "*\n   * @brief Is the socket valid.\n   * @param socket_fd Socket file "
                   "descriptor.\n   * @return True if the socket file descriptor is >= 0.\n")
       .def("get_ipv4_info", &espp::Socket::get_ipv4_info,
@@ -1204,7 +1621,7 @@ void py_init_module_espp(py::module &m) {
             .def_static("default", &espp::TcpSocket::TransmitConfig::Default);
   } // end of inner classes & enums of TcpSocket
 
-  pyClassTcpSocket.def(py::init<espp::TcpSocket::Config>())
+  pyClassTcpSocket.def(py::init<const espp::TcpSocket::Config &>())
       .def("reinit", &espp::TcpSocket::reinit,
            "*\n   * @brief Reinitialize the socket, cleaning it up if first it is already\n   *    "
            "    initalized.\n")
@@ -1383,7 +1800,7 @@ void py_init_module_espp(py::module &m) {
                            "*< Verbosity level for the UDP socket logger.");
   } // end of inner classes & enums of UdpSocket
 
-  pyClassUdpSocket.def(py::init<espp::UdpSocket::Config>())
+  pyClassUdpSocket.def(py::init<const espp::UdpSocket::Config &>())
       .def("send",
            py::overload_cast<const std::vector<uint8_t> &, const espp::UdpSocket::SendConfig &>(
                &espp::UdpSocket::send),
@@ -1623,7 +2040,8 @@ void py_init_module_espp(py::module &m) {
       "timer cancel itself example\n/ \\section timer_ex5 Oneshot Timer Cancel Itself Then Start "
       "again with Delay Example\n/ \\snippet timer_example.cpp timer oneshot restart example\n/ "
       "\\section timer_ex6 Timer Update Period Example\n/ \\snippet timer_example.cpp timer update "
-      "period example");
+      "period example\n/ \\section timer_ex7 Timer AdvancedConfig Example\n/ \\snippet "
+      "timer_example.cpp timer advanced config example");
 
   { // inner classes & enums of Timer
     auto pyClassTimer_ClassConfig =
@@ -1674,9 +2092,48 @@ void py_init_module_espp(py::module &m) {
                            "/< Core ID of the timer, -1 means it is not pinned to any core.")
             .def_readwrite("log_level", &espp::Timer::Config::log_level,
                            "/< The log level for the timer.");
+    auto pyClassTimer_ClassAdvancedConfig =
+        py::class_<espp::Timer::AdvancedConfig>(pyClassTimer, "AdvancedConfig", py::dynamic_attr(),
+                                                "/ @brief Advanced configuration for the timer.")
+            .def(py::init<>([](std::chrono::duration<float> period = std::chrono::duration<float>(),
+                               std::chrono::duration<float> delay = std::chrono::duration<float>(0),
+                               espp::Timer::callback_fn callback = espp::Timer::callback_fn(),
+                               bool auto_start = {true},
+                               espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
+                               espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
+                   auto r = std::make_unique<espp::Timer::AdvancedConfig>();
+                   r->period = period;
+                   r->delay = delay;
+                   r->callback = callback;
+                   r->auto_start = auto_start;
+                   r->task_config = task_config;
+                   r->log_level = log_level;
+                   return r;
+                 }),
+                 py::arg("period") = std::chrono::duration<float>(),
+                 py::arg("delay") = std::chrono::duration<float>(0),
+                 py::arg("callback") = espp::Timer::callback_fn(),
+                 py::arg("auto_start") = bool{true},
+                 py::arg("task_config") = espp::Task::BaseConfig(),
+                 py::arg("log_level") = espp::Logger::Verbosity::WARN)
+            .def_readwrite(
+                "period", &espp::Timer::AdvancedConfig::period,
+                "/< The period of the timer. If 0, the timer callback will only be called once.")
+            .def_readwrite("delay", &espp::Timer::AdvancedConfig::delay,
+                           "/< The delay before the first execution of the timer callback after "
+                           "start() is called.")
+            .def_readwrite("callback", &espp::Timer::AdvancedConfig::callback,
+                           "/< The callback function to call when the timer expires.")
+            .def_readwrite("auto_start", &espp::Timer::AdvancedConfig::auto_start,
+                           "/< If True, the timer will start automatically when constructed.")
+            .def_readwrite("task_config", &espp::Timer::AdvancedConfig::task_config,
+                           "/< The task configuration for the timer.")
+            .def_readwrite("log_level", &espp::Timer::AdvancedConfig::log_level,
+                           "/< The log level for the timer.");
   } // end of inner classes & enums of Timer
 
   pyClassTimer.def(py::init<const espp::Timer::Config &>())
+      .def(py::init<const espp::Timer::AdvancedConfig &>())
       .def(
           "start", [](espp::Timer &self) { return self.start(); },
           "/ @brief Start the timer.\n/ @details Starts the timer. Does nothing if the timer is "
@@ -1704,6 +2161,173 @@ void py_init_module_espp(py::module &m) {
            "/ @brief Check if the timer is running.\n/ @details Checks if the timer is running.\n/ "
            "@return True if the timer is running, False otherwise.");
   ////////////////////    </generated_from:timer.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:joystick.hpp>    ////////////////////
+  auto pyClassJoystick = py::class_<espp::Joystick>(
+      m, "Joystick", py::dynamic_attr(),
+      "*\n *  @brief 2-axis Joystick with axis mapping / calibration.\n *\n * \\section "
+      "joystick_ex1 Basic Circular and Rectangular Joystick Example\n * \\snippet "
+      "joystick_example.cpp circular joystick example\n * \\section joystick_ex2 ADC Joystick "
+      "Example\n * \\snippet joystick_example.cpp adc joystick example\n");
+
+  { // inner classes & enums of Joystick
+    py::enum_<espp::Joystick::Type>(
+        pyClassJoystick, "Type", py::arithmetic(),
+        "*\n   * @brief Type of the joystick.\n   * @note When using a Type::CIRCULAR joystick, "
+        "it's recommended to set the\n   *       individual x/y calibration deadzones to be 0 and "
+        "to only use the\n   *       deadzone_radius field to set the deadzone around the "
+        "center.\n")
+        .value("rectangular", espp::Joystick::Type::RECTANGULAR,
+               "/< The default type of joystick. Uses the rangemappers for")
+        .value("circular", espp::Joystick::Type::CIRCULAR,
+               "/< The joystick is configured to have a circular output. This");
+    auto pyClassJoystick_ClassConfig =
+        py::class_<espp::Joystick::Config>(
+            pyClassJoystick, "Config", py::dynamic_attr(),
+            "*\n   *  @brief Configuration structure for the joystick.\n")
+            .def(
+                py::init<>([](espp::FloatRangeMapper::Config x_calibration =
+                                  espp::FloatRangeMapper::Config(),
+                              espp::FloatRangeMapper::Config y_calibration =
+                                  espp::FloatRangeMapper::Config(),
+                              espp::Joystick::Type type = {espp::Joystick::Type::RECTANGULAR},
+                              float center_deadzone_radius = {0}, float range_deadzone = {0},
+                              espp::Joystick::get_values_fn get_values = {nullptr},
+                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r = std::make_unique<espp::Joystick::Config>();
+                  r->x_calibration = x_calibration;
+                  r->y_calibration = y_calibration;
+                  r->type = type;
+                  r->center_deadzone_radius = center_deadzone_radius;
+                  r->range_deadzone = range_deadzone;
+                  r->get_values = get_values;
+                  r->log_level = log_level;
+                  return r;
+                }),
+                py::arg("x_calibration") = espp::FloatRangeMapper::Config(),
+                py::arg("y_calibration") = espp::FloatRangeMapper::Config(),
+                py::arg("type") = espp::Joystick::Type{espp::Joystick::Type::RECTANGULAR},
+                py::arg("center_deadzone_radius") = float{0}, py::arg("range_deadzone") = float{0},
+                py::arg("get_values") = espp::Joystick::get_values_fn{nullptr},
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def_readwrite("x_calibration", &espp::Joystick::Config::x_calibration,
+                           "*< Configuration for the x axis.")
+            .def_readwrite("y_calibration", &espp::Joystick::Config::y_calibration,
+                           "*< Configuration for the y axis.")
+            .def_readwrite("type", &espp::Joystick::Config::type,
+                           "*< The type of the joystick. See\n                                     "
+                           "            Type enum for more information.")
+            .def_readwrite(
+                "center_deadzone_radius", &espp::Joystick::Config::center_deadzone_radius,
+                "*< The radius of the unit circle's deadzone [0, 1.0] around the center, only "
+                "used\n        when the joystick is configured as Type::CIRCULAR.")
+            .def_readwrite(
+                "range_deadzone", &espp::Joystick::Config::range_deadzone,
+                "*< The deadzone around the edge of the unit circle, only used when\n              "
+                "            the joystick is configured as Type::CIRCULAR. This scales the output "
+                "so\n                          that the output appears to have magnitude 1 "
+                "(meaning it appears to be on\n                          the edge of the unit "
+                "circle) when the joystick value magnitude is within\n                          "
+                "the range [1-range_deadzone, 1].")
+            .def_readwrite("get_values", &espp::Joystick::Config::get_values,
+                           "*< Function to retrieve the latest\n                                   "
+                           "       unmapped joystick values. Required if\n                         "
+                           "                 you want to use update(), unused if\n                 "
+                           "                         you call update(float raw_x, float\n          "
+                           "                                raw_y).")
+            .def_readwrite("log_level", &espp::Joystick::Config::log_level,
+                           "*< Verbosity for the Joystick logger_.");
+  } // end of inner classes & enums of Joystick
+
+  pyClassJoystick.def(py::init<const espp::Joystick::Config &>())
+      .def(
+          "set_type", &espp::Joystick::set_type, py::arg("type"), py::arg("radius") = 0,
+          py::arg("range_deadzone") = 0,
+          "*\n   *  @brief Set the type of the joystick.\n   *  @param type The Type of the "
+          "joystick.\n   *  @param radius Optional radius parameter used when \\p type is\n   *    "
+          "     Type::CIRCULAR. When the magnitude of the joystick's mapped\n   *         position "
+          "vector is less than this value, the vector is set to\n   *         (0,0).\n   *  @param "
+          "range_deadzone Optional deadzone around the edge of the unit circle\n   *         when "
+          "\\p type is Type::CIRCULAR. This scales the output so that the\n   *         output "
+          "appears to have magnitude 1 (meaning it appears to be on the\n   *         edge of the "
+          "unit circle) if the magnitude of the mapped position\n   *         vector is greater "
+          "than 1-range_deadzone. Example: if the range\n   *         deadzone is 0.1, then the "
+          "output will be scaled so that the\n   *         magnitude of the output is 1 if the "
+          "magnitude of the mapped\n   *         position vector is greater than 0.9.\n   *  @note "
+          "If the Joystick is Type::CIRCULAR, the actual calibrations that are\n   *        saved "
+          "into the joystick will have 0 deadzone around the center value\n   *        and range "
+          "values, so that center and range deadzones are actually\n   *        applied on the "
+          "vector value instead of on the individual axes\n   *        independently.\n   *  @sa "
+          "set_center_deadzone_radius\n   *  @sa set_range_deadzone\n   *  @sa set_calibration\n")
+      .def("type", &espp::Joystick::type,
+           "*\n   * @brief Get the type of the joystick.\n   * @return The Type of the joystick.\n")
+      .def("set_center_deadzone_radius", &espp::Joystick::set_center_deadzone_radius,
+           py::arg("radius"),
+           "*\n   * @brief Sets the center deadzone radius.\n   * @note Radius is only applied "
+           "when \\p deadzone is Deadzone::CIRCULAR.\n   * @param radius Optional radius parameter "
+           "used when \\p deadzone is\n   *        Deadzone::CIRCULAR. When the magnitude of the "
+           "joystick's mapped\n   *        position vector is less than this value, the vector is "
+           "set to\n   *        (0,0).\n")
+      .def("center_deadzone_radius", &espp::Joystick::center_deadzone_radius,
+           "*\n   * @brief Get the center deadzone radius.\n   * @return The center deadzone "
+           "radius.\n")
+      .def("set_range_deadzone", &espp::Joystick::set_range_deadzone, py::arg("range_deadzone"),
+           "*\n   * @brief Sets the range deadzone.\n   * @note Range deadzone is only applied "
+           "when \\p deadzone is Deadzone::CIRCULAR.\n   * @param range_deadzone Optional deadzone "
+           "around the edge of the unit circle\n   *        when \\p deadzone is "
+           "Deadzone::CIRCULAR. This scales the output so\n   *        that the output appears to "
+           "have magnitude 1 (meaning it appears to\n   *        be on the edge of the unit "
+           "circle) if the magnitude of the mapped\n   *        position vector is greater than "
+           "1-range_deadzone. Example: if the\n   *        range deadzone is 0.1, then the output "
+           "will be scaled so that the\n   *        magnitude of the output is 1 if the magnitude "
+           "of the mapped position\n   *        vector is greater than 0.9.\n")
+      .def("range_deadzone", &espp::Joystick::range_deadzone,
+           "*\n   * @brief Get the range deadzone.\n   * @return The range deadzone.\n")
+      .def("set_calibration", &espp::Joystick::set_calibration, py::arg("x_calibration"),
+           py::arg("y_calibration"), py::arg("center_deadzone_radius") = 0,
+           py::arg("range_deadzone") = 0,
+           "*\n   * @brief Update the x and y axis mapping.\n   * @param x_calibration New x-axis "
+           "range mapping configuration to use.\n   * @param y_calibration New y-axis range "
+           "mapping configuration to use.\n   * @param center_deadzone_radius The radius of the "
+           "unit circle's deadzone [0,\n   *        1.0] around the center, only used when the "
+           "joystick is configured\n   *        as Type::CIRCULAR.\n   *  @param range_deadzone "
+           "Optional deadzone around the edge of the unit circle\n   *         when \\p type is "
+           "Type::CIRCULAR. This scales the output so that the\n   *         output appears to "
+           "have magnitude 1 (meaning it appears to be on the\n   *         edge of the unit "
+           "circle) if the magnitude of the mapped position\n   *         vector is greater than "
+           "1-range_deadzone. Example: if the range\n   *         deadzone is 0.1, then the output "
+           "will be scaled so that the\n   *         magnitude of the output is 1 if the magnitude "
+           "of the mapped\n   *         position vector is greater than 0.9.\n   * @note If the "
+           "Joystick is Type::CIRCULAR, the actual calibrations that are\n   *       saved into "
+           "the joystick will have 0 deadzone around the center and range values,\n   *       so "
+           "that center and range deadzones are actually applied on the vector value.\n   * @sa "
+           "set_center_deadzone_radius\n   * @sa set_range_deadzone\n")
+      .def(
+          "update", [](espp::Joystick &self) { return self.update(); },
+          "*\n   * @brief Read the raw values and use the calibration data to update the\n   *     "
+          "   position.\n   * @note Requires that the get_values_ function is set.\n")
+      .def("update", py::overload_cast<float, float>(&espp::Joystick::update), py::arg("raw_x"),
+           py::arg("raw_y"),
+           "*\n   * @brief Update the joystick's position using the provided raw x and y\n   *     "
+           "   values.\n   * @param raw_x The raw x-axis value.\n   * @param raw_y The raw y-axis "
+           "value.\n   * @note This function is useful when you have the raw values and don't "
+           "want\n   *       to use the get_values_ function.\n")
+      .def("x", &espp::Joystick::x,
+           "*\n   * @brief Get the most recently updated x axis calibrated position.\n   * @return "
+           "The most recent x-axis position (from when update() was last\n   *         called).\n")
+      .def("y", &espp::Joystick::y,
+           "*\n   * @brief Get the most recently updated y axis calibrated position.\n   * @return "
+           "The most recent y-axis position (from when update() was last\n   *         called).\n")
+      .def("position", &espp::Joystick::position,
+           "*\n   * @brief Get the most recently updated calibrated position.\n   * @return The "
+           "most recent position (from when update() was last called).\n")
+      .def("raw", &espp::Joystick::raw,
+           "*\n   * @brief Get the most recently updated raw / uncalibrated readings. This\n   *   "
+           "     function is useful for externally performing a calibration routine\n   *        "
+           "and creating updated calibration / mapper configuration\n   *        structures.\n   * "
+           "@return The most recent raw measurements (from when update() was last\n   *         "
+           "called).\n");
+  ////////////////////    </generated_from:joystick.hpp>    ////////////////////
 
   // </litgen_pydef> // Autogenerated code end
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  AUTOGENERATED CODE END !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

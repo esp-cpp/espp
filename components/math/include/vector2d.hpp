@@ -287,9 +287,10 @@ typedef Vector2d<uint8_t> Vector2u8; ///< Typedef for 8 bit integer 2D vectors.
  * @param v Vector to be scaled.
  * @return Scaled vector (v*f).
  */
-[[maybe_unused]] static auto operator*(auto f, const auto &v) {
+template <typename T>
+[[maybe_unused]] static espp::Vector2d<T> operator*(auto f, const espp::Vector2d<T> &v) {
   // swap the order so we can use the templated operator* function
-  return v * f;
+  return v * (T)f;
 }
 
 } // namespace espp

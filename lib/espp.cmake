@@ -25,6 +25,8 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/joystick/include
   ${ESPP_COMPONENTS}/logger/include
   ${ESPP_COMPONENTS}/math/include
+  ${ESPP_COMPONENTS}/ndef/include
+  ${ESPP_COMPONENTS}/pid/include
   ${ESPP_COMPONENTS}/rtsp/include
   ${ESPP_COMPONENTS}/serialization/include
   ${ESPP_COMPONENTS}/tabulate/include
@@ -40,6 +42,7 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/event_manager/src/event_manager.cpp
   ${ESPP_COMPONENTS}/logger/src/logger.cpp
   ${ESPP_COMPONENTS}/file_system/src/file_system.cpp
+  ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtcp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtsp_client.cpp

@@ -442,10 +442,267 @@ class FtpServer:
 ####################    </generated_from:ftp_server.hpp>    ####################
 
 
+####################    <generated_from:joystick.hpp>    ####################
+
+
+
+class Joystick:
+    """*
+     *  @brief 2-axis Joystick with axis mapping / calibration.
+     *
+     * \section joystick_ex1 Basic Circular and Rectangular Joystick Example
+     * \snippet joystick_example.cpp circular joystick example
+     * \section joystick_ex2 ADC Joystick Example
+     * \snippet joystick_example.cpp adc joystick example
+
+    """
+    class Type(enum.Enum):
+        """*
+           * @brief Type of the joystick.
+           * @note When using a Type::CIRCULAR joystick, it's recommended to set the
+           *       individual x/y calibration deadzones to be 0 and to only use the
+           *       deadzone_radius field to set the deadzone around the center.
+
+        """
+        rectangular = enum.auto()                                                             # (= 0)  #/< The default type of joystick. Uses the rangemappers for
+        #/  each axis (to convert raw values from input range to be
+        #/  [-1,1]) independently which results in x/y deadzones and
+        #/  output that are rectangular.
+        circular = enum.auto()                                                                # (= 1)  #/< The joystick is configured to have a circular output. This
+        #/  means that the x/y < deadzones are circular around the
+        #/  input and range and the output is clamped to be on or
+        #/  within the unit circle.
+
+
+    class Config:
+        """*
+           *  @brief Configuration structure for the joystick.
+
+        """
+        x_calibration: FloatRangeMapper.Config                                                #*< Configuration for the x axis.
+        y_calibration: FloatRangeMapper.Config                                                #*< Configuration for the y axis.
+        type: espp.Joystick.Type = espp.Joystick.Type(espp.Joystick.Type.rectangular)         #*< The type of the joystick. See
+                                                         Type enum for more information.
+        center_deadzone_radius: float = float(0)                                              #*< The radius of the unit circle's deadzone [0, 1.0] around the center, only used
+                when the joystick is configured as Type::CIRCULAR.
+        range_deadzone: float = float(0)                                                      #*< The deadzone around the edge of the unit circle, only used when
+                                  the joystick is configured as Type::CIRCULAR. This scales the output so
+                                  that the output appears to have magnitude 1 (meaning it appears to be on
+                                  the edge of the unit circle) when the joystick value magnitude is within
+                                  the range [1-range_deadzone, 1].
+        get_values: espp.Joystick.get_values_fn = espp.Joystick.get_values_fn(None)           #*< Function to retrieve the latest
+                                                  unmapped joystick values. Required if
+                                                  you want to use update(), unused if
+                                                  you call update(float raw_x, float
+                                                  raw_y).
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.WARN)  #*< Verbosity for the Joystick logger_.
+        def __init__(
+            self,
+            x_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
+            y_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
+            type: Joystick.Type = Joystick.Type(Joystick.Type.rectangular),
+            center_deadzone_radius: float = float(0),
+            range_deadzone: float = float(0),
+            get_values: Joystick.get_values_fn = Joystick.get_values_fn(None),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    def set_type(
+        self,
+        type: Joystick.Type,
+        radius: float = 0,
+        range_deadzone: float = 0
+        ) -> None:
+        """*
+           *  @brief Set the type of the joystick.
+           *  @param type The Type of the joystick.
+           *  @param radius Optional radius parameter used when \p type is
+           *         Type::CIRCULAR. When the magnitude of the joystick's mapped
+           *         position vector is less than this value, the vector is set to
+           *         (0,0).
+           *  @param range_deadzone Optional deadzone around the edge of the unit circle
+           *         when \p type is Type::CIRCULAR. This scales the output so that the
+           *         output appears to have magnitude 1 (meaning it appears to be on the
+           *         edge of the unit circle) if the magnitude of the mapped position
+           *         vector is greater than 1-range_deadzone. Example: if the range
+           *         deadzone is 0.1, then the output will be scaled so that the
+           *         magnitude of the output is 1 if the magnitude of the mapped
+           *         position vector is greater than 0.9.
+           *  @note If the Joystick is Type::CIRCULAR, the actual calibrations that are
+           *        saved into the joystick will have 0 deadzone around the center value
+           *        and range values, so that center and range deadzones are actually
+           *        applied on the vector value instead of on the individual axes
+           *        independently.
+           *  @sa set_center_deadzone_radius
+           *  @sa set_range_deadzone
+           *  @sa set_calibration
+
+        """
+        pass
+
+    def type(self) -> Joystick.Type:
+        """*
+           * @brief Get the type of the joystick.
+           * @return The Type of the joystick.
+
+        """
+        pass
+
+    def set_center_deadzone_radius(self, radius: float) -> None:
+        """*
+           * @brief Sets the center deadzone radius.
+           * @note Radius is only applied when \p deadzone is Deadzone::CIRCULAR.
+           * @param radius Optional radius parameter used when \p deadzone is
+           *        Deadzone::CIRCULAR. When the magnitude of the joystick's mapped
+           *        position vector is less than this value, the vector is set to
+           *        (0,0).
+
+        """
+        pass
+
+    def center_deadzone_radius(self) -> float:
+        """*
+           * @brief Get the center deadzone radius.
+           * @return The center deadzone radius.
+
+        """
+        pass
+
+    def set_range_deadzone(self, range_deadzone: float) -> None:
+        """*
+           * @brief Sets the range deadzone.
+           * @note Range deadzone is only applied when \p deadzone is Deadzone::CIRCULAR.
+           * @param range_deadzone Optional deadzone around the edge of the unit circle
+           *        when \p deadzone is Deadzone::CIRCULAR. This scales the output so
+           *        that the output appears to have magnitude 1 (meaning it appears to
+           *        be on the edge of the unit circle) if the magnitude of the mapped
+           *        position vector is greater than 1-range_deadzone. Example: if the
+           *        range deadzone is 0.1, then the output will be scaled so that the
+           *        magnitude of the output is 1 if the magnitude of the mapped position
+           *        vector is greater than 0.9.
+
+        """
+        pass
+
+    def range_deadzone(self) -> float:
+        """*
+           * @brief Get the range deadzone.
+           * @return The range deadzone.
+
+        """
+        pass
+
+    def set_calibration(
+        self,
+        x_calibration: FloatRangeMapper.Config,
+        y_calibration: FloatRangeMapper.Config,
+        center_deadzone_radius: float = 0,
+        range_deadzone: float = 0
+        ) -> None:
+        """*
+           * @brief Update the x and y axis mapping.
+           * @param x_calibration New x-axis range mapping configuration to use.
+           * @param y_calibration New y-axis range mapping configuration to use.
+           * @param center_deadzone_radius The radius of the unit circle's deadzone [0,
+           *        1.0] around the center, only used when the joystick is configured
+           *        as Type::CIRCULAR.
+           *  @param range_deadzone Optional deadzone around the edge of the unit circle
+           *         when \p type is Type::CIRCULAR. This scales the output so that the
+           *         output appears to have magnitude 1 (meaning it appears to be on the
+           *         edge of the unit circle) if the magnitude of the mapped position
+           *         vector is greater than 1-range_deadzone. Example: if the range
+           *         deadzone is 0.1, then the output will be scaled so that the
+           *         magnitude of the output is 1 if the magnitude of the mapped
+           *         position vector is greater than 0.9.
+           * @note If the Joystick is Type::CIRCULAR, the actual calibrations that are
+           *       saved into the joystick will have 0 deadzone around the center and range values,
+           *       so that center and range deadzones are actually applied on the vector value.
+           * @sa set_center_deadzone_radius
+           * @sa set_range_deadzone
+
+        """
+        pass
+
+    @overload
+    def update(self) -> None:
+        """*
+           * @brief Read the raw values and use the calibration data to update the
+           *        position.
+           * @note Requires that the get_values_ function is set.
+
+        """
+        pass
+
+    @overload
+    def update(self, raw_x: float, raw_y: float) -> None:
+        """*
+           * @brief Update the joystick's position using the provided raw x and y
+           *        values.
+           * @param raw_x The raw x-axis value.
+           * @param raw_y The raw y-axis value.
+           * @note This function is useful when you have the raw values and don't want
+           *       to use the get_values_ function.
+
+        """
+        pass
+
+    def x(self) -> float:
+        """*
+           * @brief Get the most recently updated x axis calibrated position.
+           * @return The most recent x-axis position (from when update() was last
+           *         called).
+
+        """
+        pass
+
+    def y(self) -> float:
+        """*
+           * @brief Get the most recently updated y axis calibrated position.
+           * @return The most recent y-axis position (from when update() was last
+           *         called).
+
+        """
+        pass
+
+    def position(self) -> Vector2f:
+        """*
+           * @brief Get the most recently updated calibrated position.
+           * @return The most recent position (from when update() was last called).
+
+        """
+        pass
+
+    def raw(self) -> Vector2f:
+        """*
+           * @brief Get the most recently updated raw / uncalibrated readings. This
+           *        function is useful for externally performing a calibration routine
+           *        and creating updated calibration / mapper configuration
+           *        structures.
+           * @return The most recent raw measurements (from when update() was last
+           *         called).
+
+        """
+        pass
+
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+# namespace espp
+
+####################    </generated_from:joystick.hpp>    ####################
+
+
 ####################    <generated_from:logger.hpp>    ####################
 
 
 
+
+# Undefine the logger verbosity levels to avoid conflicts with windows / msvc
 
 
 class Logger:
@@ -1879,11 +2136,594 @@ class Vector2d_float:  # Python specialization for Vector2d<float>
 ####################    </generated_from:vector2d.hpp>    ####################
 
 
+####################    <generated_from:ndef.hpp>    ####################
+
+
+
+class Ndef:
+    """*
+     * @brief implements serialization & deserialization logic for NFC Data
+     *        Exchange Format (NDEF) records which can be stored on and
+     *        transmitted from NFC devices.
+     *
+     * @details NDEF records can be composed the following way:
+     *   @code{.unparsed}
+     *   Bit 7     6       5       4       3       2       1       0
+     *   ------  ------  ------  ------  ------  ------  ------  ------
+     *   [ MB ]  [ ME ]  [ CF ]  [ SR ]  [ IL ]  [        TNF         ]
+     *   [                         TYPE LENGTH  (may be 0)            ]
+     *   [                       PAYLOAD LENGTH (1B or 4B, see SR)    ]
+     *   [                          ID LENGTH   (if IL)               ]
+     *   [                         RECORD TYPE  (if TYPE LENGTH > 0)  ]
+     *   [                              ID      (if IL)               ]
+     *   [                           PAYLOAD    (payload length bytes)]
+     *  @endcode
+     *
+     *  The first byte (Flags) has these bits:
+     *  * Bits 0-3: TNF - Type Name Format - describes record type (see TNF class)
+     *  * Bit 3: IL - ID Length - indicates if the ID Length Field is present or not
+     *  * Bit 4: SR - Short Record - set to 1 if the payload length field is 1 byte (8
+     *      bits / 0-255) or less, otherwise the payload length is 4 bytes
+     *  * Bit 5: CF - Chunk Flag - indicates if this is the first record chunk or a
+     *      middle record chunk, set to 0 for the first record of the message and
+     *      for subsequent records set to 1.
+     *  * Bit 6: ME - Message End - 1 indicates if this is the last record in the
+     *      message
+     *  * Bit 7: MB - Message Begin - 1 indicates if this is the first record in the
+     *      message
+     *
+     * @note Some information about NDEF can be found:
+     *       * https://www.maskaravivek.com/post/understanding-the-format-of-ndef-messages/
+     *       * https://ndeflib.readthedocs.io/en/stable/records/bluetooth.html
+     *       * https://developer.android.com/reference/android/nfc/NdefMessage
+     *       * https://www.oreilly.com/library/view/beginning-nfc/9781449324094/ch04.html
+     *       * https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef
+     *
+
+    """
+    class TNF(enum.Enum):
+        """*
+           * @brief Type Name Format (TNF) field is a 3-bit value that describes the
+           *        record type.
+           *
+           * Some Common TNF::WELL_KNOWN record type strings:
+           *   * Text (T)
+           *   * URI  (U)
+           *   * Smart Poster (Sp)
+           *   * Alternative Carrier (ac)
+           *   * Handover Carrier (Hc)
+           *   * Handover Request (Hr)
+           *   * Handover Select (Hs)
+
+        """
+        empty = enum.auto()                                                            # (= 0x00)  #/< Record is empty
+        well_known = enum.auto()                                                       # (= 0x01)  #/< Type field contains a well-known RTD type name
+        mime_media = enum.auto()                                                       # (= 0x02)  #/< Type field contains a media type (RFC 2046)
+        absolute_uri = enum.auto()                                                     # (= 0x03)  #/< Type field contains an absolute URI (RFC 3986)
+        external_type = enum.auto()                                                    # (= 0x04)  #/< Type field Contains an external type name
+        unknown = enum.auto()                                                          # (= 0x05)  #/< Payload type is unknown, type length must be 0.
+        unchanged = enum.auto()                                                        # (= 0x06)  #/< Indicates the payload is an intermediate or final chunk of a chunked NDEF
+        #/< record, type length must be 0.
+        reserved = enum.auto()                                                         # (= 0x07)  #/< Reserved by the NFC forum for future use
+
+    class Uic(enum.Enum):
+        """*
+           * URI Identifier Codes (UIC), See Table A-3 at
+           * https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html
+           * and https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef
+
+        """
+        none = enum.auto()                                                             # (= 0x00)  #/< Exactly as written
+        http_www = enum.auto()                                                         # (= 0x01)  #/< http://www.
+        https_www = enum.auto()                                                        # (= 0x02)  #/< https://www.
+        http = enum.auto()                                                             # (= 0x03)  #/< http://
+        https = enum.auto()                                                            # (= 0x04)  #/< https://
+        tel = enum.auto()                                                              # (= 0x05)  #/< tel:
+        mailto = enum.auto()                                                           # (= 0x06)  #/< mailto:
+        ftp_anon = enum.auto()                                                         # (= 0x07)  #/< ftp://anonymous:anonymous@
+        ftp_ftp = enum.auto()                                                          # (= 0x08)  #/< ftp://ftp.
+        ftps = enum.auto()                                                             # (= 0x09)  #/< ftps://
+        sftp = enum.auto()                                                             # (= 0x0A)  #/< sftp://
+        smb = enum.auto()                                                              # (= 0x0B)  #/< smb://
+        nfs = enum.auto()                                                              # (= 0x0C)  #/< nfs://
+        ftp = enum.auto()                                                              # (= 0x0D)  #/< ftp://
+        dav = enum.auto()                                                              # (= 0x0E)  #/< dav://
+        news = enum.auto()                                                             # (= 0x0F)  #/< news:
+        telnet = enum.auto()                                                           # (= 0x10)  #/< telnet://
+        imap = enum.auto()                                                             # (= 0x11)  #/< imap:
+        rstp = enum.auto()                                                             # (= 0x12)  #/< rtsp://
+        urn = enum.auto()                                                              # (= 0x13)  #/< urn:
+        pop = enum.auto()                                                              # (= 0x14)  #/< pop:
+        sip = enum.auto()                                                              # (= 0x15)  #/< sip:
+        sips = enum.auto()                                                             # (= 0x16)  #/< sips:
+        tftp = enum.auto()                                                             # (= 0x17)  #/< tftp:
+        btspp = enum.auto()                                                            # (= 0x18)  #/< btspp://
+        btl2_cap = enum.auto()                                                         # (= 0x19)  #/< btl2cap://
+        btgoep = enum.auto()                                                           # (= 0x1A)  #/< btgoep://
+        tcpobex = enum.auto()                                                          # (= 0x1B)  #/< tcpobex://
+        irdaobex = enum.auto()                                                         # (= 0x1C)  #/< irdaobex://
+        file = enum.auto()                                                             # (= 0x1D)  #/< file://
+        urn_epc_id = enum.auto()                                                       # (= 0x1E)  #/< urn:epc:id:
+        urn_epc_tag = enum.auto()                                                      # (= 0x1F)  #/< urn:epc:tag:
+        urn_epc_pat = enum.auto()                                                      # (= 0x20)  #/< urn:epc:pat:
+        urn_epc_raw = enum.auto()                                                      # (= 0x21)  #/< urn:epc:raw:
+        urn_epc = enum.auto()                                                          # (= 0x22)  #/< urn:epc:
+        urn_nfc = enum.auto()                                                          # (= 0x23)  #/< urn:nfc:
+
+    class BtType(enum.Enum):
+        """*
+           * @brief Type of Bluetooth radios.
+
+        """
+        bredr = enum.auto()                                                            # (= 0x00)  #/< BT Classic
+        ble = enum.auto()                                                              # (= 0x01)  #/< BT Low Energy
+
+    class BtAppearance(enum.Enum):
+        """*
+           * @brief Some appearance codes for BLE radios.
+
+        """
+        unknown = enum.auto()                                                          # (= 0x0000)  #/< Generic Unknown
+        # Generic Phone (b15-b6 = 0x001 << 6 = 0x0040)
+        phone = enum.auto()                                                            # (= 0x0040)  #/< Generic Phone
+        # Generic Computer (b15-b6 = 0x002 << 6 = 0x0080)
+        computer = enum.auto()                                                         # (= 0x0080)  #/< Generic Computer
+        # Generic Watch (b15-b6 = 0x003 << 6 = 0x00C0)
+        watch = enum.auto()                                                            # (= 0x00C0)  #/< Generic Watch
+        # Generic Clock (b15-b6 = 0x004 << 6 = 0x0100)
+        clock = enum.auto()                                                            # (= 0x0100)  #/< Generic Clock
+        # Generic Computer (b15-b6 = 0x005 << 6 = 0x0140)
+        display = enum.auto()                                                          # (= 0x0140)  #/< Generic Display
+        # Generic Computer (b15-b6 = 0x006 << 6 = 0x0180)
+        remote_control = enum.auto()                                                   # (= 0x0180)  #/< Generic Remote Control
+        # Generic HID (b15-b6 = 0x00F << 6 = 0x03C0)
+        generic_hid = enum.auto()                                                      # (= 0x03C0)  #/< Generic HID
+        keyboard = enum.auto()                                                         # (= 0x03C1)  #/< HID Keyboard
+        mouse = enum.auto()                                                            # (= 0x03C2)  #/< HID Mouse
+        joystick = enum.auto()                                                         # (= 0x03C3)  #/< HID Joystick
+        gamepad = enum.auto()                                                          # (= 0x03C4)  #/< HID Gamepad
+        touchpad = enum.auto()                                                         # (= 0x03C9)  #/< HID Touchpad
+        # Generic Gaming (b15-b6 = 0x02A << 6 = 0x0A80)
+        gaming = enum.auto()                                                           # (= 0x0A80)  #/< Generic Gaming group
+
+    class CarrierPowerState(enum.Enum):
+        """*
+           * @brief Power state of a BLE radio.
+           * @details Representation of the carrier power state in a Handover Select
+           *          message.
+
+        """
+        inactive = enum.auto()                                                         # (= 0x00)  #/< Carrier power is off
+        active = enum.auto()                                                           # (= 0x01)  #/< Carrier power is on
+        activating = enum.auto()                                                       # (= 0x02)  #/< Carrier power is turning on
+        unknown = enum.auto()                                                          # (= 0x03)  #/< Carrier power state is unknown
+
+    class BtEir(enum.Enum):
+        """*
+           * @brief Extended Inquiry Response (EIR) codes for data types in BT and BLE
+           *        out of band (OOB) pairing NDEF records.
+
+        """
+        flags = enum.auto()                                                            # (= 0x01)  #/< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode,
+        #/< b2: BR/EDR not supported, b3: Simultaneous LE & BR/EDR controller, b4:
+        #/< simultaneous LE & BR/EDR Host
+        uuids_16_bit_partial = enum.auto()                                             # (= 0x02)  #/< Incomplete list of 16 bit service class UUIDs
+        uuids_16_bit_complete = enum.auto()                                            # (= 0x03)  #/< Complete list of 16 bit service class UUIDs
+        uuids_32_bit_partial = enum.auto()                                             # (= 0x04)  #/< Incomplete list of 32 bit service class UUIDs
+        uuids_32_bit_complete = enum.auto()                                            # (= 0x05)  #/< Complete list of 32 bit service class UUIDs
+        uuids_128_bit_partial = enum.auto()                                            # (= 0x06)  #/< Incomplete list of 128 bit service class UUIDs
+        uuids_128_bit_complete = enum.auto()                                           # (= 0x07)  #/< Complete list of 128 bit service class UUIDs
+        short_local_name = enum.auto()                                                 # (= 0x08)  #/< Shortened Bluetooth Local Name
+        long_local_name = enum.auto()                                                  # (= 0x09)  #/< Complete Bluetooth Local Name
+        tx_power_level = enum.auto()                                                   # (= 0x0A)  #/< TX Power level (1 byte), -127 dBm to +127 dBm
+        class_of_device = enum.auto()                                                  # (= 0x0D)  #/< Class of Device
+        sp_hash_c192 = enum.auto()                                                     # (= 0x0E)  #/< Simple Pairing Hash C-192
+        sp_random_r192 = enum.auto()                                                   # (= 0x0F)  #/< Simple Pairing Randomizer R-192
+        security_manager_tk = enum.auto()                                              # (= 0x10)  #/< Security Manager TK Value (LE Legacy Pairing)
+        security_manager_flags = enum.auto()                                           # (= 0x11)  #/< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported
+        #/< (host), b2: Simultaneous LE & BR/EDR to same device capable (host), b3: address
+        #/< type (0 = public, 1 = random)
+        appearance = enum.auto()                                                       # (= 0x19)  #/< Appearance
+        mac = enum.auto()                                                              # (= 0x1B)  #/< Bluetooth Device Address
+        le_role = enum.auto()                                                          # (= 0x1C)  #/< LE Role
+        sp_hash_c256 = enum.auto()                                                     # (= 0x1D)  #/< Simple Pairing Hash C-256
+        sp_hash_r256 = enum.auto()                                                     # (= 0x1E)  #/< Simple Pairing Randomizer R-256
+        le_sc_confirmation = enum.auto()                                               # (= 0x22)  #/< LE Secure Connections Confirmation Value
+        le_sc_random = enum.auto()                                                     # (= 0x23)  #/< LE Secure Connections Random Value
+
+    class BleRole(enum.Enum):
+        """*
+           * @brief Possible roles for BLE records to indicate support for.
+
+        """
+        peripheral_only = enum.auto()                                                  # (= 0x00)  #/< Radio can only act as a peripheral
+        central_only = enum.auto()                                                     # (= 0x01)  #/< Radio can only act as a central
+        peripheral_central = enum.auto()                                               # (= 0x02)  #/< Radio can act as both a peripheral and a central, but prefers peripheral
+        central_peripheral = enum.auto()                                               # (= 0x03)  #/< Radio can act as both a peripheral and a central, but prefers central
+
+    class WifiEncryptionType(enum.Enum):
+        """*
+           * @brief Types of configurable encryption for WiFi networks
+
+        """
+        none = enum.auto()                                                             # (= 0x01)  #/< No encryption
+        wep = enum.auto()                                                              # (= 0x02)  #/< WEP
+        tkip = enum.auto()                                                             # (= 0x04)  #/< TKIP
+        aes = enum.auto()                                                              # (= 0x08)  #/< AES
+
+    class WifiAuthenticationType(enum.Enum):
+        """*
+           * @brief WiFi network authentication
+
+        """
+        open = enum.auto()                                                             # (= 0x01)  #/< Open / no security
+        wpa_personal = enum.auto()                                                     # (= 0x02)  #/< WPA personal
+        shared = enum.auto()                                                           # (= 0x04)  #/< Shared key
+        wpa_enterprise = enum.auto()                                                   # (= 0x08)  #/< WPA enterprise
+        wpa2_enterprise = enum.auto()                                                  # (= 0x10)  #/< WPA2 Enterprise
+        wpa2_personal = enum.auto()                                                    # (= 0x20)  #/< WPA2 personal
+        wpa_wpa2_personal = enum.auto()                                                # (= 0x22)  #/< Both WPA and WPA2 personal
+
+    handover_version: int = 0x13                                                       #/< Connection Handover version 1.3 # (C++ static member)
+
+    def __init__(
+        self,
+        tnf: Ndef.TNF,
+        type: std.string_view,
+        payload: std.string_view
+        ) -> None:
+        """*
+           * @brief Makes an NDEF record with header and payload.
+           * @param tnf The TNF for this packet.
+           * @param type String view for the type of this packet
+           * @param payload The payload data for the packet
+
+        """
+        pass
+
+    @staticmethod
+    def make_text(text: std.string_view) -> Ndef:
+        """*
+           * @brief Static function to make an NDEF record for transmitting english
+           *        text.
+           * @param text The text that the NDEF record will hold.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    @staticmethod
+    def make_uri(uri: std.string_view, uic: Ndef.Uic = Ndef.Uic.none) -> Ndef:
+        """*
+           * @brief Static function to make an NDEF record for loading a URI.
+           * @param uri URI for the record to point to.
+           * @param uic UIC for the uri - helps shorten the uri text / NDEF record.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    @staticmethod
+    def make_android_launcher(uri: std.string_view) -> Ndef:
+        """*
+           * @brief Static function to make an NDEF record for launching an Android App.
+           * @param uri URI for the android package / app to launch.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    class WifiConfig:
+        """*
+           * @brief Configuration structure for wifi configuration ndef structure.
+
+        """
+        ssid: std.string_view                                                          #/< SSID for the network
+        key: std.string_view                                                           #/< Security key / password for the network
+        authentication: WifiAuthenticationType = WifiAuthenticationType.wpa2_personal  #/< Authentication type the network uses.
+        encryption: WifiEncryptionType = WifiEncryptionType.aes                        #/< Encryption type the network uses.
+        mac_address: int = 0xFFFFFFFFFFFF                                              #/< Broadcast MAC address FF:FF:FF:FF:FF:FF
+        def __init__(
+            self,
+            ssid: std.string_view = std.string_view(),
+            key: std.string_view = std.string_view(),
+            authentication: WifiAuthenticationType = WifiAuthenticationType.wpa2_personal,
+            encryption: WifiEncryptionType = WifiEncryptionType.aes,
+            mac_address: int = 0xFFFFFFFFFFFF
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+    @staticmethod
+    def make_wifi_config(config: Ndef.WifiConfig) -> Ndef:
+        """*
+           * @brief Create a WiFi credential tag.
+           * @param config WifiConfig describing the WiFi network.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    @staticmethod
+    def make_collision_resolution_record(random_number: int) -> Ndef:
+        """
+           * @brief Create a collision resolution record.
+           * @param random_number Random number to use for the collision resolution.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    @staticmethod
+    def make_handover_select(carrier_data_ref: int) -> Ndef:
+        """*
+           * @brief Create a Handover Select record for a Bluetooth device.
+           * @see
+           * https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf
+           * @param carrier_data_ref Reference to the carrier data record, which is the
+           *        record that contains the actual bluetooth data. This should be the
+           *        same as the id of the carrier data record, such as '0'.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    @staticmethod
+    def make_handover_request(carrier_data_ref: int) -> Ndef:
+        """*
+           * @brief Create a Handover request record for a Bluetooth device.
+           * @see
+           * https://members.nfc-forum.org/apps/group_public/download.php/18688/NFCForum-AD-BTSSP_1_1.pdf
+           * @param carrier_data_ref Reference to the carrier data record, which is the
+           *        record that contains the actual bluetooth data. This should be the
+           *        same as the id of the carrier data record, such as '0'.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    @staticmethod
+    def make_alternative_carrier(
+        power_state: Ndef.CarrierPowerState,
+        carrier_data_ref: int
+        ) -> Ndef:
+        """*
+           * @brief Create a Handover Request record for a Bluetooth device.
+           * @details See page 18 of https://core.ac.uk/download/pdf/250136576.pdf for more details.
+           * @param power_state Power state of the alternative carrier.
+           * @param carrier_data_ref Reference to the carrier data record, which is the
+           *        record that contains the actual bluetooth data. This should be the
+           *        same as the id of the carrier data record, such as '0'.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    @staticmethod
+    def make_oob_pairing(
+        mac_addr: int,
+        device_class: int,
+        name: std.string_view,
+        random_value: std.string_view = "",
+        confirm_value: std.string_view = ""
+        ) -> Ndef:
+        """*
+           * @brief Static function to make an NDEF record for BT classic OOB Pairing (Android).
+           * @param mac_addr 48 bit MAC Address of the BT radio
+           * @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be
+           *       0xf412a42e9e.
+           * @param device_class The bluetooth device class for this radio.
+           * @param name Name of the BT device.
+           * @param random_value The Simple pairing randomizer R for the pairing.
+           * @param confirm_value The Simple pairing hash C (confirm value) for the
+           *                      pairing.
+           * @return NDEF record object.
+
+        """
+        pass
+
+    @staticmethod
+    def make_le_oob_pairing(
+        mac_addr: int,
+        role: Ndef.BleRole,
+        name: std.string_view = "",
+        appearance: Ndef.BtAppearance = Ndef.BtAppearance.unknown,
+        random_value: std.string_view = "",
+        confirm_value: std.string_view = "",
+        tk: std.string_view = ""
+        ) -> Ndef:
+        """*
+           * @brief Static function to make an NDEF record for BLE OOB Pairing (Android).
+           * @param mac_addr 48 bit MAC Address of the BLE radio.
+           * @note If the address is e.g. f4:12:fa:42:fe:9e then the mac_addr should be
+           *       0xf412a42e9e.
+           * @param role The BLE role of the device (central / peripheral / dual)
+           * @param name Name of the BLE device. Optional.
+           * @param appearance BtAppearance of the device. Optional.
+           * @param random_value The Simple pairing randomizer R for the pairing. (16 bytes, optional)
+           * @param confirm_value The Simple pairing hash C (confirm value) for the pairing. (16 bytes,
+           * optional)
+           * @param tk Temporary key for the pairing (16 bytes, optional)
+           * @return NDEF record object.
+
+        """
+        pass
+
+    def serialize(self, message_begin: bool = True, message_end: bool = True) -> List[int]:
+        """*
+           * @brief Serialize the NDEF record into a sequence of bytes.
+           * @param message_begin True if this is the first record in the message.
+           * @param message_end True if this is the last record in the message.
+           * @return The vector<uint8_t> of bytes representing the NDEF record.
+
+        """
+        pass
+
+    def payload(self) -> List[int]:
+        """*
+           * @brief Return just the payload as a vector of bytes.
+           * @return Payload of the NDEF record as a vector of bytes.
+
+        """
+        pass
+
+    def set_id(self, id: int) -> None:
+        """*
+           * @brief Set the payload ID of the NDEF record.
+           * @param id ID of the NDEF record.
+
+        """
+        pass
+
+    def get_id(self) -> int:
+        """*
+           * @brief Get the ID of the NDEF record.
+           * @return ID of the NDEF record.
+
+        """
+        pass
+
+    def get_size(self) -> int:
+        """*
+           * @brief Get the number of bytes needed for the NDEF record.
+           * @return Size of the NDEF record (bytes), for serialization.
+
+        """
+        pass
+
+
+####################    </generated_from:ndef.hpp>    ####################
+
+
+####################    <generated_from:pid.hpp>    ####################
+
+
+
+class Pid:
+    """*
+     *  @brief Simple PID (proportional, integral, derivative) controller class
+     *         with integrator clamping, output clamping, and prevention of
+     *         integrator windup during output saturation. This class is
+     *         thread-safe, so you can update(), clear(), and change_gains() from
+     *         multiple threads if needed.
+     *
+     * \section pid_ex1 Basic PID Example
+     * \snippet pid_example.cpp pid example
+     * \section pid_ex2 Complex PID Example
+     * \snippet pid_example.cpp complex pid example
+
+    """
+    class Config:
+        kp: float                                                                             #*< Proportional gain.
+        ki: float                                                                             #*< Integral gain. @note should not be pre-multiplied by the time constant.
+        kd: float                                                                             #*< Derivative gain. @note should not be pre-divided by the time-constant.
+        integrator_min: float                                                                 #*< Minimum value the integrator can wind down to. @note Operates at the
+                                     same scale as \p output_min and \p output_max. Could be 0 or negative.
+                                     Can have different magnitude from integrator_max for asymmetric
+                                     response.
+        integrator_max: float                                                                 #*< Maximum value the integrator can wind up to. @note Operates at the
+                                     same scale as \p output_min and \p output_max.
+        output_min: float                                                                     #*< Limit the minimum output value. Can be a different magnitude from output
+                                 max for asymmetric output behavior.
+        output_max: float                                                                     #*< Limit the maximum output value.
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Verbosity for the adc logger.
+        def __init__(
+            self,
+            kp: float = float(),
+            ki: float = float(),
+            kd: float = float(),
+            integrator_min: float = float(),
+            integrator_max: float = float(),
+            output_min: float = float(),
+            output_max: float = float(),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    def set_config(self, config: Pid.Config, reset_state: bool = True) -> None:
+        """*
+           * @brief Change the gains and other configuration for the PID controller.
+           * @param config Configuration struct with new gains and sampling time.
+           * @param reset_state Reset / clear the PID controller state.
+
+        """
+        pass
+
+    def clear(self) -> None:
+        """*
+           * @brief Clear the PID controller state.
+
+        """
+        pass
+
+    def update(self, error: float) -> float:
+        """*
+           * @brief Update the PID controller with the latest error measurement,
+           *        getting the output control signal in return.
+           *
+           * @note Tracks invocation timing to better compute time-accurate
+           *       integral/derivative signals.
+           *
+           * @param error Latest error signal.
+           * @return The output control signal based on the PID state and error.
+
+        """
+        pass
+
+    def __call__(self, error: float) -> float:
+        """*
+           * @brief Update the PID controller with the latest error measurement,
+           *        getting the output control signal in return.
+           *
+           * @note Tracks invocation timing to better compute time-accurate
+           *       integral/derivative signals.
+           *
+           * @param error Latest error signal.
+           * @return The output control signal based on the PID state and error.
+
+        """
+        pass
+
+    def get_error(self) -> float:
+        """*
+           * @brief Get the current error (as of the last time update() or operator()
+           *        were called)
+           * @return Most recent error.
+
+        """
+        pass
+
+    def get_integrator(self) -> float:
+        """*
+           * @brief Get the current integrator (as of the last time update() or
+           *        operator() were called)
+           * @return Most recent integrator value.
+
+        """
+        pass
+
+    def get_config(self) -> Pid.Config:
+        """*
+           * @brief Get the configuration for the PID (gains, etc.).
+           * @return Config structure containing gains, etc.
+
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+# namespace espp
+
+####################    </generated_from:pid.hpp>    ####################
+
+
 ####################    <generated_from:socket.hpp>    ####################
 
 
-# if we're on windows, we cannot include netinet/in.h and instead need to use
-# winsock2.h
 
 
 
@@ -1977,7 +2817,6 @@ class Socket:
 
 
 
-    @overload
     def is_valid(self) -> bool:
         """*
            * @brief Is the socket valid.
@@ -1987,8 +2826,7 @@ class Socket:
         pass
 
     @staticmethod
-    @overload
-    def is_valid(socket_fd: int) -> bool:
+    def is_valid_fd(socket_fd: sock_type_t) -> bool:
         """*
            * @brief Is the socket valid.
            * @param socket_fd Socket file descriptor.
@@ -2076,8 +2914,7 @@ class Socket:
 ####################    <generated_from:tcp_socket.hpp>    ####################
 
 
-# if we're on windows, we cannot include netinet/in.h and instead need to use
-# winsock2.h
+
 
 
 class TcpSocket:
@@ -2322,6 +3159,7 @@ class TcpSocket:
 
 
 ####################    <generated_from:udp_socket.hpp>    ####################
+
 
 
 
@@ -2746,6 +3584,8 @@ class Timer:
     / \snippet timer_example.cpp timer oneshot restart example
     / \section timer_ex6 Timer Update Period Example
     / \snippet timer_example.cpp timer update period example
+    / \section timer_ex7 Timer AdvancedConfig Example
+    / \snippet timer_example.cpp timer advanced config example
     """
 
     class Config:
@@ -2775,6 +3615,29 @@ class Timer:
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
+
+    class AdvancedConfig:
+        """/ @brief Advanced configuration for the timer."""
+        period: std.chrono.duration<float>                             #/< The period of the timer. If 0, the timer callback will only be called once.
+        delay: std.chrono.duration<float> = std.chrono.duration<float>(
+                0)                                                     #/< The delay before the first execution of the timer callback after start() is called.
+        callback: espp.Timer.callback_fn                               #/< The callback function to call when the timer expires.
+        auto_start: bool = bool(True)                                  #/< If True, the timer will start automatically when constructed.
+        task_config: espp.Task.BaseConfig                              #/< The task configuration for the timer.
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity.warn  #/< The log level for the timer.
+        def __init__(
+            self,
+            period: std.chrono.duration<float> = std.chrono.duration<float>(),
+            delay: std.chrono.duration<float> = std.chrono.duration<float>(
+                    0),
+            callback: Timer.callback_fn = Timer.callback_fn(),
+            auto_start: bool = bool(True),
+            task_config: Task.BaseConfig = Task.BaseConfig(),
+            log_level: Logger.Verbosity = Logger.Verbosity.warn
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
 
 
 
