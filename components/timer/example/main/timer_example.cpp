@@ -175,6 +175,31 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
 
+  // timer example using advanced config
+  {
+    logger.info("Starting timer example using advanced config");
+    //! [timer advanced config example]
+    auto timer_fn = []() {
+      static size_t iterations{0};
+      fmt::print("[{:.3f}] #iterations = {}\n", elapsed(), iterations);
+      iterations++;
+      // we don't want to stop, so return false
+      return false;
+    };
+    auto timer = espp::Timer({.period = 500ms,
+                              .callback = timer_fn,
+                              .task_config =
+                                  {
+                                      .name = "Advanced Config Timer",
+                                      .stack_size_bytes = 4096,
+                                      .priority = 10,
+                                      .core_id = 1,
+                                  },
+                              .log_level = espp::Logger::Verbosity::DEBUG});
+    //! [timer advanced config example]
+    std::this_thread::sleep_for(num_seconds_to_run * 1s);
+  }
+
   // high resolution timer example
   {
     logger.info("Starting high resolution timer example");
