@@ -6,7 +6,11 @@
 #include <string_view>
 #include <vector>
 
+#if defined(ESP_PLATFORM)
 #include <esp_random.h>
+#else
+#include <random>
+#endif
 
 namespace espp {
 /**
@@ -381,7 +385,15 @@ public:
     // Handover request requires a collision resolution record, so we'll just
     // add collision resolution record which contains a random number.
 
-    uint16_t random_number = esp_random() & 0xFFFF;
+    uint16_t random_number = 0;
+#if defined(ESP_PLATFORM)
+    random_number = esp_random() & 0xFFFF;
+#else
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<int16_t> dis(0, std::numeric_limits<int16_t>::max());
+    random_number = dis(gen);
+#endif
     Ndef collision_resolution_record = make_collision_resolution_record(random_number);
     auto collision_resolution_data = collision_resolution_record.serialize(true, false);
     _payload.insert(_payload.end(), collision_resolution_data.begin(),
