@@ -214,9 +214,9 @@ bool RtspClient::parse_response(const std::string &response_data, std::error_cod
   //   std::regex response_regex("RTSP/1.0 (\\d+) (.*)\r\n(.*)\r\n\r\n");
   // parse the response but don't use regex since it may be slow on embedded platforms
   // make sure it matches the expected response format
-  if (response_data.starts_with("RTSP/1.0") != 0) {
+  if (!response_data.starts_with("RTSP/1.0")) {
     ec = std::make_error_code(std::errc::protocol_error);
-    logger_.error("Invalid response");
+    logger_.error("Invalid response: '{}'", response_data);
     return false;
   }
   // parse the status code and message
