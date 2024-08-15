@@ -117,8 +117,6 @@ void Task::notify_and_join() {
     thread_.join();
 #if defined(ESP_PLATFORM)
     task_handle_ = nullptr;
-#else
-    task_handle_ = std::thread::id();
 #endif
   }
 }
@@ -142,7 +140,9 @@ std::string Task::get_info(const Task &task) {
 #endif
 
 void Task::thread_function() {
+#if defined(ESP_PLATFORM)
   task_handle_ = get_current_id();
+#endif
   while (started_) {
     if (callback_) {
       bool should_stop = callback_(cv_m_, cv_);

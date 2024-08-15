@@ -244,7 +244,11 @@ public:
    * @return ID for this Task's thread / task context.
    */
   task_id_t get_id() const {
+    #if defined(ESP_PLATFORM)
     return task_handle_;
+    #else
+    return thread_.get_id();
+    #endif
   }
 
   /**
@@ -284,7 +288,9 @@ protected:
   std::mutex cv_m_;
   std::mutex thread_mutex_;
   std::thread thread_;
+  #if defined(ESP_PLATFORM)
   task_id_t task_handle_;
+  #endif
 };
 } // namespace espp
 
