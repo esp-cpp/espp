@@ -115,6 +115,11 @@ void Task::notify_and_join() {
   std::lock_guard<std::mutex> lock(thread_mutex_);
   if (thread_.joinable() && current_id != thread_id) {
     thread_.join();
+#if defined(ESP_PLATFORM)
+    task_handle_ = nullptr;
+#else
+    task_handle_ = std::thread::id();
+#endif
   }
 }
 
@@ -129,7 +134,7 @@ std::string Task::get_info() {
 }
 
 std::string Task::get_info(const Task &task) {
-  TaskHandle_t freertos_handle = xTaskGetHandle(task.name_.c_str());
+  TaskHandle_t freertos_handle = task.get_id();
   return fmt::format("[T] '{}',{},{},{}\n", pcTaskGetName(freertos_handle), xPortGetCoreID(),
                      uxTaskPriorityGet(freertos_handle),
                      uxTaskGetStackHighWaterMark(freertos_handle));

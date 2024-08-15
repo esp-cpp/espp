@@ -237,7 +237,7 @@ public:
    * @brief Get the ID for this Task's thread / task context.
    * @return ID for this Task's thread / task context.
    */
-  auto get_id() {
+  auto get_id() const {
     return task_handle_;
   }
 

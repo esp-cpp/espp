@@ -367,7 +367,8 @@ extern "C" void app_main(void) {
     task.start();
     auto stop_fn = [&task]() {
       std::this_thread::sleep_for(1s);
-      auto thread = xTaskGetCurrentTaskHandle();
+      // NOTE: on ESP-IDF, this is the same as xTaskGetCurrentTaskHandle();
+      auto thread = espp::Task::get_current_id();
       fmt::print("Stopping task from thread {}...\n", fmt::ptr(thread));
       task.stop();
     };
