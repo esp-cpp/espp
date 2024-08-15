@@ -108,11 +108,16 @@ void Task::notify_and_join() {
     std::lock_guard<std::mutex> lock(cv_m_);
     cv_.notify_all();
   }
-  {
-    std::lock_guard<std::mutex> lock(thread_mutex_);
-    if (thread_.joinable()) {
-      thread_.join();
-    }
+  auto thread_id = get_id();
+  auto current_id = get_current_id();
+  logger_.debug("Thread id: {}, current id: {}", thread_id, current_id);
+  // check to ensure we're not the same thread
+  std::lock_guard<std::mutex> lock(thread_mutex_);
+  if (thread_.joinable() && current_id != thread_id) {
+    thread_.join();
+#if defined(ESP_PLATFORM)
+    task_handle_ = nullptr;
+#endif
   }
 }
 
@@ -127,7 +132,7 @@ std::string Task::get_info() {
 }
 
 std::string Task::get_info(const Task &task) {
-  TaskHandle_t freertos_handle = xTaskGetHandle(task.name_.c_str());
+  TaskHandle_t freertos_handle = static_cast<TaskHandle_t>(task.get_id());
   return fmt::format("[T] '{}',{},{},{}\n", pcTaskGetName(freertos_handle), xPortGetCoreID(),
                      uxTaskPriorityGet(freertos_handle),
                      uxTaskGetStackHighWaterMark(freertos_handle));
@@ -135,6 +140,9 @@ std::string Task::get_info(const Task &task) {
 #endif
 
 void Task::thread_function() {
+#if defined(ESP_PLATFORM)
+  task_handle_ = get_current_id();
+#endif
   while (started_) {
     if (callback_) {
       bool should_stop = callback_(cv_m_, cv_);

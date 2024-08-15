@@ -44,6 +44,12 @@ namespace espp {
  */
 class Task : public espp::BaseComponent {
 public:
+  #if defined(ESP_PLATFORM)
+  typedef void* task_id_t;
+  #else
+  typedef std::thread::id task_id_t;
+  #endif
+
   /**
    * @brief Task callback function signature.
    *
@@ -191,10 +197,12 @@ public:
   bool start();
 
   /**
-   * @brief Stop the task execution, blocking until it stops.
-   *
+   * @brief Stop the task execution.
+   * @details This will request the task to stop, notify the condition variable,
+   *          and (if this calling context is not the task context) join the
+   *          thread.
    * @return true if the task stopped, false if it was not started / already
-   * stopped.
+   *         stopped.
    */
   bool stop();
 
@@ -231,6 +239,30 @@ public:
   static std::string get_info(const Task &task);
 #endif
 
+  /**
+   * @brief Get the ID for this Task's thread / task context.
+   * @return ID for this Task's thread / task context.
+   */
+  task_id_t get_id() const {
+    #if defined(ESP_PLATFORM)
+    return task_handle_;
+    #else
+    return thread_.get_id();
+    #endif
+  }
+
+  /**
+   * @brief Get the ID for the current thread / task context.
+   * @return ID for the current thread / task context.
+   */
+  static task_id_t get_current_id() {
+    #if defined(ESP_PLATFORM)
+    return static_cast<task_id_t>(xTaskGetCurrentTaskHandle());
+    #else
+    return std::this_thread::get_id();
+    #endif
+  }
+
 protected:
   /**
    * @brief Function that is run in the task thread.
@@ -256,6 +288,9 @@ protected:
   std::mutex cv_m_;
   std::mutex thread_mutex_;
   std::thread thread_;
+  #if defined(ESP_PLATFORM)
+  task_id_t task_handle_;
+  #endif
 };
 } // namespace espp
 
