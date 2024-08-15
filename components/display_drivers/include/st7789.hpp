@@ -188,10 +188,9 @@ public:
    * @param rotation New display rotation.
    */
   static void rotate(const DisplayRotation &rotation) {
-    uint8_t data = 0;
+    uint8_t data = 0b00001000;
     switch (rotation) {
     case DisplayRotation::LANDSCAPE:
-      data = 0x00;
       break;
     case DisplayRotation::PORTRAIT:
       data |= LCD_CMD_MV_BIT | LCD_CMD_MX_BIT;
