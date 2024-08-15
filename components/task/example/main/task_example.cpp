@@ -387,6 +387,47 @@ extern "C" void app_main(void) {
     //! [Task Request Stop From Multiple Threads example]
   }
 
+  /**
+    * Show an example of a task which calls stop on itself from within the task
+    */
+  test_start = std::chrono::high_resolution_clock::now();
+  {
+    fmt::print("Task Request Stop From Within Task example\n");
+    //! [Task Request Stop From Within Task example]
+    espp::Task task = espp::Task({.name = "Self Stopping Task",
+                            .callback =
+          [&num_seconds_to_run, &task](std::mutex &m, std::condition_variable &cv) {
+            static auto begin = std::chrono::high_resolution_clock::now();
+            auto now = std::chrono::high_resolution_clock::now();
+            auto elapsed = std::chrono::duration<float>(now - begin).count();
+            fmt::print("Task has run for {:.03f} seconds\n", elapsed);
+            // NOTE: sleeping in this way allows the sleep to exit early when the
+            // task is being stopped / destroyed
+            {
+              std::unique_lock<std::mutex> lk(m);
+              cv.wait_for(lk, 100ms);
+            }
+            if (elapsed > num_seconds_to_run) {
+              fmt::print("Stopping task from within task...\n");
+              task.stop();
+            }
+            // do some other work here which can't be preempted, this helps force the
+            // stopping threads to try to contend on the thread join within the stop
+            // call
+            std::this_thread::sleep_for(50ms);
+            // we don't want to stop yet, so return false
+            return false;
+          },
+
+                            .log_level = espp::Logger::Verbosity::DEBUG});
+    task.start();
+    while (task.is_started()) {
+      std::this_thread::sleep_for(50ms);
+    }
+    fmt::print("Task successfully stopped by itself!\n");
+    //! [Task Request Stop From Within Task example]
+  }
+
   {
     //! [run on core example]
     fmt::print("Example main running on core {}\n", xPortGetCoreID());

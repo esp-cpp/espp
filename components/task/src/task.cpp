@@ -108,11 +108,13 @@ void Task::notify_and_join() {
     std::lock_guard<std::mutex> lock(cv_m_);
     cv_.notify_all();
   }
-  {
-    std::lock_guard<std::mutex> lock(thread_mutex_);
-    if (thread_.joinable()) {
-      thread_.join();
-    }
+  auto thread_id = get_id();
+  auto current_id = get_current_id();
+  logger_.debug("Thread id: {}, current id: {}", fmt::ptr(thread_id), fmt::ptr(current_id));
+  // check to ensure we're not the same thread
+  std::lock_guard<std::mutex> lock(thread_mutex_);
+  if (thread_.joinable() && current_id != thread_id) {
+    thread_.join();
   }
 }
 
@@ -135,6 +137,7 @@ std::string Task::get_info(const Task &task) {
 #endif
 
 void Task::thread_function() {
+  task_handle_ = get_current_id();
   while (started_) {
     if (callback_) {
       bool should_stop = callback_(cv_m_, cv_);
