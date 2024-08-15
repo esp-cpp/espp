@@ -44,6 +44,12 @@ namespace espp {
  */
 class Task : public espp::BaseComponent {
 public:
+  #if defined(ESP_PLATFORM)
+  typedef void* task_id_t;
+  #else
+  typedef std::thread::id task_id_t;
+  #endif
+
   /**
    * @brief Task callback function signature.
    *
@@ -237,7 +243,7 @@ public:
    * @brief Get the ID for this Task's thread / task context.
    * @return ID for this Task's thread / task context.
    */
-  auto get_id() const {
+  task_id_t get_id() const {
     return task_handle_;
   }
 
@@ -245,9 +251,9 @@ public:
    * @brief Get the ID for the current thread / task context.
    * @return ID for the current thread / task context.
    */
-  static auto get_current_id() {
+  static task_id_t get_current_id() {
     #if defined(ESP_PLATFORM)
-    return (TaskHandle_t)xTaskGetCurrentTaskHandle();
+    return static_cast<task_id_t>(xTaskGetCurrentTaskHandle());
     #else
     return std::this_thread::get_id();
     #endif
@@ -278,11 +284,7 @@ protected:
   std::mutex cv_m_;
   std::mutex thread_mutex_;
   std::thread thread_;
-  #if defined(ESP_PLATFORM)
-  TaskHandle_t task_handle_{nullptr};
-  #else
-  std::thread::id task_handle_;
-  #endif
+  task_id_t task_handle_;
 };
 } // namespace espp
 

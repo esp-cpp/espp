@@ -110,11 +110,7 @@ void Task::notify_and_join() {
   }
   auto thread_id = get_id();
   auto current_id = get_current_id();
-#if defined(ESP_PLATFORM)
-  logger_.debug("Thread id: {}, current id: {}", fmt::ptr(thread_id), fmt::ptr(current_id));
-#else
   logger_.debug("Thread id: {}, current id: {}", thread_id, current_id);
-#endif
   // check to ensure we're not the same thread
   std::lock_guard<std::mutex> lock(thread_mutex_);
   if (thread_.joinable() && current_id != thread_id) {
@@ -138,7 +134,7 @@ std::string Task::get_info() {
 }
 
 std::string Task::get_info(const Task &task) {
-  TaskHandle_t freertos_handle = task.get_id();
+  TaskHandle_t freertos_handle = static_cast<TaskHandle_t>(task.get_id());
   return fmt::format("[T] '{}',{},{},{}\n", pcTaskGetName(freertos_handle), xPortGetCoreID(),
                      uxTaskPriorityGet(freertos_handle),
                      uxTaskGetStackHighWaterMark(freertos_handle));
