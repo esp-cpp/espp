@@ -101,6 +101,8 @@ public:
     dc_pin_ = config.data_command_pin;
     offset_x_ = config.offset_x;
     offset_y_ = config.offset_y;
+    mirror_x_ = config.mirror_x;
+    mirror_y_ = config.mirror_y;
     swap_xy_ = config.swap_xy;
 
     // Initialize display pins
@@ -163,10 +165,10 @@ public:
     };
 
     // NOTE: these configurations operates on the MADCTL command / register
-    if (config.mirror_x) {
+    if (mirror_x_) {
       gc_init_cmds[18].data[0] |= LCD_CMD_MX_BIT;
     }
-    if (config.mirror_y) {
+    if (mirror_y_) {
       gc_init_cmds[18].data[0] |= LCD_CMD_MY_BIT;
     }
     if (swap_xy_) {
@@ -190,22 +192,30 @@ public:
    */
   static void rotate(const DisplayRotation &rotation) {
     uint8_t data = 0;
-    switch (rotation) {
-    case DisplayRotation::LANDSCAPE:
-      data = 0x00;
-      break;
-    case DisplayRotation::PORTRAIT:
-      data |= LCD_CMD_MV_BIT | LCD_CMD_MX_BIT;
-      break;
-    case DisplayRotation::LANDSCAPE_INVERTED:
-      data |= LCD_CMD_MX_BIT | LCD_CMD_MY_BIT;
-      break;
-    case DisplayRotation::PORTRAIT_INVERTED:
-      data |= LCD_CMD_MV_BIT | LCD_CMD_MY_BIT;
-      break;
+    if (mirror_x_) {
+      data |= LCD_CMD_MX_BIT;
+    }
+    if (mirror_y_) {
+      data |= LCD_CMD_MY_BIT;
     }
     if (swap_xy_) {
       data |= LCD_CMD_MV_BIT;
+    }
+    switch (rotation) {
+    case DisplayRotation::LANDSCAPE:
+      break;
+    case DisplayRotation::PORTRAIT:
+      // flip the mx and mv bits (xor)
+      data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      break;
+    case DisplayRotation::LANDSCAPE_INVERTED:
+      // flip the my and mx bits (xor)
+      data ^= (LCD_CMD_MY_BIT | LCD_CMD_MX_BIT);
+      break;
+    case DisplayRotation::PORTRAIT_INVERTED:
+      // flip the my and mv bits (xor)
+      data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      break;
     }
     std::scoped_lock lock{spi_mutex_};
     send_command(Command::madctl);
@@ -395,6 +405,8 @@ protected:
   static gpio_num_t dc_pin_;
   static int offset_x_;
   static int offset_y_;
+  static bool mirror_x_;
+  static bool mirror_y_;
   static bool swap_xy_;
   static std::mutex spi_mutex_;
 };
