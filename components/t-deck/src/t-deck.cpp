@@ -148,7 +148,7 @@ TDeck::TouchpadData TDeck::touchpad_convert(const TDeck::TouchpadData &data) con
   case LV_DISPLAY_ROTATION_0:
     break;
   case LV_DISPLAY_ROTATION_90:
-    temp_data.y = lcd_height_ - (temp_data.y + 1);
+    temp_data.x = lcd_width_ - (temp_data.x + 1);
     std::swap(temp_data.x, temp_data.y);
     break;
   case LV_DISPLAY_ROTATION_180:
@@ -156,7 +156,7 @@ TDeck::TouchpadData TDeck::touchpad_convert(const TDeck::TouchpadData &data) con
     temp_data.y = lcd_height_ - (temp_data.y + 1);
     break;
   case LV_DISPLAY_ROTATION_270:
-    temp_data.x = lcd_width_ - (temp_data.x + 1);
+    temp_data.y = lcd_height_ - (temp_data.y + 1);
     std::swap(temp_data.x, temp_data.y);
     break;
   default:
