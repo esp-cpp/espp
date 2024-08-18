@@ -355,6 +355,7 @@ protected:
   static constexpr bool mirror_x = true;
   static constexpr bool mirror_y = true;
   static constexpr bool swap_xy = false;
+  static constexpr bool swap_color_order = true;
 
   // touch
   static constexpr bool touch_swap_xy = false;

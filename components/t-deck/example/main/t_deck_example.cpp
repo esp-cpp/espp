@@ -26,6 +26,12 @@ extern "C" void app_main(void) {
     if (key == 8) {
       std::lock_guard<std::mutex> lock(lvgl_mutex);
       clear_circles();
+    } else if (key == ' ') {
+      clear_circles();
+      static auto rotation = LV_DISPLAY_ROTATION_0;
+      rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+      lv_display_t *disp = _lv_refr_get_disp_refreshing();
+      lv_disp_set_rotation(disp, rotation);
     }
   };
 
@@ -78,7 +84,7 @@ extern "C" void app_main(void) {
 
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_screen_active());
-  lv_label_set_text(label, "Touch the screen!\nPress the delete key to clear circles.");
+  lv_label_set_text(label, "Touch the screen!\nPress the delete key to clear circles.\nPress the space key to rotate the display.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
@@ -93,11 +99,6 @@ extern "C" void app_main(void) {
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(btn, [](auto event) {
     fmt::print("ROTATE Button pressed!\n");
-    clear_circles();
-    static auto rotation = LV_DISPLAY_ROTATION_0;
-    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-    lv_display_t *disp = _lv_refr_get_disp_refreshing();
-    lv_disp_set_rotation(disp, rotation);
   }, LV_EVENT_PRESSED, nullptr);
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when

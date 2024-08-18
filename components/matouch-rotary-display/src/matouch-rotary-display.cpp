@@ -275,6 +275,7 @@ bool MatouchRotaryDisplay::initialize_lcd() {
       .data_command_pin = lcd_dc_io,
       .reset_value = reset_value,
       .invert_colors = invert_colors,
+      .swap_color_order = swap_color_order,
       .mirror_x = mirror_x,
       .mirror_y = mirror_y});
   return true;

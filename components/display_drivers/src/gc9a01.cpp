@@ -9,4 +9,5 @@ int espp::Gc9a01::offset_y_;
 bool espp::Gc9a01::mirror_x_ = false;
 bool espp::Gc9a01::mirror_y_ = false;
 bool espp::Gc9a01::swap_xy_ = false;
+bool espp::Gc9a01::swap_color_order_ = false;
 std::mutex espp::Gc9a01::spi_mutex_;

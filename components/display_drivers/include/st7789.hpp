@@ -125,9 +125,24 @@ public:
     mirror_x_ = config.mirror_x;
     mirror_y_ = config.mirror_y;
     swap_xy_ = config.swap_xy;
+    swap_color_order_ = config.swap_color_order;
 
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
+
+    uint8_t madctl = 0;
+    if (mirror_x_) {
+      madctl |= LCD_CMD_MX_BIT;
+    }
+    if (mirror_y_) {
+      madctl |= LCD_CMD_MY_BIT;
+    }
+    if (swap_xy_) {
+      madctl |= LCD_CMD_MV_BIT;
+    }
+    if (swap_color_order_) {
+      madctl |= LCD_CMD_BGR_BIT;
+    }
 
     // set up the init commands
     display_drivers::LcdInitCmd st_init_cmds[] = {
@@ -141,7 +156,7 @@ public:
         {(uint8_t)Command::idset, {0x11}, 1},
         {(uint8_t)Command::vcmofset, {0x35, 0x3E}, 2},
         {(uint8_t)Command::cabcctrl, {0xBE}, 1},
-        {(uint8_t)Command::madctl, {0b00001000}, 1}, // D3 sets BGR mode instead of RGB
+        {(uint8_t)Command::madctl, {madctl}, 1},
         {(uint8_t)Command::colmod, {0x55}, 1},
         {(uint8_t)Command::invon, {0}, 0},
         {(uint8_t)Command::rgbctrl, {0x00, 0x1B}, 2},
@@ -162,16 +177,6 @@ public:
         {(uint8_t)Command::dispon, {0}, 0x80},
         {0, {0}, 0xff},
     };
-    // NOTE: these configurations operates on the MADCTL command / register
-    if (mirror_x_) {
-      st_init_cmds[10].data[0] |= LCD_CMD_MX_BIT;
-    }
-    if (mirror_y_) {
-      st_init_cmds[10].data[0] |= LCD_CMD_MY_BIT;
-    }
-    if (swap_xy_) {
-      st_init_cmds[10].data[0] |= LCD_CMD_MV_BIT;
-    }
 
     // NOTE: ST7789 setting the reverse color is the normal color so we inver
     // the logic here.
@@ -190,7 +195,10 @@ public:
    * @param rotation New display rotation.
    */
   static void rotate(const DisplayRotation &rotation) {
-    uint8_t data = 0b00001000;
+    uint8_t data = 0;
+    if (swap_color_order_) {
+      data |= LCD_CMD_BGR_BIT;
+    }
     if (mirror_x_) {
       data |= LCD_CMD_MX_BIT;
     }
@@ -407,6 +415,7 @@ protected:
   static bool mirror_x_;
   static bool mirror_y_;
   static bool swap_xy_;
+  static bool swap_color_order_;
   static std::mutex spi_mutex_;
 };
 } // namespace espp

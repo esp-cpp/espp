@@ -9,4 +9,5 @@ int espp::St7789::offset_y_;
 bool espp::St7789::mirror_x_ = false;
 bool espp::St7789::mirror_y_ = false;
 bool espp::St7789::swap_xy_ = false;
+bool espp::St7789::swap_color_order_ = false;
 std::mutex espp::St7789::spi_mutex_;

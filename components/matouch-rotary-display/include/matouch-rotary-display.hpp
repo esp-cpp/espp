@@ -276,6 +276,7 @@ protected:
   static constexpr bool backlight_value = true;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = true;
+  static constexpr bool swap_color_order = true;
   static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = false;

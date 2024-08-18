@@ -104,9 +104,24 @@ public:
     mirror_x_ = config.mirror_x;
     mirror_y_ = config.mirror_y;
     swap_xy_ = config.swap_xy;
+    swap_color_order_ = config.swap_color_order;
 
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
+
+    uint8_t madctl = 0;
+    if (mirror_x_) {
+      madctl |= LCD_CMD_MX_BIT;
+    }
+    if (mirror_y_) {
+      madctl |= LCD_CMD_MY_BIT;
+    }
+    if (swap_xy_) {
+      madctl |= LCD_CMD_MV_BIT;
+    }
+    if (swap_color_order_) {
+      madctl |= LCD_CMD_BGR_BIT;
+    }
 
     // init the display
     display_drivers::LcdInitCmd gc_init_cmds[] = {
@@ -129,7 +144,7 @@ public:
         {0x8F, {0xFF}, 1},
         {0xB6, {0x00, 0x20}, 2},
         // call orientation
-        {0x36, {0x00}, 1},
+        {0x36, {madctl}, 1},
         {0x3A, {0x05}, 1},
         {0x90, {0x08, 0x08, 0X08, 0X08}, 4},
         {0xBD, {0x06}, 1},
@@ -164,17 +179,6 @@ public:
         {0, {0}, 0xff},
     };
 
-    // NOTE: these configurations operates on the MADCTL command / register
-    if (mirror_x_) {
-      gc_init_cmds[18].data[0] |= LCD_CMD_MX_BIT;
-    }
-    if (mirror_y_) {
-      gc_init_cmds[18].data[0] |= LCD_CMD_MY_BIT;
-    }
-    if (swap_xy_) {
-      gc_init_cmds[18].data[0] |= LCD_CMD_MV_BIT;
-    }
-
     // send the init commands
     send_commands(gc_init_cmds);
 
@@ -191,7 +195,10 @@ public:
    * @param rotation New display rotation.
    */
   static void rotate(const DisplayRotation &rotation) {
-    uint8_t data = 0b1000; // set the color ordering bit
+    uint8_t data = 0;
+    if (swap_color_order_) {
+      data |= LCD_CMD_BGR_BIT;
+    }
     if (mirror_x_) {
       data |= LCD_CMD_MX_BIT;
     }
@@ -408,6 +415,7 @@ protected:
   static bool mirror_x_;
   static bool mirror_y_;
   static bool swap_xy_;
+  static bool swap_color_order_;
   static std::mutex spi_mutex_;
 };
 } // namespace espp
