@@ -21,6 +21,8 @@ extern "C" void app_main(void) {
   espp::TDeck &tdeck = espp::TDeck::get();
   tdeck.set_log_level(espp::Logger::Verbosity::INFO);
 
+  static auto rotation = LV_DISPLAY_ROTATION_0;
+
   auto keypress_callback = [&](uint8_t key) {
     logger.info("Key pressed: {}", key);
     if (key == 8) {
@@ -29,7 +31,6 @@ extern "C" void app_main(void) {
     } else if (key == ' ') {
       std::lock_guard<std::mutex> lock(lvgl_mutex);
       clear_circles();
-      static auto rotation = LV_DISPLAY_ROTATION_0;
       rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
       lv_display_t *disp = _lv_refr_get_disp_refreshing();
       lv_disp_set_rotation(disp, rotation);
@@ -100,6 +101,11 @@ extern "C" void app_main(void) {
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(btn, [](auto event) {
     fmt::print("Button pressed!\n");
+    std::lock_guard<std::mutex> lock(lvgl_mutex);
+    clear_circles();
+    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+    lv_display_t *disp = _lv_refr_get_disp_refreshing();
+    lv_disp_set_rotation(disp, rotation);
   }, LV_EVENT_PRESSED, nullptr);
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
