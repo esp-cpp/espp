@@ -11,7 +11,7 @@ static constexpr size_t MAX_CIRCLES = 100;
 static std::deque<lv_obj_t *> circles;
 static std::vector<uint8_t> audio_bytes;
 
-static std::mutex lvgl_mutex;
+static std::recursive_mutex lvgl_mutex;
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
 
@@ -39,13 +39,13 @@ extern "C" void app_main(void) {
       previous_touchpad_data = touchpad_data;
       // if the button is pressed, clear the circles
       if (touchpad_data.btn_state) {
-        std::lock_guard<std::mutex> lock(lvgl_mutex);
+        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
         clear_circles();
       }
       // if there is a touch point, draw a circle and play a click sound
       if (touchpad_data.num_touch_points > 0) {
         play_click(box);
-        std::lock_guard<std::mutex> lock(lvgl_mutex);
+        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
         draw_circle(touchpad_data.x, touchpad_data.y, 10);
       }
     }
@@ -101,7 +101,7 @@ extern "C" void app_main(void) {
   // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(btn, [](auto event) {
-    std::lock_guard<std::mutex> lock(lvgl_mutex);
+    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
     clear_circles();
     static auto rotation = LV_DISPLAY_ROTATION_0;
     rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
@@ -117,7 +117,7 @@ extern "C" void app_main(void) {
   // start a simple thread to do the lv_task_handler every 16ms
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
                         {
-                          std::lock_guard<std::mutex> lock(lvgl_mutex);
+                          std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
                           lv_task_handler();
                         }
                         std::unique_lock<std::mutex> lock(m);
@@ -158,6 +158,9 @@ static void draw_circle(int x0, int y0, int radius) {
   lv_obj_set_size(my_Cir, radius * 2, radius * 2);
   lv_obj_set_pos(my_Cir, x0 - radius, y0 - radius);
   lv_obj_set_style_radius(my_Cir, LV_RADIUS_CIRCLE, 0);
+  // ensure the circle ignores touch events (so things behind it can still be
+  // interacted with)
+  lv_obj_clear_flag(my_Cir, LV_OBJ_FLAG_CLICKABLE);
   circles.push_back(my_Cir);
 }
 
