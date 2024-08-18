@@ -92,6 +92,28 @@ extern "C" void app_main(void) {
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
+  // add a button in the top left which (when pressed) will rotate the display
+  // through 0, 90, 180, 270 degrees
+  lv_obj_t *btn = lv_btn_create(lv_screen_active());
+  lv_obj_set_size(btn, 50, 50);
+  lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 0);
+  lv_obj_t *label_btn = lv_label_create(btn);
+  lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
+  // center the text in the button
+  lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_add_event_cb(btn, [](auto event) {
+    clear_circles();
+    static auto rotation = LV_DISPLAY_ROTATION_0;
+    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+    lv_display_t *disp = _lv_refr_get_disp_refreshing();
+    lv_disp_set_rotation(disp, rotation);
+  }, LV_EVENT_PRESSED, nullptr);
+
+  // disable scrolling on the screen (so that it doesn't behave weirdly when
+  // rotated and drawing with your finger)
+  lv_obj_set_scrollbar_mode(lv_screen_active(), LV_SCROLLBAR_MODE_OFF);
+  lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
+
   // start a simple thread to do the lv_task_handler every 16ms
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
                         {
