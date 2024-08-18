@@ -205,7 +205,7 @@ public:
       break;
     case DisplayRotation::PORTRAIT:
       // flip the mx and mv bits (xor)
-      data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
       break;
     case DisplayRotation::LANDSCAPE_INVERTED:
       // flip the my and mx bits (xor)
@@ -213,7 +213,7 @@ public:
       break;
     case DisplayRotation::PORTRAIT_INVERTED:
       // flip the my and mv bits (xor)
-      data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
       break;
     }
     std::scoped_lock lock{spi_mutex_};
