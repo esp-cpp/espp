@@ -1,0 +1,10 @@
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/logger:
+    version: '>=0.14.1'
+description: A C++ base component class for ESP-IDF
+documentation: https://esp-cpp.github.io/espp/base_component.html
+repository: git://github.com/esp-cpp/espp.git
+url: https://github.com/esp-cpp/espp/tree/main/components/base_component
+version: 0.14.1
