@@ -100,7 +100,6 @@ extern "C" void app_main(void) {
   // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(btn, [](auto event) {
-    fmt::print("Button pressed!\n");
     std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
     clear_circles();
     rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
