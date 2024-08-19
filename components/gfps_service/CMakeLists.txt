@@ -1,6 +1,6 @@
 idf_component_register(
-  INCLUDE_DIRS "../../external/nearby/embedded/client/source" "../../external/nearby/embedded/common/source" "../../external/nearby/embedded/common/target" "include"
-  SRC_DIRS "../../external/nearby/embedded/client/source" "../../external/nearby/embedded/common/source" "../../external/nearby/embedded/common/source/mbedtls" "src"
+  INCLUDE_DIRS "detail/nearby/embedded/client/source" "detail/nearby/embedded/common/source" "detail/nearby/embedded/common/target" "include"
+  SRC_DIRS "detail/nearby/embedded/client/source" "detail/nearby/embedded/common/source" "detail/nearby/embedded/common/source/mbedtls" "src"
   REQUIRES "esp_hw_support" "esp-nimble-cpp" "mbedtls" "nvs_flash" "logger" "task" "timer" "base_component"
 )
 

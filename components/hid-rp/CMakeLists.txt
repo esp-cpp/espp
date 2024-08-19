@@ -1,3 +1,3 @@
 idf_component_register(
-  INCLUDE_DIRS "include" "../../external/hid-rp/hid-rp"
+  INCLUDE_DIRS "include" "detail/hid-rp/hid-rp"
 )
