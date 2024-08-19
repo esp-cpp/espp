@@ -315,9 +315,10 @@ protected:
       .gpio_num = touch_interrupt,
       .callback =
           [this](const auto &event) {
-            update_cst816();
-            if (touch_callback_) {
-              touch_callback_(touchpad_data());
+            if (update_cst816()) {
+              if (touch_callback_) {
+                touch_callback_(touchpad_data());
+              }
             }
           },
       .active_level = espp::Interrupt::ActiveLevel::HIGH,

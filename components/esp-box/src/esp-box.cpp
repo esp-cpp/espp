@@ -131,8 +131,6 @@ bool EspBox::update_gt911() {
     return false;
   }
   if (!new_data) {
-    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
-    touchpad_data_ = {};
     return false;
   }
   // get the latest data from the touchpad
@@ -160,8 +158,6 @@ bool EspBox::update_tt21100() {
     return false;
   }
   if (!new_data) {
-    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
-    touchpad_data_ = {};
     return false;
   }
   // get the latest data from the touchpad

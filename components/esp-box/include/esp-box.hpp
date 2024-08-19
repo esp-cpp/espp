@@ -392,9 +392,10 @@ protected:
   // detect(), since it depends on the box type
   espp::Interrupt::PinConfig touch_interrupt_pin_{.gpio_num = touch_interrupt,
                                                   .callback = [this](const auto &event) {
-                                                    update_touch();
-                                                    if (touch_callback_) {
-                                                      touch_callback_(touchpad_data());
+                                                    if (update_touch()) {
+                                                      if (touch_callback_) {
+                                                        touch_callback_(touchpad_data());
+                                                      }
                                                     }
                                                   },
     .active_level = touch_interrupt_level,
