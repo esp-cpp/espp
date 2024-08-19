@@ -57,6 +57,8 @@ public:
   using keypress_callback_t = TKeyboard::key_cb_fn;
   using touch_callback_t = std::function<void(const TouchpadData &)>;
 
+  typedef std::function<void(bool up, bool down, bool left, bool right, bool btn)> trackball_callback_t;
+
   /// @brief Access the singleton instance of the TDeck class
   /// @return Reference to the singleton instance of the TDeck class
   static TDeck &get() {
@@ -125,6 +127,41 @@ public:
   ///       and is connected to the main esp32s3, however the default firmware
   ///       on the keyboard does not use this pin
   static constexpr auto keyboard_interrupt() { return keyboard_interrupt_io; }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Trackball
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the trackball
+  /// \param trackball_cb The trackball callback function, called when the
+  ///        trackball is moved if not null
+  /// \return true if the trackball was successfully initialized, false otherwise
+  /// \note The trackball has an interrupt pin connected from it to the main
+  ///       esp32s3. This pin is used to detect when the trackball is moved.
+  ///       The trackball callback function is called when the trackball is
+  ///       moved.
+  /// \see trackball()
+  bool initialize_trackball(const trackball_callback_t &trackball_cb = nullptr);
+
+  /// Get the GPIO pin for the trackball up button
+  /// \return The GPIO pin for the trackball up button
+  static constexpr auto trackball_up_gpio() { return trackball_up; }
+
+  /// Get the GPIO pin for the trackball down button
+  /// \return The GPIO pin for the trackball down button
+  static constexpr auto trackball_down_gpio() { return trackball_down; }
+
+  /// Get the GPIO pin for the trackball left button
+  /// \return The GPIO pin for the trackball left button
+  static constexpr auto trackball_left_gpio() { return trackball_left; }
+
+  /// Get the GPIO pin for the trackball right button
+  /// \return The GPIO pin for the trackball right button
+  static constexpr auto trackball_right_gpio() { return trackball_right; }
+
+  /// Get the GPIO pin for the trackball button
+  /// \return The GPIO pin for the trackball button
+  static constexpr auto trackball_btn_gpio() { return trackball_btn; }
 
   /////////////////////////////////////////////////////////////////////////////
   // Touchpad
@@ -312,6 +349,19 @@ protected:
   static constexpr bool touch_invert_y = true;
   static constexpr gpio_num_t touch_interrupt = GPIO_NUM_16;
 
+  // trackball
+  static constexpr gpio_num_t trackball_up = GPIO_NUM_2;
+  static constexpr gpio_num_t trackball_down = GPIO_NUM_3;
+  static constexpr gpio_num_t trackball_left = GPIO_NUM_1;
+  static constexpr gpio_num_t trackball_right = GPIO_NUM_15;
+  static constexpr gpio_num_t trackball_btn = GPIO_NUM_0;
+
+  // uSD card
+  static constexpr gpio_num_t sdcard_cs = GPIO_NUM_39;
+  static constexpr gpio_num_t sdcard_mosi = GPIO_NUM_41;
+  static constexpr gpio_num_t sdcard_miso = GPIO_NUM_38;
+  static constexpr gpio_num_t sdcard_sclk = GPIO_NUM_40;
+
   // TODO: allow core id configuration
   I2c internal_i2c_{{.port = internal_i2c_port,
                      .sda_io_num = internal_i2c_sda,
@@ -331,6 +381,49 @@ protected:
           },
       .active_level = espp::Interrupt::ActiveLevel::HIGH,
       .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+
+  void on_trackball_interrupt(const auto &event) {
+    // read the current state of the trackball inputs
+    bool up = gpio_get_level(trackball_up);
+    bool down = gpio_get_level(trackball_down);
+    bool left = gpio_get_level(trackball_left);
+    bool right = gpio_get_level(trackball_right);
+    bool btn = gpio_get_level(trackball_btn);
+    if (trackball_callback_) {
+      trackball_callback_(up, down, left, right, btn);
+    }
+  }
+
+  espp::Interrupt::PinConfig trackball_up_interrupt_pin{
+      .gpio_num = trackball_up,
+      .callback = [this](const auto &event) { on_trackball_interrupt(event); },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+  };
+  espp::Interrupt::PinConfig trackball_down_interrupt_pin{
+      .gpio_num = trackball_down,
+      .callback = [this](const auto &event) { on_trackball_interrupt(event); },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+  };
+  espp::Interrupt::PinConfig trackball_left_interrupt_pin{
+      .gpio_num = trackball_left,
+      .callback = [this](const auto &event) { on_trackball_interrupt(event); },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+  };
+  espp::Interrupt::PinConfig trackball_right_interrupt_pin{
+      .gpio_num = trackball_right,
+      .callback = [this](const auto &event) { on_trackball_interrupt(event); },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+  };
+  espp::Interrupt::PinConfig trackball_btn_interrupt_pin{
+      .gpio_num = trackball_btn,
+      .callback = [this](const auto &event) { on_trackball_interrupt(event); },
+      .active_level = espp::Interrupt::ActiveLevel::HIGH,
+      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+  };
 
   // we'll only add each interrupt pin if the initialize method is called
   espp::Interrupt interrupts_{
