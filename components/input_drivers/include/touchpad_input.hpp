@@ -108,7 +108,7 @@ protected:
         x = screen_size_x_ - (x + 1);
       }
       if (invert_y_) {
-        y = screen_size_y_ - (x + 1);
+        y = screen_size_y_ - (y + 1);
       }
       data->point.x = x;
       data->point.y = y;
@@ -129,24 +129,24 @@ protected:
   void init() {
     using namespace std::placeholders;
     logger_.info("Add TP input device to LVGL");
-    indev_tp_ = lv_indev_create();
-    if (!indev_tp_) {
+    indev_touchpad_ = lv_indev_create();
+    if (!indev_touchpad_) {
       logger_.error("Failed to register touchpad input device!");
       return;
     }
-    lv_indev_set_type(indev_tp_, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev_tp_, &TouchpadInput::touchpad_read);
-    lv_indev_set_user_data(indev_tp_, (void *)this);
+    lv_indev_set_type(indev_touchpad_, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev_touchpad_, &TouchpadInput::touchpad_read);
+    lv_indev_set_user_data(indev_touchpad_, (void *)this);
 
     logger_.info("Add HOME button input to LVGL");
-    indev_btn_ = lv_indev_create();
-    if (!indev_btn_) {
+    indev_button_ = lv_indev_create();
+    if (!indev_button_) {
       logger_.error("Failed to register home button input device!");
       return;
     }
-    lv_indev_set_type(indev_btn_, LV_INDEV_TYPE_BUTTON);
-    lv_indev_set_read_cb(indev_btn_, &TouchpadInput::home_button_read);
-    lv_indev_set_user_data(indev_btn_, (void *)this);
+    lv_indev_set_type(indev_button_, LV_INDEV_TYPE_BUTTON);
+    lv_indev_set_read_cb(indev_button_, &TouchpadInput::home_button_read);
+    lv_indev_set_user_data(indev_button_, (void *)this);
 
     auto disp = lv_display_get_default();
     screen_size_x_ = (uint16_t)lv_display_get_horizontal_resolution(disp);
@@ -160,9 +160,7 @@ protected:
   std::atomic<bool> invert_x_{false};
   std::atomic<bool> invert_y_{false};
   std::atomic<bool> home_button_pressed_{false};
-  lv_indev_t *indev_tp_;
   lv_indev_t *indev_touchpad_;
-  lv_indev_t *indev_btn_;
   lv_indev_t *indev_button_;
 };
 } // namespace espp
