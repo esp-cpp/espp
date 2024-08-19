@@ -1,3 +1,3 @@
 idf_component_register(
-  INCLUDE_DIRS "../../external/fmt/include" "include"
+  INCLUDE_DIRS "detail/fmt/include" "include"
 )

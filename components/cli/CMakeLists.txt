@@ -1,7 +1,7 @@
 set(CLI_INCLUDES "include")
 
 if (CONFIG_COMPILER_CXX_EXCEPTIONS)
-  list(APPEND CLI_INCLUDES "../../external/cli/include")
+  list(APPEND CLI_INCLUDES "detail/cli/include")
 else()
   message(WARNING "C++ exceptions are disabled, CLI is disabled")
 endif()
