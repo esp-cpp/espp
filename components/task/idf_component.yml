@@ -1,0 +1,10 @@
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_component:
+    version: '>=0.14.1'
+description: C++ component representing a task which can be started / stopped / resumed.
+documentation: https://esp-cpp.github.io/espp/task.html
+repository: git://github.com/esp-cpp/espp.git
+url: https://github.com/esp-cpp/espp/tree/main/components/task
+version: 0.14.1
