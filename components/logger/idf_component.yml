@@ -1,0 +1,10 @@
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/format:
+    version: '>=0.14.1'
+description: Logger component for ESP-IDF
+documentation: https://esp-cpp.github.io/espp/logger.html#logger
+repository: git://github.com/esp-cpp/espp.git
+url: https://github.com/esp-cpp/espp/tree/main/components/logger
+version: 0.14.1

@@ -1,0 +1,8 @@
+dependencies:
+  idf:
+    version: '>=5.0'
+description: C++ Components for ESP-IDF
+documentation: https://esp-cpp.github.io/espp/
+repository: git://github.com/esp-cpp/espp.git
+url: https://github.com/esp-cpp/espp
+version: 0.14.1
