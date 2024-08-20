@@ -269,10 +269,14 @@ public:
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
     uint8_t data[4] = {0};
 
-    uint16_t start_x = xs + offset_x_;
-    uint16_t end_x = xe + offset_x_;
-    uint16_t start_y = ys + offset_y_;
-    uint16_t end_y = ye + offset_y_;
+    int offset_x = 0;
+    int offset_y = 0;
+    get_offset_rotated(offset_x, offset_y);
+
+    uint16_t start_x = xs + offset_x;
+    uint16_t end_x = xe + offset_x;
+    uint16_t start_y = ys + offset_y;
+    uint16_t end_y = ye + offset_y;
 
     // Set the column (x) start / end addresses
     send_command(Command::caset);
@@ -303,8 +307,11 @@ public:
     std::scoped_lock lock{spi_mutex_};
     lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
     if (lcd_send_lines_) {
-      lcd_send_lines_(area->x1 + offset_x_, area->y1 + offset_y_, area->x2 + offset_x_,
-                      area->y2 + offset_y_, color_map, flags);
+      int offset_x = 0;
+      int offset_y = 0;
+      get_offset_rotated(offset_x, offset_y);
+      lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
+                      area->y2 + offset_y, color_map, flags);
     } else {
       set_drawing_area(area);
       send_command(Command::ramwr);
@@ -412,6 +419,38 @@ public:
   static void get_offset(int &x, int &y) {
     x = offset_x_;
     y = offset_y_;
+  }
+
+  /**
+   * @brief Get the offset (upper left starting coordinate) of the display
+   *        after rotation.
+   * @note This returns internal variables that are used when sending
+   *       coordinates / filling parts of the display.
+   * @param x Reference variable that will be filled with the currently
+   *          configured starting x coordinate that was provided in the config
+   *          or set by set_offset(), updated for the current rotation.
+   * @param y Reference variable that will be filled with the currently
+   *          configured starting y coordinate that was provided in the config
+   *          or set by set_offset(), updated for the current rotation.
+   */
+  static void get_offset_rotated(int &x, int &y) {
+    auto rotation = lv_display_get_rotation(lv_display_get_default());
+    switch (rotation) {
+    case LV_DISPLAY_ROTATION_90:
+      // intentional fallthrough
+    case LV_DISPLAY_ROTATION_270:
+      x = offset_y_;
+      y = offset_x_;
+      break;
+    case LV_DISPLAY_ROTATION_0:
+      // intentional fallthrough
+    case LV_DISPLAY_ROTATION_180:
+      // intentional fallthrough
+    default:
+      x = offset_x_;
+      y = offset_y_;
+      break;
+    }
   }
 
 protected:
