@@ -329,15 +329,15 @@ protected:
    *   https://docs.lvgl.io/latest/en/html/porting/tick.html
    */
   bool update(std::mutex &m, std::condition_variable &cv) {
-    static auto prev = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::high_resolution_clock::now();
+    static auto prev = now;
     if (!paused_) {
-      auto now = std::chrono::high_resolution_clock::now();
       int elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - prev).count();
       // we shouldn't stop, update the display
       lv_tick_inc(elapsed_ms);
-      // update previous timestamp
-      prev = now;
     }
+    // update previous timestamp
+    prev = now;
     // delay
     {
       using namespace std::chrono_literals;

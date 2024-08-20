@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py wrover-kit"
+  "main esptool_py wrover-kit button"
   CACHE STRING
   "List of components to include"
   )

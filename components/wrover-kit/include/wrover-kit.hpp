@@ -62,9 +62,11 @@ public:
 
   /// Initialize the display (lvgl display driver)
   /// \param pixel_buffer_size The size of the pixel buffer
+  /// \param task_config The task configuration for the display task
+  /// \param update_period_ms The update period of the display task
   /// \return true if the display was successfully initialized, false otherwise
   /// \note This will also allocate two full frame buffers in the SPIRAM
-  bool initialize_display(size_t pixel_buffer_size);
+  bool initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config = {.name="Display", .stack_size_bytes=4096, .priority=10, .core_id=0}, int update_period_ms = 16);
 
   /// Get the width of the LCD in pixels
   /// \return The width of the LCD in pixels
@@ -169,8 +171,8 @@ protected:
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
   static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
-  static constexpr bool mirror_x = true;
-  static constexpr bool mirror_y = true;
+  static constexpr bool mirror_x = false;
+  static constexpr bool mirror_y = false;
   static constexpr bool swap_xy = true;
   using DisplayDriver = espp::Ili9341;
 

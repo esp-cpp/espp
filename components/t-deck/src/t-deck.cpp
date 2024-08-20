@@ -98,8 +98,6 @@ bool TDeck::update_gt911() {
     return false;
   }
   if (!new_data) {
-    std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
-    touchpad_data_ = {};
     return false;
   }
   // get the latest data from the touchpad
@@ -142,10 +140,25 @@ TDeck::TouchpadData TDeck::touchpad_convert(const TDeck::TouchpadData &data) con
   if (touch_invert_y) {
     temp_data.y = lcd_height_ - (temp_data.y + 1);
   }
-  if (rotation == espp::DisplayRotation::LANDSCAPE_INVERTED) {
-    // invert x and y
+  // get the orientation of the display
+  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  switch (rotation) {
+  case LV_DISPLAY_ROTATION_0:
+    break;
+  case LV_DISPLAY_ROTATION_90:
+    temp_data.y = lcd_height_ - (temp_data.y + 1);
+    std::swap(temp_data.x, temp_data.y);
+    break;
+  case LV_DISPLAY_ROTATION_180:
     temp_data.x = lcd_width_ - (temp_data.x + 1);
     temp_data.y = lcd_height_ - (temp_data.y + 1);
+    break;
+  case LV_DISPLAY_ROTATION_270:
+    temp_data.x = lcd_width_ - (temp_data.x + 1);
+    std::swap(temp_data.x, temp_data.y);
+    break;
+  default:
+    break;
   }
   return temp_data;
 }
@@ -225,11 +238,12 @@ bool TDeck::initialize_lcd() {
       .invert_colors = invert_colors,
       .swap_xy = swap_xy,
       .mirror_x = mirror_x,
-      .mirror_y = mirror_y});
+      .mirror_y = mirror_y,
+      .mirror_portrait = mirror_portrait});
   return true;
 }
 
-bool TDeck::initialize_display(size_t pixel_buffer_size) {
+bool TDeck::initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config, int update_period_ms) {
   if (!lcd_handle_) {
     logger_.error(
         "LCD not initialized, you must call initialize_lcd() before initialize_display()!");
@@ -249,13 +263,8 @@ bool TDeck::initialize_display(size_t pixel_buffer_size) {
       .rotation_callback = DisplayDriver::rotate,
       .backlight_pin = backlight_io,
       .backlight_on_value = backlight_value,
-      .task_config =
-          {
-              .name = "display task",
-              .priority = 10,
-              .core_id = 1,
-          },
-      .update_period = 5ms,
+      .task_config = task_config,
+      .update_period = 1ms * update_period_ms,
       .double_buffered = true,
       .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
       .rotation = rotation,

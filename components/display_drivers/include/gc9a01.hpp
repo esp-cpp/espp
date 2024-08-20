@@ -101,10 +101,28 @@ public:
     dc_pin_ = config.data_command_pin;
     offset_x_ = config.offset_x;
     offset_y_ = config.offset_y;
+    mirror_x_ = config.mirror_x;
+    mirror_y_ = config.mirror_y;
+    mirror_portrait_ = config.mirror_portrait;
     swap_xy_ = config.swap_xy;
+    swap_color_order_ = config.swap_color_order;
 
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
+
+    uint8_t madctl = 0;
+    if (swap_color_order_) {
+      madctl |= LCD_CMD_BGR_BIT;
+    }
+    if (mirror_x_) {
+      madctl |= LCD_CMD_MX_BIT;
+    }
+    if (mirror_y_) {
+      madctl |= LCD_CMD_MY_BIT;
+    }
+    if (swap_xy_) {
+      madctl |= LCD_CMD_MV_BIT;
+    }
 
     // init the display
     display_drivers::LcdInitCmd gc_init_cmds[] = {
@@ -127,7 +145,7 @@ public:
         {0x8F, {0xFF}, 1},
         {0xB6, {0x00, 0x20}, 2},
         // call orientation
-        {0x36, {0x00}, 1},
+        {0x36, {madctl}, 1},
         {0x3A, {0x05}, 1},
         {0x90, {0x08, 0x08, 0X08, 0X08}, 4},
         {0xBD, {0x06}, 1},
@@ -162,17 +180,6 @@ public:
         {0, {0}, 0xff},
     };
 
-    // NOTE: these configurations operates on the MADCTL command / register
-    if (config.mirror_x) {
-      gc_init_cmds[18].data[0] |= LCD_CMD_MX_BIT;
-    }
-    if (config.mirror_y) {
-      gc_init_cmds[18].data[0] |= LCD_CMD_MY_BIT;
-    }
-    if (swap_xy_) {
-      gc_init_cmds[18].data[0] |= LCD_CMD_MV_BIT;
-    }
-
     // send the init commands
     send_commands(gc_init_cmds);
 
@@ -190,22 +197,41 @@ public:
    */
   static void rotate(const DisplayRotation &rotation) {
     uint8_t data = 0;
-    switch (rotation) {
-    case DisplayRotation::LANDSCAPE:
-      data = 0x00;
-      break;
-    case DisplayRotation::PORTRAIT:
-      data |= LCD_CMD_MV_BIT | LCD_CMD_MX_BIT;
-      break;
-    case DisplayRotation::LANDSCAPE_INVERTED:
-      data |= LCD_CMD_MX_BIT | LCD_CMD_MY_BIT;
-      break;
-    case DisplayRotation::PORTRAIT_INVERTED:
-      data |= LCD_CMD_MV_BIT | LCD_CMD_MY_BIT;
-      break;
+    if (swap_color_order_) {
+      data |= LCD_CMD_BGR_BIT;
+    }
+    if (mirror_x_) {
+      data |= LCD_CMD_MX_BIT;
+    }
+    if (mirror_y_) {
+      data |= LCD_CMD_MY_BIT;
     }
     if (swap_xy_) {
       data |= LCD_CMD_MV_BIT;
+    }
+    switch (rotation) {
+    case DisplayRotation::LANDSCAPE:
+      break;
+    case DisplayRotation::PORTRAIT:
+      // flip the mx and mv bits (xor)
+      if (mirror_portrait_) {
+        data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      } else {
+        data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      }
+      break;
+    case DisplayRotation::LANDSCAPE_INVERTED:
+      // flip the my and mx bits (xor)
+      data ^= (LCD_CMD_MY_BIT | LCD_CMD_MX_BIT);
+      break;
+    case DisplayRotation::PORTRAIT_INVERTED:
+      // flip the my and mv bits (xor)
+      if (mirror_portrait_) {
+        data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      } else {
+        data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      }
+      break;
     }
     std::scoped_lock lock{spi_mutex_};
     send_command(Command::madctl);
@@ -243,10 +269,14 @@ public:
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
     uint8_t data[4] = {0};
 
-    uint16_t start_x = xs + offset_x_;
-    uint16_t end_x = xe + offset_x_;
-    uint16_t start_y = ys + offset_y_;
-    uint16_t end_y = ye + offset_y_;
+    int offset_x = 0;
+    int offset_y = 0;
+    get_offset_rotated(offset_x, offset_y);
+
+    uint16_t start_x = xs + offset_x;
+    uint16_t end_x = xe + offset_x;
+    uint16_t start_y = ys + offset_y;
+    uint16_t end_y = ye + offset_y;
 
     // Set the column (x) start / end addresses
     send_command((uint8_t)Command::caset);
@@ -277,8 +307,11 @@ public:
     std::scoped_lock lock{spi_mutex_};
     lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
     if (lcd_send_lines_) {
-      lcd_send_lines_(area->x1 + offset_x_, area->y1 + offset_y_, area->x2 + offset_x_,
-                      area->y2 + offset_y_, color_map, flags);
+      int offset_x = 0;
+      int offset_y = 0;
+      get_offset_rotated(offset_x, offset_y);
+      lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
+                      area->y2 + offset_y, color_map, flags);
     } else {
       set_drawing_area(area);
       send_command(Command::ramwr);
@@ -388,6 +421,38 @@ public:
     y = offset_y_;
   }
 
+  /**
+   * @brief Get the offset (upper left starting coordinate) of the display
+   *        after rotation.
+   * @note This returns internal variables that are used when sending
+   *       coordinates / filling parts of the display.
+   * @param x Reference variable that will be filled with the currently
+   *          configured starting x coordinate that was provided in the config
+   *          or set by set_offset(), updated for the current rotation.
+   * @param y Reference variable that will be filled with the currently
+   *          configured starting y coordinate that was provided in the config
+   *          or set by set_offset(), updated for the current rotation.
+   */
+  static void get_offset_rotated(int &x, int &y) {
+    auto rotation = lv_display_get_rotation(lv_display_get_default());
+    switch (rotation) {
+    case LV_DISPLAY_ROTATION_90:
+      // intentional fallthrough
+    case LV_DISPLAY_ROTATION_270:
+      x = offset_y_;
+      y = offset_x_;
+      break;
+    case LV_DISPLAY_ROTATION_0:
+      // intentional fallthrough
+    case LV_DISPLAY_ROTATION_180:
+      // intentional fallthrough
+    default:
+      x = offset_x_;
+      y = offset_y_;
+      break;
+    }
+  }
+
 protected:
   static display_drivers::write_fn lcd_write_;
   static display_drivers::send_lines_fn lcd_send_lines_;
@@ -395,7 +460,11 @@ protected:
   static gpio_num_t dc_pin_;
   static int offset_x_;
   static int offset_y_;
+  static bool mirror_x_;
+  static bool mirror_y_;
+  static bool mirror_portrait_;
   static bool swap_xy_;
+  static bool swap_color_order_;
   static std::mutex spi_mutex_;
 };
 } // namespace espp

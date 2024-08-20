@@ -44,11 +44,13 @@ struct Config {
   bool reset_value{false}; /**< The value to set the reset pin to when resetting the display (low to
                               reset default). */
   bool invert_colors{false}; /**< Whether to invert the colors on the display. */
+  bool swap_color_order{false}; /**< Whether to swap the color order (RGB/BGR) on the display. */
   int offset_x{0};           /**< X Gap / offset, in pixels. */
   int offset_y{0};           /**< Y Gap / offset, in pixels. */
   bool swap_xy{false};       /**< Swap row/column order. */
   bool mirror_x{false};      /**< Mirror the display horizontally. */
   bool mirror_y{false};      /**< Mirror the display vertically. */
+  bool mirror_portrait{false}; /**< Mirror the display in portrait mode. */
 };
 
 /**

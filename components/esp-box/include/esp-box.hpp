@@ -42,6 +42,9 @@ public:
   /// Alias for the pixel type used by the ESP-Box display
   using Pixel = lv_color16_t;
 
+  /// Alias for the display driver used by the ESP-Box display
+  using DisplayDriver = espp::St7789;
+
   /// The type of the box
   enum class BoxType {
     UNKNOWN, ///< unknown box
@@ -141,9 +144,11 @@ public:
 
   /// Initialize the display (lvgl display driver)
   /// \param pixel_buffer_size The size of the pixel buffer
+  /// \param task_config The task configuration for the display task
+  /// \param update_period_ms The update period of the display task
   /// \return true if the display was successfully initialized, false otherwise
   /// \note This will also allocate two full frame buffers in the SPIRAM
-  bool initialize_display(size_t pixel_buffer_size);
+  bool initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config = {.name="Display", .stack_size_bytes=4096, .priority=10, .core_id=0}, int update_period_ms = 16);
 
   /// Get the width of the LCD in pixels
   /// \return The width of the LCD in pixels
@@ -320,7 +325,7 @@ protected:
   bool reset_value;
   gpio_num_t i2s_ws_io;
   bool touch_invert_x;
-  espp::Interrupt::ActiveLevel touch_interrupt_level;
+  espp::Interrupt::ActiveLevel touch_interrupt_level = box::touch_interrupt_level;
   espp::Interrupt::Type touch_interrupt_type;
   bool touch_interrupt_pullup_enabled;
 
@@ -345,11 +350,11 @@ protected:
   static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_4;
   static constexpr bool backlight_value = true;
   static constexpr bool invert_colors = true;
-  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE_INVERTED;
-  static constexpr bool mirror_x = false;
-  static constexpr bool mirror_y = false;
+  static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
+  static constexpr bool mirror_x = true;
+  static constexpr bool mirror_y = true;
   static constexpr bool swap_xy = false;
-  using DisplayDriver = espp::St7789;
+  static constexpr bool swap_color_order = true;
 
   // touch
   static constexpr bool touch_swap_xy = false;
@@ -386,11 +391,14 @@ protected:
   // detect(), since it depends on the box type
   espp::Interrupt::PinConfig touch_interrupt_pin_{.gpio_num = touch_interrupt,
                                                   .callback = [this](const auto &event) {
-                                                    update_touch();
-                                                    if (touch_callback_) {
-                                                      touch_callback_(touchpad_data());
+                                                    if (update_touch()) {
+                                                      if (touch_callback_) {
+                                                        touch_callback_(touchpad_data());
+                                                      }
                                                     }
-                                                  }};
+                                                  },
+    .active_level = touch_interrupt_level,
+  };
 
   // we'll only add each interrupt pin if the initialize method is called
   espp::Interrupt interrupts_{
