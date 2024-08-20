@@ -144,8 +144,7 @@ public:
 
   /// Initialize the display (lvgl display driver)
   /// \param pixel_buffer_size The size of the pixel buffer
-  /// \param priority The priority of the display task
-  /// \param core_id The core id of the display task
+  /// \param task_config The task configuration for the display task
   /// \param update_period_ms The update period of the display task
   /// \return true if the display was successfully initialized, false otherwise
   /// \note This will also allocate two full frame buffers in the SPIRAM

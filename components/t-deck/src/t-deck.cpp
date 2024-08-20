@@ -242,7 +242,7 @@ bool TDeck::initialize_lcd() {
   return true;
 }
 
-bool TDeck::initialize_display(size_t pixel_buffer_size) {
+bool TDeck::initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config, int update_period_ms) {
   if (!lcd_handle_) {
     logger_.error(
         "LCD not initialized, you must call initialize_lcd() before initialize_display()!");
@@ -262,13 +262,8 @@ bool TDeck::initialize_display(size_t pixel_buffer_size) {
       .rotation_callback = DisplayDriver::rotate,
       .backlight_pin = backlight_io,
       .backlight_on_value = backlight_value,
-      .task_config =
-          {
-              .name = "display task",
-              .priority = 10,
-              .core_id = 1,
-          },
-      .update_period = 5ms,
+      .task_config = task_config,
+      .update_period = 1ms * update_period_ms,
       .double_buffered = true,
       .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
       .rotation = rotation,
