@@ -301,6 +301,7 @@ protected:
   static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = false;
+  static constexpr bool mirror_portrait = true;
   static constexpr bool swap_xy = false;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_42;
   using DisplayDriver = espp::St7789;

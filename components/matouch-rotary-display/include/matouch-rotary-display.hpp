@@ -34,8 +34,11 @@ namespace espp {
 /// \snippet matouch_rotary_display_example.cpp matouch-rotary-display example
 class MatouchRotaryDisplay : public BaseComponent {
 public:
-  /// Alias for the pixel type used by the ESP-Box display
+  /// Alias for the pixel type used by the Matouch display
   using Pixel = lv_color16_t;
+
+  /// Alias for the display driver used by the Matouch display
+  using DisplayDriver = espp::Gc9a01;
 
   /// The data structure for the touchpad
   struct TouchpadData {
@@ -283,7 +286,6 @@ protected:
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = false;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_7;
-  using DisplayDriver = espp::Gc9a01;
 
   // touch
   static constexpr bool touch_swap_xy = false;

@@ -124,6 +124,7 @@ public:
     offset_y_ = config.offset_y;
     mirror_x_ = config.mirror_x;
     mirror_y_ = config.mirror_y;
+    mirror_portrait_ = config.mirror_portrait;
     swap_xy_ = config.swap_xy;
     swap_color_order_ = config.swap_color_order;
 
@@ -131,6 +132,9 @@ public:
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
 
     uint8_t madctl = 0;
+    if (swap_color_order_) {
+      madctl |= LCD_CMD_BGR_BIT;
+    }
     if (mirror_x_) {
       madctl |= LCD_CMD_MX_BIT;
     }
@@ -139,9 +143,6 @@ public:
     }
     if (swap_xy_) {
       madctl |= LCD_CMD_MV_BIT;
-    }
-    if (swap_color_order_) {
-      madctl |= LCD_CMD_BGR_BIT;
     }
 
     // set up the init commands
@@ -213,7 +214,11 @@ public:
       break;
     case DisplayRotation::PORTRAIT:
       // flip the mx and mv bits (xor)
-      data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      if (mirror_portrait_) {
+        data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      } else {
+        data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      }
       break;
     case DisplayRotation::LANDSCAPE_INVERTED:
       // flip the my and mx bits (xor)
@@ -221,7 +226,11 @@ public:
       break;
     case DisplayRotation::PORTRAIT_INVERTED:
       // flip the my and mv bits (xor)
-      data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      if (mirror_portrait_) {
+        data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      } else {
+        data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      }
       break;
     }
     std::scoped_lock lock{spi_mutex_};
@@ -414,6 +423,7 @@ protected:
   static int offset_y_;
   static bool mirror_x_;
   static bool mirror_y_;
+  static bool mirror_portrait_;
   static bool swap_xy_;
   static bool swap_color_order_;
   static std::mutex spi_mutex_;

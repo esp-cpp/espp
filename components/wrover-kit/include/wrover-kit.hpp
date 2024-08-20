@@ -171,8 +171,8 @@ protected:
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
   static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
-  static constexpr bool mirror_x = true;
-  static constexpr bool mirror_y = true;
+  static constexpr bool mirror_x = false;
+  static constexpr bool mirror_y = false;
   static constexpr bool swap_xy = true;
   using DisplayDriver = espp::Ili9341;
 

@@ -50,6 +50,7 @@ struct Config {
   bool swap_xy{false};       /**< Swap row/column order. */
   bool mirror_x{false};      /**< Mirror the display horizontally. */
   bool mirror_y{false};      /**< Mirror the display vertically. */
+  bool mirror_portrait{false}; /**< Mirror the display in portrait mode. */
 };
 
 /**

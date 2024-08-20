@@ -56,10 +56,26 @@ public:
     offset_y_ = config.offset_y;
     mirror_x_ = config.mirror_x;
     mirror_y_ = config.mirror_y;
+    mirror_portrait_ = config.mirror_portrait;
     swap_xy_ = config.swap_xy;
+    swap_color_order_ = config.swap_color_order;
 
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
+
+    uint8_t madctl = 0x00;
+    if (swap_color_order_) {
+      madctl |= LCD_CMD_BGR_BIT;
+    }
+    if (mirror_x_) {
+      madctl |= LCD_CMD_MX_BIT;
+    }
+    if (mirror_y_) {
+      madctl |= LCD_CMD_MY_BIT;
+    }
+    if (swap_xy_) {
+      madctl |= LCD_CMD_MV_BIT;
+    }
 
     // init the display
     display_drivers::LcdInitCmd ili_init_cmds[] = {
@@ -73,7 +89,7 @@ public:
         {0xC1, {0x11}, 1},
         {0xC5, {0x35, 0x3E}, 2},
         {0xC7, {0xBE}, 1},
-        {0x36, {0x28}, 1}, // madctl
+        {0x36, {madctl}, 1},
         {0x3A, {0x55}, 1},
         {0xB1, {0x00, 0x1B}, 2},
         {0xF2, {0x08}, 1},
@@ -94,17 +110,6 @@ public:
         {0, {0}, 0xff},
     };
 
-    // NOTE: these configurations operates on the MADCTL command / register
-    if (mirror_x_) {
-      ili_init_cmds[10].data[0] |= LCD_CMD_MX_BIT;
-    }
-    if (mirror_y_) {
-      ili_init_cmds[10].data[0] |= LCD_CMD_MY_BIT;
-    }
-    if (swap_xy_) {
-      ili_init_cmds[10].data[0] |= LCD_CMD_MV_BIT;
-    }
-
     // send the init commands
     send_commands(ili_init_cmds);
 
@@ -121,7 +126,10 @@ public:
    * @param rotation New display rotation.
    */
   static void rotate(const DisplayRotation &rotation) {
-    uint8_t data = 0x28;
+    uint8_t data = 0x00;
+    if (swap_color_order_) {
+      data |= LCD_CMD_BGR_BIT;
+    }
     if (mirror_x_) {
       data |= LCD_CMD_MX_BIT;
     }
@@ -136,7 +144,11 @@ public:
       break;
     case DisplayRotation::PORTRAIT:
       // flip the mx and mv bits (xor)
-      data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      if (mirror_portrait_) {
+        data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      } else {
+        data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      }
       break;
     case DisplayRotation::LANDSCAPE_INVERTED:
       // flip the my and mx bits (xor)
@@ -144,7 +156,11 @@ public:
       break;
     case DisplayRotation::PORTRAIT_INVERTED:
       // flip the my and mv bits (xor)
-      data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      if (mirror_portrait_) {
+        data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+      } else {
+        data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+      }
       break;
     }
     std::scoped_lock lock{spi_mutex_};
@@ -337,7 +353,9 @@ protected:
   static int offset_y_;
   static bool mirror_x_;
   static bool mirror_y_;
+  static bool mirror_portrait_;
   static bool swap_xy_;
+  static bool swap_color_order_;
   static std::mutex spi_mutex_;
 };
 } // namespace espp

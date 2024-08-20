@@ -2,12 +2,14 @@
 #include <stdlib.h>
 #include <vector>
 
+#include "button.hpp"
 #include "wrover-kit.hpp"
 
 using namespace std::chrono_literals;
 
 static std::vector<lv_obj_t *> circles;
 
+static std::mutex lvgl_mutex;
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
 
@@ -34,6 +36,29 @@ extern "C" void app_main(void) {
 
   logger.info("Adding LVGL objects to the screen.");
 
+  // initialize the button, which we'll use to cycle the rotation of the display
+  espp::Button button(espp::Button::Config{
+      .name = "Boot Button",
+      .interrupt_config = espp::Interrupt::PinConfig{
+          .gpio_num = GPIO_NUM_0,
+          .callback = [](const auto &event) {
+            if (event.active) {
+              // lock the display mutex
+              std::lock_guard<std::mutex> lock(lvgl_mutex);
+              static auto rotation = LV_DISPLAY_ROTATION_0;
+              rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+              fmt::print("Setting rotation to {}\n", (int)rotation);
+              lv_display_t *disp = _lv_refr_get_disp_refreshing();
+              lv_disp_set_rotation(disp, rotation);
+            }
+          },
+          .active_level = espp::Interrupt::ActiveLevel::LOW,
+          .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+          .pullup_enabled = false,
+          .pulldown_enabled = false
+      },
+    });
+
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
   lv_obj_set_size(bg, wrover.lcd_width(), wrover.lcd_height());
@@ -44,8 +69,6 @@ extern "C" void app_main(void) {
   lv_label_set_text(label, "Drawing circles to the screen.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
-
-  static std::mutex lvgl_mutex;
 
   // start a simple thread to do the lv_task_handler every 16ms
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {

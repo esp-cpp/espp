@@ -8,5 +8,7 @@ int espp::Ili9341::offset_x_;
 int espp::Ili9341::offset_y_;
 bool espp::Ili9341::mirror_x_ = false;
 bool espp::Ili9341::mirror_y_ = false;
+bool espp::Ili9341::mirror_portrait_ = false;
 bool espp::Ili9341::swap_xy_ = false;
+bool espp::Ili9341::swap_color_order_ = false;
 std::mutex espp::Ili9341::spi_mutex_;
