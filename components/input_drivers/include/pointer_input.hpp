@@ -25,8 +25,7 @@ public:
    * @param state Home button state if there is a home button (pointer to data
    *              to be filled).
    */
-  typedef std::function<void(int &x, int &y, bool &left_pressed, bool &right_pressed)>
-      read_fn;
+  typedef std::function<void(int &x, int &y, bool &left_pressed, bool &right_pressed)> read_fn;
 
   /**
    *  @brief Configuration structure, containing the read function for the
@@ -84,8 +83,8 @@ protected:
     read_(x, y, left_pressed, right_pressed);
     last_x_ += x;
     last_y_ += y;
-    data->point.x = std::clamp(last_x_, 0, LV_HOR_RES_MAX);
-    data->point.y = std::clamp(last_y_, 0, LV_VER_RES_MAX);
+    data->point.x = std::clamp<uint16_t>(last_x_, 0, screen_size_x_);
+    data->point.y = std::clamp<uint16_t>(last_y_, 0, screen_size_y_);
     data->state = left_pressed ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
   }
 
@@ -99,9 +98,15 @@ protected:
     lv_indev_set_type(indev_pointer_, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev_pointer_, &PointerInput::read);
     lv_indev_set_user_data(indev_pointer_, (void *)this);
+
+    auto disp = lv_display_get_default();
+    screen_size_x_ = (uint16_t)lv_display_get_horizontal_resolution(disp);
+    screen_size_y_ = (uint16_t)lv_display_get_vertical_resolution(disp);
   }
 
-  pointer_read_fn read_;
+  read_fn read_;
+  uint16_t screen_size_x_;
+  uint16_t screen_size_y_;
   int last_x_{0};
   int last_y_{0};
   lv_indev_t *indev_pointer_{nullptr};

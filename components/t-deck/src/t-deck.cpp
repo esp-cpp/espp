@@ -53,21 +53,31 @@ bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb
   }
   logger_.info("Initializing trackball input");
   pointer_input_ = std::make_shared<espp::PointerInput>(espp::PointerInput::Config{
-      .read =
-          std::bind(&TDeck::trackball_read, this, std::placeholders::_1, std::placeholders::_2,
-                    std::placeholders::_3, std::placeholders::_4),
+      .read = std::bind(&TDeck::trackball_read, this, std::placeholders::_1, std::placeholders::_2,
+                        std::placeholders::_3, std::placeholders::_4),
       .log_level = espp::Logger::Verbosity::WARN});
+
+  // store the callback
+  trackball_callback_ = trackball_cb;
+
+  // add the interrupts for the trackball
+  interrupts_.add_interrupt(trackball_up_interrupt_pin);
+  interrupts_.add_interrupt(trackball_down_interrupt_pin);
+  interrupts_.add_interrupt(trackball_left_interrupt_pin);
+  interrupts_.add_interrupt(trackball_right_interrupt_pin);
+  interrupts_.add_interrupt(trackball_btn_interrupt_pin);
+
   return true;
 }
 
 std::shared_ptr<espp::PointerInput> TDeck::pointer_input() const { return pointer_input_; }
 
-void TDeck::trackball_read(int16_t &x, int16_t &y, bool &left_pressed, bool &right_pressed) {
+void TDeck::trackball_read(int &x, int &y, bool &left_pressed, bool &right_pressed) {
   std::lock_guard<std::recursive_mutex> lock(trackball_data_mutex_);
-  *x = trackball_data_.x;
-  *y = trackball_data_.y;
-  *btn_state = trackball_data_.btn_state;
-  *btn_changed = trackball_data_.btn_changed;
+  x = trackball_data_.x;
+  y = trackball_data_.y;
+  left_pressed = trackball_data_.pressed;
+  right_pressed = false;
 }
 
 ////////////////////////
@@ -271,7 +281,8 @@ bool TDeck::initialize_lcd() {
   return true;
 }
 
-bool TDeck::initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config, int update_period_ms) {
+bool TDeck::initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config,
+                               int update_period_ms) {
   if (!lcd_handle_) {
     logger_.error(
         "LCD not initialized, you must call initialize_lcd() before initialize_display()!");
