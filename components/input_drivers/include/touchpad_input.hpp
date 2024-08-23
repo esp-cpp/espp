@@ -160,7 +160,7 @@ protected:
   std::atomic<bool> invert_x_{false};
   std::atomic<bool> invert_y_{false};
   std::atomic<bool> home_button_pressed_{false};
-  lv_indev_t *indev_touchpad_;
-  lv_indev_t *indev_button_;
+  lv_indev_t *indev_touchpad_{nullptr};
+  lv_indev_t *indev_button_{nullptr};
 };
 } // namespace espp

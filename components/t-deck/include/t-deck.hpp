@@ -57,8 +57,8 @@ public:
 
   /// The data structure for the trackball
   struct TrackballData {
-    uint16_t x = 0;       ///< The x coordinate
-    uint16_t y = 0;       ///< The y coordinate
+    int x = 0;            ///< The x coordinate
+    int y = 0;            ///< The y coordinate
     bool pressed = false; ///< The button state
 
     /// @brief Compare two TrackballData objects for equality
@@ -154,6 +154,8 @@ public:
   ///       moved.
   /// \see trackball()
   bool initialize_trackball(const trackball_callback_t &trackball_cb = nullptr);
+
+  void read_trackball_pins(bool &up, bool &down, bool &left, bool &right, bool &pressed);
 
   /// Get the pointer input for the trackball
   /// \return A shared pointer to the pointer input for the trackball
@@ -373,10 +375,10 @@ protected:
   static constexpr gpio_num_t touch_interrupt = GPIO_NUM_16;
 
   // trackball
-  static constexpr gpio_num_t trackball_up = GPIO_NUM_2;
+  static constexpr gpio_num_t trackball_up = GPIO_NUM_15;
   static constexpr gpio_num_t trackball_down = GPIO_NUM_3;
   static constexpr gpio_num_t trackball_left = GPIO_NUM_1;
-  static constexpr gpio_num_t trackball_right = GPIO_NUM_15;
+  static constexpr gpio_num_t trackball_right = GPIO_NUM_2;
   static constexpr gpio_num_t trackball_btn = GPIO_NUM_0;
 
   // uSD card
@@ -407,16 +409,30 @@ protected:
 
   void on_trackball_interrupt(const auto &event) {
     // read the current state of the trackball inputs
-    bool up = gpio_get_level(trackball_up);
-    bool down = gpio_get_level(trackball_down);
-    bool left = gpio_get_level(trackball_left);
-    bool right = gpio_get_level(trackball_right);
-    bool pressed = gpio_get_level(trackball_btn);
-
+    bool up = interrupts_.is_active(trackball_up_interrupt_pin);
+    bool down = interrupts_.is_active(trackball_down_interrupt_pin);
+    bool left = interrupts_.is_active(trackball_left_interrupt_pin);
+    bool right = interrupts_.is_active(trackball_right_interrupt_pin);
+    bool pressed = interrupts_.is_active(trackball_btn_interrupt_pin);
+    logger_.debug("UP: {}, DOWN: {}, LEFT: {}, RIGHT: {}, PRESSED: {}", up, down, left, right,
+                  pressed);
     {
       std::lock_guard lock(trackball_data_mutex_);
-      trackball_data_.x += left ? -1 : right ? 1 : 0;
-      trackball_data_.y += up ? -1 : down ? 1 : 0;
+      static constexpr int diff = 10;
+      if (left) {
+        trackball_data_.x -= diff;
+      }
+      if (right) {
+        trackball_data_.x += diff;
+      }
+      if (up) {
+        trackball_data_.y -= diff;
+      }
+      if (down) {
+        trackball_data_.y += diff;
+      }
+      trackball_data_.x = std::clamp<int>(trackball_data_.x, 0, lcd_width_ - 1);
+      trackball_data_.y = std::clamp<int>(trackball_data_.y, 0, lcd_height_ - 1);
       trackball_data_.pressed = pressed;
     }
 
@@ -425,31 +441,37 @@ protected:
     }
   }
 
+  static constexpr auto trackball_interrupt_type = espp::Interrupt::Type::ANY_EDGE;
   espp::Interrupt::PinConfig trackball_up_interrupt_pin{
       .gpio_num = trackball_up,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
-      .active_level = espp::Interrupt::ActiveLevel::HIGH,
-      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = trackball_interrupt_type,
+      .pullup_enabled = true};
   espp::Interrupt::PinConfig trackball_down_interrupt_pin{
       .gpio_num = trackball_down,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
-      .active_level = espp::Interrupt::ActiveLevel::HIGH,
-      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = trackball_interrupt_type,
+      .pullup_enabled = true};
   espp::Interrupt::PinConfig trackball_left_interrupt_pin{
       .gpio_num = trackball_left,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
-      .active_level = espp::Interrupt::ActiveLevel::HIGH,
-      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = trackball_interrupt_type,
+      .pullup_enabled = true};
   espp::Interrupt::PinConfig trackball_right_interrupt_pin{
       .gpio_num = trackball_right,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
-      .active_level = espp::Interrupt::ActiveLevel::HIGH,
-      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = trackball_interrupt_type,
+      .pullup_enabled = true};
   espp::Interrupt::PinConfig trackball_btn_interrupt_pin{
       .gpio_num = trackball_btn,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
-      .active_level = espp::Interrupt::ActiveLevel::HIGH,
-      .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+      .pullup_enabled = true};
 
   // we'll only add each interrupt pin if the initialize method is called
   espp::Interrupt interrupts_{
@@ -463,7 +485,7 @@ protected:
   // trackball
   std::shared_ptr<PointerInput> pointer_input_{nullptr};
   std::recursive_mutex trackball_data_mutex_;
-  TrackballData trackball_data_;
+  TrackballData trackball_data_{};
   trackball_callback_t trackball_callback_{nullptr};
 
   // touch

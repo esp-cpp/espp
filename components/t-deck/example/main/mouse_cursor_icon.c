@@ -2531,10 +2531,10 @@ const uint8_t mouse_cursor_icon_map[] = {
 #endif
 };
 
-lv_img_dsc_t mouse_cursor_icon = {
+lv_image_dsc_t mouse_cursor_icon = {
+    .header.cf = LV_COLOR_FORMAT_NATIVE_WITH_ALPHA,
     .header.w = 14,
     .header.h = 20,
-    .data_size = 280 * 3,
-    .header.cf = LV_COLOR_FORMAT_NATIVE_WITH_ALPHA,
+    .data_size = sizeof(mouse_cursor_icon_map), // 280 * 3
     .data = mouse_cursor_icon_map,
 };

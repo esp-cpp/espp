@@ -70,6 +70,14 @@ bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb
   return true;
 }
 
+void TDeck::read_trackball_pins(bool &up, bool &down, bool &left, bool &right, bool &btn) {
+  up = !gpio_get_level(trackball_up);
+  down = !gpio_get_level(trackball_down);
+  left = !gpio_get_level(trackball_left);
+  right = !gpio_get_level(trackball_right);
+  btn = !gpio_get_level(trackball_btn);
+}
+
 std::shared_ptr<espp::PointerInput> TDeck::pointer_input() const { return pointer_input_; }
 
 void TDeck::trackball_read(int &x, int &y, bool &left_pressed, bool &right_pressed) {

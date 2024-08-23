@@ -57,7 +57,9 @@ extern "C" void app_main(void) {
     }
   };
 
-  auto trackball_callback = [&](const auto &trackball) { logger.info("Trackball: {}", trackball); };
+  auto trackball_callback = [&](const auto &trackball) {
+    logger.debug("Trackball: {}", trackball);
+  };
 
   // initialize the Keyboard
   bool start_task = true;
@@ -87,6 +89,10 @@ extern "C" void app_main(void) {
     logger.error("Failed to initialize trackball!");
     return;
   }
+
+  // get the pointer input
+  auto pointer_input = tdeck.pointer_input();
+  pointer_input->set_cursor(&mouse_cursor_icon);
 
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());

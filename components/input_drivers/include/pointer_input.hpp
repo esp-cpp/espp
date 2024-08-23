@@ -63,6 +63,23 @@ public:
    */
   lv_indev_t *get_pointer_input_device() { return indev_pointer_; }
 
+  void set_cursor(const lv_image_dsc_t *icon) {
+    if (!indev_pointer_) {
+      logger_.error("Invalid input device!");
+      return;
+    }
+    if (!icon) {
+      logger_.error("Invalid icon!");
+      return;
+    }
+    if (cursor_obj_) {
+      lv_obj_del(cursor_obj_);
+    }
+    cursor_obj_ = lv_img_create(lv_scr_act());
+    lv_img_set_src(cursor_obj_, icon);
+    lv_indev_set_cursor(indev_pointer_, cursor_obj_);
+  }
+
 protected:
   static void read(lv_indev_t *drv, lv_indev_data_t *data) {
     PointerInput *pi = (PointerInput *)lv_indev_get_user_data(drv);
@@ -81,10 +98,8 @@ protected:
       return;
     }
     read_(x, y, left_pressed, right_pressed);
-    last_x_ += x;
-    last_y_ += y;
-    data->point.x = std::clamp<uint16_t>(last_x_, 0, screen_size_x_);
-    data->point.y = std::clamp<uint16_t>(last_y_, 0, screen_size_y_);
+    data->point.x = std::clamp<int>(x, 0, screen_size_x_);
+    data->point.y = std::clamp<int>(y, 0, screen_size_y_);
     data->state = left_pressed ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
   }
 
@@ -107,8 +122,7 @@ protected:
   read_fn read_;
   uint16_t screen_size_x_;
   uint16_t screen_size_y_;
-  int last_x_{0};
-  int last_y_{0};
   lv_indev_t *indev_pointer_{nullptr};
+  lv_obj_t *cursor_obj_{nullptr};
 };
 } // namespace espp
