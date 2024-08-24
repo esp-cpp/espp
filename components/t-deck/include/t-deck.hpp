@@ -122,10 +122,32 @@ public:
   /// Initialize the trackball
   /// \param trackball_cb The trackball callback function, called when the
   ///        trackball is moved if not null
+  /// \param sensitivity The sensitivity of the trackball. The higher the
+  ///        sensitivity, the faster the trackball will move
   /// \return true if the trackball was successfully initialized, false
   ///         otherwise
   /// \see trackball()
-  bool initialize_trackball(const trackball_callback_t &trackball_cb = nullptr);
+  /// \see trackball_data()
+  /// \see trackball_read()
+  /// \see set_trackball_sensitivity()
+  bool initialize_trackball(const trackball_callback_t &trackball_cb = nullptr,
+                            int sensitivity = 10);
+
+  /// Get the trackball
+  /// \return A shared pointer to the trackball
+  /// \note The trackball is only available if it was successfully initialized
+  /// \see initialize_trackball()
+  /// \see trackball_data()
+  /// \see trackball_read()
+  /// \note This is the same as the pointer_input() method
+  std::shared_ptr<PointerInput> trackball() const;
+
+  /// Set the trackball sensitivity
+  /// \param sensitivity The sensitivity of the trackball. The higher the
+  ///       sensitivity, the faster the trackball will move
+  /// \note The sensitivity can be negative, which will invert the direction of
+  ///       the trackball
+  void set_trackball_sensitivity(int sensitivity);
 
   /// Get the pointer input for the trackball
   /// \return A shared pointer to the pointer input for the trackball
@@ -390,7 +412,7 @@ protected:
       .active_level = espp::Interrupt::ActiveLevel::HIGH,
       .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
 
-  static constexpr auto trackball_interrupt_type = espp::Interrupt::Type::ANY_EDGE;
+  static constexpr auto trackball_interrupt_type = espp::Interrupt::Type::FALLING_EDGE;
   static constexpr auto trackball_filter_type = espp::Interrupt::FilterType::PIN_GLITCH_FILTER;
   espp::Interrupt::PinConfig trackball_up_interrupt_pin{
       .gpio_num = trackball_up,
@@ -440,6 +462,7 @@ protected:
   std::shared_ptr<TKeyboard> keyboard_{nullptr};
 
   // trackball
+  std::atomic<int> trackball_sensitivity_{10};
   std::shared_ptr<PointerInput> pointer_input_{nullptr};
   std::recursive_mutex trackball_data_mutex_;
   espp::PointerData trackball_data_{};

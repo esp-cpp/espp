@@ -46,7 +46,7 @@ std::shared_ptr<espp::TKeyboard> TDeck::keyboard() const { return keyboard_; }
 // Trackball Functions //
 /////////////////////////
 
-bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb) {
+bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb, int sensitivity) {
   if (pointer_input_) {
     logger_.warn("Trackball already initialized, not initializing again!");
     return false;
@@ -67,6 +67,9 @@ bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb
   interrupts_.add_interrupt(trackball_right_interrupt_pin);
   interrupts_.add_interrupt(trackball_btn_interrupt_pin);
 
+  // set the sensitivity
+  set_trackball_sensitivity(sensitivity);
+
   return true;
 }
 
@@ -82,35 +85,24 @@ void TDeck::trackball_read(int &x, int &y, bool &left_pressed, bool &right_press
   right_pressed = trackball_data_.right_pressed;
 }
 
-void TDeck::on_trackball_interrupt(const espp::Interrupt::Event &event) {
-  // read the current state of the trackball inputs
-  bool up = interrupts_.is_active(trackball_up_interrupt_pin);
-  bool down = interrupts_.is_active(trackball_down_interrupt_pin);
-  bool left = interrupts_.is_active(trackball_left_interrupt_pin);
-  bool right = interrupts_.is_active(trackball_right_interrupt_pin);
-  bool pressed = interrupts_.is_active(trackball_btn_interrupt_pin);
-  logger_.debug("UP: {}, DOWN: {}, LEFT: {}, RIGHT: {}, PRESSED: {}", up, down, left, right,
-                pressed);
-  {
-    std::lock_guard lock(trackball_data_mutex_);
-    static constexpr int diff = 10;
-    if (left) {
-      trackball_data_.x -= diff;
-    }
-    if (right) {
-      trackball_data_.x += diff;
-    }
-    if (up) {
-      trackball_data_.y -= diff;
-    }
-    if (down) {
-      trackball_data_.y += diff;
-    }
-    trackball_data_.x = std::clamp<int>(trackball_data_.x, 0, lcd_width_ - 1);
-    trackball_data_.y = std::clamp<int>(trackball_data_.y, 0, lcd_height_ - 1);
-    trackball_data_.left_pressed = pressed;
-  }
+void TDeck::set_trackball_sensitivity(int sensitivity) { trackball_sensitivity_ = sensitivity; }
 
+void TDeck::on_trackball_interrupt(const espp::Interrupt::Event &event) {
+  int diff = trackball_sensitivity_;
+  std::lock_guard lock(trackball_data_mutex_);
+  if (event.gpio_num == trackball_up) {
+    trackball_data_.y += diff;
+  } else if (event.gpio_num == trackball_down) {
+    trackball_data_.y -= diff;
+  } else if (event.gpio_num == trackball_left) {
+    trackball_data_.x -= diff;
+  } else if (event.gpio_num == trackball_right) {
+    trackball_data_.x += diff;
+  } else if (event.gpio_num == trackball_btn) {
+    trackball_data_.left_pressed = event.active;
+  }
+  trackball_data_.x = std::clamp<int>(trackball_data_.x, 0, lcd_width_ - 1);
+  trackball_data_.y = std::clamp<int>(trackball_data_.y, 0, lcd_height_ - 1);
   if (trackball_callback_) {
     trackball_callback_(trackball_data_);
   }
