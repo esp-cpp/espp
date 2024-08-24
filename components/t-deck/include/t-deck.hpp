@@ -42,34 +42,9 @@ public:
   /// Alias for the pixel type used by the TDeck display
   using Pixel = lv_color16_t;
 
-  /// The data structure for the touchpad
-  struct TouchpadData {
-    uint8_t num_touch_points = 0; ///< The number of touch points
-    uint16_t x = 0;               ///< The x coordinate
-    uint16_t y = 0;               ///< The y coordinate
-    uint8_t btn_state = 0;        ///< The button state (0 = button released, 1 = button pressed)
-
-    /// @brief Compare two TouchpadData objects for equality
-    /// @param rhs The right hand side of the comparison
-    /// @return true if the two TouchpadData objects are equal, false otherwise
-    bool operator==(const TouchpadData &rhs) const = default;
-  };
-
-  /// The data structure for the trackball
-  struct TrackballData {
-    int x = 0;            ///< The x coordinate
-    int y = 0;            ///< The y coordinate
-    bool pressed = false; ///< The button state
-
-    /// @brief Compare two TrackballData objects for equality
-    /// @param rhs The right hand side of the comparison
-    /// @return true if the two TrackballData objects are equal, false otherwise
-    bool operator==(const TrackballData &rhs) const = default;
-  };
-
   using keypress_callback_t = TKeyboard::key_cb_fn;
-  using touch_callback_t = std::function<void(const TouchpadData &)>;
-  using trackball_callback_t = std::function<void(const TrackballData &)>;
+  using touch_callback_t = std::function<void(const espp::TouchpadData &)>;
+  using trackball_callback_t = std::function<void(const espp::PointerData &)>;
 
   /// @brief Access the singleton instance of the TDeck class
   /// @return Reference to the singleton instance of the TDeck class
@@ -147,15 +122,10 @@ public:
   /// Initialize the trackball
   /// \param trackball_cb The trackball callback function, called when the
   ///        trackball is moved if not null
-  /// \return true if the trackball was successfully initialized, false otherwise
-  /// \note The trackball has an interrupt pin connected from it to the main
-  ///       esp32s3. This pin is used to detect when the trackball is moved.
-  ///       The trackball callback function is called when the trackball is
-  ///       moved.
+  /// \return true if the trackball was successfully initialized, false
+  ///         otherwise
   /// \see trackball()
   bool initialize_trackball(const trackball_callback_t &trackball_cb = nullptr);
-
-  void read_trackball_pins(bool &up, bool &down, bool &left, bool &right, bool &pressed);
 
   /// Get the pointer input for the trackball
   /// \return A shared pointer to the pointer input for the trackball
@@ -181,6 +151,18 @@ public:
   /// \return The GPIO pin for the trackball button
   static constexpr auto trackball_btn_gpio() { return trackball_btn; }
 
+  /// Get the most recent trackball data
+  /// \return The trackball data
+  espp::PointerData trackball_data() const;
+
+  /// Get the most recent trackball data
+  /// \param x The x coordinate
+  /// \param y The y coordinate
+  /// \param left_pressed Whether the left button is pressed
+  /// \param right_pressed Whether the right button is pressed
+  /// \note This method is a convenience method for integrating with LVGL, the
+  ///      data it returns is identical to the data returned by the
+  ///      trackball_data() method
   void trackball_read(int &x, int &y, bool &left_pressed, bool &right_pressed);
 
   /////////////////////////////////////////////////////////////////////////////
@@ -205,7 +187,7 @@ public:
 
   /// Get the most recent touchpad data
   /// \return The touchpad data
-  TouchpadData touchpad_data() const;
+  espp::TouchpadData touchpad_data() const;
 
   /// Get the most recent touchpad data
   /// \param num_touch_points The number of touch points
@@ -223,7 +205,7 @@ public:
   /// \return The converted touchpad data
   /// \note Uses the touch_invert_x and touch_invert_y settings to determine
   ///       if the x and y coordinates should be inverted
-  TouchpadData touchpad_convert(const TouchpadData &data) const;
+  espp::TouchpadData touchpad_convert(const espp::TouchpadData &data) const;
 
   /////////////////////////////////////////////////////////////////////////////
   // Display
@@ -331,6 +313,7 @@ protected:
   TDeck();
   bool update_gt911();
   void lcd_wait_lines();
+  void on_trackball_interrupt(const espp::Interrupt::Event &event);
 
   // common:
   // internal i2c (touchscreen, keyboard)
@@ -407,77 +390,51 @@ protected:
       .active_level = espp::Interrupt::ActiveLevel::HIGH,
       .interrupt_type = espp::Interrupt::Type::RISING_EDGE};
 
-  void on_trackball_interrupt(const auto &event) {
-    // read the current state of the trackball inputs
-    bool up = interrupts_.is_active(trackball_up_interrupt_pin);
-    bool down = interrupts_.is_active(trackball_down_interrupt_pin);
-    bool left = interrupts_.is_active(trackball_left_interrupt_pin);
-    bool right = interrupts_.is_active(trackball_right_interrupt_pin);
-    bool pressed = interrupts_.is_active(trackball_btn_interrupt_pin);
-    logger_.debug("UP: {}, DOWN: {}, LEFT: {}, RIGHT: {}, PRESSED: {}", up, down, left, right,
-                  pressed);
-    {
-      std::lock_guard lock(trackball_data_mutex_);
-      static constexpr int diff = 10;
-      if (left) {
-        trackball_data_.x -= diff;
-      }
-      if (right) {
-        trackball_data_.x += diff;
-      }
-      if (up) {
-        trackball_data_.y -= diff;
-      }
-      if (down) {
-        trackball_data_.y += diff;
-      }
-      trackball_data_.x = std::clamp<int>(trackball_data_.x, 0, lcd_width_ - 1);
-      trackball_data_.y = std::clamp<int>(trackball_data_.y, 0, lcd_height_ - 1);
-      trackball_data_.pressed = pressed;
-    }
-
-    if (trackball_callback_) {
-      trackball_callback_(trackball_data_);
-    }
-  }
-
   static constexpr auto trackball_interrupt_type = espp::Interrupt::Type::ANY_EDGE;
+  static constexpr auto trackball_filter_type = espp::Interrupt::FilterType::PIN_GLITCH_FILTER;
   espp::Interrupt::PinConfig trackball_up_interrupt_pin{
       .gpio_num = trackball_up,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
       .active_level = espp::Interrupt::ActiveLevel::LOW,
       .interrupt_type = trackball_interrupt_type,
-      .pullup_enabled = true};
+      .pullup_enabled = true,
+      .filter_type = trackball_filter_type};
   espp::Interrupt::PinConfig trackball_down_interrupt_pin{
       .gpio_num = trackball_down,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
       .active_level = espp::Interrupt::ActiveLevel::LOW,
       .interrupt_type = trackball_interrupt_type,
-      .pullup_enabled = true};
+      .pullup_enabled = true,
+      .filter_type = trackball_filter_type};
   espp::Interrupt::PinConfig trackball_left_interrupt_pin{
       .gpio_num = trackball_left,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
       .active_level = espp::Interrupt::ActiveLevel::LOW,
       .interrupt_type = trackball_interrupt_type,
-      .pullup_enabled = true};
+      .pullup_enabled = true,
+      .filter_type = trackball_filter_type};
   espp::Interrupt::PinConfig trackball_right_interrupt_pin{
       .gpio_num = trackball_right,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
       .active_level = espp::Interrupt::ActiveLevel::LOW,
       .interrupt_type = trackball_interrupt_type,
-      .pullup_enabled = true};
+      .pullup_enabled = true,
+      .filter_type = trackball_filter_type};
   espp::Interrupt::PinConfig trackball_btn_interrupt_pin{
       .gpio_num = trackball_btn,
       .callback = [this](const auto &event) { on_trackball_interrupt(event); },
       .active_level = espp::Interrupt::ActiveLevel::LOW,
       .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-      .pullup_enabled = true};
+      .pullup_enabled = true,
+      .filter_type = trackball_filter_type};
 
   // we'll only add each interrupt pin if the initialize method is called
   espp::Interrupt interrupts_{
       {.interrupts = {},
+       .event_queue_size = 50,
        .task_config = {.name = "t-deck interrupts",
-                       .stack_size_bytes = CONFIG_TDECK_INTERRUPT_STACK_SIZE}}};
+                       .stack_size_bytes = CONFIG_TDECK_INTERRUPT_STACK_SIZE,
+                       .priority = 20}}};
 
   // keyboard
   std::shared_ptr<TKeyboard> keyboard_{nullptr};
@@ -485,14 +442,14 @@ protected:
   // trackball
   std::shared_ptr<PointerInput> pointer_input_{nullptr};
   std::recursive_mutex trackball_data_mutex_;
-  TrackballData trackball_data_{};
+  espp::PointerData trackball_data_{};
   trackball_callback_t trackball_callback_{nullptr};
 
   // touch
   std::shared_ptr<Gt911> gt911_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
-  TouchpadData touchpad_data_;
+  espp::TouchpadData touchpad_data_;
   touch_callback_t touch_callback_{nullptr};
 
   // display
@@ -508,22 +465,3 @@ protected:
   uint8_t *frame_buffer1_{nullptr};
 }; // class TDeck
 } // namespace espp
-
-// for easy printing of TouchpadData using libfmt
-template <> struct fmt::formatter<espp::TDeck::TouchpadData> : fmt::formatter<std::string> {
-  template <typename FormatContext>
-  auto format(const espp::TDeck::TouchpadData &c, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(),
-                          "TouchpadData{{num_touch_points={}, x={}, y={}, btn_state={}}}",
-                          c.num_touch_points, c.x, c.y, c.btn_state);
-  }
-};
-
-// for easy printing of TrackballData using libfmt
-template <> struct fmt::formatter<espp::TDeck::TrackballData> : fmt::formatter<std::string> {
-  template <typename FormatContext>
-  auto format(const espp::TDeck::TrackballData &c, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "TrackballData{{x={}, y={}, pressed={}}}", c.x, c.y,
-                          c.pressed);
-  }
-};

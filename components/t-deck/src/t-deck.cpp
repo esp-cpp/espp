@@ -70,22 +70,50 @@ bool TDeck::initialize_trackball(const TDeck::trackball_callback_t &trackball_cb
   return true;
 }
 
-void TDeck::read_trackball_pins(bool &up, bool &down, bool &left, bool &right, bool &btn) {
-  up = !gpio_get_level(trackball_up);
-  down = !gpio_get_level(trackball_down);
-  left = !gpio_get_level(trackball_left);
-  right = !gpio_get_level(trackball_right);
-  btn = !gpio_get_level(trackball_btn);
-}
-
 std::shared_ptr<espp::PointerInput> TDeck::pointer_input() const { return pointer_input_; }
+
+espp::PointerData TDeck::trackball_data() const { return trackball_data_; }
 
 void TDeck::trackball_read(int &x, int &y, bool &left_pressed, bool &right_pressed) {
   std::lock_guard<std::recursive_mutex> lock(trackball_data_mutex_);
   x = trackball_data_.x;
   y = trackball_data_.y;
-  left_pressed = trackball_data_.pressed;
-  right_pressed = false;
+  left_pressed = trackball_data_.left_pressed;
+  right_pressed = trackball_data_.right_pressed;
+}
+
+void TDeck::on_trackball_interrupt(const espp::Interrupt::Event &event) {
+  // read the current state of the trackball inputs
+  bool up = interrupts_.is_active(trackball_up_interrupt_pin);
+  bool down = interrupts_.is_active(trackball_down_interrupt_pin);
+  bool left = interrupts_.is_active(trackball_left_interrupt_pin);
+  bool right = interrupts_.is_active(trackball_right_interrupt_pin);
+  bool pressed = interrupts_.is_active(trackball_btn_interrupt_pin);
+  logger_.debug("UP: {}, DOWN: {}, LEFT: {}, RIGHT: {}, PRESSED: {}", up, down, left, right,
+                pressed);
+  {
+    std::lock_guard lock(trackball_data_mutex_);
+    static constexpr int diff = 10;
+    if (left) {
+      trackball_data_.x -= diff;
+    }
+    if (right) {
+      trackball_data_.x += diff;
+    }
+    if (up) {
+      trackball_data_.y -= diff;
+    }
+    if (down) {
+      trackball_data_.y += diff;
+    }
+    trackball_data_.x = std::clamp<int>(trackball_data_.x, 0, lcd_width_ - 1);
+    trackball_data_.y = std::clamp<int>(trackball_data_.y, 0, lcd_height_ - 1);
+    trackball_data_.left_pressed = pressed;
+  }
+
+  if (trackball_callback_) {
+    trackball_callback_(trackball_data_);
+  }
 }
 
 ////////////////////////
@@ -158,7 +186,7 @@ bool TDeck::update_gt911() {
 
 std::shared_ptr<espp::TouchpadInput> TDeck::touchpad_input() const { return touchpad_input_; }
 
-TDeck::TouchpadData TDeck::touchpad_data() const { return touchpad_data_; }
+espp::TouchpadData TDeck::touchpad_data() const { return touchpad_data_; }
 
 void TDeck::touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, uint8_t *btn_state) {
   std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
@@ -168,7 +196,7 @@ void TDeck::touchpad_read(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, u
   *btn_state = touchpad_data_.btn_state;
 }
 
-TDeck::TouchpadData TDeck::touchpad_convert(const TDeck::TouchpadData &data) const {
+espp::TouchpadData TDeck::touchpad_convert(const espp::TouchpadData &data) const {
   TouchpadData temp_data;
   temp_data.num_touch_points = data.num_touch_points;
   temp_data.x = data.x;

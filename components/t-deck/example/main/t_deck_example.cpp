@@ -90,10 +90,6 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // get the pointer input
-  auto pointer_input = tdeck.pointer_input();
-  pointer_input->set_cursor(&mouse_cursor_icon);
-
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
   lv_obj_set_size(bg, tdeck.lcd_width(), tdeck.lcd_height());

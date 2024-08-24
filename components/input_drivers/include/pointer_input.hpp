@@ -9,6 +9,19 @@
 #include "base_component.hpp"
 
 namespace espp {
+/// The data structure for the touchpad
+struct PointerData {
+  int x = 0;                  ///< The x coordinate
+  int y = 0;                  ///< The y coordinate
+  bool left_pressed = false;  ///< The left button pressed state
+  bool right_pressed = false; ///< The right button pressed state
+
+  /// @brief Compare two PointerData objects for equality
+  /// @param rhs The right hand side of the comparison
+  /// @return true if the two PointerData objects are equal, false otherwise
+  bool operator==(const PointerData &rhs) const = default;
+};
+
 /**
  *  @brief Light wrapper around LVGL input device driver, specifically
  *         designed for pointers / cursors / mice input devices.
@@ -18,12 +31,10 @@ public:
   /**
    * @brief Function prototype for getting the latest input data from the
    *        pointer.
-   * @param num_touches Number of touch points / presses (pointer to data to
-   *                    be filled).
-   * @param x Current x position (pointer to data to be filled).
-   * @param y Current y position (pointer to data to be filled).
-   * @param state Home button state if there is a home button (pointer to data
-   *              to be filled).
+   * @param[out] x Current x position.
+   * @param[out] y Current y position.
+   * @param[out] left_pressed Whether the left button is pressed.
+   * @param[out] right_pressed Whether the right button is pressed.
    */
   typedef std::function<void(int &x, int &y, bool &left_pressed, bool &right_pressed)> read_fn;
 
@@ -32,7 +43,8 @@ public:
    *         pointer itself.
    */
   struct Config {
-    read_fn read; /**< Input function for the pointer hardware itself. */
+    read_fn read;         /**< Input function for the pointer hardware itself. */
+    int cursor_radius{8}; /**< Radius of the cursor object. */
     Logger::Verbosity log_level{
         Logger::Verbosity::WARN}; /**< Log verbosity for the input driver.  */
   };
@@ -44,7 +56,8 @@ public:
    */
   explicit PointerInput(const Config &config)
       : BaseComponent("PointerInput", config.log_level)
-      , read_(config.read) {
+      , read_(config.read)
+      , cursor_radius_(config.cursor_radius) {
     init();
   }
 
@@ -55,6 +68,9 @@ public:
     if (indev_pointer_) {
       lv_indev_delete(indev_pointer_);
     }
+    if (cursor_obj_) {
+      lv_obj_del(cursor_obj_);
+    }
   }
 
   /**
@@ -63,6 +79,17 @@ public:
    */
   lv_indev_t *get_pointer_input_device() { return indev_pointer_; }
 
+  /**
+   * @brief Get a pointer to the cursor object.
+   * @return Pointer to the cursor object.
+   */
+  lv_obj_t *get_cursor_object() { return cursor_obj_; }
+
+  /**
+   * @brief Set the cursor to a specific icon.
+   * @param icon The icon to set.
+   * @note The icon must be a valid LVGL image descriptor.
+   */
   void set_cursor(const lv_image_dsc_t *icon) {
     if (!indev_pointer_) {
       logger_.error("Invalid input device!");
@@ -78,6 +105,34 @@ public:
     cursor_obj_ = lv_img_create(lv_scr_act());
     lv_img_set_src(cursor_obj_, icon);
     lv_indev_set_cursor(indev_pointer_, cursor_obj_);
+    // get the size of the icon
+    lv_coord_t w = lv_obj_get_width(cursor_obj_);
+    lv_coord_t h = lv_obj_get_height(cursor_obj_);
+    cursor_radius_ = std::max(w, h) / 2;
+  }
+
+  /**
+   * @brief Set the cursor to a specific object.
+   * @param cursor_obj The cursor object to set.
+   */
+  void set_cursor(lv_obj_t *cursor_obj) {
+    if (!indev_pointer_) {
+      logger_.error("Invalid input device!");
+      return;
+    }
+    if (!cursor_obj) {
+      logger_.error("Invalid cursor object!");
+      return;
+    }
+    if (cursor_obj_) {
+      lv_obj_del(cursor_obj_);
+    }
+    cursor_obj_ = cursor_obj;
+    lv_indev_set_cursor(indev_pointer_, cursor_obj_);
+    // get the size of the icon
+    lv_coord_t w = lv_obj_get_width(cursor_obj_);
+    lv_coord_t h = lv_obj_get_height(cursor_obj_);
+    cursor_radius_ = std::max(w, h) / 2;
   }
 
 protected:
@@ -98,8 +153,8 @@ protected:
       return;
     }
     read_(x, y, left_pressed, right_pressed);
-    data->point.x = std::clamp<int>(x, 0, screen_size_x_);
-    data->point.y = std::clamp<int>(y, 0, screen_size_y_);
+    data->point.x = std::clamp<int>(x, 0, screen_size_x_ - cursor_radius_ * 2);
+    data->point.y = std::clamp<int>(y, 0, screen_size_y_ - cursor_radius_ * 2);
     data->state = left_pressed ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
   }
 
@@ -114,15 +169,35 @@ protected:
     lv_indev_set_read_cb(indev_pointer_, &PointerInput::read);
     lv_indev_set_user_data(indev_pointer_, (void *)this);
 
+    // make the cursor a simple circle for now
+    cursor_obj_ = lv_obj_create(lv_scr_act());
+    lv_obj_set_scrollbar_mode(cursor_obj_, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_size(cursor_obj_, cursor_radius_ * 2, cursor_radius_ * 2);
+    lv_obj_set_style_radius(cursor_obj_, LV_RADIUS_CIRCLE, 0);
+    // set the color to primary color
+    lv_obj_set_style_bg_color(cursor_obj_, lv_palette_lighten(LV_PALETTE_BLUE, 2), 0);
+    lv_obj_clear_flag(cursor_obj_, LV_OBJ_FLAG_CLICKABLE);
+    lv_indev_set_cursor(indev_pointer_, cursor_obj_);
+
     auto disp = lv_display_get_default();
     screen_size_x_ = (uint16_t)lv_display_get_horizontal_resolution(disp);
     screen_size_y_ = (uint16_t)lv_display_get_vertical_resolution(disp);
   }
 
   read_fn read_;
+  int cursor_radius_{8};
   uint16_t screen_size_x_;
   uint16_t screen_size_y_;
   lv_indev_t *indev_pointer_{nullptr};
   lv_obj_t *cursor_obj_{nullptr};
 };
 } // namespace espp
+
+// for easy printing of PointerData using libfmt
+template <> struct fmt::formatter<espp::PointerData> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const espp::PointerData &c, FormatContext &ctx) const {
+    return fmt::format_to(ctx.out(), "PointerData{{x={}, y={}, left_pressed={}, right_pressed={}}}",
+                          c.x, c.y, c.left_pressed, c.right_pressed);
+  }
+};
