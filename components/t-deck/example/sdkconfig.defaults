@@ -25,6 +25,8 @@ CONFIG_ESP_TIMER_TASK_STACK_SIZE=6144
 # set the functions into IRAM
 CONFIG_SPI_MASTER_IN_IRAM=y
 
+CONFIG_LV_DEF_REFR_PERIOD=16
+
 #
 # LVGL configuration - # Themes
 #

@@ -44,25 +44,13 @@ public:
 
   /// Alias for the display driver used by the ESP-Box display
   using DisplayDriver = espp::St7789;
+  using TouchpadData = espp::TouchpadData;
 
   /// The type of the box
   enum class BoxType {
     UNKNOWN, ///< unknown box
     BOX,     ///< ESP32-S3-BOX
     BOX3,    ///< ESP32-S3-BOX-3
-  };
-
-  /// The data structure for the touchpad
-  struct TouchpadData {
-    uint8_t num_touch_points = 0; ///< The number of touch points
-    uint16_t x = 0;               ///< The x coordinate
-    uint16_t y = 0;               ///< The y coordinate
-    uint8_t btn_state = 0;        ///< The button state (0 = button released, 1 = button pressed)
-
-    /// @brief Compare two TouchpadData objects for equality
-    /// @param rhs The right hand side of the comparison
-    /// @return true if the two TouchpadData objects are equal, false otherwise
-    bool operator==(const TouchpadData &rhs) const = default;
   };
 
   using touch_callback_t = std::function<void(const TouchpadData &)>;
@@ -148,7 +136,12 @@ public:
   /// \param update_period_ms The update period of the display task
   /// \return true if the display was successfully initialized, false otherwise
   /// \note This will also allocate two full frame buffers in the SPIRAM
-  bool initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config = {.name="Display", .stack_size_bytes=4096, .priority=10, .core_id=0}, int update_period_ms = 16);
+  bool initialize_display(size_t pixel_buffer_size,
+                          const espp::Task::BaseConfig &task_config = {.name = "Display",
+                                                                       .stack_size_bytes = 4096,
+                                                                       .priority = 10,
+                                                                       .core_id = 0},
+                          int update_period_ms = 16);
 
   /// Get the width of the LCD in pixels
   /// \return The width of the LCD in pixels
@@ -389,15 +382,17 @@ protected:
 
   // NOTE: the active level, interrupt type, and pullup configuration is set by
   // detect(), since it depends on the box type
-  espp::Interrupt::PinConfig touch_interrupt_pin_{.gpio_num = touch_interrupt,
-                                                  .callback = [this](const auto &event) {
-                                                    if (update_touch()) {
-                                                      if (touch_callback_) {
-                                                        touch_callback_(touchpad_data());
-                                                      }
-                                                    }
-                                                  },
-    .active_level = touch_interrupt_level,
+  espp::Interrupt::PinConfig touch_interrupt_pin_{
+      .gpio_num = touch_interrupt,
+      .callback =
+          [this](const auto &event) {
+            if (update_touch()) {
+              if (touch_callback_) {
+                touch_callback_(touchpad_data());
+              }
+            }
+          },
+      .active_level = touch_interrupt_level,
   };
 
   // we'll only add each interrupt pin if the initialize method is called
@@ -456,15 +451,5 @@ template <> struct fmt::formatter<espp::EspBox::BoxType> : fmt::formatter<std::s
       break;
     }
     return formatter<std::string>::format(name, ctx);
-  }
-};
-
-// for easy printing of TouchpadData using libfmt
-template <> struct fmt::formatter<espp::EspBox::TouchpadData> : fmt::formatter<std::string> {
-  template <typename FormatContext>
-  auto format(const espp::EspBox::TouchpadData &c, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(),
-                          "TouchpadData{{num_touch_points={}, x={}, y={}, btn_state={}}}",
-                          c.num_touch_points, c.x, c.y, c.btn_state);
   }
 };

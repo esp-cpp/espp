@@ -9,6 +9,20 @@
 #include "base_component.hpp"
 
 namespace espp {
+
+/// The data structure for the touchpad
+struct TouchpadData {
+  uint8_t num_touch_points = 0; ///< The number of touch points
+  uint16_t x = 0;               ///< The x coordinate
+  uint16_t y = 0;               ///< The y coordinate
+  uint8_t btn_state = 0;        ///< The button state (0 = button released, 1 = button pressed)
+
+  /// @brief Compare two TouchpadData objects for equality
+  /// @param rhs The right hand side of the comparison
+  /// @return true if the two TouchpadData objects are equal, false otherwise
+  bool operator==(const TouchpadData &rhs) const = default;
+};
+
 /**
  *  @brief Light wrapper around LVGL input device driver, specifically
  *         designed for touchpads with optional home buttons.
@@ -160,7 +174,17 @@ protected:
   std::atomic<bool> invert_x_{false};
   std::atomic<bool> invert_y_{false};
   std::atomic<bool> home_button_pressed_{false};
-  lv_indev_t *indev_touchpad_;
-  lv_indev_t *indev_button_;
+  lv_indev_t *indev_touchpad_{nullptr};
+  lv_indev_t *indev_button_{nullptr};
 };
 } // namespace espp
+
+// for easy printing of TouchpadData using libfmt
+template <> struct fmt::formatter<espp::TouchpadData> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const espp::TouchpadData &c, FormatContext &ctx) const {
+    return fmt::format_to(ctx.out(),
+                          "TouchpadData{{num_touch_points={}, x={}, y={}, btn_state={}}}",
+                          c.num_touch_points, c.x, c.y, c.btn_state);
+  }
+};

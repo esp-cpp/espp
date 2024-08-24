@@ -39,20 +39,7 @@ public:
 
   /// Alias for the display driver used by the Matouch display
   using DisplayDriver = espp::Gc9a01;
-
-  /// The data structure for the touchpad
-  struct TouchpadData {
-    uint8_t num_touch_points = 0; ///< The number of touch points
-    uint16_t x = 0;               ///< The x coordinate
-    uint16_t y = 0;               ///< The y coordinate
-    uint8_t btn_state = 0;        ///< The button state (0 = button released, 1 = button pressed)
-
-    /// @brief Compare two TouchpadData objects for equality
-    /// @param rhs The right hand side of the comparison
-    /// @return true if the two TouchpadData objects are equal, false otherwise
-    bool operator==(const TouchpadData &rhs) const = default;
-  };
-
+  using TouchpadData = espp::TouchpadData;
   using Encoder = espp::AbiEncoder<espp::EncoderType::ROTATIONAL>;
   using button_callback_t = espp::Interrupt::event_callback_fn;
   using touch_callback_t = std::function<void(const TouchpadData &)>;
@@ -164,7 +151,12 @@ public:
   /// \param update_period_ms The update period of the display task
   /// \return true if the display was successfully initialized, false otherwise
   /// \note This will also allocate two full frame buffers in the SPIRAM
-  bool initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config = {.name="Display", .stack_size_bytes=4096, .priority=10, .core_id=0}, int update_period_ms = 16);
+  bool initialize_display(size_t pixel_buffer_size,
+                          const espp::Task::BaseConfig &task_config = {.name = "Display",
+                                                                       .stack_size_bytes = 4096,
+                                                                       .priority = 10,
+                                                                       .core_id = 0},
+                          int update_period_ms = 16);
 
   /// Get the width of the LCD in pixels
   /// \return The width of the LCD in pixels
@@ -358,14 +350,3 @@ protected:
   uint8_t *frame_buffer1_{nullptr};
 }; // class MatouchRotaryDisplay
 } // namespace espp
-
-// for easy printing of TouchpadData using libfmt
-template <>
-struct fmt::formatter<espp::MatouchRotaryDisplay::TouchpadData> : fmt::formatter<std::string> {
-  template <typename FormatContext>
-  auto format(const espp::MatouchRotaryDisplay::TouchpadData &c, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(),
-                          "TouchpadData{{num_touch_points={}, x={}, y={}, btn_state={}}}",
-                          c.num_touch_points, c.x, c.y, c.btn_state);
-  }
-};

@@ -13,6 +13,8 @@ static std::recursive_mutex lvgl_mutex;
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
 
+LV_IMG_DECLARE(mouse_cursor_icon);
+
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "T-Deck Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting example!");
@@ -55,6 +57,10 @@ extern "C" void app_main(void) {
     }
   };
 
+  auto trackball_callback = [&](const auto &trackball) {
+    logger.debug("Trackball: {}", trackball);
+  };
+
   // initialize the Keyboard
   bool start_task = true;
   if (!tdeck.initialize_keyboard(start_task, keypress_callback)) {
@@ -78,6 +84,11 @@ extern "C" void app_main(void) {
     logger.error("Failed to initialize touchpad!");
     return;
   }
+  // initialize the trackball
+  if (!tdeck.initialize_trackball(trackball_callback)) {
+    logger.error("Failed to initialize trackball!");
+    return;
+  }
 
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
@@ -86,7 +97,8 @@ extern "C" void app_main(void) {
 
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_screen_active());
-  lv_label_set_text(label, "Touch the screen!\nPress the delete key to clear circles.\nPress the space key to rotate the display.");
+  lv_label_set_text(label, "Touch the screen!\nPress the delete key to clear circles.\nPress the "
+                           "space key to rotate the display.");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
@@ -99,13 +111,16 @@ extern "C" void app_main(void) {
   lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
   // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_event_cb(btn, [](auto event) {
-    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-    clear_circles();
-    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-    lv_display_t *disp = _lv_refr_get_disp_refreshing();
-    lv_disp_set_rotation(disp, rotation);
-  }, LV_EVENT_PRESSED, nullptr);
+  lv_obj_add_event_cb(
+      btn,
+      [](auto event) {
+        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+        clear_circles();
+        rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+        lv_display_t *disp = _lv_refr_get_disp_refreshing();
+        lv_disp_set_rotation(disp, rotation);
+      },
+      LV_EVENT_PRESSED, nullptr);
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)
