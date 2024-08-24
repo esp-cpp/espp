@@ -11,4 +11,5 @@ Input APIs
     t_keyboard
     encoder_input
     keypad_input
+    pointer_input
     touchpad_input

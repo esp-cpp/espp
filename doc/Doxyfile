@@ -152,6 +152,7 @@ INPUT += $(PROJECT_PATH)/components/i2c/include/i2c_menu.hpp
 INPUT += $(PROJECT_PATH)/components/interrupt/include/interrupt.hpp
 INPUT += $(PROJECT_PATH)/components/input_drivers/include/encoder_input.hpp
 INPUT += $(PROJECT_PATH)/components/input_drivers/include/keypad_input.hpp
+INPUT += $(PROJECT_PATH)/components/input_drivers/include/pointer_input.hpp
 INPUT += $(PROJECT_PATH)/components/input_drivers/include/touchpad_input.hpp
 INPUT += $(PROJECT_PATH)/components/joystick/include/joystick.hpp
 INPUT += $(PROJECT_PATH)/components/kts1622/include/kts1622.hpp
