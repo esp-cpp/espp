@@ -20,6 +20,13 @@ extern "C" void app_main(void) {
   logger.info("Starting example!");
 
   //! [seeed studio round display example]
+#if CONFIG_EXAMPLE_HARDWARE_XIAOS3
+  espp::SsRoundDisplay::set_pin_config(espp::SsRoundDisplay::XiaoS3Config);
+#elif CONFIG_EXAMPLE_HARDWARE_QTPYS3
+  espp::SsRoundDisplay::set_pin_config(espp::SsRoundDisplay::QtpyS3Config);
+#else
+#error "Please select a hardware configuration"
+#endif
   espp::SsRoundDisplay &round_display = espp::SsRoundDisplay::get();
 
   auto touch_callback = [&](const auto &touch) {

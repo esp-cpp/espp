@@ -2,8 +2,28 @@
 
 using namespace espp;
 
+SsRoundDisplay::PinConfig SsRoundDisplay::pin_config_;
+
 SsRoundDisplay::SsRoundDisplay()
-    : BaseComponent("SsRoundDisplay") {}
+    : BaseComponent("SsRoundDisplay")
+    , internal_i2c_({.port = internal_i2c_port,
+                     .sda_io_num = pin_config_.sda,
+                     .scl_io_num = pin_config_.scl,
+                     .sda_pullup_en = GPIO_PULLUP_ENABLE,
+                     .scl_pullup_en = GPIO_PULLUP_ENABLE})
+    , touch_interrupt_pin_({
+          .gpio_num = pin_config_.touch_interrupt,
+          .callback =
+              [this](const auto &event) {
+                if (update_touch()) {
+                  if (touch_callback_) {
+                    touch_callback_(touchpad_data());
+                  }
+                }
+              },
+          .active_level = touch_interrupt_level,
+          .interrupt_type = espp::Interrupt::Type::FALLING_EDGE,
+      }) {}
 
 espp::I2c &SsRoundDisplay::internal_i2c() { return internal_i2c_; }
 
@@ -173,9 +193,9 @@ bool SsRoundDisplay::initialize_lcd() {
   esp_err_t ret;
 
   memset(&lcd_spi_bus_config_, 0, sizeof(lcd_spi_bus_config_));
-  lcd_spi_bus_config_.mosi_io_num = lcd_mosi_io;
+  lcd_spi_bus_config_.mosi_io_num = pin_config_.mosi;
   lcd_spi_bus_config_.miso_io_num = -1;
-  lcd_spi_bus_config_.sclk_io_num = lcd_sclk_io;
+  lcd_spi_bus_config_.sclk_io_num = pin_config_.sck;
   lcd_spi_bus_config_.quadwp_io_num = -1;
   lcd_spi_bus_config_.quadhd_io_num = -1;
   lcd_spi_bus_config_.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
@@ -185,7 +205,7 @@ bool SsRoundDisplay::initialize_lcd() {
   // lcd_config_.flags = SPI_DEVICE_NO_RETURN_RESULT;
   lcd_config_.clock_speed_hz = lcd_clock_speed;
   lcd_config_.input_delay_ns = 0;
-  lcd_config_.spics_io_num = lcd_cs_io;
+  lcd_config_.spics_io_num = pin_config_.lcd_cs;
   lcd_config_.queue_size = spi_queue_size;
   lcd_config_.pre_cb = lcd_spi_pre_transfer_callback;
   lcd_config_.post_cb = lcd_spi_post_transfer_callback;
@@ -202,7 +222,7 @@ bool SsRoundDisplay::initialize_lcd() {
       .lcd_write = std::bind(&SsRoundDisplay::write_lcd, this, _1, _2, _3),
       .lcd_send_lines = std::bind(&SsRoundDisplay::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
       .reset_pin = lcd_reset_io,
-      .data_command_pin = lcd_dc_io,
+      .data_command_pin = pin_config_.lcd_dc,
       .reset_value = reset_value,
       .invert_colors = invert_colors,
       .swap_color_order = swap_color_order,
@@ -232,7 +252,7 @@ bool SsRoundDisplay::initialize_display(size_t pixel_buffer_size,
       .pixel_buffer_size = pixel_buffer_size,
       .flush_callback = DisplayDriver::flush,
       .rotation_callback = DisplayDriver::rotate,
-      .backlight_pin = backlight_io,
+      .backlight_pin = pin_config_.lcd_backlight,
       .backlight_on_value = backlight_value,
       .task_config = task_config,
       .update_period = 1ms * update_period_ms,

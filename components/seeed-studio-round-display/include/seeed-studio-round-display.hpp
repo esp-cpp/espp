@@ -21,6 +21,51 @@ public:
 
   using touch_callback_t = std::function<void(const TouchpadData &)>;
 
+  struct PinConfig {
+    gpio_num_t sda;             ///< I2C data
+    gpio_num_t scl;             ///< I2C clock
+    gpio_num_t usd_cs;          ///< uSD card chip select
+    gpio_num_t lcd_cs;          ///< LCD chip select
+    gpio_num_t lcd_dc;          ///< LCD data/command
+    gpio_num_t lcd_backlight;   ///< LCD backlight
+    gpio_num_t miso;            ///< SPI MISO
+    gpio_num_t mosi;            ///< SPI MOSI
+    gpio_num_t sck;             ///< SPI SCK
+    gpio_num_t touch_interrupt; ///< Touch interrupt
+  };
+
+  /// @brief The default pin configuration for the Seeed Studio Round Display
+  ///        connected to the Xiao ESP32-S3
+  static constexpr PinConfig XiaoS3Config = {
+      .sda = GPIO_NUM_5,
+      .scl = GPIO_NUM_6,
+      .usd_cs = GPIO_NUM_3,
+      .lcd_cs = GPIO_NUM_2,
+      .lcd_dc = GPIO_NUM_4,
+      .lcd_backlight = GPIO_NUM_43,
+      .miso = GPIO_NUM_8,
+      .mosi = GPIO_NUM_9,
+      .sck = GPIO_NUM_7,
+      .touch_interrupt = GPIO_NUM_44,
+  };
+
+  /// @brief The default pin configuration for the Seeed Studio Round Display
+  ///        connected to the Qtpy Esp32S3
+  static constexpr PinConfig QtpyS3Config = {
+      .sda = GPIO_NUM_7,
+      .scl = GPIO_NUM_6,
+      .usd_cs = GPIO_NUM_9,
+      .lcd_cs = GPIO_NUM_17,
+      .lcd_dc = GPIO_NUM_8,
+      .lcd_backlight = GPIO_NUM_5,
+      .miso = GPIO_NUM_37,
+      .mosi = GPIO_NUM_35,
+      .sck = GPIO_NUM_36,
+      .touch_interrupt = GPIO_NUM_16,
+  };
+
+  static void set_pin_config(const PinConfig &pin_config) { pin_config_ = pin_config; }
+
   /// @brief Access the singleton instance of the SsRoundDisplay class
   /// @return Reference to the singleton instance of the SsRoundDisplay class
   static SsRoundDisplay &get() {
@@ -113,7 +158,7 @@ public:
 
   /// Get the GPIO pin for the LCD data/command signal
   /// \return The GPIO pin for the LCD data/command signal
-  static constexpr auto get_lcd_dc_gpio() { return lcd_dc_io; }
+  static constexpr auto get_lcd_dc_gpio() { return pin_config_.lcd_dc; }
 
   /// Get a shared pointer to the display
   /// \return A shared pointer to the display
@@ -193,8 +238,6 @@ protected:
   // internal i2c (touchscreen)
   static constexpr auto internal_i2c_port = I2C_NUM_0;
   static constexpr auto internal_i2c_clock_speed = 400 * 1000;
-  static constexpr gpio_num_t internal_i2c_sda = GPIO_NUM_5; // D4 XIAO ESP32S3
-  static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_6; // D5 XIAO ESP32S3
 
   // LCD
   static constexpr size_t lcd_width_ = 240;
@@ -203,11 +246,7 @@ protected:
   static constexpr size_t frame_buffer_size = (((lcd_width_)*lcd_bytes_per_pixel) * lcd_height_);
   static constexpr int lcd_clock_speed = 20 * 1000 * 1000;
   static constexpr auto lcd_spi_num = SPI2_HOST;
-  static constexpr gpio_num_t lcd_cs_io = GPIO_NUM_2;   // D1 XIAO ESP32S3
-  static constexpr gpio_num_t lcd_mosi_io = GPIO_NUM_9; // D10 XIAO ESP32S3
-  static constexpr gpio_num_t lcd_sclk_io = GPIO_NUM_7; // D8 XIAO ESP32S3
   static constexpr gpio_num_t lcd_reset_io = GPIO_NUM_NC;
-  static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_4; // D3 XIAO ESP32S3
   static constexpr bool backlight_value = true;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
@@ -217,40 +256,16 @@ protected:
   static constexpr bool mirror_portrait = false;
   static constexpr bool swap_xy = false;
   static constexpr bool swap_color_order = true;
-  static constexpr gpio_num_t backlight_io = GPIO_NUM_43; // D6 XIAO ESP32S3
 
   // touch
   static constexpr bool touch_swap_xy = false;
   static constexpr bool touch_invert_x = false;
   static constexpr bool touch_invert_y = false;
-  static constexpr gpio_num_t touch_interrupt = GPIO_NUM_44; // D7 XIAO ESP32S3
   static constexpr auto touch_interrupt_level = espp::Interrupt::ActiveLevel::LOW;
 
-  // uSD card
-  static constexpr gpio_num_t usd_cs = GPIO_NUM_3;   // D2 XIAO ESP32S3
-  static constexpr gpio_num_t usd_miso = GPIO_NUM_8; // D9 XIAO ESP32S3
-  static constexpr gpio_num_t usd_mosi = GPIO_NUM_9; // D10 XIAO ESP32S3
-  static constexpr gpio_num_t usd_sck = GPIO_NUM_7;  // D8 XIAO ESP32S3
-
-  I2c internal_i2c_{{.port = internal_i2c_port,
-                     .sda_io_num = internal_i2c_sda,
-                     .scl_io_num = internal_i2c_scl,
-                     .sda_pullup_en = GPIO_PULLUP_ENABLE,
-                     .scl_pullup_en = GPIO_PULLUP_ENABLE}};
-
-  espp::Interrupt::PinConfig touch_interrupt_pin_{
-      .gpio_num = touch_interrupt,
-      .callback =
-          [this](const auto &event) {
-            if (update_touch()) {
-              if (touch_callback_) {
-                touch_callback_(touchpad_data());
-              }
-            }
-          },
-      .active_level = touch_interrupt_level,
-      .interrupt_type = espp::Interrupt::Type::FALLING_EDGE,
-  };
+  static PinConfig pin_config_;
+  I2c internal_i2c_;
+  espp::Interrupt::PinConfig touch_interrupt_pin_;
 
   // we'll only add each interrupt pin if the initialize method is called
   espp::Interrupt interrupts_{
