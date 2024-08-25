@@ -83,11 +83,11 @@ extern "C" void app_main(void) {
 
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_screen_active());
-  lv_label_set_text(label, "Touch the screen!\nPress the home button to clear circles.");
+  lv_label_set_text(label, "Touch the screen!");
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
 
-  // add a button in the top left which (when pressed) will rotate the display
+  // add a button in the top middel which (when pressed) will rotate the display
   // through 0, 90, 180, 270 degrees
   lv_obj_t *btn = lv_btn_create(lv_screen_active());
   lv_obj_set_size(btn, 50, 50);
@@ -105,6 +105,24 @@ extern "C" void app_main(void) {
         rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
         lv_display_t *disp = _lv_refr_get_disp_refreshing();
         lv_disp_set_rotation(disp, rotation);
+      },
+      LV_EVENT_PRESSED, nullptr);
+
+  // add a button in the bottom middle which (when pressed) will clear the
+  // circles
+  lv_obj_t *btn_clear = lv_btn_create(lv_screen_active());
+  lv_obj_set_size(btn_clear, 50, 50);
+  lv_obj_align(btn_clear, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_t *label_btn_clear = lv_label_create(btn_clear);
+  lv_label_set_text(label_btn_clear, LV_SYMBOL_TRASH);
+  lv_obj_add_state(btn_clear, LV_STATE_CHECKED); // make the button red
+  // center the text in the button
+  lv_obj_align(label_btn_clear, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_add_event_cb(
+      btn_clear,
+      [](auto event) {
+        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+        clear_circles();
       },
       LV_EVENT_PRESSED, nullptr);
 
