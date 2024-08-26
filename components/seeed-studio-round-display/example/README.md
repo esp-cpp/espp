@@ -8,6 +8,10 @@ either the XIAO S3 or the QtPy ESP32S3.
 It initializes the touch and display subsystems. It reads the touchpad state and
 each time you touch the scren it uses LVGL to draw a circle where you touch.
 
+
+https://github.com/user-attachments/assets/4cac7882-2a79-4c7c-a139-d36e39322660
+
+
 ## How to use example
 
 ### Hardware Required
