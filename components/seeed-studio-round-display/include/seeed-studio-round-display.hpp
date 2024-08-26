@@ -22,16 +22,19 @@ public:
   using touch_callback_t = std::function<void(const TouchpadData &)>;
 
   struct PinConfig {
-    gpio_num_t sda;             ///< I2C data
-    gpio_num_t scl;             ///< I2C clock
-    gpio_num_t usd_cs;          ///< uSD card chip select
-    gpio_num_t lcd_cs;          ///< LCD chip select
-    gpio_num_t lcd_dc;          ///< LCD data/command
-    gpio_num_t lcd_backlight;   ///< LCD backlight
-    gpio_num_t miso;            ///< SPI MISO
-    gpio_num_t mosi;            ///< SPI MOSI
-    gpio_num_t sck;             ///< SPI SCK
-    gpio_num_t touch_interrupt; ///< Touch interrupt
+    gpio_num_t sda = GPIO_NUM_NC;             ///< I2C data
+    gpio_num_t scl = GPIO_NUM_NC;             ///< I2C clock
+    gpio_num_t usd_cs = GPIO_NUM_NC;          ///< uSD card chip select
+    gpio_num_t lcd_cs = GPIO_NUM_NC;          ///< LCD chip select
+    gpio_num_t lcd_dc = GPIO_NUM_NC;          ///< LCD data/command
+    gpio_num_t lcd_backlight = GPIO_NUM_NC;   ///< LCD backlight
+    gpio_num_t miso = GPIO_NUM_NC;            ///< SPI MISO
+    gpio_num_t mosi = GPIO_NUM_NC;            ///< SPI MOSI
+    gpio_num_t sck = GPIO_NUM_NC;             ///< SPI SCK
+    gpio_num_t touch_interrupt = GPIO_NUM_NC; ///< Touch interrupt
+
+    bool operator==(const PinConfig &rhs) const = default;
+    bool operator!=(const PinConfig &rhs) const = default;
   };
 
   /// @brief The default pin configuration for the Seeed Studio Round Display

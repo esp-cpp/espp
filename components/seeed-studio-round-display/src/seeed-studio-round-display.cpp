@@ -23,7 +23,12 @@ SsRoundDisplay::SsRoundDisplay()
               },
           .active_level = touch_interrupt_level,
           .interrupt_type = espp::Interrupt::Type::FALLING_EDGE,
-      }) {}
+      }) {
+  if (pin_config_ == PinConfig{}) {
+    logger_.error("PinConfig not set, you must call set_pin_config() before initializing the "
+                  "SsRoundDisplay! Hardware will not work properly!");
+  }
+}
 
 espp::I2c &SsRoundDisplay::internal_i2c() { return internal_i2c_; }
 
