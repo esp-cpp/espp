@@ -1,11 +1,13 @@
 #pragma once
 
+#include <bitset>
 #include <chrono>
 #include <cstdint>
 #include <functional>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "base_component.hpp"
 
@@ -385,6 +387,14 @@ protected:
     write(data, length, ec);
   }
 
+  /// Write data to the peripheral
+  /// \param data The data to write
+  /// \param ec The error code to set if there is an error
+  void write_many(const std::vector<uint8_t> &data, std::error_code &ec) {
+    logger_.debug("write {} bytes", data.size());
+    write(data.data(), data.size(), ec);
+  }
+
   /// Write a uint8_t to the peripheral
   /// \param data The data to write
   /// \param ec The error code to set if there is an error
@@ -411,6 +421,17 @@ protected:
   void read_many(uint8_t *data, size_t length, std::error_code &ec) {
     logger_.debug("read {} bytes", length);
     read(data, length, ec);
+  }
+
+  /// Read many bytes from the peripheral
+  /// \param data The buffer to read into
+  /// \param ec The error code to set if there is an error
+  /// \note You should ensure that the buffer is the correct size before calling
+  ///       this function since the buffer size is what is used to know how many
+  ///       bytes to read
+  void read_many(std::vector<uint8_t> &data, std::error_code &ec) {
+    logger_.debug("read {} bytes", data.size());
+    read(data.data(), data.size(), ec);
   }
 
   /// Read a uint8_t from the peripheral
@@ -488,6 +509,16 @@ protected:
     write(buffer, length + reg_addr_size, ec);
   }
 
+  /// Write many bytes to a register on the peripheral
+  /// \param reg_addr The address of the register to write to
+  /// \param data The data to write
+  /// \param ec The error code to set if there is an error
+  void write_many_to_register(RegisterAddressType reg_addr, const std::vector<uint8_t> &data,
+                              std::error_code &ec) {
+    logger_.debug("write {} bytes to register 0x{:x}", data.size(), reg_addr);
+    write_many_to_register(reg_addr, data.data(), data.size(), ec);
+  }
+
   /// Read a uint8_t from a register on the peripheral
   /// \param register_address The address of the register to read from
   /// \param ec The error code to set if there is an error
@@ -558,6 +589,17 @@ protected:
     }
   }
 
+  /// Read many bytes from a register on the peripheral
+  /// \param register_address The address of the register to read from
+  /// \param data The buffer to read into
+  /// \param ec The error code to set if there is an error
+  void read_many_from_register(RegisterAddressType register_address, std::vector<uint8_t> &data,
+                               std::error_code &ec) {
+    logger_.debug("read_many_from_register {} bytes from register 0x{:x}", data.size(),
+                  register_address);
+    read_many_from_register(register_address, data.data(), data.size(), ec);
+  }
+
   /// Set bits in a register on the peripheral
   /// \param register_address The address of the register to modify
   /// \param mask The mask to set
@@ -576,6 +618,24 @@ protected:
     write_u8_to_register(register_address, data, ec);
   }
 
+  /// Set bits in a register on the peripheral
+  /// \param register_address The address of the register to modify
+  /// \param bits The bits to set
+  /// \param ec The error code to set if there is an error
+  /// \note This function reads the register, sets the bits, and then writes the
+  ///       register back to the peripheral
+  void set_bits_in_register(RegisterAddressType register_address, std::bitset<8> bits,
+                            std::error_code &ec) {
+    logger_.debug("set_bits_in_register 0x{:x} with bits {}", register_address, bits);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data = read_u8_from_register(register_address, ec);
+    if (ec) {
+      return;
+    }
+    data |= bits.to_ulong();
+    write_u8_to_register(register_address, data, ec);
+  }
+
   /// Clear bits in a register on the peripheral
   /// \param register_address The address of the register to modify
   /// \param mask The mask to clear
@@ -591,6 +651,60 @@ protected:
       return;
     }
     data &= ~mask;
+    write_u8_to_register(register_address, data, ec);
+  }
+
+  /// Clear bits in a register on the peripheral
+  /// \param register_address The address of the register to modify
+  /// \param bits The bits to clear
+  /// \param ec The error code to set if there is an error
+  /// \note This function reads the register, clears the bits, and then writes the
+  ///       register back to the peripheral
+  void clear_bits_in_register(RegisterAddressType register_address, std::bitset<8> bits,
+                              std::error_code &ec) {
+    logger_.debug("clear_bits_in_register 0x{:x} with bits {}", register_address, bits);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data = read_u8_from_register(register_address, ec);
+    if (ec) {
+      return;
+    }
+    data &= ~bits.to_ulong();
+    write_u8_to_register(register_address, data, ec);
+  }
+
+  /// Toggle bits in a register on the peripheral
+  /// \param register_address The address of the register to modify
+  /// \param mask The mask to toggle
+  /// \param ec The error code to set if there is an error
+  /// \note This function reads the register, toggles the bits, and then writes the register
+  ///       back to the peripheral
+  void toggle_bits_in_register(RegisterAddressType register_address, uint8_t mask,
+                               std::error_code &ec) {
+    logger_.debug("toggle_bits_in_register 0x{:x} with mask 0x{:x}", register_address, mask);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data = read_u8_from_register(register_address, ec);
+    if (ec) {
+      return;
+    }
+    data ^= mask;
+    write_u8_to_register(register_address, data, ec);
+  }
+
+  /// Toggle bits in a register on the peripheral
+  /// \param register_address The address of the register to modify
+  /// \param bits The bits to toggle
+  /// \param ec The error code to set if there is an error
+  /// \note This function reads the register, toggles the bits, and then writes the
+  ///       register back to the peripheral
+  void toggle_bits_in_register(RegisterAddressType register_address, std::bitset<8> bits,
+                               std::error_code &ec) {
+    logger_.debug("toggle_bits_in_register 0x{:x} with bits {}", register_address, bits);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data = read_u8_from_register(register_address, ec);
+    if (ec) {
+      return;
+    }
+    data ^= bits.to_ulong();
     write_u8_to_register(register_address, data, ec);
   }
 
