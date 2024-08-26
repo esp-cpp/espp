@@ -13,6 +13,8 @@ static std::deque<lv_obj_t *> circles;
 static std::recursive_mutex lvgl_mutex;
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
+static void on_rotate_pressed(lv_event_t *event);
+static void on_clear_pressed(lv_event_t *event);
 
 extern "C" void app_main(void) {
   espp::Logger logger(
@@ -43,12 +45,10 @@ extern "C" void app_main(void) {
       previous_touchpad_data = touchpad_data;
       // if the button is pressed, clear the circles
       if (touchpad_data.btn_state) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
         clear_circles();
       }
       // if there is a touch point, draw a circle
       if (touchpad_data.num_touch_points > 0) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
         draw_circle(touchpad_data.x, touchpad_data.y, 10);
       }
     }
@@ -96,37 +96,19 @@ extern "C" void app_main(void) {
   lv_obj_align(btn, LV_ALIGN_TOP_MID, 0, 0);
   lv_obj_t *label_btn = lv_label_create(btn);
   lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
-  // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_event_cb(
-      btn,
-      [](auto event) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        clear_circles();
-        static auto rotation = LV_DISPLAY_ROTATION_0;
-        rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-        lv_display_t *disp = _lv_refr_get_disp_refreshing();
-        lv_disp_set_rotation(disp, rotation);
-      },
-      LV_EVENT_PRESSED, nullptr);
+  lv_obj_add_event_cb(btn, on_rotate_pressed, LV_EVENT_PRESSED, nullptr);
 
   // add a button in the bottom middle which (when pressed) will clear the
   // circles
   lv_obj_t *btn_clear = lv_btn_create(lv_screen_active());
   lv_obj_set_size(btn_clear, 50, 50);
   lv_obj_align(btn_clear, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_add_state(btn_clear, LV_STATE_CHECKED); // make the button red
   lv_obj_t *label_btn_clear = lv_label_create(btn_clear);
   lv_label_set_text(label_btn_clear, LV_SYMBOL_TRASH);
-  lv_obj_add_state(btn_clear, LV_STATE_CHECKED); // make the button red
-  // center the text in the button
   lv_obj_align(label_btn_clear, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_event_cb(
-      btn_clear,
-      [](auto event) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        clear_circles();
-      },
-      LV_EVENT_PRESSED, nullptr);
+  lv_obj_add_event_cb(btn_clear, on_clear_pressed, LV_EVENT_PRESSED, nullptr);
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)
@@ -158,7 +140,19 @@ extern "C" void app_main(void) {
   //! [seeed studio round display example]
 }
 
+static void on_rotate_pressed(lv_event_t *event) {
+  std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+  clear_circles();
+  static auto rotation = LV_DISPLAY_ROTATION_0;
+  rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+  lv_display_t *disp = _lv_refr_get_disp_refreshing();
+  lv_disp_set_rotation(disp, rotation);
+}
+
+static void on_clear_pressed(lv_event_t *event) { clear_circles(); }
+
 static void draw_circle(int x0, int y0, int radius) {
+  std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
   // if the number of circles is greater than the max, remove the oldest circle
   if (circles.size() > MAX_CIRCLES) {
     lv_obj_delete(circles.front());
@@ -176,6 +170,7 @@ static void draw_circle(int x0, int y0, int radius) {
 }
 
 static void clear_circles() {
+  std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
   // remove the circles from lvgl
   for (auto circle : circles) {
     lv_obj_delete(circle);
