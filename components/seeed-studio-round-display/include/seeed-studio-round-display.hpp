@@ -13,14 +13,34 @@
 #include "touchpad_input.hpp"
 
 namespace espp {
+/// The SsRoundDisplay class provides an interface to the Seeed Studio Round
+/// Display development board.
+///
+/// The class provides access to the following features:
+/// - Touchpad
+/// - Display
+///
+/// The class is a singleton and can be accessed using the get() method.
+///
+/// \note You must call set_pin_config() before calling get() for the first
+/// time, in order to provide the appropriate pin configuration for the
+/// controller board connected to the display. Some pin configuration structures
+/// are provided for convenience.
+///
+/// \section seeed_studio_round_display_example Example
+/// \snippet seeed_studio_round_display_example.cpp seeed studio round display example
 class SsRoundDisplay : public espp::BaseComponent {
 public:
-  using Pixel = lv_color16_t;
-  using DisplayDriver = espp::Gc9a01;
-  using TouchDriver = espp::Chsc6x;
+  using Pixel = lv_color16_t;              ///< Alias for the type of pixel the display uses.
+  using DisplayDriver = espp::Gc9a01;      ///< Alias for the display driver.
+  using TouchDriver = espp::Chsc6x;        ///< Alias for the touch driver.
+  using TouchpadData = espp::TouchpadData; ///< Alias for the touchpad data.
 
+  /// The touch callback function type
+  /// \param data The touchpad data
   using touch_callback_t = std::function<void(const TouchpadData &)>;
 
+  /// The pin configuration structure
   struct PinConfig {
     gpio_num_t sda = GPIO_NUM_NC;             ///< I2C data
     gpio_num_t scl = GPIO_NUM_NC;             ///< I2C clock
@@ -67,10 +87,14 @@ public:
       .touch_interrupt = GPIO_NUM_16, ///< Touch interrupt. RX on the Qtpy
   };
 
+  /// @brief Set the pin configuration for the controller board connected to the
+  ///        display
+  /// @param pin_config The pin configuration for the controller board
   static void set_pin_config(const PinConfig &pin_config) { pin_config_ = pin_config; }
 
   /// @brief Access the singleton instance of the SsRoundDisplay class
   /// @return Reference to the singleton instance of the SsRoundDisplay class
+  /// @note This method must be called after set_pin_config() has been called
   static SsRoundDisplay &get() {
     static SsRoundDisplay instance;
     return instance;
