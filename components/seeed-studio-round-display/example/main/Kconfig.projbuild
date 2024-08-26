@@ -1,0 +1,18 @@
+menu "Seeed Studio Round Display Example Config"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_XIAOS3
+        help
+            Select the hardware to run this example on.
+
+        config EXAMPLE_HARDWARE_QTPYS3
+            depends on IDF_TARGET_ESP32S3
+            bool "Qt Py ESP32 S3"
+
+        config EXAMPLE_HARDWARE_XIAOS3
+            depends on IDF_TARGET_ESP32S3
+            bool "XIAO Esp32 S3"
+    endchoice
+
+endmenu

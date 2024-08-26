@@ -37,12 +37,14 @@ jobs:
           target: esp32
         - path: 'components/button/example'
           target: esp32
-        - path: 'components/controller/example'
+        - path: 'components/chsc6x/example'
           target: esp32s3
         - path: 'components/cli/example'
           target: esp32
         - path: 'components/color/example'
           target: esp32
+        - path: 'components/controller/example'
+          target: esp32s3
         - path: 'components/cst816/example'
           target: esp32s3
         - path: 'components/csv/example'
@@ -111,6 +113,8 @@ jobs:
           target: esp32s3
         - path: 'components/rtsp/example'
           target: esp32
+        - path: 'components/seeed-studio-round-display/example'
+          target: esp32s3
         - path: 'components/serialization/example'
           target: esp32
         - path: 'components/socket/example'

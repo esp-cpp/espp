@@ -1,0 +1,8 @@
+menu "Seeed Studio Round Display Configuration"
+    config SEEED_STUDIO_ROUND_DISPLAY_INTERRUPT_STACK_SIZE
+        int "Interrupt stack size"
+        default 4096
+        help
+            Size of the stack used for the interrupt handler. Used by the touch
+            callback.
+endmenu
