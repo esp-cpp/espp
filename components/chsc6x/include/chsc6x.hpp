@@ -45,7 +45,7 @@ public:
       x_ = 0;
       y_ = 0;
       num_touch_points_ = 0;
-      return false;
+      return true;
     }
     x_ = data[2];
     y_ = data[4];

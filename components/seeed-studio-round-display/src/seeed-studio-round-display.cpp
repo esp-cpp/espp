@@ -14,13 +14,7 @@ SsRoundDisplay::SsRoundDisplay()
     , touch_interrupt_pin_({
           .gpio_num = pin_config_.touch_interrupt,
           .callback =
-              [this](const auto &event) {
-                if (update_touch()) {
-                  if (touch_callback_) {
-                    touch_callback_(touchpad_data());
-                  }
-                }
-              },
+              std::bind(&SsRoundDisplay::touch_interrupt_handler, this, std::placeholders::_1),
           .active_level = touch_interrupt_level,
           .interrupt_type = espp::Interrupt::Type::FALLING_EDGE,
       }) {
@@ -73,6 +67,14 @@ bool SsRoundDisplay::initialize_touch(const SsRoundDisplay::touch_callback_t &ca
   interrupts_.add_interrupt(touch_interrupt_pin_);
 
   return true;
+}
+
+void SsRoundDisplay::touch_interrupt_handler(const espp::Interrupt::Event &event) {
+  if (update_touch()) {
+    if (touch_callback_) {
+      touch_callback_(touchpad_data());
+    }
+  }
 }
 
 bool SsRoundDisplay::update_touch() {

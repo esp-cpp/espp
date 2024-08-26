@@ -258,6 +258,7 @@ public:
 
 protected:
   SsRoundDisplay();
+  void touch_interrupt_handler(const espp::Interrupt::Event &event);
   bool update_touch();
   void lcd_wait_lines();
 
