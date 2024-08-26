@@ -21,8 +21,10 @@ extern "C" void app_main(void) {
 
   //! [seeed studio round display example]
 #if CONFIG_EXAMPLE_HARDWARE_XIAOS3
+  logger.info("Using XiaoS3 hardware configuration");
   espp::SsRoundDisplay::set_pin_config(espp::SsRoundDisplay::XiaoS3Config);
 #elif CONFIG_EXAMPLE_HARDWARE_QTPYS3
+  logger.info("Using QtpyS3 hardware configuration");
   espp::SsRoundDisplay::set_pin_config(espp::SsRoundDisplay::QtpyS3Config);
 #else
 #error "Please select a hardware configuration"
