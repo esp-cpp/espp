@@ -4,6 +4,7 @@ Input APIs
 .. toctree::
     :maxdepth: 1
 
+    chsc6x
     cst816
     ft5x06
     gt911
