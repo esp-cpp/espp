@@ -1,0 +1,39 @@
+menu "Example Configuration"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_XIAOS3
+        help
+            Select the hardware to run this example on.
+
+        config EXAMPLE_HARDWARE_XIAOS3
+            depends on IDF_TARGET_ESP32S3
+            bool "XIAO-S3"
+
+        config EXAMPLE_HARDWARE_QTPYS3
+            depends on IDF_TARGET_ESP32S3
+            bool "QTPY ESP32 S3"
+
+        config EXAMPLE_HARDWARE_CUSTOM
+            bool "Custom"
+    endchoice
+
+    config EXAMPLE_I2C_SCL_GPIO
+        int "SCL GPIO Num"
+        range 0 50
+        default 6 if EXAMPLE_HARDWARE_XIAOS3
+        default 6 if EXAMPLE_HARDWARE_QTPYS3
+        default 19 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master clock line.
+
+    config EXAMPLE_I2C_SDA_GPIO
+        int "SDA GPIO Num"
+        range 0 50
+        default 5 if EXAMPLE_HARDWARE_XIAOS3
+        default 7 if EXAMPLE_HARDWARE_QTPYS3
+        default 22 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master data line.
+
+endmenu
