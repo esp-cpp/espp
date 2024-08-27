@@ -18,10 +18,13 @@ Build the project and flash it to the board, then run monitor tool to view
 serial output:
 
 ```
-idf.py -p PORT flash monitor
+idf.py -p PORT -b 1500000 flash monitor
 ```
 
 (Replace PORT with the name of the serial port to use.)
+
+Note: the baudrate for the ESP32 TimerCam cannot go up to 2 MBaud, so 1.5MBaud
+is recommended.
 
 (To exit the serial monitor, type ``Ctrl-]``.)
 
