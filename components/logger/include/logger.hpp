@@ -35,10 +35,18 @@ namespace espp {
  * checking the log level at compile time and only compiling in the functions
  * that are needed.
  *
+ * The logger can also be compiled with support for cursor commands. This allows
+ * the logger to move the cursor up, down, clear the line, clear the screen, and
+ * move the cursor to a specific position. This can be useful for creating
+ * various types of interactive output or to maintian context with long-running
+ * logs.
+ *
  * \section logger_ex1 Basic Example
  * \snippet logger_example.cpp Logger example
  * \section logger_ex2 Threaded Logging and Verbosity Example
  * \snippet logger_example.cpp MultiLogger example
+ * \section logger_ex3 Cursor Commands Example
+ * \snippet logger_example.cpp Cursor Commands example
  */
 class Logger {
 
@@ -56,6 +64,16 @@ class Logger {
 #define ESPP_LOGGER_INFO_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_INFO)
 #define ESPP_LOGGER_WARN_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_WARN)
 #define ESPP_LOGGER_ERROR_ENABLED (CONFIG_ESPP_LOGGER_LOG_LEVEL >= ESPP_LOGGER_LOG_LEVEL_ERROR)
+
+// If the cursor commands haven't been configured as a define, check the config
+#if !defined(ESPP_LOGGER_CURSOR_COMMANDS_ENABLED)
+#if !defined(CONFIG_ESPP_LOGGER_ENABLE_CURSOR_COMMANDS)
+#define ESPP_LOGGER_CURSOR_COMMANDS_ENABLED 0
+#else // CONFIG_ESPP_LOGGER_ENABLE_CURSOR_COMMANDS
+#define ESPP_LOGGER_CURSOR_COMMANDS_ENABLED 1
+#endif // CONFIG_ESPP_LOGGER_ENABLE_CURSOR_COMMANDS
+#endif // ESPP_LOGGER_CURSOR_COMMANDS_ENABLED
+
 
 public:
   /**
@@ -322,11 +340,51 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
 #endif
   }
 
-protected:
+#if ESPP_LOGGER_CURSOR_COMMANDS_ENABLED || defined(_DOXYGEN_)
   /**
-   *   Start time for the logging system.
+   * @brief Move the cursor up one line.
    */
-  static std::chrono::steady_clock::time_point start_time_;
+  static void move_up() { fmt::print("\033[A"); }
+
+  /**
+   * @brief Move the cursor up a number of lines.
+   * @param lines The number of lines to move up.
+   */
+  static void move_up(int lines) { fmt::print("\033[{}A", lines); }
+
+  /**
+   * @brief Move the cursor down one line.
+   */
+  static void move_down() { fmt::print("\033[B"); }
+
+  /**
+   * @brief Move the cursor down a number of lines.
+   * @param lines The number of lines to move down.
+   */
+  static void move_down(int lines) { fmt::print("\033[{}B", lines); }
+
+  /**
+   * @brief Move the cursor to the beginning of the line.
+   */
+  static void move_to_start() { fmt::print("\r"); }
+
+  /**
+   * @brief Clear the line.
+   */
+  static void clear_line() { fmt::print("\033[K"); }
+
+  /**
+   * @brief Clear the screen and move the cursor to the top left.
+   */
+  static void clear_screen() { fmt::print("\033[2J\033[H"); }
+
+  /**
+   * @brief Move the cursor to a specific position.
+   * @param x The x position to move to.
+   * @param y The y position to move to.
+   */
+  static void move_to(int x, int y) { fmt::print("\033[{};{}H", y, x); }
+#endif
 
   /**
    *   Get the current time in seconds since the start of the logging system.
@@ -347,6 +405,12 @@ protected:
     return fmt::format("{:.3f}", seconds);
 #endif
   }
+
+protected:
+  /**
+   *   Start time for the logging system.
+   */
+  static std::chrono::steady_clock::time_point start_time_;
 
   std::mutex tag_mutex_; ///< Mutex for the tag.
   std::string tag_;      ///< Name of the logger to be prepended to all logs.

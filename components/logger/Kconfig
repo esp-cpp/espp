@@ -14,4 +14,12 @@ menu "ESPP Logger"
           2 - Errors and warnings
           3 - Errors, warnings, and info
           4 - Errors, warnings, info, and debug
+
+    config ESPP_LOGGER_ENABLE_CURSOR_COMMANDS
+        bool "Enable cursor commands"
+        default y
+        help
+          Enable cursor commands for the ESPP Logger. This will allow the user to
+          move the cursor around the terminal and clear the screen.
+
 endmenu

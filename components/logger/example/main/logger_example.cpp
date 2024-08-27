@@ -31,6 +31,28 @@ extern "C" void app_main(void) {
     }
     //! [Logger example]
   }
+
+  {
+    //! [Cursor Commands example]
+    float num_seconds_to_run = 10.0f;
+    // create loggers
+    auto logger = espp::Logger({.tag = "Cursor Commands", .level = espp::Logger::Verbosity::DEBUG});
+    auto start = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::high_resolution_clock::now();
+    float elapsed = std::chrono::duration<float>(now - start).count();
+    logger.info("Long running log... {}", elapsed);
+    while (elapsed < num_seconds_to_run) {
+      now = std::chrono::high_resolution_clock::now();
+      elapsed = std::chrono::duration<float>(now - start).count();
+      auto remaining = num_seconds_to_run - elapsed;
+      logger.move_up();
+      logger.clear_line();
+      logger.info("Long running log... {}", remaining);
+      std::this_thread::sleep_for(100ms);
+    }
+    //! [Cursor Commands example]
+  }
+
   {
     //! [MultiLogger example]
     // create loggers
