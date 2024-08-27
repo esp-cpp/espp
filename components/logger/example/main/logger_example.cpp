@@ -47,7 +47,7 @@ extern "C" void app_main(void) {
       auto remaining = num_seconds_to_run - elapsed;
       logger.move_up();
       logger.clear_line();
-      logger.info("Long running log... {}", elapsed);
+      logger.info("Long running log... {}", remaining);
       std::this_thread::sleep_for(100ms);
     }
     //! [Cursor Commands example]
