@@ -35,6 +35,9 @@ extern "C" void app_main(void) {
     // print out the battery voltage
     logger.info("Battery voltage: {:.02f} V", timer_cam.get_battery_voltage());
     std::this_thread::sleep_for(100ms);
+    // go up a line to overwrite the previous message
+    logger.move_up();
+    logger.clear_line();
   }
   //! [esp timer cam example]
 }
