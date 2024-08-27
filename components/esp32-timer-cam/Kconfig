@@ -1,0 +1,7 @@
+menu "Esp-Box Configuration"
+    config ESP_TIMER_CAM_INTERRUPT_STACK_SIZE
+        int "Interrupt stack size"
+        default 4096
+        help
+            Size of the stack used for the interrupt handler.
+endmenu
