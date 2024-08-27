@@ -108,7 +108,7 @@ float EspTimerCam::get_battery_voltage() {
     auto mv = maybe_mv.value();
     measurement = mv;
   }
-  return measurement / 1000.0f;
+  return measurement * BATTERY_VOLTAGE_SCALE;
 }
 
 ////////////////////////
