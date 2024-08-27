@@ -6,6 +6,8 @@ ESP32-TimerCam.
 
 It initializes the LED, RTC, I2C, and ADC.
 
+https://github.com/user-attachments/assets/b0c0eb28-0ce1-466d-b6e5-debbc0e7f3f6
+
 ## How to use example
 
 ### Hardware Required
@@ -32,3 +34,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+![CleanShot 2024-08-27 at 11 31 16](https://github.com/user-attachments/assets/9c3ebe48-af46-4021-afab-6235870eddf4)
