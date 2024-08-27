@@ -55,6 +55,8 @@ jobs:
           target: esp32
         - path: 'components/encoder/example'
           target: esp32
+        - path: 'components/esp32-timer-cam/example'
+          target: esp32
         - path: 'components/esp-box/example'
           target: esp32s3
         - path: 'components/event_manager/example'
