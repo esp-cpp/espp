@@ -79,6 +79,12 @@ void Timer::cancel() {
   task_->stop();
 }
 
+#if defined(ESP_PLATFORM)
+bool Timer::start_watchdog() { return task_->start_watchdog(); }
+
+bool Timer::stop_watchdog() { return task_->stop_watchdog(); }
+#endif
+
 void Timer::set_period(const std::chrono::duration<float> &period) {
   if (period.count() < 0) {
     logger_.warn("period cannot be negative, not setting");

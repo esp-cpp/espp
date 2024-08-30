@@ -227,12 +227,14 @@ public:
   /**
    * @brief Start the task watchdog for this task.
    * @return true if the watchdog was started, false otherwise.
+   * @note This function is only available on ESP
    */
   bool start_watchdog();
 
   /**
    * @brief Stop the task watchdog for this task.
    * @return true if the watchdog was stopped, false otherwise.
+   * @note This function is only available on ESP
    */
   bool stop_watchdog();
 
@@ -241,6 +243,7 @@ public:
    * @param timeout_ms Timeout in milliseconds for the watchdog.
    * @param panic_on_timeout Whether or not to panic on timeout.
    * @return true if the watchdog was initialized, false otherwise.
+   * @note This function is only available on ESP
    * @note This function will not monitor the idle tasks.
    * @note If the watchdog has not been configured, then this function will call
    *       `esp_task_wdt_init`, otherwise it will then call
@@ -253,6 +256,7 @@ public:
    * @param timeout The timeout for the watchdog.
    * @param panic_on_timeout Whether or not to panic on timeout.
    * @return true if the watchdog was initialized, false otherwise.
+   * @note This function is only available on ESP
    * @note This function will not monitor the idle tasks.
    * @note If the watchdog has not been configured, then this function will call
    *       `esp_task_wdt_init`, otherwise it will then call
@@ -267,6 +271,7 @@ public:
    * @param ec Error code to set if there was an error retrieving the info.
    * @return std::string containing the task watchdog info, or an empty string
    *         if there was no timeout or there was an error retrieving the info.
+   * @note This function is only available on ESP
    * @note This function will only return info for tasks which are still
    *       registered with the watchdog. If you call this after you have called
    *       stop_watchdog() for a task, then even if the task triggered the
@@ -278,7 +283,7 @@ public:
    * @brief Get the info (as a string) for the task of the current context.
    * @return std::string containing name, core ID, priority, and stack high
    *         water mark (B)
-   * @note This function is only available on ESP32
+   * @note This function is only available on ESP
    */
   static std::string get_info();
 
@@ -287,7 +292,7 @@ public:
    * @param task Reference to the task for which you want the information.
    * @return std::string containing name, core ID, priority, and stack high
    *         water mark (B)
-   * @note This function is only available on ESP32
+   * @note This function is only available on ESP
    */
   static std::string get_info(const Task &task);
 #endif

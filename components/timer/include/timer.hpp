@@ -37,17 +37,19 @@ namespace espp {
 ///
 /// \section timer_ex1 Timer Example 1
 /// \snippet timer_example.cpp timer example
-/// \section timer_ex2 Timer Delay Example
+/// \section timer_ex2 Timer Watchdog Example
+/// \snippet timer_example.cpp timer watchdog example
+/// \section timer_ex3 Timer Delay Example
 /// \snippet timer_example.cpp timer delay example
-/// \section timer_ex3 Oneshot Timer Example
+/// \section timer_ex4 Oneshot Timer Example
 /// \snippet timer_example.cpp timer oneshot example
-/// \section timer_ex4 Timer Cancel Itself Example
+/// \section timer_ex5 Timer Cancel Itself Example
 /// \snippet timer_example.cpp timer cancel itself example
-/// \section timer_ex5 Oneshot Timer Cancel Itself Then Start again with Delay Example
+/// \section timer_ex6 Oneshot Timer Cancel Itself Then Start again with Delay Example
 /// \snippet timer_example.cpp timer oneshot restart example
-/// \section timer_ex6 Timer Update Period Example
+/// \section timer_ex7 Timer Update Period Example
 /// \snippet timer_example.cpp timer update period example
-/// \section timer_ex7 Timer AdvancedConfig Example
+/// \section timer_ex8 Timer AdvancedConfig Example
 /// \snippet timer_example.cpp timer advanced config example
 class Timer : public BaseComponent {
 public:
@@ -115,6 +117,24 @@ public:
   /// @brief Cancel the timer.
   /// @details Cancels the timer.
   void cancel();
+
+#if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
+  /// @brief Start the task watchdog for the timer.
+  /// @return true if the watchdog was started, false otherwise.
+  /// @note This function is only available on ESP
+  /// @see stop_watchdog()
+  /// @see Task::start_watchdog()
+  /// @see Task::stop_watchdog()
+  bool start_watchdog();
+
+  /// @brief Stop the task watchdog for the timer.
+  /// @return true if the watchdog was stopped, false otherwise.
+  /// @note This function is only available on ESP
+  /// @see start_watchdog()
+  /// @see Task::start_watchdog()
+  /// @see Task::stop_watchdog()
+  bool stop_watchdog();
+#endif
 
   /// @brief Set the period of the timer.
   /// @details Sets the period of the timer.
