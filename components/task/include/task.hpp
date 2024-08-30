@@ -8,6 +8,7 @@
 
 #if defined(ESP_PLATFORM)
 #include <esp_pthread.h>
+#include <esp_task_wdt.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #endif
@@ -30,13 +31,15 @@ namespace espp {
  *
  * \section task_ex1 Basic Task Example
  * \snippet task_example.cpp Task example
- * \section task_ex2 Many Task Example
+ * \section task_ex2 Task Watchdog Example
+ * \snippet task_example.cpp task watchdog example
+ * \section task_ex3 Many Task Example
  * \snippet task_example.cpp ManyTask example
- * \section task_ex3 Long Running Task Example
+ * \section task_ex4 Long Running Task Example
  * \snippet task_example.cpp LongRunningTask example
- * \section task_ex4 Task Info Example
+ * \section task_ex5 Task Info Example
  * \snippet task_example.cpp Task Info example
- * \section task_ex5 Task Request Stop Example
+ * \section task_ex6 Task Request Stop Example
  * \snippet task_example.cpp Task Request Stop example
  *
  * \section run_on_core_ex1 Run on Core Example
@@ -44,11 +47,11 @@ namespace espp {
  */
 class Task : public espp::BaseComponent {
 public:
-  #if defined(ESP_PLATFORM)
-  typedef void* task_id_t;
-  #else
+#if defined(ESP_PLATFORM)
+  typedef void *task_id_t;
+#else
   typedef std::thread::id task_id_t;
-  #endif
+#endif
 
   /**
    * @brief Task callback function signature.
@@ -222,6 +225,56 @@ public:
 
 #if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
   /**
+   * @brief Start the task watchdog for this task.
+   * @return true if the watchdog was started, false otherwise.
+   */
+  bool start_watchdog();
+
+  /**
+   * @brief Stop the task watchdog for this task.
+   * @return true if the watchdog was stopped, false otherwise.
+   */
+  bool stop_watchdog();
+
+  /**
+   * @brief Initialize/Configure the task watchdog for the current task.
+   * @param timeout_ms Timeout in milliseconds for the watchdog.
+   * @param panic_on_timeout Whether or not to panic on timeout.
+   * @return true if the watchdog was initialized, false otherwise.
+   * @note This function will not monitor the idle tasks.
+   * @note If the watchdog has not been configured, then this function will call
+   *       `esp_task_wdt_init`, otherwise it will then call
+   *       `esp_task_wdt_reconfigure`.
+   */
+  static bool configure_task_watchdog(uint32_t timeout_ms, bool panic_on_timeout = true);
+
+  /**
+   * @brief Initialize/Configure the task watchdog for the current task.
+   * @param timeout The timeout for the watchdog.
+   * @param panic_on_timeout Whether or not to panic on timeout.
+   * @return true if the watchdog was initialized, false otherwise.
+   * @note This function will not monitor the idle tasks.
+   * @note If the watchdog has not been configured, then this function will call
+   *       `esp_task_wdt_init`, otherwise it will then call
+   *       `esp_task_wdt_reconfigure`.
+   */
+  static bool configure_task_watchdog(const std::chrono::milliseconds &timeout,
+                                      bool panic_on_timeout = true);
+
+  /**
+   * @brief Retrieve the info about tasks / users which triggered the task
+   *        watchdog timeout.
+   * @param ec Error code to set if there was an error retrieving the info.
+   * @return std::string containing the task watchdog info, or an empty string
+   *         if there was no timeout or there was an error retrieving the info.
+   * @note This function will only return info for tasks which are still
+   *       registered with the watchdog. If you call this after you have called
+   *       stop_watchdog() for a task, then even if the task triggered the
+   *       watchdog timeout you will not get that information.
+   */
+  static std::string get_watchdog_info(std::error_code &ec);
+
+  /**
    * @brief Get the info (as a string) for the task of the current context.
    * @return std::string containing name, core ID, priority, and stack high
    *         water mark (B)
@@ -244,11 +297,11 @@ public:
    * @return ID for this Task's thread / task context.
    */
   task_id_t get_id() const {
-    #if defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM)
     return task_handle_;
-    #else
+#else
     return thread_.get_id();
-    #endif
+#endif
   }
 
   /**
@@ -256,11 +309,11 @@ public:
    * @return ID for the current thread / task context.
    */
   static task_id_t get_current_id() {
-    #if defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM)
     return static_cast<task_id_t>(xTaskGetCurrentTaskHandle());
-    #else
+#else
     return std::this_thread::get_id();
-    #endif
+#endif
   }
 
 protected:
@@ -288,9 +341,10 @@ protected:
   std::mutex cv_m_;
   std::mutex thread_mutex_;
   std::thread thread_;
-  #if defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM)
+  std::atomic<bool> watchdog_started_{false};
   task_id_t task_handle_;
-  #endif
+#endif
 };
 } // namespace espp
 

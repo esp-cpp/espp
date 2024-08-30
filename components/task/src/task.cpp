@@ -94,6 +94,9 @@ bool Task::stop() {
   if (started_) {
     started_ = false;
     logger_.debug("Stopping task");
+#if defined(ESP_PLATFORM)
+    stop_watchdog();
+#endif
     notify_and_join();
     logger_.debug("Task stopped");
     return true;
@@ -102,6 +105,95 @@ bool Task::stop() {
     return false;
   }
 }
+
+#if defined(ESP_PLATFORM)
+bool Task::start_watchdog() {
+  if (!started_) {
+    logger_.warn("Task not started, cannot start watchdog!");
+    return false;
+  }
+  if (watchdog_started_) {
+    logger_.debug("Watchdog already started!");
+    return false;
+  }
+  logger_.debug("Starting watchdog for task '{}'", name_);
+  // subscribe to the watchdog
+  auto task_handle = static_cast<TaskHandle_t>(get_id());
+  if (task_handle == nullptr) {
+    logger_.error("Failed to get task handle for task '{}'", name_);
+    return false;
+  }
+  auto err = esp_task_wdt_add(task_handle);
+  if (err != ESP_OK) {
+    logger_.error("Failed to start watchdog for task '{}'", name_);
+    return false;
+  }
+  // everything is good, set the flag
+  watchdog_started_ = true;
+  return true;
+}
+
+bool Task::stop_watchdog() {
+  if (!watchdog_started_) {
+    logger_.debug("Watchdog already stopped!");
+    return false;
+  }
+  logger_.debug("Stopping watchdog for task '{}'", name_);
+  // update the flag
+  watchdog_started_ = false;
+  // unsubscribe from the watchdog
+  auto task_handle = static_cast<TaskHandle_t>(get_id());
+  if (task_handle == nullptr) {
+    logger_.error("Failed to get task handle for task '{}'", name_);
+    return false;
+  }
+  auto err = esp_task_wdt_delete(task_handle);
+  if (err != ESP_OK) {
+    logger_.error("Failed to stop watchdog for task '{}'", name_);
+  }
+  return err == ESP_OK;
+}
+
+bool Task::configure_task_watchdog(uint32_t timeout_ms, bool panic_on_timeout) {
+  esp_task_wdt_config_t config;
+  memset(&config, 0, sizeof(config));
+  config.timeout_ms = timeout_ms;
+  config.trigger_panic = panic_on_timeout;
+  auto err = esp_task_wdt_status(nullptr);
+  if (err == ESP_ERR_INVALID_STATE) {
+    // the watchdog was not initialized yet, so initialize it
+    err = esp_task_wdt_init(&config);
+  } else if (err == ESP_OK || err == ESP_ERR_NOT_FOUND) {
+    // the watchdog is already initialized, so reconfigure it
+    err = esp_task_wdt_reconfigure(&config);
+  } else {
+    // some other error occurred
+    return false;
+  }
+  return err == ESP_OK;
+}
+
+bool Task::configure_task_watchdog(const std::chrono::milliseconds &timeout,
+                                   bool panic_on_timeout) {
+  return configure_task_watchdog(timeout.count(), panic_on_timeout);
+}
+
+std::string Task::get_watchdog_info(std::error_code &ec) {
+  std::string info = "";
+  auto err = esp_task_wdt_print_triggered_tasks(
+      [](void *arg, const char *msg) {
+        std::string *info = static_cast<std::string *>(arg);
+        *info += msg;
+      },
+      &info, nullptr);
+  if (err == ESP_FAIL) {
+    // no triggered tasks were found, no information was printed
+  } else if (err != ESP_OK) {
+    ec = std::make_error_code(std::errc::io_error);
+  }
+  return info;
+}
+#endif
 
 void Task::notify_and_join() {
   {
@@ -142,7 +234,7 @@ std::string Task::get_info(const Task &task) {
 void Task::thread_function() {
 #if defined(ESP_PLATFORM)
   task_handle_ = get_current_id();
-#endif
+#endif // ESP_PLATFORM
   while (started_) {
     if (callback_) {
       bool should_stop = callback_(cv_m_, cv_);
@@ -164,5 +256,14 @@ void Task::thread_function() {
       started_ = false;
       break;
     }
+#if defined(ESP_PLATFORM)
+    // check if the watchdog is enabled
+    if (watchdog_started_) {
+      auto err = esp_task_wdt_reset();
+      if (err != ESP_OK) {
+        logger_.error("Watchdog reset failed for task '{}'", name_);
+      }
+    }
+#endif // ESP_PLATFORM
   }
 }
