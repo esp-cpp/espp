@@ -94,7 +94,9 @@ bool Task::stop() {
   if (started_) {
     started_ = false;
     logger_.debug("Stopping task");
+#if defined(ESP_PLATFORM)
     stop_watchdog();
+#endif
     notify_and_join();
     logger_.debug("Task stopped");
     return true;
