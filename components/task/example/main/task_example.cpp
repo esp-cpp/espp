@@ -1,6 +1,7 @@
 #include <chrono>
 #include <vector>
 
+#include "logger.hpp"
 #include "run_on_core.hpp"
 #include "task.hpp"
 
@@ -33,6 +34,7 @@ using namespace std::chrono_literals;
  *
  */
 extern "C" void app_main(void) {
+  espp::Logger logger({.tag = "TaskExample", .level = espp::Logger::Verbosity::DEBUG});
   /**
    *   Set up some variables we'll re-use to control and measure our tests.
    */
@@ -47,8 +49,9 @@ extern "C" void app_main(void) {
    */
   auto test_start = std::chrono::high_resolution_clock::now();
   {
-    fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
+    logger.info("Basic task example: spawning 1 task for {} seconds!", num_seconds_to_run);
     //! [Task example]
+    espp::Task::configure_task_watchdog(1000ms);
     auto task_fn = [](std::mutex &m, std::condition_variable &cv) {
       static size_t task_iterations{0};
       fmt::print("Task: #iterations = {}\n", task_iterations);
@@ -65,15 +68,69 @@ extern "C" void app_main(void) {
     auto task = espp::Task(
         {.name = "Task 1", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
+    task.start_watchdog(); // start the watchdog timer for this task
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
+    task.stop_watchdog(); // stop the watchdog timer for this task
     // show explicitly stopping the task (though the destructor called at the
     // end of this scope would do it for us)
     task.stop();
+    std::error_code ec;
+    std::string watchdog_info = espp::Task::get_watchdog_info(ec);
+    if (ec) {
+      fmt::print("Error getting watchdog info: {}\n", ec.message());
+    } else if (!watchdog_info.empty()) {
+      fmt::print("Watchdog info: {}\n", watchdog_info);
+    } else {
+      fmt::print("No watchdog info available\n");
+    }
     //! [Task example]
   }
   auto test_end = std::chrono::high_resolution_clock::now();
   auto test_duration = std::chrono::duration<float>(test_end - test_start).count();
-  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
+
+  /**
+   *   Show a simple task triggering a wathdog timeout (but not panicing), and
+   *   then printing out the watchdog info.
+   */
+  test_start = std::chrono::high_resolution_clock::now();
+  {
+    logger.info("Task watchdog example:");
+    //! [task watchdog example]
+    static constexpr bool panic_on_watchdog_timeout = false;
+    espp::Task::configure_task_watchdog(300ms, panic_on_watchdog_timeout);
+    auto task_fn = [](std::mutex &m, std::condition_variable &cv) {
+      static size_t task_iterations{0};
+      fmt::print("Task: #iterations = {}\n", task_iterations);
+      task_iterations++;
+      std::unique_lock<std::mutex> lk(m);
+      // note our sleep here is longer than the watchdog timeout, so we should
+      // trigger the watchdog timeout
+      cv.wait_for(lk, 500ms);
+      // we don't want to stop, so return false
+      return false;
+    };
+    auto task = espp::Task(
+        {.name = "Task 1", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+    task.start();
+    task.start_watchdog(); // start the watchdog timer for this task
+    std::this_thread::sleep_for(500ms);
+    std::error_code ec;
+    std::string watchdog_info = espp::Task::get_watchdog_info(ec);
+    if (ec) {
+      fmt::print("Error getting watchdog info: {}\n", ec.message());
+    } else if (!watchdog_info.empty()) {
+      fmt::print("Watchdog info: {}\n", watchdog_info);
+    } else {
+      fmt::print("No watchdog info available\n");
+    }
+    // NOTE: the task and the watchdog will both automatically get stopped when
+    // the task goes out of scope and is destroyed.
+    //! [task watchdog example]
+  }
+  test_end = std::chrono::high_resolution_clock::now();
+  test_duration = std::chrono::duration<float>(test_end - test_start).count();
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
 
   /**
    *   Show the most efficient way to wait in a task, using provided mutex /
@@ -86,7 +143,7 @@ extern "C" void app_main(void) {
     //! [ManyTask example]
     std::vector<std::unique_ptr<espp::Task>> tasks;
     size_t num_tasks = 10;
-    fmt::print("Spawning {} tasks!\n", num_tasks);
+    logger.info("Many task example: spawning {} tasks!", num_tasks);
     tasks.resize(num_tasks);
     auto start = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < num_tasks; i++) {
@@ -115,7 +172,7 @@ extern "C" void app_main(void) {
   }
   test_end = std::chrono::high_resolution_clock::now();
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
-  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
 
   /**
    *   Show the more convenient way to wait in a task, simply using sleep_for or
@@ -126,7 +183,8 @@ extern "C" void app_main(void) {
   {
     std::vector<std::unique_ptr<espp::Task>> tasks;
     size_t num_tasks = 10;
-    fmt::print("Spawning {} tasks!\n", num_tasks);
+    logger.info("Convenient, but inefficient / blocking sleep example: spawning {} tasks!",
+                num_tasks);
     tasks.resize(num_tasks);
     auto start = std::chrono::high_resolution_clock::now();
     for (size_t i = 0; i < num_tasks; i++) {
@@ -157,7 +215,11 @@ extern "C" void app_main(void) {
   }
   test_end = std::chrono::high_resolution_clock::now();
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
-  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
+  logger.debug(
+      "Note: some tasks ran for multiple iterations, and not all tasks stopped at the same time!");
+  logger.debug("This is because the sleep_for() function cannot be interrupted / notified when the "
+               "task is stopped / destroyed.");
 
   /**
    *   Show an example of a long running task that has multiple steps per
@@ -165,7 +227,7 @@ extern "C" void app_main(void) {
    */
   test_start = std::chrono::high_resolution_clock::now();
   {
-    fmt::print("Spawning complex task for {} seconds!\n", num_seconds_to_run);
+    logger.info("Spawning long-running / complex task for {} seconds!", num_seconds_to_run);
     //! [LongRunningTask example]
     auto task_fn = [](std::mutex &m, std::condition_variable &cv) {
       static size_t task_iterations{0};
@@ -207,14 +269,14 @@ extern "C" void app_main(void) {
   }
   test_end = std::chrono::high_resolution_clock::now();
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
-  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
 
   /**
    *   Show an example of printing out the task info from another thread.
    */
   test_start = std::chrono::high_resolution_clock::now();
   {
-    fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
+    logger.info("Print task info example: spawning 1 task for {} seconds!", num_seconds_to_run);
     //! [Task Info example]
     auto task_fn = [](std::mutex &m, std::condition_variable &cv) {
       static size_t task_iterations{0};
@@ -248,7 +310,7 @@ extern "C" void app_main(void) {
   }
   test_end = std::chrono::high_resolution_clock::now();
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
-  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
 
   /**
    *   Show an example of the task auto-stopping itself from within the task
@@ -256,7 +318,7 @@ extern "C" void app_main(void) {
    */
   test_start = std::chrono::high_resolution_clock::now();
   {
-    fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
+    logger.info("Task request stop example: spawning 1 task for {} seconds!", num_seconds_to_run);
     //! [Task Request Stop example]
     auto task_fn = [&num_seconds_to_run](std::mutex &m, std::condition_variable &cv) {
       static auto begin = std::chrono::high_resolution_clock::now();
@@ -286,7 +348,7 @@ extern "C" void app_main(void) {
   }
   test_end = std::chrono::high_resolution_clock::now();
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
-  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
 
   /**
    *   Show an example of the task auto-stopping itself from within the task
@@ -294,7 +356,8 @@ extern "C" void app_main(void) {
    */
   test_start = std::chrono::high_resolution_clock::now();
   {
-    fmt::print("Spawning 1 task for {} seconds!\n", num_seconds_to_run);
+    logger.info("Task request stop, then restart example: spawning 1 task for {} seconds!",
+                num_seconds_to_run);
     //! [Task Request Stop Then Restart example]
     auto task_fn = [&num_seconds_to_run](std::mutex &m, std::condition_variable &cv) {
       static auto begin = std::chrono::high_resolution_clock::now();
@@ -332,7 +395,7 @@ extern "C" void app_main(void) {
   }
   test_end = std::chrono::high_resolution_clock::now();
   test_duration = std::chrono::duration<float>(test_end - test_start).count();
-  fmt::print("Test ran for {:.03f} seconds\n", test_duration);
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
 
   /**
    * Show an example of a task which is stopped by multiple other tasks
@@ -341,7 +404,7 @@ extern "C" void app_main(void) {
    */
   test_start = std::chrono::high_resolution_clock::now();
   {
-    fmt::print("Task Request Stop From Multiple Threads example\n");
+    logger.info("Task Request Stop From Multiple Threads example");
     //! [Task Request Stop From Multiple Threads example]
     auto task_fn = [&num_seconds_to_run](std::mutex &m, std::condition_variable &cv) {
       static auto begin = std::chrono::high_resolution_clock::now();
@@ -384,54 +447,55 @@ extern "C" void app_main(void) {
     for (auto &t : threads) {
       t.join();
     }
-    fmt::print("Task successfully stopped by multiple threads!\n");
+    logger.debug("Task successfully stopped by multiple threads!");
     //! [Task Request Stop From Multiple Threads example]
   }
 
   /**
-    * Show an example of a task which calls stop on itself from within the task
-    */
+   * Show an example of a task which calls stop on itself from within the task
+   */
   test_start = std::chrono::high_resolution_clock::now();
   {
-    fmt::print("Task Request Stop From Within Task example\n");
+    logger.info("Task Request Stop From Within Task example");
     //! [Task Request Stop From Within Task example]
-    espp::Task task = espp::Task({.name = "Self Stopping Task",
-                            .callback =
-          [&num_seconds_to_run, &task](std::mutex &m, std::condition_variable &cv) {
-            static auto begin = std::chrono::high_resolution_clock::now();
-            auto now = std::chrono::high_resolution_clock::now();
-            auto elapsed = std::chrono::duration<float>(now - begin).count();
-            fmt::print("Task has run for {:.03f} seconds\n", elapsed);
-            // NOTE: sleeping in this way allows the sleep to exit early when the
-            // task is being stopped / destroyed
-            {
-              std::unique_lock<std::mutex> lk(m);
-              cv.wait_for(lk, 100ms);
-            }
-            if (elapsed > num_seconds_to_run) {
-              fmt::print("Stopping task from within task...\n");
-              task.stop();
-            }
-            // do some other work here which can't be preempted, this helps force the
-            // stopping threads to try to contend on the thread join within the stop
-            // call
-            std::this_thread::sleep_for(50ms);
-            // we don't want to stop yet, so return false
-            return false;
-          },
+    espp::Task task =
+        espp::Task({.name = "Self Stopping Task",
+                    .callback =
+                        [&num_seconds_to_run, &task](std::mutex &m, std::condition_variable &cv) {
+                          static auto begin = std::chrono::high_resolution_clock::now();
+                          auto now = std::chrono::high_resolution_clock::now();
+                          auto elapsed = std::chrono::duration<float>(now - begin).count();
+                          fmt::print("Task has run for {:.03f} seconds\n", elapsed);
+                          // NOTE: sleeping in this way allows the sleep to exit early when the
+                          // task is being stopped / destroyed
+                          {
+                            std::unique_lock<std::mutex> lk(m);
+                            cv.wait_for(lk, 100ms);
+                          }
+                          if (elapsed > num_seconds_to_run) {
+                            fmt::print("Stopping task from within task...\n");
+                            task.stop();
+                          }
+                          // do some other work here which can't be preempted, this helps force the
+                          // stopping threads to try to contend on the thread join within the stop
+                          // call
+                          std::this_thread::sleep_for(50ms);
+                          // we don't want to stop yet, so return false
+                          return false;
+                        },
 
-                            .log_level = espp::Logger::Verbosity::DEBUG});
+                    .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     while (task.is_started()) {
       std::this_thread::sleep_for(50ms);
     }
-    fmt::print("Task successfully stopped by itself!\n");
+    logger.debug("Task successfully stopped by itself!");
     //! [Task Request Stop From Within Task example]
   }
 
   {
     //! [run on core example]
-    fmt::print("Example main running on core {}\n", xPortGetCoreID());
+    logger.info("espp::task::run_on_core example: main thread core ID: {}", xPortGetCoreID());
     // NOTE: in these examples, because we're logging with libfmt in the
     // function to be run, we need a little more than the default 2k stack size,
     // so we're using 3k.
@@ -466,7 +530,7 @@ extern "C" void app_main(void) {
     //! [run on core example]
   }
 
-  fmt::print("Task example complete!\n");
+  logger.info("Task example complete!");
 
   while (true) {
     std::this_thread::sleep_for(1s);
