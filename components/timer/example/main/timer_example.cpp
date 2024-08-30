@@ -51,6 +51,39 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
   }
 
+  // timer watchdog example
+  {
+    logger.info("Starting timer watchdog example");
+    //! [timer watchdog example]
+    static constexpr bool panic_on_watchdog_timeout = false;
+    espp::Task::configure_task_watchdog(300ms, panic_on_watchdog_timeout);
+    auto timer_fn = []() {
+      static size_t iterations{0};
+      fmt::print("[{:.3f}] #iterations = {}\n", elapsed(), iterations);
+      iterations++;
+      // we don't want to stop, so return false
+      return false;
+    };
+    auto timer = espp::Timer({.name = "Timer 1",
+                              .period = 500ms,
+                              .callback = timer_fn,
+                              .log_level = espp::Logger::Verbosity::DEBUG});
+    timer.start_watchdog(); // start the watchdog timer for this timer
+    std::this_thread::sleep_for(500ms);
+    std::error_code ec;
+    std::string watchdog_info = espp::Task::get_watchdog_info(ec);
+    if (ec) {
+      fmt::print("Error getting watchdog info: {}\n", ec.message());
+    } else if (!watchdog_info.empty()) {
+      fmt::print("Watchdog info: {}\n", watchdog_info);
+    } else {
+      fmt::print("No watchdog info available\n");
+    }
+    // NOTE: the timer and the watchdog will both automatically get stopped when
+    // the task goes out of scope and is destroyed.
+    //! [timer watchdog example]
+  }
+
   // timer with delay example
   {
     logger.info("Starting timer with delay example");
@@ -244,6 +277,63 @@ extern "C" void app_main(void) {
     //! [high resolution timer example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
+  }
+
+  // high resolution timer watchdog example
+  {
+    logger.info("Starting high resolution timer watchdog example");
+    //! [high resolution timer watchdog example]
+    logger.set_rate_limit(100ms);
+    auto timer_fn = [&]() {
+      static size_t iterations{0};
+      iterations++;
+      logger.info_rate_limited("High resolution timer callback: {}", iterations);
+      // we don't want to stop, so return false
+      return false;
+    };
+    auto high_resolution_timer =
+        espp::HighResolutionTimer({.name = "High Resolution Timer 1",
+                                   .callback = timer_fn,
+                                   .log_level = espp::Logger::Verbosity::DEBUG});
+    uint64_t period_us = 100;
+    bool started = high_resolution_timer.start(period_us);
+    logger.info("High resolution timer 1 started: {}", started);
+
+    // make another HighResolutionTimer
+    auto high_resolution_timer2 =
+        espp::HighResolutionTimer({.name = "High Resolution Timer 2",
+                                   .callback = timer_fn,
+                                   .log_level = espp::Logger::Verbosity::DEBUG});
+    period_us = 1000 * 500; // 500ms, which is longer than the watchdog period
+    started = high_resolution_timer2.start(period_us);
+    logger.info("High resolution timer 2 started: {}", started);
+
+    // configure the task watchdog
+    static constexpr bool panic_on_watchdog_timeout = false;
+    espp::Task::configure_task_watchdog(300ms, panic_on_watchdog_timeout);
+
+    // start the watchdog timer for this timer
+    high_resolution_timer2.start_watchdog();
+
+    std::this_thread::sleep_for(550ms);
+
+    std::error_code ec;
+    std::string watchdog_info = espp::Task::get_watchdog_info(ec);
+    if (ec) {
+      fmt::print("Error getting watchdog info: {}\n", ec.message());
+    } else if (!watchdog_info.empty()) {
+      fmt::print("Watchdog info: {}\n", watchdog_info);
+    } else {
+      fmt::print("No watchdog info available\n");
+    }
+
+    // now stop the watchdog timer
+    high_resolution_timer2.stop_watchdog();
+
+    // delay some more so we can see the watchdog timer has stopped
+    std::this_thread::sleep_for(500ms);
+
+    //! [high resolution timer watchdog example]
   }
 
   logger.info("Example complete!");
