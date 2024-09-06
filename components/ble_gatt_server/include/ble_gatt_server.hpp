@@ -281,13 +281,13 @@ public:
   /// @note This method will also deinitialize the device info and battery
   ///       services.
   void deinit() {
+    // deinitialize the services
+    device_info_service_.deinit();
+    battery_service_.deinit();
     // if true, deletes all server/advertising/scan/client objects which
     // invalidates any references/pointers to them
     bool clear_all = true;
     NimBLEDevice::deinit(clear_all);
-    // now deinitialize the services
-    device_info_service_.deinit();
-    battery_service_.deinit();
     // clear the server and client
     server_ = nullptr;
     client_ = nullptr;
