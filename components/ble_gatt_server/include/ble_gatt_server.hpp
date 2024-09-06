@@ -239,6 +239,11 @@ public:
   /// @note This method must be called before starting the server.
   /// @return Whether the GATT server was initialized successfully.
   bool init(const std::string &device_name) {
+    if (server_) {
+      logger_.info("Server already created, not initializing again");
+      return true;
+    }
+
     logger_.info("Initializing GATT server with device name: '{}'", device_name);
     // create the device
     NimBLEDevice::init(device_name);
@@ -281,13 +286,18 @@ public:
   /// @note This method will also deinitialize the device info and battery
   ///       services.
   void deinit() {
+    if (!server_ || !client_) {
+      logger_.info("Server / Client are nullptr; already deinitialized, not deinitializing again");
+      return;
+    }
+
+    // deinitialize the services
+    device_info_service_.deinit();
+    battery_service_.deinit();
     // if true, deletes all server/advertising/scan/client objects which
     // invalidates any references/pointers to them
     bool clear_all = true;
     NimBLEDevice::deinit(clear_all);
-    // now deinitialize the services
-    device_info_service_.deinit();
-    battery_service_.deinit();
     // clear the server and client
     server_ = nullptr;
     client_ = nullptr;
@@ -551,7 +561,10 @@ public:
       return {};
     }
     // and read it
-    return name_char->readValue();
+    auto name = name_char->readValue();
+    // unset the client connection
+    client_->clearConnection();
+    return name;
   }
 
   /// Get the connected device names
@@ -604,6 +617,8 @@ public:
     client_->setConnection(conn_info);
     // and read the RSSI from the client
     auto rssi = client_->getRssi();
+    // unset the client connection
+    client_->clearConnection();
     logger_.info("RSSI for connected device {}: {}", peer_address.toString(), rssi);
     return rssi;
   }
