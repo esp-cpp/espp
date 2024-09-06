@@ -239,6 +239,11 @@ public:
   /// @note This method must be called before starting the server.
   /// @return Whether the GATT server was initialized successfully.
   bool init(const std::string &device_name) {
+    if (server_) {
+      logger_.info("Server already created, not initializing again");
+      return true;
+    }
+
     logger_.info("Initializing GATT server with device name: '{}'", device_name);
     // create the device
     NimBLEDevice::init(device_name);
@@ -281,6 +286,11 @@ public:
   /// @note This method will also deinitialize the device info and battery
   ///       services.
   void deinit() {
+    if (!server_ || !client_) {
+      logger_.info("Server / Client are nullptr; already deinitialized, not deinitializing again");
+      return;
+    }
+
     // deinitialize the services
     device_info_service_.deinit();
     battery_service_.deinit();
