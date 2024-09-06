@@ -551,7 +551,10 @@ public:
       return {};
     }
     // and read it
-    return name_char->readValue();
+    auto name = name_char->readValue();
+    // unset the client connection
+    client_->clearConnection();
+    return name;
   }
 
   /// Get the connected device names
@@ -604,6 +607,8 @@ public:
     client_->setConnection(conn_info);
     // and read the RSSI from the client
     auto rssi = client_->getRssi();
+    // unset the client connection
+    client_->clearConnection();
     logger_.info("RSSI for connected device {}: {}", peer_address.toString(), rssi);
     return rssi;
   }
