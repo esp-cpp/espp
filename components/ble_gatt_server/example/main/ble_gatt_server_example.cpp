@@ -118,19 +118,23 @@ extern "C" void app_main(void) {
   input.Start(); // this will not return until the user enters the `exit` command.
 #endif
 
+  logger.info("Menu has finished, starting advertising");
   // The menu has finished, so let's go into a loop to keep the device running
   // now lets start advertising
   ble_gatt_server.start_advertising();
 
+  logger.info("Waiting for connection...");
   // now lets update the battery level every second for a little while
   uint8_t battery_level = 99;
   bool was_connected = false;
+  bool can_exit = false;
   while (true) {
     auto start = std::chrono::steady_clock::now();
 
     // if we are now connected, but were not, then get the services
     if (ble_gatt_server.is_connected() && !was_connected) {
       was_connected = true;
+      can_exit = true;
       auto connected_device_infos = ble_gatt_server.get_connected_device_infos();
       logger.info("Connected devices: {}", connected_device_infos.size());
       std::vector<std::string> connected_device_names;
@@ -140,9 +144,16 @@ extern "C" void app_main(void) {
       logger.info("            Names: {}", connected_device_names);
     } else if (!ble_gatt_server.is_connected()) {
       was_connected = false;
+      if (can_exit) {
+        logger.info("No longer connected, exiting");
+        break;
+      }
     }
 
     if (!ble_gatt_server.is_connected()) {
+      logger.move_up();
+      logger.clear_line();
+      logger.info("Waiting for connection...");
       // sleep
       std::this_thread::sleep_until(start + 1s);
       continue;
@@ -155,5 +166,14 @@ extern "C" void app_main(void) {
     // sleep
     std::this_thread::sleep_until(start + 1s);
   }
+
+  // we are done, so stop the server and deinit the BLE stack
+  ble_gatt_server.deinit();
   //! [ble gatt server example]
+
+  logger.info("Done");
+  // now just sleep forever
+  while (true) {
+    std::this_thread::sleep_for(1s);
+  }
 }
