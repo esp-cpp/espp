@@ -128,6 +128,7 @@ extern "C" void app_main(void) {
   uint8_t battery_level = 99;
   bool was_connected = false;
   bool can_exit = false;
+  int num_seconds_to_wait = 30;
   while (true) {
     auto start = std::chrono::steady_clock::now();
 
@@ -153,7 +154,11 @@ extern "C" void app_main(void) {
     if (!ble_gatt_server.is_connected()) {
       logger.move_up();
       logger.clear_line();
-      logger.info("Waiting for connection...");
+      logger.info("Waiting for connection... {}s", --num_seconds_to_wait);
+      if (num_seconds_to_wait == 0) {
+        logger.info("No connection, exiting");
+        break;
+      }
       // sleep
       std::this_thread::sleep_until(start + 1s);
       continue;
