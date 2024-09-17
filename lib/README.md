@@ -52,7 +52,7 @@ generated code in
 4. You must fix the `pyClassBezier` to be instead `pyClassBezier_espp_Vector2f`.
 5. You must fix the `Vector2d` generated template code for both `int` and
    `float` to ensure that the template type is always provided.
-5. Srcml currently has an [issue with inner
+6. Srcml currently has an [issue with inner
    structs](https://github.com/srcML/srcML/issues/2033). This means that for
    `Bezier`, `Gaussian`, `Logger`, `Pid`, `Socket`, `Task`, `Timer`,
    `TcpSocket`, `UdpSocket`, and `Joystick`, litgen will improperly generate an
