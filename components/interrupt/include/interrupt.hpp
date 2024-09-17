@@ -381,7 +381,8 @@ protected:
 // for printing the interrupt event using libfmt
 template <> struct fmt::formatter<espp::Interrupt::Event> {
   constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
-  template <typename FormatContext> auto format(const espp::Interrupt::Event &t, FormatContext &ctx) const {
+  template <typename FormatContext>
+  auto format(const espp::Interrupt::Event &t, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(), "Event{{gpio_num={}, active={}}}", t.gpio_num, t.active);
   }
 };

@@ -2,8 +2,8 @@
 
 using namespace espp;
 
-EspTimerCam::EspTimerCam() : BaseComponent("EspTimerCam") {
-}
+EspTimerCam::EspTimerCam()
+    : BaseComponent("EspTimerCam") {}
 
 ////////////////////////
 // LED                //
@@ -20,7 +20,10 @@ bool EspTimerCam::initialize_led(float breathing_period) {
       .channels = led_channels_,
       .duty_resolution = LEDC_TIMER_10_BIT,
   });
-  led_task_ = espp::Task::make_unique({.name = "breathe", .callback = std::bind(&EspTimerCam::led_task_callback, this, std::placeholders::_1, std::placeholders::_2)});
+  led_task_ = espp::Task::make_unique(
+      {.name = "breathe",
+       .callback = std::bind(&EspTimerCam::led_task_callback, this, std::placeholders::_1,
+                             std::placeholders::_2)});
   set_led_breathing_period(breathing_period);
   return true;
 }
@@ -30,9 +33,7 @@ void EspTimerCam::start_led_breathing() {
   led_task_->start();
 }
 
-void EspTimerCam::stop_led_breathing() {
-  led_task_->stop();
-}
+void EspTimerCam::stop_led_breathing() { led_task_->stop(); }
 
 bool EspTimerCam::set_led_brightness(float brightness) {
   if (led_ == nullptr) {
@@ -70,23 +71,17 @@ bool EspTimerCam::set_led_breathing_period(float breathing_period) {
   return true;
 }
 
-float EspTimerCam::get_led_breathing_period() {
-  return breathing_period_;
-}
+float EspTimerCam::get_led_breathing_period() { return breathing_period_; }
 
-std::shared_ptr<espp::Led> EspTimerCam::led() {
-  return led_;
-}
+std::shared_ptr<espp::Led> EspTimerCam::led() { return led_; }
 
-espp::Gaussian &EspTimerCam::gaussian() {
-  return gaussian_;
-}
+espp::Gaussian &EspTimerCam::gaussian() { return gaussian_; }
 
 float EspTimerCam::led_breathe() {
-    auto now = std::chrono::high_resolution_clock::now();
-    auto elapsed = std::chrono::duration<float>(now - breathing_start_).count();
-    float t = std::fmod(elapsed, breathing_period_) / breathing_period_;
-    return gaussian_(t);
+  auto now = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration<float>(now - breathing_start_).count();
+  float t = std::fmod(elapsed, breathing_period_) / breathing_period_;
+  return gaussian_(t);
 }
 
 bool EspTimerCam::led_task_callback(std::mutex &m, std::condition_variable &cv) {
@@ -121,15 +116,13 @@ bool EspTimerCam::initialize_rtc() {
     return false;
   }
   rtc_ = std::make_shared<EspTimerCam::Rtc>(EspTimerCam::Rtc::Config{
-      .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
-                         std::placeholders::_3),
-      .write_then_read =
-      std::bind(&espp::I2c::write_read, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
-                std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+      .write = std::bind(&espp::I2c::write, &internal_i2c_, std::placeholders::_1,
+                         std::placeholders::_2, std::placeholders::_3),
+      .write_then_read = std::bind(&espp::I2c::write_read, &internal_i2c_, std::placeholders::_1,
+                                   std::placeholders::_2, std::placeholders::_3,
+                                   std::placeholders::_4, std::placeholders::_5),
       .log_level = espp::Logger::Verbosity::WARN});
   return true;
 }
 
-std::shared_ptr<EspTimerCam::Rtc> EspTimerCam::rtc() {
-  return rtc_;
-}
+std::shared_ptr<EspTimerCam::Rtc> EspTimerCam::rtc() { return rtc_; }

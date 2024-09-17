@@ -241,9 +241,15 @@ void py_init_module_espp(py::module &m) {
       "code size, the logger has the ability to be compiled out based on\n * the log level set in "
       "the sdkconfig. This means that if the log level is set to\n * ERROR, all debug, info, and "
       "warn logs will be compiled out. This is done by\n * checking the log level at compile time "
-      "and only compiling in the functions\n * that are needed.\n *\n * \\section logger_ex1 Basic "
-      "Example\n * \\snippet logger_example.cpp Logger example\n * \\section logger_ex2 Threaded "
-      "Logging and Verbosity Example\n * \\snippet logger_example.cpp MultiLogger example\n");
+      "and only compiling in the functions\n * that are needed.\n *\n * The logger can also be "
+      "compiled with support for cursor commands. This allows\n * the logger to move the cursor "
+      "up, down, clear the line, clear the screen, and\n * move the cursor to a specific position. "
+      "This can be useful for creating\n * various types of interactive output or to maintian "
+      "context with long-running\n * logs.\n *\n * \\section logger_ex1 Basic Example\n * "
+      "\\snippet logger_example.cpp Logger example\n * \\section logger_ex2 Threaded Logging and "
+      "Verbosity Example\n * \\snippet logger_example.cpp MultiLogger example\n * \\section "
+      "logger_ex3 Cursor Commands Example\n * \\snippet logger_example.cpp Cursor Commands "
+      "example\n");
 
   { // inner classes & enums of Logger
     py::enum_<espp::Logger::Verbosity>(
@@ -284,7 +290,7 @@ void py_init_module_espp(py::module &m) {
                            "*< The verbosity level for the logger.");
   } // end of inner classes & enums of Logger
 
-  pyClassLogger
+  pyClassLogger.def(py::init<const espp::Logger::Config &>())
       .def("set_verbosity", &espp::Logger::set_verbosity, py::arg("level"),
            "*\n   * @brief Change the verbosity for the logger. \\sa Logger::Verbosity\n   * "
            "@param level new verbosity level\n")
@@ -304,7 +310,11 @@ void py_init_module_espp(py::module &m) {
            "limited.\n")
       .def("get_rate_limit", &espp::Logger::get_rate_limit,
            "*\n   * @brief Get the current rate limit for the logger.\n   * @return The current "
-           "rate limit.\n");
+           "rate limit.\n")
+      .def_static(
+          "get_time", &espp::Logger::get_time,
+          "*\n   *   Get the current time in seconds since the start of the logging system.\n   *  "
+          " @return time in seconds since the start of the logging system.\n");
   ////////////////////    </generated_from:logger.hpp>    ////////////////////
 
   ////////////////////    <generated_from:bezier.hpp>    ////////////////////
@@ -1257,7 +1267,7 @@ void py_init_module_espp(py::module &m) {
             .def_readwrite("key", &espp::Ndef::WifiConfig::key,
                            "/< Security key / password for the network")
             .def_readwrite("authentication", &espp::Ndef::WifiConfig::authentication,
-                           "/< Authentication type the network uses.")
+                           "/< Authentication type the network")
             .def_readwrite("encryption", &espp::Ndef::WifiConfig::encryption,
                            "/< Encryption type the network uses.")
             .def_readwrite("mac_address", &espp::Ndef::WifiConfig::mac_address,
@@ -1855,12 +1865,13 @@ void py_init_module_espp(py::module &m) {
       "specific core, which can\n * be used to run a specific function on a specific core, as you "
       "might want to\n * do when registering an interrupt driver on a specific core.\n *\n * "
       "\\section task_ex1 Basic Task Example\n * \\snippet task_example.cpp Task example\n * "
-      "\\section task_ex2 Many Task Example\n * \\snippet task_example.cpp ManyTask example\n * "
-      "\\section task_ex3 Long Running Task Example\n * \\snippet task_example.cpp LongRunningTask "
-      "example\n * \\section task_ex4 Task Info Example\n * \\snippet task_example.cpp Task Info "
-      "example\n * \\section task_ex5 Task Request Stop Example\n * \\snippet task_example.cpp "
-      "Task Request Stop example\n *\n * \\section run_on_core_ex1 Run on Core Example\n * "
-      "\\snippet task_example.cpp run on core example\n");
+      "\\section task_ex2 Task Watchdog Example\n * \\snippet task_example.cpp task watchdog "
+      "example\n * \\section task_ex3 Many Task Example\n * \\snippet task_example.cpp ManyTask "
+      "example\n * \\section task_ex4 Long Running Task Example\n * \\snippet task_example.cpp "
+      "LongRunningTask example\n * \\section task_ex5 Task Info Example\n * \\snippet "
+      "task_example.cpp Task Info example\n * \\section task_ex6 Task Request Stop Example\n * "
+      "\\snippet task_example.cpp Task Request Stop example\n *\n * \\section run_on_core_ex1 Run "
+      "on Core Example\n * \\snippet task_example.cpp run on core example\n");
 
   { // inner classes & enums of Task
     auto pyClassTask_ClassBaseConfig =
@@ -2002,14 +2013,22 @@ void py_init_module_espp(py::module &m) {
            "*\n   * @brief Start executing the task.\n   *\n   * @return True if the task started, "
            "False if it was already started.\n")
       .def("stop", &espp::Task::stop,
-           "*\n   * @brief Stop the task execution, blocking until it stops.\n   *\n   * @return "
-           "True if the task stopped, False if it was not started / already\n   * stopped.\n")
+           "*\n   * @brief Stop the task execution.\n   * @details This will request the task to "
+           "stop, notify the condition variable,\n   *          and (if this calling context is "
+           "not the task context) join the\n   *          thread.\n   * @return True if the task "
+           "stopped, False if it was not started / already\n   *         stopped.\n")
       .def("is_started", &espp::Task::is_started,
            "*\n   * @brief Has the task been started or not?\n   *\n   * @return True if the task "
            "is started / running, False otherwise.\n")
       .def("is_running", &espp::Task::is_running,
            "*\n   * @brief Is the task running?\n   *\n   * @return True if the task is running, "
-           "False otherwise.\n");
+           "False otherwise.\n")
+      .def("get_id", &espp::Task::get_id,
+           "*\n   * @brief Get the ID for this Task's thread / task context.\n   * @return ID for "
+           "this Task's thread / task context.\n")
+      .def_static("get_current_id", &espp::Task::get_current_id,
+                  "*\n   * @brief Get the ID for the current thread / task context.\n   * @return "
+                  "ID for the current thread / task context.\n");
   ////////////////////    </generated_from:task.hpp>    ////////////////////
 
   ////////////////////    <generated_from:timer.hpp>    ////////////////////
@@ -2034,14 +2053,15 @@ void py_init_module_espp(py::module &m) {
       "it\n/       will block the task. If the timer callback function blocks for a\n/       long "
       "time, then the timer will not be able to keep up with the\n/       period.\n/\n/ \\section "
       "timer_ex1 Timer Example 1\n/ \\snippet timer_example.cpp timer example\n/ \\section "
-      "timer_ex2 Timer Delay Example\n/ \\snippet timer_example.cpp timer delay example\n/ "
-      "\\section timer_ex3 Oneshot Timer Example\n/ \\snippet timer_example.cpp timer oneshot "
-      "example\n/ \\section timer_ex4 Timer Cancel Itself Example\n/ \\snippet timer_example.cpp "
-      "timer cancel itself example\n/ \\section timer_ex5 Oneshot Timer Cancel Itself Then Start "
-      "again with Delay Example\n/ \\snippet timer_example.cpp timer oneshot restart example\n/ "
-      "\\section timer_ex6 Timer Update Period Example\n/ \\snippet timer_example.cpp timer update "
-      "period example\n/ \\section timer_ex7 Timer AdvancedConfig Example\n/ \\snippet "
-      "timer_example.cpp timer advanced config example");
+      "timer_ex2 Timer Watchdog Example\n/ \\snippet timer_example.cpp timer watchdog example\n/ "
+      "\\section timer_ex3 Timer Delay Example\n/ \\snippet timer_example.cpp timer delay "
+      "example\n/ \\section timer_ex4 Oneshot Timer Example\n/ \\snippet timer_example.cpp timer "
+      "oneshot example\n/ \\section timer_ex5 Timer Cancel Itself Example\n/ \\snippet "
+      "timer_example.cpp timer cancel itself example\n/ \\section timer_ex6 Oneshot Timer Cancel "
+      "Itself Then Start again with Delay Example\n/ \\snippet timer_example.cpp timer oneshot "
+      "restart example\n/ \\section timer_ex7 Timer Update Period Example\n/ \\snippet "
+      "timer_example.cpp timer update period example\n/ \\section timer_ex8 Timer AdvancedConfig "
+      "Example\n/ \\snippet timer_example.cpp timer advanced config example");
 
   { // inner classes & enums of Timer
     auto pyClassTimer_ClassConfig =

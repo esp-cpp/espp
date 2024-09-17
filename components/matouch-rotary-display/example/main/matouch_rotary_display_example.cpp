@@ -101,14 +101,17 @@ extern "C" void app_main(void) {
   lv_label_set_text(label_btn, LV_SYMBOL_REFRESH);
   // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_add_event_cb(btn, [](auto event) {
-    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-    clear_circles();
-    static auto rotation = LV_DISPLAY_ROTATION_0;
-    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-    lv_display_t *disp = _lv_refr_get_disp_refreshing();
-    lv_disp_set_rotation(disp, rotation);
-  }, LV_EVENT_PRESSED, nullptr);
+  lv_obj_add_event_cb(
+      btn,
+      [](auto event) {
+        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+        clear_circles();
+        static auto rotation = LV_DISPLAY_ROTATION_0;
+        rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+        lv_display_t *disp = _lv_refr_get_disp_refreshing();
+        lv_disp_set_rotation(disp, rotation);
+      },
+      LV_EVENT_PRESSED, nullptr);
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)

@@ -69,7 +69,7 @@ public:
   /// @brief Initialize the LED
   /// @param breathing_period The period of the LED breathing effect
   /// @return True if the LED was successfully initialized, false otherwise
-  bool initialize_led(float breathing_period=3.5f);
+  bool initialize_led(float breathing_period = 3.5f);
 
   /// @brief Start the LED breathing effect
   void start_led_breathing();
@@ -207,7 +207,8 @@ protected:
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_14;
 
   // Battery
-  static constexpr float BATTERY_VOLTAGE_SCALE = 1.0f / 661.0f; // measured mV across divider to battery volts
+  static constexpr float BATTERY_VOLTAGE_SCALE =
+      1.0f / 661.0f; // measured mV across divider to battery volts
   static constexpr gpio_num_t battery_hold_pin = GPIO_NUM_33; // NOTE: unused
 
   // Camera
@@ -258,14 +259,14 @@ protected:
 
   // Battery ADC
   espp::AdcConfig battery_channel_{.unit = ADC_UNIT_1,
-      .channel = ADC_CHANNEL_2, // GPIO 38
-      .attenuation = ADC_ATTEN_DB_12};
+                                   .channel = ADC_CHANNEL_2, // GPIO 38
+                                   .attenuation = ADC_ATTEN_DB_12};
 
   // NOTE: for some reason, I cannot use Continuous ADC in combination with
   // esp32-camera...
   espp::OneshotAdc adc_{{.unit = battery_channel_.unit,
-                           .channels = {battery_channel_},
-                            .log_level = espp::Logger::Verbosity::WARN}};
+                         .channels = {battery_channel_},
+                         .log_level = espp::Logger::Verbosity::WARN}};
 
 }; // class EspTimerCam
 } // namespace espp

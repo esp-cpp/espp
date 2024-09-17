@@ -442,261 +442,6 @@ class FtpServer:
 ####################    </generated_from:ftp_server.hpp>    ####################
 
 
-####################    <generated_from:joystick.hpp>    ####################
-
-
-
-class Joystick:
-    """*
-     *  @brief 2-axis Joystick with axis mapping / calibration.
-     *
-     * \section joystick_ex1 Basic Circular and Rectangular Joystick Example
-     * \snippet joystick_example.cpp circular joystick example
-     * \section joystick_ex2 ADC Joystick Example
-     * \snippet joystick_example.cpp adc joystick example
-
-    """
-    class Type(enum.Enum):
-        """*
-           * @brief Type of the joystick.
-           * @note When using a Type::CIRCULAR joystick, it's recommended to set the
-           *       individual x/y calibration deadzones to be 0 and to only use the
-           *       deadzone_radius field to set the deadzone around the center.
-
-        """
-        rectangular = enum.auto()                                                             # (= 0)  #/< The default type of joystick. Uses the rangemappers for
-        #/  each axis (to convert raw values from input range to be
-        #/  [-1,1]) independently which results in x/y deadzones and
-        #/  output that are rectangular.
-        circular = enum.auto()                                                                # (= 1)  #/< The joystick is configured to have a circular output. This
-        #/  means that the x/y < deadzones are circular around the
-        #/  input and range and the output is clamped to be on or
-        #/  within the unit circle.
-
-
-    class Config:
-        """*
-           *  @brief Configuration structure for the joystick.
-
-        """
-        x_calibration: FloatRangeMapper.Config                                                #*< Configuration for the x axis.
-        y_calibration: FloatRangeMapper.Config                                                #*< Configuration for the y axis.
-        type: espp.Joystick.Type = espp.Joystick.Type(espp.Joystick.Type.rectangular)         #*< The type of the joystick. See
-                                                         Type enum for more information.
-        center_deadzone_radius: float = float(0)                                              #*< The radius of the unit circle's deadzone [0, 1.0] around the center, only used
-                when the joystick is configured as Type::CIRCULAR.
-        range_deadzone: float = float(0)                                                      #*< The deadzone around the edge of the unit circle, only used when
-                                  the joystick is configured as Type::CIRCULAR. This scales the output so
-                                  that the output appears to have magnitude 1 (meaning it appears to be on
-                                  the edge of the unit circle) when the joystick value magnitude is within
-                                  the range [1-range_deadzone, 1].
-        get_values: espp.Joystick.get_values_fn = espp.Joystick.get_values_fn(None)           #*< Function to retrieve the latest
-                                                  unmapped joystick values. Required if
-                                                  you want to use update(), unused if
-                                                  you call update(float raw_x, float
-                                                  raw_y).
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.WARN)  #*< Verbosity for the Joystick logger_.
-        def __init__(
-            self,
-            x_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
-            y_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
-            type: Joystick.Type = Joystick.Type(Joystick.Type.rectangular),
-            center_deadzone_radius: float = float(0),
-            range_deadzone: float = float(0),
-            get_values: Joystick.get_values_fn = Joystick.get_values_fn(None),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.WARN)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-
-    def set_type(
-        self,
-        type: Joystick.Type,
-        radius: float = 0,
-        range_deadzone: float = 0
-        ) -> None:
-        """*
-           *  @brief Set the type of the joystick.
-           *  @param type The Type of the joystick.
-           *  @param radius Optional radius parameter used when \p type is
-           *         Type::CIRCULAR. When the magnitude of the joystick's mapped
-           *         position vector is less than this value, the vector is set to
-           *         (0,0).
-           *  @param range_deadzone Optional deadzone around the edge of the unit circle
-           *         when \p type is Type::CIRCULAR. This scales the output so that the
-           *         output appears to have magnitude 1 (meaning it appears to be on the
-           *         edge of the unit circle) if the magnitude of the mapped position
-           *         vector is greater than 1-range_deadzone. Example: if the range
-           *         deadzone is 0.1, then the output will be scaled so that the
-           *         magnitude of the output is 1 if the magnitude of the mapped
-           *         position vector is greater than 0.9.
-           *  @note If the Joystick is Type::CIRCULAR, the actual calibrations that are
-           *        saved into the joystick will have 0 deadzone around the center value
-           *        and range values, so that center and range deadzones are actually
-           *        applied on the vector value instead of on the individual axes
-           *        independently.
-           *  @sa set_center_deadzone_radius
-           *  @sa set_range_deadzone
-           *  @sa set_calibration
-
-        """
-        pass
-
-    def type(self) -> Joystick.Type:
-        """*
-           * @brief Get the type of the joystick.
-           * @return The Type of the joystick.
-
-        """
-        pass
-
-    def set_center_deadzone_radius(self, radius: float) -> None:
-        """*
-           * @brief Sets the center deadzone radius.
-           * @note Radius is only applied when \p deadzone is Deadzone::CIRCULAR.
-           * @param radius Optional radius parameter used when \p deadzone is
-           *        Deadzone::CIRCULAR. When the magnitude of the joystick's mapped
-           *        position vector is less than this value, the vector is set to
-           *        (0,0).
-
-        """
-        pass
-
-    def center_deadzone_radius(self) -> float:
-        """*
-           * @brief Get the center deadzone radius.
-           * @return The center deadzone radius.
-
-        """
-        pass
-
-    def set_range_deadzone(self, range_deadzone: float) -> None:
-        """*
-           * @brief Sets the range deadzone.
-           * @note Range deadzone is only applied when \p deadzone is Deadzone::CIRCULAR.
-           * @param range_deadzone Optional deadzone around the edge of the unit circle
-           *        when \p deadzone is Deadzone::CIRCULAR. This scales the output so
-           *        that the output appears to have magnitude 1 (meaning it appears to
-           *        be on the edge of the unit circle) if the magnitude of the mapped
-           *        position vector is greater than 1-range_deadzone. Example: if the
-           *        range deadzone is 0.1, then the output will be scaled so that the
-           *        magnitude of the output is 1 if the magnitude of the mapped position
-           *        vector is greater than 0.9.
-
-        """
-        pass
-
-    def range_deadzone(self) -> float:
-        """*
-           * @brief Get the range deadzone.
-           * @return The range deadzone.
-
-        """
-        pass
-
-    def set_calibration(
-        self,
-        x_calibration: FloatRangeMapper.Config,
-        y_calibration: FloatRangeMapper.Config,
-        center_deadzone_radius: float = 0,
-        range_deadzone: float = 0
-        ) -> None:
-        """*
-           * @brief Update the x and y axis mapping.
-           * @param x_calibration New x-axis range mapping configuration to use.
-           * @param y_calibration New y-axis range mapping configuration to use.
-           * @param center_deadzone_radius The radius of the unit circle's deadzone [0,
-           *        1.0] around the center, only used when the joystick is configured
-           *        as Type::CIRCULAR.
-           *  @param range_deadzone Optional deadzone around the edge of the unit circle
-           *         when \p type is Type::CIRCULAR. This scales the output so that the
-           *         output appears to have magnitude 1 (meaning it appears to be on the
-           *         edge of the unit circle) if the magnitude of the mapped position
-           *         vector is greater than 1-range_deadzone. Example: if the range
-           *         deadzone is 0.1, then the output will be scaled so that the
-           *         magnitude of the output is 1 if the magnitude of the mapped
-           *         position vector is greater than 0.9.
-           * @note If the Joystick is Type::CIRCULAR, the actual calibrations that are
-           *       saved into the joystick will have 0 deadzone around the center and range values,
-           *       so that center and range deadzones are actually applied on the vector value.
-           * @sa set_center_deadzone_radius
-           * @sa set_range_deadzone
-
-        """
-        pass
-
-    @overload
-    def update(self) -> None:
-        """*
-           * @brief Read the raw values and use the calibration data to update the
-           *        position.
-           * @note Requires that the get_values_ function is set.
-
-        """
-        pass
-
-    @overload
-    def update(self, raw_x: float, raw_y: float) -> None:
-        """*
-           * @brief Update the joystick's position using the provided raw x and y
-           *        values.
-           * @param raw_x The raw x-axis value.
-           * @param raw_y The raw y-axis value.
-           * @note This function is useful when you have the raw values and don't want
-           *       to use the get_values_ function.
-
-        """
-        pass
-
-    def x(self) -> float:
-        """*
-           * @brief Get the most recently updated x axis calibrated position.
-           * @return The most recent x-axis position (from when update() was last
-           *         called).
-
-        """
-        pass
-
-    def y(self) -> float:
-        """*
-           * @brief Get the most recently updated y axis calibrated position.
-           * @return The most recent y-axis position (from when update() was last
-           *         called).
-
-        """
-        pass
-
-    def position(self) -> Vector2f:
-        """*
-           * @brief Get the most recently updated calibrated position.
-           * @return The most recent position (from when update() was last called).
-
-        """
-        pass
-
-    def raw(self) -> Vector2f:
-        """*
-           * @brief Get the most recently updated raw / uncalibrated readings. This
-           *        function is useful for externally performing a calibration routine
-           *        and creating updated calibration / mapper configuration
-           *        structures.
-           * @return The most recent raw measurements (from when update() was last
-           *         called).
-
-        """
-        pass
-
-
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
-        pass
-
-# namespace espp
-
-####################    </generated_from:joystick.hpp>    ####################
-
-
 ####################    <generated_from:logger.hpp>    ####################
 
 
@@ -718,10 +463,18 @@ class Logger:
      * checking the log level at compile time and only compiling in the functions
      * that are needed.
      *
+     * The logger can also be compiled with support for cursor commands. This allows
+     * the logger to move the cursor up, down, clear the line, clear the screen, and
+     * move the cursor to a specific position. This can be useful for creating
+     * various types of interactive output or to maintian context with long-running
+     * logs.
+     *
      * \section logger_ex1 Basic Example
      * \snippet logger_example.cpp Logger example
      * \section logger_ex2 Threaded Logging and Verbosity Example
      * \snippet logger_example.cpp MultiLogger example
+     * \section logger_ex3 Cursor Commands Example
+     * \snippet logger_example.cpp Cursor Commands example
 
     """
     class Verbosity(enum.Enum):
@@ -815,6 +568,16 @@ class Logger:
 
 
 
+
+
+    @staticmethod
+    def get_time() -> str:
+        """*
+           *   Get the current time in seconds since the start of the logging system.
+           *   @return time in seconds since the start of the logging system.
+
+        """
+        pass
 
     def __init__(self) -> None:
         """Auto-generated default constructor"""
@@ -2196,15 +1959,15 @@ class Ndef:
            *   * Handover Select (Hs)
 
         """
-        empty = enum.auto()                                                            # (= 0x00)  #/< Record is empty
-        well_known = enum.auto()                                                       # (= 0x01)  #/< Type field contains a well-known RTD type name
-        mime_media = enum.auto()                                                       # (= 0x02)  #/< Type field contains a media type (RFC 2046)
-        absolute_uri = enum.auto()                                                     # (= 0x03)  #/< Type field contains an absolute URI (RFC 3986)
-        external_type = enum.auto()                                                    # (= 0x04)  #/< Type field Contains an external type name
-        unknown = enum.auto()                                                          # (= 0x05)  #/< Payload type is unknown, type length must be 0.
-        unchanged = enum.auto()                                                        # (= 0x06)  #/< Indicates the payload is an intermediate or final chunk of a chunked NDEF
+        empty = enum.auto()                                                                                # (= 0x00)  #/< Record is empty
+        well_known = enum.auto()                                                                           # (= 0x01)  #/< Type field contains a well-known RTD type name
+        mime_media = enum.auto()                                                                           # (= 0x02)  #/< Type field contains a media type (RFC 2046)
+        absolute_uri = enum.auto()                                                                         # (= 0x03)  #/< Type field contains an absolute URI (RFC 3986)
+        external_type = enum.auto()                                                                        # (= 0x04)  #/< Type field Contains an external type name
+        unknown = enum.auto()                                                                              # (= 0x05)  #/< Payload type is unknown, type length must be 0.
+        unchanged = enum.auto()                                                                            # (= 0x06)  #/< Indicates the payload is an intermediate or final chunk of a chunked NDEF
         #/< record, type length must be 0.
-        reserved = enum.auto()                                                         # (= 0x07)  #/< Reserved by the NFC forum for future use
+        reserved = enum.auto()                                                                             # (= 0x07)  #/< Reserved by the NFC forum for future use
 
     class Uic(enum.Enum):
         """*
@@ -2213,78 +1976,78 @@ class Ndef:
            * and https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef
 
         """
-        none = enum.auto()                                                             # (= 0x00)  #/< Exactly as written
-        http_www = enum.auto()                                                         # (= 0x01)  #/< http://www.
-        https_www = enum.auto()                                                        # (= 0x02)  #/< https://www.
-        http = enum.auto()                                                             # (= 0x03)  #/< http://
-        https = enum.auto()                                                            # (= 0x04)  #/< https://
-        tel = enum.auto()                                                              # (= 0x05)  #/< tel:
-        mailto = enum.auto()                                                           # (= 0x06)  #/< mailto:
-        ftp_anon = enum.auto()                                                         # (= 0x07)  #/< ftp://anonymous:anonymous@
-        ftp_ftp = enum.auto()                                                          # (= 0x08)  #/< ftp://ftp.
-        ftps = enum.auto()                                                             # (= 0x09)  #/< ftps://
-        sftp = enum.auto()                                                             # (= 0x0A)  #/< sftp://
-        smb = enum.auto()                                                              # (= 0x0B)  #/< smb://
-        nfs = enum.auto()                                                              # (= 0x0C)  #/< nfs://
-        ftp = enum.auto()                                                              # (= 0x0D)  #/< ftp://
-        dav = enum.auto()                                                              # (= 0x0E)  #/< dav://
-        news = enum.auto()                                                             # (= 0x0F)  #/< news:
-        telnet = enum.auto()                                                           # (= 0x10)  #/< telnet://
-        imap = enum.auto()                                                             # (= 0x11)  #/< imap:
-        rstp = enum.auto()                                                             # (= 0x12)  #/< rtsp://
-        urn = enum.auto()                                                              # (= 0x13)  #/< urn:
-        pop = enum.auto()                                                              # (= 0x14)  #/< pop:
-        sip = enum.auto()                                                              # (= 0x15)  #/< sip:
-        sips = enum.auto()                                                             # (= 0x16)  #/< sips:
-        tftp = enum.auto()                                                             # (= 0x17)  #/< tftp:
-        btspp = enum.auto()                                                            # (= 0x18)  #/< btspp://
-        btl2_cap = enum.auto()                                                         # (= 0x19)  #/< btl2cap://
-        btgoep = enum.auto()                                                           # (= 0x1A)  #/< btgoep://
-        tcpobex = enum.auto()                                                          # (= 0x1B)  #/< tcpobex://
-        irdaobex = enum.auto()                                                         # (= 0x1C)  #/< irdaobex://
-        file = enum.auto()                                                             # (= 0x1D)  #/< file://
-        urn_epc_id = enum.auto()                                                       # (= 0x1E)  #/< urn:epc:id:
-        urn_epc_tag = enum.auto()                                                      # (= 0x1F)  #/< urn:epc:tag:
-        urn_epc_pat = enum.auto()                                                      # (= 0x20)  #/< urn:epc:pat:
-        urn_epc_raw = enum.auto()                                                      # (= 0x21)  #/< urn:epc:raw:
-        urn_epc = enum.auto()                                                          # (= 0x22)  #/< urn:epc:
-        urn_nfc = enum.auto()                                                          # (= 0x23)  #/< urn:nfc:
+        none = enum.auto()                                                                                 # (= 0x00)  #/< Exactly as written
+        http_www = enum.auto()                                                                             # (= 0x01)  #/< http://www.
+        https_www = enum.auto()                                                                            # (= 0x02)  #/< https://www.
+        http = enum.auto()                                                                                 # (= 0x03)  #/< http://
+        https = enum.auto()                                                                                # (= 0x04)  #/< https://
+        tel = enum.auto()                                                                                  # (= 0x05)  #/< tel:
+        mailto = enum.auto()                                                                               # (= 0x06)  #/< mailto:
+        ftp_anon = enum.auto()                                                                             # (= 0x07)  #/< ftp://anonymous:anonymous@
+        ftp_ftp = enum.auto()                                                                              # (= 0x08)  #/< ftp://ftp.
+        ftps = enum.auto()                                                                                 # (= 0x09)  #/< ftps://
+        sftp = enum.auto()                                                                                 # (= 0x0A)  #/< sftp://
+        smb = enum.auto()                                                                                  # (= 0x0B)  #/< smb://
+        nfs = enum.auto()                                                                                  # (= 0x0C)  #/< nfs://
+        ftp = enum.auto()                                                                                  # (= 0x0D)  #/< ftp://
+        dav = enum.auto()                                                                                  # (= 0x0E)  #/< dav://
+        news = enum.auto()                                                                                 # (= 0x0F)  #/< news:
+        telnet = enum.auto()                                                                               # (= 0x10)  #/< telnet://
+        imap = enum.auto()                                                                                 # (= 0x11)  #/< imap:
+        rstp = enum.auto()                                                                                 # (= 0x12)  #/< rtsp://
+        urn = enum.auto()                                                                                  # (= 0x13)  #/< urn:
+        pop = enum.auto()                                                                                  # (= 0x14)  #/< pop:
+        sip = enum.auto()                                                                                  # (= 0x15)  #/< sip:
+        sips = enum.auto()                                                                                 # (= 0x16)  #/< sips:
+        tftp = enum.auto()                                                                                 # (= 0x17)  #/< tftp:
+        btspp = enum.auto()                                                                                # (= 0x18)  #/< btspp://
+        btl2_cap = enum.auto()                                                                             # (= 0x19)  #/< btl2cap://
+        btgoep = enum.auto()                                                                               # (= 0x1A)  #/< btgoep://
+        tcpobex = enum.auto()                                                                              # (= 0x1B)  #/< tcpobex://
+        irdaobex = enum.auto()                                                                             # (= 0x1C)  #/< irdaobex://
+        file = enum.auto()                                                                                 # (= 0x1D)  #/< file://
+        urn_epc_id = enum.auto()                                                                           # (= 0x1E)  #/< urn:epc:id:
+        urn_epc_tag = enum.auto()                                                                          # (= 0x1F)  #/< urn:epc:tag:
+        urn_epc_pat = enum.auto()                                                                          # (= 0x20)  #/< urn:epc:pat:
+        urn_epc_raw = enum.auto()                                                                          # (= 0x21)  #/< urn:epc:raw:
+        urn_epc = enum.auto()                                                                              # (= 0x22)  #/< urn:epc:
+        urn_nfc = enum.auto()                                                                              # (= 0x23)  #/< urn:nfc:
 
     class BtType(enum.Enum):
         """*
            * @brief Type of Bluetooth radios.
 
         """
-        bredr = enum.auto()                                                            # (= 0x00)  #/< BT Classic
-        ble = enum.auto()                                                              # (= 0x01)  #/< BT Low Energy
+        bredr = enum.auto()                                                                                # (= 0x00)  #/< BT Classic
+        ble = enum.auto()                                                                                  # (= 0x01)  #/< BT Low Energy
 
     class BtAppearance(enum.Enum):
         """*
            * @brief Some appearance codes for BLE radios.
 
         """
-        unknown = enum.auto()                                                          # (= 0x0000)  #/< Generic Unknown
+        unknown = enum.auto()                                                                              # (= 0x0000)  #/< Generic Unknown
         # Generic Phone (b15-b6 = 0x001 << 6 = 0x0040)
-        phone = enum.auto()                                                            # (= 0x0040)  #/< Generic Phone
+        phone = enum.auto()                                                                                # (= 0x0040)  #/< Generic Phone
         # Generic Computer (b15-b6 = 0x002 << 6 = 0x0080)
-        computer = enum.auto()                                                         # (= 0x0080)  #/< Generic Computer
+        computer = enum.auto()                                                                             # (= 0x0080)  #/< Generic Computer
         # Generic Watch (b15-b6 = 0x003 << 6 = 0x00C0)
-        watch = enum.auto()                                                            # (= 0x00C0)  #/< Generic Watch
+        watch = enum.auto()                                                                                # (= 0x00C0)  #/< Generic Watch
         # Generic Clock (b15-b6 = 0x004 << 6 = 0x0100)
-        clock = enum.auto()                                                            # (= 0x0100)  #/< Generic Clock
+        clock = enum.auto()                                                                                # (= 0x0100)  #/< Generic Clock
         # Generic Computer (b15-b6 = 0x005 << 6 = 0x0140)
-        display = enum.auto()                                                          # (= 0x0140)  #/< Generic Display
+        display = enum.auto()                                                                              # (= 0x0140)  #/< Generic Display
         # Generic Computer (b15-b6 = 0x006 << 6 = 0x0180)
-        remote_control = enum.auto()                                                   # (= 0x0180)  #/< Generic Remote Control
+        remote_control = enum.auto()                                                                       # (= 0x0180)  #/< Generic Remote Control
         # Generic HID (b15-b6 = 0x00F << 6 = 0x03C0)
-        generic_hid = enum.auto()                                                      # (= 0x03C0)  #/< Generic HID
-        keyboard = enum.auto()                                                         # (= 0x03C1)  #/< HID Keyboard
-        mouse = enum.auto()                                                            # (= 0x03C2)  #/< HID Mouse
-        joystick = enum.auto()                                                         # (= 0x03C3)  #/< HID Joystick
-        gamepad = enum.auto()                                                          # (= 0x03C4)  #/< HID Gamepad
-        touchpad = enum.auto()                                                         # (= 0x03C9)  #/< HID Touchpad
+        generic_hid = enum.auto()                                                                          # (= 0x03C0)  #/< Generic HID
+        keyboard = enum.auto()                                                                             # (= 0x03C1)  #/< HID Keyboard
+        mouse = enum.auto()                                                                                # (= 0x03C2)  #/< HID Mouse
+        joystick = enum.auto()                                                                             # (= 0x03C3)  #/< HID Joystick
+        gamepad = enum.auto()                                                                              # (= 0x03C4)  #/< HID Gamepad
+        touchpad = enum.auto()                                                                             # (= 0x03C9)  #/< HID Touchpad
         # Generic Gaming (b15-b6 = 0x02A << 6 = 0x0A80)
-        gaming = enum.auto()                                                           # (= 0x0A80)  #/< Generic Gaming group
+        gaming = enum.auto()                                                                               # (= 0x0A80)  #/< Generic Gaming group
 
     class CarrierPowerState(enum.Enum):
         """*
@@ -2293,10 +2056,10 @@ class Ndef:
            *          message.
 
         """
-        inactive = enum.auto()                                                         # (= 0x00)  #/< Carrier power is off
-        active = enum.auto()                                                           # (= 0x01)  #/< Carrier power is on
-        activating = enum.auto()                                                       # (= 0x02)  #/< Carrier power is turning on
-        unknown = enum.auto()                                                          # (= 0x03)  #/< Carrier power state is unknown
+        inactive = enum.auto()                                                                             # (= 0x00)  #/< Carrier power is off
+        active = enum.auto()                                                                               # (= 0x01)  #/< Carrier power is on
+        activating = enum.auto()                                                                           # (= 0x02)  #/< Carrier power is turning on
+        unknown = enum.auto()                                                                              # (= 0x03)  #/< Carrier power state is unknown
 
     class BtEir(enum.Enum):
         """*
@@ -2304,67 +2067,67 @@ class Ndef:
            *        out of band (OOB) pairing NDEF records.
 
         """
-        flags = enum.auto()                                                            # (= 0x01)  #/< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode,
+        flags = enum.auto()                                                                                # (= 0x01)  #/< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode,
         #/< b2: BR/EDR not supported, b3: Simultaneous LE & BR/EDR controller, b4:
         #/< simultaneous LE & BR/EDR Host
-        uuids_16_bit_partial = enum.auto()                                             # (= 0x02)  #/< Incomplete list of 16 bit service class UUIDs
-        uuids_16_bit_complete = enum.auto()                                            # (= 0x03)  #/< Complete list of 16 bit service class UUIDs
-        uuids_32_bit_partial = enum.auto()                                             # (= 0x04)  #/< Incomplete list of 32 bit service class UUIDs
-        uuids_32_bit_complete = enum.auto()                                            # (= 0x05)  #/< Complete list of 32 bit service class UUIDs
-        uuids_128_bit_partial = enum.auto()                                            # (= 0x06)  #/< Incomplete list of 128 bit service class UUIDs
-        uuids_128_bit_complete = enum.auto()                                           # (= 0x07)  #/< Complete list of 128 bit service class UUIDs
-        short_local_name = enum.auto()                                                 # (= 0x08)  #/< Shortened Bluetooth Local Name
-        long_local_name = enum.auto()                                                  # (= 0x09)  #/< Complete Bluetooth Local Name
-        tx_power_level = enum.auto()                                                   # (= 0x0A)  #/< TX Power level (1 byte), -127 dBm to +127 dBm
-        class_of_device = enum.auto()                                                  # (= 0x0D)  #/< Class of Device
-        sp_hash_c192 = enum.auto()                                                     # (= 0x0E)  #/< Simple Pairing Hash C-192
-        sp_random_r192 = enum.auto()                                                   # (= 0x0F)  #/< Simple Pairing Randomizer R-192
-        security_manager_tk = enum.auto()                                              # (= 0x10)  #/< Security Manager TK Value (LE Legacy Pairing)
-        security_manager_flags = enum.auto()                                           # (= 0x11)  #/< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported
+        uuids_16_bit_partial = enum.auto()                                                                 # (= 0x02)  #/< Incomplete list of 16 bit service class UUIDs
+        uuids_16_bit_complete = enum.auto()                                                                # (= 0x03)  #/< Complete list of 16 bit service class UUIDs
+        uuids_32_bit_partial = enum.auto()                                                                 # (= 0x04)  #/< Incomplete list of 32 bit service class UUIDs
+        uuids_32_bit_complete = enum.auto()                                                                # (= 0x05)  #/< Complete list of 32 bit service class UUIDs
+        uuids_128_bit_partial = enum.auto()                                                                # (= 0x06)  #/< Incomplete list of 128 bit service class UUIDs
+        uuids_128_bit_complete = enum.auto()                                                               # (= 0x07)  #/< Complete list of 128 bit service class UUIDs
+        short_local_name = enum.auto()                                                                     # (= 0x08)  #/< Shortened Bluetooth Local Name
+        long_local_name = enum.auto()                                                                      # (= 0x09)  #/< Complete Bluetooth Local Name
+        tx_power_level = enum.auto()                                                                       # (= 0x0A)  #/< TX Power level (1 byte), -127 dBm to +127 dBm
+        class_of_device = enum.auto()                                                                      # (= 0x0D)  #/< Class of Device
+        sp_hash_c192 = enum.auto()                                                                         # (= 0x0E)  #/< Simple Pairing Hash C-192
+        sp_random_r192 = enum.auto()                                                                       # (= 0x0F)  #/< Simple Pairing Randomizer R-192
+        security_manager_tk = enum.auto()                                                                  # (= 0x10)  #/< Security Manager TK Value (LE Legacy Pairing)
+        security_manager_flags = enum.auto()                                                               # (= 0x11)  #/< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported
         #/< (host), b2: Simultaneous LE & BR/EDR to same device capable (host), b3: address
         #/< type (0 = public, 1 = random)
-        appearance = enum.auto()                                                       # (= 0x19)  #/< Appearance
-        mac = enum.auto()                                                              # (= 0x1B)  #/< Bluetooth Device Address
-        le_role = enum.auto()                                                          # (= 0x1C)  #/< LE Role
-        sp_hash_c256 = enum.auto()                                                     # (= 0x1D)  #/< Simple Pairing Hash C-256
-        sp_hash_r256 = enum.auto()                                                     # (= 0x1E)  #/< Simple Pairing Randomizer R-256
-        le_sc_confirmation = enum.auto()                                               # (= 0x22)  #/< LE Secure Connections Confirmation Value
-        le_sc_random = enum.auto()                                                     # (= 0x23)  #/< LE Secure Connections Random Value
+        appearance = enum.auto()                                                                           # (= 0x19)  #/< Appearance
+        mac = enum.auto()                                                                                  # (= 0x1B)  #/< Bluetooth Device Address
+        le_role = enum.auto()                                                                              # (= 0x1C)  #/< LE Role
+        sp_hash_c256 = enum.auto()                                                                         # (= 0x1D)  #/< Simple Pairing Hash C-256
+        sp_hash_r256 = enum.auto()                                                                         # (= 0x1E)  #/< Simple Pairing Randomizer R-256
+        le_sc_confirmation = enum.auto()                                                                   # (= 0x22)  #/< LE Secure Connections Confirmation Value
+        le_sc_random = enum.auto()                                                                         # (= 0x23)  #/< LE Secure Connections Random Value
 
     class BleRole(enum.Enum):
         """*
            * @brief Possible roles for BLE records to indicate support for.
 
         """
-        peripheral_only = enum.auto()                                                  # (= 0x00)  #/< Radio can only act as a peripheral
-        central_only = enum.auto()                                                     # (= 0x01)  #/< Radio can only act as a central
-        peripheral_central = enum.auto()                                               # (= 0x02)  #/< Radio can act as both a peripheral and a central, but prefers peripheral
-        central_peripheral = enum.auto()                                               # (= 0x03)  #/< Radio can act as both a peripheral and a central, but prefers central
+        peripheral_only = enum.auto()                                                                      # (= 0x00)  #/< Radio can only act as a peripheral
+        central_only = enum.auto()                                                                         # (= 0x01)  #/< Radio can only act as a central
+        peripheral_central = enum.auto()                                                                   # (= 0x02)  #/< Radio can act as both a peripheral and a central, but prefers peripheral
+        central_peripheral = enum.auto()                                                                   # (= 0x03)  #/< Radio can act as both a peripheral and a central, but prefers central
 
     class WifiEncryptionType(enum.Enum):
         """*
            * @brief Types of configurable encryption for WiFi networks
 
         """
-        none = enum.auto()                                                             # (= 0x01)  #/< No encryption
-        wep = enum.auto()                                                              # (= 0x02)  #/< WEP
-        tkip = enum.auto()                                                             # (= 0x04)  #/< TKIP
-        aes = enum.auto()                                                              # (= 0x08)  #/< AES
+        none = enum.auto()                                                                                 # (= 0x01)  #/< No encryption
+        wep = enum.auto()                                                                                  # (= 0x02)  #/< WEP
+        tkip = enum.auto()                                                                                 # (= 0x04)  #/< TKIP
+        aes = enum.auto()                                                                                  # (= 0x08)  #/< AES
 
     class WifiAuthenticationType(enum.Enum):
         """*
            * @brief WiFi network authentication
 
         """
-        open = enum.auto()                                                             # (= 0x01)  #/< Open / no security
-        wpa_personal = enum.auto()                                                     # (= 0x02)  #/< WPA personal
-        shared = enum.auto()                                                           # (= 0x04)  #/< Shared key
-        wpa_enterprise = enum.auto()                                                   # (= 0x08)  #/< WPA enterprise
-        wpa2_enterprise = enum.auto()                                                  # (= 0x10)  #/< WPA2 Enterprise
-        wpa2_personal = enum.auto()                                                    # (= 0x20)  #/< WPA2 personal
-        wpa_wpa2_personal = enum.auto()                                                # (= 0x22)  #/< Both WPA and WPA2 personal
+        open = enum.auto()                                                                                 # (= 0x01)  #/< Open / no security
+        wpa_personal = enum.auto()                                                                         # (= 0x02)  #/< WPA personal
+        shared = enum.auto()                                                                               # (= 0x04)  #/< Shared key
+        wpa_enterprise = enum.auto()                                                                       # (= 0x08)  #/< WPA enterprise
+        wpa2_enterprise = enum.auto()                                                                      # (= 0x10)  #/< WPA2 Enterprise
+        wpa2_personal = enum.auto()                                                                        # (= 0x20)  #/< WPA2 personal
+        wpa_wpa2_personal = enum.auto()                                                                    # (= 0x22)  #/< Both WPA and WPA2 personal
 
-    handover_version: int = 0x13                                                       #/< Connection Handover version 1.3 # (C++ static member)
+    handover_version: int = 0x13                                                                           #/< Connection Handover version 1.3 # (C++ static member) # (const)
 
     def __init__(
         self,
@@ -2418,17 +2181,18 @@ class Ndef:
            * @brief Configuration structure for wifi configuration ndef structure.
 
         """
-        ssid: std.string_view                                                          #/< SSID for the network
-        key: std.string_view                                                           #/< Security key / password for the network
-        authentication: WifiAuthenticationType = WifiAuthenticationType.wpa2_personal  #/< Authentication type the network uses.
-        encryption: WifiEncryptionType = WifiEncryptionType.aes                        #/< Encryption type the network uses.
-        mac_address: int = 0xFFFFFFFFFFFF                                              #/< Broadcast MAC address FF:FF:FF:FF:FF:FF
+        ssid: std.string_view                                                                              #/< SSID for the network
+        key: std.string_view                                                                               #/< Security key / password for the network
+        authentication: espp.Ndef.WifiAuthenticationType = espp.Ndef.WifiAuthenticationType.wpa2_personal  #/< Authentication type the network
+        #/< uses.
+        encryption: espp.Ndef.WifiEncryptionType = espp.Ndef.WifiEncryptionType.aes                        #/< Encryption type the network uses.
+        mac_address: int = 0xFFFFFFFFFFFF                                                                  #/< Broadcast MAC address FF:FF:FF:FF:FF:FF
         def __init__(
             self,
             ssid: std.string_view = std.string_view(),
             key: std.string_view = std.string_view(),
-            authentication: WifiAuthenticationType = WifiAuthenticationType.wpa2_personal,
-            encryption: WifiEncryptionType = WifiEncryptionType.aes,
+            authentication: Ndef.WifiAuthenticationType = Ndef.WifiAuthenticationType.wpa2_personal,
+            encryption: Ndef.WifiEncryptionType = Ndef.WifiEncryptionType.aes,
             mac_address: int = 0xFFFFFFFFFFFF
             ) -> None:
             """Auto-generated default constructor with named params"""
@@ -3349,19 +3113,22 @@ class Task:
      *
      * \section task_ex1 Basic Task Example
      * \snippet task_example.cpp Task example
-     * \section task_ex2 Many Task Example
+     * \section task_ex2 Task Watchdog Example
+     * \snippet task_example.cpp task watchdog example
+     * \section task_ex3 Many Task Example
      * \snippet task_example.cpp ManyTask example
-     * \section task_ex3 Long Running Task Example
+     * \section task_ex4 Long Running Task Example
      * \snippet task_example.cpp LongRunningTask example
-     * \section task_ex4 Task Info Example
+     * \section task_ex5 Task Info Example
      * \snippet task_example.cpp Task Info example
-     * \section task_ex5 Task Request Stop Example
+     * \section task_ex6 Task Request Stop Example
      * \snippet task_example.cpp Task Request Stop example
      *
      * \section run_on_core_ex1 Run on Core Example
      * \snippet task_example.cpp run on core example
 
     """
+
 
 
     class BaseConfig:
@@ -3504,10 +3271,12 @@ class Task:
 
     def stop(self) -> bool:
         """*
-           * @brief Stop the task execution, blocking until it stops.
-           *
+           * @brief Stop the task execution.
+           * @details This will request the task to stop, notify the condition variable,
+           *          and (if this calling context is not the task context) join the
+           *          thread.
            * @return True if the task stopped, False if it was not started / already
-           * stopped.
+           *         stopped.
 
         """
         pass
@@ -3530,6 +3299,23 @@ class Task:
         """
         pass
 
+
+    def get_id(self) -> task_id_t:
+        """*
+           * @brief Get the ID for this Task's thread / task context.
+           * @return ID for this Task's thread / task context.
+
+        """
+        pass
+
+    @staticmethod
+    def get_current_id() -> task_id_t:
+        """*
+           * @brief Get the ID for the current thread / task context.
+           * @return ID for the current thread / task context.
+
+        """
+        pass
 
     def __init__(self) -> None:
         """Auto-generated default constructor"""
@@ -3574,17 +3360,19 @@ class Timer:
     /
     / \section timer_ex1 Timer Example 1
     / \snippet timer_example.cpp timer example
-    / \section timer_ex2 Timer Delay Example
+    / \section timer_ex2 Timer Watchdog Example
+    / \snippet timer_example.cpp timer watchdog example
+    / \section timer_ex3 Timer Delay Example
     / \snippet timer_example.cpp timer delay example
-    / \section timer_ex3 Oneshot Timer Example
+    / \section timer_ex4 Oneshot Timer Example
     / \snippet timer_example.cpp timer oneshot example
-    / \section timer_ex4 Timer Cancel Itself Example
+    / \section timer_ex5 Timer Cancel Itself Example
     / \snippet timer_example.cpp timer cancel itself example
-    / \section timer_ex5 Oneshot Timer Cancel Itself Then Start again with Delay Example
+    / \section timer_ex6 Oneshot Timer Cancel Itself Then Start again with Delay Example
     / \snippet timer_example.cpp timer oneshot restart example
-    / \section timer_ex6 Timer Update Period Example
+    / \section timer_ex7 Timer Update Period Example
     / \snippet timer_example.cpp timer update period example
-    / \section timer_ex7 Timer AdvancedConfig Example
+    / \section timer_ex8 Timer AdvancedConfig Example
     / \snippet timer_example.cpp timer advanced config example
     """
 
@@ -3672,6 +3460,7 @@ class Timer:
         """
         pass
 
+
     def set_period(self, period: std.chrono.duration<float>) -> None:
         """/ @brief Set the period of the timer.
         / @details Sets the period of the timer.
@@ -3695,6 +3484,261 @@ class Timer:
         pass
 
 ####################    </generated_from:timer.hpp>    ####################
+
+
+####################    <generated_from:joystick.hpp>    ####################
+
+
+
+class Joystick:
+    """*
+     *  @brief 2-axis Joystick with axis mapping / calibration.
+     *
+     * \section joystick_ex1 Basic Circular and Rectangular Joystick Example
+     * \snippet joystick_example.cpp circular joystick example
+     * \section joystick_ex2 ADC Joystick Example
+     * \snippet joystick_example.cpp adc joystick example
+
+    """
+    class Type(enum.Enum):
+        """*
+           * @brief Type of the joystick.
+           * @note When using a Type::CIRCULAR joystick, it's recommended to set the
+           *       individual x/y calibration deadzones to be 0 and to only use the
+           *       deadzone_radius field to set the deadzone around the center.
+
+        """
+        rectangular = enum.auto()                                                             # (= 0)  #/< The default type of joystick. Uses the rangemappers for
+        #/  each axis (to convert raw values from input range to be
+        #/  [-1,1]) independently which results in x/y deadzones and
+        #/  output that are rectangular.
+        circular = enum.auto()                                                                # (= 1)  #/< The joystick is configured to have a circular output. This
+        #/  means that the x/y < deadzones are circular around the
+        #/  input and range and the output is clamped to be on or
+        #/  within the unit circle.
+
+
+    class Config:
+        """*
+           *  @brief Configuration structure for the joystick.
+
+        """
+        x_calibration: espp.FloatRangeMapper.Config                                           #*< Configuration for the x axis.
+        y_calibration: espp.FloatRangeMapper.Config                                           #*< Configuration for the y axis.
+        type: espp.Joystick.Type = espp.Joystick.Type(espp.Joystick.Type.rectangular)         #*< The type of the joystick. See
+                                                         Type enum for more information.
+        center_deadzone_radius: float = float(0)                                              #*< The radius of the unit circle's deadzone [0, 1.0] around the center, only used
+                when the joystick is configured as Type::CIRCULAR.
+        range_deadzone: float = float(0)                                                      #*< The deadzone around the edge of the unit circle, only used when
+                                  the joystick is configured as Type::CIRCULAR. This scales the output so
+                                  that the output appears to have magnitude 1 (meaning it appears to be on
+                                  the edge of the unit circle) when the joystick value magnitude is within
+                                  the range [1-range_deadzone, 1].
+        get_values: espp.Joystick.get_values_fn = espp.Joystick.get_values_fn(None)           #*< Function to retrieve the latest
+                                                  unmapped joystick values. Required if
+                                                  you want to use update(), unused if
+                                                  you call update(float raw_x, float
+                                                  raw_y).
+        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Verbosity for the Joystick logger_.
+        def __init__(
+            self,
+            x_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
+            y_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
+            type: Joystick.Type = Joystick.Type(Joystick.Type.rectangular),
+            center_deadzone_radius: float = float(0),
+            range_deadzone: float = float(0),
+            get_values: Joystick.get_values_fn = Joystick.get_values_fn(None),
+            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+    def set_type(
+        self,
+        type: Joystick.Type,
+        radius: float = 0,
+        range_deadzone: float = 0
+        ) -> None:
+        """*
+           *  @brief Set the type of the joystick.
+           *  @param type The Type of the joystick.
+           *  @param radius Optional radius parameter used when \p type is
+           *         Type::CIRCULAR. When the magnitude of the joystick's mapped
+           *         position vector is less than this value, the vector is set to
+           *         (0,0).
+           *  @param range_deadzone Optional deadzone around the edge of the unit circle
+           *         when \p type is Type::CIRCULAR. This scales the output so that the
+           *         output appears to have magnitude 1 (meaning it appears to be on the
+           *         edge of the unit circle) if the magnitude of the mapped position
+           *         vector is greater than 1-range_deadzone. Example: if the range
+           *         deadzone is 0.1, then the output will be scaled so that the
+           *         magnitude of the output is 1 if the magnitude of the mapped
+           *         position vector is greater than 0.9.
+           *  @note If the Joystick is Type::CIRCULAR, the actual calibrations that are
+           *        saved into the joystick will have 0 deadzone around the center value
+           *        and range values, so that center and range deadzones are actually
+           *        applied on the vector value instead of on the individual axes
+           *        independently.
+           *  @sa set_center_deadzone_radius
+           *  @sa set_range_deadzone
+           *  @sa set_calibration
+
+        """
+        pass
+
+    def type(self) -> Joystick.Type:
+        """*
+           * @brief Get the type of the joystick.
+           * @return The Type of the joystick.
+
+        """
+        pass
+
+    def set_center_deadzone_radius(self, radius: float) -> None:
+        """*
+           * @brief Sets the center deadzone radius.
+           * @note Radius is only applied when \p deadzone is Deadzone::CIRCULAR.
+           * @param radius Optional radius parameter used when \p deadzone is
+           *        Deadzone::CIRCULAR. When the magnitude of the joystick's mapped
+           *        position vector is less than this value, the vector is set to
+           *        (0,0).
+
+        """
+        pass
+
+    def center_deadzone_radius(self) -> float:
+        """*
+           * @brief Get the center deadzone radius.
+           * @return The center deadzone radius.
+
+        """
+        pass
+
+    def set_range_deadzone(self, range_deadzone: float) -> None:
+        """*
+           * @brief Sets the range deadzone.
+           * @note Range deadzone is only applied when \p deadzone is Deadzone::CIRCULAR.
+           * @param range_deadzone Optional deadzone around the edge of the unit circle
+           *        when \p deadzone is Deadzone::CIRCULAR. This scales the output so
+           *        that the output appears to have magnitude 1 (meaning it appears to
+           *        be on the edge of the unit circle) if the magnitude of the mapped
+           *        position vector is greater than 1-range_deadzone. Example: if the
+           *        range deadzone is 0.1, then the output will be scaled so that the
+           *        magnitude of the output is 1 if the magnitude of the mapped position
+           *        vector is greater than 0.9.
+
+        """
+        pass
+
+    def range_deadzone(self) -> float:
+        """*
+           * @brief Get the range deadzone.
+           * @return The range deadzone.
+
+        """
+        pass
+
+    def set_calibration(
+        self,
+        x_calibration: FloatRangeMapper.Config,
+        y_calibration: FloatRangeMapper.Config,
+        center_deadzone_radius: float = 0,
+        range_deadzone: float = 0
+        ) -> None:
+        """*
+           * @brief Update the x and y axis mapping.
+           * @param x_calibration New x-axis range mapping configuration to use.
+           * @param y_calibration New y-axis range mapping configuration to use.
+           * @param center_deadzone_radius The radius of the unit circle's deadzone [0,
+           *        1.0] around the center, only used when the joystick is configured
+           *        as Type::CIRCULAR.
+           *  @param range_deadzone Optional deadzone around the edge of the unit circle
+           *         when \p type is Type::CIRCULAR. This scales the output so that the
+           *         output appears to have magnitude 1 (meaning it appears to be on the
+           *         edge of the unit circle) if the magnitude of the mapped position
+           *         vector is greater than 1-range_deadzone. Example: if the range
+           *         deadzone is 0.1, then the output will be scaled so that the
+           *         magnitude of the output is 1 if the magnitude of the mapped
+           *         position vector is greater than 0.9.
+           * @note If the Joystick is Type::CIRCULAR, the actual calibrations that are
+           *       saved into the joystick will have 0 deadzone around the center and range values,
+           *       so that center and range deadzones are actually applied on the vector value.
+           * @sa set_center_deadzone_radius
+           * @sa set_range_deadzone
+
+        """
+        pass
+
+    @overload
+    def update(self) -> None:
+        """*
+           * @brief Read the raw values and use the calibration data to update the
+           *        position.
+           * @note Requires that the get_values_ function is set.
+
+        """
+        pass
+
+    @overload
+    def update(self, raw_x: float, raw_y: float) -> None:
+        """*
+           * @brief Update the joystick's position using the provided raw x and y
+           *        values.
+           * @param raw_x The raw x-axis value.
+           * @param raw_y The raw y-axis value.
+           * @note This function is useful when you have the raw values and don't want
+           *       to use the get_values_ function.
+
+        """
+        pass
+
+    def x(self) -> float:
+        """*
+           * @brief Get the most recently updated x axis calibrated position.
+           * @return The most recent x-axis position (from when update() was last
+           *         called).
+
+        """
+        pass
+
+    def y(self) -> float:
+        """*
+           * @brief Get the most recently updated y axis calibrated position.
+           * @return The most recent y-axis position (from when update() was last
+           *         called).
+
+        """
+        pass
+
+    def position(self) -> Vector2f:
+        """*
+           * @brief Get the most recently updated calibrated position.
+           * @return The most recent position (from when update() was last called).
+
+        """
+        pass
+
+    def raw(self) -> Vector2f:
+        """*
+           * @brief Get the most recently updated raw / uncalibrated readings. This
+           *        function is useful for externally performing a calibration routine
+           *        and creating updated calibration / mapper configuration
+           *        structures.
+           * @return The most recent raw measurements (from when update() was last
+           *         called).
+
+        """
+        pass
+
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+# namespace espp
+
+####################    </generated_from:joystick.hpp>    ####################
 
 # </litgen_stub>
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  AUTOGENERATED CODE END !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
