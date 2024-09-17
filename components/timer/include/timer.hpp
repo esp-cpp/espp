@@ -122,8 +122,8 @@ public:
   /// @brief Start the task watchdog for the timer.
   /// @return true if the watchdog was started, false otherwise.
   /// @note This function is only available on ESP
-  /// @note This function is only available if CONFIG_ESP_TASK_WDT_EN is enabled
-  ///       in the menuconfig. Default is y (enabled).
+  /// @note This function will do nothing unless CONFIG_ESP_TASK_WDT_EN is
+  ///       enabled in the menuconfig. Default is y (enabled).
   /// @see stop_watchdog()
   /// @see Task::start_watchdog()
   /// @see Task::stop_watchdog()
@@ -132,8 +132,8 @@ public:
   /// @brief Stop the task watchdog for the timer.
   /// @return true if the watchdog was stopped, false otherwise.
   /// @note This function is only available on ESP
-  /// @note This function is only available if CONFIG_ESP_TASK_WDT_EN is enabled
-  ///       in the menuconfig. Default is y (enabled).
+  /// @note This function will do nothing unless CONFIG_ESP_TASK_WDT_EN is
+  ///       enabled in the menuconfig. Default is y (enabled).
   /// @see start_watchdog()
   /// @see Task::start_watchdog()
   /// @see Task::stop_watchdog()
