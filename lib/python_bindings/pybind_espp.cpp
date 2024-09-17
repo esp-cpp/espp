@@ -356,7 +356,7 @@ void py_init_module_espp(py::module &m) {
   } // end of inner classes & enums of Bezier_espp_Vector2f
 
   pyClassBezier_espp_Vector2f.def(py::init<const espp::Bezier<espp::Vector2f>::Config &>())
-      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig>())
+      .def(py::init<const espp::Bezier<espp::Vector2f>::WeightedConfig &>())
       .def("__call__", &espp::Bezier<espp::Vector2f>::operator(), py::arg("t"),
            "*\n   * @brief Evaluate the bezier at \\p t.\n   * @note Convienience wrapper around "
            "the at() method.\n   * @param t The evaluation parameter, [0, 1].\n   * @return The "
@@ -567,7 +567,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_int
 
-  pyClassRangeMapper_int.def(py::init<>())
+  pyClassRangeMapper_int.def(py::init<const espp::RangeMapper<int>::Config &>())
       .def("get_center_deadband", &espp::RangeMapper<int>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
@@ -689,7 +689,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_float
 
-  pyClassRangeMapper_float.def(py::init<>())
+  pyClassRangeMapper_float.def(py::init<const espp::RangeMapper<float>::Config &>())
       .def("get_center_deadband", &espp::RangeMapper<float>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
