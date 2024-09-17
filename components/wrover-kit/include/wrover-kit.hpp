@@ -66,7 +66,12 @@ public:
   /// \param update_period_ms The update period of the display task
   /// \return true if the display was successfully initialized, false otherwise
   /// \note This will also allocate two full frame buffers in the SPIRAM
-  bool initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config = {.name="Display", .stack_size_bytes=4096, .priority=10, .core_id=0}, int update_period_ms = 16);
+  bool initialize_display(size_t pixel_buffer_size,
+                          const espp::Task::BaseConfig &task_config = {.name = "Display",
+                                                                       .stack_size_bytes = 4096,
+                                                                       .priority = 10,
+                                                                       .core_id = 0},
+                          int update_period_ms = 16);
 
   /// Get the width of the LCD in pixels
   /// \return The width of the LCD in pixels

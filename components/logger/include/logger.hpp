@@ -74,7 +74,6 @@ class Logger {
 #endif // CONFIG_ESPP_LOGGER_ENABLE_CURSOR_COMMANDS
 #endif // ESPP_LOGGER_CURSOR_COMMANDS_ENABLED
 
-
 public:
   /**
    *   Verbosity levels for the logger, in order of increasing priority.

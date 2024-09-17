@@ -85,7 +85,9 @@ bool WroverKit::initialize_lcd() {
   return true;
 }
 
-bool WroverKit::initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config, int update_period_ms) {
+bool WroverKit::initialize_display(size_t pixel_buffer_size,
+                                   const espp::Task::BaseConfig &task_config,
+                                   int update_period_ms) {
   if (!lcd_handle_) {
     logger_.error(
         "LCD not initialized, you must call initialize_lcd() before initialize_display()!");
