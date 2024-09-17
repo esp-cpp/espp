@@ -74,11 +74,15 @@ public:
   /// Start the watchdog timer
   /// @return True if the watchdog timer was started successfully, false
   ///         otherwise
+  /// @note This function will do nothing unless CONFIG_ESP_TASK_WDT_EN is
+  ///       enabled in the menuconfig. Default is y (enabled).
   bool start_watchdog();
 
   /// Stop the watchdog timer
   /// @return True if the watchdog timer was stopped successfully, false
   ///         otherwise
+  /// @note This function will do nothing unless CONFIG_ESP_TASK_WDT_EN is
+  ///       enabled in the menuconfig. Default is y (enabled).
   bool stop_watchdog();
 
   /// Check if the timer is running
