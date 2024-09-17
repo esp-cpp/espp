@@ -108,6 +108,10 @@ bool Task::stop() {
 
 #if defined(ESP_PLATFORM)
 bool Task::start_watchdog() {
+#if !CONFIG_ESP_TASK_WDT_EN
+  logger_.debug("Watchdog not enabled in the configuration, cannot start watchdog!");
+  return false;
+#else
   if (!started_) {
     logger_.warn("Task not started, cannot start watchdog!");
     return false;
@@ -131,9 +135,14 @@ bool Task::start_watchdog() {
   // everything is good, set the flag
   watchdog_started_ = true;
   return true;
+#endif // CONFIG_ESP_TASK_WDT_EN
 }
 
 bool Task::stop_watchdog() {
+#if !CONFIG_ESP_TASK_WDT_EN
+  logger_.debug("Watchdog not enabled in the configuration, cannot stop watchdog!");
+  return false;
+#else
   if (!watchdog_started_) {
     logger_.debug("Watchdog already stopped!");
     return false;
@@ -152,9 +161,13 @@ bool Task::stop_watchdog() {
     logger_.error("Failed to stop watchdog for task '{}'", name_);
   }
   return err == ESP_OK;
+#endif // CONFIG_ESP_TASK_WDT_EN
 }
 
 bool Task::configure_task_watchdog(uint32_t timeout_ms, bool panic_on_timeout) {
+#if !CONFIG_ESP_TASK_WDT_EN
+  return false;
+#else
   esp_task_wdt_config_t config;
   memset(&config, 0, sizeof(config));
   config.timeout_ms = timeout_ms;
@@ -171,6 +184,7 @@ bool Task::configure_task_watchdog(uint32_t timeout_ms, bool panic_on_timeout) {
     return false;
   }
   return err == ESP_OK;
+#endif // CONFIG_ESP_TASK_WDT_EN
 }
 
 bool Task::configure_task_watchdog(const std::chrono::milliseconds &timeout,
@@ -179,6 +193,10 @@ bool Task::configure_task_watchdog(const std::chrono::milliseconds &timeout,
 }
 
 std::string Task::get_watchdog_info(std::error_code &ec) {
+#if !CONFIG_ESP_TASK_WDT_EN
+  ec = std::make_error_code(std::errc::operation_not_supported);
+  return "";
+#else
   std::string info = "";
   auto err = esp_task_wdt_print_triggered_tasks(
       [](void *arg, const char *msg) {
@@ -192,8 +210,9 @@ std::string Task::get_watchdog_info(std::error_code &ec) {
     ec = std::make_error_code(std::errc::io_error);
   }
   return info;
+#endif // CONFIG_ESP_TASK_WDT_EN
 }
-#endif
+#endif // ESP_PLATFORM
 
 void Task::notify_and_join() {
   {
@@ -256,7 +275,7 @@ void Task::thread_function() {
       started_ = false;
       break;
     }
-#if defined(ESP_PLATFORM)
+#if defined(ESP_PLATFORM) && CONFIG_ESP_TASK_WDT_EN
     // check if the watchdog is enabled
     if (watchdog_started_) {
       auto err = esp_task_wdt_reset();

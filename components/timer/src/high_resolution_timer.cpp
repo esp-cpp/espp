@@ -60,6 +60,10 @@ bool HighResolutionTimer::start(uint64_t period_us, bool oneshot) {
 }
 
 bool HighResolutionTimer::start_watchdog() {
+#if !CONFIG_ESP_TASK_WDT_EN
+  logger_.debug("Watchdog timer not enabled in sdkconfig");
+  return false;
+#else
   if (wdt_handle_) {
     logger_.debug("Watchdog timer already running");
     return false;
@@ -75,9 +79,14 @@ bool HighResolutionTimer::start_watchdog() {
     return false;
   }
   return true;
+#endif // CONFIG_ESP_TASK_WDT_EN
 }
 
 bool HighResolutionTimer::stop_watchdog() {
+#if !CONFIG_ESP_TASK_WDT_EN
+  logger_.debug("Watchdog timer not enabled in sdkconfig");
+  return false;
+#else
   if (!wdt_handle_) {
     logger_.debug("Watchdog timer not running");
     return false;
@@ -89,6 +98,7 @@ bool HighResolutionTimer::stop_watchdog() {
   }
   wdt_handle_ = nullptr;
   return true;
+#endif // CONFIG_ESP_TASK_WDT_EN
 }
 
 bool HighResolutionTimer::oneshot(uint64_t timeout_us) { return start(timeout_us, true); }
@@ -157,7 +167,9 @@ void HighResolutionTimer::handle_timer_callback() {
   if (callback_) {
     callback_();
   }
+#if CONFIG_ESP_TASK_WDT_EN
   if (wdt_handle_) {
     esp_task_wdt_reset_user(wdt_handle_);
   }
+#endif // CONFIG_ESP_TASK_WDT_EN
 }
