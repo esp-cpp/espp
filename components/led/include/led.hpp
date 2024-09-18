@@ -43,14 +43,13 @@ public:
    *  channels that should be associated.
    */
   struct Config {
-    int isr_core_id =
-        -1; ///< The core to install the LEDC fade function (interrupt) on. If -1, then the LEDC
-            ///  interrupt is installed on the core that this constructor is
-            ///  called on. If 0 or 1, then the LEDC interrupt is installed on
-            ///  the specified core.
-    ledc_timer_t timer;  /**< The LEDC timer that you want associated with the LEDs. */
-    size_t frequency_hz; /**< The frequency that you want to run the PWM hardawre for the LEDs at.
-                            @note this is inversely related to the duty resolution configuration. */
+    int isr_core_id = -1; /**< The core to install the LEDC fade function (interrupt) on. If
+                            -1, then the LEDC interrupt is installed on the core that this
+                            constructor is called on. If 0 or 1, then the LEDC interrupt is
+                            installed on the specified core. */
+    ledc_timer_t timer;   /**< The LEDC timer that you want associated with the LEDs. */
+    size_t frequency_hz;  /**< The frequency that you want to run the PWM hardawre for the LEDs at.
+                             @note this is inversely related to the duty resolution configuration. */
     std::vector<ChannelConfig> channels; /**< The LED channels that you want to control. */
     ledc_timer_bit_t duty_resolution{
         LEDC_TIMER_13_BIT}; /**< The resolution of the duty cycle for these LEDs. @note this is
