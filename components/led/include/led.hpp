@@ -42,6 +42,11 @@ public:
    *  channels that should be associated.
    */
   struct Config {
+    int isr_core_id =
+        -1; ///< The core to install the LEDC fade function (interrupt) on. If -1, then the LEDC
+            ///  interrupt is installed on the core that this constructor is
+            ///  called on. If 0 or 1, then the LEDC interrupt is installed on
+            ///  the specified core.
     ledc_timer_t timer;  /**< The LEDC timer that you want associated with the LEDs. */
     size_t frequency_hz; /**< The frequency that you want to run the PWM hardawre for the LEDs at.
                             @note this is inversely related to the duty resolution configuration. */
@@ -94,9 +99,14 @@ public:
     logger_.info("Initializing the fade service");
     static bool fade_service_installed = false;
     if (!fade_service_installed) {
-      ledc_fade_func_install(0);
-      fade_service_installed = true;
+      auto install_fn = []() -> esp_err_t { return ledc_fade_func_install(0); };
+      auto err = espp::task::run_on_core(install_fn, config.isr_core_id);
+      if (err != ESP_OK) {
+        logger_.error("install ledc fade service failed {}", esp_err_to_name(err));
+      }
+      fade_service_installed = err == ESP_OK;
     }
+
     ledc_cbs_t callbacks = {.fade_cb = &Led::cb_ledc_fade_end_event};
 
     // we associate each channel with its own semaphore so that they can be
