@@ -10,6 +10,7 @@
 #include <freertos/semphr.h>
 
 #include "base_component.hpp"
+#include "run_on_core.hpp"
 
 namespace espp {
 /**
