@@ -131,6 +131,16 @@ def autogenerate() -> None:
                     # NOTE: this must come after vector2d.hpp and range_mapper.hpp since it depends on them!
                     include_dir + "joystick/include/joystick.hpp",
 
+                    # filters:
+                    include_dir + "filters/include/lowpass_filter.hpp",
+                    include_dir + "filters/include/simple_lowpass_filter.hpp",
+
+                    # these are template classes so I've not ipmlemented them into python bindings yet
+                    # include_dir + "filters/include/transfer_function.hpp",
+                    # include_dir + "filters/include/sos_filter.hpp",
+                    # include_dir + "filters/include/biquad_filter.hpp",
+                    # include_dir + "filters/include/butterworth_filter.hpp",
+
                     # state machine:
                     # include_dir + "state_machine/include/deep_history_state.hpp",
                     # include_dir + "state_machine/include/shallow_history_state.hpp",

@@ -19,6 +19,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/csv/include
   ${ESPP_COMPONENTS}/event_manager/include
   ${ESPP_COMPONENTS}/file_system/include
+  ${ESPP_COMPONENTS}/filters/include
   ${ESPP_COMPONENTS}/ftp/include
   ${ESPP_COMPONENTS}/format/include
   ${ESPP_COMPONENTS}/hid-rp/include
@@ -42,6 +43,8 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/event_manager/src/event_manager.cpp
   ${ESPP_COMPONENTS}/logger/src/logger.cpp
   ${ESPP_COMPONENTS}/file_system/src/file_system.cpp
+  ${ESPP_COMPONENTS}/filters/src/lowpass_filter.cpp
+  ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtcp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtp_packet.cpp

@@ -2,7 +2,11 @@
 
 #include <stdlib.h>
 
+#if defined(ESP_PLATFORM)
 #include "esp_dsp.h"
+#endif
+
+#include "format.hpp"
 
 namespace espp {
 /**
@@ -22,10 +26,21 @@ public:
   };
 
   /**
+   * @brief Default constructor.
+   */
+  LowpassFilter() = default;
+
+  /**
    * @brief Initialize the lowpass filter coefficients based on the config.
    * @param config Configuration struct.
    */
-  explicit LowpassFilter(const Config &config) { init(config); }
+  explicit LowpassFilter(const Config &config);
+
+  /**
+   * @brief Set the filter coefficients based on the config.
+   * @param config Configuration struct.
+   */
+  void configure(const Config &config);
 
   /**
    * @brief Filter the input samples, updating internal state, and writing the
@@ -34,10 +49,11 @@ public:
    * @param output Pointer to (floating point) array which will be filled with
    *        the filtered input.
    * @param length Number of samples, should be >= length of input & output memory.
+   * @note On ESP32, the input and output arrays must have
+   *       __attribute__((aligned(16))) to ensure proper alignment for the ESP32
+   *       DSP functions.
    */
-  void update(const float *input, float *output, size_t length) {
-    dsps_biquad_f32(input, output, length, coeffs_, state_);
-  }
+  void update(const float *input, float *output, size_t length);
 
   /**
    * @brief Filter the signal sampled by input, updating internal state, and
@@ -45,11 +61,7 @@ public:
    * @param input New sample of the input data.
    * @return Filtered output based on input and history.
    */
-  float update(const float input) {
-    float output;
-    dsps_biquad_f32(&input, &output, 1, coeffs_, state_);
-    return output;
-  }
+  float update(const float input);
 
   /**
    * @brief Filter the signal sampled by input, updating internal state, and
@@ -57,29 +69,21 @@ public:
    * @param input New sample of the input data.
    * @return Filtered output based on input and history.
    */
-  float operator()(float input) { return update(input); }
+  float operator()(float input);
+
+  /**
+   * @brief Reset the filter state to zero.
+   */
+  void reset();
 
   friend struct fmt::formatter<LowpassFilter>;
 
 protected:
-  void init(const Config &config) {
-    dsps_biquad_gen_lpf_f32(coeffs_, config.normalized_cutoff_frequency, config.q_factor);
-  }
+  void init(const Config &config);
 
-  float coeffs_[5];
-  float state_[2];
+  float coeffs_[5] = {0, 0, 0, 0, 0};
+  float state_[5] = {0, 0, 0, 0, 0};
 };
 } // namespace espp
 
-// for allowing easy serialization/printing of the
-// espp::LowpassFilter
-template <> struct fmt::formatter<espp::LowpassFilter> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(espp::LowpassFilter const &f, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "Lowpass - {}", f.coeffs_);
-  }
-};
+#include "lowpass_filter_formatters.hpp"

@@ -567,7 +567,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_int
 
-  pyClassRangeMapper_int.def(py::init<const espp::RangeMapper<int>::Config &>())
+  pyClassRangeMapper_int.def(py::init<>())
       .def("get_center_deadband", &espp::RangeMapper<int>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
@@ -689,7 +689,7 @@ void py_init_module_espp(py::module &m) {
                            "the input distribution.");
   } // end of inner classes & enums of RangeMapper_float
 
-  pyClassRangeMapper_float.def(py::init<const espp::RangeMapper<float>::Config &>())
+  pyClassRangeMapper_float.def(py::init<>())
       .def("get_center_deadband", &espp::RangeMapper<float>::get_center_deadband,
            "*\n   * @brief Return the configured deadband around the center of the input\n   *     "
            "   distribution\n   * @return Deadband around the center of the input distribution for "
@@ -2348,6 +2348,97 @@ void py_init_module_espp(py::module &m) {
            "@return The most recent raw measurements (from when update() was last\n   *         "
            "called).\n");
   ////////////////////    </generated_from:joystick.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:lowpass_filter.hpp>    ////////////////////
+  auto pyClassLowpassFilter = py::class_<espp::LowpassFilter>(
+      m, "LowpassFilter", py::dynamic_attr(),
+      "*\n *  @brief Lowpass infinite impulse response (IIR) filter.\n");
+
+  { // inner classes & enums of LowpassFilter
+    auto pyClassLowpassFilter_ClassConfig =
+        py::class_<espp::LowpassFilter::Config>(
+            pyClassLowpassFilter, "Config", py::dynamic_attr(),
+            "*\n   *  @brief Configuration for the lowpass filter.\n")
+            .def(py::init<>(
+                     [](float normalized_cutoff_frequency = float(), float q_factor = float()) {
+                       auto r = std::make_unique<espp::LowpassFilter::Config>();
+                       r->normalized_cutoff_frequency = normalized_cutoff_frequency;
+                       r->q_factor = q_factor;
+                       return r;
+                     }),
+                 py::arg("normalized_cutoff_frequency") = float(), py::arg("q_factor") = float())
+            .def_readwrite(
+                "normalized_cutoff_frequency",
+                &espp::LowpassFilter::Config::normalized_cutoff_frequency,
+                "*< Filter cutoff frequency in the range [0.0, 0.5] (normalizd\n                   "
+                "                     to sample frequency, = 2 * f_cutoff / f_sample).")
+            .def_readwrite(
+                "q_factor", &espp::LowpassFilter::Config::q_factor,
+                "*< Quality (Q) factor of the filter. The higher the Q the better the filter.");
+  } // end of inner classes & enums of LowpassFilter
+
+  pyClassLowpassFilter
+      .def(py::init<>()) // implicit default constructor
+      .def("update",
+           py::overload_cast<const float *, float *, size_t>(&espp::LowpassFilter::update),
+           py::arg("input"), py::arg("output"), py::arg("length"),
+           "*\n   * @brief Filter the input samples, updating internal state, and writing the\n   "
+           "*        filtered values to the data pointed to by output.\n   * @param input Pointer "
+           "to (floating point) array of new samples of the input data\n   * @param output Pointer "
+           "to (floating point) array which will be filled with\n   *        the filtered input.\n "
+           "  * @param length Number of samples, should be >= length of input & output memory.\n   "
+           "* @note On ESP32, the input and output arrays must have\n   *       "
+           "__attribute__((aligned(16))) to ensure proper alignment for the ESP32\n   *       DSP "
+           "functions.\n")
+      .def("update", py::overload_cast<const float>(&espp::LowpassFilter::update), py::arg("input"),
+           "*\n   * @brief Filter the signal sampled by input, updating internal state, and\n   *  "
+           "      returning the filtered output.\n   * @param input New sample of the input "
+           "data.\n   * @return Filtered output based on input and history.\n")
+      .def("__call__", &espp::LowpassFilter::operator(), py::arg("input"),
+           "*\n   * @brief Filter the signal sampled by input, updating internal state, and\n   *  "
+           "      returning the filtered output.\n   * @param input New sample of the input "
+           "data.\n   * @return Filtered output based on input and history.\n");
+  ////////////////////    </generated_from:lowpass_filter.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:simple_lowpass_filter.hpp>    ////////////////////
+  auto pyClassSimpleLowpassFilter = py::class_<espp::SimpleLowpassFilter>(
+      m, "SimpleLowpassFilter", py::dynamic_attr(),
+      "*\n *  @brief Simple lowpass filter using a time constant and a stored value.\n");
+
+  { // inner classes & enums of SimpleLowpassFilter
+    auto pyClassSimpleLowpassFilter_ClassConfig =
+        py::class_<espp::SimpleLowpassFilter::Config>(
+            pyClassSimpleLowpassFilter, "Config", py::dynamic_attr(),
+            "*\n   *  @brief Configuration for the lowpass filter.\n")
+            .def(py::init<>([](float time_constant = 0.0f) {
+                   auto r = std::make_unique<espp::SimpleLowpassFilter::Config>();
+                   r->time_constant = time_constant;
+                   return r;
+                 }),
+                 py::arg("time_constant") = 0.0f)
+            .def_readwrite("time_constant", &espp::SimpleLowpassFilter::Config::time_constant,
+                           "*< Time constant of the filter.");
+  } // end of inner classes & enums of SimpleLowpassFilter
+
+  pyClassSimpleLowpassFilter.def(py::init<>())
+      .def("set_time_constant", &espp::SimpleLowpassFilter::set_time_constant,
+           py::arg("time_constant"),
+           "*\n   * @brief Set the time constant of the filter.\n   * @param time_constant Time "
+           "constant of the filter.\n")
+      .def("get_time_constant", &espp::SimpleLowpassFilter::get_time_constant,
+           "*\n   * @brief Get the time constant of the filter.\n   * @return Time constant of the "
+           "filter.\n")
+      .def("update", &espp::SimpleLowpassFilter::update, py::arg("input"),
+           "*\n   * @brief Filter the signal sampled by input, updating internal state, and\n   *  "
+           "      returning the filtered output.\n   * @param input New sample of the input "
+           "data.\n   * @return Filtered output based on input, time, and history.\n")
+      .def("__call__", &espp::SimpleLowpassFilter::operator(), py::arg("input"),
+           "*\n   * @brief Filter the signal sampled by input, updating internal state, and\n   *  "
+           "      returning the filtered output.\n   * @param input New sample of the input "
+           "data.\n   * @return Filtered output based on input, time, and history.\n")
+      .def("reset", &espp::SimpleLowpassFilter::reset,
+           "*\n   * @brief Reset the filter to its initial state.\n");
+  ////////////////////    </generated_from:simple_lowpass_filter.hpp>    ////////////////////
 
   // </litgen_pydef> // Autogenerated code end
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  AUTOGENERATED CODE END !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
