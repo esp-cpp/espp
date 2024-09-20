@@ -300,13 +300,16 @@ extern "C" void app_main(void) {
     logger.info("High resolution timer 1 started: {}", started);
 
     // make another HighResolutionTimer
+    auto timer2_fn = [&]() {
+      // sleep here to ensure watchdog triggers
+      std::this_thread::sleep_for(350ms);
+      // we don't want to stop, so return false
+      return false;
+    };
     auto high_resolution_timer2 =
         espp::HighResolutionTimer({.name = "High Resolution Timer 2",
-                                   .callback = timer_fn,
+                                   .callback = timer2_fn,
                                    .log_level = espp::Logger::Verbosity::DEBUG});
-    period_us = 1000 * 500; // 500ms, which is longer than the watchdog period
-    started = high_resolution_timer2.start(period_us);
-    logger.info("High resolution timer 2 started: {}", started);
 
     // configure the task watchdog
     static constexpr bool panic_on_watchdog_timeout = false;
@@ -315,7 +318,13 @@ extern "C" void app_main(void) {
     // start the watchdog timer for this timer
     high_resolution_timer2.start_watchdog();
 
-    std::this_thread::sleep_for(550ms);
+    // ensure we can run the watchdog on a oneshot timer which is started after
+    // we start the watchdog
+    period_us = 1000 * 100;
+    started = high_resolution_timer2.oneshot(period_us);
+    logger.info("High resolution timer 2 started: {}", started);
+
+    std::this_thread::sleep_for(400ms);
 
     std::error_code ec;
     std::string watchdog_info = espp::Task::get_watchdog_info(ec);

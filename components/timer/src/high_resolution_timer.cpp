@@ -68,10 +68,6 @@ bool HighResolutionTimer::start_watchdog() {
     logger_.debug("Watchdog timer already running");
     return false;
   }
-  if (!is_running()) {
-    logger_.error("Cannot start watchdog timer, timer is not running");
-    return false;
-  }
   auto err = esp_task_wdt_add_user(get_name().c_str(), &wdt_handle_);
   if (err != ESP_OK) {
     logger_.error("Failed to start watchdog timer: {}", esp_err_to_name(err));

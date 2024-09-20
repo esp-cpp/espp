@@ -112,10 +112,6 @@ bool Task::start_watchdog() {
   logger_.debug("Watchdog not enabled in the configuration, cannot start watchdog!");
   return false;
 #else
-  if (!started_) {
-    logger_.warn("Task not started, cannot start watchdog!");
-    return false;
-  }
   if (watchdog_started_) {
     logger_.debug("Watchdog already started!");
     return false;
