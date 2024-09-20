@@ -43,6 +43,8 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/event_manager/src/event_manager.cpp
   ${ESPP_COMPONENTS}/logger/src/logger.cpp
   ${ESPP_COMPONENTS}/file_system/src/file_system.cpp
+  ${ESPP_COMPONENTS}/filters/src/lowpass_filter.cpp
+  ${ESPP_COMPONENTS}/filters/src/simple_lowpass_filter.cpp
   ${ESPP_COMPONENTS}/joystick/src/joystick.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtcp_packet.cpp
   ${ESPP_COMPONENTS}/rtsp/src/rtp_packet.cpp
