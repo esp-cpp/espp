@@ -81,7 +81,7 @@ public:
 protected:
   void init(const Config &config);
 
-  float coeffs_[5];
+  float coeffs_[5] = {0, 0, 0, 0, 0};
   float state_[5] = {0, 0, 0, 0, 0};
 };
 } // namespace espp
