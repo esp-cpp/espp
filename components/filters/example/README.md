@@ -1,8 +1,8 @@
 # Filters Example
 
-This example shows how to use a `LowpassFilter` and a `ButterworthFilter` from
-the `filters` component to filter signals. This example simply operates on
-random perturbations of auto-generated data.
+This example shows how to use a `LowpassFilter`, `ButterworthFilter`, and
+`SimpleLowpassFilter` from the `filters` component to filter signals. This
+example simply operates on random perturbations of auto-generated data.
 
 ## How to use example
 
@@ -22,4 +22,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-![output](https://user-images.githubusercontent.com/213467/202814226-a0a41887-d5f0-4de8-a69b-df3e1a5ed316.png)
+![output](https://github.com/user-attachments/assets/091ca271-3923-448e-9d26-998fc4f97297)
