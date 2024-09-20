@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "format.hpp"
 #include "sos_filter.hpp"
 
 namespace espp {
@@ -15,7 +16,7 @@ namespace espp {
  * @tparam ORDER The order of the filter.
  * @tparam Impl Which Biquad implementation form to use.
  */
-template <size_t ORDER, class Impl = BiquadFilterDf2>
+template <size_t ORDER, class Impl = BiquadFilterDf1>
 class ButterworthFilter : public SosFilter<(ORDER + 1) / 2, Impl> {
 public:
   /**
@@ -72,23 +73,4 @@ protected:
 };
 } // namespace espp
 
-// for allowing easy serialization/printing of the
-// espp::ButterworthFilter
-template <size_t ORDER, class Impl> struct fmt::formatter<espp::ButterworthFilter<ORDER, Impl>> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(espp::ButterworthFilter<ORDER, Impl> const &f, FormatContext &ctx) const {
-    auto &&out = ctx.out();
-    fmt::format_to(out, "Butterworth - [");
-    if constexpr (ORDER > 0) {
-      fmt::format_to(out, "[{}]", f.sections_[0]);
-    }
-    for (int i = 1; i < (ORDER + 1) / 2; i++) {
-      fmt::format_to(out, ", [{}]", f.sections_[i]);
-    }
-    return fmt::format_to(out, "]");
-  }
-};
+#include "butterworth_filter_formatters.hpp"

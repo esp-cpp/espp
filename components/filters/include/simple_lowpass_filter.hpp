@@ -8,7 +8,7 @@
 #include <chrono>
 #endif
 
-#include "esp_dsp.h"
+#include "format.hpp"
 
 namespace espp {
 /**
@@ -24,11 +24,27 @@ public:
   };
 
   /**
+   * @brief Construct a new SimpleLowpassFilter object
+   */
+  SimpleLowpassFilter() = default;
+
+  /**
    * @brief Initialize the lowpass filter based on the config.
    * @param config Configuration struct.
    */
-  explicit SimpleLowpassFilter(const Config &config)
-      : time_constant_(config.time_constant) {}
+  explicit SimpleLowpassFilter(const Config &config);
+
+  /**
+   * @brief Set the time constant of the filter.
+   * @param time_constant Time constant of the filter.
+   */
+  void set_time_constant(const float time_constant);
+
+  /**
+   * @brief Get the time constant of the filter.
+   * @return Time constant of the filter.
+   */
+  float get_time_constant() const;
 
   /**
    * @brief Filter the signal sampled by input, updating internal state, and
@@ -36,25 +52,7 @@ public:
    * @param input New sample of the input data.
    * @return Filtered output based on input, time, and history.
    */
-  float update(const float input) {
-    float output;
-#if defined(ESP_PLATFORM)
-    uint64_t time = esp_timer_get_time();
-    float dt = (time - prev_time_) / 1e6f;
-    prev_time_ = time;
-#else
-    auto time = std::chrono::high_resolution_clock::now();
-    float dt = std::chrono::duration<float>(time - prev_time_).count();
-    prev_time_ = time;
-#endif
-    if (dt <= 0) {
-      return prev_output_;
-    }
-    float alpha = dt / (time_constant_ + dt);
-    output = alpha * input + (1.0f - alpha) * prev_output_;
-    prev_output_ = output;
-    return output;
-  }
+  float update(const float input);
 
   /**
    * @brief Filter the signal sampled by input, updating internal state, and
@@ -62,7 +60,12 @@ public:
    * @param input New sample of the input data.
    * @return Filtered output based on input, time, and history.
    */
-  float operator()(float input) { return update(input); }
+  float operator()(float input);
+
+  /**
+   * @brief Reset the filter to its initial state.
+   */
+  void reset();
 
   friend struct fmt::formatter<SimpleLowpassFilter>;
 
@@ -78,15 +81,4 @@ protected:
 };
 } // namespace espp
 
-// for allowing easy serialization/printing of the
-// espp::SimpleLowpassFilter
-template <> struct fmt::formatter<espp::SimpleLowpassFilter> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(espp::SimpleLowpassFilter const &f, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "SimpleLowpassFilter - {}", f.time_constant_);
-  }
-};
+#include "simple_lowpass_filter_formatters.hpp"

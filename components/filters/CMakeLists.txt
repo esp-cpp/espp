@@ -1,3 +1,4 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES format esp-dsp)
+  SRC_DIRS "src"
+  REQUIRES esp_timer format esp-dsp)

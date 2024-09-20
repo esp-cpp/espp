@@ -3,7 +3,9 @@
 #include <array>
 #include <cmath>
 
+#if defined(ESP_PLATFORM)
 #include "esp_dsp.h"
+#endif
 
 #include "format.hpp"
 #include "transfer_function.hpp"
@@ -122,7 +124,13 @@ public:
    * @param length Number of samples, should be >= length of input & output memory.
    */
   void update(const float *input, float *output, size_t length) {
+#if defined(ESP_PLATFORM)
     dsps_biquad_f32(input, output, length, coeffs_.data(), w_.data());
+#else
+    for (size_t i = 0; i < length; i++) {
+      output[i] = update(input[i]);
+    }
+#endif
   }
 
   /**
@@ -133,7 +141,13 @@ public:
    */
   float update(const float input) {
     float result;
+#if defined(ESP_PLATFORM)
     dsps_biquad_f32(&input, &result, 1, coeffs_.data(), w_.data());
+#else
+    result = input * b_[0] + w_[0];
+    w_[0] = input * b_[1] - result * a_[0] + w_[1];
+    w_[1] = input * b_[2] - result * a_[1];
+#endif
     return result;
   }
 
@@ -148,28 +162,4 @@ protected:
 };
 } // namespace espp
 
-// for allowing easy serialization/printing of the
-// espp::BiquadFilterDf1
-template <> struct fmt::formatter<espp::BiquadFilterDf1> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(espp::BiquadFilterDf1 const &bqf, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "DF1 - B: {}, A: {}", bqf.b_, bqf.a_);
-  }
-};
-
-// for allowing easy serialization/printing of the
-// espp::BiquadFilterDf2
-template <> struct fmt::formatter<espp::BiquadFilterDf2> {
-  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(espp::BiquadFilterDf2 const &bqf, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(), "DF2 - B: {}, A: {}", bqf.b_, bqf.a_);
-  }
-};
+#include "biquad_filter_formatters.hpp"

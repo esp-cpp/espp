@@ -19,6 +19,7 @@ set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/csv/include
   ${ESPP_COMPONENTS}/event_manager/include
   ${ESPP_COMPONENTS}/file_system/include
+  ${ESPP_COMPONENTS}/filters/include
   ${ESPP_COMPONENTS}/ftp/include
   ${ESPP_COMPONENTS}/format/include
   ${ESPP_COMPONENTS}/hid-rp/include
