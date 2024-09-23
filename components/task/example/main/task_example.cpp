@@ -530,6 +530,29 @@ extern "C" void app_main(void) {
     //! [run on core example]
   }
 
+  {
+    //! [run on core nonblocking example]
+    logger.info("espp::task::run_on_core non-blocking example: main thread core ID: {}",
+                xPortGetCoreID());
+    // NOTE: in these examples, because we're logging with libfmt in the
+    // function to be run, we need a little more than the default 2k stack size,
+    // so we're using 3k.
+
+    // test running a function which takes a while to complete
+    auto task_fn = []() -> void {
+      fmt::print("[{0}] Task running on core {0}\n", xPortGetCoreID());
+      std::this_thread::sleep_for(1s);
+      fmt::print("[{0}] Task done!\n", xPortGetCoreID());
+    };
+    espp::task::run_on_core_non_blocking(task_fn, 0, 3 * 1024);
+    espp::task::run_on_core_non_blocking(task_fn, 1);
+    fmt::print("Started tasks on cores 0 and 1\n");
+
+    // sleep for a bit to let the tasks run
+    std::this_thread::sleep_for(2s);
+    //! [run on core nonblocking example]
+  }
+
   logger.info("Task example complete!");
 
   while (true) {
