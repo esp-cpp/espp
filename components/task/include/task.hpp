@@ -44,6 +44,8 @@ namespace espp {
  *
  * \section run_on_core_ex1 Run on Core Example
  * \snippet task_example.cpp run on core example
+ * \section run_on_core_ex2 Run on Core (Non-Blocking) Example
+ * \snippet task_example.cpp run on core nonblocking example
  */
 class Task : public espp::BaseComponent {
 public:
