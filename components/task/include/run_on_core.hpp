@@ -17,13 +17,14 @@ namespace task {
 /// @param core_id The core to run the function on
 /// @param stack_size_bytes The stack size to allocate for the function
 /// @param priority The priority of the task
+/// @param name The name of the task
 /// @note This function is only available on ESP32
 /// @note If you provide a core_id < 0, the function will run on the current
 ///       core (same core as the caller)
 /// @note If you provide a core_id >= configNUM_CORES, the function will run on
 ///       the last core
 static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 2048,
-                        size_t priority = 5) {
+                        size_t priority = 5, const std::string &name = "run_on_core_task") {
   if (core_id < 0 || core_id == xPortGetCoreID()) {
     // If no core id specified or we are already executing on the desired core,
     // run the function directly
@@ -41,7 +42,7 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
       // the function returns something
       decltype(f()) ret_val;
       auto f_task = espp::Task::make_unique(espp::Task::Config{
-          .name = "run_on_core_task",
+          .name = name,
           .callback = [&mutex, &cv, &f, &ret_val](auto &cb_m, auto &cb_cv) -> bool {
             // synchronize with the main thread - block here until the main thread
             // waits on the condition variable (cv), then run the function
@@ -62,7 +63,7 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
     } else {
       // the function returns void
       auto f_task = espp::Task::make_unique(espp::Task::Config{
-          .name = "run_on_core_task",
+          .name = name,
           .callback = [&mutex, &cv, &f](auto &cb_m, auto &cb_cv) -> bool {
             // synchronize with the main thread - block here until the main thread
             // waits on the condition variable (cv), then run the function
@@ -83,6 +84,26 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
   }
 }
 
+/// Run the given function on the specific core, then return the result (if any)
+/// @details This function will run the given function on the specified core,
+///         then return the result (if any). If the provided core is the same
+///         as the current core, the function will run directly. If the
+///         provided core is different, the function will be run on the
+///         specified core and the result will be returned to the calling
+///         thread. Note that this function will block the calling thread until
+///         the function has completed, regardless of the core it is run on.
+/// @param f The function to run
+/// @param task_config The task configuration
+/// @note This function is only available on ESP32
+/// @note If you provide a core_id < 0, the function will run on the current
+///       core (same core as the caller)
+/// @note If you provide a core_id >= configNUM_CORES, the function will run on
+///       the last core
+static auto run_on_core(const auto &f, const espp::Task::BaseConfig &task_config) {
+  return run_on_core(f, task_config.core_id, task_config.stack_size_bytes, task_config.priority,
+                     task_config.name);
+}
+
 /// Run the given function on the specific core without blocking the calling thread
 /// @details This function will run the given function on the specified core,
 ///          without blocking the calling thread / context. A new thread is
@@ -92,6 +113,7 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
 /// @param core_id The core to run the function on
 /// @param stack_size_bytes The stack size to allocate for the function
 /// @param priority The priority of the task
+/// @param name The name of the task
 /// @note This function is only available on ESP32
 /// @note If you provide a core_id < 0, the thread will not be pinned to any
 ///       specific core, instead the scheduler will decide which core to run
@@ -99,14 +121,15 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
 /// @note If you provide a core_id >= configNUM_CORES, the function will run on
 ///       the last core
 static void run_on_core_non_blocking(const auto &f, int core_id, size_t stack_size_bytes = 2048,
-                                     size_t priority = 5) {
+                                     size_t priority = 5,
+                                     const std::string &name = "run_on_core_thread") {
   // Otherwise run the function on the desired core
   if (core_id > configNUM_CORES - 1) {
     // If the core id is larger than the number of cores, run on the last core
     core_id = configNUM_CORES - 1;
   }
   auto thread_config = esp_pthread_get_default_config();
-  thread_config.thread_name = "run_on_core_thread";
+  thread_config.thread_name = name.c_str();
   if (core_id >= 0)
     thread_config.pin_to_core = core_id;
   thread_config.stack_size = stack_size_bytes;
@@ -121,6 +144,24 @@ static void run_on_core_non_blocking(const auto &f, int core_id, size_t stack_si
   }
   auto thread = std::thread(f);
   thread.detach();
+}
+
+/// Run the given function on the specific core without blocking the calling thread
+/// @details This function will run the given function on the specified core,
+///          without blocking the calling thread / context. A new thread is
+///          spawned for the function even if the requested core is the same as
+///          the core on which the calling thread is running.
+/// @param f The function to run
+/// @param task_config The task configuration
+/// @note This function is only available on ESP32
+/// @note If you provide a core_id < 0, the thread will not be pinned to any
+///       specific core, instead the scheduler will decide which core to run
+///       the thread on
+/// @note If you provide a core_id >= configNUM_CORES, the function will run on
+///       the last core
+static void run_on_core_non_blocking(const auto &f, const espp::Task::BaseConfig &task_config) {
+  run_on_core_non_blocking(f, task_config.core_id, task_config.stack_size_bytes,
+                           task_config.priority, task_config.name);
 }
 #endif
 } // namespace task
