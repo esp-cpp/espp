@@ -503,6 +503,7 @@ extern "C" void app_main(void) {
     // test running a function that returns void on a specific core
     auto task_fn = []() -> void { fmt::print("Void Task running on core {}\n", xPortGetCoreID()); };
     espp::task::run_on_core(task_fn, 0, 3 * 1024);
+    fmt::print("Void Function returned\n");
     espp::task::run_on_core(task_fn, 1, 3 * 1024);
     fmt::print("Void Function returned\n");
 
@@ -514,7 +515,8 @@ extern "C" void app_main(void) {
     };
     auto result0 = espp::task::run_on_core(task_fn2, 0, 3 * 1024);
     fmt::print("Bool Function returned {}\n", result0);
-    auto result1 = espp::task::run_on_core(task_fn2, 1, 3 * 1024);
+    auto result1 = espp::task::run_on_core(
+        task_fn2, {.name = "test", .stack_size_bytes = 3 * 1024, .core_id = 1});
     fmt::print("Bool Function returned {}\n", result1);
 
     // test running a function that returns esp_err_t on a specific core
@@ -545,7 +547,7 @@ extern "C" void app_main(void) {
       fmt::print("[{0}] Task done!\n", xPortGetCoreID());
     };
     espp::task::run_on_core_non_blocking(task_fn, 0, 3 * 1024);
-    espp::task::run_on_core_non_blocking(task_fn, 1);
+    espp::task::run_on_core_non_blocking(task_fn, {.name = "test", .core_id = 1});
     fmt::print("Started tasks on cores 0 and 1\n");
 
     // sleep for a bit to let the tasks run
