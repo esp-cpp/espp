@@ -15,9 +15,9 @@ class BleGattServerCallbacks : public NimBLEServerCallbacks {
 public:
   virtual void onConnect(NimBLEServer *server, NimBLEConnInfo &conn_info) override;
   virtual void onDisconnect(NimBLEServer *server, NimBLEConnInfo &conn_info, int reason) override;
-  virtual void onAuthenticationComplete(const NimBLEConnInfo &conn_info) override;
+  virtual void onAuthenticationComplete(NimBLEConnInfo &conn_info) override;
   virtual uint32_t onPassKeyDisplay() override;
-  virtual void onConfirmPIN(const NimBLEConnInfo &conn_info, uint32_t pass_key) override;
+  virtual void onConfirmPIN(NimBLEConnInfo &conn_info, uint32_t pass_key) override;
 
 protected:
   friend class BleGattServer;
