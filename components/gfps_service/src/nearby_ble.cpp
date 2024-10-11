@@ -2,6 +2,8 @@
 
 static espp::Logger logger({.tag = "GFPS BLE", .level = espp::gfps::LOG_LEVEL});
 
+#include "host/ble_hs.h"
+
 static std::vector<uint8_t> REMOTE_PUBLIC_KEY(64, 0);
 
 static const nearby_platform_BleInterface *g_ble_interface = nullptr;
@@ -92,7 +94,14 @@ int espp::gfps::ble_gap_event_handler(ble_gap_event *event, void *arg) {
 uint64_t nearby_platform_GetBleAddress() {
   // get the mac address of the radio
 #if CONFIG_BT_NIMBLE_ENABLED
-  auto address = uint64_t(NimBLEDevice::getAddress());
+  // explicitly get the random address here, since the GetPublicAddress function
+  // will call NimBLEDevice::getAddress() which will return the public address
+  uint64_t address = 0;
+  auto rc = ble_hs_id_copy_addr(BLE_ADDR_RANDOM, (uint8_t *)&address, nullptr);
+  if (rc != 0) {
+    logger.error("Failed to get ble address");
+    return 0;
+  }
   logger.debug("radio mac address: {:#x}", address);
   return address;
 #else
@@ -105,17 +114,8 @@ uint64_t nearby_platform_GetBleAddress() {
 //
 // address - BLE address to set.
 uint64_t nearby_platform_SetBleAddress(uint64_t address) {
-  logger.info("SetBleAddress - set to {:#x}", address);
-  // implement, possibly with esp_iface_mac_addr_set, esp_base_mac_addr_set(),
-  // or esp_netif_set_mac(). Can use ESP_MAC_BT or ESP_MAC_BASE
-
-  // convert the address into an array of bytes
-  uint8_t addr[6] = {
-      (uint8_t)((address >> 40) & 0xFF), (uint8_t)((address >> 32) & 0xFF),
-      (uint8_t)((address >> 24) & 0xFF), (uint8_t)((address >> 16) & 0xFF),
-      (uint8_t)((address >> 8) & 0xFF),  (uint8_t)(address & 0xFF),
-  };
-  esp_iface_mac_addr_set(addr, ESP_MAC_BT);
+  // Since we don't really have to set the requested address, just return the
+  // current address
   return nearby_platform_GetBleAddress();
 }
 
