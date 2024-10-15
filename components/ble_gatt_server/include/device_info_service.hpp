@@ -36,7 +36,7 @@ class DeviceInfoService : public BaseComponent {
 public:
   /// Plug and Play ID
   struct PnpId {
-    uint8_t vendor_id_source = 0x02; ///< 0x01 for Bluetooth SIG, 0x02 for USB
+    uint8_t vendor_id_source = 0x01; ///< 0x01 for Bluetooth SIG, 0x02 for USB
     uint16_t vendor_id;              ///< Vendor ID
     uint16_t product_id;             ///< Product ID
     uint16_t product_version;        ///< Product version
