@@ -104,8 +104,7 @@ public:
   /// @param report_map The report map as a string view.
   void set_report_map(std::string_view report_map) {
     if (report_map_) {
-      report_map_->setValue(reinterpret_cast<const uint8_t *>(report_map.data()),
-                            report_map.size());
+      report_map_->setValue(report_map);
     } else {
       logger_.error("Report map characteristic not created");
     }

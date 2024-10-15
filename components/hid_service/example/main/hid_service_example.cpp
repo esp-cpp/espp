@@ -109,7 +109,7 @@ extern "C" void app_main(void) {
   auto input_report = hid_service.input_report(input_report_id);
 
   // use the HID service to make an output report characteristic
-  auto output_report = hid_service.output_report(output_report_id);
+  [[maybe_unused]] auto output_report = hid_service.output_report(output_report_id);
 
   // now that we've made the input characteristic, we can start the service
   hid_service.start();
