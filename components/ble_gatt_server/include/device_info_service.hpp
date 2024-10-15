@@ -167,7 +167,7 @@ public:
       logger_.error("Characteristic not created");
       return;
     }
-    manufacturer_name_->setValue(reinterpret_cast<const uint8_t *>(name.data()), name.size());
+    manufacturer_name_->setValue(name);
   }
 
   /// Set the model number
@@ -177,7 +177,7 @@ public:
       logger_.error("Characteristic not created");
       return;
     }
-    model_number_->setValue(reinterpret_cast<const uint8_t *>(number.data()), number.size());
+    model_number_->setValue(number);
   }
 
   /// Set the serial number
@@ -187,7 +187,7 @@ public:
       logger_.error("Characteristic not created");
       return;
     }
-    serial_number_->setValue(reinterpret_cast<const uint8_t *>(number.data()), number.size());
+    serial_number_->setValue(number);
   }
 
   /// Set the software version
@@ -197,7 +197,7 @@ public:
       logger_.error("Characteristic not created");
       return;
     }
-    software_version_->setValue(reinterpret_cast<const uint8_t *>(version.data()), version.size());
+    software_version_->setValue(version);
   }
 
   /// Set the firmware version
@@ -207,7 +207,7 @@ public:
       logger_.error("Characteristic not created");
       return;
     }
-    firmware_version_->setValue(reinterpret_cast<const uint8_t *>(version.data()), version.size());
+    firmware_version_->setValue(version);
   }
 
   /// Set the hardware version
@@ -217,7 +217,7 @@ public:
       logger_.error("Characteristic not created");
       return;
     }
-    hardware_version_->setValue(reinterpret_cast<const uint8_t *>(version.data()), version.size());
+    hardware_version_->setValue(version);
   }
 
 protected:
