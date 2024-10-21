@@ -233,6 +233,28 @@ public:
   std::string list_directory(const std::string &path, const ListConfig &config,
                              const std::string &prefix = "");
 
+  /// @brief Get a file entry formatted as a string
+  /// @details
+  /// This method returns a string formatted as a file entry. The file entry
+  /// contains the type, permissions, number of links, owner, group, size,
+  /// date and time, and name of the file. The file entry is formatted according
+  /// to the config. The config is a struct with boolean values for each of the
+  /// fields to include in the output. The fields are:
+  /// - type: The type of the file (directory, file, etc.)
+  /// - permissions: The permissions of the file
+  /// - number_of_links: The number of links to the file
+  /// - owner: The owner of the file
+  /// - group: The group of the file
+  /// - size: The size of the file
+  /// - date_time: The date and time of the file
+  /// @param path The path to the file
+  /// @param config The config for the output
+  /// @param prefix The prefix to use for the output
+  /// @return The file entry as a string
+  /// @see file_entry_string()
+  std::string file_entry_string(const std::filesystem::path &path, const ListConfig &config,
+                                const std::string &prefix = "");
+
   /// Function to convert a time_point to a time_t.
   /// \details This function converts a time_point to a time_t. This function
   ///     is needed because the standard library does not provide a function to
