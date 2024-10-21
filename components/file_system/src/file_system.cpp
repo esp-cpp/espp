@@ -243,117 +243,92 @@ bool FileSystem::remove_contents(const std::filesystem::path &path, std::error_c
   return success;
 }
 
+std::string FileSystem::file_entry_string(const std::filesystem::path &file_path,
+                                          const ListConfig &config, const std::string &prefix) {
+  std::string result = "";
+  // use the config to determine output
+  std::error_code ec;
+  namespace fs = std::filesystem;
+  auto file_status = fs::status(file_path, ec);
+  if (ec) {
+    logger_.warn("Failed to get status for file: {}", file_path.string());
+  }
+  if (config.type) {
+    if (fs::is_directory(file_status)) {
+      result += "d";
+    } else if (fs::is_regular_file(file_status)) {
+      result += "-";
+    } else {
+      result += "?";
+    }
+  }
+  if (config.permissions) {
+    auto perms = file_status.permissions();
+    result += to_string(perms);
+    result += " ";
+  }
+  if (config.number_of_links) {
+    result += std::to_string(fs::hard_link_count(file_path)) + " ";
+  }
+  if (config.owner) {
+    // NOTE std::filesystem has no way to get file owner
+    result += "owner ";
+  }
+  if (config.group) {
+    // NOTE std::filesystem has no way to get file group
+    result += "group ";
+  }
+  if (config.size) {
+    if (fs::is_regular_file(file_status)) {
+      result += fmt::format("{:>8} ", human_readable(fs::file_size(file_path, ec)));
+    } else {
+      result += fmt::format("{:>8} ", "");
+    }
+  }
+  if (config.date_time) {
+    result += fmt::format("{:>12} ", get_file_time_as_string(file_path));
+  }
+  std::string relative_name = (prefix.size() ? (prefix + "/") : "") + file_path.filename().string();
+  result += relative_name;
+  result += "\r\n";
+
+  return result;
+}
+
 std::string FileSystem::list_directory(const std::string &path, const ListConfig &config,
                                        const std::string &prefix) {
   std::string result;
+  namespace fs = std::filesystem;
 #if defined(ESP_PLATFORM)
   DIR *dir = opendir(path.c_str());
   if (dir == nullptr) {
     return result;
   }
   struct dirent *entry;
-  namespace fs = std::filesystem;
   while ((entry = readdir(dir)) != nullptr) {
     // skip the current and parent directories
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
       continue;
     }
-    // use the config to determine output
     std::error_code ec;
+    namespace fs = std::filesystem;
     auto file_path = fs::path{path} / entry->d_name;
     auto file_status = fs::status(file_path, ec);
-    if (ec) {
-      logger_.warn("Failed to get status for file: {}", file_path.string());
-    }
-    if (config.type) {
-      if (fs::is_directory(file_status)) {
-        result += "d";
-      } else if (fs::is_regular_file(file_status)) {
-        result += "-";
-      } else {
-        result += "?";
-      }
-    }
-    if (config.permissions) {
-      auto perms = file_status.permissions();
-      result += to_string(perms);
-      result += " ";
-    }
-    if (config.number_of_links) {
-      result += "1 ";
-    }
-    if (config.owner) {
-      result += "owner ";
-    }
-    if (config.group) {
-      result += "group ";
-    }
-    if (config.size) {
-      if (fs::is_regular_file(file_status)) {
-        result += fmt::format("{:>8} ", human_readable(fs::file_size(file_path, ec)));
-      } else {
-        result += fmt::format("{:>8} ", "");
-      }
-    }
-    if (config.date_time) {
-      result += fmt::format("{:>12} ", get_file_time_as_string(file_path));
-    }
-    std::string relative_name = "";
-    if (prefix.size())
-      relative_name += prefix + "/";
-    relative_name += entry->d_name;
-    result += relative_name;
-    result += "\r\n";
+    result += file_entry_string(file_path, config, prefix);
     if (config.recursive && fs::is_directory(file_status)) {
+      std::string relative_name = (prefix.size() ? prefix + "/" : "") + entry->d_name;
       result += list_directory(file_path, config, relative_name);
     }
   }
   closedir(dir);
 #else
-  for (const auto &entry : std::filesystem::directory_iterator(path)) {
+  for (const auto &entry : fs::directory_iterator(path)) {
     auto file_path = entry.path();
-    auto file_status = std::filesystem::status(file_path);
-    if (config.type) {
-      if (std::filesystem::is_directory(file_status)) {
-        result += "d";
-      } else if (std::filesystem::is_regular_file(file_status)) {
-        result += "-";
-      } else {
-        result += "?";
-      }
-    }
-    if (config.permissions) {
-      auto perms = file_status.permissions();
-      result += to_string(perms);
-      result += " ";
-    }
-    if (config.number_of_links) {
-      result += "1 ";
-    }
-    if (config.owner) {
-      result += "owner ";
-    }
-    if (config.group) {
-      result += "group ";
-    }
-    if (config.size) {
-      if (std::filesystem::is_regular_file(file_status)) {
-        result += fmt::format("{:>8} ", human_readable(std::filesystem::file_size(file_path)));
-      } else {
-        result += fmt::format("{:>8} ", "");
-      }
-    }
-    if (config.date_time) {
-      result += fmt::format("{:>12} ", get_file_time_as_string(file_path));
-    }
-    std::string relative_name = "";
-    if (prefix.size())
-      relative_name += prefix + "/";
-    relative_name += entry.path().filename().string();
-    result += relative_name;
-    result += "\r\n";
-    if (config.recursive && std::filesystem::is_directory(file_status)) {
-      result += list_directory(file_path, config, relative_name);
+    result += file_entry_string(file_path, config, prefix);
+    if (config.recursive && fs::is_directory(entry.status())) {
+      std::string relative_name =
+          (prefix.size() ? prefix + "/" : "") + file_path.filename().string();
+      result += list_directory(entry.path().string(), config, relative_name);
     }
   }
 #endif
