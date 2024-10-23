@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <mutex>
 #include <optional>
 #include <unordered_map>
 
@@ -76,6 +77,7 @@ public:
   std::vector<int> read_all_mv() {
     std::vector<int> values;
     values.reserve(configs_.size());
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     for (const auto &config : configs_) {
       int raw = 0;
       auto err = adc_oneshot_read(adc_handle_, config.channel, &raw);
@@ -96,6 +98,7 @@ public:
    *         it was configured).
    */
   std::optional<int> read_raw(const AdcConfig &config) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (std::find(configs_.begin(), configs_.end(), config) != configs_.end()) {
       int raw;
       auto err = adc_oneshot_read(adc_handle_, config.channel, &raw);
@@ -120,6 +123,7 @@ public:
    *         (if it was configured).
    */
   std::optional<int> read_mv(const AdcConfig &config) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto maybe_raw = read_raw(config);
     if (maybe_raw.has_value()) {
       return raw_to_mv(maybe_raw.value());
@@ -205,6 +209,7 @@ protected:
     }
   }
 
+  std::recursive_mutex mutex_;
   std::vector<AdcConfig> configs_;
   adc_oneshot_unit_handle_t adc_handle_;
   adc_cali_handle_t adc_cali_handle_;

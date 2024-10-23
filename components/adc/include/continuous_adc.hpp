@@ -342,11 +342,11 @@ protected:
 
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
     logger_.info("calibration scheme version is {}", "Curve Fitting");
-    adc_cali_curve_fitting_config_t cali_config = {
-        .unit_id = unit,
-        .atten = atten,
-        .bitwidth = bitwidth,
-    };
+    adc_cali_curve_fitting_config_t cali_config;
+    memset(&cali_config, 0, sizeof(cali_config));
+    cali_config.unit_id = unit;
+    cali_config.atten = atten;
+    cali_config.bitwidth = bitwidth;
     ret = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
     if (ret == ESP_OK) {
       calibrated = true;
@@ -357,11 +357,11 @@ protected:
     // cppcheck-suppress knownConditionTrueFalse
     if (!calibrated) {
       logger_.info("calibration scheme version is {}", "Line Fitting");
-      adc_cali_line_fitting_config_t cali_config = {
-          .unit_id = unit,
-          .atten = atten,
-          .bitwidth = bitwidth,
-      };
+      adc_cali_line_fitting_config_t cali_config;
+      memset(&cali_config, 0, sizeof(cali_config));
+      cali_config.unit_id = unit;
+      cali_config.atten = atten;
+      cali_config.bitwidth = bitwidth;
       ret = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
       if (ret == ESP_OK) {
         calibrated = true;
