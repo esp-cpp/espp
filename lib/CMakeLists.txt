@@ -9,7 +9,7 @@ set(CMAKE_COLOR_MAKEFILE   ON)
 
 include(espp.cmake)
 
-include_directories(${ESPP_INCLUDES})
+include_directories(${ESPP_INCLUDE_DIRS})
 
 set(LINK_ARG "--whole-archive")
 
@@ -41,22 +41,10 @@ target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)
 # install build output and headers
 install(TARGETS ${TARGET_NAME}
         ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/pc)
-install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
-# we have to make sure to install the magic_enum includes differently, since they're in different folders
-install(DIRECTORY ${ESPP_EXTERNAL}/magic_enum/include/magic_enum/ DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
 
-# and we need to include the pybind11 library
+espp_install_includes(${PROJECT_SOURCE_DIR}/pc)
+
+# Build and install the python binding, which is built using pybind11, so we
+# need to include the pybind11 library
 add_subdirectory(pybind11)
-
-# NOTE: this is an alternate WIP way
-# python_add_library(_core MODULE
-#   ./python_bindings/module.cpp ./python_bindings/pybind_espp.cpp ${ESPP_SOURCES} WITH_SOABI)
-# target_link_libraries(_core PRIVATE pybind11::headers)
-# install(TARGETS _core DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
-
-# Python binding
-pybind11_add_module(espp ${ESPP_PYTHON_SOURCES})
-target_compile_features(espp PRIVATE cxx_std_20)
-target_link_libraries(espp PRIVATE ${ESPP_EXTERNAL_LIBS})
-install(TARGETS espp
-        LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
+espp_install_python_module(${PROJECT_SOURCE_DIR}/pc)

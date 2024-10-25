@@ -5,14 +5,19 @@ set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_EXTERNAL}/alpaca/include
   ${ESPP_EXTERNAL}/cli/include
   ${ESPP_EXTERNAL}/csv2/include
-  ${ESPP_EXTERNAL}/hid-rp/hid-rp/
   ${ESPP_EXTERNAL}/fmt/include
-  ${ESPP_EXTERNAL}/magic_enum/include/magic_enum/
   ${ESPP_EXTERNAL}/tabulate/include
 )
 
+# NOTE: these are separate because they do not follow the standard format of
+# having their include files be in the "include" directory, so when we install
+# them we need to handle them separately
+set(ESPP_EXTERNAL_INCLUDES_SEPARATE
+  ${ESPP_EXTERNAL}/hid-rp/hid-rp/
+  ${ESPP_EXTERNAL}/magic_enum/include/magic_enum/
+)
+
 set(ESPP_INCLUDES
-  ${ESPP_EXTERNAL_INCLUDES}
   ${ESPP_COMPONENTS}/base_component/include
   ${ESPP_COMPONENTS}/base_peripheral/include
   ${ESPP_COMPONENTS}/color/include
@@ -59,6 +64,12 @@ set(ESPP_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/espp.cpp
 )
 
+set(ESPP_INCLUDE_DIRS
+  ${ESPP_INCLUDES}
+  ${ESPP_EXTERNAL_INCLUDES}
+  ${ESPP_EXTERNAL_INCLUDES_SEPARATE}
+)
+
 # if we're on windows, we need to add wcswidth.c to the sources
 if(MSVC)
   list(APPEND ESPP_SOURCES ${CMAKE_CURRENT_LIST_DIR}/wcswidth.c)
@@ -76,3 +87,21 @@ set(ESPP_PYTHON_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/python_bindings/pybind_espp.cpp
   ${ESPP_SOURCES}
 )
+
+# make an espp_install_includes command that can be used by other scripts, where
+# they just need to specify the folder they want to install into
+function(espp_install_includes FOLDER)
+  install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${FOLDER}/)
+  install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES} DESTINATION ${FOLDER}/)
+  install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES_SEPARATE} DESTINATION ${FOLDER}/include/)
+endfunction()
+
+# make an espp_install_python_module command that can be used by other scripts, where
+# they just need to specify the folder they want to install into
+function(espp_install_python_module FOLDER)
+  pybind11_add_module(espp ${ESPP_PYTHON_SOURCES})
+  target_compile_features(espp PRIVATE cxx_std_20)
+  target_link_libraries(espp PRIVATE ${ESPP_EXTERNAL_LIBS})
+  install(TARGETS espp
+    LIBRARY DESTINATION ${FOLDER}/)
+endfunction()
