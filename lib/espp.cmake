@@ -87,3 +87,21 @@ set(ESPP_PYTHON_SOURCES
   ${CMAKE_CURRENT_LIST_DIR}/python_bindings/pybind_espp.cpp
   ${ESPP_SOURCES}
 )
+
+# make an espp_install_includes command that can be used by other scripts, where
+# they just need to specify the folder they want to install into
+function(espp_install_includes FOLDER)
+  install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${FOLDER}/)
+  install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES} DESTINATION ${FOLDER}/)
+  install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES_SEPARATE} DESTINATION ${FOLDER}/include/)
+endfunction()
+
+# make an espp_install_python_module command that can be used by other scripts, where
+# they just need to specify the folder they want to install into
+function(espp_install_python_module FOLDER)
+  pybind11_add_module(espp ${ESPP_PYTHON_SOURCES})
+  target_compile_features(espp PRIVATE cxx_std_20)
+  target_link_libraries(espp PRIVATE ${ESPP_EXTERNAL_LIBS})
+  install(TARGETS espp
+    LIBRARY DESTINATION ${FOLDER}/)
+endfunction()
