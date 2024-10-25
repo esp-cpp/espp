@@ -5,14 +5,19 @@ set(ESPP_EXTERNAL_INCLUDES
   ${ESPP_EXTERNAL}/alpaca/include
   ${ESPP_EXTERNAL}/cli/include
   ${ESPP_EXTERNAL}/csv2/include
-  ${ESPP_EXTERNAL}/hid-rp/hid-rp/
   ${ESPP_EXTERNAL}/fmt/include
-  ${ESPP_EXTERNAL}/magic_enum/include/magic_enum/
   ${ESPP_EXTERNAL}/tabulate/include
 )
 
+# NOTE: these are separate because they do not follow the standard format of
+# having their include files be in the "include" directory, so when we install
+# them we need to handle them separately
+set(ESPP_EXTERNAL_INCLUDES_SEPARATE
+  ${ESPP_EXTERNAL}/hid-rp/hid-rp/
+  ${ESPP_EXTERNAL}/magic_enum/include/magic_enum/
+)
+
 set(ESPP_INCLUDES
-  ${ESPP_EXTERNAL_INCLUDES}
   ${ESPP_COMPONENTS}/base_component/include
   ${ESPP_COMPONENTS}/base_peripheral/include
   ${ESPP_COMPONENTS}/color/include
@@ -57,6 +62,12 @@ set(ESPP_SOURCES
   ${ESPP_COMPONENTS}/socket/src/tcp_socket.cpp
   ${ESPP_COMPONENTS}/socket/src/udp_socket.cpp
   ${CMAKE_CURRENT_LIST_DIR}/espp.cpp
+)
+
+set(ESPP_INCLUDE_DIRS
+  ${ESPP_INCLUDES}
+  ${ESPP_EXTERNAL_INCLUDES}
+  ${ESPP_EXTERNAL_INCLUDES_SEPARATE}
 )
 
 # if we're on windows, we need to add wcswidth.c to the sources

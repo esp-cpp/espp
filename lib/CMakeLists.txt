@@ -9,7 +9,7 @@ set(CMAKE_COLOR_MAKEFILE   ON)
 
 include(espp.cmake)
 
-include_directories(${ESPP_INCLUDES})
+include_directories(${ESPP_INCLUDE_DIRS})
 
 set(LINK_ARG "--whole-archive")
 
@@ -42,8 +42,8 @@ target_compile_features(${TARGET_NAME} PRIVATE cxx_std_20)
 install(TARGETS ${TARGET_NAME}
         ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/pc)
 install(DIRECTORY ${ESPP_INCLUDES} DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
-# we have to make sure to install the magic_enum includes differently, since they're in different folders
-install(DIRECTORY ${ESPP_EXTERNAL}/magic_enum/include/magic_enum/ DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
+install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES} DESTINATION ${PROJECT_SOURCE_DIR}/pc/)
+install(DIRECTORY ${ESPP_EXTERNAL_INCLUDES_SEPARATE} DESTINATION ${PROJECT_SOURCE_DIR}/pc/include/)
 
 # and we need to include the pybind11 library
 add_subdirectory(pybind11)
