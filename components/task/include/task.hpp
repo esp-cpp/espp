@@ -37,10 +37,10 @@ namespace espp {
  * \snippet task_example.cpp ManyTask example
  * \section task_ex4 Long Running Task Example
  * \snippet task_example.cpp LongRunningTask example
- * \section task_ex5 Task Info Example
- * \snippet task_example.cpp Task Info example
- * \section task_ex6 Task Request Stop Example
- * \snippet task_example.cpp Task Request Stop example
+ * \section task_ex4 Long Running Task Example using notification flag (recommended to avoid
+ * spurious wakeups) \snippet task_example.cpp LongRunningTaskNotified example \section task_ex5
+ * Task Info Example \snippet task_example.cpp Task Info example \section task_ex6 Task Request Stop
+ * Example \snippet task_example.cpp Task Request Stop example
  *
  * \section run_on_core_ex1 Run on Core Example
  * \snippet task_example.cpp run on core example
@@ -104,7 +104,7 @@ public:
    *      immediately since the task is being stopped (optionally performing
    *      any task-specific tear-down).
    *
-   * @note This is an older callback function signature, and is kept for
+   * @warning This is an older callback function signature, and is kept for
    *       backwards compatibility. It is recommended to use the newer callback
    *       signature which includes the notified parameter, enabling the task
    *       callback function to wait on the condition variable and ignore
@@ -132,6 +132,18 @@ public:
    */
   typedef std::function<bool()> callback_no_params_fn;
 
+  /**
+   * @brief Variant of the callback function for the task.
+   * @note This is a std::variant of the different callback function signatures
+   *      that can be used with the Task. This allows the Task to be configured
+   *      with a callback function that takes no parameters, a callback function
+   *      that takes a mutex and condition variable, or a callback function that
+   *      takes a mutex, condition variable, and a bool reference to the notified
+   *      flag.
+   *
+   *      This is primarily used to enable simpler API upgrades in the future
+   *      and maximize backwards compatibility.
+   */
   typedef std::variant<callback_m_cv_notified_fn, callback_m_cv_fn, callback_no_params_fn>
       callback_variant;
 

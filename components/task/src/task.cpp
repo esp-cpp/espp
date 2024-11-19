@@ -78,6 +78,12 @@ bool Task::start() {
   // ensure the thread is not running
   notify_and_join();
 
+  // ensure the notification flag is reset
+  {
+    std::lock_guard<std::mutex> lock(cv_m_);
+    notified_ = false;
+  }
+
   // set the atomic so that when the thread starts it won't immediately
   // exit.
   started_ = true;
