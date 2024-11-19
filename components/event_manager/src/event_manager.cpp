@@ -176,7 +176,10 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
     // notify the data (so the subscriber task function can stop waiting on the data cv)
     {
       std::lock_guard<std::recursive_mutex> lk(data_mutex_);
-      subscriber_data_[topic].notified = true;
+      {
+        std::unique_lock<std::mutex> lk(subscriber_data_[topic].m);
+        subscriber_data_[topic].notified = true;
+      }
       subscriber_data_[topic].cv.notify_all();
     }
     {
