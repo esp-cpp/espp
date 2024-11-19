@@ -315,7 +315,7 @@ protected:
     // Now start the task for the ui management
     using namespace std::placeholders;
     task_ = Task::make_unique({
-        .callback = std::bind(&Display::update, this, _1, _2),
+        .callback = std::bind(&Display::update, this, _1, _2, _3),
         .task_config = task_config,
     });
     task_->start();
@@ -328,7 +328,7 @@ protected:
    *   than the task running lv_task_handler(). For more info, see
    *   https://docs.lvgl.io/latest/en/html/porting/tick.html
    */
-  bool update(std::mutex &m, std::condition_variable &cv) {
+  bool update(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     auto now = std::chrono::high_resolution_clock::now();
     static auto prev = now;
     if (!paused_) {
@@ -342,7 +342,8 @@ protected:
     {
       using namespace std::chrono_literals;
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, update_period_);
+      cv.wait_for(lk, update_period_, [&task_notified] { return task_notified; });
+      task_notified = false;
     }
     // don't want to stop the task
     return false;

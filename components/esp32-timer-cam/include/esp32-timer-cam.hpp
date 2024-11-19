@@ -198,7 +198,7 @@ public:
 protected:
   EspTimerCam();
   float led_breathe();
-  bool led_task_callback(std::mutex &m, std::condition_variable &cv);
+  bool led_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // internal i2c (touchscreen, audio codec)
   static constexpr auto internal_i2c_port = I2C_NUM_0;

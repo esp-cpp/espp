@@ -150,9 +150,13 @@ protected:
    *          condition_variable (cv)
    * @param cv std::condition_variable from the task for allowing
    *           interruptible wait / delay.
+   * @param task_notified bool from the task to indicate whether the task has
+   *        been notified - used with the condition variable to ignore spurious
+   *        wakeups.
    * @return Return true if the task should stop; false if it should continue.
    */
-  bool server_task_function(size_t buffer_size, std::mutex &m, std::condition_variable &cv);
+  bool server_task_function(size_t buffer_size, std::mutex &m, std::condition_variable &cv,
+                            bool &task_notified);
 
   std::unique_ptr<Task> task_;
   receive_callback_fn server_receive_callback_;
