@@ -65,7 +65,7 @@ public:
     using namespace std::placeholders;
     accept_task_ = std::make_unique<Task>(Task::Config{
         .name = "FtpServer::accept_task",
-        .callback = std::bind(&FtpServer::accept_task_function, this, _1, _2),
+        .callback = std::bind(&FtpServer::accept_task_function, this, _1, _2, _3),
         .stack_size_bytes = 1024 * 4,
         .log_level = Logger::Verbosity::WARN,
     });
@@ -92,7 +92,7 @@ protected:
     clients_.clear();
   }
 
-  bool accept_task_function(std::mutex &m, std::condition_variable &cv) {
+  bool accept_task_function(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     auto client_ptr = server_.accept();
     if (!client_ptr) {
       logger_.error("Could not accept connection");
@@ -100,7 +100,8 @@ protected:
       // so we should delay a little bit
       using namespace std::chrono_literals;
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, 1ms);
+      cv.wait_for(lk, 1ms, [&task_notified] { return task_notified; });
+      task_notified = false;
       // don't want to stop the task
       return false;
     }
