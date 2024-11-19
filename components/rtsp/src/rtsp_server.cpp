@@ -48,7 +48,7 @@ bool RtspServer::start() {
   using namespace std::placeholders;
   accept_task_ = std::make_unique<Task>(Task::Config{
       .name = "RTSP Accept Task",
-      .callback = std::bind(&RtspServer::accept_task_function, this, _1, _2),
+      .callback = std::bind(&RtspServer::accept_task_function, this, _1, _2, _3),
       .stack_size_bytes = 6 * 1024,
       .log_level = espp::Logger::Verbosity::WARN,
   });
@@ -153,7 +153,8 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
   }
 }
 
-bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv) {
+bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv,
+                                      bool &task_notified) {
   // accept a new connection
   auto control_socket = rtsp_socket_.accept();
   if (!control_socket) {
@@ -180,7 +181,7 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
     logger_.info("Starting session task");
     session_task_ = std::make_unique<Task>(Task::Config{
         .name = "RtspSessionTask",
-        .callback = std::bind(&RtspServer::session_task_function, this, _1, _2),
+        .callback = std::bind(&RtspServer::session_task_function, this, _1, _2, _3),
         .stack_size_bytes = 6 * 1024,
         .log_level = espp::Logger::Verbosity::WARN,
     });
@@ -190,12 +191,14 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
   return false;
 }
 
-bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &cv) {
+bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &cv,
+                                       bool &task_notified) {
   // sleep between frames
   {
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, 10ms);
+    cv.wait_for(lk, 10ms, [&task_notified] { return task_notified; });
+    task_notified = false;
   }
 
   // when this function returns, the vector of pointers will go out of scope

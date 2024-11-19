@@ -82,8 +82,8 @@ public:
   void send_frame(const espp::JpegFrame &frame);
 
 protected:
-  bool accept_task_function(std::mutex &m, std::condition_variable &cv);
-  bool session_task_function(std::mutex &m, std::condition_variable &cv);
+  bool accept_task_function(std::mutex &m, std::condition_variable &cv, bool &task_notified);
+  bool session_task_function(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   uint32_t ssrc_; ///< the ssrc (synchronization source identifier) for the RTP packets
   uint16_t sequence_number_{0}; ///< the sequence number for the RTP packets

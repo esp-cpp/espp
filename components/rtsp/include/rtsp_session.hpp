@@ -145,8 +145,9 @@ protected:
   /// @brief The task function for the control thread
   /// @param m The mutex to lock when waiting on the condition variable
   /// @param cv The condition variable to wait on
+  /// @param task_notified A flag to indicate if the task has been notified
   /// @return True if the task should stop, false otherwise
-  bool control_task_fn(std::mutex &m, std::condition_variable &cv);
+  bool control_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   /// Generate a new RTSP session id for the client
   /// Session IDs are generated randomly when a client sends a SETUP request and are

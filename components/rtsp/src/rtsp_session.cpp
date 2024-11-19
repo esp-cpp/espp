@@ -17,7 +17,7 @@ RtspSession::RtspSession(std::unique_ptr<TcpSocket> control_socket, const Config
   using namespace std::placeholders;
   control_task_ = std::make_unique<Task>(Task::Config{
       .name = "RtspSession " + std::to_string(session_id_),
-      .callback = std::bind(&RtspSession::control_task_fn, this, _1, _2),
+      .callback = std::bind(&RtspSession::control_task_fn, this, _1, _2, _3),
       .stack_size_bytes = 6 * 1024,
       .log_level = Logger::Verbosity::WARN,
   });
@@ -265,7 +265,7 @@ bool RtspSession::handle_rtsp_request(std::string_view request) {
   return handle_rtsp_invalid_request(request_body);
 }
 
-bool RtspSession::control_task_fn(std::mutex &m, std::condition_variable &cv) {
+bool RtspSession::control_task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
   if (closed_) {
     logger_.info("Session is closed, stopping control task");
     // return true to stop the task

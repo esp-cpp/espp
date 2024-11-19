@@ -136,7 +136,7 @@ public:
    * @param receive_config ReceiveConfig struct with socket and callback info.
    * @return true if the socket was created and task was started, false otherwise.
    */
-  bool start_receiving(Task::Config &task_config, const ReceiveConfig &receive_config);
+  bool start_receiving(Task::BaseConfig &task_config, const ReceiveConfig &receive_config);
 
 protected:
   /**

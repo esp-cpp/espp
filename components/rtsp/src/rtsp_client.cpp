@@ -244,9 +244,8 @@ void RtspClient::init_rtp(size_t rtp_port, std::error_code &ec) {
     return;
   }
   logger_.debug("Starting rtp socket");
-  auto rtp_task_config = espp::Task::Config{
+  auto rtp_task_config = espp::Task::BaseConfig{
       .name = "Rtp",
-      .callback = nullptr,
       .stack_size_bytes = 16 * 1024,
   };
   auto rtp_config = espp::UdpSocket::ReceiveConfig{
@@ -268,9 +267,8 @@ void RtspClient::init_rtcp(size_t rtcp_port, std::error_code &ec) {
     return;
   }
   logger_.debug("Starting rtcp socket");
-  auto rtcp_task_config = espp::Task::Config{
+  auto rtcp_task_config = espp::Task::BaseConfig{
       .name = "Rtcp",
-      .callback = nullptr,
       .stack_size_bytes = 6 * 1024,
   };
   auto rtcp_config = espp::UdpSocket::ReceiveConfig{

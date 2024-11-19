@@ -101,7 +101,7 @@ bool UdpSocket::receive(size_t max_num_bytes, std::vector<uint8_t> &data,
   return true;
 }
 
-bool UdpSocket::start_receiving(Task::Config &task_config,
+bool UdpSocket::start_receiving(Task::BaseConfig &task_config,
                                 const UdpSocket::ReceiveConfig &receive_config) {
   if (task_ && task_->is_started()) {
     logger_.error("Server is alrady receiving");
@@ -138,10 +138,12 @@ bool UdpSocket::start_receiving(Task::Config &task_config,
   }
   // set the callback function
   using namespace std::placeholders;
-  task_config.callback =
-      std::bind(&UdpSocket::server_task_function, this, receive_config.buffer_size, _1, _2, _3);
   // start the thread
-  task_ = Task::make_unique(task_config);
+  task_ = Task::make_unique({
+      .callback =
+          std::bind(&UdpSocket::server_task_function, this, receive_config.buffer_size, _1, _2, _3),
+      .task_config = task_config,
+  });
   task_->start();
   return true;
 }
