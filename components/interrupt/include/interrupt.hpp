@@ -150,7 +150,7 @@ public:
     // now make and start the task
     task_ = espp::Task::make_unique({
         .callback = std::bind(&Interrupt::task_callback, this, std::placeholders::_1,
-                              std::placeholders::_2),
+                              std::placeholders::_2, std::placeholders::_3),
         .task_config = config.task_config,
     });
     task_->start();
@@ -260,7 +260,7 @@ protected:
     return level == static_cast<int>(active_level);
   }
 
-  bool task_callback(std::mutex &m, std::condition_variable &cv) {
+  bool task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     EventData event_data;
     if (xQueueReceive(queue_, &event_data, portMAX_DELAY)) {
       if (event_data.gpio_num == -1) {

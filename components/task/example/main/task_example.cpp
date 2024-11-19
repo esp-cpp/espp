@@ -241,7 +241,7 @@ extern "C" void app_main(void) {
           // NOTE: using the return value from the cv.wait_for() allows us to
           // know if the task was asked to stop, for which we can handle and
           // return early.
-          auto cv_retval = cv.wait_for(lk, 100ms);
+          auto cv_retval = cv.wait_for(lk, std::chrono::milliseconds(100));
           if (cv_retval == std::cv_status::no_timeout) {
             // if there was no timeout, then we were notified, therefore we need
             // to shut down.
@@ -294,7 +294,8 @@ extern "C" void app_main(void) {
           // NOTE: using the return value from the cv.wait_for() allows us to
           // know if the task was asked to stop, for which we can handle and
           // return early.
-          auto stop_requested = cv.wait_for(lk, 100ms, [&task_notified] { return task_notified; });
+          auto stop_requested = cv.wait_for(lk, std::chrono::milliseconds(100),
+                                            [&task_notified] { return task_notified; });
           if (stop_requested) {
             fmt::print("Task was notified, stopping early (step {}/{}) on iteration {}\n", i,
                        num_steps_per_iteration, task_iterations);
