@@ -155,7 +155,7 @@ public:
   bool is_running() const;
 
 protected:
-  bool timer_callback_fn(std::mutex &m, std::condition_variable &cv);
+  bool timer_callback_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   std::chrono::microseconds period_{0}; ///< The period of the timer. If 0, the timer will run once.
   std::chrono::microseconds delay_{0};  ///< The delay before the timer starts.

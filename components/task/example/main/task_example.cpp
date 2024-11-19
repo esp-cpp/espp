@@ -200,7 +200,7 @@ extern "C" void app_main(void) {
         return false;
       };
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({
+      auto task = espp::Task::make_unique(espp::Task::AdvancedConfig{
           .callback = task_fn,
           .task_config =
               {
