@@ -98,7 +98,7 @@ bool EventManager::publish(const std::string &topic, const std::vector<uint8_t> 
     std::unique_lock<std::mutex> lk(sub_data->m);
     // push the data into the queue
     sub_data->deq.push_back(data);
-    // update the notified flag (used to ignore spurious interrupts)
+    // update the notified flag (used to ignore spurious wakeups)
     sub_data->notified = true;
   }
   // notify the task that there is new data in the queue
