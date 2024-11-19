@@ -134,6 +134,7 @@ protected:
 
   struct SubscriberData {
     std::mutex m;
+    bool notified = false; // Allows cv to ignore spurious wakeups
     std::condition_variable cv;
     std::deque<std::vector<uint8_t>> deq;
   };

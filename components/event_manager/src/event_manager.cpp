@@ -98,6 +98,8 @@ bool EventManager::publish(const std::string &topic, const std::vector<uint8_t> 
     std::unique_lock<std::mutex> lk(sub_data->m);
     // push the data into the queue
     sub_data->deq.push_back(data);
+    // update the notified flag (used to ignore spurious wakeups)
+    sub_data->notified = true;
   }
   // notify the task that there is new data in the queue
   sub_data->cv.notify_all();
@@ -174,6 +176,10 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
     // notify the data (so the subscriber task function can stop waiting on the data cv)
     {
       std::lock_guard<std::recursive_mutex> lk(data_mutex_);
+      {
+        std::unique_lock<std::mutex> lk(subscriber_data_[topic].m);
+        subscriber_data_[topic].notified = true;
+      }
       subscriber_data_[topic].cv.notify_all();
     }
     {
@@ -210,7 +216,7 @@ bool EventManager::subscriber_task_fn(const std::string &topic, std::mutex &m,
   {
     // wait on sub_data's mutex/cv
     std::unique_lock<std::mutex> lk(sub_data->m);
-    sub_data->cv.wait(lk);
+    sub_data->cv.wait(lk, [&sub_data] { return sub_data->notified; });
     if (sub_data->deq.empty()) {
       // stop the task, we were notified, but there was no data available.
       return true;
@@ -224,6 +230,8 @@ bool EventManager::subscriber_task_fn(const std::string &topic, std::mutex &m,
     {
       std::unique_lock<std::mutex> lk(sub_data->m);
       if (sub_data->deq.empty()) {
+        // reset the notified flag
+        sub_data->notified = false;
         // we've gotten all the data, so break out of the loop
         break;
       }

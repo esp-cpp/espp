@@ -35,6 +35,7 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
       // If the core id is larger than the number of cores, run on the last core
       core_id = configNUM_CORES - 1;
     }
+    bool notified = false;
     std::mutex mutex;
     std::unique_lock lock(mutex); // cppcheck-suppress localMutex
     std::condition_variable cv;   ///< Signal for when the task is done / function is run
@@ -43,13 +44,14 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
       decltype(f()) ret_val;
       auto f_task = espp::Task::make_unique(espp::Task::Config{
           .name = name,
-          .callback = [&mutex, &cv, &f, &ret_val](auto &cb_m, auto &cb_cv) -> bool {
+          .callback = [&mutex, &cv, &f, &ret_val, &notified](auto &cb_m, auto &cb_cv) -> bool {
             // synchronize with the main thread - block here until the main thread
             // waits on the condition variable (cv), then run the function
             std::unique_lock lock(mutex);
             // run the function
             ret_val = f();
             // signal that the task is done
+            notified = true;
             cv.notify_all();
             return true; // stop the task
           },
@@ -58,19 +60,20 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
           .core_id = core_id,
       });
       f_task->start();
-      cv.wait(lock);
+      cv.wait(lock, [&notified] { return notified; });
       return ret_val;
     } else {
       // the function returns void
       auto f_task = espp::Task::make_unique(espp::Task::Config{
           .name = name,
-          .callback = [&mutex, &cv, &f](auto &cb_m, auto &cb_cv) -> bool {
+          .callback = [&mutex, &cv, &f, &notified](auto &cb_m, auto &cb_cv) -> bool {
             // synchronize with the main thread - block here until the main thread
             // waits on the condition variable (cv), then run the function
             std::unique_lock lock(mutex);
             // run the function
             f();
             // signal that the task is done
+            notified = true;
             cv.notify_all();
             return true; // stop the task
           },
@@ -79,7 +82,7 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
           .core_id = core_id,
       });
       f_task->start();
-      cv.wait(lock);
+      cv.wait(lock, [&notified] { return notified; });
     }
   }
 }
