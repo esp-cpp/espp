@@ -63,14 +63,12 @@ public:
    * @note The callback is run repeatedly within the Task, therefore it MUST
    *      return, and also SHOULD have a sleep to give the processor over to
    *      other tasks. For this reason, the callback is provided a
-   *      std::condition_variable (and associated mutex) which the callback
-   *      can use when they need to wait. If the cv.wait_for / cv.wait_until
-   *      return <a href="https://en.cppreference.com/w/cpp/thread/cv_status">
-   *      std::cv_status::timeout</a>, no action is necessary, but if they
-   *      return <a href="https://en.cppreference.com/w/cpp/thread/cv_status">
-   *      std::cv_status::no_timeout</a>, then the function should return
-   *      immediately since the task is being stopped (optionally performing
-   *      any task-specific tear-down).
+   *      std::condition_variable (and associated mutex) which the callback can
+   *      use when they need to wait. If the cv.wait_for / cv.wait_until return
+   *      false, no action is necessary (as the timeout properly occurred / the
+   *      task was not notified). If they return true, then the callback
+   *      function should return immediately since the task is being stopped
+   *      (optionally performing any task-specific tear-down).
    *
    * @param m mutex associated with the condition variable (should be locked
    *          before calling cv.wait_for() or cv.wait_until())
@@ -83,7 +81,8 @@ public:
    *        a reference to the task's notified member, and is intended to be
    *        used with the condition variable parameter cv when waiting to avoid
    *        spurious wakeups. The task function is responsible for clearing this
-   *        flag after each wait.
+   *        flag after each wait. Do not release the lock on the mutex m until
+   *        the notified flag has been checked and cleared.
    *
    * @return Whether or not the callback's thread / task should stop - True to
    *         stop, false to continue running.
@@ -108,9 +107,9 @@ public:
    *
    * @warning This is an older callback function signature, and is kept for
    *       backwards compatibility. It is recommended to use the newer callback
-   *       signature which includes the notified parameter, enabling the task
-   *       callback function to wait on the condition variable and ignore
-   *       spurious wakeups.
+   *       signature (callback_m_cv_notified_fn) which includes the notified
+   *       parameter, enabling the task callback function to wait on the
+   *       condition variable and ignore spurious wakeups.
    *
    * @param m mutex associated with the condition variable (should be locked
    *          before calling cv.wait_for() or cv.wait_until())
