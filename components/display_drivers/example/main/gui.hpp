@@ -18,9 +18,9 @@ public:
     init_ui();
     // now start the gui updater task
     using namespace std::placeholders;
-    task_ = espp::Task::make_unique({.name = "Gui Task",
-                                     .callback = std::bind(&Gui::update, this, _1, _2, _3),
-                                     .stack_size_bytes = 6 * 1024});
+    task_ = espp::Task::make_unique(
+        {.callback = std::bind(&Gui::update, this, _1, _2, _3),
+         .task_config = {.name = "Gui Task", .stack_size_bytes = 6 * 1024}});
     task_->start();
   }
 

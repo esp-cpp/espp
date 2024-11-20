@@ -118,9 +118,12 @@ extern "C" void app_main(void) {
     // don't want to stop the task
     return false;
   };
-  auto task = espp::Task({.name = "Aw9523 Task",
-                          .callback = task_fn,
-                          .stack_size_bytes = 5 * 1024,
+  auto task = espp::Task({.callback = task_fn,
+                          .task_config =
+                              {
+                                  .name = "Aw9523 Task",
+                                  .stack_size_bytes = 5 * 1024,
+                              },
                           .log_level = espp::Logger::Verbosity::WARN});
   fmt::print("%time(s), pin values, r, g, b\n");
   task.start();

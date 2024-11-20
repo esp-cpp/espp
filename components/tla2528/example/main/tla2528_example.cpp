@@ -94,9 +94,12 @@ extern "C" void app_main(void) {
       return false;
     };
 
-    auto tla_task = espp::Task::make_unique({.name = "TLA",
-                                             .callback = tla_read_task_fn,
-                                             .stack_size_bytes{8 * 1024},
+    auto tla_task = espp::Task::make_unique({.callback = tla_read_task_fn,
+                                             .task_config =
+                                                 {
+                                                     .name = "TLA",
+                                                     .stack_size_bytes{8 * 1024},
+                                                 },
                                              .log_level = espp::Logger::Verbosity::INFO});
     tla_task->start();
     //! [tla2528 example]

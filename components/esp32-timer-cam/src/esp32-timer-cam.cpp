@@ -22,8 +22,8 @@ bool EspTimerCam::initialize_led(float breathing_period) {
   });
   using namespace std::placeholders;
   led_task_ = espp::Task::make_unique(
-      {.name = "breathe",
-       .callback = std::bind(&EspTimerCam::led_task_callback, this, _1, _2, _3)});
+      {.callback = std::bind(&EspTimerCam::led_task_callback, this, _1, _2, _3),
+       .task_config = {.name = "breathe"}});
   set_led_breathing_period(breathing_period);
   return true;
 }

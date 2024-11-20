@@ -177,9 +177,12 @@ extern "C" void app_main(void) {
       return false;
     };
 
-    auto task = espp::Task({.name = "LedStrip Task",
-                            .callback = task_fn,
-                            .stack_size_bytes = 5 * 1024,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config =
+                                {
+                                    .name = "LedStrip Task",
+                                    .stack_size_bytes = 5 * 1024,
+                                },
                             .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [led strip ex1]

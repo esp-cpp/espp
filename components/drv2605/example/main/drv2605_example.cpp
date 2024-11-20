@@ -80,9 +80,12 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task::make_unique({.name = "example",
-                                         .callback = task_fn,
-                                         .stack_size_bytes{4 * 1024},
+    auto task = espp::Task::make_unique({.callback = task_fn,
+                                         .task_config =
+                                             {
+                                                 .name = "example",
+                                                 .stack_size_bytes{4 * 1024},
+                                             },
                                          .log_level = espp::Logger::Verbosity::INFO});
     task->start();
     //! [drv2605 example]

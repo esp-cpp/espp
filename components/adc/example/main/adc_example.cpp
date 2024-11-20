@@ -51,8 +51,9 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task(
-        {.name = "Oneshot ADC", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Oneshot ADC"},
+                            .log_level = espp::Logger::Verbosity::INFO});
     task.start();
     //! [oneshot adc example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -97,8 +98,9 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task(
-        {.name = "Read ADC", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Read ADC"},
+                            .log_level = espp::Logger::Verbosity::INFO});
     task.start();
 
     // test stopping and starting the adc

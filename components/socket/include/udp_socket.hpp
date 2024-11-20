@@ -132,7 +132,7 @@ public:
    * @brief Configure a server socket and start a thread to continuously
    *        receive and handle data coming in on that socket.
    *
-   * @param task_config Task::Config struct for configuring the receive task.
+   * @param task_config Task::BaseConfig struct for configuring the receive task.
    * @param receive_config ReceiveConfig struct with socket and callback info.
    * @return true if the socket was created and task was started, false otherwise.
    */

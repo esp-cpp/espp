@@ -620,11 +620,14 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate) {
 
   using namespace std::placeholders;
   audio_task_ = std::make_unique<espp::Task>(espp::Task::Config{
-      .name = "audio task",
       .callback = std::bind(&EspBox::audio_task_callback, this, _1, _2, _3),
-      .stack_size_bytes = 1024 * 4,
-      .priority = 19,
-      .core_id = 1,
+      .task_config =
+          {
+              .name = "audio task",
+              .stack_size_bytes = 1024 * 4,
+              .priority = 19,
+              .core_id = 1,
+          },
   });
 
   audio_task_->start();

@@ -34,9 +34,9 @@ extern "C" void app_main(void) {
     tasks.resize(num_tasks);
     for (size_t i = 0; i < num_tasks; i++) {
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({.name = task_name,
-                                           .callback = std::bind(task_fn, i, _1, _2, _3),
-                                           .stack_size_bytes = 5 * 1024});
+      auto task = espp::Task::make_unique(
+          {.callback = std::bind(task_fn, i, _1, _2, _3),
+           .task_config = {.name = task_name, .stack_size_bytes = 5 * 1024}});
       tasks[i] = std::move(task);
       tasks[i]->start();
     }
@@ -64,9 +64,9 @@ extern "C" void app_main(void) {
     tasks.resize(num_tasks);
     for (size_t i = 0; i < num_tasks; i++) {
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({.name = task_name,
-                                           .callback = std::bind(task_fn, i, _1, _2, _3),
-                                           .stack_size_bytes = 5 * 1024});
+      auto task = espp::Task::make_unique(
+          {.callback = std::bind(task_fn, i, _1, _2, _3),
+           .task_config = {.name = task_name, .stack_size_bytes = 5 * 1024}});
       tasks[i] = std::move(task);
       tasks[i]->start();
     }
@@ -98,9 +98,9 @@ extern "C" void app_main(void) {
     tasks.resize(num_tasks);
     for (size_t i = 0; i < num_tasks; i++) {
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({.name = task_name,
-                                           .callback = std::bind(task_fn, i, _1, _2, _3),
-                                           .stack_size_bytes = 5 * 1024});
+      auto task = espp::Task::make_unique(
+          {.callback = std::bind(task_fn, i, _1, _2, _3),
+           .task_config = {.name = task_name, .stack_size_bytes = 5 * 1024}});
       tasks[i] = std::move(task);
       tasks[i]->start();
     }

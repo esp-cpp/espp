@@ -83,7 +83,8 @@ extern "C" void app_main(void) {
       cv.wait_for(lk, 10ms);
       return false;
     };
-    auto led_task = espp::Task::make_unique({.name = "breathe", .callback = led_callback});
+    auto led_task =
+        espp::Task::make_unique({.callback = led_callback, .task_config = {.name = "breathe"}});
     led_task->start();
     float wait_time = num_periods_to_run * breathing_period;
     fmt::print("Sleeping for {:.1f}s...\n", wait_time);

@@ -135,10 +135,13 @@ public:
     motor_.get().set_motion_control_type(detail::MotionControlType::TORQUE);
     // create the motor task
     motor_task_ = Task::make_unique(
-        {.name = "haptic_motor",
-         .callback = std::bind(&BldcHaptics::motor_task, this, std::placeholders::_1,
+        {.callback = std::bind(&BldcHaptics::motor_task, this, std::placeholders::_1,
                                std::placeholders::_2, std::placeholders::_3),
-         .stack_size_bytes = 1024 * 6,
+         .task_config =
+             {
+                 .name = "haptic_motor",
+                 .stack_size_bytes = 1024 * 6,
+             },
          .log_level = Logger::Verbosity::WARN});
   }
 

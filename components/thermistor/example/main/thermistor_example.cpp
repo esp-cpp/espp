@@ -131,8 +131,9 @@ extern "C" void app_main(void) {
     // don't want to stop the task
     return false;
   };
-  auto task = espp::Task(
-      {.name = "Read Thermistor", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
+  auto task = espp::Task({.callback = task_fn,
+                          .task_config = {.name = "Read Thermistor"},
+                          .log_level = espp::Logger::Verbosity::INFO});
   task.start();
   //! [thermistor adc example]
 

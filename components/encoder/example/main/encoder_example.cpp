@@ -34,8 +34,9 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task(
-        {.name = "Abi Encoder", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Abi Encoder"},
+                            .log_level = espp::Logger::Verbosity::INFO});
     task.start();
     //! [abi encoder rotational example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -64,8 +65,9 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task(
-        {.name = "Abi Encoder", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Abi Encoder"},
+                            .log_level = espp::Logger::Verbosity::INFO});
     task.start();
     //! [abi encoder linear example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);

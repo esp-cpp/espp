@@ -64,8 +64,9 @@ extern "C" void app_main(void) {
       }
       return false; // don't stop the task
     };
-    auto task = espp::Task(
-        {.name = "Chsc6x Task", .callback = task_fn, .log_level = espp::Logger::Verbosity::WARN});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Chsc6x Task"},
+                            .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [chsc6x example]
     while (true) {

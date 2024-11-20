@@ -61,9 +61,12 @@ public:
     logger_.info("TKeyboard created");
     using namespace std::placeholders;
     task_ = std::make_shared<espp::Task>(espp::Task::Config{
-        .name = "tkeyboard_task",
         .callback = std::bind(&TKeyboard::key_task, this, _1, _2, _3),
-        .stack_size_bytes = 4 * 1024,
+        .task_config =
+            {
+                .name = "tkeyboard_task",
+                .stack_size_bytes = 4 * 1024,
+            },
     });
     if (config.auto_start) {
       start();
