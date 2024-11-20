@@ -124,8 +124,7 @@ extern "C" void app_main(void) {
     gpio_isr_handler_add(ALERT_PIN, gpio_isr_handler, (void *)ALERT_PIN);
 
     // start the gpio task
-    auto alert_task = espp::Task::make_unique(espp::Task::Config{
-        .name = "alert",
+    auto alert_task = espp::Task::make_unique({
         .callback = [&ads](auto &m, auto &cv) -> bool {
           static uint32_t io_num;
           // block until we get a message from the interrupt handler
@@ -156,7 +155,11 @@ extern "C" void app_main(void) {
           // don't want to stop the task
           return false;
         },
-        .stack_size_bytes = 4 * 1024,
+        .task_config =
+            {
+                .name = "alert",
+                .stack_size_bytes = 4 * 1024,
+            },
     });
     alert_task->start();
 
@@ -241,9 +244,12 @@ extern "C" void app_main(void) {
       return false;
     };
 
-    auto ads_task = espp::Task::make_unique({.name = "ADS",
-                                             .callback = ads_read_task_fn,
-                                             .stack_size_bytes{8 * 1024},
+    auto ads_task = espp::Task::make_unique({.callback = ads_read_task_fn,
+                                             .task_config =
+                                                 {
+                                                     .name = "ADS",
+                                                     .stack_size_bytes{8 * 1024},
+                                                 },
                                              .log_level = espp::Logger::Verbosity::INFO});
     ads_task->start();
     //! [ads7138 example]

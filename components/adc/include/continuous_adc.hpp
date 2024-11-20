@@ -63,9 +63,12 @@ public:
     // and start the task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique(
-        {.name = "ContinuousAdc Task",
-         .callback = std::bind(&ContinuousAdc::update_task, this, _1, _2, _3),
-         .priority = config.task_priority,
+        {.callback = std::bind(&ContinuousAdc::update_task, this, _1, _2, _3),
+         .task_config =
+             {
+                 .name = "ContinuousAdc Task",
+                 .priority = config.task_priority,
+             },
          .log_level = espp::Logger::Verbosity::WARN});
     task_->start();
   }

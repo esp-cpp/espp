@@ -62,8 +62,8 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task({.name = "Lowpass Filter",
-                            .callback = task_fn,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Lowpass Filter"},
                             .log_level = espp::Logger::Verbosity::INFO});
     fmt::print("% time (s), input, simple_lpf_output, lpf_output, "
                "bwf_df1_o1_output, bwf_df1_o2_output, bwf_df2_o2_output, "

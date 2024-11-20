@@ -67,9 +67,11 @@ public:
       , period_(config.period) {
 #if CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS
     using namespace std::placeholders;
-    task_ = Task::make_unique({.name = "TaskMonitor Task",
-                               .callback = std::bind(&TaskMonitor::task_callback, this, _1, _2, _3),
-                               .stack_size_bytes = config.task_stack_size_bytes});
+    task_ = Task::make_unique(
+        {.callback = std::bind(&TaskMonitor::task_callback, this, _1, _2, _3), .task_config = {
+           .name = "TaskMonitor Task",
+           .stack_size_bytes = config.task_stack_size_bytes,
+         }});
     task_->start();
 #else
     logger_.warn("Project was not built with "

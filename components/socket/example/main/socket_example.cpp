@@ -77,8 +77,9 @@ auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
   // don't want to stop the task
   return false;
 };
-auto client_task = espp::Task::make_unique(
-    {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
+auto client_task =
+    espp::Task::make_unique({.callback = client_task_fn,
+                             .task_config = {.name = "Client Task", .stack_size_bytes = 5 * 1024}});
 client_task->start();
 //! [UDP Client example]
 // now sleep for a while to let the monitor do its thing
@@ -137,8 +138,9 @@ auto client_task_fn = [&server_address, &client_socket, &port](auto &, auto &) {
   // don't want to stop the task
   return false;
 };
-auto client_task = espp::Task::make_unique(
-    {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
+auto client_task =
+    espp::Task::make_unique({.callback = client_task_fn,
+                             .task_config = {.name = "Client Task", .stack_size_bytes = 5 * 1024}});
 client_task->start();
 //! [UDP Client Response example]
 // now sleep for a while to let the monitor do its thing
@@ -202,8 +204,9 @@ auto client_task_fn = [&client_socket, &port, &multicast_group](auto &, auto &) 
   // don't want to stop the task
   return false;
 };
-auto client_task = espp::Task::make_unique(
-    {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
+auto client_task =
+    espp::Task::make_unique({.callback = client_task_fn,
+                             .task_config = {.name = "Client Task", .stack_size_bytes = 5 * 1024}});
 client_task->start();
 //! [UDP Multicast Client example]
 // now sleep for a while to let the monitor do its thing
@@ -248,9 +251,12 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold, "Staring Basic
   };
 
   auto server_task_config = espp::Task::Config{
-      .name = "TcpServer",
       .callback = server_task_fn,
-      .stack_size_bytes = 6 * 1024,
+      .task_config =
+          {
+              .name = "TcpServer",
+              .stack_size_bytes = 6 * 1024,
+          },
   };
   auto server_task = espp::Task::make_unique(server_task_config);
   server_task->start();
@@ -272,7 +278,8 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold, "Staring Basic
     return false;
   };
   auto client_task = espp::Task::make_unique(
-      {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
+      {.callback = client_task_fn,
+       .task_config = {.name = "Client Task", .stack_size_bytes = 5 * 1024}});
   client_task->start();
   //! [TCP Client example]
   // now sleep for a while to let the monitor do its thing
@@ -322,9 +329,12 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
   };
 
   auto server_task_config = espp::Task::Config{
-      .name = "TcpServer",
       .callback = server_task_fn,
-      .stack_size_bytes = 6 * 1024,
+      .task_config =
+          {
+              .name = "TcpServer",
+              .stack_size_bytes = 6 * 1024,
+          },
   };
   auto server_task = espp::Task::make_unique(server_task_config);
   server_task->start();
@@ -356,7 +366,8 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
     return false;
   };
   auto client_task = espp::Task::make_unique(
-      {.name = "Client Task", .callback = client_task_fn, .stack_size_bytes = 5 * 1024});
+      {.callback = client_task_fn,
+       .task_config = {.name = "Client Task", .stack_size_bytes = 5 * 1024}});
   client_task->start();
   //! [TCP Client Response example]
   // now sleep for a while to let the monitor do its thing

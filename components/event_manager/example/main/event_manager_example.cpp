@@ -91,7 +91,7 @@ extern "C" void app_main(void) {
     // we don't want to stop, so return false
     return false;
   };
-  auto task1 = espp::Task({.name = "Task 1", .callback = task_1_fn});
+  auto task1 = espp::Task({.callback = task_1_fn, .task_config = {.name = "Task 1"}});
 
   // Now let's make another task which will have pub/sub as well
   auto task_2_fn = [&](auto &m, auto &cv) {
@@ -160,7 +160,7 @@ extern "C" void app_main(void) {
     // we don't want to stop, so return false
     return false;
   };
-  auto task2 = espp::Task({.name = "Task 2", .callback = task_2_fn});
+  auto task2 = espp::Task({.callback = task_2_fn, .task_config = {.name = "Task 2"}});
 
   // now start the tasks
   task1.start();

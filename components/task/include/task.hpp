@@ -163,42 +163,10 @@ public:
 
   /**
    * @brief Configuration struct for the Task.
-   * @note This is the recommended way to configure the Task, and allows you to
-   *       use the condition variable and mutex from the task to wait_for and
-   *       wait_until.
-   * @note This is an older configuration struct, and is kept for backwards
-   *       compatibility. It is recommended to use the AdvancedConfig struct
-   *       instead.
+   *        Can be initialized with any of the supported callback function
+   *        signatures.
    */
   struct Config {
-    std::string name;                      /**< Name of the task */
-    espp::Task::callback_variant callback; /**< Callback function  */
-    size_t stack_size_bytes{4096};         /**< Stack Size (B) allocated to the task. */
-    size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
-    int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
-    espp::Logger::Verbosity log_level{
-        espp::Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
-  };
-
-  /**
-   * @brief Simple configuration struct for the Task.
-   * @note This is useful for when you don't need to use the condition variable
-   *       or mutex in the callback.
-   */
-  struct SimpleConfig {
-    espp::Task::callback_no_params_fn callback; /**< Callback function  */
-    espp::Task::BaseConfig task_config;         /**< Base configuration for the task. */
-    espp::Logger::Verbosity log_level{
-        espp::Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
-  };
-
-  /**
-   * @brief Advanced configuration struct for the Task.
-   * @note This is the recommended way to configure the Task, and allows you to
-   *       use the condition variable and mutex from the task to wait_for and
-   *       wait_until.
-   */
-  struct AdvancedConfig {
     espp::Task::callback_variant callback; /**< Callback function  */
     espp::Task::BaseConfig task_config;    /**< Base configuration for the task. */
     espp::Logger::Verbosity log_level{
@@ -212,40 +180,12 @@ public:
   explicit Task(const espp::Task::Config &config);
 
   /**
-   *  @brief Construct a new Task object using the SimpleConfig struct.
-   *  @param config SimpleConfig struct to initialize the Task with.
-   */
-  explicit Task(const espp::Task::SimpleConfig &config);
-
-  /**
-   *  @brief Construct a new Task object using the AdvancedConfig struct.
-   *  @param config AdvancedConfig struct to initialize the Task with.
-   */
-  explicit Task(const espp::Task::AdvancedConfig &config);
-
-  /**
    * @brief Get a unique pointer to a new task created with \p config.
    *        Useful to not have to use templated std::make_unique (less typing).
    * @param config Config struct to initialize the Task with.
    * @return std::unique_ptr<Task> pointer to the newly created task.
    */
   static std::unique_ptr<Task> make_unique(const espp::Task::Config &config);
-
-  /**
-   * @brief Get a unique pointer to a new task created with \p config.
-   *        Useful to not have to use templated std::make_unique (less typing).
-   * @param config SimpleConfig struct to initialize the Task with.
-   * @return std::unique_ptr<Task> pointer to the newly created task.
-   */
-  static std::unique_ptr<Task> make_unique(const espp::Task::SimpleConfig &config);
-
-  /**
-   * @brief Get a unique pointer to a new task created with \p config.
-   *        Useful to not have to use templated std::make_unique (less typing).
-   * @param config AdvancedConfig struct to initialize the Task with.
-   * @return std::unique_ptr<Task> pointer to the newly created task.
-   */
-  static std::unique_ptr<Task> make_unique(const espp::Task::AdvancedConfig &config);
 
   /**
    * @brief Destroy the task, stopping it if it was started.

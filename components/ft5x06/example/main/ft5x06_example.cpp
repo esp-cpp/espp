@@ -49,8 +49,9 @@ extern "C" void app_main(void) {
       }
       return false; // don't stop the task
     };
-    auto task = espp::Task(
-        {.name = "Ft5x06 Task", .callback = task_fn, .log_level = espp::Logger::Verbosity::WARN});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Ft5x06 Task"},
+                            .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [ft5x06 example]
     while (true) {

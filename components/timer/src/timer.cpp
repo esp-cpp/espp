@@ -11,12 +11,15 @@ Timer::Timer(const Timer::Config &config)
   logger_.set_rate_limit(std::chrono::milliseconds(100));
   // make the task
   task_ = espp::Task::make_unique({
-      .name = std::string(config.name) + "_task",
       .callback = std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1,
                             std::placeholders::_2, std::placeholders::_3),
-      .stack_size_bytes = config.stack_size_bytes,
-      .priority = config.priority,
-      .core_id = config.core_id,
+      .task_config =
+          {
+              .name = std::string(config.name) + "_task",
+              .stack_size_bytes = config.stack_size_bytes,
+              .priority = config.priority,
+              .core_id = config.core_id,
+          },
       .log_level = config.log_level,
   });
   period_float = std::chrono::duration<float>(period_).count();

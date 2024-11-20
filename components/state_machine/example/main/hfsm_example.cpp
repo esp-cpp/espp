@@ -57,8 +57,9 @@ extern "C" void app_main(void) {
       // stop the task if the hfsm has stopped (reached its end state)
       return complex_root.has_stopped();
     };
-    auto task = espp::Task(
-        {.name = "HFSM", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "HFSM"},
+                            .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
 
     // from other contexts you can spawn events into the HFSM. the functions are
@@ -125,8 +126,9 @@ extern "C" void app_main(void) {
       // stop the task if the hfsm has stopped (reached its end state)
       return complex_root.has_stopped();
     };
-    auto task = espp::Task(
-        {.name = "HFSM", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "HFSM"},
+                            .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
 
     // NOTE: this is just a copy of the HFSM code from the generated test bench,

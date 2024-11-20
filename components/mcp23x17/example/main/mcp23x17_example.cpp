@@ -81,9 +81,12 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task({.name = "Mcp23x17 Task",
-                            .callback = task_fn,
-                            .stack_size_bytes = 5 * 1024,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config =
+                                {
+                                    .name = "Mcp23x17 Task",
+                                    .stack_size_bytes = 5 * 1024,
+                                },
                             .log_level = espp::Logger::Verbosity::WARN});
     fmt::print("%time(s), port_a pins, port_b pins\n");
     task.start();

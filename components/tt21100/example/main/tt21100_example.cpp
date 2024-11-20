@@ -61,8 +61,9 @@ extern "C" void app_main(void) {
       }
       return false; // don't stop the task
     };
-    auto task = espp::Task(
-        {.name = "TT21100 Task", .callback = task_fn, .log_level = espp::Logger::Verbosity::WARN});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "TT21100 Task"},
+                            .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [tt21100 example]
     while (true) {

@@ -56,8 +56,9 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task(
-        {.name = "PID Update", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "PID Update"},
+                            .log_level = espp::Logger::Verbosity::INFO});
     task.start();
     for (int i = 0; i < num_seconds_to_run; i++) {
       // change PID gains here

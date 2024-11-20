@@ -107,8 +107,9 @@ extern "C" void app_main(void) {
         // don't want to stop the task
         return false;
       };
-      auto task = espp::Task(
-          {.name = "Joystick", .callback = task_fn, .log_level = espp::Logger::Verbosity::INFO});
+      auto task = espp::Task({.callback = task_fn,
+                              .task_config = {.name = "Joystick"},
+                              .log_level = espp::Logger::Verbosity::INFO});
       fmt::print("js1 x, js1 y, js2 x, js2 y\n");
       task.start();
       //! [adc joystick example]

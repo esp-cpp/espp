@@ -16,9 +16,12 @@ RtspSession::RtspSession(std::unique_ptr<TcpSocket> control_socket, const Config
   // start the session task to handle RTSP commands
   using namespace std::placeholders;
   control_task_ = std::make_unique<Task>(Task::Config{
-      .name = "RtspSession " + std::to_string(session_id_),
       .callback = std::bind(&RtspSession::control_task_fn, this, _1, _2, _3),
-      .stack_size_bytes = 6 * 1024,
+      .task_config =
+          {
+              .name = "RtspSession " + std::to_string(session_id_),
+              .stack_size_bytes = 6 * 1024,
+          },
       .log_level = Logger::Verbosity::WARN,
   });
   control_task_->start();

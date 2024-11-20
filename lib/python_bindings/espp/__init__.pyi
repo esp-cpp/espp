@@ -3119,10 +3119,12 @@ class Task:
      * \snippet task_example.cpp ManyTask example
      * \section task_ex4 Long Running Task Example
      * \snippet task_example.cpp LongRunningTask example
-     * \section task_ex4 Long Running Task Example using notification flag (recommended to avoid
-     * spurious wakeups) \snippet task_example.cpp LongRunningTaskNotified example \section task_ex5
-     * Task Info Example \snippet task_example.cpp Task Info example \section task_ex6 Task Request Stop
-     * Example \snippet task_example.cpp Task Request Stop example
+     * \section task_ex5 Long Running Task Notified Example (Recommended)
+     * \snippet task_example.cpp LongRunningTaskNotified example
+     * \section task_ex6 Task Info Example
+     * \snippet task_example.cpp Task Info example
+     * \section task_ex7 Task Request Stop Example
+     * \snippet task_example.cpp Task Request Stop example
      *
      * \section run_on_core_ex1 Run on Core Example
      * \snippet task_example.cpp run on core example
@@ -3159,57 +3161,8 @@ class Task:
     class Config:
         """*
            * @brief Configuration struct for the Task.
-           * @note This is the recommended way to configure the Task, and allows you to
-           *       use the condition variable and mutex from the task to wait_for and
-           *       wait_until.
-           * @note This is an older configuration struct, and is kept for backwards
-           *       compatibility. It is recommended to use the AdvancedConfig struct
-           *       instead.
-
-        """
-        name: str                                                              #*< Name of the task
-        callback: Task.callback_variant                                        #*< Callback function
-        stack_size_bytes: int = int(4096)                                      #*< Stack Size (B) allocated to the task.
-        priority: int = int(0)                                                 #*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.
-        core_id: int = int(-1)                                                 #*< Core ID of the task, -1 means it is not pinned to any core.
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Log verbosity for the task.
-        def __init__(
-            self,
-            name: str = "",
-            callback: Task.callback_variant = Task.callback_variant(),
-            stack_size_bytes: int = int(4096),
-            priority: int = int(0),
-            core_id: int = int(-1),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-    class SimpleConfig:
-        """*
-           * @brief Simple configuration struct for the Task.
-           * @note This is useful for when you don't need to use the condition variable
-           *       or mutex in the callback.
-
-        """
-        callback: Task.callback_no_params_fn                                   #*< Callback function
-        task_config: Task.BaseConfig                                           #*< Base configuration for the task.
-        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Log verbosity for the task.
-        def __init__(
-            self,
-            callback: Task.callback_no_params_fn = Task.callback_no_params_fn(),
-            task_config: Task.BaseConfig = Task.BaseConfig(),
-            log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
-            ) -> None:
-            """Auto-generated default constructor with named params"""
-            pass
-
-    class AdvancedConfig:
-        """*
-           * @brief Advanced configuration struct for the Task.
-           * @note This is the recommended way to configure the Task, and allows you to
-           *       use the condition variable and mutex from the task to wait_for and
-           *       wait_until.
+           *        Can be initialized with any of the supported callback function
+           *        signatures.
 
         """
         callback: Task.callback_variant                                        #*< Callback function
@@ -3223,41 +3176,14 @@ class Task:
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
-
-
 
 
     @staticmethod
-    @overload
     def make_unique(config: Task.Config) -> Task:
         """*
            * @brief Get a unique pointer to a new task created with \p config.
            *        Useful to not have to use templated std::make_unique (less typing).
            * @param config Config struct to initialize the Task with.
-           * @return std::unique_ptr<Task> pointer to the newly created task.
-
-        """
-        pass
-
-    @staticmethod
-    @overload
-    def make_unique(config: Task.SimpleConfig) -> Task:
-        """*
-           * @brief Get a unique pointer to a new task created with \p config.
-           *        Useful to not have to use templated std::make_unique (less typing).
-           * @param config SimpleConfig struct to initialize the Task with.
-           * @return std::unique_ptr<Task> pointer to the newly created task.
-
-        """
-        pass
-
-    @staticmethod
-    @overload
-    def make_unique(config: Task.AdvancedConfig) -> Task:
-        """*
-           * @brief Get a unique pointer to a new task created with \p config.
-           *        Useful to not have to use templated std::make_unique (less typing).
-           * @param config AdvancedConfig struct to initialize the Task with.
            * @return std::unique_ptr<Task> pointer to the newly created task.
 
         """

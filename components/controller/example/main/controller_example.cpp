@@ -52,9 +52,12 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task({.name = "Controller Task",
-                            .callback = task_fn,
-                            .stack_size_bytes = 6 * 1024,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config =
+                                {
+                                    .name = "Controller Task",
+                                    .stack_size_bytes = 6 * 1024,
+                                },
                             .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [digital controller example]
@@ -155,9 +158,12 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task({.name = "Controller Task",
-                            .callback = task_fn,
-                            .stack_size_bytes = 6 * 1024,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config =
+                                {
+                                    .name = "Controller Task",
+                                    .stack_size_bytes = 6 * 1024,
+                                },
                             .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [analog controller example]
@@ -217,9 +223,12 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto ads_task = espp::Task::make_unique({.name = "ADS",
-                                             .callback = ads_read_task_fn,
-                                             .stack_size_bytes{4 * 1024},
+    auto ads_task = espp::Task::make_unique({.callback = ads_read_task_fn,
+                                             .task_config =
+                                                 {
+                                                     .name = "ADS Task",
+                                                     .stack_size_bytes{4 * 1024},
+                                                 },
                                              .log_level = espp::Logger::Verbosity::INFO});
     ads_task->start();
     // make the read joystick function used by the controller
@@ -285,9 +294,12 @@ extern "C" void app_main(void) {
       // we don't want to stop, return false
       return false;
     };
-    auto task = espp::Task({.name = "Controller Task",
-                            .callback = task_fn,
-                            .stack_size_bytes = 6 * 1024,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config =
+                                {
+                                    .name = "Controller Task",
+                                    .stack_size_bytes = 6 * 1024,
+                                },
                             .log_level = espp::Logger::Verbosity::WARN});
     task.start();
     //! [i2c analog controller example]

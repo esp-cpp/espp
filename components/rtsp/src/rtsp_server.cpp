@@ -47,9 +47,12 @@ bool RtspServer::start() {
 
   using namespace std::placeholders;
   accept_task_ = std::make_unique<Task>(Task::Config{
-      .name = "RTSP Accept Task",
       .callback = std::bind(&RtspServer::accept_task_function, this, _1, _2, _3),
-      .stack_size_bytes = 6 * 1024,
+      .task_config =
+          {
+              .name = "RTSP Accept Task",
+              .stack_size_bytes = 6 * 1024,
+          },
       .log_level = espp::Logger::Verbosity::WARN,
   });
   accept_task_->start();
@@ -180,9 +183,12 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
   if (!session_task_ || !session_task_->is_started()) {
     logger_.info("Starting session task");
     session_task_ = std::make_unique<Task>(Task::Config{
-        .name = "RtspSessionTask",
         .callback = std::bind(&RtspServer::session_task_function, this, _1, _2, _3),
-        .stack_size_bytes = 6 * 1024,
+        .task_config =
+            {
+                .name = "RtspSessionTask",
+                .stack_size_bytes = 6 * 1024,
+            },
         .log_level = espp::Logger::Verbosity::WARN,
     });
     session_task_->start();

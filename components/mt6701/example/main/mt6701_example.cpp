@@ -72,9 +72,12 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task({.name = "Mt6701 Task",
-                            .callback = task_fn,
-                            .stack_size_bytes = 5 * 1024,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config =
+                                {
+                                    .name = "Mt6701 Task",
+                                    .stack_size_bytes = 5 * 1024,
+                                },
                             .log_level = espp::Logger::Verbosity::WARN});
     fmt::print("% time(s), count, radians, degrees, rpm\n");
     task.start();
@@ -197,9 +200,12 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto task = espp::Task({.name = "Mt6701 Task",
-                            .callback = task_fn,
-                            .stack_size_bytes = 5 * 1024,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config =
+                                {
+                                    .name = "Mt6701 Task",
+                                    .stack_size_bytes = 5 * 1024,
+                                },
                             .log_level = espp::Logger::Verbosity::WARN});
     fmt::print("% time(s), count, radians, degrees, rpm\n");
     task.start();
