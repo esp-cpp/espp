@@ -213,7 +213,7 @@ protected:
     }
   }
 
-  bool update_task(std::mutex &m, std::condition_variable &cv) {
+  bool update_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     auto start = std::chrono::high_resolution_clock::now();
     std::error_code ec;
     update(ec);
@@ -222,7 +222,8 @@ protected:
     }
     {
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + update_period_);
+      cv.wait_until(lk, start + update_period_, [&task_notified] { return task_notified; });
+      task_notified = false;
     }
     // don't want the task to stop
     return false;
@@ -238,7 +239,7 @@ protected:
     // start the task
     using namespace std::placeholders;
     task_ = Task::make_unique(
-        {.name = "As5600", .callback = std::bind(&As5600::update_task, this, _1, _2)});
+        {.name = "As5600", .callback = std::bind(&As5600::update_task, this, _1, _2, _3)});
     task_->start();
   }
 

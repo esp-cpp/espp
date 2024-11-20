@@ -68,7 +68,7 @@ public:
 #if CONFIG_FREERTOS_USE_TRACE_FACILITY && CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS
     using namespace std::placeholders;
     task_ = Task::make_unique({.name = "TaskMonitor Task",
-                               .callback = std::bind(&TaskMonitor::task_callback, this, _1, _2),
+                               .callback = std::bind(&TaskMonitor::task_callback, this, _1, _2, _3),
                                .stack_size_bytes = config.task_stack_size_bytes});
     task_->start();
 #else
@@ -228,14 +228,14 @@ public:
   }
 
 protected:
-  bool task_callback(std::mutex &m, std::condition_variable &cv) {
+  bool task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     auto start = std::chrono::high_resolution_clock::now();
     // print out the monitor information
     fmt::print("[TM]{}\n", get_latest_info_string());
     // sleep until our period is up
     {
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + period_);
+      cv.wait_until(lk, start + period_, [&task_notified] { return task_notified; });
     }
     // don't want the task to stop
     return false;

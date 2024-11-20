@@ -20,10 +20,10 @@ bool EspTimerCam::initialize_led(float breathing_period) {
       .channels = led_channels_,
       .duty_resolution = LEDC_TIMER_10_BIT,
   });
+  using namespace std::placeholders;
   led_task_ = espp::Task::make_unique(
       {.name = "breathe",
-       .callback = std::bind(&EspTimerCam::led_task_callback, this, std::placeholders::_1,
-                             std::placeholders::_2)});
+       .callback = std::bind(&EspTimerCam::led_task_callback, this, _1, _2, _3)});
   set_led_breathing_period(breathing_period);
   return true;
 }
@@ -84,11 +84,13 @@ float EspTimerCam::led_breathe() {
   return gaussian_(t);
 }
 
-bool EspTimerCam::led_task_callback(std::mutex &m, std::condition_variable &cv) {
+bool EspTimerCam::led_task_callback(std::mutex &m, std::condition_variable &cv,
+                                    bool &task_notified) {
   using namespace std::chrono_literals;
   led_->set_duty(led_channels_[0].channel, 100.0f * led_breathe());
   std::unique_lock<std::mutex> lk(m);
-  cv.wait_for(lk, 10ms);
+  cv.wait_for(lk, 10ms, [&task_notified] { return task_notified; });
+  task_notified = false;
   return false;
 };
 

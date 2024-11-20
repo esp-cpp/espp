@@ -618,10 +618,10 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate) {
   gpio_set_direction(sound_power_pin, GPIO_MODE_OUTPUT);
   enable_sound(true);
 
+  using namespace std::placeholders;
   audio_task_ = std::make_unique<espp::Task>(espp::Task::Config{
       .name = "audio task",
-      .callback = std::bind(&EspBox::audio_task_callback, this, std::placeholders::_1,
-                            std::placeholders::_2),
+      .callback = std::bind(&EspBox::audio_task_callback, this, _1, _2, _3),
       .stack_size_bytes = 1024 * 4,
       .priority = 19,
       .core_id = 1,
@@ -634,7 +634,8 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate) {
 
 void EspBox::enable_sound(bool enable) { gpio_set_level(sound_power_pin, enable); }
 
-bool IRAM_ATTR EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv) {
+bool IRAM_ATTR EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv,
+                                           bool &task_notified) {
   // Queue the next I2S out frame to write
   uint16_t available = xStreamBufferBytesAvailable(audio_tx_stream);
   int buffer_size = audio_tx_buffer.size();

@@ -45,9 +45,8 @@ extern "C" void app_main(void) {
     std::string server_address = "127.0.0.1";
     size_t port = 5000;
     espp::UdpSocket server_socket({.log_level = espp::Logger::Verbosity::WARN});
-    auto server_task_config = espp::Task::Config{
+    auto server_task_config = espp::Task::BaseConfig{
         .name = "UdpServer",
-        .callback = nullptr,
         .stack_size_bytes = 6 * 1024,
     };
     auto server_config = espp::UdpSocket::ReceiveConfig{
@@ -98,7 +97,7 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold,
   size_t port = 5000;
   espp::UdpSocket server_socket({.log_level = espp::Logger::Verbosity::WARN});
   auto server_task_config =
-      espp::Task::Config{.name = "UdpServer", .callback = nullptr, .stack_size_bytes = 6 * 1024};
+      espp::Task::BaseConfig{.name = "UdpServer", .stack_size_bytes = 6 * 1024};
   auto server_config = espp::UdpSocket::ReceiveConfig{
       .port = port,
       .buffer_size = 1024,
@@ -157,9 +156,8 @@ fmt::print(fg(fmt::terminal_color::yellow) | fmt::emphasis::bold, "Staring UDP m
   std::string multicast_group = "239.1.1.1";
   size_t port = 5000;
   espp::UdpSocket server_socket({.log_level = espp::Logger::Verbosity::WARN});
-  auto server_task_config = espp::Task::Config{
+  auto server_task_config = espp::Task::BaseConfig{
       .name = "UdpServer",
-      .callback = nullptr,
       .stack_size_bytes = 6 * 1024,
   };
   auto server_config = espp::UdpSocket::ReceiveConfig{

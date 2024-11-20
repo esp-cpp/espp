@@ -139,7 +139,8 @@ protected:
     std::deque<std::vector<uint8_t>> deq;
   };
 
-  bool subscriber_task_fn(const std::string &topic, std::mutex &m, std::condition_variable &cv);
+  bool subscriber_task_fn(const std::string &topic, std::mutex &m, std::condition_variable &cv,
+                          bool &task_notified);
 
   std::recursive_mutex events_mutex_;
   detail::EventMap events_;

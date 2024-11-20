@@ -134,12 +134,12 @@ public:
     // set the motion control type to torque
     motor_.get().set_motion_control_type(detail::MotionControlType::TORQUE);
     // create the motor task
-    motor_task_ =
-        Task::make_unique({.name = "haptic_motor",
-                           .callback = std::bind(&BldcHaptics::motor_task, this,
-                                                 std::placeholders::_1, std::placeholders::_2),
-                           .stack_size_bytes = 1024 * 6,
-                           .log_level = Logger::Verbosity::WARN});
+    motor_task_ = Task::make_unique(
+        {.name = "haptic_motor",
+         .callback = std::bind(&BldcHaptics::motor_task, this, std::placeholders::_1,
+                               std::placeholders::_2, std::placeholders::_3),
+         .stack_size_bytes = 1024 * 6,
+         .log_level = Logger::Verbosity::WARN});
   }
 
   /// @brief Destructor for the haptic motor
@@ -275,8 +275,9 @@ protected:
   /// @brief Task which runs the haptic motor
   /// @param m Mutex to use for the task
   /// @param cv Condition variable to use for the task
+  /// @param task_notified True if the task has been notified, false otherwise
   /// @return True if the task should be stopped, false otherwise
-  bool motor_task(std::mutex &m, std::condition_variable &cv) {
+  bool motor_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     auto start_time = std::chrono::steady_clock::now();
     // if we are not moving, and we're close to the center (but not exactly at
     // the center), slowly move back to the center
@@ -412,7 +413,8 @@ protected:
     {
       using namespace std::chrono_literals;
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start_time + 1ms);
+      cv.wait_until(lk, start_time + 1ms, [&task_notified] { return task_notified; });
+      task_notified = false;
     }
 
     // don't want to stop the task

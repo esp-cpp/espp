@@ -37,10 +37,10 @@ namespace espp {
  * \snippet task_example.cpp ManyTask example
  * \section task_ex4 Long Running Task Example
  * \snippet task_example.cpp LongRunningTask example
- * \section task_ex5 Task Info Example
- * \snippet task_example.cpp Task Info example
- * \section task_ex6 Task Request Stop Example
- * \snippet task_example.cpp Task Request Stop example
+ * \section task_ex4 Long Running Task Example using notification flag (recommended to avoid
+ * spurious wakeups) \snippet task_example.cpp LongRunningTaskNotified example \section task_ex5
+ * Task Info Example \snippet task_example.cpp Task Info example \section task_ex6 Task Request Stop
+ * Example \snippet task_example.cpp Task Request Stop example
  *
  * \section run_on_core_ex1 Run on Core Example
  * \snippet task_example.cpp run on core example
@@ -74,22 +74,78 @@ public:
    *          before calling cv.wait_for() or cv.wait_until())
    *
    * @param cv condition variable the callback can use to perform an
+   *           interruptible wait. Use the notified parameter as the predicate
+   *           for the wait to ensure spurious wake-ups are properly ignored.
+   *
+   * @param notified Whether or not the task has been notified to stop. This is
+   *        a reference to the task's notified member, and is intended to be
+   *        used with the condition variable parameter cv when waiting to avoid
+   *        spurious wakeups. The task function is responsible for clearing this
+   *        flag after each wait.
+   *
+   * @return Whether or not the callback's thread / task should stop - True to
+   *         stop, false to continue running.
+   */
+  typedef std::function<bool(std::mutex &m, std::condition_variable &cv, bool &notified)>
+      callback_m_cv_notified_fn;
+
+  /**
+   * @brief Task callback function signature.
+   *
+   * @note The callback is run repeatedly within the Task, therefore it MUST
+   *      return, and also SHOULD have a sleep to give the processor over to
+   *      other tasks. For this reason, the callback is provided a
+   *      std::condition_variable (and associated mutex) which the callback
+   *      can use when they need to wait. If the cv.wait_for / cv.wait_until
+   *      return <a href="https://en.cppreference.com/w/cpp/thread/cv_status">
+   *      std::cv_status::timeout</a>, no action is necessary, but if they
+   *      return <a href="https://en.cppreference.com/w/cpp/thread/cv_status">
+   *      std::cv_status::no_timeout</a>, then the function should return
+   *      immediately since the task is being stopped (optionally performing
+   *      any task-specific tear-down).
+   *
+   * @warning This is an older callback function signature, and is kept for
+   *       backwards compatibility. It is recommended to use the newer callback
+   *       signature which includes the notified parameter, enabling the task
+   *       callback function to wait on the condition variable and ignore
+   *       spurious wakeups.
+   *
+   * @param m mutex associated with the condition variable (should be locked
+   *          before calling cv.wait_for() or cv.wait_until())
+   *
+   * @param cv condition variable the callback can use to perform an
    *           interruptible wait.
    *
    * @return Whether or not the callback's thread / task should stop - True to
    *         stop, false to continue running.
    */
-  typedef std::function<bool(std::mutex &m, std::condition_variable &cv)> callback_fn;
+  typedef std::function<bool(std::mutex &m, std::condition_variable &cv)> callback_m_cv_fn;
 
   /**
    * @brief Simple callback function signature.
    *
-   * @ note The callback is run repeatedly within the Task, therefore it MUST
-   *        return, and also SHOULD have a sleep to give the processor over to
-   *        other tasks.
+   * @note The callback is run repeatedly within the Task, therefore it MUST
+   *       return, and also SHOULD have a sleep to give the processor over to
+   *       other tasks.
+   *
    * @return True to stop the task, false to continue running.
    */
-  typedef std::function<bool()> simple_callback_fn;
+  typedef std::function<bool()> callback_no_params_fn;
+
+  /**
+   * @brief Variant of the callback function for the task.
+   * @note This is a std::variant of the different callback function signatures
+   *      that can be used with the Task. This allows the Task to be configured
+   *      with a callback function that takes no parameters, a callback function
+   *      that takes a mutex and condition variable, or a callback function that
+   *      takes a mutex, condition variable, and a bool reference to the notified
+   *      flag.
+   *
+   *      This is primarily used to enable simpler API upgrades in the future
+   *      and maximize backwards compatibility.
+   */
+  typedef std::variant<callback_m_cv_notified_fn, callback_m_cv_fn, callback_no_params_fn>
+      callback_variant;
 
   /**
    * @brief Base configuration struct for the Task.
@@ -113,9 +169,9 @@ public:
    *       instead.
    */
   struct Config {
-    std::string name;                 /**< Name of the task */
-    espp::Task::callback_fn callback; /**< Callback function  */
-    size_t stack_size_bytes{4096};    /**< Stack Size (B) allocated to the task. */
+    std::string name;                      /**< Name of the task */
+    espp::Task::callback_variant callback; /**< Callback function  */
+    size_t stack_size_bytes{4096};         /**< Stack Size (B) allocated to the task. */
     size_t priority{0}; /**< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.  */
     int core_id{-1};    /**< Core ID of the task, -1 means it is not pinned to any core.  */
     espp::Logger::Verbosity log_level{
@@ -128,8 +184,8 @@ public:
    *       or mutex in the callback.
    */
   struct SimpleConfig {
-    espp::Task::simple_callback_fn callback; /**< Callback function  */
-    espp::Task::BaseConfig task_config;      /**< Base configuration for the task. */
+    espp::Task::callback_no_params_fn callback; /**< Callback function  */
+    espp::Task::BaseConfig task_config;         /**< Base configuration for the task. */
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
@@ -141,8 +197,8 @@ public:
    *       wait_until.
    */
   struct AdvancedConfig {
-    espp::Task::callback_fn callback;   /**< Callback function  */
-    espp::Task::BaseConfig task_config; /**< Base configuration for the task. */
+    espp::Task::callback_variant callback; /**< Callback function  */
+    espp::Task::BaseConfig task_config;    /**< Base configuration for the task. */
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; /**< Log verbosity for the task.  */
   };
@@ -347,14 +403,13 @@ protected:
    */
   void notify_and_join();
 
-  std::string name_;     ///< Name of the task, used in logs and task monitoring.
-  callback_fn callback_; ///< Callback function for the task. Called within Task::thread_function().
-  simple_callback_fn simple_callback_; ///< Simple callback function for the task. Called within
-                                       ///< Task::thread_function().
-  BaseConfig config_;                  ///< Configuration for the task.
+  std::string name_;          ///< Name of the task, used in logs and task monitoring.
+  callback_variant callback_; ///< Variant of the callback function for the task.
+  BaseConfig config_;         ///< Configuration for the task.
 
   std::atomic<bool> started_{false};
   std::condition_variable cv_;
+  bool notified_{false};
   std::mutex cv_m_;
   std::mutex thread_mutex_;
   std::thread thread_;

@@ -65,7 +65,7 @@ class BaseComponent:
         """
         pass
 
-    def set_log_rate_limit(self, rate_limit: std.chrono.duration<float>) -> None:
+    def set_log_rate_limit(self, rate_limit: std.chrono.duration[float]) -> None:
         """/ Set the rate limit for the logger
         / \param rate_limit The rate limit to use for the logger
         / \note Only calls to the logger that have _rate_limit suffix will be rate limited
@@ -495,14 +495,14 @@ class Logger:
         """
         tag: std.string_view                                                    #*< The TAG that will be prepended to all logs.
         include_time: bool = bool(True)                                         #*< Include the time in the log.
-        rate_limit: std.chrono.duration<float> = std.chrono.duration<float>(0)  #*< The rate limit for the logger. Optional, if <= 0 no
+        rate_limit: std.chrono.duration[float] = std.chrono.duration<float>(0)  #*< The rate limit for the logger. Optional, if <= 0 no
         rate limit. @note Only calls that have _rate_limited suffixed will be rate limited.
-        level: espp.Logger.Verbosity = espp.Logger.Verbosity.warn               #*< The verbosity level for the logger.
+        level: Logger.Verbosity = Logger.Verbosity.warn                         #*< The verbosity level for the logger.
         def __init__(
             self,
             tag: std.string_view = std.string_view(),
             include_time: bool = bool(True),
-            rate_limit: std.chrono.duration<float> = std.chrono.duration<float>(0),
+            rate_limit: std.chrono.duration[float] = std.chrono.duration<float>(0),
             level: Logger.Verbosity = Logger.Verbosity.warn
             ) -> None:
             """Auto-generated default constructor with named params"""
@@ -543,7 +543,7 @@ class Logger:
         """
         pass
 
-    def set_rate_limit(self, rate_limit: std.chrono.duration<float>) -> None:
+    def set_rate_limit(self, rate_limit: std.chrono.duration[float]) -> None:
         """*
            * @brief Change the rate limit for the logger.
            * @param rate_limit The new rate limit.
@@ -552,7 +552,7 @@ class Logger:
         """
         pass
 
-    def get_rate_limit(self) -> std.chrono.duration<float>:
+    def get_rate_limit(self) -> std.chrono.duration[float]:
         """*
            * @brief Get the current rate limit for the logger.
            * @return The current rate limit.
@@ -620,7 +620,7 @@ class Bezier_espp_Vector2f:  # Python specialization for Bezier<espp::Vector2f>
            * @brief Unweighted cubic bezier configuration for 4 control points.
 
         """
-        control_points: List[espp.Vector2f]       #/< Array of 4 control points
+        control_points: List[Vector2f]            #/< Array of 4 control points
         def __init__(self) -> None:
             """Auto-generated default constructor"""
             pass
@@ -631,7 +631,7 @@ class Bezier_espp_Vector2f:  # Python specialization for Bezier<espp::Vector2f>
            *        individual weights.
 
         """
-        control_points: List[espp.Vector2f]       #/< Array of 4 control points
+        control_points: List[Vector2f]            #/< Array of 4 control points
         weights: List[float] = List[float](1.0, 1.0, 1.0,
                                             1.0)  #/< Array of 4 weights, default is array of 1.0
         def __init__(self) -> None:
@@ -742,7 +742,7 @@ def inv_lerp(a: float, b: float, v: float) -> float:
     """
     pass
 
-def piecewise_linear(points: std.vector<Tuple[float, float>], x: float) -> float:
+def piecewise_linear(points: List[Tuple[float, float]], x: float) -> float:
     """*
      * @brief Compute the piecewise linear interpolation between a set of points.
      * @param points Vector of points to interpolate between. The vector should be
@@ -1959,15 +1959,15 @@ class Ndef:
            *   * Handover Select (Hs)
 
         """
-        empty = enum.auto()                                                                                # (= 0x00)  #/< Record is empty
-        well_known = enum.auto()                                                                           # (= 0x01)  #/< Type field contains a well-known RTD type name
-        mime_media = enum.auto()                                                                           # (= 0x02)  #/< Type field contains a media type (RFC 2046)
-        absolute_uri = enum.auto()                                                                         # (= 0x03)  #/< Type field contains an absolute URI (RFC 3986)
-        external_type = enum.auto()                                                                        # (= 0x04)  #/< Type field Contains an external type name
-        unknown = enum.auto()                                                                              # (= 0x05)  #/< Payload type is unknown, type length must be 0.
-        unchanged = enum.auto()                                                                            # (= 0x06)  #/< Indicates the payload is an intermediate or final chunk of a chunked NDEF
+        empty = enum.auto()                                                                      # (= 0x00)  #/< Record is empty
+        well_known = enum.auto()                                                                 # (= 0x01)  #/< Type field contains a well-known RTD type name
+        mime_media = enum.auto()                                                                 # (= 0x02)  #/< Type field contains a media type (RFC 2046)
+        absolute_uri = enum.auto()                                                               # (= 0x03)  #/< Type field contains an absolute URI (RFC 3986)
+        external_type = enum.auto()                                                              # (= 0x04)  #/< Type field Contains an external type name
+        unknown = enum.auto()                                                                    # (= 0x05)  #/< Payload type is unknown, type length must be 0.
+        unchanged = enum.auto()                                                                  # (= 0x06)  #/< Indicates the payload is an intermediate or final chunk of a chunked NDEF
         #/< record, type length must be 0.
-        reserved = enum.auto()                                                                             # (= 0x07)  #/< Reserved by the NFC forum for future use
+        reserved = enum.auto()                                                                   # (= 0x07)  #/< Reserved by the NFC forum for future use
 
     class Uic(enum.Enum):
         """*
@@ -1976,78 +1976,78 @@ class Ndef:
            * and https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef
 
         """
-        none = enum.auto()                                                                                 # (= 0x00)  #/< Exactly as written
-        http_www = enum.auto()                                                                             # (= 0x01)  #/< http://www.
-        https_www = enum.auto()                                                                            # (= 0x02)  #/< https://www.
-        http = enum.auto()                                                                                 # (= 0x03)  #/< http://
-        https = enum.auto()                                                                                # (= 0x04)  #/< https://
-        tel = enum.auto()                                                                                  # (= 0x05)  #/< tel:
-        mailto = enum.auto()                                                                               # (= 0x06)  #/< mailto:
-        ftp_anon = enum.auto()                                                                             # (= 0x07)  #/< ftp://anonymous:anonymous@
-        ftp_ftp = enum.auto()                                                                              # (= 0x08)  #/< ftp://ftp.
-        ftps = enum.auto()                                                                                 # (= 0x09)  #/< ftps://
-        sftp = enum.auto()                                                                                 # (= 0x0A)  #/< sftp://
-        smb = enum.auto()                                                                                  # (= 0x0B)  #/< smb://
-        nfs = enum.auto()                                                                                  # (= 0x0C)  #/< nfs://
-        ftp = enum.auto()                                                                                  # (= 0x0D)  #/< ftp://
-        dav = enum.auto()                                                                                  # (= 0x0E)  #/< dav://
-        news = enum.auto()                                                                                 # (= 0x0F)  #/< news:
-        telnet = enum.auto()                                                                               # (= 0x10)  #/< telnet://
-        imap = enum.auto()                                                                                 # (= 0x11)  #/< imap:
-        rstp = enum.auto()                                                                                 # (= 0x12)  #/< rtsp://
-        urn = enum.auto()                                                                                  # (= 0x13)  #/< urn:
-        pop = enum.auto()                                                                                  # (= 0x14)  #/< pop:
-        sip = enum.auto()                                                                                  # (= 0x15)  #/< sip:
-        sips = enum.auto()                                                                                 # (= 0x16)  #/< sips:
-        tftp = enum.auto()                                                                                 # (= 0x17)  #/< tftp:
-        btspp = enum.auto()                                                                                # (= 0x18)  #/< btspp://
-        btl2_cap = enum.auto()                                                                             # (= 0x19)  #/< btl2cap://
-        btgoep = enum.auto()                                                                               # (= 0x1A)  #/< btgoep://
-        tcpobex = enum.auto()                                                                              # (= 0x1B)  #/< tcpobex://
-        irdaobex = enum.auto()                                                                             # (= 0x1C)  #/< irdaobex://
-        file = enum.auto()                                                                                 # (= 0x1D)  #/< file://
-        urn_epc_id = enum.auto()                                                                           # (= 0x1E)  #/< urn:epc:id:
-        urn_epc_tag = enum.auto()                                                                          # (= 0x1F)  #/< urn:epc:tag:
-        urn_epc_pat = enum.auto()                                                                          # (= 0x20)  #/< urn:epc:pat:
-        urn_epc_raw = enum.auto()                                                                          # (= 0x21)  #/< urn:epc:raw:
-        urn_epc = enum.auto()                                                                              # (= 0x22)  #/< urn:epc:
-        urn_nfc = enum.auto()                                                                              # (= 0x23)  #/< urn:nfc:
+        none = enum.auto()                                                                       # (= 0x00)  #/< Exactly as written
+        http_www = enum.auto()                                                                   # (= 0x01)  #/< http://www.
+        https_www = enum.auto()                                                                  # (= 0x02)  #/< https://www.
+        http = enum.auto()                                                                       # (= 0x03)  #/< http://
+        https = enum.auto()                                                                      # (= 0x04)  #/< https://
+        tel = enum.auto()                                                                        # (= 0x05)  #/< tel:
+        mailto = enum.auto()                                                                     # (= 0x06)  #/< mailto:
+        ftp_anon = enum.auto()                                                                   # (= 0x07)  #/< ftp://anonymous:anonymous@
+        ftp_ftp = enum.auto()                                                                    # (= 0x08)  #/< ftp://ftp.
+        ftps = enum.auto()                                                                       # (= 0x09)  #/< ftps://
+        sftp = enum.auto()                                                                       # (= 0x0A)  #/< sftp://
+        smb = enum.auto()                                                                        # (= 0x0B)  #/< smb://
+        nfs = enum.auto()                                                                        # (= 0x0C)  #/< nfs://
+        ftp = enum.auto()                                                                        # (= 0x0D)  #/< ftp://
+        dav = enum.auto()                                                                        # (= 0x0E)  #/< dav://
+        news = enum.auto()                                                                       # (= 0x0F)  #/< news:
+        telnet = enum.auto()                                                                     # (= 0x10)  #/< telnet://
+        imap = enum.auto()                                                                       # (= 0x11)  #/< imap:
+        rstp = enum.auto()                                                                       # (= 0x12)  #/< rtsp://
+        urn = enum.auto()                                                                        # (= 0x13)  #/< urn:
+        pop = enum.auto()                                                                        # (= 0x14)  #/< pop:
+        sip = enum.auto()                                                                        # (= 0x15)  #/< sip:
+        sips = enum.auto()                                                                       # (= 0x16)  #/< sips:
+        tftp = enum.auto()                                                                       # (= 0x17)  #/< tftp:
+        btspp = enum.auto()                                                                      # (= 0x18)  #/< btspp://
+        btl2_cap = enum.auto()                                                                   # (= 0x19)  #/< btl2cap://
+        btgoep = enum.auto()                                                                     # (= 0x1A)  #/< btgoep://
+        tcpobex = enum.auto()                                                                    # (= 0x1B)  #/< tcpobex://
+        irdaobex = enum.auto()                                                                   # (= 0x1C)  #/< irdaobex://
+        file = enum.auto()                                                                       # (= 0x1D)  #/< file://
+        urn_epc_id = enum.auto()                                                                 # (= 0x1E)  #/< urn:epc:id:
+        urn_epc_tag = enum.auto()                                                                # (= 0x1F)  #/< urn:epc:tag:
+        urn_epc_pat = enum.auto()                                                                # (= 0x20)  #/< urn:epc:pat:
+        urn_epc_raw = enum.auto()                                                                # (= 0x21)  #/< urn:epc:raw:
+        urn_epc = enum.auto()                                                                    # (= 0x22)  #/< urn:epc:
+        urn_nfc = enum.auto()                                                                    # (= 0x23)  #/< urn:nfc:
 
     class BtType(enum.Enum):
         """*
            * @brief Type of Bluetooth radios.
 
         """
-        bredr = enum.auto()                                                                                # (= 0x00)  #/< BT Classic
-        ble = enum.auto()                                                                                  # (= 0x01)  #/< BT Low Energy
+        bredr = enum.auto()                                                                      # (= 0x00)  #/< BT Classic
+        ble = enum.auto()                                                                        # (= 0x01)  #/< BT Low Energy
 
     class BtAppearance(enum.Enum):
         """*
            * @brief Some appearance codes for BLE radios.
 
         """
-        unknown = enum.auto()                                                                              # (= 0x0000)  #/< Generic Unknown
+        unknown = enum.auto()                                                                    # (= 0x0000)  #/< Generic Unknown
         # Generic Phone (b15-b6 = 0x001 << 6 = 0x0040)
-        phone = enum.auto()                                                                                # (= 0x0040)  #/< Generic Phone
+        phone = enum.auto()                                                                      # (= 0x0040)  #/< Generic Phone
         # Generic Computer (b15-b6 = 0x002 << 6 = 0x0080)
-        computer = enum.auto()                                                                             # (= 0x0080)  #/< Generic Computer
+        computer = enum.auto()                                                                   # (= 0x0080)  #/< Generic Computer
         # Generic Watch (b15-b6 = 0x003 << 6 = 0x00C0)
-        watch = enum.auto()                                                                                # (= 0x00C0)  #/< Generic Watch
+        watch = enum.auto()                                                                      # (= 0x00C0)  #/< Generic Watch
         # Generic Clock (b15-b6 = 0x004 << 6 = 0x0100)
-        clock = enum.auto()                                                                                # (= 0x0100)  #/< Generic Clock
+        clock = enum.auto()                                                                      # (= 0x0100)  #/< Generic Clock
         # Generic Computer (b15-b6 = 0x005 << 6 = 0x0140)
-        display = enum.auto()                                                                              # (= 0x0140)  #/< Generic Display
+        display = enum.auto()                                                                    # (= 0x0140)  #/< Generic Display
         # Generic Computer (b15-b6 = 0x006 << 6 = 0x0180)
-        remote_control = enum.auto()                                                                       # (= 0x0180)  #/< Generic Remote Control
+        remote_control = enum.auto()                                                             # (= 0x0180)  #/< Generic Remote Control
         # Generic HID (b15-b6 = 0x00F << 6 = 0x03C0)
-        generic_hid = enum.auto()                                                                          # (= 0x03C0)  #/< Generic HID
-        keyboard = enum.auto()                                                                             # (= 0x03C1)  #/< HID Keyboard
-        mouse = enum.auto()                                                                                # (= 0x03C2)  #/< HID Mouse
-        joystick = enum.auto()                                                                             # (= 0x03C3)  #/< HID Joystick
-        gamepad = enum.auto()                                                                              # (= 0x03C4)  #/< HID Gamepad
-        touchpad = enum.auto()                                                                             # (= 0x03C9)  #/< HID Touchpad
+        generic_hid = enum.auto()                                                                # (= 0x03C0)  #/< Generic HID
+        keyboard = enum.auto()                                                                   # (= 0x03C1)  #/< HID Keyboard
+        mouse = enum.auto()                                                                      # (= 0x03C2)  #/< HID Mouse
+        joystick = enum.auto()                                                                   # (= 0x03C3)  #/< HID Joystick
+        gamepad = enum.auto()                                                                    # (= 0x03C4)  #/< HID Gamepad
+        touchpad = enum.auto()                                                                   # (= 0x03C9)  #/< HID Touchpad
         # Generic Gaming (b15-b6 = 0x02A << 6 = 0x0A80)
-        gaming = enum.auto()                                                                               # (= 0x0A80)  #/< Generic Gaming group
+        gaming = enum.auto()                                                                     # (= 0x0A80)  #/< Generic Gaming group
 
     class CarrierPowerState(enum.Enum):
         """*
@@ -2056,10 +2056,10 @@ class Ndef:
            *          message.
 
         """
-        inactive = enum.auto()                                                                             # (= 0x00)  #/< Carrier power is off
-        active = enum.auto()                                                                               # (= 0x01)  #/< Carrier power is on
-        activating = enum.auto()                                                                           # (= 0x02)  #/< Carrier power is turning on
-        unknown = enum.auto()                                                                              # (= 0x03)  #/< Carrier power state is unknown
+        inactive = enum.auto()                                                                   # (= 0x00)  #/< Carrier power is off
+        active = enum.auto()                                                                     # (= 0x01)  #/< Carrier power is on
+        activating = enum.auto()                                                                 # (= 0x02)  #/< Carrier power is turning on
+        unknown = enum.auto()                                                                    # (= 0x03)  #/< Carrier power state is unknown
 
     class BtEir(enum.Enum):
         """*
@@ -2067,67 +2067,67 @@ class Ndef:
            *        out of band (OOB) pairing NDEF records.
 
         """
-        flags = enum.auto()                                                                                # (= 0x01)  #/< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode,
+        flags = enum.auto()                                                                      # (= 0x01)  #/< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode,
         #/< b2: BR/EDR not supported, b3: Simultaneous LE & BR/EDR controller, b4:
         #/< simultaneous LE & BR/EDR Host
-        uuids_16_bit_partial = enum.auto()                                                                 # (= 0x02)  #/< Incomplete list of 16 bit service class UUIDs
-        uuids_16_bit_complete = enum.auto()                                                                # (= 0x03)  #/< Complete list of 16 bit service class UUIDs
-        uuids_32_bit_partial = enum.auto()                                                                 # (= 0x04)  #/< Incomplete list of 32 bit service class UUIDs
-        uuids_32_bit_complete = enum.auto()                                                                # (= 0x05)  #/< Complete list of 32 bit service class UUIDs
-        uuids_128_bit_partial = enum.auto()                                                                # (= 0x06)  #/< Incomplete list of 128 bit service class UUIDs
-        uuids_128_bit_complete = enum.auto()                                                               # (= 0x07)  #/< Complete list of 128 bit service class UUIDs
-        short_local_name = enum.auto()                                                                     # (= 0x08)  #/< Shortened Bluetooth Local Name
-        long_local_name = enum.auto()                                                                      # (= 0x09)  #/< Complete Bluetooth Local Name
-        tx_power_level = enum.auto()                                                                       # (= 0x0A)  #/< TX Power level (1 byte), -127 dBm to +127 dBm
-        class_of_device = enum.auto()                                                                      # (= 0x0D)  #/< Class of Device
-        sp_hash_c192 = enum.auto()                                                                         # (= 0x0E)  #/< Simple Pairing Hash C-192
-        sp_random_r192 = enum.auto()                                                                       # (= 0x0F)  #/< Simple Pairing Randomizer R-192
-        security_manager_tk = enum.auto()                                                                  # (= 0x10)  #/< Security Manager TK Value (LE Legacy Pairing)
-        security_manager_flags = enum.auto()                                                               # (= 0x11)  #/< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported
+        uuids_16_bit_partial = enum.auto()                                                       # (= 0x02)  #/< Incomplete list of 16 bit service class UUIDs
+        uuids_16_bit_complete = enum.auto()                                                      # (= 0x03)  #/< Complete list of 16 bit service class UUIDs
+        uuids_32_bit_partial = enum.auto()                                                       # (= 0x04)  #/< Incomplete list of 32 bit service class UUIDs
+        uuids_32_bit_complete = enum.auto()                                                      # (= 0x05)  #/< Complete list of 32 bit service class UUIDs
+        uuids_128_bit_partial = enum.auto()                                                      # (= 0x06)  #/< Incomplete list of 128 bit service class UUIDs
+        uuids_128_bit_complete = enum.auto()                                                     # (= 0x07)  #/< Complete list of 128 bit service class UUIDs
+        short_local_name = enum.auto()                                                           # (= 0x08)  #/< Shortened Bluetooth Local Name
+        long_local_name = enum.auto()                                                            # (= 0x09)  #/< Complete Bluetooth Local Name
+        tx_power_level = enum.auto()                                                             # (= 0x0A)  #/< TX Power level (1 byte), -127 dBm to +127 dBm
+        class_of_device = enum.auto()                                                            # (= 0x0D)  #/< Class of Device
+        sp_hash_c192 = enum.auto()                                                               # (= 0x0E)  #/< Simple Pairing Hash C-192
+        sp_random_r192 = enum.auto()                                                             # (= 0x0F)  #/< Simple Pairing Randomizer R-192
+        security_manager_tk = enum.auto()                                                        # (= 0x10)  #/< Security Manager TK Value (LE Legacy Pairing)
+        security_manager_flags = enum.auto()                                                     # (= 0x11)  #/< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported
         #/< (host), b2: Simultaneous LE & BR/EDR to same device capable (host), b3: address
         #/< type (0 = public, 1 = random)
-        appearance = enum.auto()                                                                           # (= 0x19)  #/< Appearance
-        mac = enum.auto()                                                                                  # (= 0x1B)  #/< Bluetooth Device Address
-        le_role = enum.auto()                                                                              # (= 0x1C)  #/< LE Role
-        sp_hash_c256 = enum.auto()                                                                         # (= 0x1D)  #/< Simple Pairing Hash C-256
-        sp_hash_r256 = enum.auto()                                                                         # (= 0x1E)  #/< Simple Pairing Randomizer R-256
-        le_sc_confirmation = enum.auto()                                                                   # (= 0x22)  #/< LE Secure Connections Confirmation Value
-        le_sc_random = enum.auto()                                                                         # (= 0x23)  #/< LE Secure Connections Random Value
+        appearance = enum.auto()                                                                 # (= 0x19)  #/< Appearance
+        mac = enum.auto()                                                                        # (= 0x1B)  #/< Bluetooth Device Address
+        le_role = enum.auto()                                                                    # (= 0x1C)  #/< LE Role
+        sp_hash_c256 = enum.auto()                                                               # (= 0x1D)  #/< Simple Pairing Hash C-256
+        sp_hash_r256 = enum.auto()                                                               # (= 0x1E)  #/< Simple Pairing Randomizer R-256
+        le_sc_confirmation = enum.auto()                                                         # (= 0x22)  #/< LE Secure Connections Confirmation Value
+        le_sc_random = enum.auto()                                                               # (= 0x23)  #/< LE Secure Connections Random Value
 
     class BleRole(enum.Enum):
         """*
            * @brief Possible roles for BLE records to indicate support for.
 
         """
-        peripheral_only = enum.auto()                                                                      # (= 0x00)  #/< Radio can only act as a peripheral
-        central_only = enum.auto()                                                                         # (= 0x01)  #/< Radio can only act as a central
-        peripheral_central = enum.auto()                                                                   # (= 0x02)  #/< Radio can act as both a peripheral and a central, but prefers peripheral
-        central_peripheral = enum.auto()                                                                   # (= 0x03)  #/< Radio can act as both a peripheral and a central, but prefers central
+        peripheral_only = enum.auto()                                                            # (= 0x00)  #/< Radio can only act as a peripheral
+        central_only = enum.auto()                                                               # (= 0x01)  #/< Radio can only act as a central
+        peripheral_central = enum.auto()                                                         # (= 0x02)  #/< Radio can act as both a peripheral and a central, but prefers peripheral
+        central_peripheral = enum.auto()                                                         # (= 0x03)  #/< Radio can act as both a peripheral and a central, but prefers central
 
     class WifiEncryptionType(enum.Enum):
         """*
            * @brief Types of configurable encryption for WiFi networks
 
         """
-        none = enum.auto()                                                                                 # (= 0x01)  #/< No encryption
-        wep = enum.auto()                                                                                  # (= 0x02)  #/< WEP
-        tkip = enum.auto()                                                                                 # (= 0x04)  #/< TKIP
-        aes = enum.auto()                                                                                  # (= 0x08)  #/< AES
+        none = enum.auto()                                                                       # (= 0x01)  #/< No encryption
+        wep = enum.auto()                                                                        # (= 0x02)  #/< WEP
+        tkip = enum.auto()                                                                       # (= 0x04)  #/< TKIP
+        aes = enum.auto()                                                                        # (= 0x08)  #/< AES
 
     class WifiAuthenticationType(enum.Enum):
         """*
            * @brief WiFi network authentication
 
         """
-        open = enum.auto()                                                                                 # (= 0x01)  #/< Open / no security
-        wpa_personal = enum.auto()                                                                         # (= 0x02)  #/< WPA personal
-        shared = enum.auto()                                                                               # (= 0x04)  #/< Shared key
-        wpa_enterprise = enum.auto()                                                                       # (= 0x08)  #/< WPA enterprise
-        wpa2_enterprise = enum.auto()                                                                      # (= 0x10)  #/< WPA2 Enterprise
-        wpa2_personal = enum.auto()                                                                        # (= 0x20)  #/< WPA2 personal
-        wpa_wpa2_personal = enum.auto()                                                                    # (= 0x22)  #/< Both WPA and WPA2 personal
+        open = enum.auto()                                                                       # (= 0x01)  #/< Open / no security
+        wpa_personal = enum.auto()                                                               # (= 0x02)  #/< WPA personal
+        shared = enum.auto()                                                                     # (= 0x04)  #/< Shared key
+        wpa_enterprise = enum.auto()                                                             # (= 0x08)  #/< WPA enterprise
+        wpa2_enterprise = enum.auto()                                                            # (= 0x10)  #/< WPA2 Enterprise
+        wpa2_personal = enum.auto()                                                              # (= 0x20)  #/< WPA2 personal
+        wpa_wpa2_personal = enum.auto()                                                          # (= 0x22)  #/< Both WPA and WPA2 personal
 
-    handover_version: int = 0x13                                                                           #/< Connection Handover version 1.3 # (C++ static member) # (const)
+    handover_version: int = 0x13                                                                 #/< Connection Handover version 1.3 # (C++ static member) # (const)
 
     def __init__(
         self,
@@ -2181,12 +2181,12 @@ class Ndef:
            * @brief Configuration structure for wifi configuration ndef structure.
 
         """
-        ssid: std.string_view                                                                              #/< SSID for the network
-        key: std.string_view                                                                               #/< Security key / password for the network
-        authentication: espp.Ndef.WifiAuthenticationType = espp.Ndef.WifiAuthenticationType.wpa2_personal  #/< Authentication type the network
+        ssid: std.string_view                                                                    #/< SSID for the network
+        key: std.string_view                                                                     #/< Security key / password for the network
+        authentication: Ndef.WifiAuthenticationType = Ndef.WifiAuthenticationType.wpa2_personal  #/< Authentication type the network
         #/< uses.
-        encryption: espp.Ndef.WifiEncryptionType = espp.Ndef.WifiEncryptionType.aes                        #/< Encryption type the network uses.
-        mac_address: int = 0xFFFFFFFFFFFF                                                                  #/< Broadcast MAC address FF:FF:FF:FF:FF:FF
+        encryption: Ndef.WifiEncryptionType = Ndef.WifiEncryptionType.aes                        #/< Encryption type the network uses.
+        mac_address: int = 0xFFFFFFFFFFFF                                                        #/< Broadcast MAC address FF:FF:FF:FF:FF:FF
         def __init__(
             self,
             ssid: std.string_view = std.string_view(),
@@ -2378,19 +2378,19 @@ class Pid:
 
     """
     class Config:
-        kp: float                                                                             #*< Proportional gain.
-        ki: float                                                                             #*< Integral gain. @note should not be pre-multiplied by the time constant.
-        kd: float                                                                             #*< Derivative gain. @note should not be pre-divided by the time-constant.
-        integrator_min: float                                                                 #*< Minimum value the integrator can wind down to. @note Operates at the
+        kp: float                                                              #*< Proportional gain.
+        ki: float                                                              #*< Integral gain. @note should not be pre-multiplied by the time constant.
+        kd: float                                                              #*< Derivative gain. @note should not be pre-divided by the time-constant.
+        integrator_min: float                                                  #*< Minimum value the integrator can wind down to. @note Operates at the
                                      same scale as \p output_min and \p output_max. Could be 0 or negative.
                                      Can have different magnitude from integrator_max for asymmetric
                                      response.
-        integrator_max: float                                                                 #*< Maximum value the integrator can wind up to. @note Operates at the
+        integrator_max: float                                                  #*< Maximum value the integrator can wind up to. @note Operates at the
                                      same scale as \p output_min and \p output_max.
-        output_min: float                                                                     #*< Limit the minimum output value. Can be a different magnitude from output
+        output_min: float                                                      #*< Limit the minimum output value. Can be a different magnitude from output
                                  max for asymmetric output behavior.
-        output_max: float                                                                     #*< Limit the maximum output value.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Verbosity for the adc logger.
+        output_max: float                                                      #*< Limit the maximum output value.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Verbosity for the adc logger.
         def __init__(
             self,
             kp: float = float(),
@@ -2610,7 +2610,7 @@ class Socket:
         """
         pass
 
-    def set_receive_timeout(self, timeout: std.chrono.duration<float>) -> bool:
+    def set_receive_timeout(self, timeout: std.chrono.duration[float]) -> bool:
         """*
            * @brief Set the receive timeout on the provided socket.
            * @param timeout requested timeout, must be > 0.
@@ -2703,7 +2703,7 @@ class TcpSocket:
            * @brief Config struct for the TCP socket.
 
         """
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Verbosity level for the TCP socket logger.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Verbosity level for the TCP socket logger.
         def __init__(
             self,
             log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
@@ -2716,8 +2716,8 @@ class TcpSocket:
            * @brief Config struct for connecting to a remote TCP server.
 
         """
-        ip_address: str                                                                       #*< Address to send data to.
-        port: int                                                                             #*< Port number to send data to.
+        ip_address: str                                                        #*< Address to send data to.
+        port: int                                                              #*< Port number to send data to.
         def __init__(self, ip_address: str = "", port: int = int()) -> None:
             """Auto-generated default constructor with named params"""
             pass
@@ -2728,12 +2728,12 @@ class TcpSocket:
            * @note This is only used when waiting for a response from the remote.
 
         """
-        wait_for_response: bool = False                                                       #*< Whether to wait for a response from the remote or not.
-        response_size: int = 0                                                                #*< If waiting for a response, this is the maximum size response we will receive.
-        on_response_callback: espp.Socket.response_callback_fn = None                         #*< If waiting for a
+        wait_for_response: bool = False                                        #*< Whether to wait for a response from the remote or not.
+        response_size: int = 0                                                 #*< If waiting for a response, this is the maximum size response we will receive.
+        on_response_callback: Socket.response_callback_fn = None               #*< If waiting for a
                            response, this is an optional handler which is provided the response data.
-        response_timeout: std.chrono.duration<float> = std.chrono.duration<float>(
-                0.5)                                                                          #*< If waiting for a response, this is the maximum timeout to wait.
+        response_timeout: std.chrono.duration[float] = std.chrono.duration<float>(
+                0.5)                                                           #*< If waiting for a response, this is the maximum timeout to wait.
 
         @staticmethod
         def default() -> TcpSocket.TransmitConfig:
@@ -2743,7 +2743,7 @@ class TcpSocket:
             wait_for_response: bool = False,
             response_size: int = 0,
             on_response_callback: Socket.response_callback_fn = None,
-            response_timeout: std.chrono.duration<float> = std.chrono.duration<float>(
+            response_timeout: std.chrono.duration[float] = std.chrono.duration<float>(
                     0.5)
             ) -> None:
             """Auto-generated default constructor with named params"""
@@ -2957,11 +2957,11 @@ class UdpSocket:
 
     """
     class ReceiveConfig:
-        port: int                                                                                        #*< Port number to bind to / receive from.
-        buffer_size: int                                                                                 #*< Max size of data we can receive at one time.
-        is_multicast_endpoint: bool = bool(False)                                                        #*< Whether this should be a multicast endpoint.
-        multicast_group: str = str("")                                                                   #*< If this is a multicast endpoint, this is the group it belongs to.
-        on_receive_callback: espp.Socket.receive_callback_fn = espp.Socket.receive_callback_fn(None)     #*< Function containing business logic to handle data received.
+        port: int                                                                              #*< Port number to bind to / receive from.
+        buffer_size: int                                                                       #*< Max size of data we can receive at one time.
+        is_multicast_endpoint: bool = bool(False)                                              #*< Whether this should be a multicast endpoint.
+        multicast_group: str = str("")                                                         #*< If this is a multicast endpoint, this is the group it belongs to.
+        on_receive_callback: Socket.receive_callback_fn = Socket.receive_callback_fn(None)     #*< Function containing business logic to handle data received.
         def __init__(
             self,
             port: int = int(),
@@ -2974,15 +2974,15 @@ class UdpSocket:
             pass
 
     class SendConfig:
-        ip_address: str                                                                                  #*< Address to send data to.
-        port: int                                                                                        #*< Port number to send data to.
-        is_multicast_endpoint: bool = bool(False)                                                        #*< Whether this should be a multicast endpoint.
-        wait_for_response: bool = bool(False)                                                            #*< Whether to wait for a response from the remote or not.
-        response_size: int = int(0)                                                                      #*< If waiting for a response, this is the maximum size response we will receive.
-        on_response_callback: espp.Socket.response_callback_fn = espp.Socket.response_callback_fn(None)  #*< If waiting for a response, this is an optional handler which is provided the
+        ip_address: str                                                                        #*< Address to send data to.
+        port: int                                                                              #*< Port number to send data to.
+        is_multicast_endpoint: bool = bool(False)                                              #*< Whether this should be a multicast endpoint.
+        wait_for_response: bool = bool(False)                                                  #*< Whether to wait for a response from the remote or not.
+        response_size: int = int(0)                                                            #*< If waiting for a response, this is the maximum size response we will receive.
+        on_response_callback: Socket.response_callback_fn = Socket.response_callback_fn(None)  #*< If waiting for a response, this is an optional handler which is provided the
                              response data.
-        response_timeout: std.chrono.duration<float> = std.chrono.duration<float>(
-                0.5)                                                                                     #*< If waiting for a response, this is the maximum timeout to wait.
+        response_timeout: std.chrono.duration[float] = std.chrono.duration<float>(
+                0.5)                                                                           #*< If waiting for a response, this is the maximum timeout to wait.
         def __init__(
             self,
             ip_address: str = "",
@@ -2991,14 +2991,14 @@ class UdpSocket:
             wait_for_response: bool = bool(False),
             response_size: int = int(0),
             on_response_callback: Socket.response_callback_fn = Socket.response_callback_fn(None),
-            response_timeout: std.chrono.duration<float> = std.chrono.duration<float>(
+            response_timeout: std.chrono.duration[float] = std.chrono.duration<float>(
                     0.5)
             ) -> None:
             """Auto-generated default constructor with named params"""
             pass
 
     class Config:
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)             #*< Verbosity level for the UDP socket logger.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)                  #*< Verbosity level for the UDP socket logger.
         def __init__(
             self,
             log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
@@ -3071,7 +3071,7 @@ class UdpSocket:
 
     def start_receiving(
         self,
-        task_config: Task.Config,
+        task_config: Task.BaseConfig,
         receive_config: UdpSocket.ReceiveConfig
         ) -> bool:
         """*
@@ -3119,15 +3119,19 @@ class Task:
      * \snippet task_example.cpp ManyTask example
      * \section task_ex4 Long Running Task Example
      * \snippet task_example.cpp LongRunningTask example
-     * \section task_ex5 Task Info Example
-     * \snippet task_example.cpp Task Info example
-     * \section task_ex6 Task Request Stop Example
-     * \snippet task_example.cpp Task Request Stop example
+     * \section task_ex4 Long Running Task Example using notification flag (recommended to avoid
+     * spurious wakeups) \snippet task_example.cpp LongRunningTaskNotified example \section task_ex5
+     * Task Info Example \snippet task_example.cpp Task Info example \section task_ex6 Task Request Stop
+     * Example \snippet task_example.cpp Task Request Stop example
      *
      * \section run_on_core_ex1 Run on Core Example
      * \snippet task_example.cpp run on core example
+     * \section run_on_core_ex2 Run on Core (Non-Blocking) Example
+     * \snippet task_example.cpp run on core nonblocking example
 
     """
+
+
 
 
 
@@ -3138,10 +3142,10 @@ class Task:
            *       that may have a Task as a member.
 
         """
-        name: str                                                                             #*< Name of the task
-        stack_size_bytes: int = int(4096)                                                     #*< Stack Size (B) allocated to the task.
-        priority: int = int(0)                                                                #*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.
-        core_id: int = int(-1)                                                                #*< Core ID of the task, -1 means it is not pinned to any core.
+        name: str                                                              #*< Name of the task
+        stack_size_bytes: int = int(4096)                                      #*< Stack Size (B) allocated to the task.
+        priority: int = int(0)                                                 #*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.
+        core_id: int = int(-1)                                                 #*< Core ID of the task, -1 means it is not pinned to any core.
         def __init__(
             self,
             name: str = "",
@@ -3163,16 +3167,16 @@ class Task:
            *       instead.
 
         """
-        name: str                                                                             #*< Name of the task
-        callback: espp.Task.callback_fn                                                       #*< Callback function
-        stack_size_bytes: int = int(4096)                                                     #*< Stack Size (B) allocated to the task.
-        priority: int = int(0)                                                                #*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.
-        core_id: int = int(-1)                                                                #*< Core ID of the task, -1 means it is not pinned to any core.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Log verbosity for the task.
+        name: str                                                              #*< Name of the task
+        callback: Task.callback_variant                                        #*< Callback function
+        stack_size_bytes: int = int(4096)                                      #*< Stack Size (B) allocated to the task.
+        priority: int = int(0)                                                 #*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.
+        core_id: int = int(-1)                                                 #*< Core ID of the task, -1 means it is not pinned to any core.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Log verbosity for the task.
         def __init__(
             self,
             name: str = "",
-            callback: Task.callback_fn = Task.callback_fn(),
+            callback: Task.callback_variant = Task.callback_variant(),
             stack_size_bytes: int = int(4096),
             priority: int = int(0),
             core_id: int = int(-1),
@@ -3188,12 +3192,12 @@ class Task:
            *       or mutex in the callback.
 
         """
-        callback: espp.Task.simple_callback_fn                                                #*< Callback function
-        task_config: espp.Task.BaseConfig                                                     #*< Base configuration for the task.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Log verbosity for the task.
+        callback: Task.callback_no_params_fn                                   #*< Callback function
+        task_config: Task.BaseConfig                                           #*< Base configuration for the task.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Log verbosity for the task.
         def __init__(
             self,
-            callback: Task.simple_callback_fn = Task.simple_callback_fn(),
+            callback: Task.callback_no_params_fn = Task.callback_no_params_fn(),
             task_config: Task.BaseConfig = Task.BaseConfig(),
             log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
             ) -> None:
@@ -3208,12 +3212,12 @@ class Task:
            *       wait_until.
 
         """
-        callback: espp.Task.callback_fn                                                       #*< Callback function
-        task_config: espp.Task.BaseConfig                                                     #*< Base configuration for the task.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Log verbosity for the task.
+        callback: Task.callback_variant                                        #*< Callback function
+        task_config: Task.BaseConfig                                           #*< Base configuration for the task.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Log verbosity for the task.
         def __init__(
             self,
-            callback: Task.callback_fn = Task.callback_fn(),
+            callback: Task.callback_variant = Task.callback_variant(),
             task_config: Task.BaseConfig = Task.BaseConfig(),
             log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)
             ) -> None:
@@ -3378,21 +3382,21 @@ class Timer:
 
     class Config:
         """/ @brief The configuration for the timer."""
-        name: std.string_view                                          #/< The name of the timer.
-        period: std.chrono.duration<float>                             #/< The period of the timer. If 0, the timer callback will only be called once.
-        delay: std.chrono.duration<float> = std.chrono.duration<float>(
-                0)                                                     #/< The delay before the first execution of the timer callback after start() is called.
-        callback: espp.Timer.callback_fn                               #/< The callback function to call when the timer expires.
-        auto_start: bool = bool(True)                                  #/< If True, the timer will start automatically when constructed.
-        stack_size_bytes: int = int(4096)                              #/< The stack size of the task that runs the timer.
-        priority: int = int(0)                                         #/< Priority of the timer, 0 is lowest priority on ESP / FreeRTOS.
-        core_id: int = int(-1)                                         #/< Core ID of the timer, -1 means it is not pinned to any core.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity.warn  #/< The log level for the timer.
+        name: std.string_view                                #/< The name of the timer.
+        period: std.chrono.duration[float]                   #/< The period of the timer. If 0, the timer callback will only be called once.
+        delay: std.chrono.duration[float] = std.chrono.duration<float>(
+                0)                                           #/< The delay before the first execution of the timer callback after start() is called.
+        callback: Timer.callback_fn                          #/< The callback function to call when the timer expires.
+        auto_start: bool = bool(True)                        #/< If True, the timer will start automatically when constructed.
+        stack_size_bytes: int = int(4096)                    #/< The stack size of the task that runs the timer.
+        priority: int = int(0)                               #/< Priority of the timer, 0 is lowest priority on ESP / FreeRTOS.
+        core_id: int = int(-1)                               #/< Core ID of the timer, -1 means it is not pinned to any core.
+        log_level: Logger.Verbosity = Logger.Verbosity.warn  #/< The log level for the timer.
         def __init__(
             self,
             name: std.string_view = std.string_view(),
-            period: std.chrono.duration<float> = std.chrono.duration<float>(),
-            delay: std.chrono.duration<float> = std.chrono.duration<float>(
+            period: std.chrono.duration[float] = std.chrono.duration<float>(),
+            delay: std.chrono.duration[float] = std.chrono.duration<float>(
                     0),
             callback: Timer.callback_fn = Timer.callback_fn(),
             auto_start: bool = bool(True),
@@ -3406,17 +3410,17 @@ class Timer:
 
     class AdvancedConfig:
         """/ @brief Advanced configuration for the timer."""
-        period: std.chrono.duration<float>                             #/< The period of the timer. If 0, the timer callback will only be called once.
-        delay: std.chrono.duration<float> = std.chrono.duration<float>(
-                0)                                                     #/< The delay before the first execution of the timer callback after start() is called.
-        callback: espp.Timer.callback_fn                               #/< The callback function to call when the timer expires.
-        auto_start: bool = bool(True)                                  #/< If True, the timer will start automatically when constructed.
-        task_config: espp.Task.BaseConfig                              #/< The task configuration for the timer.
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity.warn  #/< The log level for the timer.
+        period: std.chrono.duration[float]                   #/< The period of the timer. If 0, the timer callback will only be called once.
+        delay: std.chrono.duration[float] = std.chrono.duration<float>(
+                0)                                           #/< The delay before the first execution of the timer callback after start() is called.
+        callback: Timer.callback_fn                          #/< The callback function to call when the timer expires.
+        auto_start: bool = bool(True)                        #/< If True, the timer will start automatically when constructed.
+        task_config: Task.BaseConfig                         #/< The task configuration for the timer.
+        log_level: Logger.Verbosity = Logger.Verbosity.warn  #/< The log level for the timer.
         def __init__(
             self,
-            period: std.chrono.duration<float> = std.chrono.duration<float>(),
-            delay: std.chrono.duration<float> = std.chrono.duration<float>(
+            period: std.chrono.duration[float] = std.chrono.duration<float>(),
+            delay: std.chrono.duration[float] = std.chrono.duration<float>(
                     0),
             callback: Timer.callback_fn = Timer.callback_fn(),
             auto_start: bool = bool(True),
@@ -3437,7 +3441,7 @@ class Timer:
         pass
 
     @overload
-    def start(self, delay: std.chrono.duration<float>) -> None:
+    def start(self, delay: std.chrono.duration[float]) -> None:
         """/ @brief Start the timer with a delay.
         / @details Starts the timer with a delay. If the timer is already running,
         /          this will cancel the timer and start it again with the new
@@ -3461,7 +3465,7 @@ class Timer:
         pass
 
 
-    def set_period(self, period: std.chrono.duration<float>) -> None:
+    def set_period(self, period: std.chrono.duration[float]) -> None:
         """/ @brief Set the period of the timer.
         / @details Sets the period of the timer.
         / @param period The period of the timer.
@@ -3508,11 +3512,11 @@ class Joystick:
            *       deadzone_radius field to set the deadzone around the center.
 
         """
-        rectangular = enum.auto()                                                             # (= 0)  #/< The default type of joystick. Uses the rangemappers for
+        rectangular = enum.auto()                                              # (= 0)  #/< The default type of joystick. Uses the rangemappers for
         #/  each axis (to convert raw values from input range to be
         #/  [-1,1]) independently which results in x/y deadzones and
         #/  output that are rectangular.
-        circular = enum.auto()                                                                # (= 1)  #/< The joystick is configured to have a circular output. This
+        circular = enum.auto()                                                 # (= 1)  #/< The joystick is configured to have a circular output. This
         #/  means that the x/y < deadzones are circular around the
         #/  input and range and the output is clamped to be on or
         #/  within the unit circle.
@@ -3523,23 +3527,23 @@ class Joystick:
            *  @brief Configuration structure for the joystick.
 
         """
-        x_calibration: espp.FloatRangeMapper.Config                                           #*< Configuration for the x axis.
-        y_calibration: espp.FloatRangeMapper.Config                                           #*< Configuration for the y axis.
-        type: espp.Joystick.Type = espp.Joystick.Type(espp.Joystick.Type.rectangular)         #*< The type of the joystick. See
+        x_calibration: FloatRangeMapper.Config                                 #*< Configuration for the x axis.
+        y_calibration: FloatRangeMapper.Config                                 #*< Configuration for the y axis.
+        type: Joystick.Type = Joystick.Type(Joystick.Type.rectangular)         #*< The type of the joystick. See
                                                          Type enum for more information.
-        center_deadzone_radius: float = float(0)                                              #*< The radius of the unit circle's deadzone [0, 1.0] around the center, only used
+        center_deadzone_radius: float = float(0)                               #*< The radius of the unit circle's deadzone [0, 1.0] around the center, only used
                 when the joystick is configured as Type::CIRCULAR.
-        range_deadzone: float = float(0)                                                      #*< The deadzone around the edge of the unit circle, only used when
+        range_deadzone: float = float(0)                                       #*< The deadzone around the edge of the unit circle, only used when
                                   the joystick is configured as Type::CIRCULAR. This scales the output so
                                   that the output appears to have magnitude 1 (meaning it appears to be on
                                   the edge of the unit circle) when the joystick value magnitude is within
                                   the range [1-range_deadzone, 1].
-        get_values: espp.Joystick.get_values_fn = espp.Joystick.get_values_fn(None)           #*< Function to retrieve the latest
+        get_values: Joystick.get_values_fn = Joystick.get_values_fn(None)      #*< Function to retrieve the latest
                                                   unmapped joystick values. Required if
                                                   you want to use update(), unused if
                                                   you call update(float raw_x, float
                                                   raw_y).
-        log_level: espp.Logger.Verbosity = espp.Logger.Verbosity(espp.Logger.Verbosity.warn)  #*< Verbosity for the Joystick logger_.
+        log_level: Logger.Verbosity = Logger.Verbosity(Logger.Verbosity.warn)  #*< Verbosity for the Joystick logger_.
         def __init__(
             self,
             x_calibration: FloatRangeMapper.Config = FloatRangeMapper.Config(),
@@ -3767,6 +3771,17 @@ class LowpassFilter:
             """Auto-generated default constructor with named params"""
             pass
 
+    def __init__(self) -> None:
+        pass
+
+
+    def configure(self, config: LowpassFilter.Config) -> None:
+        """*
+           * @brief Set the filter coefficients based on the config.
+           * @param config Configuration struct.
+
+        """
+        pass
 
     @overload
     def update(self, input: float, output: float, length: int) -> None:
@@ -3805,10 +3820,14 @@ class LowpassFilter:
         """
         pass
 
+    def reset(self) -> None:
+        """*
+           * @brief Reset the filter state to zero.
 
-    def __init__(self) -> None:
-        """Auto-generated default constructor"""
+        """
         pass
+
+
 
 # namespace espp
 

@@ -200,7 +200,7 @@ extern "C" void app_main(void) {
         return false;
       };
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({
+      auto task = espp::Task::make_unique(espp::Task::AdvancedConfig{
           .callback = task_fn,
           .task_config =
               {
@@ -241,7 +241,7 @@ extern "C" void app_main(void) {
           // NOTE: using the return value from the cv.wait_for() allows us to
           // know if the task was asked to stop, for which we can handle and
           // return early.
-          auto cv_retval = cv.wait_for(lk, 100ms);
+          auto cv_retval = cv.wait_for(lk, std::chrono::milliseconds(100));
           if (cv_retval == std::cv_status::no_timeout) {
             // if there was no timeout, then we were notified, therefore we need
             // to shut down.
@@ -272,6 +272,59 @@ extern "C" void app_main(void) {
   logger.debug("Test ran for {:.03f} seconds", test_duration);
 
   /**
+   *   Now do the same example, but using the 3 parameter version of the task
+   *   callback, which includes the notification flag for use as the predicate
+   *   to the wake.
+   */
+  test_start = std::chrono::high_resolution_clock::now();
+  {
+    logger.info(
+        "Spawning long-running / complex task using the predicate for sleep for {} seconds!",
+        num_seconds_to_run);
+    //! [LongRunningTaskNotified example]
+    auto task_fn = [](std::mutex &m, std::condition_variable &cv, bool &task_notified) {
+      static size_t task_iterations{0};
+      const size_t num_steps_per_iteration = 10;
+      fmt::print("Task processing iteration {}...\n", task_iterations);
+      for (size_t i = 0; i < num_steps_per_iteration; i++) {
+        // NOTE: sleeping in this way allows the sleep to exit early when the
+        // task is being stopped / destroyed
+        {
+          std::unique_lock<std::mutex> lk(m);
+          // NOTE: using the return value from the cv.wait_for() allows us to
+          // know if the task was asked to stop, for which we can handle and
+          // return early.
+          auto stop_requested = cv.wait_for(lk, std::chrono::milliseconds(100),
+                                            [&task_notified] { return task_notified; });
+          if (stop_requested) {
+            fmt::print("Task was notified, stopping early (step {}/{}) on iteration {}\n", i,
+                       num_steps_per_iteration, task_iterations);
+            // NOTE: use this_thread::sleep_for() to fake cleaning up work that
+            // we would do
+            std::this_thread::sleep_for(10ms);
+            // now that we've (fake) cleaned-up our work, return from the task
+            // function so the task can fully destruct.
+            return false;
+          }
+        }
+      }
+      fmt::print("Task processing iteration {} complete\n", task_iterations);
+      task_iterations++;
+      // we don't want to stop, so return false
+      return false;
+    };
+    auto task = espp::Task({.name = "Notified Complex Task",
+                            .callback = task_fn,
+                            .log_level = espp::Logger::Verbosity::DEBUG});
+    task.start();
+    //! [LongRunningTaskNotified example]
+    std::this_thread::sleep_for(num_seconds_to_run * 1s);
+  }
+  test_end = std::chrono::high_resolution_clock::now();
+  test_duration = std::chrono::duration<float>(test_end - test_start).count();
+  logger.debug("Test ran for {:.03f} seconds", test_duration);
+
+  /**
    *   Show an example of printing out the task info from another thread.
    */
   test_start = std::chrono::high_resolution_clock::now();
@@ -282,9 +335,10 @@ extern "C" void app_main(void) {
       static size_t task_iterations{0};
       task_iterations++;
       // allocate stack
-      char buffer[1024];
+      size_t num_bytes = 256 * task_iterations;
+      char buffer[num_bytes];
       // do something with the bufer (which also uses stack)
-      snprintf(buffer, 1024, "%.06f\n", (float)task_iterations);
+      snprintf(buffer, num_bytes, "%.06f\n", (float)task_iterations);
       fmt::print("{}\n", espp::Task::get_info());
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
@@ -301,11 +355,11 @@ extern "C" void app_main(void) {
     auto now = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration<float>(now - test_start).count();
     while (elapsed < num_seconds_to_run) {
-      fmt::print("{}\n", espp::Task::get_info(task));
       std::this_thread::sleep_for(200ms);
       now = std::chrono::high_resolution_clock::now();
       elapsed = std::chrono::duration<float>(now - test_start).count();
     }
+    fmt::print("Final: {}\n", espp::Task::get_info(task));
     //! [Task Info example]
   }
   test_end = std::chrono::high_resolution_clock::now();

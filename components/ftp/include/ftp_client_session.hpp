@@ -42,7 +42,7 @@ public:
     using namespace std::placeholders;
     task_ = std::make_unique<Task>(Task::Config{
         .name = "FtpClientSession",
-        .callback = std::bind(&FtpClientSession::task_function, this, _1, _2),
+        .callback = std::bind(&FtpClientSession::task_function, this, _1, _2, _3),
         .stack_size_bytes = 1024 * 6,
         .log_level = Logger::Verbosity::WARN,
     });
@@ -91,13 +91,15 @@ protected:
   ///     true, which indicates that the task should stop.
   /// \param m The mutex to use for waiting on the condition variable.
   /// \param cv The condition variable to use for waiting.
+  /// \param task_notified A flag to indicate if the task was notified.
   /// \return True if the task should stop, false otherwise.
-  bool task_function(std::mutex &m, std::condition_variable &cv) {
+  bool task_function(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     {
       // delay here
       using namespace std::chrono_literals;
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, 1ms);
+      cv.wait_for(lk, 1ms, [&task_notified] { return task_notified; });
+      task_notified = false;
     }
 
     if (!socket_) {

@@ -59,10 +59,10 @@ public:
       , key_cb_(config.key_cb)
       , polling_interval_(config.polling_interval) {
     logger_.info("TKeyboard created");
+    using namespace std::placeholders;
     task_ = std::make_shared<espp::Task>(espp::Task::Config{
         .name = "tkeyboard_task",
-        .callback =
-            std::bind(&TKeyboard::key_task, this, std::placeholders::_1, std::placeholders::_2),
+        .callback = std::bind(&TKeyboard::key_task, this, _1, _2, _3),
         .stack_size_bytes = 4 * 1024,
     });
     if (config.auto_start) {
@@ -119,7 +119,7 @@ public:
   bool stop() { return task_->stop(); }
 
 protected:
-  bool key_task(std::mutex &m, std::condition_variable &cv) {
+  bool key_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     std::error_code ec;
     auto start_time = std::chrono::steady_clock::now();
     auto key = read_u8(ec);
@@ -134,7 +134,9 @@ protected:
     }
     {
       std::unique_lock<std::mutex> lock(m);
-      cv.wait_until(lock, start_time + polling_interval_);
+      cv.wait_until(lock, start_time + polling_interval_,
+                    [&task_notified] { return task_notified; });
+      task_notified = false;
     }
     return false;
   }

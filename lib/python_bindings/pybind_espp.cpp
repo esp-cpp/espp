@@ -158,7 +158,7 @@ void py_init_module_espp(py::module &m) {
           .def_static("get", &espp::EventManager::get,
                       "*\n   * @brief Get the singleton instance of the EventManager.\n   * "
                       "@return A reference to the EventManager singleton.\n",
-                      pybind11::return_value_policy::reference)
+                      py::return_value_policy::reference)
           .def("add_publisher", &espp::EventManager::add_publisher, py::arg("topic"),
                py::arg("component"),
                "*\n   * @brief Register a publisher for \\p component on \\p topic.\n   * @param "
@@ -252,15 +252,16 @@ void py_init_module_espp(py::module &m) {
       "example\n");
 
   { // inner classes & enums of Logger
-    py::enum_<espp::Logger::Verbosity>(
-        pyClassLogger, "Verbosity", py::arithmetic(),
-        "*\n   *   Verbosity levels for the logger, in order of increasing priority.\n")
-        .value("debug", espp::Logger::Verbosity::DEBUG, "*< Debug level verbosity.")
-        .value("info", espp::Logger::Verbosity::INFO, "*< Info level verbosity.")
-        .value("warn", espp::Logger::Verbosity::WARN, "*< Warn level verbosity.")
-        .value("error", espp::Logger::Verbosity::ERROR, "*< Error level verbosity.")
-        .value("none", espp::Logger::Verbosity::NONE,
-               "*< No verbosity - logger will not print anything.");
+    auto pyEnumVerbosity =
+        py::enum_<espp::Logger::Verbosity>(
+            pyClassLogger, "Verbosity", py::arithmetic(),
+            "*\n   *   Verbosity levels for the logger, in order of increasing priority.\n")
+            .value("debug", espp::Logger::Verbosity::DEBUG, "*< Debug level verbosity.")
+            .value("info", espp::Logger::Verbosity::INFO, "*< Info level verbosity.")
+            .value("warn", espp::Logger::Verbosity::WARN, "*< Warn level verbosity.")
+            .value("error", espp::Logger::Verbosity::ERROR, "*< Error level verbosity.")
+            .value("none", espp::Logger::Verbosity::NONE,
+                   "*< No verbosity - logger will not print anything.");
     auto pyClassLogger_ClassConfig =
         py::class_<espp::Logger::Config>(pyClassLogger, "Config", py::dynamic_attr(),
                                          "*\n   * @brief Configuration struct for the logger.\n")
@@ -1071,175 +1072,186 @@ void py_init_module_espp(py::module &m) {
       "https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef\n *\n");
 
   { // inner classes & enums of Ndef
-    py::enum_<espp::Ndef::TNF>(
-        pyClassNdef, "TNF", py::arithmetic(),
-        "*\n   * @brief Type Name Format (TNF) field is a 3-bit value that describes the\n   *     "
-        "   record type.\n   *\n   * Some Common TNF::WELL_KNOWN record type strings:\n   *   * "
-        "Text (T)\n   *   * URI  (U)\n   *   * Smart Poster (Sp)\n   *   * Alternative Carrier "
-        "(ac)\n   *   * Handover Carrier (Hc)\n   *   * Handover Request (Hr)\n   *   * Handover "
-        "Select (Hs)\n")
-        .value("empty", espp::Ndef::TNF::EMPTY, "/< Record is empty")
-        .value("well_known", espp::Ndef::TNF::WELL_KNOWN,
-               "/< Type field contains a well-known RTD type name")
-        .value("mime_media", espp::Ndef::TNF::MIME_MEDIA,
-               "/< Type field contains a media type (RFC 2046)")
-        .value("absolute_uri", espp::Ndef::TNF::ABSOLUTE_URI,
-               "/< Type field contains an absolute URI (RFC 3986)")
-        .value("external_type", espp::Ndef::TNF::EXTERNAL_TYPE,
-               "/< Type field Contains an external type name")
-        .value("unknown", espp::Ndef::TNF::UNKNOWN,
-               "/< Payload type is unknown, type length must be 0.")
-        .value("unchanged", espp::Ndef::TNF::UNCHANGED,
-               "/< Indicates the payload is an intermediate or final chunk of a chunked NDEF")
-        .value("reserved", espp::Ndef::TNF::RESERVED,
-               "/< Reserved by the NFC forum for future use");
-    py::enum_<espp::Ndef::Uic>(
-        pyClassNdef, "Uic", py::arithmetic(),
-        "*\n   * URI Identifier Codes (UIC), See Table A-3 at\n   * "
-        "https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html\n   * and "
-        "https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef\n")
-        .value("none", espp::Ndef::Uic::NONE, "/< Exactly as written")
-        .value("http_www", espp::Ndef::Uic::HTTP_WWW, "/< http://www.")
-        .value("https_www", espp::Ndef::Uic::HTTPS_WWW, "/< https://www.")
-        .value("http", espp::Ndef::Uic::HTTP, "/< http://")
-        .value("https", espp::Ndef::Uic::HTTPS, "/< https://")
-        .value("tel", espp::Ndef::Uic::TEL, "/< tel:")
-        .value("mailto", espp::Ndef::Uic::MAILTO, "/< mailto:")
-        .value("ftp_anon", espp::Ndef::Uic::FTP_ANON, "/< ftp://anonymous:anonymous@")
-        .value("ftp_ftp", espp::Ndef::Uic::FTP_FTP, "/< ftp://ftp.")
-        .value("ftps", espp::Ndef::Uic::FTPS, "/< ftps://")
-        .value("sftp", espp::Ndef::Uic::SFTP, "/< sftp://")
-        .value("smb", espp::Ndef::Uic::SMB, "/< smb://")
-        .value("nfs", espp::Ndef::Uic::NFS, "/< nfs://")
-        .value("ftp", espp::Ndef::Uic::FTP, "/< ftp://")
-        .value("dav", espp::Ndef::Uic::DAV, "/< dav://")
-        .value("news", espp::Ndef::Uic::NEWS, "/< news:")
-        .value("telnet", espp::Ndef::Uic::TELNET, "/< telnet://")
-        .value("imap", espp::Ndef::Uic::IMAP, "/< imap:")
-        .value("rstp", espp::Ndef::Uic::RSTP, "/< rtsp://")
-        .value("urn", espp::Ndef::Uic::URN, "/< urn:")
-        .value("pop", espp::Ndef::Uic::POP, "/< pop:")
-        .value("sip", espp::Ndef::Uic::SIP, "/< sip:")
-        .value("sips", espp::Ndef::Uic::SIPS, "/< sips:")
-        .value("tftp", espp::Ndef::Uic::TFTP, "/< tftp:")
-        .value("btspp", espp::Ndef::Uic::BTSPP, "/< btspp://")
-        .value("btl2_cap", espp::Ndef::Uic::BTL2CAP, "/< btl2cap://")
-        .value("btgoep", espp::Ndef::Uic::BTGOEP, "/< btgoep://")
-        .value("tcpobex", espp::Ndef::Uic::TCPOBEX, "/< tcpobex://")
-        .value("irdaobex", espp::Ndef::Uic::IRDAOBEX, "/< irdaobex://")
-        .value("file", espp::Ndef::Uic::FILE, "/< file://")
-        .value("urn_epc_id", espp::Ndef::Uic::URN_EPC_ID, "/< urn:epc:id:")
-        .value("urn_epc_tag", espp::Ndef::Uic::URN_EPC_TAG, "/< urn:epc:tag:")
-        .value("urn_epc_pat", espp::Ndef::Uic::URN_EPC_PAT, "/< urn:epc:pat:")
-        .value("urn_epc_raw", espp::Ndef::Uic::URN_EPC_RAW, "/< urn:epc:raw:")
-        .value("urn_epc", espp::Ndef::Uic::URN_EPC, "/< urn:epc:")
-        .value("urn_nfc", espp::Ndef::Uic::URN_NFC, "/< urn:nfc:");
-    py::enum_<espp::Ndef::BtType>(pyClassNdef, "BtType", py::arithmetic(),
-                                  "*\n   * @brief Type of Bluetooth radios.\n")
-        .value("bredr", espp::Ndef::BtType::BREDR, "/< BT Classic")
-        .value("ble", espp::Ndef::BtType::BLE, "/< BT Low Energy");
-    py::enum_<espp::Ndef::BtAppearance>(pyClassNdef, "BtAppearance", py::arithmetic(),
-                                        "*\n   * @brief Some appearance codes for BLE radios.\n")
-        .value("unknown", espp::Ndef::BtAppearance::UNKNOWN, "/< Generic Unknown")
-        .value("phone", espp::Ndef::BtAppearance::PHONE, "/< Generic Phone")
-        .value("computer", espp::Ndef::BtAppearance::COMPUTER, "/< Generic Computer")
-        .value("watch", espp::Ndef::BtAppearance::WATCH, "/< Generic Watch")
-        .value("clock", espp::Ndef::BtAppearance::CLOCK, "/< Generic Clock")
-        .value("display", espp::Ndef::BtAppearance::DISPLAY, "/< Generic Display")
-        .value("remote_control", espp::Ndef::BtAppearance::REMOTE_CONTROL,
-               "/< Generic Remote Control")
-        .value("generic_hid", espp::Ndef::BtAppearance::GENERIC_HID, "/< Generic HID")
-        .value("keyboard", espp::Ndef::BtAppearance::KEYBOARD, "/< HID Keyboard")
-        .value("mouse", espp::Ndef::BtAppearance::MOUSE, "/< HID Mouse")
-        .value("joystick", espp::Ndef::BtAppearance::JOYSTICK, "/< HID Joystick")
-        .value("gamepad", espp::Ndef::BtAppearance::GAMEPAD, "/< HID Gamepad")
-        .value("touchpad", espp::Ndef::BtAppearance::TOUCHPAD, "/< HID Touchpad")
-        .value("gaming", espp::Ndef::BtAppearance::GAMING, "/< Generic Gaming group");
-    py::enum_<espp::Ndef::CarrierPowerState>(
-        pyClassNdef, "CarrierPowerState", py::arithmetic(),
-        "*\n   * @brief Power state of a BLE radio.\n   * @details Representation of the carrier "
-        "power state in a Handover Select\n   *          message.\n")
-        .value("inactive", espp::Ndef::CarrierPowerState::INACTIVE, "/< Carrier power is off")
-        .value("active", espp::Ndef::CarrierPowerState::ACTIVE, "/< Carrier power is on")
-        .value("activating", espp::Ndef::CarrierPowerState::ACTIVATING,
-               "/< Carrier power is turning on")
-        .value("unknown", espp::Ndef::CarrierPowerState::UNKNOWN,
-               "/< Carrier power state is unknown");
-    py::enum_<espp::Ndef::BtEir>(
-        pyClassNdef, "BtEir", py::arithmetic(),
-        "*\n   * @brief Extended Inquiry Response (EIR) codes for data types in BT and BLE\n   *   "
-        "     out of band (OOB) pairing NDEF records.\n")
-        .value("flags", espp::Ndef::BtEir::FLAGS,
-               "/< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode,")
-        .value("uuids_16_bit_partial", espp::Ndef::BtEir::UUIDS_16_BIT_PARTIAL,
-               "/< Incomplete list of 16 bit service class UUIDs")
-        .value("uuids_16_bit_complete", espp::Ndef::BtEir::UUIDS_16_BIT_COMPLETE,
-               "/< Complete list of 16 bit service class UUIDs")
-        .value("uuids_32_bit_partial", espp::Ndef::BtEir::UUIDS_32_BIT_PARTIAL,
-               "/< Incomplete list of 32 bit service class UUIDs")
-        .value("uuids_32_bit_complete", espp::Ndef::BtEir::UUIDS_32_BIT_COMPLETE,
-               "/< Complete list of 32 bit service class UUIDs")
-        .value("uuids_128_bit_partial", espp::Ndef::BtEir::UUIDS_128_BIT_PARTIAL,
-               "/< Incomplete list of 128 bit service class UUIDs")
-        .value("uuids_128_bit_complete", espp::Ndef::BtEir::UUIDS_128_BIT_COMPLETE,
-               "/< Complete list of 128 bit service class UUIDs")
-        .value("short_local_name", espp::Ndef::BtEir::SHORT_LOCAL_NAME,
-               "/< Shortened Bluetooth Local Name")
-        .value("long_local_name", espp::Ndef::BtEir::LONG_LOCAL_NAME,
-               "/< Complete Bluetooth Local Name")
-        .value("tx_power_level", espp::Ndef::BtEir::TX_POWER_LEVEL,
-               "/< TX Power level (1 byte), -127 dBm to +127 dBm")
-        .value("class_of_device", espp::Ndef::BtEir::CLASS_OF_DEVICE, "/< Class of Device")
-        .value("sp_hash_c192", espp::Ndef::BtEir::SP_HASH_C192, "/< Simple Pairing Hash C-192")
-        .value("sp_random_r192", espp::Ndef::BtEir::SP_RANDOM_R192,
-               "/< Simple Pairing Randomizer R-192")
-        .value("security_manager_tk", espp::Ndef::BtEir::SECURITY_MANAGER_TK,
-               "/< Security Manager TK Value (LE Legacy Pairing)")
-        .value(
-            "security_manager_flags", espp::Ndef::BtEir::SECURITY_MANAGER_FLAGS,
-            "/< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE Supported")
-        .value("appearance", espp::Ndef::BtEir::APPEARANCE, "/< Appearance")
-        .value("mac", espp::Ndef::BtEir::MAC, "/< Bluetooth Device Address")
-        .value("le_role", espp::Ndef::BtEir::LE_ROLE, "/< LE Role")
-        .value("sp_hash_c256", espp::Ndef::BtEir::SP_HASH_C256, "/< Simple Pairing Hash C-256")
-        .value("sp_hash_r256", espp::Ndef::BtEir::SP_HASH_R256,
-               "/< Simple Pairing Randomizer R-256")
-        .value("le_sc_confirmation", espp::Ndef::BtEir::LE_SC_CONFIRMATION,
-               "/< LE Secure Connections Confirmation Value")
-        .value("le_sc_random", espp::Ndef::BtEir::LE_SC_RANDOM,
-               "/< LE Secure Connections Random Value");
-    py::enum_<espp::Ndef::BleRole>(
-        pyClassNdef, "BleRole", py::arithmetic(),
-        "*\n   * @brief Possible roles for BLE records to indicate support for.\n")
-        .value("peripheral_only", espp::Ndef::BleRole::PERIPHERAL_ONLY,
-               "/< Radio can only act as a peripheral")
-        .value("central_only", espp::Ndef::BleRole::CENTRAL_ONLY,
-               "/< Radio can only act as a central")
-        .value("peripheral_central", espp::Ndef::BleRole::PERIPHERAL_CENTRAL,
-               "/< Radio can act as both a peripheral and a central, but prefers peripheral")
-        .value("central_peripheral", espp::Ndef::BleRole::CENTRAL_PERIPHERAL,
-               "/< Radio can act as both a peripheral and a central, but prefers central");
-    py::enum_<espp::Ndef::WifiEncryptionType>(
-        pyClassNdef, "WifiEncryptionType", py::arithmetic(),
-        "*\n   * @brief Types of configurable encryption for WiFi networks\n")
-        .value("none", espp::Ndef::WifiEncryptionType::NONE, "/< No encryption")
-        .value("wep", espp::Ndef::WifiEncryptionType::WEP, "/< WEP")
-        .value("tkip", espp::Ndef::WifiEncryptionType::TKIP, "/< TKIP")
-        .value("aes", espp::Ndef::WifiEncryptionType::AES, "/< AES");
-    py::enum_<espp::Ndef::WifiAuthenticationType>(pyClassNdef, "WifiAuthenticationType",
-                                                  py::arithmetic(),
-                                                  "*\n   * @brief WiFi network authentication\n")
-        .value("open", espp::Ndef::WifiAuthenticationType::OPEN, "/< Open / no security")
-        .value("wpa_personal", espp::Ndef::WifiAuthenticationType::WPA_PERSONAL, "/< WPA personal")
-        .value("shared", espp::Ndef::WifiAuthenticationType::SHARED, "/< Shared key")
-        .value("wpa_enterprise", espp::Ndef::WifiAuthenticationType::WPA_ENTERPRISE,
-               "/< WPA enterprise")
-        .value("wpa2_enterprise", espp::Ndef::WifiAuthenticationType::WPA2_ENTERPRISE,
-               "/< WPA2 Enterprise")
-        .value("wpa2_personal", espp::Ndef::WifiAuthenticationType::WPA2_PERSONAL,
-               "/< WPA2 personal")
-        .value("wpa_wpa2_personal", espp::Ndef::WifiAuthenticationType::WPA_WPA2_PERSONAL,
-               "/< Both WPA and WPA2 personal");
+    auto pyEnumTNF =
+        py::enum_<espp::Ndef::TNF>(
+            pyClassNdef, "TNF", py::arithmetic(),
+            "*\n   * @brief Type Name Format (TNF) field is a 3-bit value that describes the\n   * "
+            "       record type.\n   *\n   * Some Common TNF::WELL_KNOWN record type strings:\n   "
+            "*   * Text (T)\n   *   * URI  (U)\n   *   * Smart Poster (Sp)\n   *   * Alternative "
+            "Carrier (ac)\n   *   * Handover Carrier (Hc)\n   *   * Handover Request (Hr)\n   *   "
+            "* Handover Select (Hs)\n")
+            .value("empty", espp::Ndef::TNF::EMPTY, "/< Record is empty")
+            .value("well_known", espp::Ndef::TNF::WELL_KNOWN,
+                   "/< Type field contains a well-known RTD type name")
+            .value("mime_media", espp::Ndef::TNF::MIME_MEDIA,
+                   "/< Type field contains a media type (RFC 2046)")
+            .value("absolute_uri", espp::Ndef::TNF::ABSOLUTE_URI,
+                   "/< Type field contains an absolute URI (RFC 3986)")
+            .value("external_type", espp::Ndef::TNF::EXTERNAL_TYPE,
+                   "/< Type field Contains an external type name")
+            .value("unknown", espp::Ndef::TNF::UNKNOWN,
+                   "/< Payload type is unknown, type length must be 0.")
+            .value("unchanged", espp::Ndef::TNF::UNCHANGED,
+                   "/< Indicates the payload is an intermediate or final chunk of a chunked NDEF")
+            .value("reserved", espp::Ndef::TNF::RESERVED,
+                   "/< Reserved by the NFC forum for future use");
+    auto pyEnumUic =
+        py::enum_<espp::Ndef::Uic>(
+            pyClassNdef, "Uic", py::arithmetic(),
+            "*\n   * URI Identifier Codes (UIC), See Table A-3 at\n   * "
+            "https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html\n   * and "
+            "https://learn.adafruit.com/adafruit-pn532-rfid-nfc/ndef\n")
+            .value("none", espp::Ndef::Uic::NONE, "/< Exactly as written")
+            .value("http_www", espp::Ndef::Uic::HTTP_WWW, "/< http://www.")
+            .value("https_www", espp::Ndef::Uic::HTTPS_WWW, "/< https://www.")
+            .value("http", espp::Ndef::Uic::HTTP, "/< http://")
+            .value("https", espp::Ndef::Uic::HTTPS, "/< https://")
+            .value("tel", espp::Ndef::Uic::TEL, "/< tel:")
+            .value("mailto", espp::Ndef::Uic::MAILTO, "/< mailto:")
+            .value("ftp_anon", espp::Ndef::Uic::FTP_ANON, "/< ftp://anonymous:anonymous@")
+            .value("ftp_ftp", espp::Ndef::Uic::FTP_FTP, "/< ftp://ftp.")
+            .value("ftps", espp::Ndef::Uic::FTPS, "/< ftps://")
+            .value("sftp", espp::Ndef::Uic::SFTP, "/< sftp://")
+            .value("smb", espp::Ndef::Uic::SMB, "/< smb://")
+            .value("nfs", espp::Ndef::Uic::NFS, "/< nfs://")
+            .value("ftp", espp::Ndef::Uic::FTP, "/< ftp://")
+            .value("dav", espp::Ndef::Uic::DAV, "/< dav://")
+            .value("news", espp::Ndef::Uic::NEWS, "/< news:")
+            .value("telnet", espp::Ndef::Uic::TELNET, "/< telnet://")
+            .value("imap", espp::Ndef::Uic::IMAP, "/< imap:")
+            .value("rstp", espp::Ndef::Uic::RSTP, "/< rtsp://")
+            .value("urn", espp::Ndef::Uic::URN, "/< urn:")
+            .value("pop", espp::Ndef::Uic::POP, "/< pop:")
+            .value("sip", espp::Ndef::Uic::SIP, "/< sip:")
+            .value("sips", espp::Ndef::Uic::SIPS, "/< sips:")
+            .value("tftp", espp::Ndef::Uic::TFTP, "/< tftp:")
+            .value("btspp", espp::Ndef::Uic::BTSPP, "/< btspp://")
+            .value("btl2_cap", espp::Ndef::Uic::BTL2CAP, "/< btl2cap://")
+            .value("btgoep", espp::Ndef::Uic::BTGOEP, "/< btgoep://")
+            .value("tcpobex", espp::Ndef::Uic::TCPOBEX, "/< tcpobex://")
+            .value("irdaobex", espp::Ndef::Uic::IRDAOBEX, "/< irdaobex://")
+            .value("file", espp::Ndef::Uic::FILE, "/< file://")
+            .value("urn_epc_id", espp::Ndef::Uic::URN_EPC_ID, "/< urn:epc:id:")
+            .value("urn_epc_tag", espp::Ndef::Uic::URN_EPC_TAG, "/< urn:epc:tag:")
+            .value("urn_epc_pat", espp::Ndef::Uic::URN_EPC_PAT, "/< urn:epc:pat:")
+            .value("urn_epc_raw", espp::Ndef::Uic::URN_EPC_RAW, "/< urn:epc:raw:")
+            .value("urn_epc", espp::Ndef::Uic::URN_EPC, "/< urn:epc:")
+            .value("urn_nfc", espp::Ndef::Uic::URN_NFC, "/< urn:nfc:");
+    auto pyEnumBtType = py::enum_<espp::Ndef::BtType>(pyClassNdef, "BtType", py::arithmetic(),
+                                                      "*\n   * @brief Type of Bluetooth radios.\n")
+                            .value("bredr", espp::Ndef::BtType::BREDR, "/< BT Classic")
+                            .value("ble", espp::Ndef::BtType::BLE, "/< BT Low Energy");
+    auto pyEnumBtAppearance =
+        py::enum_<espp::Ndef::BtAppearance>(
+            pyClassNdef, "BtAppearance", py::arithmetic(),
+            "*\n   * @brief Some appearance codes for BLE radios.\n")
+            .value("unknown", espp::Ndef::BtAppearance::UNKNOWN, "/< Generic Unknown")
+            .value("phone", espp::Ndef::BtAppearance::PHONE, "/< Generic Phone")
+            .value("computer", espp::Ndef::BtAppearance::COMPUTER, "/< Generic Computer")
+            .value("watch", espp::Ndef::BtAppearance::WATCH, "/< Generic Watch")
+            .value("clock", espp::Ndef::BtAppearance::CLOCK, "/< Generic Clock")
+            .value("display", espp::Ndef::BtAppearance::DISPLAY, "/< Generic Display")
+            .value("remote_control", espp::Ndef::BtAppearance::REMOTE_CONTROL,
+                   "/< Generic Remote Control")
+            .value("generic_hid", espp::Ndef::BtAppearance::GENERIC_HID, "/< Generic HID")
+            .value("keyboard", espp::Ndef::BtAppearance::KEYBOARD, "/< HID Keyboard")
+            .value("mouse", espp::Ndef::BtAppearance::MOUSE, "/< HID Mouse")
+            .value("joystick", espp::Ndef::BtAppearance::JOYSTICK, "/< HID Joystick")
+            .value("gamepad", espp::Ndef::BtAppearance::GAMEPAD, "/< HID Gamepad")
+            .value("touchpad", espp::Ndef::BtAppearance::TOUCHPAD, "/< HID Touchpad")
+            .value("gaming", espp::Ndef::BtAppearance::GAMING, "/< Generic Gaming group");
+    auto pyEnumCarrierPowerState =
+        py::enum_<espp::Ndef::CarrierPowerState>(
+            pyClassNdef, "CarrierPowerState", py::arithmetic(),
+            "*\n   * @brief Power state of a BLE radio.\n   * @details Representation of the "
+            "carrier power state in a Handover Select\n   *          message.\n")
+            .value("inactive", espp::Ndef::CarrierPowerState::INACTIVE, "/< Carrier power is off")
+            .value("active", espp::Ndef::CarrierPowerState::ACTIVE, "/< Carrier power is on")
+            .value("activating", espp::Ndef::CarrierPowerState::ACTIVATING,
+                   "/< Carrier power is turning on")
+            .value("unknown", espp::Ndef::CarrierPowerState::UNKNOWN,
+                   "/< Carrier power state is unknown");
+    auto pyEnumBtEir =
+        py::enum_<espp::Ndef::BtEir>(
+            pyClassNdef, "BtEir", py::arithmetic(),
+            "*\n   * @brief Extended Inquiry Response (EIR) codes for data types in BT and BLE\n   "
+            "*        out of band (OOB) pairing NDEF records.\n")
+            .value(
+                "flags", espp::Ndef::BtEir::FLAGS,
+                "/< BT flags: b0: LE limited discoverable mode, b1: LE general discoverable mode,")
+            .value("uuids_16_bit_partial", espp::Ndef::BtEir::UUIDS_16_BIT_PARTIAL,
+                   "/< Incomplete list of 16 bit service class UUIDs")
+            .value("uuids_16_bit_complete", espp::Ndef::BtEir::UUIDS_16_BIT_COMPLETE,
+                   "/< Complete list of 16 bit service class UUIDs")
+            .value("uuids_32_bit_partial", espp::Ndef::BtEir::UUIDS_32_BIT_PARTIAL,
+                   "/< Incomplete list of 32 bit service class UUIDs")
+            .value("uuids_32_bit_complete", espp::Ndef::BtEir::UUIDS_32_BIT_COMPLETE,
+                   "/< Complete list of 32 bit service class UUIDs")
+            .value("uuids_128_bit_partial", espp::Ndef::BtEir::UUIDS_128_BIT_PARTIAL,
+                   "/< Incomplete list of 128 bit service class UUIDs")
+            .value("uuids_128_bit_complete", espp::Ndef::BtEir::UUIDS_128_BIT_COMPLETE,
+                   "/< Complete list of 128 bit service class UUIDs")
+            .value("short_local_name", espp::Ndef::BtEir::SHORT_LOCAL_NAME,
+                   "/< Shortened Bluetooth Local Name")
+            .value("long_local_name", espp::Ndef::BtEir::LONG_LOCAL_NAME,
+                   "/< Complete Bluetooth Local Name")
+            .value("tx_power_level", espp::Ndef::BtEir::TX_POWER_LEVEL,
+                   "/< TX Power level (1 byte), -127 dBm to +127 dBm")
+            .value("class_of_device", espp::Ndef::BtEir::CLASS_OF_DEVICE, "/< Class of Device")
+            .value("sp_hash_c192", espp::Ndef::BtEir::SP_HASH_C192, "/< Simple Pairing Hash C-192")
+            .value("sp_random_r192", espp::Ndef::BtEir::SP_RANDOM_R192,
+                   "/< Simple Pairing Randomizer R-192")
+            .value("security_manager_tk", espp::Ndef::BtEir::SECURITY_MANAGER_TK,
+                   "/< Security Manager TK Value (LE Legacy Pairing)")
+            .value("security_manager_flags", espp::Ndef::BtEir::SECURITY_MANAGER_FLAGS,
+                   "/< Flags (1 B), b0: OOB flags field (1 = 00B data present, 0 not), b1: LE "
+                   "Supported")
+            .value("appearance", espp::Ndef::BtEir::APPEARANCE, "/< Appearance")
+            .value("mac", espp::Ndef::BtEir::MAC, "/< Bluetooth Device Address")
+            .value("le_role", espp::Ndef::BtEir::LE_ROLE, "/< LE Role")
+            .value("sp_hash_c256", espp::Ndef::BtEir::SP_HASH_C256, "/< Simple Pairing Hash C-256")
+            .value("sp_hash_r256", espp::Ndef::BtEir::SP_HASH_R256,
+                   "/< Simple Pairing Randomizer R-256")
+            .value("le_sc_confirmation", espp::Ndef::BtEir::LE_SC_CONFIRMATION,
+                   "/< LE Secure Connections Confirmation Value")
+            .value("le_sc_random", espp::Ndef::BtEir::LE_SC_RANDOM,
+                   "/< LE Secure Connections Random Value");
+    auto pyEnumBleRole =
+        py::enum_<espp::Ndef::BleRole>(
+            pyClassNdef, "BleRole", py::arithmetic(),
+            "*\n   * @brief Possible roles for BLE records to indicate support for.\n")
+            .value("peripheral_only", espp::Ndef::BleRole::PERIPHERAL_ONLY,
+                   "/< Radio can only act as a peripheral")
+            .value("central_only", espp::Ndef::BleRole::CENTRAL_ONLY,
+                   "/< Radio can only act as a central")
+            .value("peripheral_central", espp::Ndef::BleRole::PERIPHERAL_CENTRAL,
+                   "/< Radio can act as both a peripheral and a central, but prefers peripheral")
+            .value("central_peripheral", espp::Ndef::BleRole::CENTRAL_PERIPHERAL,
+                   "/< Radio can act as both a peripheral and a central, but prefers central");
+    auto pyEnumWifiEncryptionType =
+        py::enum_<espp::Ndef::WifiEncryptionType>(
+            pyClassNdef, "WifiEncryptionType", py::arithmetic(),
+            "*\n   * @brief Types of configurable encryption for WiFi networks\n")
+            .value("none", espp::Ndef::WifiEncryptionType::NONE, "/< No encryption")
+            .value("wep", espp::Ndef::WifiEncryptionType::WEP, "/< WEP")
+            .value("tkip", espp::Ndef::WifiEncryptionType::TKIP, "/< TKIP")
+            .value("aes", espp::Ndef::WifiEncryptionType::AES, "/< AES");
+    auto pyEnumWifiAuthenticationType =
+        py::enum_<espp::Ndef::WifiAuthenticationType>(
+            pyClassNdef, "WifiAuthenticationType", py::arithmetic(),
+            "*\n   * @brief WiFi network authentication\n")
+            .value("open", espp::Ndef::WifiAuthenticationType::OPEN, "/< Open / no security")
+            .value("wpa_personal", espp::Ndef::WifiAuthenticationType::WPA_PERSONAL,
+                   "/< WPA personal")
+            .value("shared", espp::Ndef::WifiAuthenticationType::SHARED, "/< Shared key")
+            .value("wpa_enterprise", espp::Ndef::WifiAuthenticationType::WPA_ENTERPRISE,
+                   "/< WPA enterprise")
+            .value("wpa2_enterprise", espp::Ndef::WifiAuthenticationType::WPA2_ENTERPRISE,
+                   "/< WPA2 Enterprise")
+            .value("wpa2_personal", espp::Ndef::WifiAuthenticationType::WPA2_PERSONAL,
+                   "/< WPA2 personal")
+            .value("wpa_wpa2_personal", espp::Ndef::WifiAuthenticationType::WPA_WPA2_PERSONAL,
+                   "/< Both WPA and WPA2 personal");
     auto pyClassNdef_ClassWifiConfig =
         py::class_<espp::Ndef::WifiConfig>(
             pyClassNdef, "WifiConfig", py::dynamic_attr(),
@@ -1468,10 +1480,12 @@ void py_init_module_espp(py::module &m) {
                                "functions for\n *          configuring the socket.\n");
 
   { // inner classes & enums of Socket
-    py::enum_<espp::Socket::Type>(pyClassSocket, "Type", py::arithmetic(), "")
-        .value("raw", espp::Socket::Type::RAW, "*< Only IP headers, no TCP or UDP headers as well.")
-        .value("dgram", espp::Socket::Type::DGRAM, "*< UDP/IP socket - datagram.")
-        .value("stream", espp::Socket::Type::STREAM, "*< TCP/IP socket - stream.");
+    auto pyEnumType =
+        py::enum_<espp::Socket::Type>(pyClassSocket, "Type", py::arithmetic(), "")
+            .value("raw", espp::Socket::Type::RAW,
+                   "*< Only IP headers, no TCP or UDP headers as well.")
+            .value("dgram", espp::Socket::Type::DGRAM, "*< UDP/IP socket - datagram.")
+            .value("stream", espp::Socket::Type::STREAM, "*< TCP/IP socket - stream.");
     auto pyClassSocket_ClassInfo =
         py::class_<espp::Socket::Info>(
             pyClassSocket, "Info", py::dynamic_attr(),
@@ -1868,10 +1882,14 @@ void py_init_module_espp(py::module &m) {
       "\\section task_ex2 Task Watchdog Example\n * \\snippet task_example.cpp task watchdog "
       "example\n * \\section task_ex3 Many Task Example\n * \\snippet task_example.cpp ManyTask "
       "example\n * \\section task_ex4 Long Running Task Example\n * \\snippet task_example.cpp "
-      "LongRunningTask example\n * \\section task_ex5 Task Info Example\n * \\snippet "
-      "task_example.cpp Task Info example\n * \\section task_ex6 Task Request Stop Example\n * "
+      "LongRunningTask example\n * \\section task_ex4 Long Running Task Example using notification "
+      "flag (recommended to avoid\n * spurious wakeups) \\snippet task_example.cpp "
+      "LongRunningTaskNotified example \\section task_ex5\n * Task Info Example \\snippet "
+      "task_example.cpp Task Info example \\section task_ex6 Task Request Stop\n * Example "
       "\\snippet task_example.cpp Task Request Stop example\n *\n * \\section run_on_core_ex1 Run "
-      "on Core Example\n * \\snippet task_example.cpp run on core example\n");
+      "on Core Example\n * \\snippet task_example.cpp run on core example\n * \\section "
+      "run_on_core_ex2 Run on Core (Non-Blocking) Example\n * \\snippet task_example.cpp run on "
+      "core nonblocking example\n");
 
   { // inner classes & enums of Task
     auto pyClassTask_ClassBaseConfig =
@@ -1908,7 +1926,7 @@ void py_init_module_espp(py::module &m) {
             "It is recommended to use the AdvancedConfig struct\n   *       instead.\n")
             .def(py::init<>(
                      [](std::string name = std::string(),
-                        espp::Task::callback_fn callback = espp::Task::callback_fn(),
+                        espp::Task::callback_variant callback = espp::Task::callback_variant(),
                         size_t stack_size_bytes = {4096}, size_t priority = {0}, int core_id = {-1},
                         espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
                        auto r = std::make_unique<espp::Task::Config>();
@@ -1920,7 +1938,8 @@ void py_init_module_espp(py::module &m) {
                        r->log_level = log_level;
                        return r;
                      }),
-                 py::arg("name") = std::string(), py::arg("callback") = espp::Task::callback_fn(),
+                 py::arg("name") = std::string(),
+                 py::arg("callback") = espp::Task::callback_variant(),
                  py::arg("stack_size_bytes") = size_t{4096}, py::arg("priority") = size_t{0},
                  py::arg("core_id") = int{-1},
                  py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
@@ -1940,19 +1959,20 @@ void py_init_module_espp(py::module &m) {
             "*\n   * @brief Simple configuration struct for the Task.\n   * @note This is useful "
             "for when you don't need to use the condition variable\n   *       or mutex in the "
             "callback.\n")
-            .def(py::init<>(
-                     [](espp::Task::simple_callback_fn callback = espp::Task::simple_callback_fn(),
-                        espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
-                        espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                       auto r = std::make_unique<espp::Task::SimpleConfig>();
-                       r->callback = callback;
-                       r->task_config = task_config;
-                       r->log_level = log_level;
-                       return r;
-                     }),
-                 py::arg("callback") = espp::Task::simple_callback_fn(),
-                 py::arg("task_config") = espp::Task::BaseConfig(),
-                 py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def(
+                py::init<>([](espp::Task::callback_no_params_fn callback =
+                                  espp::Task::callback_no_params_fn(),
+                              espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
+                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                  auto r = std::make_unique<espp::Task::SimpleConfig>();
+                  r->callback = callback;
+                  r->task_config = task_config;
+                  r->log_level = log_level;
+                  return r;
+                }),
+                py::arg("callback") = espp::Task::callback_no_params_fn(),
+                py::arg("task_config") = espp::Task::BaseConfig(),
+                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
             .def_readwrite("callback", &espp::Task::SimpleConfig::callback, "*< Callback function")
             .def_readwrite("task_config", &espp::Task::SimpleConfig::task_config,
                            "*< Base configuration for the task.")
@@ -1964,19 +1984,19 @@ void py_init_module_espp(py::module &m) {
             "*\n   * @brief Advanced configuration struct for the Task.\n   * @note This is the "
             "recommended way to configure the Task, and allows you to\n   *       use the "
             "condition variable and mutex from the task to wait_for and\n   *       wait_until.\n")
-            .def(
-                py::init<>([](espp::Task::callback_fn callback = espp::Task::callback_fn(),
-                              espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
-                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                  auto r = std::make_unique<espp::Task::AdvancedConfig>();
-                  r->callback = callback;
-                  r->task_config = task_config;
-                  r->log_level = log_level;
-                  return r;
-                }),
-                py::arg("callback") = espp::Task::callback_fn(),
-                py::arg("task_config") = espp::Task::BaseConfig(),
-                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def(py::init<>(
+                     [](espp::Task::callback_variant callback = espp::Task::callback_variant(),
+                        espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
+                        espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                       auto r = std::make_unique<espp::Task::AdvancedConfig>();
+                       r->callback = callback;
+                       r->task_config = task_config;
+                       r->log_level = log_level;
+                       return r;
+                     }),
+                 py::arg("callback") = espp::Task::callback_variant(),
+                 py::arg("task_config") = espp::Task::BaseConfig(),
+                 py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
             .def_readwrite("callback", &espp::Task::AdvancedConfig::callback,
                            "*< Callback function")
             .def_readwrite("task_config", &espp::Task::AdvancedConfig::task_config,
@@ -2191,16 +2211,16 @@ void py_init_module_espp(py::module &m) {
       "Example\n * \\snippet joystick_example.cpp adc joystick example\n");
 
   { // inner classes & enums of Joystick
-    py::enum_<espp::Joystick::Type>(
-        pyClassJoystick, "Type", py::arithmetic(),
-        "*\n   * @brief Type of the joystick.\n   * @note When using a Type::CIRCULAR joystick, "
-        "it's recommended to set the\n   *       individual x/y calibration deadzones to be 0 and "
-        "to only use the\n   *       deadzone_radius field to set the deadzone around the "
-        "center.\n")
-        .value("rectangular", espp::Joystick::Type::RECTANGULAR,
-               "/< The default type of joystick. Uses the rangemappers for")
-        .value("circular", espp::Joystick::Type::CIRCULAR,
-               "/< The joystick is configured to have a circular output. This");
+    auto pyEnumType = py::enum_<espp::Joystick::Type>(
+                          pyClassJoystick, "Type", py::arithmetic(),
+                          "*\n   * @brief Type of the joystick.\n   * @note When using a "
+                          "Type::CIRCULAR joystick, it's recommended to set the\n   *       "
+                          "individual x/y calibration deadzones to be 0 and to only use the\n   *  "
+                          "     deadzone_radius field to set the deadzone around the center.\n")
+                          .value("rectangular", espp::Joystick::Type::RECTANGULAR,
+                                 "/< The default type of joystick. Uses the rangemappers for")
+                          .value("circular", espp::Joystick::Type::CIRCULAR,
+                                 "/< The joystick is configured to have a circular output. This");
     auto pyClassJoystick_ClassConfig =
         py::class_<espp::Joystick::Config>(
             pyClassJoystick, "Config", py::dynamic_attr(),
@@ -2377,8 +2397,10 @@ void py_init_module_espp(py::module &m) {
                 "*< Quality (Q) factor of the filter. The higher the Q the better the filter.");
   } // end of inner classes & enums of LowpassFilter
 
-  pyClassLowpassFilter
-      .def(py::init<>()) // implicit default constructor
+  pyClassLowpassFilter.def(py::init<>())
+      .def("configure", &espp::LowpassFilter::configure, py::arg("config"),
+           "*\n   * @brief Set the filter coefficients based on the config.\n   * @param config "
+           "Configuration struct.\n")
       .def("update",
            py::overload_cast<const float *, float *, size_t>(&espp::LowpassFilter::update),
            py::arg("input"), py::arg("output"), py::arg("length"),
@@ -2397,7 +2419,9 @@ void py_init_module_espp(py::module &m) {
       .def("__call__", &espp::LowpassFilter::operator(), py::arg("input"),
            "*\n   * @brief Filter the signal sampled by input, updating internal state, and\n   *  "
            "      returning the filtered output.\n   * @param input New sample of the input "
-           "data.\n   * @return Filtered output based on input and history.\n");
+           "data.\n   * @return Filtered output based on input and history.\n")
+      .def("reset", &espp::LowpassFilter::reset,
+           "*\n   * @brief Reset the filter state to zero.\n");
   ////////////////////    </generated_from:lowpass_filter.hpp>    ////////////////////
 
   ////////////////////    <generated_from:simple_lowpass_filter.hpp>    ////////////////////

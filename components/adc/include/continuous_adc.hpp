@@ -62,11 +62,11 @@ public:
     init(config.channels);
     // and start the task
     using namespace std::placeholders;
-    task_ =
-        espp::Task::make_unique({.name = "ContinuousAdc Task",
-                                 .callback = std::bind(&ContinuousAdc::update_task, this, _1, _2),
-                                 .priority = config.task_priority,
-                                 .log_level = espp::Logger::Verbosity::WARN});
+    task_ = espp::Task::make_unique(
+        {.name = "ContinuousAdc Task",
+         .callback = std::bind(&ContinuousAdc::update_task, this, _1, _2, _3),
+         .priority = config.task_priority,
+         .log_level = espp::Logger::Verbosity::WARN});
     task_->start();
   }
 
@@ -167,7 +167,7 @@ protected:
     return static_cast<int>(unit) * 32 + static_cast<int>(channel);
   }
 
-  bool update_task(std::mutex &task_m, std::condition_variable &task_cv) {
+  bool update_task(std::mutex &task_m, std::condition_variable &task_cv, bool &task_notified) {
     task_handle_ = xTaskGetCurrentTaskHandle();
     static auto previous_timestamp = std::chrono::high_resolution_clock::now();
     // wait until conversion is ready (will be notified by the registered

@@ -11,7 +11,7 @@ Task::Task(const Task::Config &config)
 Task::Task(const Task::SimpleConfig &config)
     : BaseComponent(config.task_config.name, config.log_level)
     , name_(config.task_config.name)
-    , simple_callback_(config.callback)
+    , callback_(config.callback)
     , config_(config.task_config) {}
 
 Task::Task(const Task::AdvancedConfig &config)
@@ -77,6 +77,12 @@ bool Task::start() {
 
   // ensure the thread is not running
   notify_and_join();
+
+  // ensure the notification flag is reset
+  {
+    std::lock_guard<std::mutex> lock(cv_m_);
+    notified_ = false;
+  }
 
   // set the atomic so that when the thread starts it won't immediately
   // exit.
@@ -213,8 +219,9 @@ std::string Task::get_watchdog_info(std::error_code &ec) {
 void Task::notify_and_join() {
   {
     std::lock_guard<std::mutex> lock(cv_m_);
-    cv_.notify_all();
+    notified_ = true;
   }
+  cv_.notify_all();
   auto thread_id = get_id();
   auto current_id = get_current_id();
   logger_.debug("Thread id: {}, current id: {}", thread_id, current_id);
@@ -251,26 +258,27 @@ void Task::thread_function() {
   task_handle_ = get_current_id();
 #endif // ESP_PLATFORM
   while (started_) {
-    if (callback_) {
-      bool should_stop = callback_(cv_m_, cv_);
-      if (should_stop) {
-        // callback returned true, so stop running the thread function
-        logger_.debug("Callback requested stop, thread_function exiting");
-        started_ = false;
-        break;
-      }
-    } else if (simple_callback_) {
-      bool should_stop = simple_callback_();
-      if (should_stop) {
-        // callback returned true, so stop running the thread function
-        logger_.debug("Callback requested stop, thread_function exiting");
-        started_ = false;
-        break;
-      }
+    bool should_stop = false;
+    if (std::holds_alternative<callback_m_cv_notified_fn>(callback_)) {
+      auto cb = std::get<callback_m_cv_notified_fn>(callback_);
+      should_stop = cb(cv_m_, cv_, notified_);
+    } else if (std::holds_alternative<callback_m_cv_fn>(callback_)) {
+      auto cb = std::get<callback_m_cv_fn>(callback_);
+      should_stop = cb(cv_m_, cv_);
+    } else if (std::holds_alternative<callback_no_params_fn>(callback_)) {
+      auto cb = std::get<callback_no_params_fn>(callback_);
+      should_stop = cb();
     } else {
       started_ = false;
       break;
     }
+    if (should_stop) {
+      // callback returned true, so stop running the thread function
+      logger_.debug("Callback requested stop, thread_function exiting");
+      started_ = false;
+      break;
+    }
+
 #if defined(ESP_PLATFORM) && CONFIG_ESP_TASK_WDT_EN
     // check if the watchdog is enabled
     if (watchdog_started_) {

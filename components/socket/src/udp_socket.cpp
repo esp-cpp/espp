@@ -101,7 +101,7 @@ bool UdpSocket::receive(size_t max_num_bytes, std::vector<uint8_t> &data,
   return true;
 }
 
-bool UdpSocket::start_receiving(Task::Config &task_config,
+bool UdpSocket::start_receiving(Task::BaseConfig &task_config,
                                 const UdpSocket::ReceiveConfig &receive_config) {
   if (task_ && task_->is_started()) {
     logger_.error("Server is alrady receiving");
@@ -138,16 +138,18 @@ bool UdpSocket::start_receiving(Task::Config &task_config,
   }
   // set the callback function
   using namespace std::placeholders;
-  task_config.callback =
-      std::bind(&UdpSocket::server_task_function, this, receive_config.buffer_size, _1, _2);
   // start the thread
-  task_ = Task::make_unique(task_config);
+  task_ = Task::make_unique({
+      .callback =
+          std::bind(&UdpSocket::server_task_function, this, receive_config.buffer_size, _1, _2, _3),
+      .task_config = task_config,
+  });
   task_->start();
   return true;
 }
 
-bool UdpSocket::server_task_function(size_t buffer_size, std::mutex &m,
-                                     std::condition_variable &cv) {
+bool UdpSocket::server_task_function(size_t buffer_size, std::mutex &m, std::condition_variable &cv,
+                                     bool &task_notified) {
   // receive data
   std::vector<uint8_t> received_data;
   Socket::Info sender_info;
@@ -155,7 +157,8 @@ bool UdpSocket::server_task_function(size_t buffer_size, std::mutex &m,
     // if we failed to receive, then likely we should delay a little bit
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, 1ms);
+    cv.wait_for(lk, 1ms, [&task_notified] { return task_notified; });
+    task_notified = false;
     return false;
   }
   if (!server_receive_callback_) {

@@ -12,8 +12,8 @@ Timer::Timer(const Timer::Config &config)
   // make the task
   task_ = espp::Task::make_unique({
       .name = std::string(config.name) + "_task",
-      .callback =
-          std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1, std::placeholders::_2),
+      .callback = std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1,
+                            std::placeholders::_2, std::placeholders::_3),
       .stack_size_bytes = config.stack_size_bytes,
       .priority = config.priority,
       .core_id = config.core_id,
@@ -35,8 +35,8 @@ Timer::Timer(const Timer::AdvancedConfig &config)
   logger_.set_rate_limit(std::chrono::milliseconds(100));
   // make the task
   task_ = espp::Task::make_unique({
-      .callback =
-          std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1, std::placeholders::_2),
+      .callback = std::bind(&Timer::timer_callback_fn, this, std::placeholders::_1,
+                            std::placeholders::_2, std::placeholders::_3),
       .task_config = config.task_config,
       .log_level = config.log_level,
   });
@@ -97,7 +97,7 @@ void Timer::set_period(const std::chrono::duration<float> &period) {
 
 bool Timer::is_running() const { return running_ && task_->is_running(); }
 
-bool Timer::timer_callback_fn(std::mutex &m, std::condition_variable &cv) {
+bool Timer::timer_callback_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
   logger_.debug("callback entered");
   if (!running_) {
     // stop the timer, the timer was canceled
@@ -116,7 +116,9 @@ bool Timer::timer_callback_fn(std::mutex &m, std::condition_variable &cv) {
     auto start_time = std::chrono::steady_clock::now();
     logger_.debug("waiting for delay {:.3f} s", delay_float);
     std::unique_lock<std::mutex> lock(m);
-    cv.wait_until(lock, start_time + delay_);
+    cv.wait_until(lock, start_time + delay_, [&task_notified] { return task_notified; });
+    // reset the task_notified flag
+    task_notified = false;
     if (!running_) {
       logger_.debug("delay canceled, stopping");
       return true;
@@ -148,10 +150,9 @@ bool Timer::timer_callback_fn(std::mutex &m, std::condition_variable &cv) {
   // the callback)
   {
     std::unique_lock<std::mutex> lock(m);
-    cv.wait_until(lock, start_time + period_);
-    // Note: we don't care about cv_retval here because we are going to
-    // return from the function anyway. If the timer was canceled, then
-    // the task will be stopped and the callback will not be called again.
+    cv.wait_until(lock, start_time + period_, [&task_notified] { return task_notified; });
+    // reset the task_notified flag
+    task_notified = false;
   }
   // keep the timer running
   return false;

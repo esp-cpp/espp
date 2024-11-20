@@ -19,7 +19,7 @@ extern "C" void app_main(void) {
     espp::TaskMonitor tm({.period = 500ms});
     // create threads
     auto start = std::chrono::high_resolution_clock::now();
-    auto task_fn = [&start](int task_id, auto &, auto &) {
+    auto task_fn = [&start](int task_id, auto &, auto &, auto &) {
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds_since_start = std::chrono::duration<float>(now - start).count();
       // do some work
@@ -35,7 +35,7 @@ extern "C" void app_main(void) {
     for (size_t i = 0; i < num_tasks; i++) {
       std::string task_name = fmt::format("Task {}", i);
       auto task = espp::Task::make_unique({.name = task_name,
-                                           .callback = std::bind(task_fn, i, _1, _2),
+                                           .callback = std::bind(task_fn, i, _1, _2, _3),
                                            .stack_size_bytes = 5 * 1024});
       tasks[i] = std::move(task);
       tasks[i]->start();
@@ -49,7 +49,7 @@ extern "C" void app_main(void) {
     //! [get_latest_info_vector example]
     // create threads
     auto start = std::chrono::high_resolution_clock::now();
-    auto task_fn = [&start](int task_id, auto &, auto &) {
+    auto task_fn = [&start](int task_id, auto &, auto &, auto &) {
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds_since_start = std::chrono::duration<float>(now - start).count();
       // do some work
@@ -65,7 +65,7 @@ extern "C" void app_main(void) {
     for (size_t i = 0; i < num_tasks; i++) {
       std::string task_name = fmt::format("Task {}", i);
       auto task = espp::Task::make_unique({.name = task_name,
-                                           .callback = std::bind(task_fn, i, _1, _2),
+                                           .callback = std::bind(task_fn, i, _1, _2, _3),
                                            .stack_size_bytes = 5 * 1024});
       tasks[i] = std::move(task);
       tasks[i]->start();
@@ -83,7 +83,7 @@ extern "C" void app_main(void) {
     //! [get_latest_info example]
     // create threads
     auto start = std::chrono::high_resolution_clock::now();
-    auto task_fn = [&start](int task_id, auto &, auto &) {
+    auto task_fn = [&start](int task_id, auto &, auto &, auto &) {
       auto now = std::chrono::high_resolution_clock::now();
       auto seconds_since_start = std::chrono::duration<float>(now - start).count();
       // do some work
@@ -99,7 +99,7 @@ extern "C" void app_main(void) {
     for (size_t i = 0; i < num_tasks; i++) {
       std::string task_name = fmt::format("Task {}", i);
       auto task = espp::Task::make_unique({.name = task_name,
-                                           .callback = std::bind(task_fn, i, _1, _2),
+                                           .callback = std::bind(task_fn, i, _1, _2, _3),
                                            .stack_size_bytes = 5 * 1024});
       tasks[i] = std::move(task);
       tasks[i]->start();

@@ -70,7 +70,7 @@ bool EventManager::add_subscriber(const std::string &topic, const std::string &c
       logger_.debug("Creating task for topic '{}'", topic);
       logger_.debug("  with config: {}", config);
       subscriber_tasks_[topic] = Task::make_unique(
-          {.callback = std::bind(&EventManager::subscriber_task_fn, this, topic, _1, _2),
+          {.callback = std::bind(&EventManager::subscriber_task_fn, this, topic, _1, _2, _3),
            .task_config = config});
       // and start it
       subscriber_tasks_[topic]->start();
@@ -177,7 +177,7 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
     {
       std::lock_guard<std::recursive_mutex> lk(data_mutex_);
       {
-        std::unique_lock<std::mutex> lk(subscriber_data_[topic].m);
+        std::unique_lock<std::mutex> data_lk(subscriber_data_[topic].m);
         subscriber_data_[topic].notified = true;
       }
       subscriber_data_[topic].cv.notify_all();
@@ -199,7 +199,7 @@ bool EventManager::remove_subscriber(const std::string &topic, const std::string
 }
 
 bool EventManager::subscriber_task_fn(const std::string &topic, std::mutex &m,
-                                      std::condition_variable &cv) {
+                                      std::condition_variable &cv, bool &task_notified) {
   // get the data queue
   SubscriberData *sub_data;
   {
