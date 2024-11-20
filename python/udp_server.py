@@ -27,7 +27,7 @@ receive_config = espp.UdpSocket.ReceiveConfig(
     '',
     on_receive_data
 )
-udp_client.start_receiving(espp.Task.Config("udp_task", None), receive_config)
+udp_client.start_receiving(espp.Task.BaseConfig("udp_task"), receive_config)
 
 time.sleep(10)
 

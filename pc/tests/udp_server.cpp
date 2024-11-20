@@ -6,9 +6,8 @@ static auto start = std::chrono::high_resolution_clock::now();
 
 int main() {
   static auto server = espp::UdpSocket({.log_level = espp::Logger::Verbosity::DEBUG});
-  auto server_task_config = espp::Task::Config{
+  auto server_task_config = espp::Task::BaseConfig{
       .name = "UdpServer",
-      .callback = nullptr,
       .stack_size_bytes = 6 * 1024,
   };
 
