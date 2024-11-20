@@ -244,9 +244,12 @@ extern "C" void app_main(void) {
       return false;
     };
 
-    auto ads_task = espp::Task::make_unique({.name = "ADS",
-                                             .callback = ads_read_task_fn,
-                                             .stack_size_bytes{8 * 1024},
+    auto ads_task = espp::Task::make_unique({.callback = ads_read_task_fn,
+                                             .task_config =
+                                                 {
+                                                     .name = "ADS",
+                                                     .stack_size_bytes{8 * 1024},
+                                                 },
                                              .log_level = espp::Logger::Verbosity::INFO});
     ads_task->start();
     //! [ads7138 example]

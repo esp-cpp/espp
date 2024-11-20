@@ -127,8 +127,8 @@ extern "C" void app_main(void) {
       // don't want to stop the task
       return false;
     };
-    auto motor_timer = espp::HighResolutionTimer({.callback = motor_task_fn,
-                                                  .task_config = {.name = "Motor Timer"},
+    auto motor_timer = espp::HighResolutionTimer({.name = "Motor Timer",
+                                                  .callback = motor_task_fn,
                                                   .log_level = espp::Logger::Verbosity::WARN});
     motor_timer.periodic(core_update_period_us);
     //! [bldc_motor example]

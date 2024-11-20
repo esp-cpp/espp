@@ -239,8 +239,8 @@ protected:
     // start the task
     using namespace std::placeholders;
     task_ = Task::make_unique({
-        .callback =
-            std::bind(&As5600::update_task, this, _1, _2, _3).task_config = {.name = "As5600"},
+        .callback = std::bind(&As5600::update_task, this, _1, _2, _3),
+        .task_config = {.name = "As5600"},
     });
     task_->start();
   }
