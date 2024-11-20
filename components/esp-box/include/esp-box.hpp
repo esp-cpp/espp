@@ -288,7 +288,7 @@ protected:
   bool update_gt911();
   bool update_tt21100();
   void update_volume_output();
-  bool audio_task_callback(std::mutex &m, std::condition_variable &cv);
+  bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
   void lcd_wait_lines();
 
   // box 3:

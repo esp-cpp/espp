@@ -19,7 +19,7 @@ public:
     // now start the gui updater task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique({.name = "Gui Task",
-                                     .callback = std::bind(&Gui::update, this, _1, _2),
+                                     .callback = std::bind(&Gui::update, this, _1, _2, _3),
                                      .stack_size_bytes = 6 * 1024});
     task_->start();
   }
@@ -66,7 +66,7 @@ protected:
     lv_obj_add_style(meter_, &style_indic, LV_PART_INDICATOR);
   }
 
-  bool update(std::mutex &m, std::condition_variable &cv) {
+  bool update(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     {
       std::scoped_lock<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
@@ -74,7 +74,8 @@ protected:
     {
       using namespace std::chrono_literals;
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, 16ms);
+      cv.wait_for(lk, 16ms, [&task_notified] { return task_notified; });
+      task_notified = false;
     }
     // don't want to stop the task
     return false;
