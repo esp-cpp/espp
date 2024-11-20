@@ -65,8 +65,9 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task(
-        {.name = "Task 1", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Task 1"},
+                            .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     task.start_watchdog(); // start the watchdog timer for this task
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -110,8 +111,9 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task(
-        {.name = "Task 1", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Task 1"},
+                            .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     task.start_watchdog(); // start the watchdog timer for this task
     std::this_thread::sleep_for(500ms);
@@ -162,7 +164,8 @@ extern "C" void app_main(void) {
         return false;
       };
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique({.name = task_name, .callback = task_fn});
+      auto task =
+          espp::Task::make_unique({.callback = task_fn, .task_config = {.name = task_name}});
       tasks[i] = std::move(task);
       tasks[i]->start();
     }
@@ -200,7 +203,7 @@ extern "C" void app_main(void) {
         return false;
       };
       std::string task_name = fmt::format("Task {}", i);
-      auto task = espp::Task::make_unique(espp::Task::AdvancedConfig{
+      auto task = espp::Task::make_unique({
           .callback = task_fn,
           .task_config =
               {
@@ -261,8 +264,9 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task(
-        {.name = "Complex Task", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Complex Task"},
+                            .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     //! [LongRunningTask example]
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -313,8 +317,8 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task({.name = "Notified Complex Task",
-                            .callback = task_fn,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Notified Complex Task"},
                             .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     //! [LongRunningTaskNotified example]
@@ -349,8 +353,9 @@ extern "C" void app_main(void) {
       // we don't want to stop, so return false
       return false;
     };
-    auto task = espp::Task(
-        {.name = "DynamicTask", .callback = task_fn, .log_level = espp::Logger::Verbosity::DEBUG});
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "DynamicTask"},
+                            .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     auto now = std::chrono::high_resolution_clock::now();
     auto elapsed = std::chrono::duration<float>(now - test_start).count();
@@ -391,8 +396,8 @@ extern "C" void app_main(void) {
       // we don't want to stop yet, so return false
       return false;
     };
-    auto task = espp::Task({.name = "AutoStop Task",
-                            .callback = task_fn,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "AutoStop Task"},
                             .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     while (task.is_started()) {
@@ -432,8 +437,8 @@ extern "C" void app_main(void) {
       // we don't want to stop yet, so return false
       return false;
     };
-    auto task = espp::Task({.name = "AutoStop Task",
-                            .callback = task_fn,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "AutoStop Task"},
                             .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     while (task.is_started()) {
@@ -478,8 +483,8 @@ extern "C" void app_main(void) {
       // we don't want to stop yet, so return false
       return false;
     };
-    auto task = espp::Task({.name = "Multithreaded Stop Task",
-                            .callback = task_fn,
+    auto task = espp::Task({.callback = task_fn,
+                            .task_config = {.name = "Multithreaded Stop Task"},
                             .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     auto stop_fn = [&task]() {
@@ -513,8 +518,7 @@ extern "C" void app_main(void) {
     logger.info("Task Request Stop From Within Task example");
     //! [Task Request Stop From Within Task example]
     espp::Task task =
-        espp::Task({.name = "Self Stopping Task",
-                    .callback =
+        espp::Task({.callback =
                         [&num_seconds_to_run, &task](std::mutex &m, std::condition_variable &cv) {
                           static auto begin = std::chrono::high_resolution_clock::now();
                           auto now = std::chrono::high_resolution_clock::now();
@@ -537,7 +541,7 @@ extern "C" void app_main(void) {
                           // we don't want to stop yet, so return false
                           return false;
                         },
-
+                    .task_config = {.name = "Self Stopping Task"},
                     .log_level = espp::Logger::Verbosity::DEBUG});
     task.start();
     while (task.is_started()) {

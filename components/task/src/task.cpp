@@ -3,32 +3,12 @@
 using namespace espp;
 
 Task::Task(const Task::Config &config)
-    : BaseComponent(config.name, config.log_level)
-    , name_(config.name)
-    , callback_(config.callback)
-    , config_({config.name, config.stack_size_bytes, config.priority, config.core_id}) {}
-
-Task::Task(const Task::SimpleConfig &config)
-    : BaseComponent(config.task_config.name, config.log_level)
-    , name_(config.task_config.name)
-    , callback_(config.callback)
-    , config_(config.task_config) {}
-
-Task::Task(const Task::AdvancedConfig &config)
     : BaseComponent(config.task_config.name, config.log_level)
     , name_(config.task_config.name)
     , callback_(config.callback)
     , config_(config.task_config) {}
 
 std::unique_ptr<Task> Task::make_unique(const Task::Config &config) {
-  return std::make_unique<Task>(config);
-}
-
-std::unique_ptr<Task> Task::make_unique(const Task::SimpleConfig &config) {
-  return std::make_unique<Task>(config);
-}
-
-std::unique_ptr<Task> Task::make_unique(const Task::AdvancedConfig &config) {
   return std::make_unique<Task>(config);
 }
 
