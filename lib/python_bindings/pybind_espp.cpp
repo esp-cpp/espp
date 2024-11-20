@@ -1882,14 +1882,13 @@ void py_init_module_espp(py::module &m) {
       "\\section task_ex2 Task Watchdog Example\n * \\snippet task_example.cpp task watchdog "
       "example\n * \\section task_ex3 Many Task Example\n * \\snippet task_example.cpp ManyTask "
       "example\n * \\section task_ex4 Long Running Task Example\n * \\snippet task_example.cpp "
-      "LongRunningTask example\n * \\section task_ex4 Long Running Task Example using notification "
-      "flag (recommended to avoid\n * spurious wakeups) \\snippet task_example.cpp "
-      "LongRunningTaskNotified example \\section task_ex5\n * Task Info Example \\snippet "
-      "task_example.cpp Task Info example \\section task_ex6 Task Request Stop\n * Example "
-      "\\snippet task_example.cpp Task Request Stop example\n *\n * \\section run_on_core_ex1 Run "
-      "on Core Example\n * \\snippet task_example.cpp run on core example\n * \\section "
-      "run_on_core_ex2 Run on Core (Non-Blocking) Example\n * \\snippet task_example.cpp run on "
-      "core nonblocking example\n");
+      "LongRunningTask example\n * \\section task_ex5 Long Running Task Notified Example "
+      "(Recommended)\n * \\snippet task_example.cpp LongRunningTaskNotified example\n * \\section "
+      "task_ex6 Task Info Example\n * \\snippet task_example.cpp Task Info example\n * \\section "
+      "task_ex7 Task Request Stop Example\n * \\snippet task_example.cpp Task Request Stop "
+      "example\n *\n * \\section run_on_core_ex1 Run on Core Example\n * \\snippet "
+      "task_example.cpp run on core example\n * \\section run_on_core_ex2 Run on Core "
+      "(Non-Blocking) Example\n * \\snippet task_example.cpp run on core nonblocking example\n");
 
   { // inner classes & enums of Task
     auto pyClassTask_ClassBaseConfig =
@@ -1919,76 +1918,13 @@ void py_init_module_espp(py::module &m) {
     auto pyClassTask_ClassConfig =
         py::class_<espp::Task::Config>(
             pyClassTask, "Config", py::dynamic_attr(),
-            "*\n   * @brief Configuration struct for the Task.\n   * @note This is the recommended "
-            "way to configure the Task, and allows you to\n   *       use the condition variable "
-            "and mutex from the task to wait_for and\n   *       wait_until.\n   * @note This is "
-            "an older configuration struct, and is kept for backwards\n   *       compatibility. "
-            "It is recommended to use the AdvancedConfig struct\n   *       instead.\n")
-            .def(py::init<>(
-                     [](std::string name = std::string(),
-                        espp::Task::callback_variant callback = espp::Task::callback_variant(),
-                        size_t stack_size_bytes = {4096}, size_t priority = {0}, int core_id = {-1},
-                        espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                       auto r = std::make_unique<espp::Task::Config>();
-                       r->name = name;
-                       r->callback = callback;
-                       r->stack_size_bytes = stack_size_bytes;
-                       r->priority = priority;
-                       r->core_id = core_id;
-                       r->log_level = log_level;
-                       return r;
-                     }),
-                 py::arg("name") = std::string(),
-                 py::arg("callback") = espp::Task::callback_variant(),
-                 py::arg("stack_size_bytes") = size_t{4096}, py::arg("priority") = size_t{0},
-                 py::arg("core_id") = int{-1},
-                 py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
-            .def_readwrite("name", &espp::Task::Config::name, "*< Name of the task")
-            .def_readwrite("callback", &espp::Task::Config::callback, "*< Callback function")
-            .def_readwrite("stack_size_bytes", &espp::Task::Config::stack_size_bytes,
-                           "*< Stack Size (B) allocated to the task.")
-            .def_readwrite("priority", &espp::Task::Config::priority,
-                           "*< Priority of the task, 0 is lowest priority on ESP / FreeRTOS.")
-            .def_readwrite("core_id", &espp::Task::Config::core_id,
-                           "*< Core ID of the task, -1 means it is not pinned to any core.")
-            .def_readwrite("log_level", &espp::Task::Config::log_level,
-                           "*< Log verbosity for the task.");
-    auto pyClassTask_ClassSimpleConfig =
-        py::class_<espp::Task::SimpleConfig>(
-            pyClassTask, "SimpleConfig", py::dynamic_attr(),
-            "*\n   * @brief Simple configuration struct for the Task.\n   * @note This is useful "
-            "for when you don't need to use the condition variable\n   *       or mutex in the "
-            "callback.\n")
-            .def(
-                py::init<>([](espp::Task::callback_no_params_fn callback =
-                                  espp::Task::callback_no_params_fn(),
-                              espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
-                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                  auto r = std::make_unique<espp::Task::SimpleConfig>();
-                  r->callback = callback;
-                  r->task_config = task_config;
-                  r->log_level = log_level;
-                  return r;
-                }),
-                py::arg("callback") = espp::Task::callback_no_params_fn(),
-                py::arg("task_config") = espp::Task::BaseConfig(),
-                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
-            .def_readwrite("callback", &espp::Task::SimpleConfig::callback, "*< Callback function")
-            .def_readwrite("task_config", &espp::Task::SimpleConfig::task_config,
-                           "*< Base configuration for the task.")
-            .def_readwrite("log_level", &espp::Task::SimpleConfig::log_level,
-                           "*< Log verbosity for the task.");
-    auto pyClassTask_ClassAdvancedConfig =
-        py::class_<espp::Task::AdvancedConfig>(
-            pyClassTask, "AdvancedConfig", py::dynamic_attr(),
-            "*\n   * @brief Advanced configuration struct for the Task.\n   * @note This is the "
-            "recommended way to configure the Task, and allows you to\n   *       use the "
-            "condition variable and mutex from the task to wait_for and\n   *       wait_until.\n")
+            "*\n   * @brief Configuration struct for the Task.\n   *        Can be initialized "
+            "with any of the supported callback function\n   *        signatures.\n")
             .def(py::init<>(
                      [](espp::Task::callback_variant callback = espp::Task::callback_variant(),
                         espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
                         espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                       auto r = std::make_unique<espp::Task::AdvancedConfig>();
+                       auto r = std::make_unique<espp::Task::Config>();
                        r->callback = callback;
                        r->task_config = task_config;
                        r->log_level = log_level;
@@ -1997,38 +1933,19 @@ void py_init_module_espp(py::module &m) {
                  py::arg("callback") = espp::Task::callback_variant(),
                  py::arg("task_config") = espp::Task::BaseConfig(),
                  py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
-            .def_readwrite("callback", &espp::Task::AdvancedConfig::callback,
-                           "*< Callback function")
-            .def_readwrite("task_config", &espp::Task::AdvancedConfig::task_config,
+            .def_readwrite("callback", &espp::Task::Config::callback, "*< Callback function")
+            .def_readwrite("task_config", &espp::Task::Config::task_config,
                            "*< Base configuration for the task.")
-            .def_readwrite("log_level", &espp::Task::AdvancedConfig::log_level,
+            .def_readwrite("log_level", &espp::Task::Config::log_level,
                            "*< Log verbosity for the task.");
   } // end of inner classes & enums of Task
 
   pyClassTask.def(py::init<const espp::Task::Config &>())
-      .def(py::init<const espp::Task::SimpleConfig &>())
-      .def(py::init<const espp::Task::AdvancedConfig &>())
-      .def_static("make_unique",
-                  py::overload_cast<const espp::Task::Config &>(&espp::Task::make_unique),
-                  py::arg("config"),
+      .def_static("make_unique", &espp::Task::make_unique, py::arg("config"),
                   "*\n   * @brief Get a unique pointer to a new task created with \\p config.\n   "
                   "*        Useful to not have to use templated std::make_unique (less typing).\n  "
                   " * @param config Config struct to initialize the Task with.\n   * @return "
                   "std::unique_ptr<Task> pointer to the newly created task.\n")
-      .def_static("make_unique",
-                  py::overload_cast<const espp::Task::SimpleConfig &>(&espp::Task::make_unique),
-                  py::arg("config"),
-                  "*\n   * @brief Get a unique pointer to a new task created with \\p config.\n   "
-                  "*        Useful to not have to use templated std::make_unique (less typing).\n  "
-                  " * @param config SimpleConfig struct to initialize the Task with.\n   * @return "
-                  "std::unique_ptr<Task> pointer to the newly created task.\n")
-      .def_static("make_unique",
-                  py::overload_cast<const espp::Task::AdvancedConfig &>(&espp::Task::make_unique),
-                  py::arg("config"),
-                  "*\n   * @brief Get a unique pointer to a new task created with \\p config.\n   "
-                  "*        Useful to not have to use templated std::make_unique (less typing).\n  "
-                  " * @param config AdvancedConfig struct to initialize the Task with.\n   * "
-                  "@return std::unique_ptr<Task> pointer to the newly created task.\n")
       .def("start", &espp::Task::start,
            "*\n   * @brief Start executing the task.\n   *\n   * @return True if the task started, "
            "False if it was already started.\n")

@@ -64,9 +64,12 @@ public:
 
     using namespace std::placeholders;
     accept_task_ = std::make_unique<Task>(Task::Config{
-        .name = "FtpServer::accept_task",
         .callback = std::bind(&FtpServer::accept_task_function, this, _1, _2, _3),
-        .stack_size_bytes = 1024 * 4,
+        .task_config =
+            {
+                .name = "FtpServer::accept_task",
+                .stack_size_bytes = 1024 * 4,
+            },
         .log_level = Logger::Verbosity::WARN,
     });
     accept_task_->start();

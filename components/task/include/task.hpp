@@ -162,10 +162,9 @@ public:
   };
 
   /**
-   * @brief Advanced configuration struct for the Task.
-   * @note This is the recommended way to configure the Task, and allows you to
-   *       use the condition variable and mutex from the task to wait_for and
-   *       wait_until.
+   * @brief Configuration struct for the Task.
+   *        Can be initialized with any of the supported callback function
+   *        signatures.
    */
   struct Config {
     espp::Task::callback_variant callback; /**< Callback function  */

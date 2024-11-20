@@ -41,9 +41,12 @@ public:
     send_welcome_message();
     using namespace std::placeholders;
     task_ = std::make_unique<Task>(Task::Config{
-        .name = "FtpClientSession",
         .callback = std::bind(&FtpClientSession::task_function, this, _1, _2, _3),
-        .stack_size_bytes = 1024 * 6,
+        .task_config =
+            {
+                .name = "FtpClientSession",
+                .stack_size_bytes = 1024 * 6,
+            },
         .log_level = Logger::Verbosity::WARN,
     });
     task_->start();
