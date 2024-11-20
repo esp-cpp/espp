@@ -37,10 +37,12 @@ namespace espp {
  * \snippet task_example.cpp ManyTask example
  * \section task_ex4 Long Running Task Example
  * \snippet task_example.cpp LongRunningTask example
- * \section task_ex4 Long Running Task Example using notification flag (recommended to avoid
- * spurious wakeups) \snippet task_example.cpp LongRunningTaskNotified example \section task_ex5
- * Task Info Example \snippet task_example.cpp Task Info example \section task_ex6 Task Request Stop
- * Example \snippet task_example.cpp Task Request Stop example
+ * \section task_ex5 Long Running Task Notified Example (Recommended)
+ * \snippet task_example.cpp LongRunningTaskNotified example
+ * \section task_ex6 Task Info Example
+ * \snippet task_example.cpp Task Info example
+ * \section task_ex7 Task Request Stop Example
+ * \snippet task_example.cpp Task Request Stop example
  *
  * \section run_on_core_ex1 Run on Core Example
  * \snippet task_example.cpp run on core example
