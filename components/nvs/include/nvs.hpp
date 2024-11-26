@@ -55,6 +55,35 @@ public:
     }
   }
 
+  /// @brief Erase a namespace from the NVS
+  /// @param[in] ns_name Namespace of the variable to erase
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  bool erase(std::string_view ns_name, std::error_code &ec) {
+    NvsHandle handle(ns_name.data(), ec);
+    if (ec)
+      return false;
+
+    if (!handle.erase(ec))
+      return false;
+
+    return true;
+  }
+
+  /// @brief Erase a key from the NVS
+  /// @param[in] ns_name Namespace of the variable to erase
+  /// @param[in] key NVS Key of the variable to erase
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  bool erase(std::string_view ns_name, std::string_view key, std::error_code &ec) {
+    NvsHandle handle(ns_name.data(), ec);
+    if (ec)
+      return false;
+
+    if (!handle.erase(key, ec))
+      return false;
+
+    return true;
+  }
+
   /// @brief Save a variable in the NVS and commit
   /// @param[in] ns_name Namespace of the variable to save
   /// @param[in] key NVS Key of the variable to save
@@ -84,7 +113,7 @@ public:
   template <typename T>
   void get_or_set_var(std::string_view ns_name, std::string_view key, T &value, T default_value,
                       std::error_code &ec) {
-    get_var(ns_name.data(), key.data(), value, ec);
+    get_or_set_var(ns_name.data(), key.data(), value, default_value, ec);
   }
 
   /// @brief Save a variable in the NVS and commit
