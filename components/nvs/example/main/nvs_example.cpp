@@ -60,7 +60,7 @@ extern "C" void app_main(void) {
     if (ec) {
       fmt::print("Error: {}\n", ec.message());
     } else {
-      fmt::print("String = {}\n", str);
+      fmt::print("String = '{}'\n", str);
     }
     ec.clear();
 
@@ -74,9 +74,46 @@ extern "C" void app_main(void) {
     }
     ec.clear();
 
+    // test getting the string value again
+    nvs.get_var("system", "string", str, ec);
+    if (ec) {
+      fmt::print("Error: {}\n", ec.message());
+    } else {
+      fmt::print("String = '{}'\n", str);
+    }
+    ec.clear();
+
+    // test erasing the string value
+    nvs.erase("system", "string", ec);
+    if (ec) {
+      fmt::print("Error: {}\n", ec.message());
+    } else {
+      fmt::print("String erased\n");
+    }
+    ec.clear();
+
+    // now test getting it again to ensure it was erased
+    nvs.get_var("system", "string", str, ec);
+    if (ec) {
+      fmt::print("Sucess, got expected error when reading erased value: {}\n", ec.message());
+    } else {
+      fmt::print("Failure, got unexpected success when reading erased value\n");
+    }
+    ec.clear();
+
     counter++;
 
     if (counter > 10) {
+      // test erasing the whole namespace
+      nvs.erase("system", ec);
+      if (ec) {
+        fmt::print("Error: {}\n", ec.message());
+      } else {
+        fmt::print("Namespace erased\n");
+      }
+      ec.clear();
+
+      // now erase the wole nvs partition
       nvs.erase(ec);
       nvs.init(ec);
       counter = 0;

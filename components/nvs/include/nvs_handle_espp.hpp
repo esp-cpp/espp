@@ -337,6 +337,52 @@ public:
     return;
   }
 
+  /// @brief Erase a key from the NVS
+  /// @param[in] key NVS Key to erase
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @return true if successful, false otherwise
+  bool erase(std::string_view key, std::error_code &ec) { return erase(key.data(), ec); }
+
+  /// @brief Erase a key from the NVS
+  /// @param[in] key NVS Key to erase
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @return true if successful, false otherwise
+  bool erase(const char *key, std::error_code &ec) {
+    if (!handle_) {
+      logger_.error("NVS Handle not initialized!");
+      return false;
+    }
+
+    if (!check_key(key, ec))
+      return false;
+
+    esp_err_t err = handle_->erase_item(key);
+    if (err != ESP_OK) {
+      logger_.error("Error {} erasing key '{}' from NVS!", esp_err_to_name(err), key);
+      ec = make_error_code(NvsErrc::Erase_NVS_Key_Failed);
+      return false;
+    }
+    return true;
+  }
+
+  /// @brief Erase all keys from the NVS associated with the namespace / handle
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @return true if successful, false otherwise
+  bool erase(std::error_code &ec) {
+    if (!handle_) {
+      logger_.error("NVS Handle not initialized!");
+      return false;
+    }
+
+    esp_err_t err = handle_->erase_all();
+    if (err != ESP_OK) {
+      logger_.error("Error {} erasing all keys from NVS!", esp_err_to_name(err));
+      ec = make_error_code(NvsErrc::Erase_NVS_Namespace_Failed);
+      return false;
+    }
+    return true;
+  }
+
 protected:
   std::unique_ptr<nvs::NVSHandle> handle_;
 
