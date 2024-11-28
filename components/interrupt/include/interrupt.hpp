@@ -196,6 +196,9 @@ public:
   ///          the queue size is too small for the number of interrupts that are
   ///          being received. It may also help indicate if the interrupt task
   ///          priority is too low, preventing the queue from being serviced.
+  ///          Finally, it may also help to indicate if additional filtering may
+  ///          be needed on the interrupt line (either using the FilterType or
+  ///          with hardware filtering).
   size_t get_min_queue_size() const { return min_queue_size_; }
 
   /// \brief Add an interrupt to the interrupt handler
