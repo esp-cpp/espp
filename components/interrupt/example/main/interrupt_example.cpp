@@ -126,6 +126,11 @@ extern "C" void app_main(void) {
     logger.info("Instantaneous state of pins: {}", active_states);
 
     std::this_thread::sleep_for(2s);
+
+    // print out the minimum number of spaces in the interrupt queue over the
+    // last 2 seconds
+    auto min_queue_size = interrupt.get_min_queue_size();
+    logger.info("Minimum queue size over last 4 seconds: {}", min_queue_size);
   }
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
