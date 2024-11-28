@@ -135,6 +135,7 @@ public:
   explicit Interrupt(const Config &config)
       : BaseComponent("Interrupt", config.log_level)
       , queue_(xQueueCreate(config.event_queue_size, sizeof(EventData)))
+      , min_queue_size_(config.event_queue_size)
       , interrupts_(config.interrupts) {
     // create the event queue
     if (!queue_) {
@@ -187,6 +188,18 @@ public:
       delete args;
     }
   }
+
+  /// \brief Get the minimum number of free spaces in the queue
+  /// \return The minimum number of free spaces in the queue
+  /// \details This will return the minimum number of free spaces in the queue
+  ///          Over the lifetime of the object. This can be used to determine if
+  ///          the queue size is too small for the number of interrupts that are
+  ///          being received. It may also help indicate if the interrupt task
+  ///          priority is too low, preventing the queue from being serviced.
+  ///          Finally, it may also help to indicate if additional filtering may
+  ///          be needed on the interrupt line (either using the FilterType or
+  ///          with hardware filtering).
+  size_t get_min_queue_size() const { return min_queue_size_; }
 
   /// \brief Add an interrupt to the interrupt handler
   /// \param interrupt The interrupt to add
@@ -262,6 +275,11 @@ protected:
 
   bool task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
     EventData event_data;
+    // record the min number of free spaces in the queue
+    size_t free_spaces = uxQueueSpacesAvailable(queue_);
+    if (free_spaces < min_queue_size_) {
+      min_queue_size_ = free_spaces;
+    }
     if (xQueueReceive(queue_, &event_data, portMAX_DELAY)) {
       if (event_data.gpio_num == -1) {
         // we received a stop event, so return true to stop the task
@@ -370,6 +388,7 @@ protected:
   static bool ISR_SERVICE_INSTALLED;
 
   QueueHandle_t queue_{nullptr};
+  std::atomic<size_t> min_queue_size_{0};
   std::recursive_mutex interrupt_mutex_;
   std::vector<PinConfig> interrupts_;
   std::vector<HandlerArgs *> handler_args_;
