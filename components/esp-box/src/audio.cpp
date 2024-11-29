@@ -8,8 +8,8 @@ using namespace espp;
 
 static TaskHandle_t play_audio_task_handle_ = NULL;
 
-static bool audio_tx_sent_callback(i2s_chan_handle_t handle, i2s_event_data_t *event,
-                                   void *user_ctx) {
+static bool IRAM_ATTR audio_tx_sent_callback(i2s_chan_handle_t handle, i2s_event_data_t *event,
+                                             void *user_ctx) {
   // notify the main task that we're done
   vTaskNotifyGiveFromISR(play_audio_task_handle_, NULL);
   return true;
