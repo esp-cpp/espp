@@ -70,16 +70,16 @@ public:
   /// Get the type of the box
   /// \return The type of the box that was detected
   /// \see BoxType
-  BoxType box_type() const;
+  BoxType box_type() const { return box_type_; }
 
   /// Get a reference to the internal I2C bus
   /// \return A reference to the internal I2C bus
   /// \note The internal I2C bus is used for the touchscreen and audio codec
-  I2c &internal_i2c();
+  I2c &internal_i2c() { return internal_i2c_; }
 
   /// Get a reference to the interrupts
   /// \return A reference to the interrupts
-  espp::Interrupt &interrupts();
+  espp::Interrupt &interrupts() { return interrupts_; }
 
   /////////////////////////////////////////////////////////////////////////////
   // Touchpad
@@ -98,11 +98,11 @@ public:
 
   /// Get the touchpad input
   /// \return A shared pointer to the touchpad input
-  std::shared_ptr<TouchpadInput> touchpad_input() const;
+  std::shared_ptr<TouchpadInput> touchpad_input() const { return touchpad_input_; }
 
   /// Get the most recent touchpad data
   /// \return The touchpad data
-  TouchpadData touchpad_data() const;
+  TouchpadData touchpad_data() const { return touchpad_data_; }
 
   /// Get the most recent touchpad data
   /// \param num_touch_points The number of touch points
@@ -157,7 +157,7 @@ public:
 
   /// Get a shared pointer to the display
   /// \return A shared pointer to the display
-  std::shared_ptr<Display<Pixel>> display() const;
+  std::shared_ptr<Display<Pixel>> display() const { return display_; }
 
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
@@ -234,9 +234,16 @@ public:
 
   /// Initialize the sound subsystem
   /// \param default_audio_rate The default audio rate
+  /// \param task_config The task configuration for the audio task
   /// \return true if the sound subsystem was successfully initialized, false
   ///         otherwise
-  bool initialize_sound(uint32_t default_audio_rate = 48000);
+  bool initialize_sound(uint32_t default_audio_rate = 48000,
+                        const espp::Task::BaseConfig &task_config = {
+                            .name = "audio",
+                            .stack_size_bytes = 4096,
+                            .priority = 19,
+                            .core_id = 1,
+                        });
 
   /// Enable or disable sound
   /// \note This method sets the power pin to the appropriate value
@@ -393,6 +400,7 @@ protected:
             }
           },
       .active_level = touch_interrupt_level,
+      .filter_type = espp::Interrupt::FilterType::PIN_GLITCH_FILTER,
   };
 
   // we'll only add each interrupt pin if the initialize method is called
