@@ -75,7 +75,7 @@ bool BleGattServer::start_advertising(const AdvertisingParameters &advertising_p
   // configure the advertising parameters
   advertising->setMinInterval(min_interval_units);
   advertising->setMaxInterval(max_interval_units);
-  advertising->setScanResponse(advertising_params.scan_response);
+  advertising->enableScanResponse(advertising_params.scan_response);
 
   if (advertising_params.include_tx_power) {
     advertising->addTxPower();
@@ -90,20 +90,22 @@ bool BleGattServer::start_advertising(const AdvertisingParameters &advertising_p
   if (advertising_params.connectable) {
     if (advertising_params.directed_address) {
       // directed, connectable
-      advertising->setAdvertisementType(BLE_GAP_CONN_MODE_DIR);
+      advertising->setConnectableMode(BLE_GAP_CONN_MODE_DIR);
     } else {
       // undirected, connectable
-      advertising->setAdvertisementType(BLE_GAP_CONN_MODE_UND);
+      advertising->setConnectableMode(BLE_GAP_CONN_MODE_UND);
     }
   } else {
     // non-connectable
-    advertising->setAdvertisementType(BLE_GAP_CONN_MODE_NON);
+    advertising->setConnectableMode(BLE_GAP_CONN_MODE_NON);
   }
+
+  // set the callback
+  advertising->setAdvertisingCompleteCallback(callbacks_.advertisement_complete_callback);
 
   // now actually start advertising
   bool success =
-      advertising->start(advertising_params.duration_ms, callbacks_.advertisement_complete_callback,
-                         advertising_params.directed_address);
+      advertising->start(advertising_params.duration_ms, advertising_params.directed_address);
   if (!success) {
     logger_.error("Failed to start advertising");
   }
@@ -124,13 +126,17 @@ bool BleGattServer::start_advertising(uint32_t duration_ms, NimBLEAddress *direc
   // assume connectable
   if (directed_address) {
     // directed, connectable
-    advertising->setAdvertisementType(BLE_GAP_CONN_MODE_DIR);
+    advertising->setConnectableMode(BLE_GAP_CONN_MODE_DIR);
   } else {
     // undirected, connectable
-    advertising->setAdvertisementType(BLE_GAP_CONN_MODE_UND);
+    advertising->setConnectableMode(BLE_GAP_CONN_MODE_UND);
   }
-  auto success =
-      advertising->start(duration_ms, callbacks_.advertisement_complete_callback, directed_address);
+
+  // set the callback
+  advertising->setAdvertisingCompleteCallback(callbacks_.advertisement_complete_callback);
+
+  // now actually start advertising
+  auto success = advertising->start(duration_ms, directed_address);
   if (!success) {
     logger_.error("Failed to start advertising");
   }

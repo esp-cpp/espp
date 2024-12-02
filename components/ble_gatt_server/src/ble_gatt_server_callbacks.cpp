@@ -64,11 +64,11 @@ uint32_t BleGattServerCallbacks::onPassKeyDisplay() {
     return NimBLEDevice::getSecurityPasskey();
   }
 }
-void BleGattServerCallbacks::onConfirmPIN(NimBLEConnInfo &conn_info, uint32_t pass_key) {
+void BleGattServerCallbacks::onConfirmPassKey(NimBLEConnInfo &conn_info, uint32_t pass_key) {
   if (server_ && server_->callbacks_.confirm_passkey_callback) {
     server_->callbacks_.confirm_passkey_callback(conn_info, pass_key);
   } else {
-    NimBLEDevice::injectConfirmPIN(conn_info, pass_key == NimBLEDevice::getSecurityPasskey());
+    NimBLEDevice::injectConfirmPasskey(conn_info, pass_key == NimBLEDevice::getSecurityPasskey());
   }
 }
 

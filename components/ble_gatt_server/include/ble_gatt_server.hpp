@@ -502,7 +502,7 @@ public:
     std::vector<NimBLEAddress> connected_addresses;
     auto peer_ids = server_->getPeerDevices();
     for (const auto &peer_id : peer_ids) {
-      auto peer = server_->getPeerIDInfo(peer_id);
+      auto peer = server_->getPeerInfoByHandle(peer_id);
       connected_addresses.push_back(peer.getAddress());
     }
     return connected_addresses;
@@ -518,7 +518,7 @@ public:
     std::vector<NimBLEConnInfo> connected_devices_info;
     auto peer_ids = server_->getPeerDevices();
     for (const auto &peer_id : peer_ids) {
-      auto peer = server_->getPeerIDInfo(peer_id);
+      auto peer = server_->getPeerInfoByHandle(peer_id);
       connected_devices_info.push_back(peer);
     }
     return connected_devices_info;
@@ -579,7 +579,7 @@ public:
     std::vector<std::string> connected_device_names;
     auto peer_ids = server_->getPeerDevices();
     for (const auto &peer_id : peer_ids) {
-      auto peer = server_->getPeerIDInfo(peer_id);
+      auto peer = server_->getPeerInfoByHandle(peer_id);
       auto peer_name = get_connected_device_name(peer);
       if (!peer_name.empty()) {
         connected_device_names.push_back(peer_name);
@@ -635,7 +635,7 @@ public:
     std::vector<int> connected_device_rssi;
     auto peer_ids = server_->getPeerDevices();
     for (const auto &peer_id : peer_ids) {
-      auto peer = server_->getPeerIDInfo(peer_id);
+      auto peer = server_->getPeerInfoByHandle(peer_id);
       auto peer_rssi = get_connected_device_rssi(peer);
       connected_device_rssi.push_back(peer_rssi);
     }
@@ -654,7 +654,7 @@ public:
     std::vector<NimBLEAddress> disconnected_devices;
     auto peer_ids = server_->getPeerDevices();
     for (const auto &peer_id : peer_ids) {
-      auto peer = server_->getPeerIDInfo(peer_id);
+      auto peer = server_->getPeerInfoByHandle(peer_id);
       disconnected_devices.push_back(peer.getAddress());
       server_->disconnect(peer_id);
     }

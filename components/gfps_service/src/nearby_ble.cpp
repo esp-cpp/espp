@@ -267,7 +267,7 @@ void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   // index)
   auto conn_info = NimBLEDevice::getServer()->getPeerInfo(0);
   // Now actually respond to the pairing request
-  NimBLEDevice::injectConfirmPIN(conn_info, accept);
+  NimBLEDevice::injectConfirmPasskey(conn_info, accept);
 #endif // CONFIG_BT_NIMBLE_ENABLED
 }
 
