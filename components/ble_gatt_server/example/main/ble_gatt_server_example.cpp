@@ -41,8 +41,8 @@ extern "C" void app_main(void) {
         .confirm_passkey_callback =
             [&](const NimBLEConnInfo &conn_info, uint32_t passkey) {
               logger.info("Confirming passkey: {}", passkey);
-              NimBLEDevice::injectConfirmPIN(conn_info,
-                                             passkey == NimBLEDevice::getSecurityPasskey());
+              NimBLEDevice::injectConfirmPasskey(conn_info,
+                                                 passkey == NimBLEDevice::getSecurityPasskey());
             },
     });
     ble_gatt_server.init(device_name);
