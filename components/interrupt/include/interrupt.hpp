@@ -118,16 +118,16 @@ public:
   /// \brief The configuration for an interrupt on a GPIO
   /// \details This is used to configure the GPIO interrupt
   struct PinConfig {
-    int gpio_num;               ///< GPIO number to for this interrupt
-    event_callback_fn callback; ///< Callback for the interrupt event
-    bool auto_reenable = true;  ///< Whether to auto reenable the
-                                ///   interrupt after it is triggered.
-                                ///   If false, the interrupt will
-                                ///   need to be reenabled in the
-                                ///   callback or some other codepath.
-                                ///   If true, the interrupt will be
-                                ///   reenabled automatically before the callback is called.
-    ActiveLevel active_level;   ///< Active level of the GPIO
+    int gpio_num;                         ///< GPIO number to for this interrupt
+    event_callback_fn callback;           ///< Callback for the interrupt event
+    bool auto_reenable = true;            ///< Whether to auto reenable the interrupt
+                                          ///   after it is triggered. If false, the
+                                          ///   interrupt will need to be reenabled in the
+                                          ///   callback or some other codepath. If true,
+                                          ///   the interrupt will be reenabled
+                                          ///   automatically before the callback is
+                                          ///   called.
+    ActiveLevel active_level;             ///< Active level of the GPIO
     Type interrupt_type = Type::ANY_EDGE; ///< Interrupt type to use for the GPIO
     bool pullup_enabled = false;          ///< Whether to enable the pullup resistor
     bool pulldown_enabled = false;        ///< Whether to enable the pulldown resistor
