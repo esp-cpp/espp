@@ -47,6 +47,22 @@ namespace espp {
 ///          the each other, while ensuring that the interupts are still
 ///          processed in an orderly fashion.
 ///
+///          If CONFIG_GPIO_CTRL_FUNC_IN_IRAM is enabled, then the ISR handler
+///          will be placed in IRAM. In this condition, the interrupt class' ISR
+///          handler will automatically disable the interrupt associated with
+///          that GPIO within the ISR handler.
+///
+///          If CONFIG_GPIO_CTRL_FUNC_IN_IRAM is enabled and the PinConfig has
+///          auto_reenable set to false, then the interrupt will not be
+///          reenabled automatically. This is because the ISR handler will
+///          disable the interrupt, and it will not be reenabled until the user
+///          reenables it. This use-case is recommended for ACTIVE_LOW or
+///          ACTIVE_HIGH interrupts which may need some other action to clear
+///          the interrupt condition and prevent the ISR from being triggered
+///          continuously. In this case, simply re-enable the interrupt when you
+///          have cleared the interrupt condition if you want to be able to
+///          respond to it again.
+///
 /// \section interrupt_ex0 Interrupt Example
 /// \snippet interrupt_example.cpp interrupt example
 class Interrupt : public BaseComponent {
@@ -104,6 +120,13 @@ public:
   struct PinConfig {
     int gpio_num;                         ///< GPIO number to for this interrupt
     event_callback_fn callback;           ///< Callback for the interrupt event
+    bool auto_reenable = true;            ///< Whether to auto reenable the interrupt
+                                          ///   after it is triggered. If false, the
+                                          ///   interrupt will need to be reenabled in the
+                                          ///   callback or some other codepath. If true,
+                                          ///   the interrupt will be reenabled
+                                          ///   automatically before the callback is
+                                          ///   called.
     ActiveLevel active_level;             ///< Active level of the GPIO
     Type interrupt_type = Type::ANY_EDGE; ///< Interrupt type to use for the GPIO
     bool pullup_enabled = false;          ///< Whether to enable the pullup resistor
@@ -160,12 +183,7 @@ public:
   /// \brief Destructor
   ~Interrupt() {
     // remove the isr handlers
-    {
-      std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
-      for (const auto &args : handler_args_) {
-        gpio_isr_handler_remove(static_cast<gpio_num_t>(args->gpio_num));
-      }
-    }
+    remove_all();
     if (queue_) {
       // send to the event queue to wake up the task
       EventData event_data = {-1};
@@ -174,18 +192,6 @@ public:
       task_->stop();
       // delete the queue
       vQueueDelete(queue_);
-    }
-#if CONFIG_SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER || CONFIG_SOC_GPIO_FLEX_GLITCH_FILTER_NUM > 0
-    for (const auto &handle : glitch_filter_handles_) {
-      // disable the glitch filters
-      gpio_glitch_filter_disable(handle);
-      // and delete the handle
-      gpio_del_glitch_filter(handle);
-    }
-#endif
-    // now delete the handler args
-    for (const auto &args : handler_args_) {
-      delete args;
     }
   }
 
@@ -208,6 +214,126 @@ public:
     std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
     interrupts_.push_back(interrupt);
     configure_interrupt(interrupt);
+  }
+
+  /// \brief Remove all the interrupts from the interrupt handler
+  /// \details This will remove all the interrupts that are currently registered
+  ///          with the interrupt handler. This will also disable all the
+  ///          interrupts that are currently enabled.
+  void remove_all() {
+    std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
+    for (const auto &interrupt : interrupts_) {
+      disable_interrupt(interrupt);
+    }
+    // clear the interrupts vector
+    interrupts_.clear();
+    // delete the handler args objects
+    for (const auto &args : handler_args_) {
+      delete args;
+    }
+    // clear the handler args vector
+    handler_args_.clear();
+    // disable anly glitch filters if they are enabled
+#if CONFIG_SOC_GPIO_SUPPORT_PIN_GLITCH_FILTER || CONFIG_SOC_GPIO_FLEX_GLITCH_FILTER_NUM > 0
+    for (const auto &handle : glitch_filter_handles_) {
+      // disable the glitch filters
+      gpio_glitch_filter_disable(handle);
+      // and delete the handle
+      gpio_del_glitch_filter(handle);
+    }
+#endif
+    // clear the glitch filter handles vector
+    glitch_filter_handles_.clear();
+  }
+
+  /// \brief Remove an interrupt from the interrupt handler
+  /// \param interrupt The interrupt to remove
+  /// \details This will find a registered interrupt with the given GPIO number
+  ///          and remove it from the list of interrupts. It will also disable
+  ///          the interrupt for that GPIO number. If no interrupt is found with
+  ///          the given GPIO number, then nothing is done.
+  void remove_interrupt(const PinConfig &interrupt) { remove_interrupt(interrupt.gpio_num); }
+
+  /// \brief Remove an interrupt from the interrupt handler
+  /// \param gpio_num The GPIO number of the interrupt to remove
+  /// \details This will find a registered interrupt with the given GPIO number
+  ///          and remove it from the list of interrupts. It will also disable
+  ///          the interrupt for that GPIO number. If no interrupt is found with
+  ///          the given GPIO number, then nothing is done.
+  void remove_interrupt(int gpio_num) {
+    logger_.info("Removing interrupt for GPIO {}", gpio_num);
+    // disable the interrupt
+    gpio_intr_disable(static_cast<gpio_num_t>(gpio_num));
+    // remove the interrupt from the list
+    std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
+    auto predicate = [gpio_num](const PinConfig &interrupt) {
+      return interrupt.gpio_num == gpio_num;
+    };
+    auto interrupt = std::find_if(interrupts_.begin(), interrupts_.end(), predicate);
+    if (interrupt == interrupts_.end()) {
+      logger_.error("No interrupt found for GPIO {}", gpio_num);
+      return;
+    }
+    // erase the interrupt
+    interrupts_.erase(interrupt);
+    // remove the isr handler
+    gpio_isr_handler_remove(static_cast<gpio_num_t>(gpio_num));
+    // erase the handler args object that corresponds to the gpio_num
+    auto handler_arg =
+        std::find_if(handler_args_.begin(), handler_args_.end(),
+                     [gpio_num](const HandlerArgs *args) { return args->gpio_num == gpio_num; });
+    if (handler_arg != handler_args_.end()) {
+      delete *handler_arg;
+      handler_args_.erase(handler_arg);
+    } else {
+      logger_.error("No handler args found for GPIO {}", gpio_num);
+    }
+  }
+
+  /// \brief Disable all the interrupts
+  /// \details This will disable all the interrupts that are currently
+  ///          registered with the interrupt handler. This will not remove the
+  ///          interrupts from the list of interrupts, so they can be reenabled
+  ///          later.
+  void disable_all() {
+    std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
+    for (const auto &interrupt : interrupts_) {
+      disable_interrupt(interrupt);
+    }
+  }
+
+  /// \brief Disable the interrupt for the interrupt PinConfig
+  /// \param interrupt The interrupt to disable
+  /// \details This will disable the interrupt for the GPIO that is specified,
+  ///          regardless of whether the interrupt is in the list of interrupts
+  ///          or not.
+  void disable_interrupt(const PinConfig &interrupt) { disable_interrupt(interrupt.gpio_num); }
+
+  /// \brief Disable the interrupt for the GPIO
+  /// \param gpio_num The GPIO number of the interrupt to disable
+  /// \details This will disable the interrupt for the GPIO that is specified,
+  ///          regardless of whether the interrupt is in the list of interrupts
+  ///          or not.
+  void disable_interrupt(int gpio_num) {
+    logger_.debug("Disabling interrupt for GPIO {}", gpio_num);
+    gpio_intr_disable(static_cast<gpio_num_t>(gpio_num));
+  }
+
+  /// \brief Enable the interrupt for the GPIO
+  /// \param interrupt The interrupt to enable
+  /// \details This will enable the interrupt for the GPIO that is specified,
+  ///          regardless of whether the interrupt is in the list of interrupts
+  ///          or not.
+  void enable_interrupt(const PinConfig &interrupt) { enable_interrupt(interrupt.gpio_num); }
+
+  /// \brief Enable the interrupt for the GPIO
+  /// \param gpio_num The GPIO number of the interrupt to enable
+  /// \details This will enable the interrupt for the GPIO that is specified,
+  ///          regardless of whether the interrupt is in the list of interrupts
+  ///          or not.
+  void enable_interrupt(int gpio_num) {
+    logger_.debug("Enabling interrupt for GPIO {}", gpio_num);
+    gpio_intr_enable(static_cast<gpio_num_t>(gpio_num));
   }
 
   /// \brief Get the state of the interrupt
@@ -263,9 +389,17 @@ protected:
   };
 
   static void isr_handler(void *arg) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     auto *args = static_cast<HandlerArgs *>(arg);
+#if CONFIG_GPIO_CTRL_FUNC_IN_IRAM
+    // disable the interrupt for the pin
+    gpio_intr_disable(static_cast<gpio_num_t>(args->gpio_num));
+#endif
     EventData event_data = {args->gpio_num};
-    xQueueSendFromISR(args->event_queue, &event_data, nullptr);
+    xQueueSendFromISR(args->event_queue, &event_data, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken) {
+      portYIELD_FROM_ISR();
+    }
   }
 
   bool is_active_level(int gpio_num, ActiveLevel active_level) const {
@@ -296,6 +430,12 @@ protected:
         logger_.error("No interrupt found for GPIO {}", event_data.gpio_num);
         return false;
       }
+#if CONFIG_GPIO_CTRL_FUNC_IN_IRAM
+      if (interrupt->auto_reenable) {
+        logger_.debug("Auto-reenabling interrupt for GPIO {}", event_data.gpio_num);
+        gpio_intr_enable(static_cast<gpio_num_t>(event_data.gpio_num));
+      }
+#endif
       if (!interrupt->callback) {
         logger_.error("No callback registered for GPIO {}", event_data.gpio_num);
         return false;
@@ -372,17 +512,17 @@ protected:
     io_conf.pull_up_en = interrupt.pullup_enabled ? GPIO_PULLUP_ENABLE : GPIO_PULLUP_DISABLE;
     io_conf.pull_down_en =
         interrupt.pulldown_enabled ? GPIO_PULLDOWN_ENABLE : GPIO_PULLDOWN_DISABLE;
-    gpio_config(&io_conf);
     {
       std::lock_guard<std::recursive_mutex> lock(interrupt_mutex_);
       // add the isr handler
       HandlerArgs *handler_arg = new HandlerArgs{interrupt.gpio_num, queue_};
       handler_args_.push_back(handler_arg);
-      gpio_isr_handler_add(static_cast<gpio_num_t>(interrupt.gpio_num), isr_handler,
-                           static_cast<void *>(handler_arg));
+      gpio_num_t gpio_num = static_cast<gpio_num_t>(interrupt.gpio_num);
+      gpio_isr_handler_add(gpio_num, isr_handler, static_cast<void *>(handler_arg));
       // configure the filter if needed
       configure_filter(interrupt);
     }
+    gpio_config(&io_conf);
   }
 
   static bool ISR_SERVICE_INSTALLED;
@@ -392,7 +532,8 @@ protected:
   std::recursive_mutex interrupt_mutex_;
   std::vector<PinConfig> interrupts_;
   std::vector<HandlerArgs *> handler_args_;
-  std::vector<gpio_glitch_filter_handle_t> glitch_filter_handles_;
+  std::vector<gpio_glitch_filter_handle_t> glitch_filter_handles_; // TODO: remove these when the
+                                                                   // interrupts are removed
   std::unique_ptr<Task> task_;
 };
 } // namespace espp
