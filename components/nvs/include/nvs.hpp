@@ -116,44 +116,6 @@ public:
     get_or_set_var(ns_name.data(), key.data(), value, default_value, ec);
   }
 
-  /// @brief Save a float variable in the NVS and commit
-  /// @param[in] ns_name Namespace of the variable to save
-  /// @param[in] key NVS Key of the variable to save
-  /// @param[in] value float value to save
-  /// @param[out] ec Saves a std::error_code representing success or failure
-  void set_var(std::string_view ns_name, std::string_view key, float value, std::error_code &ec) {
-    uint32_t val_u32;
-    memcpy(&val_u32, &value, sizeof(uint32_t));
-    set_var(ns_name.data(), key.data(), val_u32, ec);    
-  }
-
-  /// @brief Reads a float variable from the NVS
-  /// @param[in] ns_name Namespace of the variable to read
-  /// @param[in] key NVS Key of the variable to read
-  /// @param[out] value Float variable to read
-  /// @param[out] ec Saves a std::error_code representing success or failure
-  void get_var(std::string_view ns_name, std::string_view key, float &value, std::error_code &ec) {
-    uint32_t val_u32;
-    get_var(ns_name.data(), key.data(), val_u32, ec);
-    if(!ec)
-        memcpy(&value, &val_u32, sizeof(float));
-  }
-
-  /// @brief Reads a float variable from the NVS
-  /// @param[in] ns_name Namespace of the variable to read
-  /// @param[in] key NVS Key of the variable to read
-  /// @param[out] value Float variable to read
-  /// @param[in] default_value If the key isn't found in the NVS, this float value is saved to NVS
-  /// @param[out] ec Saves a std::error_code representing success or failure
-  void get_or_set_var(std::string_view ns_name, std::string_view key, float &value, float default_value,
-                      std::error_code &ec) {
-    uint32_t val_u32;
-    memcpy(&val_u32, &default_value, sizeof(uint32_t));
-    get_or_set_var(ns_name.data(), key.data(), val_u32, val_u32, ec);
-    if(!ec)
-        memcpy(&value, &val_u32, sizeof(float));
-  }
-
   /// @brief Save a variable in the NVS and commit
   /// @param[in] ns_name Namespace of the variable to save
   /// @param[in] key NVS Key of the variable to save
@@ -205,6 +167,5 @@ public:
 
     handle.get(key, value, default_value, ec);
   }
-
 }; // Class Nvs
 } // namespace espp
