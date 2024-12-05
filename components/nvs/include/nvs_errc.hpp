@@ -21,7 +21,6 @@ enum class NvsErrc {
   Handle_Uninitialized,
   Erase_NVS_Key_Failed,
   Erase_NVS_Namespace_Failed,
-  Value_Type_Error,
 };
 
 struct NvsErrCategory : std::error_category {

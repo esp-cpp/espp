@@ -122,10 +122,6 @@ public:
   /// @param[in] value float value to save
   /// @param[out] ec Saves a std::error_code representing success or failure
   void set_var(std::string_view ns_name, std::string_view key, float value, std::error_code &ec) {
-    if(sizeof(float) != sizeof(uint32_t)) {
-        ec = make_error_code(NvsErrc::Value_Type_Error);
-        return;
-    }
     uint32_t val_u32;
     memcpy(&val_u32, &value, sizeof(uint32_t));
     set_var(ns_name.data(), key.data(), val_u32, ec);    
@@ -137,10 +133,6 @@ public:
   /// @param[out] value Float variable to read
   /// @param[out] ec Saves a std::error_code representing success or failure
   void get_var(std::string_view ns_name, std::string_view key, float &value, std::error_code &ec) {
-    if(sizeof(float) != sizeof(uint32_t)) {
-        ec = make_error_code(NvsErrc::Value_Type_Error);
-        return;
-    }
     uint32_t val_u32;
     get_var(ns_name.data(), key.data(), val_u32, ec);
     if(!ec)
@@ -155,10 +147,6 @@ public:
   /// @param[out] ec Saves a std::error_code representing success or failure
   void get_or_set_var(std::string_view ns_name, std::string_view key, float &value, float default_value,
                       std::error_code &ec) {
-    if(sizeof(float) != sizeof(uint32_t)) {
-        ec = make_error_code(NvsErrc::Value_Type_Error);
-        return;
-    }
     uint32_t val_u32;
     memcpy(&val_u32, &default_value, sizeof(uint32_t));
     get_or_set_var(ns_name.data(), key.data(), val_u32, val_u32, ec);
@@ -217,11 +205,6 @@ public:
 
     handle.get(key, value, default_value, ec);
   }
-
-  /**
-   * @brief overload of std::make_error_code used by custom error codes.
-   */
-  std::error_code make_error_code(NvsErrc e) { return {static_cast<int>(e), theNvsErrCategory}; }
 
 }; // Class Nvs
 } // namespace espp
