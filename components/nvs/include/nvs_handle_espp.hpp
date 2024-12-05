@@ -101,6 +101,23 @@ public:
   /// @param[out] ec Saves a std::error_code representing success or failure
   void get(std::string_view key, bool &value, std::error_code &ec) { get(key.data(), value, ec); }
 
+  /// @brief Reads a float from the NVS
+  /// @param[in] key NVS Key of the variable to read
+  /// @param[out] value Float variable to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get(const char *key, float &value, std::error_code &ec) {
+    uint32_t u32;
+    get(key, u32, ec);
+    if(!ec)
+        memcpy(&value, &u32, sizeof(float));
+  }
+
+  /// @brief Reads a float from the NVS
+  /// @param[in] key NVS Key of the variable to read
+  /// @param[out] value Float variable to read
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get(std::string_view key, float &value, std::error_code &ec) { get(key.data(), value, ec); }
+
   /// @brief Reads a string from the NVS
   /// @param[in] key NVS Key of the string to read
   /// @param[inout] value string to read
@@ -206,6 +223,30 @@ public:
     get(key.data(), value, default_value, ec);
   }
 
+  /// @brief Reads a float from the NVS
+  /// @param[in] key NVS Key of the bool to read
+  /// @param[out] value float to read
+  /// @param[in] default_value Default value to return if key is not found
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Read the key/variable pair
+  void get(const char *key, float &value, const float default_value, std::error_code &ec) {
+    uint32_t u32;
+    uint32_t u32_default;
+    memcpy(&u32_default, &default_value, sizeof(uint32_t));
+    get(key, u32, u32_default, ec);
+    if(!ec)
+        memcpy(&value, &u32, sizeof(float));
+  }
+
+  /// @brief Reads a float from the NVS
+  /// @param[in] key NVS Key of the float to read
+  /// @param[out] value float to read
+  /// @param[in] default_value Default value to return if key is not found
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void get(std::string_view key, float &value, const float default_value, std::error_code &ec) {
+    get(key.data(), value, default_value, ec);
+  }
+
   /// @brief Reads a string from the NVS
   /// @param[in] key NVS Key of the string to read
   /// @param[out] value string to read
@@ -291,6 +332,22 @@ public:
   void set(const char *key, bool value, std::error_code &ec) {
     uint8_t u8 = static_cast<uint8_t>(value);
     set<uint8_t>(key, u8, ec);
+  }
+
+  /// @brief Set a float in the NVS
+  /// @param[in] key NVS Key of the float to set
+  /// @param[in] value float to set
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set(std::string_view key, float value, std::error_code &ec) { set(key.data(), value, ec); }
+
+  /// @brief Set a float in the NVS
+  /// @param[in] key NVS Key of the float to set
+  /// @param[in] value float to set
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  void set(const char *key, float value, std::error_code &ec) {
+    uint32_t u32;
+    memcpy(&u32, &value, sizeof(uint32_t));
+    set(key, u32, ec);    
   }
 
   /// @brief Set a string in the NVS
