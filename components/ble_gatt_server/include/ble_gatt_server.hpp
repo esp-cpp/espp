@@ -256,12 +256,6 @@ public:
       return false;
     }
 
-    client_ = NimBLEDevice::createClient();
-    if (!client_) {
-      logger_.error("Failed to create client");
-      return false;
-    }
-
     // set the server callbacks
     server_->setCallbacks(new BleGattServerCallbacks(this));
 
@@ -286,8 +280,8 @@ public:
   /// @note This method will also deinitialize the device info and battery
   ///       services.
   void deinit() {
-    if (!server_ || !client_) {
-      logger_.info("Server / Client are nullptr; already deinitialized, not deinitializing again");
+    if (!server_) {
+      logger_.info("Server is nullptr; already deinitialized, not deinitializing again");
       return;
     }
 
@@ -298,9 +292,8 @@ public:
     // invalidates any references/pointers to them
     bool clear_all = true;
     NimBLEDevice::deinit(clear_all);
-    // clear the server and client
+    // clear the server
     server_ = nullptr;
-    client_ = nullptr;
   }
 
   /// Start the services
@@ -532,19 +525,14 @@ public:
       logger_.error("Server not created");
       return {};
     }
-    if (!client_) {
-      logger_.error("Client not created");
-      return {};
-    }
     // since this connection is handled by the server, we won't manually
     // connect, and instead inform the client that we are already connected
     // using this conn handle
-    client_->clearConnection();
-    client_->setConnection(conn_info);
+    auto client = server_->getClient(conn_info);
     // refresh the services
-    client_->getServices(true);
+    client->getServices(true);
     // now get Generic Access Service
-    auto gas = client_->getService(NimBLEUUID("1800"));
+    auto gas = client->getService(NimBLEUUID("1800"));
     if (!gas) {
       logger_.error("Failed to get Generic Access Service");
       return {};
@@ -562,8 +550,6 @@ public:
     }
     // and read it
     auto name = name_char->readValue();
-    // unset the client connection
-    client_->clearConnection();
     return name;
   }
 
@@ -600,10 +586,6 @@ public:
       logger_.error("Server not created");
       return {};
     }
-    if (!client_) {
-      logger_.error("Client not created");
-      return {};
-    }
     if (!is_connected()) {
       logger_.error("Not connected to any devices");
       return {};
@@ -613,12 +595,9 @@ public:
     // since this connection is handled by the server, we won't manually
     // connect, and instead inform the client that we are already connected
     // using this conn handle
-    client_->clearConnection();
-    client_->setConnection(conn_info);
+    auto client = server_->getClient(conn_info);
     // and read the RSSI from the client
-    auto rssi = client_->getRssi();
-    // unset the client connection
-    client_->clearConnection();
+    auto rssi = client->getRssi();
     logger_.info("RSSI for connected device {}: {}", peer_address.toString(), rssi);
     return rssi;
   }
@@ -691,7 +670,6 @@ protected:
 
   Callbacks callbacks_{};                 ///< The callbacks for the GATT server.
   NimBLEServer *server_{nullptr};         ///< The GATT server.
-  NimBLEClient *client_{nullptr};         ///< The client.
   DeviceInfoService device_info_service_; ///< The device info service.
   BatteryService battery_service_;        ///< The battery service.
 };
