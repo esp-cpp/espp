@@ -336,11 +336,13 @@ protected:
   /// @param out The output stream to write to.
   /// @param duration_ms The duration to advertise for.
   /// @param directed_address The address to advertise to.
+  /// @param addr_type The address type to advertise to.
   void start_advertising(std::ostream &out, uint32_t duration_ms,
-                         const std::string &directed_address = "") {
+                         const std::string &directed_address = "",
+                         uint8_t addr_type = BLE_ADDR_PUBLIC) {
     NimBLEAddress *addr = nullptr;
     if (directed_address.size() > 0) {
-      addr = new NimBLEAddress(directed_address);
+      addr = new NimBLEAddress(directed_address, addr_type);
     }
     server_.get().start_advertising(duration_ms, addr);
     out << "Started advertising\n";
@@ -374,8 +376,10 @@ protected:
   /// @brief Add an address to the whitelist.
   /// @param out The output stream to write to.
   /// @param address The address to add to the whitelist.
-  void whitelist(std::ostream &out, const std::string &address) {
-    NimBLEAddress addr(address);
+  /// @param addr_type The address type to add to the whitelist.
+  void whitelist(std::ostream &out, const std::string &address,
+                 uint8_t addr_type = BLE_ADDR_PUBLIC) {
+    NimBLEAddress addr(address, addr_type);
     NimBLEDevice::whiteListAdd(addr);
     out << "Added " << address << " to the whitelist\n";
   }
