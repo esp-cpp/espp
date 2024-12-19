@@ -11,11 +11,11 @@
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
-  fmt::print("Starting led example!\n");
+  espp::Logger logger({.tag = "LED Example", .level = espp::Logger::Verbosity::DEBUG});
   {
     //! [linear led example]
-    fmt::print("Starting linear led example!\n");
     float num_seconds_to_run = 10.0f;
+    logger.info("Starting linear led example for {:.1f}s!", num_seconds_to_run);
     int led_fade_time_ms = 1000;
     std::vector<espp::Led::ChannelConfig> led_channels{{
         .gpio = 2,
@@ -54,9 +54,10 @@ extern "C" void app_main(void) {
 
   {
     //! [breathing led example]
-    fmt::print("Starting gaussian led example!\n");
     float breathing_period = 3.5f; // seconds
     float num_periods_to_run = 2.0f;
+    float num_seconds_to_run = num_periods_to_run * breathing_period;
+    logger.info("Starting gaussian led example for {:.1f}s!", num_seconds_to_run);
     std::vector<espp::Led::ChannelConfig> led_channels{{
         .gpio = 2,
         .channel = LEDC_CHANNEL_5,
@@ -86,13 +87,17 @@ extern "C" void app_main(void) {
     auto led_task =
         espp::Task::make_unique({.callback = led_callback, .task_config = {.name = "breathe"}});
     led_task->start();
-    float wait_time = num_periods_to_run * breathing_period;
-    fmt::print("Sleeping for {:.1f}s...\n", wait_time);
-    std::this_thread::sleep_for(wait_time * 1.0s);
+    logger.debug("Sleeping for {:.1f}s...", num_seconds_to_run);
+    std::this_thread::sleep_for(num_seconds_to_run * 1.0s);
     //! [breathing led example]
   }
 
-  fmt::print("LED example complete!\n");
+  // now uninstall the fade service to free up the ISR, since we have no LEDs
+  // using it anymore
+  logger.info("Uninstalling LED ISR...");
+  espp::Led::uninstall_isr();
+
+  logger.info("LED example complete!");
 
   while (true) {
     std::this_thread::sleep_for(1s);
