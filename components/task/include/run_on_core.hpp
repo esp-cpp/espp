@@ -151,7 +151,13 @@ static void run_on_core_non_blocking(const auto &f, int core_id, size_t stack_si
     f();
     return;
   }
-  auto thread = std::thread(f);
+  auto thread = std::thread(
+      [](const auto &f) {
+        f();
+        // delete ourselves (the task that was created by the thread)
+        vTaskDelete(nullptr);
+      },
+      f);
   thread.detach();
 }
 

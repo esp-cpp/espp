@@ -268,5 +268,5 @@ void Task::thread_function() {
       }
     }
 #endif // ESP_PLATFORM
-  }
+  }    // while (started_)
 }
