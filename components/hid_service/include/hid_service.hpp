@@ -153,9 +153,10 @@ public:
     std::lock_guard<std::mutex> lock(input_report_characteristics_mutex_);
 
     // look up the report ID in the list of input report characteristics
-    for (auto &input_report : input_report_characteristics_) {
-      if (input_report.first == report_id) {
-        return input_report.second;
+    for (const auto &report_char : input_report_characteristics_) {
+      // cppcheck-suppress useStlAlgorithm
+      if (report_char.first == report_id) {
+        return report_char.second;
       }
     }
 
@@ -185,9 +186,10 @@ public:
     std::lock_guard<std::mutex> lock(output_report_characteristics_mutex_);
 
     // look up the report ID in the list of output report characteristics
-    for (auto &output_report : output_report_characteristics_) {
-      if (output_report.first == report_id) {
-        return output_report.second;
+    for (const auto &report_char : output_report_characteristics_) {
+      // cppcheck-suppress useStlAlgorithm
+      if (report_char.first == report_id) {
+        return report_char.second;
       }
     }
 
@@ -220,9 +222,10 @@ public:
     std::lock_guard<std::mutex> lock(feature_report_characteristics_mutex_);
 
     // look up the report ID in the list of feature report characteristics
-    for (auto &feature_report : feature_report_characteristics_) {
-      if (feature_report.first == report_id) {
-        return feature_report.second;
+    for (const auto &report_char : feature_report_characteristics_) {
+      // cppcheck-suppress useStlAlgorithm
+      if (report_char.first == report_id) {
+        return report_char.second;
       }
     }
 
