@@ -177,6 +177,26 @@ public:
     return input_report_char;
   }
 
+  /// @brief Remove an input report characteristic.
+  /// @param report_id The report ID of the input report characteristic to
+  ///        remove.
+  /// @note This will delete the characteristic, and remove it from the list.
+  ///       Any stored pointers to the characteristic will be invalid after this
+  ///       call.
+  void remove_input_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(input_report_characteristics_mutex_);
+    auto it =
+        std::find_if(input_report_characteristics_.begin(), input_report_characteristics_.end(),
+                     [report_id](const ReportCharacteristic &report_char) {
+                       return report_char.first == report_id;
+                     });
+    if (it != input_report_characteristics_.end()) {
+      static constexpr bool delete_char = true;
+      service_->removeCharacteristic(it->second, delete_char);
+      input_report_characteristics_.erase(it);
+    }
+  }
+
   /// @brief Create an output report characteristic.
   /// @param report_id The report ID. This should be the same as the report
   ///                ID in the report descriptor for the output object that
@@ -213,6 +233,26 @@ public:
     return output_report_char;
   }
 
+  /// @brief Remove an output report characteristic.
+  /// @param report_id The report ID of the output report characteristic to
+  ///        remove.
+  /// @note This will delete the characteristic, and remove it from the list.
+  ///       Any stored pointers to the characteristic will be invalid after this
+  ///       call.
+  void remove_output_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(output_report_characteristics_mutex_);
+    auto it =
+        std::find_if(output_report_characteristics_.begin(), output_report_characteristics_.end(),
+                     [report_id](const ReportCharacteristic &report_char) {
+                       return report_char.first == report_id;
+                     });
+    if (it != output_report_characteristics_.end()) {
+      static constexpr bool delete_char = true;
+      service_->removeCharacteristic(it->second, delete_char);
+      output_report_characteristics_.erase(it);
+    }
+  }
+
   /// @brief Create a feature report characteristic.
   /// @param report_id The report ID. This should be the same as the report
   ///               ID in the report descriptor for the feature object that
@@ -246,6 +286,26 @@ public:
     feature_report_characteristics_.emplace_back(report_id, feature_report_char);
 
     return feature_report_char;
+  }
+
+  /// @brief Remove a feature report characteristic.
+  /// @param report_id The report ID of the feature report characteristic to
+  ///        remove.
+  /// @note This will delete the characteristic, and remove it from the list.
+  ///       Any stored pointers to the characteristic will be invalid after this
+  ///       call.
+  void remove_feature_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(feature_report_characteristics_mutex_);
+    auto it =
+        std::find_if(feature_report_characteristics_.begin(), feature_report_characteristics_.end(),
+                     [report_id](const ReportCharacteristic &report_char) {
+                       return report_char.first == report_id;
+                     });
+    if (it != feature_report_characteristics_.end()) {
+      static constexpr bool delete_char = true;
+      service_->removeCharacteristic(it->second, delete_char);
+      feature_report_characteristics_.erase(it);
+    }
   }
 
 protected:
