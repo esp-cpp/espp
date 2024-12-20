@@ -106,7 +106,7 @@ extern "C" void app_main(void) {
   hid_service.set_report_map(descriptor);
 
   // use the HID service to make an input report characteristic
-  auto input_report = hid_service.input_report(input_report_id);
+  [[maybe_unused]] auto input_report = hid_service.input_report(input_report_id);
 
   // use the HID service to make an output report characteristic
   [[maybe_unused]] auto output_report = hid_service.output_report(output_report_id);
@@ -217,7 +217,11 @@ extern "C" void app_main(void) {
     // send an input report
     auto report = gamepad_input_report.get_report();
     logger.debug("Sending report data ({}): {::#02x}", report.size(), report);
-    input_report->notify(report);
+
+    // Get the stored pointer (we could use the one above, but this is just to
+    // show how to get it)
+    auto report_char = hid_service.input_report(input_report_id);
+    report_char->notify(report);
 
     // sleep
     std::this_thread::sleep_until(start + 1s);

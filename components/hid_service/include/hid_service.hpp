@@ -150,6 +150,17 @@ public:
   ///                  is related to the characteristic.
   /// @return The input report characteristic.
   NimBLECharacteristic *input_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(input_report_characteristics_mutex_);
+
+    // look up the report ID in the list of input report characteristics
+    for (const auto &report_char : input_report_characteristics_) {
+      // cppcheck-suppress useStlAlgorithm
+      if (report_char.first == report_id) {
+        return report_char.second;
+      }
+    }
+
+    // we got here, so the report ID was not found
     auto input_report_char = service_->createCharacteristic(
         NimBLEUUID(REPORT_UUID),
         NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY | NIMBLE_PROPERTY::READ_ENC);
@@ -160,7 +171,30 @@ public:
     uint8_t desc_value[] = {report_id, 0x01};
     desc->setValue(desc_value, sizeof(desc_value));
 
+    // now add the report ID to the list of input report characteristics
+    input_report_characteristics_.emplace_back(report_id, input_report_char);
+
     return input_report_char;
+  }
+
+  /// @brief Remove an input report characteristic.
+  /// @param report_id The report ID of the input report characteristic to
+  ///        remove.
+  /// @note This will delete the characteristic, and remove it from the list.
+  ///       Any stored pointers to the characteristic will be invalid after this
+  ///       call.
+  void remove_input_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(input_report_characteristics_mutex_);
+    auto it =
+        std::find_if(input_report_characteristics_.begin(), input_report_characteristics_.end(),
+                     [report_id](const ReportCharacteristic &report_char) {
+                       return report_char.first == report_id;
+                     });
+    if (it != input_report_characteristics_.end()) {
+      static constexpr bool delete_char = true;
+      service_->removeCharacteristic(it->second, delete_char);
+      input_report_characteristics_.erase(it);
+    }
   }
 
   /// @brief Create an output report characteristic.
@@ -169,6 +203,17 @@ public:
   ///                is related to the characteristic.
   /// @return The output report characteristic.
   NimBLECharacteristic *output_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(output_report_characteristics_mutex_);
+
+    // look up the report ID in the list of output report characteristics
+    for (const auto &report_char : output_report_characteristics_) {
+      // cppcheck-suppress useStlAlgorithm
+      if (report_char.first == report_id) {
+        return report_char.second;
+      }
+    }
+
+    // we got here, so the report ID was not found
     auto output_report_char = service_->createCharacteristic(
         NimBLEUUID(REPORT_UUID), NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE |
                                      NIMBLE_PROPERTY::WRITE_NR | NIMBLE_PROPERTY::READ_ENC |
@@ -182,7 +227,30 @@ public:
     uint8_t desc_value[] = {report_id, 0x02};
     desc->setValue(desc_value, sizeof(desc_value));
 
+    // now add the report ID to the list of output report characteristics
+    output_report_characteristics_.emplace_back(report_id, output_report_char);
+
     return output_report_char;
+  }
+
+  /// @brief Remove an output report characteristic.
+  /// @param report_id The report ID of the output report characteristic to
+  ///        remove.
+  /// @note This will delete the characteristic, and remove it from the list.
+  ///       Any stored pointers to the characteristic will be invalid after this
+  ///       call.
+  void remove_output_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(output_report_characteristics_mutex_);
+    auto it =
+        std::find_if(output_report_characteristics_.begin(), output_report_characteristics_.end(),
+                     [report_id](const ReportCharacteristic &report_char) {
+                       return report_char.first == report_id;
+                     });
+    if (it != output_report_characteristics_.end()) {
+      static constexpr bool delete_char = true;
+      service_->removeCharacteristic(it->second, delete_char);
+      output_report_characteristics_.erase(it);
+    }
   }
 
   /// @brief Create a feature report characteristic.
@@ -191,6 +259,17 @@ public:
   ///               is related to the characteristic.
   /// @return The feature report characteristic.
   NimBLECharacteristic *feature_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(feature_report_characteristics_mutex_);
+
+    // look up the report ID in the list of feature report characteristics
+    for (const auto &report_char : feature_report_characteristics_) {
+      // cppcheck-suppress useStlAlgorithm
+      if (report_char.first == report_id) {
+        return report_char.second;
+      }
+    }
+
+    // we got here, so the report ID was not found
     auto feature_report_char = service_->createCharacteristic(
         NimBLEUUID(REPORT_UUID), NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE |
                                      NIMBLE_PROPERTY::READ_ENC | NIMBLE_PROPERTY::WRITE_ENC);
@@ -203,7 +282,30 @@ public:
     uint8_t desc_value[] = {report_id, 0x03};
     desc->setValue(desc_value, sizeof(desc_value));
 
+    // now add the report ID to the list of feature report characteristics
+    feature_report_characteristics_.emplace_back(report_id, feature_report_char);
+
     return feature_report_char;
+  }
+
+  /// @brief Remove a feature report characteristic.
+  /// @param report_id The report ID of the feature report characteristic to
+  ///        remove.
+  /// @note This will delete the characteristic, and remove it from the list.
+  ///       Any stored pointers to the characteristic will be invalid after this
+  ///       call.
+  void remove_feature_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(feature_report_characteristics_mutex_);
+    auto it =
+        std::find_if(feature_report_characteristics_.begin(), feature_report_characteristics_.end(),
+                     [report_id](const ReportCharacteristic &report_char) {
+                       return report_char.first == report_id;
+                     });
+    if (it != feature_report_characteristics_.end()) {
+      static constexpr bool delete_char = true;
+      service_->removeCharacteristic(it->second, delete_char);
+      feature_report_characteristics_.erase(it);
+    }
   }
 
 protected:
@@ -237,6 +339,15 @@ protected:
     const uint8_t pMode[] = {0x01};
     protocol_mode_->setValue(pMode, 1);
   }
+
+  typedef std::pair<uint8_t, NimBLECharacteristic *> ReportCharacteristic;
+
+  std::mutex input_report_characteristics_mutex_;
+  std::vector<ReportCharacteristic> input_report_characteristics_;
+  std::mutex output_report_characteristics_mutex_;
+  std::vector<ReportCharacteristic> output_report_characteristics_;
+  std::mutex feature_report_characteristics_mutex_;
+  std::vector<ReportCharacteristic> feature_report_characteristics_;
 
   NimBLEService *service_{nullptr};
   NimBLECharacteristic *hid_info_{nullptr};      // 0x2a4a
