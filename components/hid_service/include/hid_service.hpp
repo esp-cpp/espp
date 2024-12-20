@@ -150,6 +150,16 @@ public:
   ///                  is related to the characteristic.
   /// @return The input report characteristic.
   NimBLECharacteristic *input_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(input_report_characteristics_mutex_);
+
+    // look up the report ID in the list of input report characteristics
+    for (auto &input_report : input_report_characteristics_) {
+      if (input_report.first == report_id) {
+        return input_report.second;
+      }
+    }
+
+    // we got here, so the report ID was not found
     auto input_report_char = service_->createCharacteristic(
         NimBLEUUID(REPORT_UUID),
         NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY | NIMBLE_PROPERTY::READ_ENC);
@@ -160,6 +170,9 @@ public:
     uint8_t desc_value[] = {report_id, 0x01};
     desc->setValue(desc_value, sizeof(desc_value));
 
+    // now add the report ID to the list of input report characteristics
+    input_report_characteristics_.emplace_back(report_id, input_report_char);
+
     return input_report_char;
   }
 
@@ -169,6 +182,16 @@ public:
   ///                is related to the characteristic.
   /// @return The output report characteristic.
   NimBLECharacteristic *output_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(output_report_characteristics_mutex_);
+
+    // look up the report ID in the list of output report characteristics
+    for (auto &output_report : output_report_characteristics_) {
+      if (output_report.first == report_id) {
+        return output_report.second;
+      }
+    }
+
+    // we got here, so the report ID was not found
     auto output_report_char = service_->createCharacteristic(
         NimBLEUUID(REPORT_UUID), NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE |
                                      NIMBLE_PROPERTY::WRITE_NR | NIMBLE_PROPERTY::READ_ENC |
@@ -182,6 +205,9 @@ public:
     uint8_t desc_value[] = {report_id, 0x02};
     desc->setValue(desc_value, sizeof(desc_value));
 
+    // now add the report ID to the list of output report characteristics
+    output_report_characteristics_.emplace_back(report_id, output_report_char);
+
     return output_report_char;
   }
 
@@ -191,6 +217,16 @@ public:
   ///               is related to the characteristic.
   /// @return The feature report characteristic.
   NimBLECharacteristic *feature_report(uint8_t report_id) {
+    std::lock_guard<std::mutex> lock(feature_report_characteristics_mutex_);
+
+    // look up the report ID in the list of feature report characteristics
+    for (auto &feature_report : feature_report_characteristics_) {
+      if (feature_report.first == report_id) {
+        return feature_report.second;
+      }
+    }
+
+    // we got here, so the report ID was not found
     auto feature_report_char = service_->createCharacteristic(
         NimBLEUUID(REPORT_UUID), NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE |
                                      NIMBLE_PROPERTY::READ_ENC | NIMBLE_PROPERTY::WRITE_ENC);
@@ -202,6 +238,9 @@ public:
     // set the report ID and the report type in the descriptor
     uint8_t desc_value[] = {report_id, 0x03};
     desc->setValue(desc_value, sizeof(desc_value));
+
+    // now add the report ID to the list of feature report characteristics
+    feature_report_characteristics_.emplace_back(report_id, feature_report_char);
 
     return feature_report_char;
   }
@@ -237,6 +276,15 @@ protected:
     const uint8_t pMode[] = {0x01};
     protocol_mode_->setValue(pMode, 1);
   }
+
+  typedef std::pair<uint8_t, NimBLECharacteristic *> ReportCharacteristic;
+
+  std::mutex input_report_characteristics_mutex_;
+  std::vector<ReportCharacteristic> input_report_characteristics_;
+  std::mutex output_report_characteristics_mutex_;
+  std::vector<ReportCharacteristic> output_report_characteristics_;
+  std::mutex feature_report_characteristics_mutex_;
+  std::vector<ReportCharacteristic> feature_report_characteristics_;
 
   NimBLEService *service_{nullptr};
   NimBLECharacteristic *hid_info_{nullptr};      // 0x2a4a
