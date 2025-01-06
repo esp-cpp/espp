@@ -138,7 +138,7 @@ static auto run_on_core(const auto &f, const espp::Task::BaseConfig &task_config
 /// @param stack_size_bytes The stack size to allocate for the function
 /// @param priority The priority of the task
 /// @param name The name of the task
-/// @note This function is only available on ESP32
+/// @note This function is only available on the ESP platform
 /// @note If you provide a core_id < 0, the thread will not be pinned to any
 ///       specific core, instead the scheduler will decide which core to run
 ///       the thread on
