@@ -103,12 +103,13 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
 
 /// Run the given function on the specific core, then return the result (if any)
 /// @details This function will run the given function on the specified core,
-///         then return the result (if any). If the provided core is the same
-///         as the current core, the function will run directly. If the
-///         provided core is different, the function will be run on the
-///         specified core and the result will be returned to the calling
-///         thread. Note that this function will block the calling thread until
-///         the function has completed, regardless of the core it is run on.
+///         then return the result (if any). If the provided core is the same as
+///         the current core, the function will run directly (unless ensure_task
+///         is set to true). If the provided core is different, the function
+///         will be run on the specified core and the result will be returned to
+///         the calling thread. Note that this function will block the calling
+///         thread until the function has completed, regardless of the core it
+///         is run on.
 /// @param f The function to run
 /// @param task_config The task configuration
 /// @param ensure_task If true, the function will be run in a separate task,
