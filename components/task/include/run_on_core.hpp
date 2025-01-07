@@ -7,27 +7,35 @@ namespace task {
 #if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
 /// Run the given function on the specific core, then return the result (if any)
 /// @details This function will run the given function on the specified core,
-///         then return the result (if any). If the provided core is the same
-///         as the current core, the function will run directly. If the
-///         provided core is different, the function will be run on the
-///         specified core and the result will be returned to the calling
-///         thread. Note that this function will block the calling thread until
-///         the function has completed, regardless of the core it is run on.
+///         then return the result (if any). If the provided core is the same as
+///         the current core, the function will run directly (unless ensure_task
+///         is set to true). If the provided core is different, the function
+///         will be run on the specified core and the result will be returned to
+///         the calling thread. Note that this function will block the calling
+///         thread until the function has completed, regardless of the core it
+///         is run on.
 /// @param f The function to run
-/// @param core_id The core to run the function on
+/// @param core_id The core to run the function on. -1 means the scheduler will
+///        decide which core to run the function on
 /// @param stack_size_bytes The stack size to allocate for the function
 /// @param priority The priority of the task
 /// @param name The name of the task
-/// @note This function is only available on ESP32
-/// @note If you provide a core_id < 0, the function will run on the current
-///       core (same core as the caller)
+/// @param ensure_task If true, the function will be run in a separate task,
+///        regardless of the core id. If false, the function will be run
+///        directly if the core id is the same as the current core, otherwise
+///        it will be run in a separate task
+/// @note If the provided core id is the same as the current core, the function
+///       will run directly - unless ensure_task is true, in which case the
+///       function will run in a separate task
+/// @note This function is only available on the ESP platform
 /// @note If you provide a core_id >= configNUM_CORES, the function will run on
 ///       the last core
 static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 2048,
-                        size_t priority = 5, const std::string &name = "run_on_core_task") {
-  if (core_id < 0 || core_id == xPortGetCoreID()) {
-    // If no core id specified or we are already executing on the desired core,
-    // run the function directly
+                        size_t priority = 5, const std::string &name = "run_on_core_task",
+                        bool ensure_task = false) {
+  if (!ensure_task && core_id == xPortGetCoreID()) {
+    // If we are already executing on the desired core and ensure task is false,
+    // then simply run the function directly
     return f();
   } else {
     // Otherwise run the function on the desired core
@@ -95,22 +103,29 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
 
 /// Run the given function on the specific core, then return the result (if any)
 /// @details This function will run the given function on the specified core,
-///         then return the result (if any). If the provided core is the same
-///         as the current core, the function will run directly. If the
-///         provided core is different, the function will be run on the
-///         specified core and the result will be returned to the calling
-///         thread. Note that this function will block the calling thread until
-///         the function has completed, regardless of the core it is run on.
+///         then return the result (if any). If the provided core is the same as
+///         the current core, the function will run directly (unless ensure_task
+///         is set to true). If the provided core is different, the function
+///         will be run on the specified core and the result will be returned to
+///         the calling thread. Note that this function will block the calling
+///         thread until the function has completed, regardless of the core it
+///         is run on.
 /// @param f The function to run
 /// @param task_config The task configuration
-/// @note This function is only available on ESP32
-/// @note If you provide a core_id < 0, the function will run on the current
-///       core (same core as the caller)
+/// @param ensure_task If true, the function will be run in a separate task,
+///        regardless of the core id. If false, the function will be run
+///        directly if the core id is the same as the current core, otherwise
+///        it will be run in a separate task
+/// @note This function is only available on the ESP platform
+/// @note If the provided core id is the same as the current core, the function
+///       will run directly - unless ensure_task is true, in which case the
+///       function will run in a separate task
 /// @note If you provide a core_id >= configNUM_CORES, the function will run on
 ///       the last core
-static auto run_on_core(const auto &f, const espp::Task::BaseConfig &task_config) {
+static auto run_on_core(const auto &f, const espp::Task::BaseConfig &task_config,
+                        bool ensure_task = false) {
   return run_on_core(f, task_config.core_id, task_config.stack_size_bytes, task_config.priority,
-                     task_config.name);
+                     task_config.name, ensure_task);
 }
 
 /// Run the given function on the specific core without blocking the calling thread
@@ -123,7 +138,7 @@ static auto run_on_core(const auto &f, const espp::Task::BaseConfig &task_config
 /// @param stack_size_bytes The stack size to allocate for the function
 /// @param priority The priority of the task
 /// @param name The name of the task
-/// @note This function is only available on ESP32
+/// @note This function is only available on the ESP platform
 /// @note If you provide a core_id < 0, the thread will not be pinned to any
 ///       specific core, instead the scheduler will decide which core to run
 ///       the thread on
@@ -168,7 +183,7 @@ static void run_on_core_non_blocking(const auto &f, int core_id, size_t stack_si
 ///          the core on which the calling thread is running.
 /// @param f The function to run
 /// @param task_config The task configuration
-/// @note This function is only available on ESP32
+/// @note This function is only available on the ESP platform
 /// @note If you provide a core_id < 0, the thread will not be pinned to any
 ///       specific core, instead the scheduler will decide which core to run
 ///       the thread on
