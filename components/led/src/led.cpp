@@ -41,6 +41,7 @@ Led::Led(const Config &config) noexcept
     channel_conf.duty = actual_duty;
     channel_conf.gpio_num = conf.gpio;
     channel_conf.speed_mode = conf.speed_mode;
+    channel_conf.sleep_mode = conf.sleep_mode;
     channel_conf.hpoint = 0;
     channel_conf.timer_sel = conf.timer;
     channel_conf.flags.output_invert = conf.output_invert;
