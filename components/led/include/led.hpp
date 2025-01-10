@@ -37,6 +37,7 @@ public:
     ledc_mode_t speed_mode{
         LEDC_LOW_SPEED_MODE};  /**< The LEDC speed mode you want for this LED channel. */
     bool output_invert{false}; /**< Whether to invert the GPIO output for this LED channel. */
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 0) || defined(_DOXYGEN_)
     ledc_sleep_mode_t sleep_mode{
         LEDC_SLEEP_MODE_KEEP_ALIVE}; /**< The LEDC sleep mode you want for this
                                         LED channel. Default is
@@ -46,6 +47,7 @@ public:
                                         only useful if the LED's clock_config is
                                         set to a clock source which supports
                                         light sleep. */
+#endif
   };
 
   /**
