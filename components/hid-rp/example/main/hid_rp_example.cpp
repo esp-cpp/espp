@@ -14,6 +14,7 @@ extern "C" void app_main(void) {
 
   //! [hid rp example]
   static constexpr uint8_t input_report_id = 1;
+  static constexpr uint8_t battery_report_id = 4;
   static constexpr size_t num_buttons = 15;
   static constexpr int joystick_min = 0;
   static constexpr int joystick_max = 65534;
