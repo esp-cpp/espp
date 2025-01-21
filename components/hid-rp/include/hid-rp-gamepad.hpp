@@ -229,6 +229,140 @@ public:
   }
 };
 
+/// HID Xbox Battery Input Report
+/// This class implements a copy of the Xbox Battery input report. It is a
+/// single byte input which contains information about the type of the battery,
+/// its battery level, as well as a few other things.
+///
+/// \section hid_rp_ex1 HID-RP Example
+/// \snippet hid_rp_example.cpp hid rp example
+template <uint8_t REPORT_ID = 4>
+class XboxBatteryInputReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
+public:
+protected:
+  static constexpr uint8_t battery_min{0};
+  static constexpr uint8_t battery_max{255};
+  static constexpr uint8_t num_data_bytes{1};
+
+  uint8_t battery_status{0}; ///< The battery status byte
+
+public:
+  /// The possible errors for the battery
+  enum class Error {
+    NONE,             ///< No error
+    BATTERY_LOW,      ///< The battery is low
+    BATTERY_CRITICAL, ///< The battery is critically low
+  };
+
+  /// Reset the battery status
+  constexpr void reset() { battery_status = 0; }
+
+  /// Set whether the battery is rechargeable
+  /// \param rechargeable True if the battery is rechargeable, false otherwise.
+  constexpr void set_rechargeable(bool rechargeable) {
+    if (rechargeable) {
+      battery_status |= 0x04;
+    } else {
+      battery_status &= ~0x04;
+    }
+  }
+
+  /// Set the battery level
+  /// \param level The battery level as a percentage, from 0 to 100.
+  constexpr void set_battery_level(int level) {
+    if (level > 70) {
+      battery_status |= 0x03;
+    } else if (level > 40) {
+      battery_status |= 0x02;
+    } else if (level > 5) {
+      battery_status |= 0x01;
+    }
+  }
+
+  /// Set whether the battery is connected to a cable
+  /// \param connected True if the battery is connected to a cable, false otherwise.
+  constexpr void set_cable_connected(bool connected) {
+    if (connected) {
+      battery_status |= 0x10;
+    } else {
+      battery_status &= ~0x10;
+    }
+  }
+
+  /// Set whether the battery is charging
+  /// \param charging True if the battery is charging, false otherwise.
+  constexpr void set_charging(bool charging) {
+    if (charging) {
+      battery_status |= 0x20;
+    } else {
+      battery_status &= ~0x20;
+    }
+  }
+
+  /// Set the error state of the battery
+  /// \param error The error state of the battery.
+  constexpr void set_error(Error error) {
+    switch (error) {
+    case Error::BATTERY_LOW:
+      battery_status |= 0x80;
+      break;
+    case Error::BATTERY_CRITICAL:
+      battery_status |= 0xC0;
+      break;
+    default:
+      break;
+    }
+  }
+
+  /// Get the input report as a vector of bytes
+  /// \return The input report as a vector of bytes.
+  /// \note The report id is not included in the returned vector.
+  constexpr auto get_report() {
+    // the first byte is the id, which we don't want...
+    size_t offset = 1;
+    auto report_data = this->data() + offset;
+    auto report_size = num_data_bytes;
+    return std::vector<uint8_t>(report_data, report_data + report_size);
+  }
+
+  /// Get the report descriptor as a hid::rdf::descriptor
+  /// \return The report descriptor as a hid::rdf::descriptor.
+  /// \note This is an incomplete descriptor, you will need to add it to a
+  ///      collection::application descriptor to create a complete report descriptor.
+  ///      \code{.cpp}
+  ///      using namespace hid::page;
+  ///      using namespace hid::rdf;
+  ///      auto gamepad_descriptor = gamepad_input_report.get_descriptor();
+  ///      auto rdf_descriptor = descriptor(
+  ///          usage_page<generic_desktop>(),
+  ///          usage(generic_desktop::GAMEPAD),
+  ///          collection::application(
+  ///              gamepad_descriptor
+  ///          )
+  ///      );
+  ///      auto descriptor = std::vector<uint8_t>(rdf_descriptor.begin(), rdf_descriptor.end());
+  ///      \endcode
+  static constexpr auto get_descriptor() {
+    using namespace hid::page;
+    using namespace hid::rdf;
+
+    // clang-format off
+      return descriptor(
+                        conditional_report_id<REPORT_ID>(),
+
+                        // Battery status
+                        usage(generic_device::BATTERY_STRENGTH),
+                        conditional_report_id<4>(),
+                        logical_limits<1,2>(battery_min, battery_max),
+                        report_size(8),
+                        report_count(1),
+                        usage(generic_device::BATTERY_STRENGTH),
+                        input::absolute_variable()
+                        );
+    // clang-format on
+  }
+};
+
 /// HID Gamepad LED Output Report
 /// This class implements a HID Gamepad with a configurable number of LEDs.
 /// It supports setting the LEDs, as well as serializing the output report and
