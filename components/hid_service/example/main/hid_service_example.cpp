@@ -73,6 +73,7 @@ extern "C" void app_main(void) {
   hid_service.set_info(country_code, hid_info_flags);
 
   static constexpr uint8_t input_report_id = 1;
+  static constexpr uint8_t battery_report_id = 4;
   static constexpr size_t num_buttons = 15;
   static constexpr int joystick_min = 0;
   static constexpr int joystick_max = 65534;
@@ -84,6 +85,9 @@ extern "C" void app_main(void) {
                                joystick_max, trigger_min, trigger_max, input_report_id>;
   GamepadInput gamepad_input_report;
 
+  using BatteryReport = espp::XboxBatteryInputReport<battery_report_id>;
+  BatteryReport battery_input_report;
+
   static constexpr uint8_t output_report_id = 2;
   static constexpr size_t num_leds = 4;
   using GamepadLeds = espp::GamepadLedOutputReport<num_leds, output_report_id>;
@@ -93,6 +97,7 @@ extern "C" void app_main(void) {
   using namespace hid::rdf;
   auto raw_descriptor = descriptor(usage_page<generic_desktop>(), usage(generic_desktop::GAMEPAD),
                                    collection::application(gamepad_input_report.get_descriptor(),
+                                                           battery_input_report.get_descriptor(),
                                                            gamepad_leds_report.get_descriptor()));
 
   // Generate the report descriptor for the gamepad
@@ -107,6 +112,7 @@ extern "C" void app_main(void) {
 
   // use the HID service to make an input report characteristic
   [[maybe_unused]] auto input_report = hid_service.input_report(input_report_id);
+  [[maybe_unused]] auto battery_report = hid_service.input_report(battery_report_id);
 
   // use the HID service to make an output report characteristic
   [[maybe_unused]] auto output_report = hid_service.output_report(output_report_id);
@@ -188,6 +194,11 @@ extern "C" void app_main(void) {
 
     // update the battery level
     battery_service.set_battery_level(battery_level);
+    battery_input_report.reset();
+    battery_input_report.set_rechargeable(true);
+    battery_input_report.set_charging(false);
+    battery_input_report.set_battery_level(battery_level);
+    battery_report->notify(battery_input_report.get_report());
     battery_level = (battery_level % 100) + 1;
 
     // cycle through the possible d-pad states
