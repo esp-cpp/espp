@@ -520,7 +520,7 @@ public:
   /// Get the connected device name
   /// @param conn_info The connection information for the device.
   /// @return The connected device name.
-  std::string get_connected_device_name(NimBLEConnInfo &conn_info) {
+  std::string get_connected_device_name(const NimBLEConnInfo &conn_info) {
     if (!server_) {
       logger_.error("Server not created");
       return {};
@@ -581,7 +581,7 @@ public:
   /// Get the RSSI of the connected device
   /// @param conn_info The connection information for the device.
   /// @return The RSSI of the connected device.
-  int get_connected_device_rssi(NimBLEConnInfo &conn_info) {
+  int get_connected_device_rssi(const NimBLEConnInfo &conn_info) {
     if (!server_) {
       logger_.error("Server not created");
       return {};
