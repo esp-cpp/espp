@@ -1,0 +1,17 @@
+CST816 Touch Controller
+**********************
+
+The `Cst816` class provides an interface to the CST816 touch controller.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   cst816_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/cst816.inc
