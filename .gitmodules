@@ -37,3 +37,6 @@
 [submodule "external/nearby"]
 	path = external/nearby
 	url = https://github.com/google/nearby
+[submodule "components/binary-log/detail"]
+	path = components/binary-log/detail
+	url = https://github.com/p-ranav/binary_log
