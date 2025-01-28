@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py binary-log"
+  "main esptool_py espcoredump binary-log file_system format"
   CACHE STRING
   "List of components to include"
   )
