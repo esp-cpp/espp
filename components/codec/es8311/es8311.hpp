@@ -25,6 +25,7 @@
 #ifndef _ES8311_H
 #define _ES8311_H
 
+#include <cstdint>
 #include <functional>
 
 typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
