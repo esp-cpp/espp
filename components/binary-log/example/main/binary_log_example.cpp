@@ -44,8 +44,9 @@ extern "C" void app_main(void) {
       elapsed = std::chrono::duration<float>(now - start).count();
       auto remaining = num_seconds_to_run - elapsed;
 
-      BINARY_LOG(log, "elapsed: {}s", elapsed);
-      BINARY_LOG(log, "remaining: {}s", remaining);
+      // NOTE: use of a single log within the majority of this loop allows for
+      // run-length encoding of the log messages to be used to reduce the size
+      BINARY_LOG(log, "elapsed: {}s\nremaining: {}s", elapsed, remaining);
 
       if (remaining < 0) {
         BINARY_LOG(log, "You overstayed your welcome by {}s!", -remaining);
