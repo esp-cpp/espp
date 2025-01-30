@@ -6,12 +6,14 @@
 
 #include "binary-log.hpp"
 #include "file_system.hpp"
-#include "format.hpp"
+#include "logger.hpp"
 
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
-  fmt::print("Starting binary log example\n");
+  espp::Logger logger({.tag = "blog_example", .level = espp::Logger::Verbosity::INFO});
+
+  logger.info("Starting binary log example");
   // initialize the file system
   std::error_code ec;
   auto &fs = espp::FileSystem::get();
@@ -20,7 +22,7 @@ extern "C" void app_main(void) {
 
   // first see if the file exists
   if (std::filesystem::exists(logfile, ec)) {
-    fmt::print("Removing existing log file\n");
+    logger.info("Removing existing log file");
     fs.remove(logfile, ec);
   }
 
@@ -28,10 +30,12 @@ extern "C" void app_main(void) {
     //! [Binary Log example]
     float num_seconds_to_run = 3.0f;
     // create logger
-    fmt::print("Creating binary log file: {}\n", logfile.c_str());
-    binary_log::binary_log log(logfile.c_str());
+    logger.info("Creating binary log file: {}", logfile.c_str());
+    static constexpr size_t buffer_size = 1024;
+    static constexpr size_t index_buffer_size = 1024;
+    binary_log::binary_log<buffer_size, index_buffer_size> log(logfile.c_str());
 
-    fmt::print("Starting binary log\n");
+    logger.info("Starting binary logging for {}s", num_seconds_to_run);
     auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
     float elapsed = std::chrono::duration<float>(now - start).count();
@@ -40,19 +44,19 @@ extern "C" void app_main(void) {
       elapsed = std::chrono::duration<float>(now - start).count();
       auto remaining = num_seconds_to_run - elapsed;
 
-      BINARY_LOG(log, "elapsed: {:.3f}s", elapsed);
-      BINARY_LOG(log, "remaining: {:.3f}s", remaining);
+      BINARY_LOG(log, "elapsed: {}s", elapsed);
+      BINARY_LOG(log, "remaining: {}s", remaining);
 
       if (remaining < 0) {
-        BINARY_LOG(log, "You overstayed your welcome by {:.03}s!", -remaining);
+        BINARY_LOG(log, "You overstayed your welcome by {}s!", -remaining);
       }
-      std::this_thread::sleep_for(500ms);
+      std::this_thread::sleep_for(10ms);
     }
     //! [Logger example]
   }
 
   // now print out the logger files
-  fmt::print("Printing log file\n");
+  logger.info("Printing log file");
 
   size_t file_size = std::filesystem::file_size(logfile, ec);
   std::ifstream ifs(logfile, std::ios::in | std::ios::binary);
@@ -60,18 +64,43 @@ extern "C" void app_main(void) {
   std::vector<char> file_bytes(file_size);
   ifs.read(file_bytes.data(), file_size);
   ifs.close();
-  fmt::print("Read {} bytes from log file\n", file_size);
-  fmt::print("File contents:\n");
-  fmt::print("\t{::02x}\n", file_bytes);
+  logger.info("Read {} bytes from log file", file_size);
+  logger.info("File contents:\n{::#02x}", file_bytes);
+
+  // now print the contents of the other two associated files
+  logger.info("Printing index file");
+  std::filesystem::path indexfile = logfile;
+  indexfile.replace_extension(logfile.extension().string() + ".index");
+  file_size = std::filesystem::file_size(indexfile, ec);
+  ifs.open(indexfile, std::ios::in | std::ios::binary);
+  // read bytes
+  file_bytes.resize(file_size);
+  ifs.read(file_bytes.data(), file_size);
+  ifs.close();
+  logger.info("Read {} bytes from index file", file_size);
+  logger.info("File contents:\n{::#02x}", file_bytes);
+
+  // print the contents of the runlength file
+  logger.info("Printing runlength file");
+  std::filesystem::path runlengthfile = logfile;
+  runlengthfile.replace_extension(logfile.extension().string() + ".runlength");
+  file_size = std::filesystem::file_size(runlengthfile, ec);
+  ifs.open(runlengthfile, std::ios::in | std::ios::binary);
+  // read bytes
+  file_bytes.resize(file_size);
+  ifs.read(file_bytes.data(), file_size);
+  ifs.close();
+  logger.info("Read {} bytes from runlength file", file_size);
+  logger.info("File contents:\n{::#02x}", file_bytes);
 
   // print the contents of the file system
-  fmt::print("{}\n", fs.list_directory(root, {}));
+  logger.info("Directory contents:\n{}", fs.list_directory(root, {}));
 
   // now erase the file system
-  fmt::print("Erase file system\n");
+  logger.info("Erase file system");
   fs.remove_contents(root, ec);
 
-  fmt::print("Finished binary log example\n");
+  logger.info("Finished binary log example");
 
   // now loop forever
   while (true) {
