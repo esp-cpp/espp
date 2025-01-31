@@ -27,6 +27,8 @@ jobs:
           target: esp32s3
         - path: 'components/aw9523/example'
           target: esp32
+        - path: 'components/binary-log/example'
+          target: esp32s3
         - path: 'components/bldc_haptics/example'
           target: esp32s3
         - path: 'components/bldc_motor/example'
