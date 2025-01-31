@@ -1,0 +1,1 @@
+#include "binary-log.hpp"
