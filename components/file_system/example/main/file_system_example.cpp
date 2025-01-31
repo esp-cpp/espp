@@ -269,9 +269,14 @@ extern "C" void app_main(void) {
     logger.info("Wrote '{}' to {}", file_contents, sub_file.string());
 
     // list files in a directory
+    // NOTE: if we're using ESP-IDF < 5.4, we can't use directory_iterator
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 0)
     logger.info("Directory iterator:");
+#else
     logger.warn(
-        "NOTE: directory_iterator is not implemented in esp-idf right now :( (as of v5.2.2)");
+        "NOTE: directory_iterator is not implemented in esp-idf less than 5.4, the following "
+        "listing will not work.");
+#endif
     // NOTE: directory_iterator is not implemented in esp-idf right now :(
     // directory_iterator can be iterated using a range-for loop
     for (auto const &dir_entry : fs::recursive_directory_iterator{sandbox, ec}) {
