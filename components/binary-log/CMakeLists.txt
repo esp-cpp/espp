@@ -3,8 +3,9 @@ idf_component_register(
   SRC_DIRS "src"
   REQUIRES "")
 
-# idf_build_get_property(BINARY_NAME EXECUTABLE)
-
+# Build the unpacker tool and put it whereever the rest of the build binaries
+# are going for this build. This will ensure that the user can always run
+# `./build/unpacker <log-file>`
 add_custom_command(
   TARGET ${COMPONENT_TARGET}
   POST_BUILD
