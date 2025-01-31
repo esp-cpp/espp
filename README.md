@@ -1,7 +1,11 @@
 # Espressif++ (ESPP)
 
 This is the repository for some c++ components developed for the
-[ESP-IDF](https://github.com/espressif/esp-idf) framework.
+[ESP-IDF](https://github.com/espressif/esp-idf) framework. Specifically we are
+targeting `ESP-IDF 5.4` currently.
+
+> NOTE: This repo attempts to stay up to date with ESP-IDF. This means that the
+> code within may not be supported on older ESP-IDF targets.
 
 Each component has an `example` folder which contains c++ code showing how to
 use the component and which has a README including instructions for how to run
