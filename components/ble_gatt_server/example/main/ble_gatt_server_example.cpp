@@ -130,20 +130,40 @@ extern "C" void app_main(void) {
     bool was_connected = false;
     bool can_exit = false;
     int num_seconds_to_wait = 30;
+    auto loop_start = std::chrono::steady_clock::now();
     while (true) {
       auto start = std::chrono::steady_clock::now();
 
       // if we are now connected, but were not, then get the services
       if (ble_gatt_server.is_connected() && !was_connected) {
+        auto connected_device_infos = ble_gatt_server.get_connected_device_infos();
+        // check to make sure the first connection has bonded at least.
+        //
+        // NOTE: if we are not bonded, then the name that will be read out will be
+        // generic, such as "iPhone". If we are bonded, then the name will be the
+        // actual device name, such as "iPhone 14 Plus William".
+        const auto &first_device = connected_device_infos.front();
+        if (first_device.isBonded()) {
+          // if it was, mark connected and print all the device infos
+          was_connected = true;
+          can_exit = true;
+          logger.info("Connected devices: {}", connected_device_infos.size());
+          for (const auto &info : connected_device_infos) {
+            auto rssi = ble_gatt_server.get_connected_device_rssi(info);
+            auto name = ble_gatt_server.get_connected_device_name(info);
+            auto mfg_name = ble_gatt_server.get_connected_device_manufacturer_name(info);
+            auto model_number = ble_gatt_server.get_connected_device_model_number(info);
+            auto pnp_id = ble_gatt_server.get_connected_device_pnp_id(info);
+            logger.info("            RSSI:  {}", rssi);
+            logger.info("            Name:  {}", name);
+            // NOTE: these are optionals, so they may not be set
+            logger.info("            Mfg:   {}", mfg_name);
+            logger.info("            Model: {}", model_number);
+            logger.info("            PnP:   {}", pnp_id);
+          }
+        }
         was_connected = true;
         can_exit = true;
-        auto connected_device_infos = ble_gatt_server.get_connected_device_infos();
-        logger.info("Connected devices: {}", connected_device_infos.size());
-        std::vector<std::string> connected_device_names;
-        std::transform(connected_device_infos.begin(), connected_device_infos.end(),
-                       std::back_inserter(connected_device_names),
-                       [&](auto &info) { return ble_gatt_server.get_connected_device_name(info); });
-        logger.info("            Names: {}", connected_device_names);
       } else if (!ble_gatt_server.is_connected()) {
         was_connected = false;
         if (can_exit) {
@@ -155,13 +175,15 @@ extern "C" void app_main(void) {
       if (!ble_gatt_server.is_connected()) {
         logger.move_up();
         logger.clear_line();
-        logger.info("Waiting for connection... {}s", --num_seconds_to_wait);
-        if (num_seconds_to_wait == 0) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - loop_start);
+        logger.info("Waiting for connection... {}s", num_seconds_to_wait - elapsed.count());
+        if (elapsed.count() > num_seconds_to_wait) {
           logger.info("No connection, exiting");
           break;
         }
         // sleep
-        std::this_thread::sleep_until(start + 1s);
+        std::this_thread::sleep_until(start + 100ms);
         continue;
       }
 
@@ -170,7 +192,7 @@ extern "C" void app_main(void) {
       battery_level = (battery_level % 100) + 1;
 
       // sleep
-      std::this_thread::sleep_until(start + 1s);
+      std::this_thread::sleep_until(start + 100ms);
     }
 
     // we are done, so stop the server and deinit the BLE stack. NOTE: this will

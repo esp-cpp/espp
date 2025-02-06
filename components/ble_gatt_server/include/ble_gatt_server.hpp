@@ -219,6 +219,7 @@ public:
 
   /// Get whether the GATT server is connected to any clients.
   /// @return Whether the GATT server is connected to any clients.
+  /// @note This will return false if the server is not created.
   bool is_connected() const {
     if (!server_) {
       return false;
@@ -240,7 +241,6 @@ public:
   /// @return Whether the GATT server was initialized successfully.
   bool init(const std::string &device_name) {
     if (server_) {
-      logger_.info("Server already created, not initializing again");
       return true;
     }
 
@@ -249,7 +249,6 @@ public:
     NimBLEDevice::init(device_name);
 
     // create the server
-    logger_.info("Creating server");
     server_ = NimBLEDevice::createServer();
     if (!server_) {
       logger_.error("Failed to create server");
@@ -259,11 +258,9 @@ public:
     // set the server callbacks
     server_->setCallbacks(new BleGattServerCallbacks(this));
 
-    logger_.info("Creating device info service");
     // create the device info service
     device_info_service_.init(server_);
 
-    logger_.info("Creating battery service");
     // create the battery service
     battery_service_.init(server_);
 
@@ -281,7 +278,6 @@ public:
   ///       services.
   void deinit() {
     if (!server_) {
-      logger_.info("Server is nullptr; already deinitialized, not deinitializing again");
       return;
     }
 
@@ -310,7 +306,6 @@ public:
   /// @return Whether the server was started successfully.
   bool start() {
     if (!server_) {
-      logger_.error("Server not created");
       return false;
     }
     server_->start();
@@ -325,7 +320,6 @@ public:
   ///       manually start advertising after disconnecting.
   void set_advertise_on_disconnect(bool advertise_on_disconnect) {
     if (!server_) {
-      logger_.error("Server not created");
       return;
     }
     // set whether to advertise on disconnect
@@ -363,7 +357,6 @@ public:
   /// This method stops advertising.
   void stop_advertising() {
     if (!server_) {
-      logger_.error("Server not created");
       return;
     }
     auto advertising = NimBLEDevice::getAdvertising();
@@ -431,17 +424,19 @@ public:
 
   /// @brief Set the name of the device.
   /// @param device_name The name of the device.
-  void set_device_name(const std::string &device_name) { NimBLEDevice::setDeviceName(device_name); }
+  void set_device_name(const std::string &device_name) const {
+    NimBLEDevice::setDeviceName(device_name);
+  }
 
   /// @brief Set the passkey for the device.
   /// @param passkey The passkey for the device.
-  void set_passkey(uint32_t passkey) { NimBLEDevice::setSecurityPasskey(passkey); }
+  void set_passkey(uint32_t passkey) const { NimBLEDevice::setSecurityPasskey(passkey); }
 
   /// Set the security settings for the device.
   /// @param bonding Whether to use bonding.
   /// @param mitm Man-in-the-middle protection.
   /// @param secure Whether to use secure connections.
-  void set_security(bool bonding, bool mitm, bool secure) {
+  void set_security(bool bonding, bool mitm, bool secure) const {
     NimBLEDevice::setSecurityAuth(bonding, mitm, secure);
   }
 
@@ -453,7 +448,7 @@ public:
   /// @see BLE_HS_IO_KEYBOARD_ONLY
   /// @see BLE_HS_IO_NO_INPUT_OUTPUT
   /// @see BLE_HS_IO_KEYBOARD_DISPLAY
-  void set_io_capabilities(uint8_t io_capabilities) {
+  void set_io_capabilities(uint8_t io_capabilities) const {
     NimBLEDevice::setSecurityIOCap(io_capabilities);
   }
 
@@ -461,7 +456,7 @@ public:
   /// @param key_distribution The initial key distribution for the device.
   /// @see BLE_SM_PAIR_KEY_DIST_ENC
   /// @see BLE_SM_PAIR_KEY_DIST_ID
-  void set_init_key_distribution(uint8_t key_distribution) {
+  void set_init_key_distribution(uint8_t key_distribution) const {
     NimBLEDevice::setSecurityInitKey(key_distribution);
   }
 
@@ -469,13 +464,13 @@ public:
   /// @param key_distribution The response key distribution for the device.
   /// @see BLE_SM_PAIR_KEY_DIST_ENC
   /// @see BLE_SM_PAIR_KEY_DIST_ID
-  void set_resp_key_distribution(uint8_t key_distribution) {
+  void set_resp_key_distribution(uint8_t key_distribution) const {
     NimBLEDevice::setSecurityRespKey(key_distribution);
   }
 
   /// Get the paired devices
   /// @return The paired devices as a vector of Addresses.
-  std::vector<NimBLEAddress> get_paired_devices() {
+  std::vector<NimBLEAddress> get_paired_devices() const {
     std::vector<NimBLEAddress> paired_devices;
     auto num_bonds = NimBLEDevice::getNumBonds();
     for (int i = 0; i < num_bonds; i++) {
@@ -485,11 +480,22 @@ public:
     return paired_devices;
   }
 
+  /// Get the connected handles
+  /// @return The connected handles.
+  /// @note This will return an empty vector if the server is not created.
+  /// @note This will return the handles of the connected devices. These handles
+  ///       can be used to retrieve the connection information for the devices.
+  std::vector<uint16_t> get_connected_device_handles() const {
+    if (!server_) {
+      return {};
+    }
+    return server_->getPeerDevices();
+  }
+
   /// Get the connected device addresses
   /// @return The addresses for the connected devices as a vector.
-  std::vector<NimBLEAddress> get_connected_device_addresses() {
+  std::vector<NimBLEAddress> get_connected_device_addresses() const {
     if (!server_) {
-      logger_.error("Server not created");
       return {};
     }
     std::vector<NimBLEAddress> connected_addresses;
@@ -503,9 +509,8 @@ public:
 
   /// Get the NimBLEConnInfo objects for the connected devices
   /// @return The connected devices info as a vector of NimBLEConnInfo.
-  std::vector<NimBLEConnInfo> get_connected_device_infos() {
+  std::vector<NimBLEConnInfo> get_connected_device_infos() const {
     if (!server_) {
-      logger_.error("Server not created");
       return {};
     }
     std::vector<NimBLEConnInfo> connected_devices_info;
@@ -520,9 +525,8 @@ public:
   /// Get the connected device name
   /// @param conn_info The connection information for the device.
   /// @return The connected device name.
-  std::string get_connected_device_name(const NimBLEConnInfo &conn_info) {
+  std::string get_connected_device_name(const NimBLEConnInfo &conn_info) const {
     if (!server_) {
-      logger_.error("Server not created");
       return {};
     }
     // since this connection is handled by the server, we won't manually
@@ -534,18 +538,15 @@ public:
     // now get Generic Access Service
     auto gas = client->getService(NimBLEUUID("1800"));
     if (!gas) {
-      logger_.error("Failed to get Generic Access Service");
       return {};
     }
     // now get the Device Name characteristic
     auto name_char = gas->getCharacteristic(NimBLEUUID("2A00"));
     if (!name_char) {
-      logger_.error("Failed to get Device Name characteristic");
       return {};
     }
     // make sure we can read it
     if (!name_char->canRead()) {
-      logger_.error("Failed to read Device Name characteristic");
       return {};
     }
     // and read it
@@ -553,13 +554,125 @@ public:
     return name;
   }
 
+  /// Get the connected device PnP ID
+  /// @param conn_info The connection information for the device.
+  /// @return The connected device PnP ID.
+  /// @note This method will connect to the device to get the PnP ID. This may
+  ///       take some time if the device is not already connected.
+  /// @note The remote device may not expose a Device Information Service, in
+  ///       which case this method will return an empty optional.
+  std::optional<DeviceInfoService::PnpId>
+  get_connected_device_pnp_id(const NimBLEConnInfo &conn_info) const {
+    if (!server_) {
+      return {};
+    }
+    // since this connection is handled by the server, we won't manually
+    // connect, and instead inform the client that we are already connected
+    // using this conn handle
+    auto client = server_->getClient(conn_info);
+    // refresh the services
+    client->getServices(true);
+    // now get Device Information Service
+    auto dis = client->getService(NimBLEUUID(DeviceInfoService::SERVICE_UUID));
+    if (!dis) {
+      return {};
+    }
+    // now get the PnP ID characteristic
+    auto characteristic = dis->getCharacteristic(NimBLEUUID(DeviceInfoService::PNP_CHAR_UUID));
+    if (!characteristic) {
+      return {};
+    }
+    // make sure we can read it
+    if (!characteristic->canRead()) {
+      return {};
+    }
+    // and read it
+    auto value = characteristic->readValue();
+    return DeviceInfoService::parse_pnp_id(value);
+  }
+
+  /// Get the connected device Manufacturer Name string
+  /// @param conn_info The connection information for the device.
+  /// @return The connected device Manufacturer Name string.
+  /// @note This method will connect to the device to read the characteristic.
+  ///       This may take some time if the device is not already connected.
+  /// @note The remote device may not expose a Device Information Service, in
+  ///       which case this method will return an empty optional.
+  std::optional<std::string>
+  get_connected_device_manufacturer_name(const NimBLEConnInfo &conn_info) const {
+    if (!server_) {
+      return {};
+    }
+    // since this connection is handled by the server, we won't manually
+    // connect, and instead inform the client that we are already connected
+    // using this conn handle
+    auto client = server_->getClient(conn_info);
+    // refresh the services
+    client->getServices(true);
+    // now get Device Information Service
+    auto dis = client->getService(NimBLEUUID(DeviceInfoService::SERVICE_UUID));
+    if (!dis) {
+      return {};
+    }
+    // now get the characteristic
+    auto characteristic =
+        dis->getCharacteristic(NimBLEUUID(DeviceInfoService::MANUFACTURER_NAME_CHAR_UUID));
+    if (!characteristic) {
+      return {};
+    }
+    // make sure we can read it
+    if (!characteristic->canRead()) {
+      return {};
+    }
+    // and read it
+    auto value = characteristic->readValue();
+    return value;
+  }
+
+  /// Get the connected device Model Number string
+  /// @param conn_info The connection information for the device.
+  /// @return The connected device Model Number string.
+  /// @note This method will connect to the device to read the characteristic.
+  ///       This may take some time if the device is not already connected.
+  /// @note The remote device may not expose a Device Information Service, in
+  ///       which case this method will return an empty optional.
+  std::optional<std::string>
+  get_connected_device_model_number(const NimBLEConnInfo &conn_info) const {
+    if (!server_) {
+      return {};
+    }
+    // since this connection is handled by the server, we won't manually
+    // connect, and instead inform the client that we are already connected
+    // using this conn handle
+    auto client = server_->getClient(conn_info);
+    // refresh the services
+    client->getServices(true);
+    // now get Device Information Service
+    auto dis = client->getService(NimBLEUUID(DeviceInfoService::SERVICE_UUID));
+    if (!dis) {
+      return {};
+    }
+    // now get the characteristic
+    auto characteristic =
+        dis->getCharacteristic(NimBLEUUID(DeviceInfoService::MODEL_NUMBER_CHAR_UUID));
+    if (!characteristic) {
+      return {};
+    }
+    // make sure we can read it
+    if (!characteristic->canRead()) {
+      return {};
+    }
+    // and read it
+    auto value = characteristic->readValue();
+    return value;
+  }
+
   /// Get the connected device names
   /// @return The connected device names as a vector of strings.
   /// @note This method will connect to each device to get the device name.
   ///       This may take some time if there are many devices connected.
-  std::vector<std::string> get_connected_device_names() {
+  std::vector<std::string> get_connected_device_names() const {
     if (!server_) {
-      logger_.error("Server not created");
       return {};
     }
     std::vector<std::string> connected_device_names;
@@ -569,36 +682,27 @@ public:
       auto peer_name = get_connected_device_name(peer);
       if (!peer_name.empty()) {
         connected_device_names.push_back(peer_name);
-      } else {
-        logger_.error("Failed to get device name for connected device {}",
-                      peer.getAddress().toString());
       }
     }
-    logger_.info("Connected device names: {}", connected_device_names);
     return connected_device_names;
   }
 
   /// Get the RSSI of the connected device
   /// @param conn_info The connection information for the device.
   /// @return The RSSI of the connected device.
-  int get_connected_device_rssi(const NimBLEConnInfo &conn_info) {
+  int get_connected_device_rssi(const NimBLEConnInfo &conn_info) const {
     if (!server_) {
-      logger_.error("Server not created");
       return {};
     }
     if (!is_connected()) {
-      logger_.error("Not connected to any devices");
       return {};
     }
-    auto peer_address = conn_info.getAddress();
-    logger_.debug("Getting RSSI for connected device {}", peer_address.toString());
     // since this connection is handled by the server, we won't manually
     // connect, and instead inform the client that we are already connected
     // using this conn handle
     auto client = server_->getClient(conn_info);
     // and read the RSSI from the client
     auto rssi = client->getRssi();
-    logger_.info("RSSI for connected device {}: {}", peer_address.toString(), rssi);
     return rssi;
   }
 
@@ -606,9 +710,8 @@ public:
   /// @return The RSSI of the connected devices as a vector.
   /// @note This method will connect to each device to get the RSSI.
   ///       This may take some time if there are many devices connected.
-  std::vector<int> get_connected_devices_rssi_values() {
+  std::vector<int> get_connected_devices_rssi_values() const {
     if (!server_) {
-      logger_.error("Server not created");
       return {};
     }
     std::vector<int> connected_device_rssi;
@@ -618,16 +721,14 @@ public:
       auto peer_rssi = get_connected_device_rssi(peer);
       connected_device_rssi.push_back(peer_rssi);
     }
-    logger_.info("Connected device RSSI: {}", connected_device_rssi);
     return connected_device_rssi;
   }
 
   /// Disconnect from all devices
   /// This method disconnects from all devices that are currently connected.
   /// @return The Addresses of the devices that were disconnected from.
-  std::vector<NimBLEAddress> disconnect_all() {
+  std::vector<NimBLEAddress> disconnect_all() const {
     if (!server_) {
-      logger_.error("Server not created");
       return {};
     }
     std::vector<NimBLEAddress> disconnected_devices;
@@ -645,12 +746,11 @@ public:
   /// @return The Addresses of the devices that were unpaired.
   std::vector<NimBLEAddress> unpair_all() {
     if (!server_) {
-      logger_.error("Server not created");
       return {};
     }
     std::vector<NimBLEAddress> unpaired_devices;
     auto num_bonds = NimBLEDevice::getNumBonds();
-    logger_.info("Unpairing {} devices", num_bonds);
+    logger_.debug("Unpairing {} devices", num_bonds);
     for (int i = 0; i < num_bonds; i++) {
       auto bond_addr = NimBLEDevice::getBondedAddress(i);
       logger_.debug("Unpairing device {}", bond_addr.toString());

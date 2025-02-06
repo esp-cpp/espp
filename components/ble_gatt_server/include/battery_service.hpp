@@ -26,6 +26,11 @@ namespace espp {
 /// device.
 class BatteryService : public BaseComponent {
 public:
+  static constexpr uint8_t BATTERY_LEVEL_MAX = 100;           ///< Maximum battery level
+  static constexpr uint16_t BATTERY_LEVEL_UNIT = 0x27AD;      ///< Unit is percentage
+  static constexpr uint16_t BATTERY_SERVICE_UUID = 0x180F;    ///< Battery Service UUID
+  static constexpr uint16_t BATTERY_LEVEL_CHAR_UUID = 0x2A19; ///< Battery Level Characteristic UUID
+
   /// Constructor
   /// \param log_level The log level for the component
   explicit BatteryService(espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN)
@@ -103,11 +108,6 @@ public:
   }
 
 protected:
-  static constexpr uint8_t BATTERY_LEVEL_MAX = 100;           ///< Maximum battery level
-  static constexpr uint16_t BATTERY_LEVEL_UNIT = 0x27AD;      ///< Unit is percentage
-  static constexpr uint16_t BATTERY_SERVICE_UUID = 0x180F;    ///< Battery Service UUID
-  static constexpr uint16_t BATTERY_LEVEL_CHAR_UUID = 0x2A19; ///< Battery Level Characteristic UUID
-
   void make_service(NimBLEServer *server) {
     service_ = server->createService(NimBLEUUID(BATTERY_SERVICE_UUID));
     if (!service_) {
