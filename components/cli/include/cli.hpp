@@ -8,9 +8,12 @@
 #define __linux__
 
 #include "driver/uart.h"
+#include "driver/uart_vfs.h"
 #include "driver/usb_serial_jtag.h"
+#include "driver/usb_serial_jtag_vfs.h"
 #include "esp_err.h"
 #include "esp_system.h"
+
 #include "esp_vfs_dev.h"
 #include "esp_vfs_usb_serial_jtag.h"
 
@@ -135,11 +138,11 @@ public:
     ESP_ERROR_CHECK(uart_driver_install(port, 256, 0, 0, NULL, 0));
     ESP_ERROR_CHECK(uart_param_config(port, &uart_config));
     /* Tell VFS to use UART driver */
-    esp_vfs_dev_uart_use_driver(port);
+    uart_vfs_dev_use_driver(port);
     /* Minicom, screen, idf_monitor send CR when ENTER key is pressed */
-    esp_vfs_dev_uart_port_set_rx_line_endings(port, ESP_LINE_ENDINGS_CR);
+    uart_vfs_dev_port_set_rx_line_endings(port, ESP_LINE_ENDINGS_CR);
     /* Move the caret to the beginning of the next line on '\n' */
-    esp_vfs_dev_uart_port_set_tx_line_endings(port, ESP_LINE_ENDINGS_CRLF);
+    uart_vfs_dev_port_set_tx_line_endings(port, ESP_LINE_ENDINGS_CRLF);
 
     fflush(stdout);
     fsync(fileno(stdout));
@@ -171,9 +174,9 @@ public:
 
     usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
     usb_serial_jtag_driver_install(&cfg);
-    esp_vfs_usb_serial_jtag_use_driver();
-    esp_vfs_dev_usb_serial_jtag_set_rx_line_endings(ESP_LINE_ENDINGS_CR);
-    esp_vfs_dev_usb_serial_jtag_set_tx_line_endings(ESP_LINE_ENDINGS_CRLF);
+    usb_serial_jtag_vfs_use_driver();
+    usb_serial_jtag_vfs_set_rx_line_endings(ESP_LINE_ENDINGS_CR);
+    usb_serial_jtag_vfs_set_tx_line_endings(ESP_LINE_ENDINGS_CRLF);
 
     fflush(stdout);
     fsync(fileno(stdout));
