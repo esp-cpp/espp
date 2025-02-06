@@ -34,6 +34,15 @@ namespace espp {
 /// used with any device.
 class DeviceInfoService : public BaseComponent {
 public:
+  static constexpr uint16_t SERVICE_UUID = 0x180A;
+  static constexpr uint16_t PNP_CHAR_UUID = 0x2A50;
+  static constexpr uint16_t MANUFACTURER_NAME_CHAR_UUID = 0x2A29;
+  static constexpr uint16_t MODEL_NUMBER_CHAR_UUID = 0x2A24;
+  static constexpr uint16_t SERIAL_NUMBER_CHAR_UUID = 0x2A25;
+  static constexpr uint16_t SOFTWARE_VERSION_CHAR_UUID = 0x2A28;
+  static constexpr uint16_t FIRMWARE_VERSION_CHAR_UUID = 0x2A26;
+  static constexpr uint16_t HARDWARE_VERSION_CHAR_UUID = 0x2A27;
+
   /// Plug and Play ID
   struct PnpId {
     uint8_t vendor_id_source = 0x01; ///< 0x01 for Bluetooth SIG, 0x02 for USB
@@ -160,6 +169,26 @@ public:
     pnp_->setValue(pnp_id, sizeof(pnp_id));
   }
 
+  static PnpId parse_pnp_id(const std::vector<uint8_t> &data) {
+    return parse_pnp_id(data.data(), data.size());
+  }
+
+  /// Parse the PnP ID data
+  /// \param data The PnP ID data
+  /// \param size The size of the data
+  /// \return The PnP ID
+  static PnpId parse_pnp_id(const uint8_t *data, size_t size) {
+    PnpId pnp_id;
+    if (size < 7) {
+      return pnp_id;
+    }
+    pnp_id.vendor_id_source = data[0];
+    pnp_id.vendor_id = (data[2] << 8) | data[1];
+    pnp_id.product_id = (data[4] << 8) | data[3];
+    pnp_id.product_version = (data[6] << 8) | data[5];
+    return pnp_id;
+  }
+
   /// Set the manufacturer name
   /// \param name The manufacturer name
   void set_manufacturer_name(const std::string &name) {
@@ -221,15 +250,6 @@ public:
   }
 
 protected:
-  static constexpr uint16_t SERVICE_UUID = 0x180A;
-  static constexpr uint16_t PNP_CHAR_UUID = 0x2A50;
-  static constexpr uint16_t MANUFACTURER_NAME_CHAR_UUID = 0x2A29;
-  static constexpr uint16_t MODEL_NUMBER_CHAR_UUID = 0x2A24;
-  static constexpr uint16_t SERIAL_NUMBER_CHAR_UUID = 0x2A25;
-  static constexpr uint16_t SOFTWARE_VERSION_CHAR_UUID = 0x2A28;
-  static constexpr uint16_t FIRMWARE_VERSION_CHAR_UUID = 0x2A26;
-  static constexpr uint16_t HARDWARE_VERSION_CHAR_UUID = 0x2A27;
-
   void make_service(NimBLEServer *server) {
     service_ = server->createService(NimBLEUUID(SERVICE_UUID));
     if (!service_) {
@@ -268,5 +288,19 @@ protected:
   NimBLECharacteristic *hardware_version_{nullptr};
 };
 } // namespace espp
+
+// for formatting using libfmt
+template <> struct fmt::formatter<espp::DeviceInfoService::PnpId> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const espp::DeviceInfoService::PnpId &pnp_id, FormatContext &ctx) const {
+    return fmt::format_to(ctx.out(),
+                          "PnpId {{ vendor_id_source: 0x{:02X}, vendor_id: 0x{:04X}, "
+                          "product_id: 0x{:04X}, product_version: 0x{:04X} }}",
+                          pnp_id.vendor_id_source, pnp_id.vendor_id, pnp_id.product_id,
+                          pnp_id.product_version);
+  }
+};
 
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)

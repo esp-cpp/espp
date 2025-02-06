@@ -167,21 +167,33 @@ extern "C" void app_main(void) {
   while (true) {
     auto start = std::chrono::steady_clock::now();
 
-    // if we are now connected, but were not, then get the services
+    // if we are now connected + bonded, but were not, then get the services
     if (ble_gatt_server.is_connected() && !was_connected) {
-      was_connected = true;
       auto connected_device_infos = ble_gatt_server.get_connected_device_infos();
-      logger.info("Connected devices: {}", connected_device_infos.size());
-      std::vector<std::string> connected_device_names;
-      std::transform(connected_device_infos.begin(), connected_device_infos.end(),
-                     std::back_inserter(connected_device_names),
-                     [&](auto &info) { return ble_gatt_server.get_connected_device_name(info); });
-      logger.info("            Names: {}", connected_device_names);
-      std::vector<int> connected_device_rssis;
-      std::transform(connected_device_infos.begin(), connected_device_infos.end(),
-                     std::back_inserter(connected_device_rssis),
-                     [&](auto &info) { return ble_gatt_server.get_connected_device_rssi(info); });
-      logger.info("            RSSIs: {}", connected_device_rssis);
+      // check to make sure the first connection has bonded at least.
+      //
+      // NOTE: if we are not bonded, then the name that will be read out will be
+      // generic, such as "iPhone". If we are bonded, then the name will be the
+      // actual device name, such as "iPhone 14 Plus William".
+      const auto &first_device = connected_device_infos.front();
+      if (first_device.isBonded()) {
+        // if it was, mark connected and print all the device infos
+        was_connected = true;
+        logger.info("Connected devices: {}", connected_device_infos.size());
+        for (const auto &info : connected_device_infos) {
+          auto rssi = ble_gatt_server.get_connected_device_rssi(info);
+          auto name = ble_gatt_server.get_connected_device_name(info);
+          auto mfg_name = ble_gatt_server.get_connected_device_manufacturer_name(info);
+          auto model_number = ble_gatt_server.get_connected_device_model_number(info);
+          auto pnp_id = ble_gatt_server.get_connected_device_pnp_id(info);
+          logger.info("            RSSI:  {}", rssi);
+          logger.info("            Name:  {}", name);
+          // NOTE: these are optionals, so they may not be set
+          logger.info("            Mfg:   {}", mfg_name);
+          logger.info("            Model: {}", model_number);
+          logger.info("            PnP:   {}", pnp_id);
+        }
+      }
     } else if (!ble_gatt_server.is_connected()) {
       was_connected = false;
     }
