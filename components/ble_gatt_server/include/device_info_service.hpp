@@ -178,7 +178,7 @@ public:
   /// \param size The size of the data
   /// \return The PnP ID
   static PnpId parse_pnp_id(const uint8_t *data, size_t size) {
-    PnpId pnp_id;
+    PnpId pnp_id = {};
     if (size < 7) {
       return pnp_id;
     }
