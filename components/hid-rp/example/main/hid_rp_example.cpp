@@ -17,7 +17,7 @@ extern "C" void app_main(void) {
   static constexpr uint8_t battery_report_id = 4;
   static constexpr size_t num_buttons = 15;
   static constexpr int joystick_min = 0;
-  static constexpr int joystick_max = 65534;
+  static constexpr int joystick_max = 65535;
   static constexpr int trigger_min = 0;
   static constexpr int trigger_max = 1023;
 
@@ -29,15 +29,20 @@ extern "C" void app_main(void) {
   using BatteryReport = espp::XboxBatteryInputReport<battery_report_id>;
   BatteryReport battery_input_report;
 
-  static constexpr uint8_t output_report_id = 2;
+  static constexpr uint8_t led_output_report_id = 2;
   static constexpr size_t num_leds = 4;
-  using GamepadLeds = espp::GamepadLedOutputReport<num_leds, output_report_id>;
+  using GamepadLeds = espp::GamepadLedOutputReport<num_leds, led_output_report_id>;
   GamepadLeds gamepad_leds_report;
+
+  static constexpr uint8_t rumble_output_report_id = 3;
+  using RumbleReport = espp::XboxRumbleOutputReport<rumble_output_report_id>;
+  RumbleReport rumble_output_report;
 
   using namespace hid::page;
   using namespace hid::rdf;
   auto raw_descriptor = descriptor(usage_page<generic_desktop>(), usage(generic_desktop::GAMEPAD),
                                    collection::application(gamepad_input_report.get_descriptor(),
+                                                           rumble_output_report.get_descriptor(),
                                                            battery_input_report.get_descriptor(),
                                                            gamepad_leds_report.get_descriptor()));
 

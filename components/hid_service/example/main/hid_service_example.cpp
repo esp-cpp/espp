@@ -73,30 +73,34 @@ extern "C" void app_main(void) {
   hid_service.set_info(country_code, hid_info_flags);
 
   static constexpr uint8_t input_report_id = 1;
-  static constexpr uint8_t battery_report_id = 4;
   static constexpr size_t num_buttons = 15;
   static constexpr int joystick_min = 0;
-  static constexpr int joystick_max = 65534;
+  static constexpr int joystick_max = 65535;
   static constexpr int trigger_min = 0;
   static constexpr int trigger_max = 1023;
-
   using GamepadInput =
       espp::GamepadInputReport<num_buttons, std::uint16_t, std::uint16_t, joystick_min,
                                joystick_max, trigger_min, trigger_max, input_report_id>;
   GamepadInput gamepad_input_report;
 
+  static constexpr uint8_t battery_report_id = 4;
   using BatteryReport = espp::XboxBatteryInputReport<battery_report_id>;
   BatteryReport battery_input_report;
 
-  static constexpr uint8_t output_report_id = 2;
+  static constexpr uint8_t led_output_report_id = 2;
   static constexpr size_t num_leds = 4;
-  using GamepadLeds = espp::GamepadLedOutputReport<num_leds, output_report_id>;
+  using GamepadLeds = espp::GamepadLedOutputReport<num_leds, led_output_report_id>;
   GamepadLeds gamepad_leds_report;
+
+  static constexpr uint8_t rumble_output_report_id = 3;
+  using RumbleReport = espp::XboxRumbleOutputReport<rumble_output_report_id>;
+  RumbleReport gamepad_rumble_report;
 
   using namespace hid::page;
   using namespace hid::rdf;
   auto raw_descriptor = descriptor(usage_page<generic_desktop>(), usage(generic_desktop::GAMEPAD),
                                    collection::application(gamepad_input_report.get_descriptor(),
+                                                           gamepad_rumble_report.get_descriptor(),
                                                            battery_input_report.get_descriptor(),
                                                            gamepad_leds_report.get_descriptor()));
 
@@ -112,10 +116,72 @@ extern "C" void app_main(void) {
 
   // use the HID service to make an input report characteristic
   [[maybe_unused]] auto input_report = hid_service.input_report(input_report_id);
-  [[maybe_unused]] auto battery_report = hid_service.input_report(battery_report_id);
+  auto battery_report = hid_service.input_report(battery_report_id);
 
   // use the HID service to make an output report characteristic
-  [[maybe_unused]] auto output_report = hid_service.output_report(output_report_id);
+  auto led_output_report = hid_service.output_report(led_output_report_id);
+  auto rumble_output_report = hid_service.output_report(rumble_output_report_id);
+
+  // now make some characteristic callbacks for the Rumble Output characteristic
+  // and the LED output characteristic
+  class RumbleCallbacks : public NimBLECharacteristicCallbacks {
+    RumbleReport *report = nullptr;
+    espp::Logger logger =
+        espp::Logger({.tag = "RumbleCallbacks", .level = espp::Logger::Verbosity::INFO});
+
+  public:
+    explicit RumbleCallbacks(RumbleReport *report)
+        : report(report) {}
+
+    virtual void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override {
+      // parse the output using the report
+      auto data = pCharacteristic->getValue();
+      if (!report) {
+        return;
+      }
+      report->set_data(data);
+      // now print the state of the report
+      uint8_t enabled = report->get_enabled();
+      uint8_t left_motor = report->get_magnitude(0);
+      uint8_t right_motor = report->get_magnitude(1);
+      uint8_t left_trigger = report->get_magnitude(2);
+      uint8_t right_trigger = report->get_magnitude(3);
+      uint8_t duration = report->get_duration();
+      uint8_t delay = report->get_start_delay();
+      uint8_t loop_count = report->get_loop_count();
+      logger.info("enabled: 0x{:02x}, left_motor: {}, right_motor: {}, left_trigger: {}, "
+                  "right_trigger: {}, duration: {}, delay: {}, loop_count: {}",
+                  enabled, left_motor, right_motor, left_trigger, right_trigger, duration, delay,
+                  loop_count);
+    }
+  };
+  class LEDCallbacks : public NimBLECharacteristicCallbacks {
+    GamepadLeds *report = nullptr;
+    espp::Logger logger =
+        espp::Logger({.tag = "LEDCallbacks", .level = espp::Logger::Verbosity::INFO});
+
+  public:
+    explicit LEDCallbacks(GamepadLeds *report)
+        : report(report) {}
+
+    virtual void onWrite(NimBLECharacteristic *pCharacteristic, NimBLEConnInfo &connInfo) override {
+      // parse the output using the report
+      auto data = pCharacteristic->getValue();
+      if (!report) {
+        return;
+      }
+      report->set_data(data);
+      // now print the state of the report
+      for (int i = 0; i < report->num_leds; i++) {
+        bool enabled = report->get_led(i);
+        logger.info("LED {}: {}", i, enabled);
+      }
+    }
+  };
+  RumbleCallbacks rumble_callbacks(&gamepad_rumble_report);
+  LEDCallbacks led_callbacks(&gamepad_leds_report);
+  rumble_output_report->setCallbacks(&rumble_callbacks);
+  led_output_report->setCallbacks(&led_callbacks);
 
   // now that we've made the input characteristic, we can start the service
   hid_service.start();
@@ -133,14 +199,14 @@ extern "C" void app_main(void) {
   auto &device_info_service = ble_gatt_server.device_info_service();
   uint8_t vendor_source = 0x02; // USB
   uint16_t vid = 0x045E;        // Microsoft
-  uint16_t pid = 0x02FD;        // Xbox One Controller
+  uint16_t pid = 0x0B13;        // Xbox One Controller (model 1708)
   uint16_t product_version = 0x0100;
   device_info_service.set_pnp_id(vendor_source, vid, pid, product_version);
   device_info_service.set_manufacturer_name("ESP-CPP");
   device_info_service.set_model_number("esp-hid-01");
   device_info_service.set_serial_number("1234567890");
   device_info_service.set_software_version("1.0.0");
-  device_info_service.set_firmware_version("1.0.0");
+  device_info_service.set_firmware_version("5.9.2709.0");
   device_info_service.set_hardware_version("1.0.0");
 
   // NOTE: iOS does not seem to show ext advertisements in their bluetooth
@@ -210,6 +276,7 @@ extern "C" void app_main(void) {
     battery_input_report.set_rechargeable(true);
     battery_input_report.set_charging(false);
     battery_input_report.set_battery_level(battery_level);
+    logger.debug("Setting battery level: {}", battery_level);
     battery_report->notify(battery_input_report.get_report());
     battery_level = (battery_level % 100) + 1;
 
@@ -228,12 +295,17 @@ extern "C" void app_main(void) {
     gamepad_input_report.set_accelerator(std::abs(sin(angle)));
     gamepad_input_report.set_brake(std::abs(cos(angle)));
 
+    static bool consumer_record = false;
+    gamepad_input_report.set_consumer_record(consumer_record);
+    consumer_record = !consumer_record;
+
     logger.debug("Setting left joystick: ({:.1f}, {:.1f})", sin(angle), cos(angle));
     logger.debug("Setting right joystick: ({:.1f}, {:.1f})", cos(angle), sin(angle));
     logger.debug("Setting brake: {:.1f}", std::abs(cos(angle)));
     logger.debug("Setting accelerator: {:.1f}", std::abs(sin(angle)));
     logger.debug("Setting hat: {}", (int)hat);
     logger.debug("Setting button: {}", button_index);
+    logger.debug("Setting consumer record: {}", consumer_record);
 
     button_index = (button_index % num_buttons) + 1;
 
@@ -245,6 +317,8 @@ extern "C" void app_main(void) {
     // show how to get it)
     auto report_char = hid_service.input_report(input_report_id);
     report_char->notify(report);
+    // Could also just do:
+    // input_report->notify(report);
 
     // sleep
     std::this_thread::sleep_until(start + 1s);
