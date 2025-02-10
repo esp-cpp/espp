@@ -291,10 +291,10 @@ protected:
     std::uint8_t : 4;
   };
 
-  std::array<std::uint8_t, 4> magnitude; // [0, 100] magnitude of the effect on each motor
-  std::uint8_t duration;                 // [0, 255] duration of the effect
-  std::uint8_t start_delay;              // [0, 255] delay before the effect starts
-  std::uint8_t loop_count;               // [0, 255] number of times to loop the effect
+  std::array<std::uint8_t, 4> magnitude{0}; // [0, 100] magnitude of the effect on each motor
+  std::uint8_t duration{0};                 // [0, 255] duration of the effect
+  std::uint8_t start_delay{0};              // [0, 255] delay before the effect starts
+  std::uint8_t loop_count{0};               // [0, 255] number of times to loop the effect
 
 public:
   static constexpr std::uint8_t MAX_MAGNITUDE{100};
@@ -321,7 +321,7 @@ public:
 
   /// Set the enabled mask for the rumble motors
   /// \param enabled The enabled mask for the rumble motors
-  constexpr void set_enabled(std::uint8_t enabled) { enabled = enabled; }
+  constexpr void set_enabled(std::uint8_t new_enabled) { enabled = new_enabled; }
 
   /// Get the magnitude of the rumble effect for the specified motor
   /// \param motor The motor for which you want to get the magnitude.
