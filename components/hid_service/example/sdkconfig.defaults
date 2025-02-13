@@ -28,6 +28,12 @@ CONFIG_BT_NIMBLE_NVS_PERSIST=y
 CONFIG_BT_NIMBLE_GAP_DEVICE_NAME_MAX_LEN=100
 CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192
 
+# NOTE: the MAX_CCCDS must be 4 * MAX_BONDS, otherwise the number of bonded
+# devices allowed will be limited by the number of CCCDs / 4.
+CONFIG_BT_NIMBLE_MAX_BONDS=5
+# should be 4 * MAX_BONDS
+CONFIG_BT_NIMBLE_MAX_CCCDS=20
+
 # NOTE: we can support extended advertising (longer advertisement packets) by
 #       enabling the following:
 # CONFIG_BT_NIMBLE_EXT_ADV=y

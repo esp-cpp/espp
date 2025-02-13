@@ -8,6 +8,52 @@
 
 using namespace std::chrono_literals;
 
+// make a callback for managing the pairing table when it fills up
+class BleDeviceCallbacks : public NimBLEDeviceCallbacks {
+  espp::Logger logger =
+      espp::Logger({.tag = "NimBLEDeviceCallbacks", .level = espp::Logger::Verbosity::INFO});
+
+public:
+  /**
+   * @brief Indicates an inability to perform a store operation.
+   * This callback should do one of two things:
+   *     -Address the problem and return 0, indicating that the store operation
+   *      should proceed.
+   *     -Return nonzero to indicate that the store operation should be aborted.
+   * @param event     Describes the store event being reported.
+   *                      BLE_STORE_EVENT_FULL; or
+   *                      BLE_STORE_EVENT_OVERFLOW
+   * @return          0 if the store operation should proceed;
+   *                  nonzero if the store operation should be aborted.
+   */
+  virtual int onStoreStatus(struct ble_store_status_event *event, void *arg) {
+    // see
+    // https://github.com/apache/mynewt-nimble/blob/master/nimble/host/include/host/ble_store.h#L180
+    // for definition of ble_store_status_event
+    if (event->event_code == BLE_STORE_EVENT_FULL) {
+      logger.info("Store full event: {}", event->event_code);
+      // if the store is full, then we should delete some old devices
+      // to make room for new ones
+      //
+      // the connection handle for the connection which prompted the write is
+      // found at event->full->conn_handle.
+      return ble_store_util_status_rr(event, arg);
+    } else if (event->event_code == BLE_STORE_EVENT_OVERFLOW) {
+      logger.info("Store overflow event: {}", event->event_code);
+      // if the store overflows, then we should delete some old devices
+      // to make room for new ones
+      //
+      // The object that failed to be written is found in
+      // event->overflow->value (ble_store_value*)
+      return ble_store_util_status_rr(event, arg);
+    } else {
+      logger.error("Unknown store event: {}", event->event_code);
+      return ble_store_util_status_rr(event, arg);
+    }
+  }
+};
+static BleDeviceCallbacks device_callbacks;
+
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "Hid Service Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting");
@@ -52,6 +98,21 @@ extern "C" void app_main(void) {
 #if !CONFIG_BT_NIMBLE_EXT_ADV
   ble_gatt_server.set_advertise_on_disconnect(true);
 #endif
+
+  // NOTE: for information about the low-level NVS storage on esp chips, see
+  // ~/esp/esp-idf/components/bt/host/nimble/nimble/nimble/host/store/config/src/ble_store_nvs.c
+  //
+  // now set the device callbacks to override the default one from esp-nimble-cpp
+  NimBLEDevice::setDeviceCallbacks(&device_callbacks);
+  uint8_t max_bonds = MYNEWT_VAL(BLE_STORE_MAX_BONDS);
+  logger.info("Max bonds: {}", max_bonds);
+
+  // print the bonded devices as well
+  auto paired_device_addresses = ble_gatt_server.get_paired_devices();
+  logger.info("Paired devices: {}", paired_device_addresses.size());
+  for (const auto &addr : paired_device_addresses) {
+    logger.info("          Addr:  {}", addr.toString());
+  }
 
   // for HID we need to set some security
   bool bonding = true;
@@ -258,6 +319,13 @@ extern "C" void app_main(void) {
           logger.info("            Mfg:   {}", mfg_name);
           logger.info("            Model: {}", model_number);
           logger.info("            PnP:   {}", pnp_id);
+        }
+
+        // print the bonded devices as well
+        paired_device_addresses = ble_gatt_server.get_paired_devices();
+        logger.info("Paired devices: {}", paired_device_addresses.size());
+        for (const auto &addr : paired_device_addresses) {
+          logger.info("          Addr:  {}", addr.toString());
         }
       }
     } else if (!ble_gatt_server.is_connected()) {
