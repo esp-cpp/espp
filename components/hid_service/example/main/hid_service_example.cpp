@@ -322,7 +322,7 @@ extern "C" void app_main(void) {
         }
 
         // print the bonded devices as well
-        auto paired_device_addresses = ble_gatt_server.get_paired_devices();
+        paired_device_addresses = ble_gatt_server.get_paired_devices();
         logger.info("Paired devices: {}", paired_device_addresses.size());
         for (const auto &addr : paired_device_addresses) {
           logger.info("          Addr:  {}", addr.toString());
