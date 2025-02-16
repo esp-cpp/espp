@@ -36,6 +36,15 @@ namespace espp {
 /// \snippet hid_service_example.cpp hid service example
 class HidService : public espp::BaseComponent {
 public:
+  static constexpr uint16_t SERVICE_UUID = 0x1812; ///< HID Service UUID
+  static constexpr uint16_t HID_INFORMATION_UUID = 0x2a4a; ///< HID Information UUID
+  static constexpr uint16_t REPORT_MAP_UUID = 0x2a4b; ///< Report Map UUID
+  static constexpr uint16_t HID_CONTROL_POINT_UUID = 0x2a4c; ///< HID Control Point UUID
+  static constexpr uint16_t PROTOCOL_MODE_UUID = 0x2a4e; ///< Protocol Mode UUID
+
+  static constexpr uint16_t REPORT_UUID = 0x2a4d; ///< Report UUID
+  static constexpr uint16_t REPORT_DESCRIPTOR_UUID = 0x2908; ///< Report Descriptor UUID
+
   /// @brief Constructor
   /// @param log_level The verbosity of the logger
   explicit HidService(espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN)
@@ -309,15 +318,6 @@ public:
   }
 
 protected:
-  static constexpr uint16_t SERVICE_UUID = 0x1812;
-  static constexpr uint16_t HID_INFORMATION_UUID = 0x2a4a;
-  static constexpr uint16_t REPORT_MAP_UUID = 0x2a4b;
-  static constexpr uint16_t HID_CONTROL_POINT_UUID = 0x2a4c;
-  static constexpr uint16_t PROTOCOL_MODE_UUID = 0x2a4e;
-
-  static constexpr uint16_t REPORT_UUID = 0x2a4d;
-  static constexpr uint16_t REPORT_DESCRIPTOR_UUID = 0x2908;
-
   void make_service(NimBLEServer *server) {
     service_ = server->createService(NimBLEUUID(SERVICE_UUID));
     if (!service_) {
