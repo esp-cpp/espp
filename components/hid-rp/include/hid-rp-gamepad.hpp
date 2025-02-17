@@ -174,6 +174,15 @@ public:
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
 
+  /// Set the output report data from a vector of bytes
+  /// \param data The data to set the output report to.
+  constexpr void set_data(const std::vector<uint8_t> &data) {
+    // the first two bytes are the id and the selector, which we don't want
+    size_t offset = 2;
+    // copy the data into our data array
+    std::copy(data.begin(), data.end(), this->data() + offset);
+  }
+
   /// Get the report descriptor as a hid::rdf::descriptor
   /// \return The report descriptor as a hid::rdf::descriptor.
   /// \note This is an incomplete descriptor, you will need to add it to a
@@ -277,6 +286,10 @@ public:
                         );
     // clang-format on
   }
+
+  friend fmt::formatter<GamepadInputReport<BUTTON_COUNT, JOYSTICK_TYPE, TRIGGER_TYPE, JOYSTICK_MIN, JOYSTICK_MAX,
+                                          TRIGGER_MIN, TRIGGER_MAX, REPORT_ID>>;
+
 };
 
 /// HID Gamepad Output Report
@@ -696,3 +709,5 @@ public:
 };
 
 } // namespace espp
+
+#include "hid-rp-gamepad-formatters.hpp"
