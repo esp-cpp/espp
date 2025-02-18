@@ -43,6 +43,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    motorgo_mini
    math/index
    matouch_rotary_display
+   neopixel
    network/index
    nfc/index
    nvs

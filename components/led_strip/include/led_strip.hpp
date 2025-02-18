@@ -139,7 +139,7 @@ public:
   /// \note The index is zero-based.
   /// \sa Hsv for more information on the HSV color space
   /// \sa show
-  void set_pixel(int index, Hsv hsv, float brightness = 1.0f) {
+  void set_pixel(int index, const Hsv &hsv, float brightness = 1.0f) {
     set_pixel(index, hsv.rgb(), brightness);
   }
 
@@ -150,7 +150,7 @@ public:
   /// \note The index is zero-based.
   /// \sa Rgb for more information on the RGB color space
   /// \sa show
-  void set_pixel(int index, Rgb rgb, float brightness = 1.0f) {
+  void set_pixel(int index, const Rgb &rgb, float brightness = 1.0f) {
     uint8_t brightness_byte = std::clamp<uint8_t>(brightness * 31.0f, 0, 31);
     uint8_t r, g, b;
     r = std::clamp<uint8_t>(rgb.r * 255.0f, 0, 255);
@@ -209,14 +209,14 @@ public:
   /// \note The index is zero-based.
   /// \sa set_pixel
   /// \sa show
-  void set_all(Hsv hsv, float brightness = 1.0f) { set_all(hsv.rgb(), brightness); }
+  void set_all(const Hsv &hsv, float brightness = 1.0f) { set_all(hsv.rgb(), brightness); }
 
   /// \brief Set the color of all the LEDs
   /// \param rgb Color to set the LEDs to
   /// \param brightness Brightness of the LEDs
   /// \sa set_pixel
   /// \sa show
-  void set_all(Rgb rgb, float brightness = 1.0f) {
+  void set_all(const Rgb &rgb, float brightness = 1.0f) {
     uint8_t brightness_byte = std::clamp<uint8_t>(brightness * 255.0f, 0, 255);
     set_all(rgb.r, rgb.g, rgb.b, brightness_byte);
   }
