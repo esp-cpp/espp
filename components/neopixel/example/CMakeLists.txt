@@ -11,11 +11,11 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py driver logger task rmt led_strip"
+  "main esptool_py logger task neopixel"
   CACHE STRING
   "List of components to include"
   )
 
-project(led_strip_example)
+project(neopixel_example)
 
 set(CMAKE_CXX_STANDARD 20)
