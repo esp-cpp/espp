@@ -29,4 +29,9 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+ESP32 Pico:
+![CleanShot 2025-02-18 at 15 54 25](https://github.com/user-attachments/assets/c670a804-2415-4a86-aa14-3c0e6f7763bc)
 
+S3:
+
+![CleanShot 2025-02-18 at 15 52 37](https://github.com/user-attachments/assets/948440ed-4d57-47e6-8a28-a0d6b4d8c418)
