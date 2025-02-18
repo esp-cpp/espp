@@ -190,7 +190,8 @@ public:
   ///        within the bounds of the current detent config
   /// @param position Position to set the haptics to
   void set_position(const int position) {
-    current_position_ = std::clamp<int>(position, detent_config_.min_position, detent_config_.max_position);
+    current_position_ =
+        std::clamp<int>(position, detent_config_.min_position, detent_config_.max_position);
   }
 
   /// @brief Configure the detents for the haptic motor

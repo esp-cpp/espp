@@ -287,9 +287,8 @@ public:
     // clang-format on
   }
 
-  friend fmt::formatter<GamepadInputReport<BUTTON_COUNT, JOYSTICK_TYPE, TRIGGER_TYPE, JOYSTICK_MIN, JOYSTICK_MAX,
-                                          TRIGGER_MIN, TRIGGER_MAX, REPORT_ID>>;
-
+  friend fmt::formatter<GamepadInputReport<BUTTON_COUNT, JOYSTICK_TYPE, TRIGGER_TYPE, JOYSTICK_MIN,
+                                           JOYSTICK_MAX, TRIGGER_MIN, TRIGGER_MAX, REPORT_ID>>;
 };
 
 /// HID Gamepad Output Report

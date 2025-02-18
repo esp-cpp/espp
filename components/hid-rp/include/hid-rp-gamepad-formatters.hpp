@@ -2,17 +2,21 @@
 
 #include "format.hpp"
 
-template <size_t BUTTON_COUNT, typename JOYSTICK_TYPE, typename TRIGGER_TYPE, JOYSTICK_TYPE JOYSTICK_MIN,
-          JOYSTICK_TYPE JOYSTICK_MAX, TRIGGER_TYPE TRIGGER_MIN, TRIGGER_TYPE TRIGGER_MAX, uint8_t REPORT_ID>
-struct fmt::formatter<espp::GamepadInputReport<BUTTON_COUNT, JOYSTICK_TYPE, TRIGGER_TYPE, JOYSTICK_MIN, JOYSTICK_MAX,
-                                               TRIGGER_MIN, TRIGGER_MAX, REPORT_ID>> {
+template <size_t BUTTON_COUNT, typename JOYSTICK_TYPE, typename TRIGGER_TYPE,
+          JOYSTICK_TYPE JOYSTICK_MIN, JOYSTICK_TYPE JOYSTICK_MAX, TRIGGER_TYPE TRIGGER_MIN,
+          TRIGGER_TYPE TRIGGER_MAX, uint8_t REPORT_ID>
+struct fmt::formatter<
+    espp::GamepadInputReport<BUTTON_COUNT, JOYSTICK_TYPE, TRIGGER_TYPE, JOYSTICK_MIN, JOYSTICK_MAX,
+                             TRIGGER_MIN, TRIGGER_MAX, REPORT_ID>> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
     return ctx.begin();
   }
 
   template <typename FormatContext>
-  auto format(const espp::GamepadInputReport<BUTTON_COUNT, JOYSTICK_TYPE, TRIGGER_TYPE, JOYSTICK_MIN,
-              JOYSTICK_MAX, TRIGGER_MIN, TRIGGER_MAX, REPORT_ID> &report, FormatContext &ctx) const {
+  auto
+  format(const espp::GamepadInputReport<BUTTON_COUNT, JOYSTICK_TYPE, TRIGGER_TYPE, JOYSTICK_MIN,
+                                        JOYSTICK_MAX, TRIGGER_MIN, TRIGGER_MAX, REPORT_ID> &report,
+         FormatContext &ctx) const {
     auto out = ctx.out();
     fmt::format_to(out, "GamepadInputReport<{}> {{", BUTTON_COUNT);
     fmt::format_to(out, "joystick_axes: [");
