@@ -113,6 +113,10 @@ jobs:
           target: esp32s3
         - path: 'components/pid/example'
           target: esp32
+        - path: 'components/qtpy/example'
+          target: esp32
+        - path: 'components/qtpy/example'
+          target: esp32s3
         - path: 'components/qwiicnes/example'
           target: esp32
         - path: 'components/rmt/example'
