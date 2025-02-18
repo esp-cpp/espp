@@ -14,9 +14,9 @@ extern "C" void app_main(void) {
 
     //! [neopixel ex1]
     espp::Neopixel led({
-        .data_gpio = 39, // Neopixel data pin on QtPy ESP32s3
+        .data_gpio = 39,  // Neopixel data pin on QtPy ESP32s3
         .power_gpio = 38, // Neopixel power pin on QtPy ESP32s3
-      });
+    });
 
     logger.info("Turning LED off for 1 second");
     led.set_color(espp::Rgb(0.0f, 0.0f, 0.0f));
