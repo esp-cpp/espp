@@ -48,6 +48,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    nfc/index
    nvs
    pid
+   qtpy
    qwiicnes
    rmt
    rtc/index
