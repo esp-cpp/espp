@@ -108,8 +108,8 @@ public:
   void get(const char *key, float &value, std::error_code &ec) {
     uint32_t u32;
     get(key, u32, ec);
-    if(!ec)
-        memcpy(&value, &u32, sizeof(float));
+    if (!ec)
+      memcpy(&value, &u32, sizeof(float));
   }
 
   /// @brief Reads a float from the NVS
@@ -234,8 +234,8 @@ public:
     uint32_t u32_default;
     memcpy(&u32_default, &default_value, sizeof(uint32_t));
     get(key, u32, u32_default, ec);
-    if(!ec)
-        memcpy(&value, &u32, sizeof(float));
+    if (!ec)
+      memcpy(&value, &u32, sizeof(float));
   }
 
   /// @brief Reads a float from the NVS
@@ -347,7 +347,7 @@ public:
   void set(const char *key, float value, std::error_code &ec) {
     uint32_t u32;
     memcpy(&u32, &value, sizeof(uint32_t));
-    set(key, u32, ec);    
+    set(key, u32, ec);
   }
 
   /// @brief Set a string in the NVS
