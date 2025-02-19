@@ -5,6 +5,31 @@ using namespace espp;
 TDongleS3::TDongleS3()
     : BaseComponent("TDongleS3") {}
 
+espp::Interrupt &TDongleS3::interrupts() { return interrupts_; }
+
+///////////////////////
+// Button Functions  //
+///////////////////////
+
+bool TDongleS3::initialize_button(const TDongleS3::button_callback_t &callback) {
+  logger_.info("Initializing button");
+
+  // save the callback
+  button_callback_ = callback;
+
+  // configure the button
+  interrupts_.add_interrupt(button_interrupt_pin_);
+  button_initialized_ = true;
+  return true;
+}
+
+bool TDongleS3::button_state() const {
+  if (!button_initialized_) {
+    return false;
+  }
+  return interrupts_.is_active(button_interrupt_pin_);
+}
+
 ///////////////////////
 // RGB LED Functions //
 ///////////////////////

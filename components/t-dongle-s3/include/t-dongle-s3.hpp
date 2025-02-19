@@ -9,6 +9,7 @@
 #include <hal/spi_types.h>
 
 #include "base_component.hpp"
+#include "interrupt.hpp"
 #include "led_strip.hpp"
 #include "st7789.hpp"
 
@@ -17,6 +18,7 @@ namespace espp {
 /// development board.
 ///
 /// The class provides access to the following features:
+/// - Button (boot button)
 /// - Display
 /// - RGB LED
 ///
@@ -26,6 +28,9 @@ namespace espp {
 /// \snippet t_dongle_s3_example.cpp t-dongle-s3 example
 class TDongleS3 : public BaseComponent {
 public:
+  /// Alias for the button callback function
+  using button_callback_t = espp::Interrupt::event_callback_fn;
+
   /// Alias for the pixel type used by the T-Dongle-S3 display
   using Pixel = lv_color16_t;
 
@@ -40,6 +45,23 @@ public:
   TDongleS3 &operator=(const TDongleS3 &) = delete;
   TDongleS3(TDongleS3 &&) = delete;
   TDongleS3 &operator=(TDongleS3 &&) = delete;
+
+  /// Get a reference to the interrupts
+  /// \return A reference to the interrupts
+  espp::Interrupt &interrupts();
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Button
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the button
+  /// \param callback The callback function to call when the button is pressed
+  /// \return true if the button was successfully initialized, false otherwise
+  bool initialize_button(const button_callback_t &callback = nullptr);
+
+  /// Get the button state
+  /// \return The button state (true = button pressed, false = button released)
+  bool button_state() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // RGB LED
@@ -207,6 +229,32 @@ protected:
   static constexpr bool mirror_y = false;
   static constexpr gpio_num_t backlight_io = GPIO_NUM_38;
   using DisplayDriver = espp::St7789;
+
+  // button (boot button)
+  static constexpr gpio_num_t button_io = GPIO_NUM_0; // active low
+
+  // Interrupts
+  espp::Interrupt::PinConfig button_interrupt_pin_{
+      .gpio_num = button_io,
+      .callback =
+          [this](const auto &event) {
+            if (button_callback_) {
+              button_callback_(event);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+      .pullup_enabled = true};
+
+  // we'll only add each interrupt pin if the initialize method is called
+  espp::Interrupt interrupts_{
+      {.interrupts = {},
+       .task_config = {.name = "t-dongle-s3 interrupts",
+                       .stack_size_bytes = CONFIG_T_DONGLE_S3_INTERRUPT_STACK_SIZE}}};
+
+  // button
+  std::atomic<bool> button_initialized_{false};
+  button_callback_t button_callback_{nullptr};
 
   // led
   std::shared_ptr<LedStrip> led_;
