@@ -13,8 +13,7 @@ espp::Interrupt &QtPy::interrupts() { return interrupts_; }
 // Button Functions   //
 ////////////////////////
 
-bool QtPy::initialize_button(
-    const QtPy::button_callback_t &callback) {
+bool QtPy::initialize_button(const QtPy::button_callback_t &callback) {
   logger_.info("Initializing button");
 
   // save the callback
@@ -37,7 +36,7 @@ bool QtPy::button_state() const {
 // I2C Functions      //
 ////////////////////////
 
-bool QtPy::initialize_qwiic_i2c(const espp::I2c::Config& i2c_config) {
+bool QtPy::initialize_qwiic_i2c(const espp::I2c::Config &i2c_config) {
   if (qwiic_i2c_) {
     logger_.warn("Qwiic I2C already initialized");
     return false;
@@ -64,19 +63,15 @@ bool QtPy::initialize_led() {
   }
 
   logger_.info("Initializing LED");
-  led_ = std::make_shared<espp::Neopixel>(espp::Neopixel::Config{
-      .data_gpio = led_data_io,
-      .power_gpio = led_power_io
-    });
+  led_ = std::make_shared<espp::Neopixel>(
+      espp::Neopixel::Config{.data_gpio = led_data_io, .power_gpio = led_power_io});
   return true;
 }
 
 /// Set the color of the LED
 /// \param hsv The color of the LED in HSV format
 /// \return True if the LED was set, false otherwise
-bool QtPy::led(const Hsv &hsv) {
-  return led(hsv.rgb());
-}
+bool QtPy::led(const Hsv &hsv) { return led(hsv.rgb()); }
 
 /// Set the color of the LED
 /// \param rgb The color of the LED in RGB format

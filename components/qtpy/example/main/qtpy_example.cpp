@@ -13,7 +13,7 @@ extern "C" void app_main(void) {
     logger.info("starting example");
 
     //! [qtpy ex1]
-    auto& qtpy = espp::QtPy::get();
+    auto &qtpy = espp::QtPy::get();
 
     // Initialize the Button
     logger.info("Initializing the button");
@@ -96,7 +96,6 @@ extern "C" void app_main(void) {
     } else {
       logger.info("Found devices at addresses: {::#02x}", found_addresses);
     }
-
     //! [qtpy ex1]
 
     while (true) {

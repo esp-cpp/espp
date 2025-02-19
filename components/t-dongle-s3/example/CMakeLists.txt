@@ -11,7 +11,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py t-dongle-s3 button"
+  "main esptool_py t-dongle-s3"
   CACHE STRING
   "List of components to include"
   )

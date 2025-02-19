@@ -14,15 +14,17 @@ namespace espp {
 /// ESP32-S3 development boards.
 ///
 /// The class provides access to the following features:
+/// - Button (boot button)
 /// - RGB LED
 /// - I2C (qwiic)
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
 /// \section qtpy_example Example
-/// \snippet qtpy_example.cpp qtpy example
+/// \snippet qtpy_example.cpp qtpy ex1
 class QtPy : public BaseComponent {
 public:
+  /// Alias for the button callback function
   using button_callback_t = espp::Interrupt::event_callback_fn;
 
   /// @brief Access the singleton instance of the QtPy class
@@ -124,7 +126,7 @@ protected:
   static constexpr auto qwiic_sda_io = GPIO_NUM_41;
   static constexpr auto qwiic_scl_io = GPIO_NUM_40;
 #else
-  #error "Unsupported target"
+#error "Unsupported target"
 #endif
 
   // button (boot button)

@@ -1,0 +1,8 @@
+menu "T-Dongle-S3 Configuration"
+    config T_DONGLE_S3_INTERRUPT_STACK_SIZE
+        int "Interrupt stack size"
+        default 4096
+        help
+            Size of the stack used for the interrupt handler. Used by the
+            button callback.
+endmenu

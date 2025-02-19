@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <vector>
 
-#include "button.hpp"
 #include "t-dongle-s3.hpp"
 
 using namespace std::chrono_literals;
@@ -40,28 +39,19 @@ extern "C" void app_main(void) {
   }
 
   // initialize the button, which we'll use to cycle the rotation of the display
-  espp::Button button(espp::Button::Config{
-      .name = "Boot Button",
-      .interrupt_config =
-          espp::Interrupt::PinConfig{.gpio_num = GPIO_NUM_0,
-                                     .callback =
-                                         [](const auto &event) {
-                                           if (event.active) {
-                                             // lock the display mutex
-                                             std::lock_guard<std::mutex> lock(lvgl_mutex);
-                                             static auto rotation = LV_DISPLAY_ROTATION_0;
-                                             rotation = static_cast<lv_display_rotation_t>(
-                                                 (static_cast<int>(rotation) + 1) % 4);
-                                             fmt::print("Setting rotation to {}\n", (int)rotation);
-                                             lv_display_t *disp = _lv_refr_get_disp_refreshing();
-                                             lv_disp_set_rotation(disp, rotation);
-                                           }
-                                         },
-                                     .active_level = espp::Interrupt::ActiveLevel::LOW,
-                                     .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-                                     .pullup_enabled = false,
-                                     .pulldown_enabled = false},
-  });
+  logger.info("Initializing the button");
+  auto on_button_pressed = [&](const auto &event) {
+    if (event.active) {
+      // lock the display mutex
+      std::lock_guard<std::mutex> lock(lvgl_mutex);
+      static auto rotation = LV_DISPLAY_ROTATION_0;
+      rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+      fmt::print("Setting rotation to {}\n", (int)rotation);
+      lv_display_t *disp = _lv_refr_get_disp_refreshing();
+      lv_disp_set_rotation(disp, rotation);
+    }
+  };
+  tdongle.initialize_button(on_button_pressed);
 
   // set the LED to be red
   espp::Hsv hsv(150.0f, 1.0f, 1.0f);
