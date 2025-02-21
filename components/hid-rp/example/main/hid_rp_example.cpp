@@ -4,6 +4,8 @@
 #include "logger.hpp"
 
 #include "hid-rp-gamepad.hpp"
+#include "hid-rp-switch-pro.hpp"
+#include "hid-rp-xbox.hpp"
 #include "hid-rp.hpp"
 
 using namespace std::chrono_literals;
@@ -25,6 +27,9 @@ extern "C" void app_main(void) {
       espp::GamepadInputReport<num_buttons, std::uint16_t, std::uint16_t, joystick_min,
                                joystick_max, trigger_min, trigger_max, input_report_id>;
   GamepadInput gamepad_input_report;
+
+  using XboxInput = espp::XboxGamepadInputReport<input_report_id>;
+  XboxInput xbox_input_report;
 
   using BatteryReport = espp::XboxBatteryInputReport<battery_report_id>;
   BatteryReport battery_input_report;
@@ -51,7 +56,25 @@ extern "C" void app_main(void) {
 
   logger.info("Report Descriptor:");
   logger.info("  Size: {}", descriptor.size());
-  logger.info("  Data: {::#02x}", descriptor);
+  logger.info("  Data: {::#04X}", descriptor);
+
+  using SwitchProInput = espp::SwitchProGamepadInputReport<>;
+  SwitchProInput switch_pro_input_report;
+  switch_pro_input_report.reset();
+  logger.info("{}", switch_pro_input_report);
+  logger.info("Switch Pro Input Report Size: {}", switch_pro_input_report.get_report().size());
+  logger.info("Switch Pro Input Report Data: {::#04X}", switch_pro_input_report.get_report());
+
+  auto sp_raw_descriptor = espp::switch_pro_descriptor();
+  auto sp_descriptor = std::vector<uint8_t>(sp_raw_descriptor.begin(), sp_raw_descriptor.end());
+
+  logger.info("Switch Report Descriptor:");
+  logger.info("  Size: {}", sp_descriptor.size());
+  std::string str = "";
+  for (auto &byte : sp_descriptor) {
+    str += fmt::format("0x{:02X}, ", byte);
+  }
+  logger.info("  Data: [{}]", str);
 
   GamepadInput::Hat hat = GamepadInput::Hat::UP_RIGHT;
   int button_index = 5;
@@ -59,6 +82,7 @@ extern "C" void app_main(void) {
 
   // update the gamepad input report
   gamepad_input_report.reset();
+  logger.info("{}", gamepad_input_report);
   gamepad_input_report.set_hat(hat);
   gamepad_input_report.set_button(button_index, true);
   // joystick inputs are in the range [-1, 1] float
@@ -74,7 +98,7 @@ extern "C" void app_main(void) {
   auto report = gamepad_input_report.get_report();
   logger.info("Input report:");
   logger.info("  Size: {}", report.size());
-  logger.info("  Data: {::#02x}", report);
+  logger.info("  Data: {::#02X}", report);
 
   // update the battery input report
   battery_input_report.reset();
@@ -88,7 +112,7 @@ extern "C" void app_main(void) {
   report = battery_input_report.get_report();
   logger.info("Battery report:");
   logger.info("  Size: {}", report.size());
-  logger.info("  Data: {::#02x}", report);
+  logger.info("  Data: {::#02X}", report);
 
   //! [hid rp example]
 }
