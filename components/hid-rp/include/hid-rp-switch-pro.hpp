@@ -391,7 +391,7 @@ namespace espp {
   /// get the report descriptor.
   template<uint8_t REPORT_ID, uint8_t VENDOR_USAGE>
   struct SwitchProInputVendorReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
-    uint8_t data[63];
+    uint8_t data[63] = {0};
     constexpr SwitchProInputVendorReport() = default;
 
     /// Set the data for the input report
@@ -428,7 +428,7 @@ namespace espp {
   /// get the report descriptor.
   template<uint8_t REPORT_ID, uint8_t VENDOR_USAGE>
   struct SwitchProOutputVendorReport : public hid::report::base<hid::report::type::OUTPUT, REPORT_ID> {
-    uint8_t data[63];
+    uint8_t data[63] = {0};
     constexpr SwitchProOutputVendorReport() = default;
 
     /// Set the data for the output report
