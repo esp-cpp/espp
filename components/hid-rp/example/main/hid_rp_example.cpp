@@ -82,6 +82,7 @@ extern "C" void app_main(void) {
 
   // update the gamepad input report
   gamepad_input_report.reset();
+  logger.info("{}", gamepad_input_report);
   gamepad_input_report.set_hat(hat);
   gamepad_input_report.set_button(button_index, true);
   // joystick inputs are in the range [-1, 1] float
