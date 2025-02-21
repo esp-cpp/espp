@@ -18,3 +18,5 @@ API Reference
 
 .. include-build-file:: inc/hid-rp.inc
 .. include-build-file:: inc/hid-rp-gamepad.inc
+.. include-build-file:: inc/hid-rp-switch-pro.inc
+.. include-build-file:: inc/hid-rp-xbox.inc

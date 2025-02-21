@@ -4,7 +4,7 @@
 #include "ble_gatt_server.hpp"
 #include "hid_service.hpp"
 
-#include "hid-rp-gamepad.hpp"
+#include "hid-rp-xbox.hpp"
 
 using namespace std::chrono_literals;
 
@@ -133,29 +133,23 @@ extern "C" void app_main(void) {
   uint8_t hid_info_flags = 0x01;
   hid_service.set_info(country_code, hid_info_flags);
 
-  static constexpr uint8_t input_report_id = 1;
-  static constexpr size_t num_buttons = 15;
-  static constexpr int joystick_min = 0;
-  static constexpr int joystick_max = 65535;
-  static constexpr int trigger_min = 0;
-  static constexpr int trigger_max = 1023;
-  using GamepadInput =
-      espp::GamepadInputReport<num_buttons, std::uint16_t, std::uint16_t, joystick_min,
-                               joystick_max, trigger_min, trigger_max, input_report_id>;
+  using GamepadInput = espp::XboxGamepadInputReport<>;
   GamepadInput gamepad_input_report;
+  static constexpr size_t num_buttons = GamepadInput::button_count;
+  static constexpr uint8_t input_report_id = GamepadInput::ID;
 
-  static constexpr uint8_t battery_report_id = 4;
-  using BatteryReport = espp::XboxBatteryInputReport<battery_report_id>;
+  using BatteryReport = espp::XboxBatteryInputReport<>;
   BatteryReport battery_input_report;
+  static constexpr uint8_t battery_report_id = BatteryReport::ID;
 
   static constexpr uint8_t led_output_report_id = 2;
   static constexpr size_t num_leds = 4;
   using GamepadLeds = espp::GamepadLedOutputReport<num_leds, led_output_report_id>;
   GamepadLeds gamepad_leds_report;
 
-  static constexpr uint8_t rumble_output_report_id = 3;
-  using RumbleReport = espp::XboxRumbleOutputReport<rumble_output_report_id>;
+  using RumbleReport = espp::XboxRumbleOutputReport<>;
   RumbleReport gamepad_rumble_report;
+  static constexpr uint8_t rumble_output_report_id = RumbleReport::ID;
 
   using namespace hid::page;
   using namespace hid::rdf;
