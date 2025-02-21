@@ -219,10 +219,11 @@ protected:
   static constexpr gpio_num_t lcd_reset_io = GPIO_NUM_1;
   static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_2;
   static constexpr int lcd_offset_x = 26;
-  static constexpr int lcd_offset_y = 0;
+  static constexpr int lcd_offset_y = 1;
   static constexpr bool backlight_value = false;
   static constexpr bool reset_value = false;
   static constexpr bool invert_colors = false;
+  static constexpr bool swap_color_order = true;
   static constexpr auto rotation = espp::DisplayRotation::PORTRAIT;
   static constexpr bool swap_xy = false;
   static constexpr bool mirror_x = false;

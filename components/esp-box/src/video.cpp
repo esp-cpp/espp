@@ -29,7 +29,7 @@ static void lcd_spi_post_transfer_callback(spi_transaction_t *t) {
   uint16_t user_flags = (uint32_t)(t->user);
   bool should_flush = user_flags & FLUSH_BIT;
   if (should_flush) {
-    lv_display_t *disp = _lv_refr_get_disp_refreshing();
+    lv_display_t *disp = lv_display_get_default();
     lv_display_flush_ready(disp);
   }
 }
