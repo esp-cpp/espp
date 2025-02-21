@@ -145,7 +145,7 @@ static void on_rotate_pressed(lv_event_t *event) {
   std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
   static auto rotation = LV_DISPLAY_ROTATION_0;
   rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-  lv_display_t *disp = _lv_refr_get_disp_refreshing();
+  lv_display_t *disp = lv_display_get_default();
   lv_disp_set_rotation(disp, rotation);
 }
 

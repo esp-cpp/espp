@@ -139,7 +139,7 @@ static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
   uint16_t user_flags = (uint32_t)(t->user);
   bool should_flush = user_flags & FLUSH_BIT;
   if (should_flush) {
-    lv_display_t *disp = _lv_refr_get_disp_refreshing();
+    lv_display_t *disp = lv_disp_get_default();
     lv_display_flush_ready(disp);
   }
 }
@@ -185,6 +185,7 @@ bool TDongleS3::initialize_lcd() {
       .data_command_pin = lcd_dc_io,
       .reset_value = reset_value,
       .invert_colors = invert_colors,
+      .swap_color_order = swap_color_order,
       .offset_x = lcd_offset_x,
       .offset_y = lcd_offset_y,
       .swap_xy = swap_xy,

@@ -239,9 +239,7 @@ public:
    */
   void force_refresh() const {
     auto disp = lv_display_get_default();
-    // lv_refr_now(disp);
-    lv_area_t area = {.x1 = 0, .y1 = 0, .x2 = (int16_t)width_, .y2 = (int16_t)height_};
-    _lv_inv_area(disp, &area);
+    lv_obj_invalidate(lv_scr_act());
   }
 
   /**
@@ -273,7 +271,7 @@ protected:
    * @brief LVGL event handler.
    */
   static void event_cb(lv_event_t *event) {
-    if (event->code == LV_EVENT_RESOLUTION_CHANGED) {
+    if (lv_event_get_code(event) == LV_EVENT_RESOLUTION_CHANGED) {
       auto rotation = lv_display_get_rotation(lv_display_get_default());
       auto rotation_callback = reinterpret_cast<rotation_fn>(lv_event_get_user_data(event));
       if (rotation_callback != nullptr) {

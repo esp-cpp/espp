@@ -47,7 +47,7 @@ extern "C" void app_main(void) {
       static auto rotation = LV_DISPLAY_ROTATION_0;
       rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
       fmt::print("Setting rotation to {}\n", (int)rotation);
-      lv_display_t *disp = _lv_refr_get_disp_refreshing();
+      lv_display_t *disp = lv_disp_get_default();
       lv_disp_set_rotation(disp, rotation);
     }
   };
