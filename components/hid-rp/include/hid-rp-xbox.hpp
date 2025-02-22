@@ -385,6 +385,14 @@ public:
     return std::vector<uint8_t>(report_data, report_data + report_size);
   }
 
+  /// Set the input report data from a vector of bytes
+  /// \param data The data to set the input report to.
+  constexpr auto set_data(const std::vector<uint8_t> &data) {
+    // copy the data into our data array - skip the first byte, which is the
+    // report id
+    std::copy(data.begin(), data.end(), this->data() + 1);
+  }
+
   /// Get the report descriptor as a hid::rdf::descriptor
   /// \return The report descriptor as a hid::rdf::descriptor.
   /// \note This is an incomplete descriptor, you will need to add it to a
