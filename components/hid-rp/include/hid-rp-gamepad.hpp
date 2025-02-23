@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "format.hpp"
 #include "hid-rp.hpp"
 
 namespace espp {
@@ -78,6 +79,38 @@ public:
     consumer_record = 0;
   }
 
+  /// Get the left joystick X and Y axis values
+  /// @param[out] lx left joystick x axis value, in the range [-1, 1]
+  /// @param[out] ly left joystick y axis value, in the range [-1, 1]
+  constexpr void get_left_joystick(float &lx, float &ly) const {
+    lx = (joystick_axes[0] - joystick_center) / static_cast<float>(joystick_range);
+    ly = (joystick_axes[1] - joystick_center) / static_cast<float>(joystick_range);
+  }
+
+  /// Get the left joystick X and Y axis values
+  /// @param[out] lx left joystick x axis value
+  /// @param[out] ly left joystick y axis value
+  constexpr void get_left_joystick(JOYSTICK_TYPE &lx, JOYSTICK_TYPE &ly) const {
+    lx = joystick_axes[0];
+    ly = joystick_axes[1];
+  }
+
+  /// Get the right joystick X and Y axis values
+  /// @param[out] rx right joystick x axis value, in the range [-1, 1]
+  /// @param[out] ry right joystick y axis value, in the range [-1, 1]
+  constexpr void get_right_joystick(float &rx, float &ry) const {
+    rx = (joystick_axes[2] - joystick_center) / static_cast<float>(joystick_range);
+    ry = (joystick_axes[3] - joystick_center) / static_cast<float>(joystick_range);
+  }
+
+  /// Get the right joystick X and Y axis values
+  /// @param[out] rx right joystick x axis value
+  /// @param[out] ry right joystick y axis value
+  constexpr void get_right_joystick(JOYSTICK_TYPE &rx, JOYSTICK_TYPE &ry) const {
+    rx = joystick_axes[2];
+    ry = joystick_axes[3];
+  }
+
   /// Set the left joystick X and Y axis values
   /// @param lx left joystick x axis value, in the range [-1, 1]
   /// @param ly left joystick y axis value, in the range [-1, 1]
@@ -92,15 +125,87 @@ public:
     set_joystick_axis(2, rx);
     set_joystick_axis(3, ry);
   }
+
+  /// Get the brake trigger value
+  /// @param value brake trigger value, in the range [0, 1]
+  constexpr void get_brake(float &value) const {
+    value = (trigger_axes[0] - trigger_center) / static_cast<float>(trigger_range);
+  }
+
+  /// Get the brake trigger value
+  /// @return brake trigger value
+  constexpr void get_brake(TRIGGER_TYPE &value) const { value = trigger_axes[0]; }
+
   /// Set the brake trigger value
   /// @param value brake trigger value, in the range [0, 1]
   constexpr void set_brake(float value) { set_trigger_axis(0, value); }
+
   /// Set the accelerator trigger value
   /// @param value accelerator trigger value, in the range [0, 1]
   constexpr void set_accelerator(float value) { set_trigger_axis(1, value); }
+
+  /// Get the accelerator trigger value
+  /// @param value accelerator trigger value, in the range [0, 1]
+  constexpr void get_accelerator(float &value) const {
+    value = (trigger_axes[1] - trigger_center) / static_cast<float>(trigger_range);
+  }
+
+  /// Get the accelerator trigger value
+  /// @return accelerator trigger value
+  constexpr void get_accelerator(TRIGGER_TYPE &value) const { value = trigger_axes[1]; }
+
   /// Set the hat switch (d-pad) value
   /// @param hat Hat enum / direction to set
   constexpr void set_hat(Hat hat) { set_hat_switch(uint8_t(hat)); }
+
+  /// Set the hat switch (d-pad) value
+  /// @param up up direction
+  /// @param down down direction
+  /// @param left left direction
+  /// @param right right direction
+  constexpr void set_hat(bool up, bool down, bool left, bool right) {
+    if (up) {
+      if (left) {
+        set_hat(Hat::UP_LEFT);
+      } else if (right) {
+        set_hat(Hat::UP_RIGHT);
+      } else {
+        set_hat(Hat::UP);
+      }
+    } else if (down) {
+      if (left) {
+        set_hat(Hat::DOWN_LEFT);
+      } else if (right) {
+        set_hat(Hat::DOWN_RIGHT);
+      } else {
+        set_hat(Hat::DOWN);
+      }
+    } else if (left) {
+      set_hat(Hat::LEFT);
+    } else if (right) {
+      set_hat(Hat::RIGHT);
+    } else {
+      set_hat(Hat::CENTERED);
+    }
+  }
+
+  /// Get the hat switch (d-pad) value
+  /// @return Hat enum / direction
+  constexpr Hat get_hat() const { return static_cast<Hat>(hat_switch); }
+
+  /// Get the hat switch (d-pad) value
+  /// @param up up direction
+  /// @param down down direction
+  /// @param left left direction
+  /// @param right right direction
+  constexpr void get_hat(bool &up, bool &down, bool &left, bool &right) const {
+    auto hat = get_hat();
+    up = hat == Hat::UP || hat == Hat::UP_RIGHT || hat == Hat::UP_LEFT;
+    down = hat == Hat::DOWN || hat == Hat::DOWN_RIGHT || hat == Hat::DOWN_LEFT;
+    left = hat == Hat::LEFT || hat == Hat::UP_LEFT || hat == Hat::DOWN_LEFT;
+    right = hat == Hat::RIGHT || hat == Hat::UP_RIGHT || hat == Hat::DOWN_RIGHT;
+  }
+
   /// Set the button value
   /// \param button_index The button for which you want to set the value.
   ///        Should be between 1 and BUTTON_COUNT, inclusive.
@@ -152,6 +257,17 @@ public:
                      trigger_max);
     }
   }
+
+  /// Get the button value
+  /// \param button_index The button for which you want to get the value.
+  /// \return The true/false value of the button.
+  constexpr bool get_button(int button_index) const {
+    if (button_index < 1 || button_index > BUTTON_COUNT) {
+      return false;
+    }
+    return buttons.test(hid::page::button(button_index));
+  }
+
   /// Set the hat switch value
   /// \param hat The hat switch value to set.
   constexpr void set_hat_switch(Hat hat) { hat_switch = static_cast<std::uint8_t>(hat); }
@@ -160,6 +276,10 @@ public:
   /// \note The value should match the values within the Hat enum.
   constexpr void set_hat_switch(std::uint8_t value) { hat_switch = (value & 0xf); }
 
+  /// Get the consumer record button value
+  /// \return The consumer record button value.
+  constexpr bool get_consumer_record() const { return consumer_record; }
+
   /// Set the consumer record button value
   /// \param value The true/false value you want to se the consumer record button to.
   constexpr void set_consumer_record(bool value) { consumer_record = value; }
@@ -167,7 +287,7 @@ public:
   /// Get the input report as a vector of bytes
   /// \return The input report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
-  constexpr auto get_report() {
+  constexpr auto get_report() const {
     // the first two bytes are the id and the selector, which we don't want
     size_t offset = 2;
     auto report_data = this->data() + offset;
