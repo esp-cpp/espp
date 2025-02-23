@@ -48,7 +48,7 @@ public:
    */
   static void initialize(const display_drivers::Config &config) {
     // update the static members
-    lcd_write_ = config.lcd_write;
+    write_command_ = config.write_command;
     lcd_send_lines_ = config.lcd_send_lines;
     reset_pin_ = config.reset_pin;
     dc_pin_ = config.data_command_pin;
@@ -59,6 +59,15 @@ public:
     mirror_portrait_ = config.mirror_portrait;
     swap_xy_ = config.swap_xy;
     swap_color_order_ = config.swap_color_order;
+
+    led_channel_configs_.push_back({.gpio = static_cast<size_t>(config.backlight_pin),
+                                             .channel = LEDC_CHANNEL_0,
+                                             .timer = LEDC_TIMER_0,
+                                             .output_invert = !config.backlight_on_value});
+    backlight_ = std::make_unique<Led>(Led::Config{.timer = LEDC_TIMER_0,
+                               .frequency_hz = 5000,
+                               .channels = led_channel_configs_,
+                               .duty_resolution = LEDC_TIMER_10_BIT});
 
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
@@ -78,7 +87,7 @@ public:
     }
 
     // init the display
-    display_drivers::LcdInitCmd ili_init_cmds[] = {
+    auto init_commands = std::to_array<display_drivers::LcdInitCmd<>>({
         {0xCF, {0x00, 0x83, 0X30}, 3},
         {0xED, {0x64, 0x03, 0X12, 0X81}, 4},
         {0xE8, {0x85, 0x01, 0x79}, 3},
@@ -105,19 +114,18 @@ public:
         {0x2C, {0}, 0},
         {0xB7, {0x07}, 1},
         {0xB6, {0x0A, 0x82, 0x27, 0x00}, 4},
-        {0x11, {0}, 0x80},
-        {0x29, {0}, 0x80},
-        {0, {0}, 0xff},
-    };
+        {0x11, {0}, 100},
+        {0x29, {0}, 100},
+    });
 
     // send the init commands
-    send_commands(ili_init_cmds);
+    send_commands(init_commands);
 
     // configure the display color configuration
     if (config.invert_colors) {
-      send_command(0x21);
+      write_command_(static_cast<uint8_t>(Command::invon), nullptr, 0, 0);
     } else {
-      send_command(0x20);
+      write_command_(static_cast<uint8_t>(Command::invoff), nullptr, 0, 0);
     }
   }
 
@@ -164,8 +172,7 @@ public:
       break;
     }
     std::scoped_lock lock{spi_mutex_};
-    send_command(Command::madctl);
-    send_data(&data, 1);
+    write_command_(static_cast<uint8_t>(Command::madctl), &data, 1, 0);
   }
 
   /**
@@ -209,20 +216,18 @@ public:
     uint16_t end_y = ye + offset_y;
 
     // Set the column (x) start / end addresses
-    send_command(Command::caset);
     data[0] = (start_x >> 8) & 0xFF;
     data[1] = start_x & 0xFF;
     data[2] = (end_x >> 8) & 0xFF;
     data[3] = end_x & 0xFF;
-    send_data(data, 4);
+    write_command_(static_cast<uint8_t>(Command::caset), data, 4, 0);
 
     // Set the row (y) start / end addresses
-    send_command(Command::raset);
     data[0] = (start_y >> 8) & 0xFF;
     data[1] = start_y & 0xFF;
     data[2] = (end_y >> 8) & 0xFF;
     data[3] = end_y & 0xFF;
-    send_data(data, 4);
+    write_command_(static_cast<uint8_t>(Command::raset), data, 4, 0);
   }
 
   /**
@@ -244,9 +249,8 @@ public:
                       area->y2 + offset_y, color_map, flags);
     } else {
       set_drawing_area(area);
-      send_command(Command::ramwr);
       uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      send_data(color_map, size * 2, flags);
+      write_command_(static_cast<uint8_t>(Command::ramwr), color_map, size * 2, flags);
     }
   }
 
@@ -262,62 +266,28 @@ public:
     set_drawing_area(x, y, x + width, y + height);
 
     // Write the color data to controller RAM
-    send_command(Command::ramwr);
     uint32_t size = width * height;
     static constexpr int max_bytes_to_send = 1024 * 2;
     uint16_t color_data[max_bytes_to_send];
     memset(color_data, color, max_bytes_to_send * sizeof(uint16_t));
     for (int i = 0; i < size; i += max_bytes_to_send) {
       int num_bytes = std::min((int)(size - i), (int)(max_bytes_to_send));
-      send_data((uint8_t *)color_data, num_bytes * 2);
+      write_command_(static_cast<uint8_t>(Command::ramwr), reinterpret_cast<uint8_t *>(color_data),
+                     num_bytes * 2, 0);
     }
   }
 
   /**
-   * @brief Sends the command, sets flags such that the pre-cb should set the
-   *        DC pin to command mode.
-   * @param command Command code to send
+   * @brief Send the provided commands to the display controller.
+   * @param commands Array of display_drivers::LcdInitCmd structures.
    */
-  static void send_command(uint8_t command) {
-    uint16_t flags = 0;
-    lcd_write_(&command, 1, flags);
-  }
-
-  /**
-   * @brief Sends the command, sets flags such that the pre-cb should set the
-   *        DC pin to command mode.
-   * @param command Command code to send
-   */
-  static void send_command(Command command) {
-    uint16_t flags = 0;
-    auto command_ = static_cast<uint8_t>(command);
-    lcd_write_(&command_, 1, flags);
-  }
-
-  /**
-   * @brief Send data to the display. Adds (1<<DC_LEVEL_BIT) to the flags so
-   *        that the pre-cb receives it in user data and can configure the DC
-   *        pin to data mode.
-   * @param data Pointer to array of bytes to be sent
-   * @param length Number of bytes of data to send.
-   * @param flags Optional (default = 0) flags associated with transfer.
-   */
-  static void send_data(const uint8_t *data, size_t length, uint32_t flags = 0) {
-    flags |= (1 << (int)display_drivers::Flags::DC_LEVEL_BIT);
-    lcd_write_(data, length, flags);
-  }
-
-  static void send_commands(display_drivers::LcdInitCmd *commands) {
+  static void send_commands(std::span<display_drivers::LcdInitCmd<>> commands) {
     using namespace std::chrono_literals;
-    // Send all the commands
-    uint16_t cmd = 0;
-    while (commands[cmd].length != 0xff) {
-      send_command(commands[cmd].command);
-      send_data(commands[cmd].data, commands[cmd].length & 0x1F);
-      if (commands[cmd].length & 0x80) {
-        std::this_thread::sleep_for(100ms);
-      }
-      cmd++;
+
+    for (auto [command, data, length, delay_ms] : commands) {
+      std::scoped_lock lock{spi_mutex_};
+      write_command_(command, data, length, 0);
+      std::this_thread::sleep_for(delay_ms * 1ms);
     }
   }
 
@@ -383,18 +353,50 @@ public:
     }
   }
 
+  /**
+   * @brief Set the brightness of the display.
+   * @param brightness Brightness value between 0.0 and 1.0.
+   */
+  static void set_brightness(float brightness) {
+    brightness = std::clamp(brightness, 0.0f, 1.0f);
+    backlight_->set_duty(led_channel_configs_[0].channel, brightness * 100.0f);
+  }
+
+  /**
+   * @brief Set the brightness of the display.
+   * @param brightness Brightness value between 0 and 255.
+   */
+  static void set_brightness(const uint8_t brightness) {
+    // Convert the 8-bit brightness to a float
+    set_brightness(static_cast<float>(brightness) / 255.0f);
+  }
+
+  /**
+   * @brief Get the brightness of the display.
+   * @return float Brightness value between 0.0 and 1.0.
+   */
+  static float get_brightness() {
+    auto maybe_duty = backlight_->get_duty(led_channel_configs_[0].channel);
+    if (maybe_duty.has_value()) {
+      return maybe_duty.value() / 100.0f;
+    }
+    return 0.0f;
+  }
+
 protected:
-  static display_drivers::write_fn lcd_write_;
-  static display_drivers::send_lines_fn lcd_send_lines_;
-  static gpio_num_t reset_pin_;
-  static gpio_num_t dc_pin_;
-  static int offset_x_;
-  static int offset_y_;
-  static bool mirror_x_;
-  static bool mirror_y_;
-  static bool mirror_portrait_;
-  static bool swap_xy_;
-  static bool swap_color_order_;
-  static std::mutex spi_mutex_;
+  static inline display_drivers::write_command_fn write_command_;
+  static inline display_drivers::send_lines_fn lcd_send_lines_;
+  static inline gpio_num_t reset_pin_;
+  static inline gpio_num_t dc_pin_;
+  static inline int offset_x_;
+  static inline int offset_y_;
+  static inline bool mirror_x_;
+  static inline bool mirror_y_;
+  static inline bool mirror_portrait_;
+  static inline bool swap_xy_;
+  static inline bool swap_color_order_;
+  static inline std::mutex spi_mutex_;
+  static inline std::vector<Led::ChannelConfig> led_channel_configs_;
+  static inline std::unique_ptr<Led> backlight_;
 };
 } // namespace espp

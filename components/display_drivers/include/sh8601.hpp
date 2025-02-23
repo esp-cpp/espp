@@ -332,7 +332,6 @@ public:
 
     // This display has a 10-bit brightness control
     uint16_t data = brightness * 1023;
-    printf("Setting brightness to %f (%d)\n", brightness, data);
     write_command_(static_cast<uint8_t>(Command::wrdpbr), reinterpret_cast<uint8_t *>(&data), 2, 0);
   }
 
