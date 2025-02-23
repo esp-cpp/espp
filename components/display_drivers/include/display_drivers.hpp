@@ -79,8 +79,7 @@ enum class Flags {
 template <typename Command = uint8_t> struct LcdInitCmd {
   Command command;       /**< Command byte */
   uint8_t data[16] = {}; /**< Data bytes */
-  uint8_t length = 0;    /**< Number of data bytes; bit 7 means delay after,
-     0xFF means end of commands. */
+  uint8_t length = 0;    /**< Number of data bytes; */
   size_t delay_ms = 0;   /**< Delay in milliseconds after sending the command. */
 };
 
