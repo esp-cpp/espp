@@ -42,6 +42,9 @@ struct Config {
   gpio_num_t reset_pin;           /**< GPIO used for resetting the display. */
   gpio_num_t data_command_pin; /**< GPIO used for indicating to the LCD whether the bits are data or
                                   command bits. */
+  gpio_num_t backlight_pin;    /**< GPIO pin for the backlight. */
+  bool backlight_on_value{
+      true};               /**< Value to write to the backlight pin to turn the backlight on. */
   bool reset_value{false}; /**< The value to set the reset pin to when resetting the display (low to
                               reset default). */
   bool invert_colors{false};    /**< Whether to invert the colors on the display. */
