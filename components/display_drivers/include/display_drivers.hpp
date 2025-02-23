@@ -8,11 +8,14 @@ namespace espp {
 namespace display_drivers {
 /**
  * @brief Low-level callback to write bytes to the display controller.
- * @param data Pointer to array of bytes to write.
- * @param length Number of bytes to write.
+ * @param command to write
+ * @param data Pointer to array of command parameters to write.
+ * @param length Number of command parameters to write.
  * @param user_data User data associated with this transfer, used for flags.
  */
-typedef std::function<void(const uint8_t *data, size_t length, uint32_t user_data)> write_fn;
+typedef std::function<void(uint8_t command, const uint8_t *parameters, size_t length,
+                           uint32_t user_data)>
+    write_command_fn;
 
 /**
  * @brief Send color data to the display, with optional flags.
@@ -32,13 +35,11 @@ typedef std::function<void(int sx, int sy, int ex, int ey, const uint8_t *color_
  * @brief Config structure for all display drivers.
  */
 struct Config {
-  write_fn lcd_write; /**< Function which the display driver uses to write data (blocking) to the
-                         display. */
-  send_lines_fn lcd_send_lines{
-      nullptr}; /**< Function which the display driver uses to send bulk (color) data (non-blocking)
-                   to be written to the display. If not provided, it will default to using the
-                   provided lcd_write (blocking) call. */
-  gpio_num_t reset_pin;        /**< GPIO used for resetting the display. */
+  write_command_fn write_command; /**< Function which the display driver uses to write commands to
+                                     the display. */
+  send_lines_fn lcd_send_lines;   /**< Function which the display driver uses to send bulk (color)
+                     data (non-blocking) to be written to the display. */
+  gpio_num_t reset_pin;           /**< GPIO used for resetting the display. */
   gpio_num_t data_command_pin; /**< GPIO used for indicating to the LCD whether the bits are data or
                                   command bits. */
   bool reset_value{false}; /**< The value to set the reset pin to when resetting the display (low to
@@ -75,11 +76,12 @@ enum class Flags {
 /**
  * @brief Command structure for initializing the lcd
  */
-struct LcdInitCmd {
-  uint8_t command;  /**< Command byte */
-  uint8_t data[16]; /**< Data bytes */
-  uint8_t length; /**< Number of data bytes; bit 7 means delay after, 0xFF means end of commands. */
-  size_t delay_ms; /**< Delay in milliseconds after sending the command. */
+template <typename Command = uint8_t> struct LcdInitCmd {
+  Command command;       /**< Command byte */
+  uint8_t data[16] = {}; /**< Data bytes */
+  uint8_t length = 0;    /**< Number of data bytes; bit 7 means delay after,
+     0xFF means end of commands. */
+  size_t delay_ms = 0;   /**< Delay in milliseconds after sending the command. */
 };
 
 /**

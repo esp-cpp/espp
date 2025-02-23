@@ -4,6 +4,9 @@
 
 #include "display_drivers.hpp"
 
+#include <display/lv_display_private.h>
+#include <draw/sw/blend/lv_draw_sw_blend_to_rgb565.h>
+
 namespace espp {
 /**
  * @brief Display driver for the GC9A01 display controller.
@@ -95,7 +98,7 @@ public:
    */
   static void initialize(const display_drivers::Config &config) {
     // update the static members
-    writeCommand = config.lcd_write;
+    write_command_ = config.write_command;
     lcd_send_lines_ = config.lcd_send_lines;
     reset_pin_ = config.reset_pin;
     dc_pin_ = config.data_command_pin;
@@ -124,20 +127,18 @@ public:
       madctl |= LCD_CMD_MV_BIT;
     }
 
-    // init the display
-    display_drivers::LcdInitCmd gc_init_cmds[] = {
-        {0x11, {0}, 0, 120},   // sleep out
-        {0x13, {0}, 0, 0},     // normal mode
-        {static_cast<uint8_t>(config.invert_colors ? Command::invon : Command::invoff), {0}, 0, 0}, // inversion
-        // {0x3A, {0x05}, 1, 0},  // color mode 16 bit
-        {0x29, {0}, 0, 0},     // display on
-        {0x53, {0x28}, 1, 0},  // write CTRL display
-        {0x51, {0xFF}, 1, 10}, // brightness normal mode
-        {0, {0}, 0xff},        // end of commands
-    };
+    auto init_cmds = std::to_array<display_drivers::LcdInitCmd<Command>>({
+        {Command::slpout, {0}, 0, 120},                            // sleep out
+        {Command::noron},                                          // normal mode
+        {config.invert_colors ? Command::invon : Command::invoff}, // inversion
+        {Command::colmod, {0x07}, 1},                              // color mode 24 bit
+        {Command::dispon},                                         // display on
+        {Command::wrctrldp, {0x28}, 1},                            // write CTRL display
+        {Command::wrdpbr, {0xFF}, 1, 10}, // brightness normal mode   // end of commands
+    });
 
     // send the init commands
-    send_commands(gc_init_cmds);
+    send_commands(init_cmds);
   }
 
   /**
@@ -184,8 +185,7 @@ public:
       break;
     }
     std::scoped_lock lock{spi_mutex_};
-    const uint8_t command[] = {static_cast<uint8_t>(Command::madctl), data};
-    writeCommand(command, 1, 0);
+    write_command_(static_cast<uint8_t>(Command::madctl), &data, 1, 0);
   }
 
   /**
@@ -195,13 +195,24 @@ public:
    * @param *color_map Pointer to array of colors to flush to the display.
    */
   static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
-    fill(disp, area, color_map, (1 << static_cast<int>(display_drivers::Flags::FLUSH_BIT)));
+    // No need to swap the colors when in RGB888 mode
+#if LV_COLOR_DEPTH == 16
+    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
+#endif
+
+    int offset_x = 0;
+    int offset_y = 0;
+    get_offset_rotated(offset_x, offset_y);
+
+    lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
+                    area->y2 + offset_y, color_map,
+                    (1 << static_cast<int>(display_drivers::Flags::FLUSH_BIT)));
   }
 
   /**
    * @brief Set the drawing area for the display, resets the cursor to the
    *        starting position of the area.
-   * @param *area Pointer to lv_area_t strcuture with start/end x/y
+   * @param area Pointer to lv_area_t strcuture with start/end x/y
    *              coordinates.
    */
   static void set_drawing_area(const lv_area_t *area) {
@@ -217,104 +228,40 @@ public:
    * @param ye Ending y coordinate of the area.
    */
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    uint8_t data[5] = {0};
+    uint8_t data[4];
 
     int offset_x = 0;
     int offset_y = 0;
     get_offset_rotated(offset_x, offset_y);
 
-    uint16_t start_x = xs + offset_x;
-    uint16_t end_x = xe + offset_x;
-    uint16_t start_y = ys + offset_y;
-    uint16_t end_y = ye + offset_y;
+    const uint16_t start_x = xs + offset_x;
+    const uint16_t end_x = xe + offset_x;
+    const uint16_t start_y = ys + offset_y;
+    const uint16_t end_y = ye + offset_y;
 
     // Set the column (x) start / end addresses
-    // send_command((uint8_t)Command::caset);
-    data[0] = static_cast<uint8_t>(Command::caset);
-    data[1] = (start_x >> 8) & 0xFF;
-    data[2] = start_x & 0xFF;
-    data[3] = (end_x >> 8) & 0xFF;
-    data[4] = end_x & 0xFF;
-    // send_data(data, 4);
+    data[0] = (start_x >> 8) & 0xFF;
+    data[1] = start_x & 0xFF;
+    data[2] = (end_x >> 8) & 0xFF;
+    data[3] = end_x & 0xFF;
     std::scoped_lock lock{spi_mutex_};
-    writeCommand(data, 4, 0);
+    write_command_(static_cast<uint8_t>(Command::caset), data, 4, 0);
 
     // Set the row (y) start / end addresses
-    // send_command((uint8_t)Command::raset);
-    data[0] = static_cast<uint8_t>(Command::paset);
-    data[1] = (start_y >> 8) & 0xFF;
-    data[2] = start_y & 0xFF;
-    data[3] = (end_y >> 8) & 0xFF;
-    data[4] = end_y & 0xFF;
-    // send_data(data, 4);
-    writeCommand(data, 4, 0);
+    data[0] = (start_y >> 8) & 0xFF;
+    data[1] = start_y & 0xFF;
+    data[2] = (end_y >> 8) & 0xFF;
+    data[3] = end_y & 0xFF;
+    write_command_(static_cast<uint8_t>(Command::paset), data, 4, 0);
   }
 
-  /**
-   * @brief Flush the pixel data for the provided area to the display.
-   * @param *drv Pointer to the LVGL display driver.
-   * @param *area Pointer to the structure describing the pixel area.
-   * @param *color_map Pointer to array of colors to flush to the display.
-   * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
-   */
-  static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,
-                   uint32_t flags = 0) {
-    // lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
-    if (lcd_send_lines_) {
-      int offset_x = 0;
-      int offset_y = 0;
-      get_offset_rotated(offset_x, offset_y);
-
-      std::scoped_lock lock{spi_mutex_};
-      lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
-                      area->y2 + offset_y, color_map, flags);
-    } else {
-      // set_drawing_area(area);
-      // send_command(Command::ramwr);
-      // uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      // send_data(color_map, size * 2, flags);
-    }
-  }
-
-  /**
-   * @brief Clear the display area, filling it with the provided color.
-   * @param x X coordinate of the upper left corner of the display area.
-   * @param y Y coordinate of the upper left corner of the display area.
-   * @param width Width of the display area to clear.
-   * @param height Height of the display area to clear.
-   * @param color 16 bit color (default 0x0000) to fill with.
-   */
-  static void clear(size_t x, size_t y, size_t width, size_t height, uint16_t color = 0x0000) {
-    set_drawing_area(x, y, x + width, y + height);
-
-    // Write the color data to controller RAM
-    // send_command(Command::ramwr);
-    uint32_t size = width * height;
-    static constexpr int max_bytes_to_send = 1024 * 2;
-    uint16_t color_data[max_bytes_to_send];
-    memset(color_data, color, max_bytes_to_send * sizeof(uint16_t));
-    for (int i = 0; i < size; i += max_bytes_to_send) {
-      int num_bytes = std::min((int)(size - i), (int)(max_bytes_to_send));
-      // send_data((uint8_t *)color_data, num_bytes * 2);
-    }
-  }
-
-  static void send_commands(display_drivers::LcdInitCmd *commands) {
+  static void send_commands(std::span<display_drivers::LcdInitCmd<Command>> commands) {
     using namespace std::chrono_literals;
-    // Send all the commands
-    uint16_t index = 0;
-    uint8_t data[10] = {0};
-    while (commands[index].length != 0xff) {
-      data[0] = commands[index].command;
-      const auto len = commands[index].length;
-      if (len > 0) {
-        memcpy(&data[1], commands[index].data, len);
-      }
 
+    for (auto [command, data, length, delay_ms] : commands) {
       std::scoped_lock lock{spi_mutex_};
-      writeCommand(data, len, 0);
-      std::this_thread::sleep_for(commands[index].delay_ms * 1ms);
-      index++;
+      write_command_(static_cast<uint8_t>(command), data, length, 0);
+      std::this_thread::sleep_for(delay_ms * 1ms);
     }
   }
 
@@ -380,7 +327,7 @@ public:
   }
 
 protected:
-  static inline display_drivers::write_fn writeCommand;
+  static inline display_drivers::write_command_fn write_command_;
   static inline display_drivers::send_lines_fn lcd_send_lines_;
   static inline gpio_num_t reset_pin_;
   static inline gpio_num_t dc_pin_;
