@@ -326,6 +326,23 @@ public:
     }
   }
 
+  static void set_brightness(const float brightness) {
+    // Update the local brightness value
+    brightness_ = brightness;
+
+    // This display has a 10-bit brightness control
+    uint16_t data = brightness * 1023;
+    printf("Setting brightness to %f (%d)\n", brightness, data);
+    write_command_(static_cast<uint8_t>(Command::wrdpbr), reinterpret_cast<uint8_t *>(&data), 2, 0);
+  }
+
+  static void set_brightness(const uint8_t brightness) {
+    // Convert the 8-bit brightness to a float
+    set_brightness(static_cast<float>(brightness) / 255.0f);
+  }
+
+  static float get_brightness() { return brightness_; }
+
 protected:
   static inline display_drivers::write_command_fn write_command_;
   static inline display_drivers::send_lines_fn lcd_send_lines_;
@@ -339,5 +356,6 @@ protected:
   static inline bool swap_xy_ = false;
   static inline bool swap_color_order_ = false;
   static inline std::mutex spi_mutex_;
+  static inline float brightness_ = 0;
 };
 } // namespace espp
