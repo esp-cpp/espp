@@ -79,6 +79,7 @@ struct LcdInitCmd {
   uint8_t command;  /**< Command byte */
   uint8_t data[16]; /**< Data bytes */
   uint8_t length; /**< Number of data bytes; bit 7 means delay after, 0xFF means end of commands. */
+  size_t delay_ms; /**< Delay in milliseconds after sending the command. */
 };
 
 /**
@@ -89,7 +90,13 @@ struct LcdInitCmd {
  */
 static void init_pins(gpio_num_t reset, gpio_num_t data_command, uint8_t reset_value) {
   // Initialize display pins
-  uint64_t gpio_output_pin_sel = (1ULL << data_command);
+  if (reset == GPIO_NUM_NC && data_command == GPIO_NUM_NC) {
+    return;
+  }
+  uint64_t gpio_output_pin_sel = 0;
+  if (data_command != GPIO_NUM_NC) {
+    gpio_output_pin_sel |= (1ULL << data_command);
+  }
   if (reset != GPIO_NUM_NC) {
     gpio_output_pin_sel |= (1ULL << reset);
   }
