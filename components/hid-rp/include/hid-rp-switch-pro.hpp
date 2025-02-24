@@ -62,83 +62,123 @@ public:
   static constexpr size_t joystick_value_range = joystick_max - joystick_min;
   static constexpr JOYSTICK_TYPE joystick_range = joystick_value_range / 2;
 
-protected:
-  union {
-    // See
-    // https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/bluetooth_hid_notes.md#standard-input-report-format
-    // for more information.
-    struct {
-      // Byte 0: Timer which increments very fast.
-      //         Can be used to estimate excess latency
-      uint8_t timer;
-      // Byte 1:
-      // - Battery level.
-      //     8=full, 6=medium, 4=low, 2=critical, 0=empty. Bit 0 is charging status.
-      // - Connection info.
-      //     Bit 0 is USB powered, bits 1-2 are connection info.
-      uint8_t battery_level : 4;
-      uint8_t connection_info : 4;
-      // Byte 2, 3, 4: Button status
-      bool btn_y : 1;
-      bool btn_x : 1;
-      bool btn_b : 1;
-      bool btn_a : 1;
-      bool btn_right_sr : 1;
-      bool btn_right_sl : 1;
-      bool btn_r : 1;
-      bool btn_zr : 1;
-      //    byte boundary
-      bool btn_minus : 1;
-      bool btn_plus : 1;
-      bool btn_thumb_r : 1;
-      bool btn_thumb_l : 1;
-      bool btn_home : 1;
-      bool btn_capture : 1;
-      uint8_t dummy : 1;
-      bool charging_grip : 1;
-      //    byte boundary
-      bool dpad_down : 1;
-      bool dpad_up : 1;
-      bool dpad_right : 1;
-      bool dpad_left : 1;
-      bool btn_left_sr : 1;
-      bool btn_left_sl : 1;
-      bool btn_l : 1;
-      bool btn_zl : 1;
-      // Byte 5, 6, 7: left joystick data
-      // Byte 8, 9, 10: right joystick data
-      //
-      // decode:
-      //     uint8_t *data = packet + (left ? 5 : 8);
-      //     uint16_t stick_horizontal = data[0] | ((data[1] & 0xF) << 8);
-      //     uint16_t stick_vertical = (data[1] >> 4) | (data[2] << 4);
-      // encode:
-      //     uint8_t *data = packet + (left ? 5 : 8);
-      //     data[0] = stick_horizontal & 0xFF;
-      //     data[1] = (stick_horizontal >> 8) | ((stick_vertical & 0xF) << 4);
-      //     data[2] = stick_vertical >> 4;
-      uint8_t analog[6];
-      // Byte 11: Vibrator input report.
-      //          Decides if next vibration pattern should be sent.
-      uint8_t vibrator_input_report;
-    } __attribute__((packed));
-    uint8_t raw_report[12];
+  /// Accelerometer data
+  struct Accelerometer {
+    int16_t X;
+    int16_t Y;
+    int16_t Z;
   };
-  // for report IDs 0x30, 0x31, 0x32, 0x33, this is 6-axis data. 3 frames of 2
-  // groups of 2 int16LE each. group is ACC followed by GYRO.
-  //
-  // for report ID 0x21, this is subcommand reply data. max len 35. In this
-  // report, there is additional 2 bytes of ACK/reply between raw_report and
-  // imuData.
-  //
-  // for report ID 0x23, this is NFC/IR MCU FW update input report (max len 37)
-  //
-  // for report id 0x31, there are aditional 313 bytes of NFC/IR data input
-  // after this.
-  uint8_t imuData[36];
-  // make this report the same length as the other switch pro input/output
-  // reports.
-  uint8_t padBytes[15];
+
+  /// Gyroscope data
+  struct Gyroscope {
+    int16_t X;
+    int16_t Y;
+    int16_t Z;
+  };
+
+protected:
+  // union for the input report data
+  union {
+    // struct for the input report and follow-up data such as IMU or command
+    struct {
+      // union for the input report data
+      union {
+        // See
+        // https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/bluetooth_hid_notes.md#standard-input-report-format
+        // for more information.
+        struct {
+          // Byte 0: Counter which increments with each packet
+          uint8_t counter;
+          // Byte 1:
+          // - Battery level.
+          //     8=full, 6=medium, 4=low, 2=critical, 0=empty. Bit 0 is charging status.
+          //     low = 10%,
+          //     medium = 50%,
+          //     full = 100%
+          // - Connection info.
+          //     Bit 0 is USB powered, bits 1-2 are connection info.
+          uint8_t battery_level : 4;
+          uint8_t connection_info : 4;
+          // Byte 2, 3, 4: Button status
+          bool btn_y : 1;
+          bool btn_x : 1;
+          bool btn_b : 1;
+          bool btn_a : 1;
+          bool btn_right_sr : 1;
+          bool btn_right_sl : 1;
+          bool btn_r : 1;
+          bool btn_zr : 1;
+          //    byte boundary
+          bool btn_minus : 1;
+          bool btn_plus : 1;
+          bool btn_thumb_r : 1;
+          bool btn_thumb_l : 1;
+          bool btn_home : 1;
+          bool btn_capture : 1;
+          uint8_t dummy : 1;
+          bool charging_grip : 1;
+          //    byte boundary
+          bool dpad_down : 1;
+          bool dpad_up : 1;
+          bool dpad_right : 1;
+          bool dpad_left : 1;
+          bool btn_left_sr : 1;
+          bool btn_left_sl : 1;
+          bool btn_l : 1;
+          bool btn_zl : 1;
+          // Byte 5, 6, 7: left joystick data
+          // Byte 8, 9, 10: right joystick data
+          union {
+            uint8_t analog[6];
+            struct {
+              uint16_t joy_lx : 12;
+              uint16_t joy_ly : 12;
+              uint16_t joy_rx : 12;
+              uint16_t joy_ry : 12;
+            } __attribute__((packed));
+          } __attribute__((packed));
+          // Byte 11: Vibrator input report.
+          //          Decides if next vibration pattern should be sent.
+          uint8_t vibrator_input_report;
+        } __attribute__((packed)); // input report data struct
+        uint8_t raw_input_report[12];
+      } __attribute__((packed)); // input report data union
+      // Union for post-input report data such as IMU or command replies
+      union {
+        // for report IDs 0x30, 0x31, 0x32, 0x33, this is 6-axis data. 3 frames of 2
+        // groups of 2 int16LE each. group is ACC followed by GYRO.
+        struct {
+          union {
+            uint8_t imuData[36]; // 6-axis data; 3 frames of 2 groups of 2 int16LE each
+            struct {
+              // Frame 0
+              Accelerometer acc_0;
+              Gyroscope gyro_0;
+              // Frame 1
+              Accelerometer acc_1;
+              Gyroscope gyro_1;
+              // Frame 2
+              Accelerometer acc_2;
+              Gyroscope gyro_2;
+            } __attribute__((packed));
+          } __attribute__((packed));
+        } __attribute__((packed)); //
+        // 0x21 subcommand reply data; max len 35
+        struct {
+          uint8_t subcmd_ack;
+          uint8_t subcmd_id;
+          uint8_t subcmd_reply[35];
+        } __attribute__((packed));
+        // TODO: for report ID 0x23, this is NFC/IR MCU FW update input report (max len 37)
+        //
+        // TODO: for report id 0x31, there are aditional 313 bytes of NFC/IR data input
+        // after this.
+      } __attribute__((packed)); // data union
+    } __attribute__((packed)); // input report data struct
+    // this will ensure we always have enough space for the largest report
+    // without having padding bytes defined anywhere.
+    uint8_t raw_report[63];
+  } __attribute__((packed));
 
   static constexpr size_t num_data_bytes = 63;
 
@@ -148,7 +188,7 @@ public:
 
   /// Reset the gamepad inputs
   constexpr void reset() {
-    std::fill(raw_report, raw_report + sizeof(raw_report), 0);
+    std::fill(raw_input_report, raw_input_report + sizeof(raw_input_report), 0);
     set_left_joystick(0, 0);
     set_right_joystick(0, 0);
     set_battery_level(75);
@@ -156,50 +196,83 @@ public:
     set_usb_powered(false);
   }
 
-  /// Set the timer value
-  /// @param time_us The time in microseconds to set the timer to.
-  constexpr void set_timer(uint64_t time_us) {
-    // this is the timer which is supposed to increment very quickly and can be
-    // used to estimate excess latency
-    uint32_t time_ms = time_us / 1000 / 4;
-    timer = static_cast<uint8_t>(time_ms & 0xff);
+  /// Set the counter
+  /// @param value The value to set the counter to.
+  constexpr void set_counter(uint8_t value) { counter = value; }
+
+  /// Increment the counter
+  constexpr void increment_counter() {
+    counter = (counter + 1) & 0x0F;
+  }
+
+  /// Get the counter value
+  /// @return The counter value
+  constexpr uint8_t get_counter() const {
+    return counter;
+  }
+
+  /// Set the subcommand ACK
+  /// @param ack The subcommand ACK to set
+  constexpr void set_subcmd_ack(uint8_t ack) { subcmd_ack = ack; }
+
+  /// Get the subcommand ACK
+  /// @return The subcommand ACK
+  constexpr uint8_t get_subcmd_ack() const { return subcmd_ack; }
+
+  /// Set the subcommand ID
+  /// @param id The subcommand ID to set
+  constexpr void set_subcmd_id(uint8_t id) { subcmd_id = id; }
+
+  /// Get the subcommand ID
+  /// @return The subcommand ID
+  constexpr uint8_t get_subcmd_id() const { return subcmd_id; }
+
+  /// Set the subcommand reply
+  /// @param reply The subcommand reply to set
+  constexpr void set_subcmd_reply(const std::vector<uint8_t> &reply) {
+    std::copy(reply.begin(), reply.end(), subcmd_reply);
+  }
+
+  /// Get the subcommand reply
+  /// @return The subcommand reply
+  constexpr auto get_subcmd_reply() const {
+    return std::vector<uint8_t>(subcmd_reply, subcmd_reply + sizeof(subcmd_reply));
   }
 
   /// Set the left joystick X and Y axis values
   /// @param lx left joystick x axis value, in the range [-1, 1]
   /// @param ly left joystick y axis value, in the range [-1, 1]
   constexpr void set_left_joystick(float lx, float ly) {
+    lx = std::clamp(lx, -1.0f, 1.0f);
+    ly = std::clamp(ly, -1.0f, 1.0f);
     JOYSTICK_TYPE x = std::clamp(static_cast<JOYSTICK_TYPE>(lx * joystick_range + joystick_center),
                                  joystick_min, joystick_max);
     JOYSTICK_TYPE y = std::clamp(static_cast<JOYSTICK_TYPE>(ly * joystick_range + joystick_center),
                                  joystick_min, joystick_max);
-
-    analog[0] = x & 0xFF;
-    analog[1] = (x >> 8) | ((y & 0xF) << 4);
-    analog[2] = y >> 4;
+    joy_lx = x;
+    joy_ly = y;
   }
 
   /// Set the right joystick X and Y axis values
   /// @param rx right joystick x axis value, in the range [-1, 1]
   /// @param ry right joystick y axis value, in the range [-1, 1]
   constexpr void set_right_joystick(float rx, float ry) {
+    rx = std::clamp(rx, -1.0f, 1.0f);
+    ry = std::clamp(ry, -1.0f, 1.0f);
     JOYSTICK_TYPE x = std::clamp(static_cast<JOYSTICK_TYPE>(rx * joystick_range + joystick_center),
                                  joystick_min, joystick_max);
     JOYSTICK_TYPE y = std::clamp(static_cast<JOYSTICK_TYPE>(ry * joystick_range + joystick_center),
                                  joystick_min, joystick_max);
-
-    analog[3] = x & 0xFF;
-    analog[4] = (x >> 8) | ((y & 0xF) << 4);
-    analog[5] = y >> 4;
+    joy_rx = x;
+    joy_ry = y;
   }
 
   /// Get the left joystick X and Y axis values
   /// @param lx left joystick x axis value, in the range [-1, 1]
   /// @param ly left joystick y axis value, in the range [-1, 1]
   constexpr void get_left_joystick(float &lx, float &ly) const {
-    JOYSTICK_TYPE x = analog[0] | ((analog[1] & 0xF) << 8);
-    JOYSTICK_TYPE y = (analog[1] >> 4) | (analog[2] << 4);
-
+    JOYSTICK_TYPE x = joy_lx;
+    JOYSTICK_TYPE y = joy_ly;
     lx = static_cast<float>(x - joystick_center) / joystick_range;
     ly = static_cast<float>(y - joystick_center) / joystick_range;
   }
@@ -208,9 +281,8 @@ public:
   /// @param lx left joystick x axis value
   /// @param ly left joystick y axis value
   constexpr void get_left_joystick(JOYSTICK_TYPE &lx, JOYSTICK_TYPE &ly) const {
-    JOYSTICK_TYPE x = analog[0] | ((analog[1] & 0xF) << 8);
-    JOYSTICK_TYPE y = (analog[1] >> 4) | (analog[2] << 4);
-
+    JOYSTICK_TYPE x = joy_lx;
+    JOYSTICK_TYPE y = joy_ly;
     lx = x;
     ly = y;
   }
@@ -219,9 +291,8 @@ public:
   /// @param rx right joystick x axis value, in the range [-1, 1]
   /// @param ry right joystick y axis value, in the range [-1, 1]
   constexpr void get_right_joystick(float &rx, float &ry) const {
-    JOYSTICK_TYPE x = analog[3] | ((analog[4] & 0xF) << 8);
-    JOYSTICK_TYPE y = (analog[4] >> 4) | (analog[5] << 4);
-
+    JOYSTICK_TYPE x = joy_rx;
+    JOYSTICK_TYPE y = joy_ry;
     rx = static_cast<float>(x - joystick_center) / joystick_range;
     ry = static_cast<float>(y - joystick_center) / joystick_range;
   }
@@ -230,9 +301,8 @@ public:
   /// @param rx right joystick x axis value
   /// @param ry right joystick y axis value
   constexpr void get_right_joystick(JOYSTICK_TYPE &rx, JOYSTICK_TYPE &ry) const {
-    JOYSTICK_TYPE x = analog[3] | ((analog[4] & 0xF) << 8);
-    JOYSTICK_TYPE y = (analog[4] >> 4) | (analog[5] << 4);
-
+    JOYSTICK_TYPE x = joy_rx;
+    JOYSTICK_TYPE y = joy_ry;
     rx = x;
     ry = y;
   }
@@ -266,9 +336,25 @@ public:
   /// Set the battery level
   /// @param level battery level, in the range [0, 100]
   constexpr void set_battery_level(float level) {
-    // battery level is only 3 bits, so we need to convert from [0, 100] to [0,
-    // 8] and then shift it by 1 to make it fit in the upper 3 bits
-    battery_level = (int)(std::clamp(level / 100.0f * 8, 0.0f, 8.0f)) << 1;
+    // battery_level = (low << 3) | (medium << 2) | (full << 1) | charging,
+    // where only one of the low, medium, full bits can be set at a time, and
+    // charging is the least significant bit.
+
+    // unset all level bits
+    battery_level = battery_level & 0x1;
+
+    // battery level are just bits for full, medium, low, and empty, and they
+    // are the upper 3 bits of the nibble
+    if (level > 50) {
+      // set full bit
+      battery_level |= 8;
+    } else if (level > 10) {
+      // set medium bit
+      battery_level |= 4;
+    } else if (level > 0) {
+      // set low bit
+      battery_level |= 2;
+    }
   }
 
   constexpr void set_battery_charging(bool charging) {
@@ -418,15 +504,15 @@ public:
     if (button_index < 1 || button_index > 24) {
       return;
     }
-    // set the appropriate bit in the raw_report starting at byte 2 (0-indexed)
+    // set the appropriate bit in the raw_input_report starting at byte 2 (0-indexed)
     // and bit 0 (0-indexed)
     int byte_index = 2 + (button_index - 1) / 8;
     int bit_index = (button_index - 1) % 8;
-    uint8_t current_byte = raw_report[byte_index];
+    uint8_t current_byte = raw_input_report[byte_index];
     if (value) {
-      raw_report[byte_index] = current_byte | (1 << bit_index);
+      raw_input_report[byte_index] = current_byte | (1 << bit_index);
     } else {
-      raw_report[byte_index] = current_byte & ~(1 << bit_index);
+      raw_input_report[byte_index] = current_byte & ~(1 << bit_index);
     }
   }
 
@@ -438,11 +524,11 @@ public:
     if (button_index < 1 || button_index > 24) {
       return false;
     }
-    // get the appropriate bit in the raw_report starting at byte 2 (0-indexed)
+    // get the appropriate bit in the raw_input_report starting at byte 2 (0-indexed)
     // and bit 0 (0-indexed)
     int byte_index = 2 + (button_index - 1) / 8;
     int bit_index = (button_index - 1) % 8;
-    return (raw_report[byte_index] & (1 << bit_index)) != 0;
+    return (raw_input_report[byte_index] & (1 << bit_index)) != 0;
   }
 
   /// Set the trigger axis value
@@ -470,8 +556,8 @@ public:
   /// \return The input report as a vector of bytes.
   /// \note The report id is not included in the returned vector.
   constexpr auto get_report() const {
-    // the first two bytes are the id and the selector, which we don't want
-    size_t offset = 2;
+    // the first byte is the id, which we don't want
+    size_t offset = 1;
     auto report_data = this->data() + offset;
     auto report_size = num_data_bytes;
     return std::vector<uint8_t>(report_data, report_data + report_size);
@@ -480,8 +566,8 @@ public:
   /// Set the output report data from a vector of bytes
   /// \param data The data to set the output report to.
   constexpr void set_data(const std::vector<uint8_t> &data) {
-    // the first two bytes are the id and the selector, which we don't want
-    size_t offset = 2;
+    // the first byte is the id, which we don't want
+    size_t offset = 1;
     // copy the data into our data array
     std::copy(data.begin(), data.end(), this->data() + offset);
   }
@@ -496,7 +582,7 @@ public:
 
     // clang-format off
       return descriptor(
-                        conditional_report_id<0x30>(),
+                        conditional_report_id<REPORT_ID>(),
                         usage_page<generic_desktop>(),
                         usage_page<button>(),
                         usage_limits(button(1), button(0x0A)),
