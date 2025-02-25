@@ -188,12 +188,14 @@ public:
 
   /// Reset the gamepad inputs
   constexpr void reset() {
-    std::fill(raw_input_report, raw_input_report + sizeof(raw_input_report), 0);
+    uint8_t prev_counter = counter;
+    // fill all 0s
+    std::fill(raw_report, raw_report + sizeof(raw_report), 0);
+    // now set the counter to the previous value
+    counter = prev_counter;
+    // set the joysticks to 0 since their config may not put them at 0
     set_left_joystick(0, 0);
     set_right_joystick(0, 0);
-    set_battery_level(75);
-    set_battery_charging(false);
-    set_usb_powered(false);
   }
 
   /// Set the counter
@@ -202,7 +204,7 @@ public:
 
   /// Increment the counter
   constexpr void increment_counter() {
-    counter = (counter + 1) & 0x0F;
+    counter = (counter + 1);
   }
 
   /// Get the counter value
