@@ -338,23 +338,28 @@ public:
   /// Set the battery level
   /// @param level battery level, in the range [0, 100]
   constexpr void set_battery_level(float level) {
-    // battery_level = (low << 3) | (medium << 2) | (full << 1) | charging,
-    // where only one of the low, medium, full bits can be set at a time, and
-    // charging is the least significant bit.
+    // BATT_EMPTY = 0,    // 0000
+    // BATT_CHARGING = 1, // 0001
+    // BATT_CRITICAL = 2, // 0010
+    // BATT_LOW = 4,      // 0100
+    // BATT_MEDIUM = 6,   // 0110
+    // BATT_FULL = 8,     // 1000
 
-    // unset all level bits
+    // unset all level bits, leaving only the charging bit unchanged.
     battery_level = battery_level & 0x1;
 
-    // battery level are just bits for full, medium, low, and empty, and they
-    // are the upper 3 bits of the nibble
-    if (level > 50) {
+    // now set the level bits
+    if (level > 75) {
       // set full bit
       battery_level |= 8;
+    } else if (level > 50) {
+      // set medium bits
+      battery_level |= 6;
     } else if (level > 10) {
-      // set medium bit
+      // set low bit
       battery_level |= 4;
     } else if (level > 0) {
-      // set low bit
+      // set critical bit
       battery_level |= 2;
     }
   }
