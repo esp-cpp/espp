@@ -4,9 +4,6 @@
 
 #include "display_drivers.hpp"
 
-#include <display/lv_display_private.h>
-#include <draw/sw/blend/lv_draw_sw_blend_to_rgb565.h>
-
 namespace espp {
 /**
  * @brief Display driver for the GC9A01 display controller.
@@ -228,7 +225,7 @@ public:
    * @param ye Ending y coordinate of the area.
    */
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    uint8_t data[4];
+    uint8_t data[4] = {};
 
     int offset_x = 0;
     int offset_y = 0;
