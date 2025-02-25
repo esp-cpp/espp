@@ -53,6 +53,18 @@ public:
   typedef void (*rotation_fn)(const DisplayRotation &rotation);
 
   /**
+   * @brief Callback for setting the display brightness.
+   * @param brightness Brightness value between 0.0 and 1.0.
+   */
+  typedef std::function<void(float brightness)> set_brightness_fn;
+
+  /**
+   * @brief Callback for getting the display brightness.
+   * @return float Brightness value between 0.0 and 1.0.
+   */
+  typedef std::function<float()> get_brightness_fn;
+
+  /**
    * @brief Used if you want the Display to manage the allocation / lifecycle
    * of the display buffer memory itself.
    */
@@ -62,7 +74,16 @@ public:
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
     flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
     rotation_fn rotation_callback{
-        nullptr};             /**< Function used to configure display with new rotation setting. */
+        nullptr}; /**< Function used to configure display with new rotation setting. */
+    gpio_num_t backlight_pin{GPIO_NUM_NC}; /**< GPIO pin for the backlight. */
+    bool backlight_on_value{
+        true}; /**< Value to write to the backlight pin to turn the backlight on. */
+    set_brightness_fn set_brightness_callback{
+        nullptr}; /**< Callback for setting the display brightness if it can't be controlled by
+                     simple pwm. */
+    get_brightness_fn get_brightness_callback{
+        nullptr}; /**< Callback for getting the display brightness if it can't be controlled by
+                    simple pwm. */
     Task::BaseConfig task_config{.name = "Display",
                                  .stack_size_bytes = 4096,
                                  .priority = 20,
@@ -94,7 +115,16 @@ public:
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
     flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
     rotation_fn rotation_callback{
-        nullptr};             /**< Function used to configure display with new rotation setting. */
+        nullptr}; /**< Function used to configure display with new rotation setting. */
+    gpio_num_t backlight_pin{GPIO_NUM_NC}; /**< GPIO pin for the backlight. */
+    bool backlight_on_value{
+        true}; /**< Value to write to the backlight pin to turn the backlight on. */
+    set_brightness_fn set_brightness_callback{
+        nullptr}; /**< Callback for setting the display brightness if it can't be controlled by
+                     simple pwm. */
+    get_brightness_fn get_brightness_callback{
+        nullptr}; /**< Callback for getting the display brightness if it can't be controlled by
+                    simple pwm. */
     Task::BaseConfig task_config{.name = "Display",
                                  .stack_size_bytes = 4096,
                                  .priority = 20,
@@ -119,7 +149,9 @@ public:
       , width_(config.width)
       , height_(config.height)
       , display_buffer_px_size_(config.pixel_buffer_size)
-      , update_period_(config.update_period) {
+      , update_period_(config.update_period)
+      , set_brightness_(config.set_brightness_callback)
+      , get_brightness_(config.get_brightness_callback) {
     logger_.debug("Initializing with allocating config!");
     // create the display buffers
     vram_0_ = (Pixel *)heap_caps_malloc(vram_size_bytes(), config.allocation_flags);
@@ -129,7 +161,8 @@ public:
       assert(vram_1_ != NULL);
     }
     created_vram_ = true;
-    init(config.flush_callback, config.rotation_callback, config.rotation, config.task_config);
+    init(config.flush_callback, config.rotation_callback, config.rotation, config.task_config,
+         config.backlight_pin, config.backlight_on_value);
   }
 
   /**
@@ -144,9 +177,12 @@ public:
       , display_buffer_px_size_(config.pixel_buffer_size)
       , vram_0_(config.vram0)
       , vram_1_(config.vram1)
-      , update_period_(config.update_period) {
+      , update_period_(config.update_period)
+      , set_brightness_(config.set_brightness_callback)
+      , get_brightness_(config.get_brightness_callback) {
     logger_.debug("Initializing with non-allocating config!");
-    init(config.flush_callback, config.rotation_callback, config.rotation, config.task_config);
+    init(config.flush_callback, config.rotation_callback, config.rotation, config.task_config,
+         config.backlight_pin, config.backlight_on_value);
   }
 
   /**
@@ -171,6 +207,37 @@ public:
    * @return size_t height of the display.
    */
   size_t height() const { return height_; }
+
+  /**
+   * @brief Set the brightness of the display.
+   * @param brightness Brightness value between 0.0 and 1.0.
+   */
+  void set_brightness(float brightness) {
+    if (backlight_) {
+      brightness = std::clamp(brightness, 0.0f, 1.0f);
+      backlight_->set_duty(led_channel_configs_[0].channel, brightness * 100.0f);
+    }
+    if (set_brightness_ != nullptr) {
+      set_brightness_(brightness);
+    }
+  }
+
+  /**
+   * @brief Get the brightness of the display.
+   * @return float Brightness value between 0.0 and 1.0.
+   */
+  float get_brightness() const {
+    if (backlight_) {
+      auto maybe_duty = backlight_->get_duty(led_channel_configs_[0].channel);
+      if (maybe_duty.has_value()) {
+        return maybe_duty.value() / 100.0f;
+      }
+    }
+    if (get_brightness_ != nullptr) {
+      return get_brightness_();
+    }
+    return 0.0f;
+  }
 
   /**
    * @brief Pause the display update task, to prevent LVGL from writing to the
@@ -242,9 +309,28 @@ protected:
    * @param rotation_fn function to call in the event handler on rotation change.
    * @param rotation Default / initial rotation of the display.
    * @param task_config Configuration for the task that runs the lvgl tick
+   * @param backlight_pin GPIO pin for the backlight. -1 if no backlight.
+   * @param backlight_on_value Value to write to the backlight pin to turn the backlight on.
    */
   void init(flush_fn flush_callback, rotation_fn rotation_callback, DisplayRotation rotation,
-            const Task::BaseConfig &task_config) {
+            const Task::BaseConfig &task_config, gpio_num_t backlight_pin,
+            bool backlight_on_value) {
+    if (backlight_pin != -1) {
+      led_channel_configs_.push_back({.gpio = static_cast<size_t>(backlight_pin),
+                                      .channel = LEDC_CHANNEL_0,
+                                      .timer = LEDC_TIMER_0,
+                                      .output_invert = !backlight_on_value});
+
+      backlight_ = std::make_unique<Led>((Led::Config{.timer = LEDC_TIMER_0,
+                                                      .frequency_hz = 5000,
+                                                      .channels = led_channel_configs_,
+                                                      .duty_resolution = LEDC_TIMER_10_BIT}));
+    } else {
+      if (set_brightness_ == nullptr || get_brightness_ == nullptr) {
+        logger_.error("No backlight pin provided and no brightness control callbacks provided!");
+      }
+    }
+
     lv_init();
 
     display_ = lv_display_create(width_, height_);
@@ -309,7 +395,11 @@ protected:
   Pixel *vram_0_{nullptr};
   Pixel *vram_1_{nullptr};
   bool created_vram_{false};
+  std::vector<Led::ChannelConfig> led_channel_configs_;
+  std::unique_ptr<Led> backlight_;
   std::chrono::duration<float> update_period_;
   lv_display_t *display_;
+  set_brightness_fn set_brightness_;
+  get_brightness_fn get_brightness_;
 };
 } // namespace espp
