@@ -174,7 +174,7 @@ protected:
         // TODO: for report id 0x31, there are aditional 313 bytes of NFC/IR data input
         // after this.
       } __attribute__((packed)); // data union
-    } __attribute__((packed)); // input report data struct
+    } __attribute__((packed));   // input report data struct
     // this will ensure we always have enough space for the largest report
     // without having padding bytes defined anywhere.
     uint8_t raw_report[63];
@@ -203,15 +203,11 @@ public:
   constexpr void set_counter(uint8_t value) { counter = value; }
 
   /// Increment the counter
-  constexpr void increment_counter() {
-    counter = (counter + 1);
-  }
+  constexpr void increment_counter() { counter = (counter + 1); }
 
   /// Get the counter value
   /// @return The counter value
-  constexpr uint8_t get_counter() const {
-    return counter;
-  }
+  constexpr uint8_t get_counter() const { return counter; }
 
   /// Set the subcommand ACK
   /// @param ack The subcommand ACK to set

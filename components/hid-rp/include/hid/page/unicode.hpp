@@ -13,7 +13,7 @@ template <> struct info<unicode> {
 class unicode {
 public:
   constexpr operator usage_id_t() const { return id; }
-  constexpr unicode(std::uint8_t value)
+  explicit constexpr unicode(std::uint8_t value)
       : id(value) {}
   std::uint8_t id{};
 };
