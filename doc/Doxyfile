@@ -113,6 +113,7 @@ INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server.hpp
 INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp
 INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server_menu.hpp
 INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/device_info_service.hpp
+INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/generic_access_service.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_driver/include/bldc_driver.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/bldc_haptics.hpp
 INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/detent_config.hpp

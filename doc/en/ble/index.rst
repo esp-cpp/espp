@@ -8,6 +8,7 @@ BLE APIs
     ble_gatt_server
     ble_gatt_server_example
     device_info_service
+    generic_access_service
     gfps_service
     gfps_service_example
     hid_service
