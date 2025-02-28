@@ -18,6 +18,7 @@
 #include "ble_appearances.hpp"
 #include "ble_gatt_server_callbacks.hpp"
 #include "device_info_service.hpp"
+#include "generic_access_service.hpp"
 
 namespace espp {
 /// BLE GATT Server
@@ -536,12 +537,12 @@ public:
     // refresh the services
     client->getServices(true);
     // now get Generic Access Service
-    auto gas = client->getService(NimBLEUUID("1800"));
+    auto gas = client->getService(NimBLEUUID(GenericAccessService::SERVICE_UUID));
     if (!gas) {
       return {};
     }
     // now get the Device Name characteristic
-    auto name_char = gas->getCharacteristic(NimBLEUUID("2A00"));
+    auto name_char = gas->getCharacteristic(NimBLEUUID(GenericAccessService::NAME_CHAR_UUID));
     if (!name_char) {
       return {};
     }
@@ -552,6 +553,39 @@ public:
     // and read it
     auto name = name_char->readValue();
     return name;
+  }
+
+  /// Get the connected device appearance
+  /// @param conn_info The connection information for the device.
+  /// @return The connected device appearance.
+  std::optional<uint16_t> get_connected_device_appearance(const NimBLEConnInfo &conn_info) const {
+    if (!server_) {
+      return {};
+    }
+    // since this connection is handled by the server, we won't manually
+    // connect, and instead inform the client that we are already connected
+    // using this conn handle
+    auto client = server_->getClient(conn_info);
+    // refresh the services
+    client->getServices(true);
+    // now get Generic Access Service
+    auto gas = client->getService(NimBLEUUID(GenericAccessService::SERVICE_UUID));
+    if (!gas) {
+      return {};
+    }
+    // now get the Appearance characteristic
+    auto characteristic =
+        gas->getCharacteristic(NimBLEUUID(GenericAccessService::APPEARANCE_CHAR_UUID));
+    if (!characteristic) {
+      return {};
+    }
+    // make sure we can read it
+    if (!characteristic->canRead()) {
+      return {};
+    }
+    // and read it
+    auto value = characteristic->readValue();
+    return GenericAccessService::parse_appearance(value);
   }
 
   /// Get the connected device PnP ID
