@@ -128,9 +128,14 @@ public:
         {Command::slpout, {0}, 0, 120},                            // sleep out
         {Command::noron},                                          // normal mode
         {config.invert_colors ? Command::invon : Command::invoff}, // inversion
-        {Command::colmod, {0x07}, 1},                              // color mode 24 bit
-        {Command::dispon},                                         // display on
-        {Command::wrctrldp, {0x28}, 1},                            // write CTRL display
+#ifdef CONFIG_LV_COLOR_DEPTH_16
+        {Command::colmod, {0x05}, 1}, // color mode 16 bit
+#else
+        {Command::colmod, {0x07}, 1}, // color mode 24 bit
+#endif
+
+        {Command::dispon},                // display on
+        {Command::wrctrldp, {0x28}, 1},   // write CTRL display
         {Command::wrdpbr, {0xFF}, 1, 10}, // brightness normal mode   // end of commands
     });
 
@@ -330,11 +335,6 @@ public:
     // This display has a 10-bit brightness control
     uint16_t data = brightness * 1023;
     write_command_(static_cast<uint8_t>(Command::wrdpbr), reinterpret_cast<uint8_t *>(&data), 2, 0);
-  }
-
-  static void set_brightness(const uint8_t brightness) {
-    // Convert the 8-bit brightness to a float
-    set_brightness(static_cast<float>(brightness) / 255.0f);
   }
 
   static float get_brightness() { return brightness_; }
