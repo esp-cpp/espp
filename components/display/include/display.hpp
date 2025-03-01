@@ -443,10 +443,10 @@ protected:
   Pixel *vram_1_{nullptr};
   bool created_vram_{false};
   std::vector<Led::ChannelConfig> led_channel_configs_;
-  std::unique_ptr<Led> backlight_;
+  std::unique_ptr<Led> backlight_{nullptr};
   std::chrono::duration<float> update_period_;
   lv_display_t *display_;
-  set_brightness_fn set_brightness_;
-  get_brightness_fn get_brightness_;
+  set_brightness_fn set_brightness_{nullptr};
+  get_brightness_fn get_brightness_{nullptr};
 };
 } // namespace espp
