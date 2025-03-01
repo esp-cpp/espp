@@ -13,6 +13,14 @@ menu "Display Drivers Example Configuration"
             bool "ESP BOX"
         config SMARTKNOB_HA
             bool "SMARTKNOB-HA"
+        config T_ENCODER_PRO
+            bool "T-ENCODER-PRO"
     endchoice
+
+    config DISPLAY_QUAD_SPI
+        bool "Quad SPI"
+        help
+            Use a Quad SPI bus for the display
+        default y if T_ENCODER_PRO
 
 endmenu

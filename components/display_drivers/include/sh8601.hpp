@@ -6,40 +6,94 @@
 
 namespace espp {
 /**
- * @brief Display driver for the ILI9341 display controller.
+ * @brief Display driver for the GC9A01 display controller.
  *
  *   This code is modified from
- *   https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/ili9341.c
- *   and
- *   https://github.com/espressif/esp-dev-kits/blob/master/esp32-s2-hmi-devkit-1/components/screen/controller_driver/ili9341/ili9341.c
+ *   https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/GC9A01.c
  *
  *   See also:
- *   https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_ili9341/esp_lcd_ili9341.c
+ *   https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_gc9a01/esp_lcd_gc9a01.c
  *
- * \section ili9341_wrover_cfg WROVER-KIT ILI9341 Config
- * \snippet display_drivers_example.cpp wrover_kit_config example
- * \section ili9341_ex1 ili9341 Example
+ * \section smartknob_ha_cfg SmartKnob Config
+ * \snippet display_drivers_example.cpp smartknob_config example
+ * \section gc9a01_ex1 Gc9a01 Example
  * \snippet display_drivers_example.cpp display_drivers example
  */
-class Ili9341 {
+class Sh8601 {
 public:
+  // Initial bytes for all transactions, indicating whether the data is being sent over just MOSI or
+  // all QSPI lines.
+  enum class TransferMode : uint8_t {
+    SINGLE_LINE = 0x02,
+    MULTI_LINE = 0x32,
+  };
+
   enum class Command : uint8_t {
-    invoff = 0x20,  // display inversion off
-    invon = 0x21,   // display inversion on
-    gamset = 0x26,  // gamma set
+    nop = 0x00,     // no operation
+    swreset = 0x01, // software reset
+    rddid = 0x04,   // read display id
+    rddst = 0x09,   // read display status
+
+    slpin = 0x10,  // sleep in
+    slpout = 0x11, // sleep out
+    ptlon = 0x12,  // partial mode on
+    noron = 0x13,  // normal display mode on
+
+    invoff = 0x20, // display inversion off
+    invon = 0x21,  // display inversion on
+
     dispoff = 0x28, // display off
     dispon = 0x29,  // display on
-    caset = 0x2a,   // column address set
-    raset = 0x2b,   // row address set
-    ramwr = 0x2c,   // ram write
-    rgbset = 0x2d,  // color setting for 4096, 64k and 262k colors
-    ramrd = 0x2e,   // ram read
-    madctl = 0x36,  // memory data access control
+
+    caset = 0x2a, // column address set
+    paset = 0x2b, // page address set
+    ramwr = 0x2c, // ram write
+
+    ptlar = 0x30,   // partial area
+    vscrdef = 0x33, // vertical scrolling definition
+    teoff = 0x34,   // tearing effect line off
+    teon = 0x35,    // tearing effect line on
+    madctl = 0x36,  // memory access control
     idmoff = 0x38,  // idle mode off
     idmon = 0x39,   // idle mode on
-    ramwrc = 0x3c,  // memory write continue (st7789v)
-    ramrdc = 0x3e,  // memory read continue (st7789v)
     colmod = 0x3a,  // color mode - pixel format
+    ramwrc = 0x3c,  // memory write continue
+
+    settes = 0x44, // set tear scanline
+    gettes = 0x45, // get tear scanline
+
+    wrdpbr = 0x51, // write display brightness
+
+    wrctrldp = 0x53, // write CTRL display
+
+    readid1 = 0xDA, // read ID 1
+    readid2 = 0xDB, // read ID 2
+    readid3 = 0xDC, // read ID 3
+
+    rgbctrl = 0xb0,  // rgb control
+    porctrl = 0xb5,  // porch control
+    dpfuctrl = 0xb6, // display function control
+
+    tectrl = 0xba, // ram control
+
+    intrctrl = 0xf6, // interface control
+
+    frctrl = 0xe8,    // frame rate control
+    spi2dctrl = 0xe9, // spi 2data control
+
+    pwrctrl1 = 0xc1, // power control 1
+    pwrctrl2 = 0xc3, // power control 2
+    pwrctrl3 = 0xc4, // power control 3
+    pwrctrl4 = 0xc9, // power control 4
+    pwrctrl7 = 0xa7, // power control 7
+
+    intren1 = 0xfe, // inter register enable 1
+    intren2 = 0xef, // inter register enable 2
+
+    stgamma1 = 0xf0, // set gamma 1
+    stgamma2 = 0xf1, // set gamma 2
+    stgamma3 = 0xf2, // set gamma 3
+    stgamma4 = 0xf3, // set gamma 4
   };
   /**
    * @brief Store the config data and send the initialization commands to the
@@ -63,7 +117,7 @@ public:
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
 
-    uint8_t madctl = 0x00;
+    uint8_t madctl = 0;
     if (swap_color_order_) {
       madctl |= LCD_CMD_BGR_BIT;
     }
@@ -77,47 +131,23 @@ public:
       madctl |= LCD_CMD_MV_BIT;
     }
 
-    // init the display
-    auto init_commands = std::to_array<display_drivers::LcdInitCmd<>>({
-        {0xCF, {0x00, 0x83, 0X30}, 3},
-        {0xED, {0x64, 0x03, 0X12, 0X81}, 4},
-        {0xE8, {0x85, 0x01, 0x79}, 3},
-        {0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}, 5},
-        {0xF7, {0x20}, 1},
-        {0xEA, {0x00, 0x00}, 2},
-        {0xC0, {0x26}, 1},
-        {0xC1, {0x11}, 1},
-        {0xC5, {0x35, 0x3E}, 2},
-        {0xC7, {0xBE}, 1},
-        {0x36, {madctl}, 1},
-        {0x3A, {0x55}, 1},
-        {0xB1, {0x00, 0x1B}, 2},
-        {0xF2, {0x08}, 1},
-        {0x26, {0x01}, 1},
-        {0xE0,
-         {0x1F, 0x1A, 0x18, 0x0A, 0x0F, 0x06, 0x45, 0X87, 0x32, 0x0A, 0x07, 0x02, 0x07, 0x05, 0x00},
-         15},
-        {0XE1,
-         {0x00, 0x25, 0x27, 0x05, 0x10, 0x09, 0x3A, 0x78, 0x4D, 0x05, 0x18, 0x0D, 0x38, 0x3A, 0x1F},
-         15},
-        {0x2A, {0x00, 0x00, 0x00, 0xEF}, 4},
-        {0x2B, {0x00, 0x00, 0x01, 0x3f}, 4},
-        {0x2C, {0}, 0},
-        {0xB7, {0x07}, 1},
-        {0xB6, {0x0A, 0x82, 0x27, 0x00}, 4},
-        {0x11, {0}, 100},
-        {0x29, {0}, 100},
+    auto init_cmds = std::to_array<display_drivers::LcdInitCmd<Command>>({
+        {Command::slpout, {0}, 0, 120},                            // sleep out
+        {Command::noron},                                          // normal mode
+        {config.invert_colors ? Command::invon : Command::invoff}, // inversion
+#ifdef CONFIG_LV_COLOR_DEPTH_16
+        {Command::colmod, {0x05}, 1}, // color mode 16 bit
+#else
+        {Command::colmod, {0x07}, 1}, // color mode 24 bit
+#endif
+
+        {Command::dispon},                // display on
+        {Command::wrctrldp, {0x28}, 1},   // write CTRL display
+        {Command::wrdpbr, {0xFF}, 1, 10}, // brightness normal mode   // end of commands
     });
 
     // send the init commands
-    send_commands(init_commands);
-
-    // configure the display color configuration
-    if (config.invert_colors) {
-      write_command_(static_cast<uint8_t>(Command::invon), nullptr, 0, 0);
-    } else {
-      write_command_(static_cast<uint8_t>(Command::invoff), nullptr, 0, 0);
-    }
+    send_commands(init_cmds);
   }
 
   /**
@@ -125,7 +155,7 @@ public:
    * @param rotation New display rotation.
    */
   static void rotate(const DisplayRotation &rotation) {
-    uint8_t data = 0x00;
+    uint8_t data = 0;
     if (swap_color_order_) {
       data |= LCD_CMD_BGR_BIT;
     }
@@ -138,6 +168,7 @@ public:
     if (swap_xy_) {
       data |= LCD_CMD_MV_BIT;
     }
+
     switch (rotation) {
     case DisplayRotation::LANDSCAPE:
       break;
@@ -173,13 +204,24 @@ public:
    * @param *color_map Pointer to array of colors to flush to the display.
    */
   static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
-    fill(disp, area, color_map, (1 << (int)display_drivers::Flags::FLUSH_BIT));
+    // No need to swap the colors when in RGB888 mode
+#if LV_COLOR_DEPTH == 16
+    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
+#endif
+
+    int offset_x = 0;
+    int offset_y = 0;
+    get_offset_rotated(offset_x, offset_y);
+
+    lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
+                    area->y2 + offset_y, color_map,
+                    (1 << static_cast<int>(display_drivers::Flags::FLUSH_BIT)));
   }
 
   /**
    * @brief Set the drawing area for the display, resets the cursor to the
    *        starting position of the area.
-   * @param *area Pointer to lv_area_t strcuture with start/end x/y
+   * @param area Pointer to lv_area_t strcuture with start/end x/y
    *              coordinates.
    */
   static void set_drawing_area(const lv_area_t *area) {
@@ -195,22 +237,23 @@ public:
    * @param ye Ending y coordinate of the area.
    */
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    uint8_t data[4] = {0};
+    uint8_t data[4] = {};
 
     int offset_x = 0;
     int offset_y = 0;
     get_offset_rotated(offset_x, offset_y);
 
-    uint16_t start_x = xs + offset_x;
-    uint16_t end_x = xe + offset_x;
-    uint16_t start_y = ys + offset_y;
-    uint16_t end_y = ye + offset_y;
+    const uint16_t start_x = xs + offset_x;
+    const uint16_t end_x = xe + offset_x;
+    const uint16_t start_y = ys + offset_y;
+    const uint16_t end_y = ye + offset_y;
 
     // Set the column (x) start / end addresses
     data[0] = (start_x >> 8) & 0xFF;
     data[1] = start_x & 0xFF;
     data[2] = (end_x >> 8) & 0xFF;
     data[3] = end_x & 0xFF;
+    std::scoped_lock lock{spi_mutex_};
     write_command_(static_cast<uint8_t>(Command::caset), data, 4, 0);
 
     // Set the row (y) start / end addresses
@@ -218,66 +261,15 @@ public:
     data[1] = start_y & 0xFF;
     data[2] = (end_y >> 8) & 0xFF;
     data[3] = end_y & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::raset), data, 4, 0);
+    write_command_(static_cast<uint8_t>(Command::paset), data, 4, 0);
   }
 
-  /**
-   * @brief Flush the pixel data for the provided area to the display.
-   * @param *drv Pointer to the LVGL display driver.
-   * @param *area Pointer to the structure describing the pixel area.
-   * @param *color_map Pointer to array of colors to flush to the display.
-   * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
-   */
-  static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,
-                   uint32_t flags = 0) {
-    std::scoped_lock lock{spi_mutex_};
-    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
-    if (lcd_send_lines_) {
-      int offset_x = 0;
-      int offset_y = 0;
-      get_offset_rotated(offset_x, offset_y);
-      lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
-                      area->y2 + offset_y, color_map, flags);
-    } else {
-      set_drawing_area(area);
-      uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      write_command_(static_cast<uint8_t>(Command::ramwr), color_map, size * 2, flags);
-    }
-  }
-
-  /**
-   * @brief Clear the display area, filling it with the provided color.
-   * @param x X coordinate of the upper left corner of the display area.
-   * @param y Y coordinate of the upper left corner of the display area.
-   * @param width Width of the display area to clear.
-   * @param height Height of the display area to clear.
-   * @param color 16 bit color (default 0x0000) to fill with.
-   */
-  static void clear(size_t x, size_t y, size_t width, size_t height, uint16_t color = 0x0000) {
-    set_drawing_area(x, y, x + width, y + height);
-
-    // Write the color data to controller RAM
-    uint32_t size = width * height;
-    static constexpr int max_bytes_to_send = 1024 * 2;
-    uint16_t color_data[max_bytes_to_send];
-    memset(color_data, color, max_bytes_to_send * sizeof(uint16_t));
-    for (int i = 0; i < size; i += max_bytes_to_send) {
-      int num_bytes = std::min((int)(size - i), (int)(max_bytes_to_send));
-      write_command_(static_cast<uint8_t>(Command::ramwr), reinterpret_cast<uint8_t *>(color_data),
-                     num_bytes * 2, 0);
-    }
-  }
-
-  /**
-   * @brief Send the provided commands to the display controller.
-   * @param commands Array of display_drivers::LcdInitCmd structures.
-   */
-  static void send_commands(std::span<display_drivers::LcdInitCmd<>> commands) {
+  static void send_commands(std::span<display_drivers::LcdInitCmd<Command>> commands) {
     using namespace std::chrono_literals;
 
     for (auto [command, data, length, delay_ms] : commands) {
       std::scoped_lock lock{spi_mutex_};
-      write_command_(command, data, length, 0);
+      write_command_(static_cast<uint8_t>(command), data, length, 0);
       std::this_thread::sleep_for(delay_ms * 1ms);
     }
   }
@@ -325,8 +317,7 @@ public:
    *          or set by set_offset(), updated for the current rotation.
    */
   static void get_offset_rotated(int &x, int &y) {
-    auto rotation = lv_display_get_rotation(lv_display_get_default());
-    switch (rotation) {
+    switch (auto rotation = lv_display_get_rotation(lv_display_get_default())) {
     case LV_DISPLAY_ROTATION_90:
       // intentional fallthrough
     case LV_DISPLAY_ROTATION_270:
@@ -344,6 +335,17 @@ public:
     }
   }
 
+  static void set_brightness(const float brightness) {
+    // Update the local brightness value
+    brightness_ = brightness;
+
+    // This display has a 10-bit brightness control
+    uint16_t data = brightness * 1023;
+    write_command_(static_cast<uint8_t>(Command::wrdpbr), reinterpret_cast<uint8_t *>(&data), 2, 0);
+  }
+
+  static float get_brightness() { return brightness_; }
+
 protected:
   static inline display_drivers::write_command_fn write_command_;
   static inline display_drivers::send_lines_fn lcd_send_lines_;
@@ -351,11 +353,12 @@ protected:
   static inline gpio_num_t dc_pin_;
   static inline int offset_x_;
   static inline int offset_y_;
-  static inline bool mirror_x_;
-  static inline bool mirror_y_;
-  static inline bool mirror_portrait_;
-  static inline bool swap_xy_;
-  static inline bool swap_color_order_;
+  static inline bool mirror_x_ = false;
+  static inline bool mirror_y_ = false;
+  static inline bool mirror_portrait_ = false;
+  static inline bool swap_xy_ = false;
+  static inline bool swap_color_order_ = false;
   static inline std::mutex spi_mutex_;
+  static inline float brightness_ = 0;
 };
 } // namespace espp
