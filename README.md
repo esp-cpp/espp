@@ -14,6 +14,7 @@ the example
 If you have questions or would like to chat, feel free to hop over to our discord!
 
 <img src="https://discord.com/api/guilds/1345508990716743741/widget.png?style=banner2" alt="Discord Banner 2"/>
+
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
