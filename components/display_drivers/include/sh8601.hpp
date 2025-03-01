@@ -21,6 +21,13 @@ namespace espp {
  */
 class Sh8601 {
 public:
+  // Initial bytes for all transactions, indicating whether the data is being sent over just MOSI or
+  // all QSPI lines.
+  enum class TransferMode : uint8_t {
+    SINGLE_LINE = 0x02,
+    MULTI_LINE = 0x32,
+  };
+
   enum class Command : uint8_t {
     nop = 0x00,     // no operation
     swreset = 0x01, // software reset
