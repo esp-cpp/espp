@@ -166,7 +166,7 @@ void IRAM_ATTR lcd_send_lines(const int xStart, const int yStart, const int xEnd
   static size_t max_transfer_size = 0;
 
   // The first two transactions are for setting the column and page addresses
-  constexpr size_t pixel_setup_trans_size = 3;
+  constexpr size_t pixel_setup_trans_size = 2;
 
   // Initialize the above SPI transactions, this only has to be done once
   if (!initialized) {
@@ -183,14 +183,8 @@ void IRAM_ATTR lcd_send_lines(const int xStart, const int yStart, const int xEnd
     transactions[1].flags =
         SPI_TRANS_MULTILINE_CMD | SPI_TRANS_MULTILINE_ADDR | SPI_TRANS_USE_TXDATA;
 
-    transactions[2].cmd = static_cast<uint8_t>(DisplayDriver::TransferMode::SINGLE_LINE);
+    transactions[2].cmd = static_cast<uint8_t>(DisplayDriver::TransferMode::MULTI_LINE);
     transactions[2].addr = static_cast<uint8_t>(DisplayDriver::Command::ramwr) << 8;
-    transactions[2].length = 0;
-    transactions[2].flags = SPI_TRANS_MULTILINE_CMD | SPI_TRANS_MULTILINE_ADDR;
-
-    transactions[3].flags = SPI_TRANS_MODE_QIO;
-    transactions[3].cmd = static_cast<uint8_t>(DisplayDriver::TransferMode::MULTI_LINE);
-    transactions[3].addr = static_cast<uint8_t>(DisplayDriver::Command::ramwrc) << 8;
 
     spi_bus_get_max_transaction_len(spi_num, &max_transfer_size);
     initialized = true;
