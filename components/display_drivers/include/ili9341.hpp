@@ -60,15 +60,6 @@ public:
     swap_xy_ = config.swap_xy;
     swap_color_order_ = config.swap_color_order;
 
-    led_channel_configs_.push_back({.gpio = static_cast<size_t>(config.backlight_pin),
-                                             .channel = LEDC_CHANNEL_0,
-                                             .timer = LEDC_TIMER_0,
-                                             .output_invert = !config.backlight_on_value});
-    backlight_ = std::make_unique<Led>(Led::Config{.timer = LEDC_TIMER_0,
-                               .frequency_hz = 5000,
-                               .channels = led_channel_configs_,
-                               .duty_resolution = LEDC_TIMER_10_BIT});
-
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
 
@@ -353,36 +344,6 @@ public:
     }
   }
 
-  /**
-   * @brief Set the brightness of the display.
-   * @param brightness Brightness value between 0.0 and 1.0.
-   */
-  static void set_brightness(float brightness) {
-    brightness = std::clamp(brightness, 0.0f, 1.0f);
-    backlight_->set_duty(led_channel_configs_[0].channel, brightness * 100.0f);
-  }
-
-  /**
-   * @brief Set the brightness of the display.
-   * @param brightness Brightness value between 0 and 255.
-   */
-  static void set_brightness(const uint8_t brightness) {
-    // Convert the 8-bit brightness to a float
-    set_brightness(static_cast<float>(brightness) / 255.0f);
-  }
-
-  /**
-   * @brief Get the brightness of the display.
-   * @return float Brightness value between 0.0 and 1.0.
-   */
-  static float get_brightness() {
-    auto maybe_duty = backlight_->get_duty(led_channel_configs_[0].channel);
-    if (maybe_duty.has_value()) {
-      return maybe_duty.value() / 100.0f;
-    }
-    return 0.0f;
-  }
-
 protected:
   static inline display_drivers::write_command_fn write_command_;
   static inline display_drivers::send_lines_fn lcd_send_lines_;
@@ -396,7 +357,5 @@ protected:
   static inline bool swap_xy_;
   static inline bool swap_color_order_;
   static inline std::mutex spi_mutex_;
-  static inline std::vector<Led::ChannelConfig> led_channel_configs_;
-  static inline std::unique_ptr<Led> backlight_;
 };
 } // namespace espp
