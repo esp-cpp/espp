@@ -10,6 +10,7 @@
 
 #include "base_component.hpp"
 #include "led.hpp"
+#include "logger.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -65,41 +66,54 @@ public:
   typedef std::function<float()> get_brightness_fn;
 
   /**
-   * @brief Used if you want the Display to manage the allocation / lifecycle
-   * of the display buffer memory itself.
+   * @brief Base component configuration for LVGL.
    */
-  struct AllocatingConfig {
-    size_t width;             /**< Width of th display, in pixels. */
-    size_t height;            /**< Height of the display, in pixels. */
-    size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
-    flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
+  struct LvglConfig {
+    size_t width;            /**< Width of th display, in pixels. */
+    size_t height;           /**< Height of the display, in pixels. */
+    flush_fn flush_callback; /**< Function provided to LVGL for it to flush data to the display. */
     rotation_fn rotation_callback{
-        nullptr}; /**< Function used to configure display with new rotation setting. */
-    gpio_num_t backlight_pin{GPIO_NUM_NC}; /**< GPIO pin for the backlight. */
-    bool backlight_on_value{
-        true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    set_brightness_fn set_brightness_callback{
-        nullptr}; /**< Callback for setting the display brightness if it can't be controlled by
-                     simple pwm. */
-    get_brightness_fn get_brightness_callback{
-        nullptr}; /**< Callback for getting the display brightness if it can't be controlled by
-                    simple pwm. */
+        nullptr}; /**< Optional function used to configure display with new rotation setting. */
+    DisplayRotation rotation{
+        DisplayRotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
     Task::BaseConfig task_config{.name = "Display",
                                  .stack_size_bytes = 4096,
                                  .priority = 20,
                                  .core_id = 0}; /**< Task configuration. */
     std::chrono::duration<float> update_period{
         0.01}; /**< How frequently to run the update function. */
+  };
+
+  /**
+   * @brief OLED specific configuration.
+   */
+  struct OledConfig {
+    set_brightness_fn set_brightness_callback{
+        nullptr}; /**< Callback for setting the display brightness */
+    get_brightness_fn get_brightness_callback{nullptr}; /**< Callback for getting the display
+                                            brightness. */
+  };
+
+  /**
+   * @brief LCD specific configuration.
+   */
+  struct LcdConfig {
+    gpio_num_t backlight_pin{GPIO_NUM_NC}; /**< GPIO pin for the backlight. */
+    bool backlight_on_value{
+        true}; /**< Value to write to the backlight pin to turn the backlight on. */
+  };
+
+  /**
+   * @brief Used if you want the Display to manage the allocation / lifecycle
+   * of the display buffer memory itself.
+   */
+  struct DynamicMemoryConfig {
+    size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
     bool double_buffered{
         true}; /**< Whether to use double buffered rendering (two display buffers) or not. */
     uint32_t allocation_flags{
         MALLOC_CAP_8BIT |
         MALLOC_CAP_DMA}; /**< For configuring how the display buffer is allocated*/
-    DisplayRotation rotation{
-        DisplayRotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
-    bool software_rotation_enabled{
-        true}; /**< Enable LVGL software display rotation, incurs additional overhead. */
-    Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity for the Display logger_. */
   };
 
   /**
@@ -107,82 +121,117 @@ public:
    * buffer memory separately from this class. This structure allows you to
    * configure the Display with up to two display buffers.
    */
-  struct NonAllocatingConfig {
-    Pixel *vram0;  /**< Pointer to display buffer 1, that lvgl will use. */
-    Pixel *vram1;  /**< Pointer to display buffer 2 (if double buffered), that lvgl will use. */
-    size_t width;  /**< Width of th display, in pixels. */
-    size_t height; /**< Height of the display, in pixels. */
+  struct StaticMemoryConfig {
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
-    flush_fn flush_callback;  /**< Function provided to LVGL for it to flush data to the display. */
-    rotation_fn rotation_callback{
-        nullptr}; /**< Function used to configure display with new rotation setting. */
-    gpio_num_t backlight_pin{GPIO_NUM_NC}; /**< GPIO pin for the backlight. */
-    bool backlight_on_value{
-        true}; /**< Value to write to the backlight pin to turn the backlight on. */
-    set_brightness_fn set_brightness_callback{
-        nullptr}; /**< Callback for setting the display brightness if it can't be controlled by
-                     simple pwm. */
-    get_brightness_fn get_brightness_callback{
-        nullptr}; /**< Callback for getting the display brightness if it can't be controlled by
-                    simple pwm. */
-    Task::BaseConfig task_config{.name = "Display",
-                                 .stack_size_bytes = 4096,
-                                 .priority = 20,
-                                 .core_id = 0}; /**< Task configuration. */
-    std::chrono::duration<float> update_period{
-        0.01}; /**< How frequently to run the update function. */
-    DisplayRotation rotation{
-        DisplayRotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
-    bool software_rotation_enabled{
-        true}; /**< Enable LVGL software display rotation, incurs additional overhead. */
-    Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity for the Display logger_. */
+    bool double_buffered{
+        true}; /**< Whether to use double buffered rendering (two display buffers) or not. */
+    Pixel *vram0{nullptr}; /**< Pointer to display buffer 1, that lvgl will use. */
+    Pixel *vram1{nullptr}; /**< Optional pointer to display buffer 2 (if double buffered), that lvgl
+                              will use. */
   };
 
   /**
-   * @brief Allocate the dsiplay buffers, initialize LVGL, then start the
-   *        update task.
-   * @param config Display configuration including buffer size and flush
-   *        callback.
+   * @brief Initialize LVGL then start the update task.
+   * @param lvgl_conf LVGL Configuration, including display size, flush callback and optional
+   * rotation callback.
+   * @param lcd_config LCD specific configuration.
+   * @param mem_conf Static memory configuration.
+   * @param log_level The verbosity level for the Display logger_.
    */
-  explicit Display(const AllocatingConfig &config)
-      : BaseComponent("Display", config.log_level)
-      , width_(config.width)
-      , height_(config.height)
-      , display_buffer_px_size_(config.pixel_buffer_size)
-      , update_period_(config.update_period)
-      , set_brightness_(config.set_brightness_callback)
-      , get_brightness_(config.get_brightness_callback) {
-    logger_.debug("Initializing with allocating config!");
-    // create the display buffers
-    vram_0_ = (Pixel *)heap_caps_malloc(vram_size_bytes(), config.allocation_flags);
+  explicit Display(const LvglConfig &lvgl_conf, const LcdConfig &lcd_config,
+                   const StaticMemoryConfig &mem_conf,
+                   const Logger::Verbosity log_level = Logger::Verbosity::WARN)
+      : BaseComponent("Display", log_level)
+      , width_(lvgl_conf.width)
+      , height_(lvgl_conf.height)
+      , display_buffer_px_size_(mem_conf.pixel_buffer_size)
+      , vram_0_(mem_conf.vram0)
+      , vram_1_(mem_conf.vram1)
+      , update_period_(lvgl_conf.update_period) {
+    init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
+         lvgl_conf.task_config, lcd_config.backlight_pin, lcd_config.backlight_on_value);
+  }
+
+  /**
+   * @brief Allocate the display buffers, initialize LVGL then start the update task.
+   * @param lvgl_conf LVGL Configuration, including display size, flush callback and optional
+   * rotation callback.
+   * @param lcd_config LCD specific configuration.
+   * @param mem_conf Dynamic memory configuration.
+   * @param log_level The verbosity level for the Display logger_.
+   */
+  explicit Display(const LvglConfig &lvgl_conf, const LcdConfig &lcd_config,
+                   const DynamicMemoryConfig &mem_conf,
+                   const Logger::Verbosity log_level = Logger::Verbosity::WARN)
+      : BaseComponent("Display", log_level)
+      , width_(lvgl_conf.width)
+      , height_(lvgl_conf.height)
+      , display_buffer_px_size_(mem_conf.pixel_buffer_size)
+      , update_period_(lvgl_conf.update_period) {
+    vram_0_ = static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), mem_conf.allocation_flags));
     assert(vram_0_ != NULL);
-    if (config.double_buffered) {
-      vram_1_ = (Pixel *)heap_caps_malloc(vram_size_bytes(), config.allocation_flags);
+    if (mem_conf.double_buffered) {
+      vram_1_ =
+          static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), mem_conf.allocation_flags));
       assert(vram_1_ != NULL);
     }
     created_vram_ = true;
-    init(config.flush_callback, config.rotation_callback, config.rotation, config.task_config,
-         config.backlight_pin, config.backlight_on_value);
+    init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
+         lvgl_conf.task_config, lcd_config.backlight_pin, lcd_config.backlight_on_value);
   }
 
   /**
    * @brief Initialize LVGL then start the update task.
-   * @param config Display configuration including pointers to display buffer
-   *        memory, the pixel buffer size and flush callback.
+   * @param lvgl_conf LVGL Configuration, including display size, flush callback and optional
+   * rotation callback.
+   * @param oled_config OLED specific configuration.
+   * @param mem_conf Static memory configuration.
+   * @param log_level The verbosity level for the Display logger_.
    */
-  explicit Display(const NonAllocatingConfig &config)
-      : BaseComponent("Display", config.log_level)
-      , width_(config.width)
-      , height_(config.height)
-      , display_buffer_px_size_(config.pixel_buffer_size)
-      , vram_0_(config.vram0)
-      , vram_1_(config.vram1)
-      , update_period_(config.update_period)
-      , set_brightness_(config.set_brightness_callback)
-      , get_brightness_(config.get_brightness_callback) {
-    logger_.debug("Initializing with non-allocating config!");
-    init(config.flush_callback, config.rotation_callback, config.rotation, config.task_config,
-         config.backlight_pin, config.backlight_on_value);
+  explicit Display(const LvglConfig &lvgl_conf, const OledConfig &oled_config,
+                   const StaticMemoryConfig &mem_conf,
+                   const Logger::Verbosity log_level = Logger::Verbosity::WARN)
+      : BaseComponent("Display", log_level)
+      , width_(lvgl_conf.width)
+      , height_(lvgl_conf.height)
+      , display_buffer_px_size_(mem_conf.pixel_buffer_size)
+      , vram_0_(mem_conf.vram0)
+      , vram_1_(mem_conf.vram1)
+      , update_period_(lvgl_conf.update_period)
+      , set_brightness_(oled_config.set_brightness_callback)
+      , get_brightness_(oled_config.get_brightness_callback) {
+    init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
+         lvgl_conf.task_config);
+  }
+
+  /**
+   * @brief Allocate the display buffers, initialize LVGL then start the update task.
+   * @param lvgl_conf LVGL Configuration, including display size, flush callback and optional
+   * rotation callback.
+   * @param oled_config OLED specific configuration.
+   * @param mem_conf Dynamic memory configuration.
+   * @param log_level The verbosity level for the Display logger_.
+   */
+  explicit Display(const LvglConfig &lvgl_conf, const OledConfig &oled_config,
+                   const DynamicMemoryConfig &mem_conf,
+                   const Logger::Verbosity log_level = Logger::Verbosity::WARN)
+      : BaseComponent("Display", log_level)
+      , width_(lvgl_conf.width)
+      , height_(lvgl_conf.height)
+      , display_buffer_px_size_(mem_conf.pixel_buffer_size)
+      , update_period_(lvgl_conf.update_period)
+      , set_brightness_(oled_config.set_brightness_callback)
+      , get_brightness_(oled_config.get_brightness_callback) {
+    vram_0_ = static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), mem_conf.allocation_flags));
+    assert(vram_0_ != NULL);
+    if (mem_conf.double_buffered) {
+      vram_1_ =
+          static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), mem_conf.allocation_flags));
+      assert(vram_1_ != NULL);
+    }
+    created_vram_ = true;
+    init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
+         lvgl_conf.task_config);
   }
 
   /**
@@ -306,15 +355,15 @@ protected:
    *        display driver. Start the task to run the high-priority lvgl
    *        task.
    * @param flush_callback Callback used to flush color data to the display.
-   * @param rotation_fn function to call in the event handler on rotation change.
+   * @param rotation_callback function to call in the event handler on rotation change.
    * @param rotation Default / initial rotation of the display.
    * @param task_config Configuration for the task that runs the lvgl tick
    * @param backlight_pin GPIO pin for the backlight. -1 if no backlight.
    * @param backlight_on_value Value to write to the backlight pin to turn the backlight on.
    */
-  void init(flush_fn flush_callback, rotation_fn rotation_callback, DisplayRotation rotation,
-            const Task::BaseConfig &task_config, gpio_num_t backlight_pin,
-            bool backlight_on_value) {
+  void init(const flush_fn flush_callback, const rotation_fn rotation_callback,
+            DisplayRotation rotation, const Task::BaseConfig &task_config,
+            const gpio_num_t backlight_pin = GPIO_NUM_NC, const bool backlight_on_value = true) {
     if (backlight_pin != -1) {
       led_channel_configs_.push_back({.gpio = static_cast<size_t>(backlight_pin),
                                       .channel = LEDC_CHANNEL_0,
@@ -338,7 +387,7 @@ protected:
     // Configure the lvgl display buffer with our pixel buffers
     lv_display_set_buffers(display_, vram_0_, vram_1_, vram_size_bytes(),
                            LV_DISPLAY_RENDER_MODE_PARTIAL);
-    lv_display_set_flush_cb(display_, reinterpret_cast<flush_fn>(flush_callback));
+    lv_display_set_flush_cb(display_, flush_callback);
 
     if (rotation_callback != nullptr) {
       lv_display_add_event_cb(display_, event_cb, LV_EVENT_RESOLUTION_CHANGED,
