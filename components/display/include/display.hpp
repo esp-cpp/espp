@@ -123,11 +123,9 @@ public:
    */
   struct StaticMemoryConfig {
     size_t pixel_buffer_size; /**< Size of the display buffer in pixels. */
-    bool double_buffered{
-        true}; /**< Whether to use double buffered rendering (two display buffers) or not. */
-    Pixel *vram0{nullptr}; /**< Pointer to display buffer 1, that lvgl will use. */
+    Pixel *vram0{nullptr};    /**< Pointer to display buffer 1, that lvgl will use. */
     Pixel *vram1{nullptr}; /**< Optional pointer to display buffer 2 (if double buffered), that lvgl
-                              will use. */
+                           will use. */
   };
 
   /**
