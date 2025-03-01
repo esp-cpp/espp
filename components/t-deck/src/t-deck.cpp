@@ -300,8 +300,6 @@ bool TDeck::initialize_lcd() {
       .lcd_send_lines = std::bind(&TDeck::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
       .reset_pin = lcd_reset_io,
       .data_command_pin = lcd_dc_io,
-      .backlight_pin = backlight_io,
-      .backlight_on_value = backlight_value,
       .reset_value = reset_value,
       .invert_colors = invert_colors,
       .swap_xy = swap_xy,
@@ -324,19 +322,21 @@ bool TDeck::initialize_display(size_t pixel_buffer_size, const espp::Task::BaseC
   }
   // initialize the display / lvgl
   using namespace std::chrono_literals;
-  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel>::AllocatingConfig{
-      .width = lcd_width_,
-      .height = lcd_height_,
-      .pixel_buffer_size = pixel_buffer_size,
-      .flush_callback = DisplayDriver::flush,
-      .rotation_callback = DisplayDriver::rotate,
-      .task_config = task_config,
-      .update_period = 1ms * update_period_ms,
-      .double_buffered = true,
-      .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
-      .rotation = rotation,
-      .software_rotation_enabled = true,
-  });
+  display_ = std::make_shared<Display<Pixel>>(
+      Display<Pixel>::LvglConfig{.width = lcd_width_,
+                                 .height = lcd_height_,
+                                 .flush_callback = DisplayDriver::flush,
+                                 .rotation_callback = DisplayDriver::rotate,
+                                 .rotation = rotation,
+                                 .task_config = task_config,
+                                 .update_period = 1ms * update_period_ms},
+      Display<Pixel>::LcdConfig{.backlight_pin = backlight_io,
+                                .backlight_on_value = backlight_value},
+      Display<Pixel>::DynamicMemoryConfig{
+          .pixel_buffer_size = pixel_buffer_size,
+          .double_buffered = true,
+          .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
+      });
 
   frame_buffer0_ =
       (uint8_t *)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
@@ -364,7 +364,7 @@ void IRAM_ATTR TDeck::lcd_wait_lines() {
 }
 
 void IRAM_ATTR TDeck::write_command(uint8_t command, const uint8_t *data, size_t length,
-                                uint32_t user_data) {
+                                    uint32_t user_data) {
   lcd_wait_lines();
   memset(&trans[0], 0, sizeof(spi_transaction_t));
   memset(&trans[1], 0, sizeof(spi_transaction_t));
@@ -428,14 +428,14 @@ void IRAM_ATTR TDeck::write_lcd_lines(int xs, int ys, int xe, int ye, const uint
   }
   trans[0].tx_data[0] = (uint8_t)DisplayDriver::Command::caset;
   trans[1].tx_data[0] = (xs) >> 8;
-  trans[1].tx_data[1] = (xs) & 0xff;
+  trans[1].tx_data[1] = (xs)&0xff;
   trans[1].tx_data[2] = (xe) >> 8;
-  trans[1].tx_data[3] = (xe) & 0xff;
+  trans[1].tx_data[3] = (xe)&0xff;
   trans[2].tx_data[0] = (uint8_t)DisplayDriver::Command::raset;
   trans[3].tx_data[0] = (ys) >> 8;
-  trans[3].tx_data[1] = (ys) & 0xff;
+  trans[3].tx_data[1] = (ys)&0xff;
   trans[3].tx_data[2] = (ye) >> 8;
-  trans[3].tx_data[3] = (ye) & 0xff;
+  trans[3].tx_data[3] = (ye)&0xff;
   trans[4].tx_data[0] = (uint8_t)DisplayDriver::Command::ramwr;
   trans[5].tx_buffer = data;
   trans[5].length = length * 8;
@@ -496,10 +496,10 @@ uint8_t *TDeck::frame_buffer1() const { return frame_buffer1_; }
 void TDeck::brightness(float brightness) {
   brightness = std::clamp(brightness, 0.0f, 100.0f) / 100.0f;
   // display expects a value between 0 and 1
-  DisplayDriver::set_brightness(brightness);
+  display_->set_brightness(brightness);
 }
 
-float TDeck::brightness() {
+float TDeck::brightness() const {
   // display returns a value between 0 and 1
-  return DisplayDriver::get_brightness() * 100.0f;
+  return display_->get_brightness();
 }

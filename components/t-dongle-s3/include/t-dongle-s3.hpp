@@ -130,11 +130,11 @@ public:
 
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
-  static void brightness(float brightness);
+  void brightness(float brightness);
 
   /// Get the brightness of the backlight
   /// \return The brightness of the backlight as a percentage (0 - 100)
-  static float brightness();
+  float brightness() const;
 
   /// Get the VRAM 0 pointer (DMA memory used by LVGL)
   /// \return The VRAM 0 pointer

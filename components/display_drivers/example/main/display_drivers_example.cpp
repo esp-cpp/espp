@@ -524,8 +524,6 @@ extern "C" void app_main(void) {
         .reset_pin = reset,
 #ifndef CONFIG_T_ENCODER_PRO
         .data_command_pin = dc_pin,
-        .backlight_pin = backlight,
-        .backlight_on_value = backlight_on_value,
 #endif
         .reset_value = reset_value,
         .invert_colors = invert_colors,
@@ -536,14 +534,21 @@ extern "C" void app_main(void) {
     });
     // initialize the display / lvgl
     auto display = std::make_shared<Display>(
-        Display::AllocatingConfig{.width = width,
-                                  .height = height,
-                                  .pixel_buffer_size = pixel_buffer_size,
-                                  .flush_callback = DisplayDriver::flush,
-                                  .rotation_callback = DisplayDriver::rotate,
-                                  .rotation = rotation});
+        Display::LvglConfig{.width = width,
+                            .height = height,
+                            .flush_callback = DisplayDriver::flush,
+                            .rotation_callback = DisplayDriver::rotate,
+                            .rotation = rotation},
+#ifdef CONFIG_T_ENCODER_PRO
+        Display::OledConfig{.set_brightness_callback = DisplayDriver::set_brightness,
+                            .get_brightness_callback = DisplayDriver::get_brightness},
+#else
+        Display::LcdConfig{.backlight_pin = backlight, .backlight_on_value = backlight_on_value},
+#endif
+        Display::DynamicMemoryConfig{.pixel_buffer_size = pixel_buffer_size,
+                                     .double_buffered = true});
 
-    DisplayDriver::set_brightness((uint8_t)255);
+    display->set_brightness(1.0f);
 
     // initialize the gui
     Gui gui({});

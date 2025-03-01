@@ -271,8 +271,6 @@ bool MatouchRotaryDisplay::initialize_lcd() {
           std::bind(&MatouchRotaryDisplay::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
       .reset_pin = lcd_reset_io,
       .data_command_pin = lcd_dc_io,
-      .backlight_pin = backlight_io,
-      .backlight_on_value = backlight_value,
       .reset_value = reset_value,
       .invert_colors = invert_colors,
       .swap_color_order = swap_color_order,
@@ -295,19 +293,21 @@ bool MatouchRotaryDisplay::initialize_display(size_t pixel_buffer_size,
   }
   // initialize the display / lvgl
   using namespace std::chrono_literals;
-  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel>::AllocatingConfig{
-      .width = lcd_width_,
-      .height = lcd_height_,
-      .pixel_buffer_size = pixel_buffer_size,
-      .flush_callback = DisplayDriver::flush,
-      .rotation_callback = DisplayDriver::rotate,
-      .task_config = task_config,
-      .update_period = 1ms * update_period_ms,
-      .double_buffered = true,
-      .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
-      .rotation = rotation,
-      .software_rotation_enabled = true,
-  });
+  display_ = std::make_shared<Display<Pixel>>(
+      Display<Pixel>::LvglConfig{.width = lcd_width_,
+                                 .height = lcd_height_,
+                                 .flush_callback = DisplayDriver::flush,
+                                 .rotation_callback = DisplayDriver::rotate,
+                                 .rotation = rotation,
+                                 .task_config = task_config,
+                                 .update_period = 1ms * update_period_ms},
+      Display<Pixel>::LcdConfig{.backlight_pin = backlight_io,
+                                .backlight_on_value = backlight_value},
+      Display<Pixel>::DynamicMemoryConfig{
+          .pixel_buffer_size = pixel_buffer_size,
+          .double_buffered = true,
+          .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
+      });
 
   frame_buffer0_ =
       (uint8_t *)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
@@ -336,7 +336,8 @@ void IRAM_ATTR MatouchRotaryDisplay::lcd_wait_lines() {
   }
 }
 
-void MatouchRotaryDisplay::write_command(uint8_t command, const uint8_t *data, size_t length, uint32_t user_data) {
+void MatouchRotaryDisplay::write_command(uint8_t command, const uint8_t *data, size_t length,
+                                         uint32_t user_data) {
   lcd_wait_lines();
   memset(&trans[0], 0, sizeof(spi_transaction_t));
   memset(&trans[1], 0, sizeof(spi_transaction_t));
@@ -357,7 +358,7 @@ void MatouchRotaryDisplay::write_command(uint8_t command, const uint8_t *data, s
     trans[1].flags = 0;
   }
   trans[1].user = reinterpret_cast<void *>(
-  user_data | (1 << static_cast<int>(display_drivers::Flags::DC_LEVEL_BIT)));
+      user_data | (1 << static_cast<int>(display_drivers::Flags::DC_LEVEL_BIT)));
 
   esp_err_t ret = spi_device_queue_trans(lcd_handle_, &trans[0], 10 / portTICK_PERIOD_MS);
   if (ret != ESP_OK) {
@@ -469,10 +470,10 @@ uint8_t *MatouchRotaryDisplay::frame_buffer1() const { return frame_buffer1_; }
 void MatouchRotaryDisplay::brightness(float brightness) {
   brightness = std::clamp(brightness, 0.0f, 100.0f) / 100.0f;
   // display expects a value between 0 and 1
-  DisplayDriver::set_brightness(brightness);
+  display_->set_brightness(brightness);
 }
 
-float MatouchRotaryDisplay::brightness() {
+float MatouchRotaryDisplay::brightness() const {
   // display returns a value between 0 and 1
-  return DisplayDriver::get_brightness() * 100.0f;
+  return display_->get_brightness() * 100.0f;
 }
