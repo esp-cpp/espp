@@ -19,8 +19,8 @@ menu "Display Drivers Example Configuration"
 
     config DISPLAY_QUAD_SPI
         bool "Quad SPI"
+        default y if T_ENCODER_PRO
         help
             Use a Quad SPI bus for the display
-        default y if T_ENCODER_PRO
 
 endmenu

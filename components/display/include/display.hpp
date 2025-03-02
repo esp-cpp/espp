@@ -10,7 +10,6 @@
 
 #include "base_component.hpp"
 #include "led.hpp"
-#include "logger.hpp"
 #include "task.hpp"
 
 namespace espp {
@@ -148,6 +147,7 @@ public:
       , update_period_(lvgl_conf.update_period) {
     init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
          lvgl_conf.task_config, lcd_config.backlight_pin, lcd_config.backlight_on_value);
+    set_brightness(1.0);
   }
 
   /**
@@ -176,6 +176,7 @@ public:
     created_vram_ = true;
     init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
          lvgl_conf.task_config, lcd_config.backlight_pin, lcd_config.backlight_on_value);
+    set_brightness(1.0);
   }
 
   /**
@@ -200,6 +201,7 @@ public:
       , get_brightness_(oled_config.get_brightness_callback) {
     init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
          lvgl_conf.task_config);
+    set_brightness(1.0);
   }
 
   /**
@@ -230,6 +232,7 @@ public:
     created_vram_ = true;
     init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
          lvgl_conf.task_config);
+    set_brightness(1.0);
   }
 
   /**
@@ -362,7 +365,7 @@ protected:
   void init(const flush_fn flush_callback, const rotation_fn rotation_callback,
             DisplayRotation rotation, const Task::BaseConfig &task_config,
             const gpio_num_t backlight_pin = GPIO_NUM_NC, const bool backlight_on_value = true) {
-    if (backlight_pin != -1) {
+    if (backlight_pin != GPIO_NUM_NC) {
       led_channel_configs_.push_back({.gpio = static_cast<size_t>(backlight_pin),
                                       .channel = LEDC_CHANNEL_0,
                                       .timer = LEDC_TIMER_0,
@@ -374,7 +377,7 @@ protected:
                                                       .duty_resolution = LEDC_TIMER_10_BIT}));
     } else {
       if (set_brightness_ == nullptr || get_brightness_ == nullptr) {
-        logger_.error("No backlight pin provided and no brightness control callbacks provided!");
+        logger_.warn("No backlight pin provided and no brightness control callbacks provided!");
       }
     }
 

@@ -39,9 +39,9 @@ struct Config {
                                      the display. */
   send_lines_fn lcd_send_lines;   /**< Function which the display driver uses to send bulk (color)
                      data (non-blocking) to be written to the display. */
-  gpio_num_t reset_pin;           /**< GPIO used for resetting the display. */
-  gpio_num_t data_command_pin; /**< GPIO used for indicating to the LCD whether the bits are data or
-                                  command bits. */
+  gpio_num_t reset_pin{GPIO_NUM_NC};        /**< Optional GPIO used for resetting the display. */
+  gpio_num_t data_command_pin{GPIO_NUM_NC}; /**< Optional GPIO used for indicating to the LCD
+                                  whether the bits are data or command bits. */
   bool reset_value{false}; /**< The value to set the reset pin to when resetting the display (low to
                               reset default). */
   bool invert_colors{false};    /**< Whether to invert the colors on the display. */

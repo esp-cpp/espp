@@ -267,7 +267,7 @@ public:
   static void send_commands(std::span<display_drivers::LcdInitCmd<Command>> commands) {
     using namespace std::chrono_literals;
 
-    for (auto [command, data, length, delay_ms] : commands) {
+    for (const auto &[command, data, length, delay_ms] : commands) {
       std::scoped_lock lock{spi_mutex_};
       write_command_(static_cast<uint8_t>(command), data, length, 0);
       std::this_thread::sleep_for(delay_ms * 1ms);
