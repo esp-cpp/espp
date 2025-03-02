@@ -392,7 +392,7 @@ void IRAM_ATTR TDeck::write_command(uint8_t command, const uint8_t *data, size_t
     logger_.error("Couldn't queue spi command trans for display: {} '{}'", ret,
                   esp_err_to_name(ret));
   } else {
-    ret = spi_device_queue_trans(lcd_handle_, &trans[0], 10 / portTICK_PERIOD_MS);
+    ret = spi_device_queue_trans(lcd_handle_, &trans[1], 10 / portTICK_PERIOD_MS);
     if (ret != ESP_OK) {
       logger_.error("Couldn't queue spi data trans for display: {} '{}'", ret,
                     esp_err_to_name(ret));
