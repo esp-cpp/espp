@@ -266,7 +266,7 @@ bool MatouchRotaryDisplay::initialize_lcd() {
   // initialize the controller
   using namespace std::placeholders;
   DisplayDriver::initialize(espp::display_drivers::Config{
-      .write_command = std::bind(&MatouchRotaryDisplay::write_command, this, _1, _2, _3, _4),
+      .write_command = std::bind(&MatouchRotaryDisplay::write_command, this, _1, _2, _3),
       .lcd_send_lines =
           std::bind(&MatouchRotaryDisplay::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
       .reset_pin = lcd_reset_io,

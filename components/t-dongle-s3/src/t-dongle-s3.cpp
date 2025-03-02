@@ -179,7 +179,7 @@ bool TDongleS3::initialize_lcd() {
   // initialize the controller
   using namespace std::placeholders;
   DisplayDriver::initialize(espp::display_drivers::Config{
-      .write_command = std::bind(&TDongleS3::write_command, this, _1, _2, _3, _4),
+      .write_command = std::bind(&TDongleS3::write_command, this, _1, _2, _3),
       .lcd_send_lines = std::bind(&TDongleS3::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
       .reset_pin = lcd_reset_io,
       .data_command_pin = lcd_dc_io,
