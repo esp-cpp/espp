@@ -261,7 +261,7 @@ bool SsRoundDisplay::initialize_display(size_t pixel_buffer_size,
                                  .rotation = rotation,
                                  .task_config = task_config,
                                  .update_period = 1ms * update_period_ms},
-      Display<Pixel>::LcdConfig{.backlight_pin = backlight_io,
+      Display<Pixel>::LcdConfig{.backlight_pin = pin_config_.lcd_backlight,
                                 .backlight_on_value = backlight_value},
       Display<Pixel>::DynamicMemoryConfig{
           .pixel_buffer_size = pixel_buffer_size,
