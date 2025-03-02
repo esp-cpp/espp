@@ -296,7 +296,7 @@ bool TDeck::initialize_lcd() {
   // initialize the controller
   using namespace std::placeholders;
   DisplayDriver::initialize(espp::display_drivers::Config{
-      .write_command = std::bind(&TDeck::write_command, this, _1, _2, _3, _4),
+      .write_command = std::bind(&TDeck::write_command, this, _1, _2, _3),
       .lcd_send_lines = std::bind(&TDeck::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
       .reset_pin = lcd_reset_io,
       .data_command_pin = lcd_dc_io,
@@ -363,7 +363,7 @@ void IRAM_ATTR TDeck::lcd_wait_lines() {
   }
 }
 
-void IRAM_ATTR TDeck::write_command(uint8_t command, const uint8_t *data, size_t length,
+void IRAM_ATTR TDeck::write_command(uint8_t command, std::span<const uint8_t> parameters,
                                     uint32_t user_data) {
   lcd_wait_lines();
   memset(&trans[0], 0, sizeof(spi_transaction_t));
@@ -374,14 +374,13 @@ void IRAM_ATTR TDeck::write_command(uint8_t command, const uint8_t *data, size_t
   trans[0].flags = SPI_TRANS_USE_TXDATA;
   trans[0].tx_data[0] = command;
 
-  trans[1].length = length * 8;
-  trans[1].user = reinterpret_cast<void *>(user_data);
-  if (length <= 4) {
+  trans[1].length = parameters.size() * 8;
+  if (parameters.size() <= 4) {
     // copy the data pointer to trans[0].tx_data
-    memcpy(trans[1].tx_data, data, length);
+    memcpy(trans[1].tx_data, parameters.data(), parameters.size());
     trans[1].flags = SPI_TRANS_USE_TXDATA;
-  } else {
-    trans[1].tx_buffer = data;
+  } else if (!parameters.empty()) {
+    trans[1].tx_buffer = parameters.data();
     trans[1].flags = 0;
   }
   trans[1].user = reinterpret_cast<void *>(
@@ -392,12 +391,14 @@ void IRAM_ATTR TDeck::write_command(uint8_t command, const uint8_t *data, size_t
     logger_.error("Couldn't queue spi command trans for display: {} '{}'", ret,
                   esp_err_to_name(ret));
   } else {
-    ret = spi_device_queue_trans(lcd_handle_, &trans[1], 10 / portTICK_PERIOD_MS);
-    if (ret != ESP_OK) {
-      logger_.error("Couldn't queue spi data trans for display: {} '{}'", ret,
-                    esp_err_to_name(ret));
-    } else {
-      ++num_queued_trans;
+    if (!parameters.empty()) {
+      ret = spi_device_queue_trans(lcd_handle_, &trans[1], 10 / portTICK_PERIOD_MS);
+      if (ret != ESP_OK) {
+        logger_.error("Couldn't queue spi data trans for display: {} '{}'", ret,
+                      esp_err_to_name(ret));
+      } else {
+        ++num_queued_trans;
+      }
     }
     ++num_queued_trans;
   }

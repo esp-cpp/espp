@@ -69,7 +69,7 @@ bool EspBox::initialize_lcd() {
   // initialize the controller
   using namespace std::placeholders;
   DisplayDriver::initialize(espp::display_drivers::Config{
-      .write_command = std::bind(&EspBox::write_command, this, _1, _2, _3, _4),
+      .write_command = std::bind(&EspBox::write_command, this, _1, _2, _3),
       .lcd_send_lines = std::bind(&EspBox::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
       .reset_pin = lcd_reset_io,
       .data_command_pin = lcd_dc_io,
@@ -134,8 +134,7 @@ void EspBox::lcd_wait_lines() {
   }
 }
 
-void EspBox::write_command(uint8_t command, const uint8_t *data, size_t length,
-                           uint32_t user_data) {
+void EspBox::write_command(uint8_t command, std::span<uint8_t> parameters, uint32_t user_data) {
   lcd_wait_lines();
   memset(&trans[0], 0, sizeof(spi_transaction_t));
   memset(&trans[1], 0, sizeof(spi_transaction_t));
@@ -145,14 +144,13 @@ void EspBox::write_command(uint8_t command, const uint8_t *data, size_t length,
   trans[0].flags = SPI_TRANS_USE_TXDATA;
   trans[0].tx_data[0] = command;
 
-  trans[1].length = length * 8;
-  trans[1].user = reinterpret_cast<void *>(user_data);
-  if (length <= 4) {
-    // copy the data pointer to trans[0].tx_data
-    memcpy(trans[1].tx_data, data, length);
+  trans[1].length = parameters.size() * 8;
+  if (parameters.size() <= 4) {
+    // copy the data pointer to trans[1].tx_data
+    memcpy(trans[1].tx_data, parameters.data(), parameters.size());
     trans[1].flags = SPI_TRANS_USE_TXDATA;
-  } else {
-    trans[1].tx_buffer = data;
+  } else if (!parameters.empty()) {
+    trans[1].tx_buffer = parameters.data();
     trans[1].flags = 0;
   }
   trans[1].user = reinterpret_cast<void *>(

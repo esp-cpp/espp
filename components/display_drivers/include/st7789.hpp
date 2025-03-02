@@ -146,28 +146,28 @@ public:
     }
 
     // set up the init commands
-    auto init_commands = std::to_array<display_drivers::LcdInitCmd<>>({
-        {0xCF, {0x00, 0x83, 0X30}, 3},
-        {0xED, {0x64, 0x03, 0X12, 0X81}, 4},
-        {(uint8_t)Command::pwctrl2, {0x85, 0x01, 0x79}, 3},
-        {0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}, 5},
-        {0xF7, {0x20}, 1},
-        {0xEA, {0x00, 0x00}, 2},
-        {(uint8_t)Command::lcmctrl, {0x26}, 1},
-        {(uint8_t)Command::idset, {0x11}, 1},
-        {(uint8_t)Command::vcmofset, {0x35, 0x3E}, 2},
-        {(uint8_t)Command::cabcctrl, {0xBE}, 1},
-        {(uint8_t)Command::madctl, {madctl}, 1},
-        {(uint8_t)Command::colmod, {0x55}, 1},
-        {(uint8_t)Command::invon, {0}, 0},
-        {(uint8_t)Command::rgbctrl, {0x00, 0x1B}, 2},
-        {0xF2, {0x08}, 1},
-        {(uint8_t)Command::gamset, {0x01}, 1},
-        {(uint8_t)Command::caset, {0x00, 0x00, 0x00, 0xEF}, 4},
-        {(uint8_t)Command::raset, {0x00, 0x00, 0x01, 0x3f}, 4},
-        {(uint8_t)Command::ramwr, {0}, 0},
-        {(uint8_t)Command::gctrl, {0x07}, 1},
-        {0xB6, {0x0A, 0x82, 0x27, 0x00}, 4},
+    auto init_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
+        {0xCF, {0x00, 0x83, 0X30}},
+        {0xED, {0x64, 0x03, 0X12, 0X81}},
+        {(uint8_t)Command::pwctrl2, {0x85, 0x01, 0x79}},
+        {0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}},
+        {0xF7, {0x20}},
+        {0xEA, {0x00, 0x00}},
+        {(uint8_t)Command::lcmctrl, {0x26}},
+        {(uint8_t)Command::idset, {0x11}},
+        {(uint8_t)Command::vcmofset, {0x35, 0x3E}},
+        {(uint8_t)Command::cabcctrl, {0xBE}},
+        {(uint8_t)Command::madctl, {madctl}},
+        {(uint8_t)Command::colmod, {0x55}},
+        {(uint8_t)Command::invon},
+        {(uint8_t)Command::rgbctrl, {0x00, 0x1B}},
+        {0xF2, {0x08}},
+        {(uint8_t)Command::gamset, {0x01}},
+        {(uint8_t)Command::caset, {0x00, 0x00, 0x00, 0xEF}},
+        {(uint8_t)Command::raset, {0x00, 0x00, 0x01, 0x3f}},
+        {(uint8_t)Command::ramwr},
+        {(uint8_t)Command::gctrl, {0x07}},
+        {0xB6, {0x0A, 0x82, 0x27, 0x00}},
         {(uint8_t)Command::slpout, {0}, 100},
         {(uint8_t)Command::dispon, {0}, 100},
     });
@@ -227,7 +227,7 @@ public:
       break;
     }
     std::scoped_lock lock{spi_mutex_};
-    write_command_(static_cast<uint8_t>(Command::madctl), &data, 1, 0);
+    write_command_(static_cast<uint8_t>(Command::madctl), {&data, 1}, 0);
   }
 
   /**
@@ -259,7 +259,7 @@ public:
    * @param ye Ending y coordinate of the area.
    */
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    uint8_t data[4] = {0};
+    std::array<uint8_t, 4> data;
 
     int offset_x = 0;
     int offset_y = 0;
@@ -275,14 +275,14 @@ public:
     data[1] = start_x & 0xFF;
     data[2] = (end_x >> 8) & 0xFF;
     data[3] = end_x & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::caset), data, 4, 0);
+    write_command_(static_cast<uint8_t>(Command::caset), data, 0);
 
     // Set the row (y) start / end addresses
     data[0] = (start_y >> 8) & 0xFF;
     data[1] = start_y & 0xFF;
     data[2] = (end_y >> 8) & 0xFF;
     data[3] = end_y & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::raset), data, 4, 0);
+    write_command_(static_cast<uint8_t>(Command::raset), data, 0);
   }
 
   /**
@@ -305,7 +305,7 @@ public:
     } else {
       set_drawing_area(area);
       uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      write_command_(static_cast<uint8_t>(Command::ramwr), color_map, size * 2, flags);
+      write_command_(static_cast<uint8_t>(Command::ramwr), {color_map, size * 2}, flags);
     }
   }
 
@@ -326,9 +326,9 @@ public:
     static uint16_t color_data[max_bytes_to_send];
     memset(color_data, color, max_bytes_to_send * sizeof(uint16_t));
     for (int i = 0; i < size; i += max_bytes_to_send) {
-      int num_bytes = std::min(static_cast<int>(size - i), (int)(max_bytes_to_send));
-      write_command_(static_cast<uint8_t>(Command::ramwr), reinterpret_cast<uint8_t *>(color_data),
-                     num_bytes * 2, 0);
+      size_t num_bytes = std::min(static_cast<int>(size - i), (int)(max_bytes_to_send));
+      write_command_(static_cast<uint8_t>(Command::ramwr),
+                     {reinterpret_cast<uint8_t *>(color_data), num_bytes * 2}, 0);
     }
   }
 
@@ -336,12 +336,12 @@ public:
    * @brief Send the provided commands to the display controller.
    * @param commands Array of display_drivers::LcdInitCmd structures.
    */
-  static void send_commands(std::span<display_drivers::LcdInitCmd<>> commands) {
+  static void send_commands(std::span<const display_drivers::DisplayInitCmd<>> commands) {
     using namespace std::chrono_literals;
 
-    for (const auto &[command, data, length, delay_ms] : commands) {
+    for (const auto &[command, parameters, delay_ms] : commands) {
       std::scoped_lock lock{spi_mutex_};
-      write_command_(command, data, length, 0);
+      write_command_(command, parameters, 0);
       std::this_thread::sleep_for(delay_ms * 1ms);
     }
   }

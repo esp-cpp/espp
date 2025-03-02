@@ -80,24 +80,22 @@ static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
 
 //! [polling_transmit example]
 #ifdef CONFIG_DISPLAY_QUAD_SPI
-extern "C" void IRAM_ATTR write_command(uint8_t command, const uint8_t *parameters, size_t length,
+extern "C" void IRAM_ATTR write_command(uint8_t command, std::span<const uint8_t> parameters,
                                         uint32_t user_data) {
   static spi_transaction_t t = {};
 
   t.cmd = static_cast<uint8_t>(DisplayDriver::TransferMode::SINGLE_LINE);
   t.addr = static_cast<uint32_t>(command) << 8;
   t.flags = SPI_TRANS_MULTILINE_CMD | SPI_TRANS_MULTILINE_ADDR;
-  if (length > 0) {
-    for (size_t i = 0; i < length; i++) {
-      t.tx_data[i] = parameters[i];
-    }
-    t.length = length * 8;
-    t.flags = SPI_TRANS_MULTILINE_CMD | SPI_TRANS_MULTILINE_ADDR | SPI_TRANS_USE_TXDATA;
-  } else {
-    t.tx_buffer = nullptr;
-    t.length = 0;
-  }
+  t.length = parameters.size() * 8;
   t.user = reinterpret_cast<void *>(user_data);
+
+  if (!parameters.empty() && parameters.size() <= 4) {
+    memcpy(t.tx_data, parameters.data(), parameters.size());
+    t.flags |= SPI_TRANS_USE_TXDATA;
+  } else if (!parameters.empty()) {
+    t.tx_buffer = parameters.data();
+  }
 
   auto ret = spi_device_acquire_bus(spi, portMAX_DELAY);
   if (ret != ESP_OK) {
@@ -112,24 +110,22 @@ extern "C" void IRAM_ATTR write_command(uint8_t command, const uint8_t *paramete
   spi_device_release_bus(spi);
 }
 #else
-extern "C" void IRAM_ATTR write_command(uint8_t command, const uint8_t *data, size_t length,
+extern "C" void IRAM_ATTR write_command(uint8_t command, std::span<const uint8_t> parameters,
                                         uint32_t user_data) {
-  static spi_transaction_t t;
-  memset(&t, 0, sizeof(t));
+  static spi_transaction_t t = {};
   t.length = 8;
   t.tx_buffer = &command;
   t.user = reinterpret_cast<void *>(user_data);
-  if (length > 0) {
+  if (!parameters.empty()) {
     spi_device_polling_transmit(spi, &t);
-    t.length = length * 8;
-    t.tx_buffer = data;
+    t.length = parameters.size() * 8;
+    t.tx_buffer = parameters.data();
     t.user = reinterpret_cast<void *>(
         user_data | (1 << static_cast<int>(espp::display_drivers::Flags::DC_LEVEL_BIT)));
   }
   spi_device_polling_transmit(spi, &t);
 }
 #endif
-
 //! [polling_transmit example]
 
 //! [queued_transmit example]

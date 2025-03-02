@@ -9,11 +9,10 @@ namespace display_drivers {
 /**
  * @brief Low-level callback to write bytes to the display controller.
  * @param command to write
- * @param data Pointer to array of command parameters to write.
- * @param length Number of command parameters to write.
+ * @param parameters The command parameters to write
  * @param user_data User data associated with this transfer, used for flags.
  */
-typedef std::function<void(uint8_t command, const uint8_t *parameters, size_t length,
+typedef std::function<void(uint8_t command, std::span<const uint8_t> parameters,
                            uint32_t user_data)>
     write_command_fn;
 
@@ -76,11 +75,10 @@ enum class Flags {
 /**
  * @brief Command structure for initializing the lcd
  */
-template <typename Command = uint8_t> struct LcdInitCmd {
-  Command command;       /**< Command byte */
-  uint8_t data[16] = {}; /**< Data bytes */
-  uint8_t length = 0;    /**< Number of data bytes; */
-  size_t delay_ms = 0;   /**< Delay in milliseconds after sending the command. */
+template <typename Command = uint8_t> struct DisplayInitCmd {
+  Command command;                 /**< Command byte */
+  std::vector<uint8_t> parameters; /**< Optional command parameters */
+  size_t delay_ms = 0;             /**< Delay in milliseconds after sending the command. */
 };
 
 /**

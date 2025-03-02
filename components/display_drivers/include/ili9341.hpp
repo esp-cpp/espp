@@ -78,35 +78,35 @@ public:
     }
 
     // init the display
-    auto init_commands = std::to_array<display_drivers::LcdInitCmd<>>({
-        {0xCF, {0x00, 0x83, 0X30}, 3},
-        {0xED, {0x64, 0x03, 0X12, 0X81}, 4},
-        {0xE8, {0x85, 0x01, 0x79}, 3},
-        {0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}, 5},
-        {0xF7, {0x20}, 1},
-        {0xEA, {0x00, 0x00}, 2},
-        {0xC0, {0x26}, 1},
-        {0xC1, {0x11}, 1},
-        {0xC5, {0x35, 0x3E}, 2},
-        {0xC7, {0xBE}, 1},
-        {0x36, {madctl}, 1},
-        {0x3A, {0x55}, 1},
-        {0xB1, {0x00, 0x1B}, 2},
-        {0xF2, {0x08}, 1},
-        {0x26, {0x01}, 1},
+    auto init_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
+        {0xCF, {0x00, 0x83, 0X30}},
+        {0xED, {0x64, 0x03, 0X12, 0X81}},
+        {0xE8, {0x85, 0x01, 0x79}},
+        {0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}},
+        {0xF7, {0x20}},
+        {0xEA, {0x00, 0x00}},
+        {0xC0, {0x26}},
+        {0xC1, {0x11}},
+        {0xC5, {0x35, 0x3E}},
+        {0xC7, {0xBE}},
+        {0x36, {madctl}},
+        {0x3A, {0x55}},
+        {0xB1, {0x00, 0x1B}},
+        {0xF2, {0x08}},
+        {0x26, {0x01}},
         {0xE0,
-         {0x1F, 0x1A, 0x18, 0x0A, 0x0F, 0x06, 0x45, 0X87, 0x32, 0x0A, 0x07, 0x02, 0x07, 0x05, 0x00},
-         15},
+         {0x1F, 0x1A, 0x18, 0x0A, 0x0F, 0x06, 0x45, 0X87, 0x32, 0x0A, 0x07, 0x02, 0x07, 0x05,
+          0x00}},
         {0XE1,
-         {0x00, 0x25, 0x27, 0x05, 0x10, 0x09, 0x3A, 0x78, 0x4D, 0x05, 0x18, 0x0D, 0x38, 0x3A, 0x1F},
-         15},
-        {0x2A, {0x00, 0x00, 0x00, 0xEF}, 4},
-        {0x2B, {0x00, 0x00, 0x01, 0x3f}, 4},
-        {0x2C, {0}, 0},
-        {0xB7, {0x07}, 1},
-        {0xB6, {0x0A, 0x82, 0x27, 0x00}, 4},
-        {0x11, {0}, 100},
-        {0x29, {0}, 100},
+         {0x00, 0x25, 0x27, 0x05, 0x10, 0x09, 0x3A, 0x78, 0x4D, 0x05, 0x18, 0x0D, 0x38, 0x3A,
+          0x1F}},
+        {0x2A, {0x00, 0x00, 0x00, 0xEF}},
+        {0x2B, {0x00, 0x00, 0x01, 0x3f}},
+        {0x2C},
+        {0xB7, {0x07}},
+        {0xB6, {0x0A, 0x82, 0x27, 0x00}},
+        {0x11, {}, 100},
+        {0x29, {}, 100},
     });
 
     // send the init commands
@@ -114,9 +114,9 @@ public:
 
     // configure the display color configuration
     if (config.invert_colors) {
-      write_command_(static_cast<uint8_t>(Command::invon), nullptr, 0, 0);
+      write_command_(static_cast<uint8_t>(Command::invon), {}, 0);
     } else {
-      write_command_(static_cast<uint8_t>(Command::invoff), nullptr, 0, 0);
+      write_command_(static_cast<uint8_t>(Command::invoff), {}, 0);
     }
   }
 
@@ -163,7 +163,7 @@ public:
       break;
     }
     std::scoped_lock lock{spi_mutex_};
-    write_command_(static_cast<uint8_t>(Command::madctl), &data, 1, 0);
+    write_command_(static_cast<uint8_t>(Command::madctl), {&data, 1}, 0);
   }
 
   /**
@@ -195,7 +195,7 @@ public:
    * @param ye Ending y coordinate of the area.
    */
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    uint8_t data[4] = {0};
+    std::array<uint8_t, 4> data;
 
     int offset_x = 0;
     int offset_y = 0;
@@ -211,14 +211,14 @@ public:
     data[1] = start_x & 0xFF;
     data[2] = (end_x >> 8) & 0xFF;
     data[3] = end_x & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::caset), data, 4, 0);
+    write_command_(static_cast<uint8_t>(Command::caset), data, 0);
 
     // Set the row (y) start / end addresses
     data[0] = (start_y >> 8) & 0xFF;
     data[1] = start_y & 0xFF;
     data[2] = (end_y >> 8) & 0xFF;
     data[3] = end_y & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::raset), data, 4, 0);
+    write_command_(static_cast<uint8_t>(Command::raset), data, 0);
   }
 
   /**
@@ -241,7 +241,7 @@ public:
     } else {
       set_drawing_area(area);
       uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      write_command_(static_cast<uint8_t>(Command::ramwr), color_map, size * 2, flags);
+      write_command_(static_cast<uint8_t>(Command::ramwr), {color_map, size * 2}, flags);
     }
   }
 
@@ -262,9 +262,9 @@ public:
     uint16_t color_data[max_bytes_to_send];
     memset(color_data, color, max_bytes_to_send * sizeof(uint16_t));
     for (int i = 0; i < size; i += max_bytes_to_send) {
-      int num_bytes = std::min((int)(size - i), (int)(max_bytes_to_send));
-      write_command_(static_cast<uint8_t>(Command::ramwr), reinterpret_cast<uint8_t *>(color_data),
-                     num_bytes * 2, 0);
+      size_t num_bytes = std::min((int)(size - i), (int)(max_bytes_to_send));
+      write_command_(static_cast<uint8_t>(Command::ramwr),
+                     {reinterpret_cast<uint8_t *>(color_data), num_bytes * 2}, 0);
     }
   }
 
@@ -272,12 +272,12 @@ public:
    * @brief Send the provided commands to the display controller.
    * @param commands Array of display_drivers::LcdInitCmd structures.
    */
-  static void send_commands(std::span<display_drivers::LcdInitCmd<>> commands) {
+  static void send_commands(std::span<const display_drivers::DisplayInitCmd<>> commands) {
     using namespace std::chrono_literals;
 
-    for (const auto &[command, data, length, delay_ms] : commands) {
+    for (const auto &[command, parameters, delay_ms] : commands) {
       std::scoped_lock lock{spi_mutex_};
-      write_command_(command, data, length, 0);
+      write_command_(command, parameters, 0);
       std::this_thread::sleep_for(delay_ms * 1ms);
     }
   }

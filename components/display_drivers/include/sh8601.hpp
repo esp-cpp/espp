@@ -131,19 +131,19 @@ public:
       madctl |= LCD_CMD_MV_BIT;
     }
 
-    auto init_cmds = std::to_array<display_drivers::LcdInitCmd<Command>>({
-        {Command::slpout, {0}, 0, 120},                            // sleep out
+    auto init_cmds = std::to_array<display_drivers::DisplayInitCmd<Command>>({
+        {Command::slpout, {}, 120},                                // sleep out
         {Command::noron},                                          // normal mode
         {config.invert_colors ? Command::invon : Command::invoff}, // inversion
 #ifdef CONFIG_LV_COLOR_DEPTH_16
-        {Command::colmod, {0x05}, 1}, // color mode 16 bit
+        {Command::colmod, {0x05}}, // color mode 16 bit
 #else
-        {Command::colmod, {0x07}, 1}, // color mode 24 bit
+        {Command::colmod, {0x07}}, // color mode 24 bit
 #endif
 
-        {Command::dispon},                // display on
-        {Command::wrctrldp, {0x28}, 1},   // write CTRL display
-        {Command::wrdpbr, {0xFF}, 1, 10}, // brightness normal mode   // end of commands
+        {Command::dispon},             // display on
+        {Command::wrctrldp, {0x28}},   // write CTRL display
+        {Command::wrdpbr, {0xFF}, 10}, // brightness normal mode   // end of commands
     });
 
     // send the init commands
@@ -194,7 +194,7 @@ public:
       break;
     }
     std::scoped_lock lock{spi_mutex_};
-    write_command_(static_cast<uint8_t>(Command::madctl), &data, 1, 0);
+    write_command_(static_cast<uint8_t>(Command::madctl), {&data, 1}, 0);
   }
 
   /**
@@ -237,7 +237,7 @@ public:
    * @param ye Ending y coordinate of the area.
    */
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    uint8_t data[4] = {};
+    std::array<uint8_t, 4> data;
 
     int offset_x = 0;
     int offset_y = 0;
@@ -254,22 +254,21 @@ public:
     data[2] = (end_x >> 8) & 0xFF;
     data[3] = end_x & 0xFF;
     std::scoped_lock lock{spi_mutex_};
-    write_command_(static_cast<uint8_t>(Command::caset), data, 4, 0);
+    write_command_(static_cast<uint8_t>(Command::caset), data, 0);
 
     // Set the row (y) start / end addresses
     data[0] = (start_y >> 8) & 0xFF;
     data[1] = start_y & 0xFF;
     data[2] = (end_y >> 8) & 0xFF;
     data[3] = end_y & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::paset), data, 4, 0);
+    write_command_(static_cast<uint8_t>(Command::paset), data, 0);
   }
 
-  static void send_commands(std::span<display_drivers::LcdInitCmd<Command>> commands) {
+  static void send_commands(std::span<const display_drivers::DisplayInitCmd<Command>> commands) {
     using namespace std::chrono_literals;
-
-    for (const auto &[command, data, length, delay_ms] : commands) {
+    for (const auto &[command, parameters, delay_ms] : commands) {
       std::scoped_lock lock{spi_mutex_};
-      write_command_(static_cast<uint8_t>(command), data, length, 0);
+      write_command_(static_cast<uint8_t>(command), parameters, 0);
       std::this_thread::sleep_for(delay_ms * 1ms);
     }
   }
@@ -341,7 +340,8 @@ public:
 
     // This display has a 10-bit brightness control
     uint16_t data = brightness * 1023;
-    write_command_(static_cast<uint8_t>(Command::wrdpbr), reinterpret_cast<uint8_t *>(&data), 2, 0);
+    write_command_(static_cast<uint8_t>(Command::wrdpbr), {reinterpret_cast<uint8_t *>(&data), 2},
+                   0);
   }
 
   static float get_brightness() { return brightness_; }
