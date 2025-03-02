@@ -145,8 +145,9 @@ public:
       , vram_0_(mem_conf.vram0)
       , vram_1_(mem_conf.vram1)
       , update_period_(lvgl_conf.update_period) {
-    init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
-         lvgl_conf.task_config, lcd_config.backlight_pin, lcd_config.backlight_on_value);
+    init_backlight(lcd_config.backlight_pin, lcd_config.backlight_on_value);
+    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
+             lvgl_conf.task_config);
     set_brightness(1.0);
   }
 
@@ -166,16 +167,10 @@ public:
       , height_(lvgl_conf.height)
       , display_buffer_px_size_(mem_conf.pixel_buffer_size)
       , update_period_(lvgl_conf.update_period) {
-    vram_0_ = static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), mem_conf.allocation_flags));
-    assert(vram_0_ != NULL);
-    if (mem_conf.double_buffered) {
-      vram_1_ =
-          static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), mem_conf.allocation_flags));
-      assert(vram_1_ != NULL);
-    }
-    created_vram_ = true;
-    init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
-         lvgl_conf.task_config, lcd_config.backlight_pin, lcd_config.backlight_on_value);
+    init_memory(mem_conf.double_buffered, mem_conf.allocation_flags);
+    init_backlight(lcd_config.backlight_pin, lcd_config.backlight_on_value);
+    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
+             lvgl_conf.task_config);
     set_brightness(1.0);
   }
 
@@ -199,8 +194,8 @@ public:
       , update_period_(lvgl_conf.update_period)
       , set_brightness_(oled_config.set_brightness_callback)
       , get_brightness_(oled_config.get_brightness_callback) {
-    init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
-         lvgl_conf.task_config);
+    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
+             lvgl_conf.task_config);
     set_brightness(1.0);
   }
 
@@ -222,16 +217,9 @@ public:
       , update_period_(lvgl_conf.update_period)
       , set_brightness_(oled_config.set_brightness_callback)
       , get_brightness_(oled_config.get_brightness_callback) {
-    vram_0_ = static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), mem_conf.allocation_flags));
-    assert(vram_0_ != NULL);
-    if (mem_conf.double_buffered) {
-      vram_1_ =
-          static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), mem_conf.allocation_flags));
-      assert(vram_1_ != NULL);
-    }
-    created_vram_ = true;
-    init(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
-         lvgl_conf.task_config);
+    init_memory(mem_conf.double_buffered, mem_conf.allocation_flags);
+    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
+             lvgl_conf.task_config);
     set_brightness(1.0);
   }
 
@@ -359,28 +347,9 @@ protected:
    * @param rotation_callback function to call in the event handler on rotation change.
    * @param rotation Default / initial rotation of the display.
    * @param task_config Configuration for the task that runs the lvgl tick
-   * @param backlight_pin GPIO pin for the backlight. -1 if no backlight.
-   * @param backlight_on_value Value to write to the backlight pin to turn the backlight on.
    */
-  void init(const flush_fn flush_callback, const rotation_fn rotation_callback,
-            DisplayRotation rotation, const Task::BaseConfig &task_config,
-            const gpio_num_t backlight_pin = GPIO_NUM_NC, const bool backlight_on_value = true) {
-    if (backlight_pin != GPIO_NUM_NC) {
-      led_channel_configs_.push_back({.gpio = static_cast<size_t>(backlight_pin),
-                                      .channel = LEDC_CHANNEL_0,
-                                      .timer = LEDC_TIMER_0,
-                                      .output_invert = !backlight_on_value});
-
-      backlight_ = std::make_unique<Led>((Led::Config{.timer = LEDC_TIMER_0,
-                                                      .frequency_hz = 5000,
-                                                      .channels = led_channel_configs_,
-                                                      .duty_resolution = LEDC_TIMER_10_BIT}));
-    } else {
-      if (set_brightness_ == nullptr || get_brightness_ == nullptr) {
-        logger_.warn("No backlight pin provided and no brightness control callbacks provided!");
-      }
-    }
-
+  void init_gfx(const flush_fn flush_callback, const rotation_fn rotation_callback,
+                DisplayRotation rotation, const Task::BaseConfig &task_config) {
     lv_init();
 
     display_ = lv_display_create(width_, height_);
@@ -407,6 +376,45 @@ protected:
         .task_config = task_config,
     });
     task_->start();
+  }
+
+  /**
+   * @brief Initialize the PWM controlled backlight.
+   * @param backlight_pin GPIO pin for the backlight. Does check for GPIO_NUM_NC.
+   * @param backlight_on_value Value to write to the backlight pin to turn the backlight on.
+   */
+  void init_backlight(const gpio_num_t backlight_pin, const bool backlight_on_value) {
+    if (backlight_pin != GPIO_NUM_NC) {
+      led_channel_configs_.push_back({.gpio = static_cast<size_t>(backlight_pin),
+                                      .channel = LEDC_CHANNEL_0,
+                                      .timer = LEDC_TIMER_0,
+                                      .output_invert = !backlight_on_value});
+
+      backlight_ = std::make_unique<Led>((Led::Config{.timer = LEDC_TIMER_0,
+                                                      .frequency_hz = 5000,
+                                                      .channels = led_channel_configs_,
+                                                      .duty_resolution = LEDC_TIMER_10_BIT}));
+    } else {
+      if (set_brightness_ == nullptr || get_brightness_ == nullptr) {
+        logger_.warn("No backlight pin provided and no brightness control callbacks provided!");
+      }
+    }
+  }
+
+  /**
+   * @brief Allocate the display buffer(s).
+   * @param double_buffered Whether to use double buffered rendering or not, will allocate a second
+   * buffer if true.
+   * @param allocation_flags Flags passed to heap_caps_malloc for memory allocation.
+   */
+  void init_memory(const bool double_buffered, const uint32_t allocation_flags) {
+    vram_0_ = static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), allocation_flags));
+    assert(vram_0_ != NULL && "Failed to allocate display buffer vram_0");
+    if (double_buffered) {
+      vram_1_ = static_cast<Pixel *>(heap_caps_malloc(vram_size_bytes(), allocation_flags));
+      assert(vram_1_ != NULL && "Failed to allocate display buffer vram_1");
+    }
+    created_vram_ = true;
   }
 
   /**
