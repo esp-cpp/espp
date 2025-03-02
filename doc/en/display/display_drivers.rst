@@ -19,3 +19,4 @@ API Reference
 .. include-build-file:: inc/gc9a01.inc
 .. include-build-file:: inc/ili9341.inc
 .. include-build-file:: inc/st7789.inc
+.. include-build-file:: inc/sh8601.inc
