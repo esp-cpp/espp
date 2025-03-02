@@ -200,7 +200,7 @@ public:
   /// \note This method is designed to be used by the display driver
   /// \note This method queues the data to be written to the LCD, only blocking
   ///      if there is an ongoing SPI transaction
-  void write_command(uint8_t command, std::span<uint8_t> parameters, uint32_t user_data);
+  void write_command(uint8_t command, std::span<const uint8_t> parameters, uint32_t user_data);
 
   /// Write a frame to the LCD
   /// \param x The x coordinate

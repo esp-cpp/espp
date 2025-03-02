@@ -134,7 +134,8 @@ void EspBox::lcd_wait_lines() {
   }
 }
 
-void EspBox::write_command(uint8_t command, std::span<uint8_t> parameters, uint32_t user_data) {
+void EspBox::write_command(uint8_t command, std::span<const uint8_t> parameters,
+                           uint32_t user_data) {
   lcd_wait_lines();
   memset(&trans[0], 0, sizeof(spi_transaction_t));
   memset(&trans[1], 0, sizeof(spi_transaction_t));
