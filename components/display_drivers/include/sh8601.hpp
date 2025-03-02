@@ -6,17 +6,14 @@
 
 namespace espp {
 /**
- * @brief Display driver for the GC9A01 display controller.
+ * @brief Display driver for the SH8601 display controller.
  *
- *   This code is modified from
- *   https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/GC9A01.c
+ *   This code is based off this datasheet:
+ *   https://dl.espressif.com/AE/esp-iot-solution/SH8601A0_DataSheet_Preliminary_V0.0_UCS__191107_1_.pdf
  *
- *   See also:
- *   https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_gc9a01/esp_lcd_gc9a01.c
- *
- * \section smartknob_ha_cfg SmartKnob Config
- * \snippet display_drivers_example.cpp smartknob_config example
- * \section gc9a01_ex1 Gc9a01 Example
+ * \section t_encoder_pro_cfg SmartKnob Config
+ * \snippet display_drivers_example.cpp t_encoder_pro_config example
+ * \section sh8601_ex1 Sh8601 Example
  * \snippet display_drivers_example.cpp display_drivers example
  */
 class Sh8601 {

@@ -434,6 +434,7 @@ extern "C" void app_main(void) {
   auto rotation = espp::DisplayRotation::LANDSCAPE;
   //! [smartknob_config example]
 #elif CONFIG_T_ENCODER_PRO
+  //! [t_encoder_pro_config example]
   static constexpr std::string_view dev_kit = "Lilygo T-Encoder-Pro";
   int clock_speed = 80 * 1000 * 1000;
   constexpr gpio_num_t mosi = GPIO_NUM_11;
@@ -455,6 +456,7 @@ extern "C" void app_main(void) {
   bool mirror_x = false;
   bool mirror_y = false;
   auto rotation = espp::DisplayRotation::LANDSCAPE;
+  //! [t_encoder_pro_config example]
 #endif
 
   fmt::print("Starting display_drivers example for {}\n", dev_kit);
