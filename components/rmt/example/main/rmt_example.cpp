@@ -51,7 +51,7 @@ extern "C" void app_main(void) {
         .bytes_encoder_config = espp::RmtEncoder::ws2812_10mhz_bytes_encoder_config,
         .encode = [&led_encoder_state](auto channel, auto *copy_encoder, auto *bytes_encoder,
                                        const void *data, size_t data_size,
-                                       const rmt_encode_state_t *ret_state) -> size_t {
+                                       rmt_encode_state_t *ret_state) -> size_t {
           // divide by 2 since we have both duration0 and duration1 in the reset code
           static uint16_t reset_ticks =
               WS2812_FREQ_HZ / MICROS_PER_SEC * 50 / 2; // reset code duration defaults to 50us
@@ -73,9 +73,9 @@ extern "C" void app_main(void) {
             }
             if (session_state & RMT_ENCODING_MEM_FULL) {
               state |= RMT_ENCODING_MEM_FULL;
-              goto out; // yield if there's no free space for encoding artifacts
+              break; // yield if there's no free space for encoding artifacts
             }
-            // fall-through
+            // intentional fall-through
           case 1: // send reset code
             encoded_symbols += copy_encoder->encode(copy_encoder, channel, &led_reset_code,
                                                     sizeof(led_reset_code), &session_state);
@@ -85,10 +85,9 @@ extern "C" void app_main(void) {
             }
             if (session_state & RMT_ENCODING_MEM_FULL) {
               state |= RMT_ENCODING_MEM_FULL;
-              goto out; // yield if there's no free space for encoding artifacts
+              break; // yield if there's no free space for encoding artifacts
             }
           }
-        out:
           *ret_state = static_cast<rmt_encode_state_t>(state);
           return encoded_symbols;
         },
