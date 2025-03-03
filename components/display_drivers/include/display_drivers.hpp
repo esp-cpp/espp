@@ -76,9 +76,9 @@ enum class Flags {
  * @brief Command structure for initializing the lcd
  */
 template <typename Command = uint8_t> struct DisplayInitCmd {
-  Command command;                 /**< Command byte */
-  std::vector<uint8_t> parameters; /**< Optional command parameters */
-  size_t delay_ms = 0;             /**< Delay in milliseconds after sending the command. */
+  Command command;                   /**< Command byte */
+  std::vector<uint8_t> parameters{}; /**< Optional command parameters */
+  size_t delay_ms = 0;               /**< Delay in milliseconds after sending the command. */
 };
 
 /**
