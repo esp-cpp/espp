@@ -27,6 +27,32 @@ bool EspBox::initialize_imu() {
   logger_.info("Initializing IMU with default configuration");
   imu_ = std::make_shared<Imu>(config);
 
+  // configure the dmp
+  std::error_code ec;
+  // turn on DMP
+  if (!imu_->set_dmp_power_save(false, ec)) {
+    logger_.error("Failed to set DMP power save mode: {}", ec.message());
+    return false;
+  }
+  if (!imu_->dmp_initialize(ec)) {
+    logger_.error("Failed to initialize DMP: {}", ec.message());
+    return false;
+  }
+  if (!imu_->set_dmp_odr(icm42607::DmpODR::ODR_25_HZ, ec)) {
+    logger_.error("Failed to set DMP ODR: {}", ec.message());
+    return false;
+  }
+  // set filters for the accel / gyro
+  static constexpr auto filter_bw = icm42607::SensorFilterBandwidth::BW_16_HZ;
+  if (!imu_->set_accelerometer_filter(filter_bw, ec)) {
+    logger_.error("Failed to set accel filter: {}", ec.message());
+    return false;
+  }
+  if (!imu_->set_gyroscope_filter(filter_bw, ec)) {
+    logger_.error("Failed to set gyro filter: {}", ec.message());
+    return false;
+  }
+
   return true;
 }
 

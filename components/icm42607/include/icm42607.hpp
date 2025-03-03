@@ -75,6 +75,14 @@ enum class GyroscopeODR : uint8_t {
   ODR_12_5_HZ = 12, ///< 12.5 Hz
 };
 
+/// Digital Motion Processor (DMP) output data rate
+enum class DmpODR : uint8_t {
+  ODR_25_HZ = 0,  ///< 25 Hz
+  ODR_400_HZ = 1, ///< 200 Hz
+  ODR_50_HZ = 2,  ///< 50 Hz
+  ODR_100_HZ = 3, ///< 100 Hz
+};
+
 /// Temperature DLPF Bandwidth
 enum class TemperatureFilterBandwidth : uint8_t {
   FILTER_OFF = 0, ///< Filter off
@@ -208,7 +216,10 @@ class Icm42607 : public espp::BasePeripheral<uint8_t, Interface == icm42607::Int
   using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::read_u8_from_register;
   using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::read_u16_from_register;
   using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::read_many_from_register;
+  using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::clear_bits_in_register;
   using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::set_bits_in_register;
+  using BasePeripheral<uint8_t,
+                       Interface == icm42607::Interface::I2C>::set_bits_in_register_by_mask;
   using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::read;
   using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::logger_;
 
@@ -225,14 +236,18 @@ public:
   using GyroscopeRange = icm42607::GyroscopeRange;         ///< Gyroscope range
   using GyroscopePowerMode = icm42607::GyroscopePowerMode; ///< Gyroscope power mode
   using GyroscopeODR = icm42607::GyroscopeODR;             ///< Gyroscope output data rate
-  using ImuConfig = icm42607::ImuConfig;                   ///< IMU configuration
-  using RawValue = icm42607::RawValue;                     ///< Raw IMU data
-  using Value = icm42607::Value;                           ///< IMU data
-  using ComplimentaryAngle = icm42607::ComplimentaryAngle; ///< Complimentary angle
-  using InterruptDriveMode = icm42607::InterruptDriveMode; ///< Interrupt drive mode
-  using InterruptPolarity = icm42607::InterruptPolarity;   ///< Interrupt polarity
-  using InterruptMode = icm42607::InterruptMode;           ///< Interrupt mode
-  using InterruptConfig = icm42607::InterruptConfig;       ///< Interrupt configuration
+  using DmpODR = icm42607::DmpODR;                         ///< DMP output data rate
+  using TemperatureFilterBandwidth =
+      icm42607::TemperatureFilterBandwidth;                      ///< Temperature filter bandwidth
+  using SensorFilterBandwidth = icm42607::SensorFilterBandwidth; ///< Sensor filter bandwidth
+  using ImuConfig = icm42607::ImuConfig;                         ///< IMU configuration
+  using RawValue = icm42607::RawValue;                           ///< Raw IMU data
+  using Value = icm42607::Value;                                 ///< IMU data
+  using ComplimentaryAngle = icm42607::ComplimentaryAngle;       ///< Complimentary angle
+  using InterruptDriveMode = icm42607::InterruptDriveMode;       ///< Interrupt drive mode
+  using InterruptPolarity = icm42607::InterruptPolarity;         ///< Interrupt polarity
+  using InterruptMode = icm42607::InterruptMode;                 ///< Interrupt mode
+  using InterruptConfig = icm42607::InterruptConfig;             ///< Interrupt configuration
 
   /// Configuration struct for the ICM42607
   struct Config {
@@ -328,8 +343,9 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if the power mode was set successfully, false otherwise
   bool set_accelerometer_power_mode(AccelerometerPowerMode power_mode, std::error_code &ec) {
-    set_bits_in_register(static_cast<uint8_t>(Register::PWR_MGMT0),
-                         static_cast<uint8_t>(power_mode) & 0x03, ec);
+    uint8_t bitmask = 0x03;
+    set_bits_in_register_by_mask(static_cast<uint8_t>(Register::PWR_MGMT0), bitmask,
+                                 static_cast<uint8_t>(power_mode) & bitmask, ec);
     return !ec;
   }
 
@@ -338,8 +354,69 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if the power mode was set successfully, false otherwise
   bool set_gyroscope_power_mode(GyroscopePowerMode power_mode, std::error_code &ec) {
-    set_bits_in_register(static_cast<uint8_t>(Register::PWR_MGMT0),
-                         (static_cast<uint8_t>(power_mode) & 0x03) << 2, ec);
+    uint8_t bitmask = 0x03;
+    set_bits_in_register_by_mask(static_cast<uint8_t>(Register::PWR_MGMT0), bitmask << 2,
+                                 (static_cast<uint8_t>(power_mode) & bitmask) << 2, ec);
+    return !ec;
+  }
+
+  /// Set the Accelerometer filter bandwidth
+  /// @param bw The filter bandwidth
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the filter bandwidth was set successfully, false otherwise
+  bool set_accelerometer_filter(SensorFilterBandwidth bw, std::error_code &ec) {
+    // ACCEL_FILT_BW is bits 2-0 in ACCEL_CONFIG1
+    uint8_t mask = 0x07;
+    uint8_t data = static_cast<uint8_t>(bw) & mask;
+    set_bits_in_register_by_mask(static_cast<uint8_t>(Register::ACCEL_CONFIG1), mask, data, ec);
+    return !ec;
+  }
+
+  /// Set the Gyroscope filter bandwidth
+  /// @param bw The filter bandwidth
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the filter bandwidth was set successfully, false otherwise
+  bool set_gyroscope_filter(SensorFilterBandwidth bw, std::error_code &ec) {
+    // GYRO_FILT_BW is bits 2-0 in GYRO_CONFIG1
+    uint8_t mask = 0x07;
+    uint8_t data = static_cast<uint8_t>(bw) & mask;
+    set_bits_in_register_by_mask(static_cast<uint8_t>(Register::GYRO_CONFIG1), mask, data, ec);
+    return !ec;
+  }
+
+  /// Initialize the DMP
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the DMP was initialized successfully, false otherwise
+  bool dmp_initialize(std::error_code &ec) {
+    // DMP INIT EN is bit 2 in APEX_CONFIG0
+    set_bits_in_register(static_cast<uint8_t>(Register::APEX_CONFIG0), 1 << 2, ec);
+    return !ec;
+  }
+
+  /// Set the DMP power save mode
+  /// @param enable True to enable DMP power save mode, false to disable
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the DMP power save mode was set successfully, false otherwise
+  bool set_dmp_power_save(bool enable, std::error_code &ec) {
+    // DMP POWER SAVE EN is bit 3 in APEX_CONFIG0
+    if (enable) {
+      set_bits_in_register(static_cast<uint8_t>(Register::APEX_CONFIG0), 1 << 3, ec);
+    } else {
+      clear_bits_in_register(static_cast<uint8_t>(Register::APEX_CONFIG0), 1 << 3, ec);
+    }
+    return !ec;
+  };
+
+  /// Set the DMP output data rate
+  /// @param odr The DMP output data rate
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the DMP output data rate was set successfully, false
+  ///         otherwise
+  bool set_dmp_odr(DmpODR odr, std::error_code &ec) {
+    // DMP ODR is bits 1-0 in APEX_CONFIG1
+    uint8_t mask = 0x03;
+    uint8_t data = static_cast<uint8_t>(odr) & mask;
+    set_bits_in_register_by_mask(static_cast<uint8_t>(Register::APEX_CONFIG1), mask, data, ec);
     return !ec;
   }
 
@@ -490,16 +567,42 @@ public:
     return read(static_cast<uint8_t>(Register::FIFO_DATA), data, size, ec);
   }
 
+  std::vector<uint8_t> fifo_data(std::error_code &ec) {
+    // get the count
+    uint16_t count = fifo_count(ec);
+    if (ec) {
+      return {};
+    }
+
+    // allocate a buffer
+    std::vector<uint8_t> buffer(count);
+
+    // read the data
+    size_t read_count = fifo_data(buffer.data(), count, ec);
+    if (ec) {
+      return {};
+    }
+
+    // check if the number of bytes read is the same as the count
+    if (read_count != count) {
+      ec = make_error_code(std::errc::io_error);
+      return {};
+    }
+
+    return buffer;
+  }
+
   /// Configure interrupt 1
   /// @param config The interrupt configuration
   /// @param ec The error code to set if an error occurs
   /// @return True if the interrupt was configured successfully, false otherwise
   bool configure_interrupt_1(const InterruptConfig &config, std::error_code &ec) {
     // interrupt 1 is bits 0-2 in INT_CONFIG (MODE << 2) | (POLARITY << 1) | DRIVE_MODE
+    uint8_t mask = 0b111;
     uint8_t data = (static_cast<uint8_t>(config.mode) << 2) |
                    (static_cast<uint8_t>(config.polarity) << 1) |
                    static_cast<uint8_t>(config.drive_mode);
-    set_bits_in_register(static_cast<uint8_t>(Register::INT_CONFIG), data, ec);
+    set_bits_in_register_by_mask(static_cast<uint8_t>(Register::INT_CONFIG), mask, data, ec);
     return !ec;
   }
 
@@ -509,10 +612,11 @@ public:
   /// @return True if the interrupt was configured successfully, false otherwise
   bool configure_interrupt_2(const InterruptConfig &config, std::error_code &ec) {
     // interrupt 2 is bits 3-5 in INT_CONFIG (MODE << 5) | (POLARITY << 4) | (DRIVE_MODE << 3)
+    uint8_t mask = 0b111 << 3;
     uint8_t data = (static_cast<uint8_t>(config.mode) << 5) |
                    (static_cast<uint8_t>(config.polarity) << 4) |
                    (static_cast<uint8_t>(config.drive_mode) << 3);
-    set_bits_in_register(static_cast<uint8_t>(Register::INT_CONFIG), data, ec);
+    set_bits_in_register_by_mask(static_cast<uint8_t>(Register::INT_CONFIG), mask, data, ec);
     return !ec;
   }
 
@@ -672,6 +776,58 @@ protected:
     XG_ST_DATA = 0x03, ///< X-axis gyroscope self-test data register
     YG_ST_DATA = 0x04, ///< Y-axis gyroscope self-test data register
     ZG_ST_DATA = 0x05, ///< Z-axis gyroscope self-test data register
+  };
+
+  /// @brief Structure for the ICM42607 FIFO header
+  struct FifoHeader {
+    uint8_t odr_gyro : 1;  ///< 1: ODfor gyro is different fro this packet comapred to previous gyro
+                           ///< packet
+    uint8_t odr_accel : 1; ///< 1: ODfor accel is different fro this packet comapred to previous
+                           ///< accel packet
+    uint8_t timestamp_fsync : 2; ///< 0b00: no timestamp or fsync data, 0b01: reserved, 0b10: ODR
+                                 ///< timestamp, 0b11: FSYNC timestamp
+    uint8_t extended : 1;        ///< 1: packet contains 20-bit data for gyro and/or accel
+    uint8_t has_gyro : 1;        ///< 1: Packet is sized so that it contains gyroscope data
+    uint8_t has_accel : 1;       ///< 1: Packet is sized so that it contains accelerometer data
+    uint8_t empty : 1;           ///< 1: Packet is empty, 0: packet contains sensor data
+  } __attribute__((packed));
+
+  /// @brief Struct for the FIFO Packet 1 data
+  struct FifoPacket1 {
+    FifoHeader header;             ///< FIFO header
+    std::array<uint16_t, 3> accel; ///< Accelerometer data (x,y,z)
+    uint8_t temperature;           ///< Temperature data
+  };
+
+  /// @brief Struct for the FIFO Packet 2 data
+  struct FifoPacket2 {
+    FifoHeader header;            ///< FIFO header
+    std::array<uint16_t, 3> gyro; ///< Gyroscope data (x,y,z)
+    uint8_t temperature;          ///< Temperature data
+  };
+
+  /// @brief Struct for the FIFO Packet 3 data
+  struct FifoPacket3 {
+    FifoHeader header;             ///< FIFO header
+    std::array<uint16_t, 3> accel; ///< Accelerometer data (x,y,z)
+    std::array<uint16_t, 3> gyro;  ///< Gyroscope data (x,y,z)
+    uint8_t temperature;           ///< Temperature data
+    uint16_t timestamp_us;         ///< Timestamp in microseconds
+  };
+
+  /// @brief Struct for the FIFO Packet 4 data
+  struct FifoPacket4 {
+    FifoHeader header;             ///< FIFO header
+    std::array<uint16_t, 3> accel; ///< Accelerometer data (x,y,z) bits [19:4]
+    std::array<uint16_t, 3> gyro;  ///< Gyroscope data (x,y,z) bits [19:4]
+    uint16_t temperature;          ///< Temperature data
+    uint16_t timestamp_us;         ///< Timestamp in microseconds
+    uint8_t
+        x_extension; ///< X-axis extension data (accelx [3:0] high nibble + gyrox [3:0] low nibble)
+    uint8_t
+        y_extension; ///< Y-axis extension data (accely [3:0] high nibble + gyroy [3:0] low nibble)
+    uint8_t
+        z_extension; ///< Z-axis extension data (accelz [3:0] high nibble + gyroz [3:0] low nibble)
   };
 
   static float accelerometer_range_to_sensitivty(AccelerometerRange range) {
