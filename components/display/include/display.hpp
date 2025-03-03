@@ -44,13 +44,18 @@ public:
   /**
    * @brief Callback for lvgl to flush segments of pixel data from the pixel
    *        buffers to the display.
+   * @param disp The display to flush data to.
+   * @param area The area of the display to flush data to.
+   * @param color_map The color data to flush to the display.
    */
-  using flush_fn = lv_display_flush_cb_t;
+  typedef std::function<void(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map)>
+      flush_fn;
 
   /**
    * @brief Callback for lvgl event handler to reconfigure the display hardware.
+   * @param rotation The new rotation setting for the display.
    */
-  typedef void (*rotation_fn)(const DisplayRotation &rotation);
+  typedef std::function<void(const DisplayRotation &rotation)> rotation_fn;
 
   /**
    * @brief Callback for setting the display brightness.
@@ -325,19 +330,60 @@ public:
    */
   size_t vram_size_bytes() const { return display_buffer_px_size_ * sizeof(Pixel); }
 
+  /**
+   * @brief Callback for the LVGL event handler to call when the display
+   *        rotation changes.
+   * @param rotation The new rotation setting for the display.
+   */
+  void rotate(DisplayRotation rotation) {
+    if (rotation_callback_ != nullptr) {
+      rotation_callback_(rotation);
+    }
+  }
+
+  /**
+   * @brief Callback for the LVGL flush function to call when it needs to flush
+   *        data to the display.
+   * @param disp The display to flush data to.
+   * @param area The area of the display to flush data to.
+   * @param color_map The color data to flush to the display.
+   */
+  void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
+    if (flush_callback_ != nullptr) {
+      flush_callback_(disp, area, color_map);
+    }
+  }
+
 protected:
   /**
    * @brief LVGL event handler.
+   * @param event The event to handle.
    */
   static void event_cb(lv_event_t *event) {
     if (lv_event_get_code(event) == LV_EVENT_RESOLUTION_CHANGED) {
-      auto rotation = lv_display_get_rotation(lv_display_get_default());
-      auto rotation_callback = reinterpret_cast<rotation_fn>(lv_event_get_user_data(event));
-      if (rotation_callback != nullptr) {
-        rotation_callback(static_cast<DisplayRotation>(rotation));
+      auto rotation =
+          static_cast<DisplayRotation>(lv_display_get_rotation(lv_display_get_default()));
+      auto display = static_cast<Display *>(lv_display_get_user_data(lv_disp_get_default()));
+      if (display != nullptr) {
+        display->rotate(rotation);
       }
     }
   };
+
+  /**
+   * @brief Callback for the LVGL flush function to call when it needs to flush
+   *        data to the display.
+   * @param disp The display to flush data to.
+   * @param area The area of the display to flush data to.
+   * @param color_map The color data to flush to the display.
+   */
+  static void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
+    // use the display to call the registered flush callback appropriately
+    auto display = static_cast<Display *>(lv_display_get_user_data(disp));
+    if (display != nullptr) {
+      display->flush(disp, area, color_map);
+    }
+  }
 
   /**
    * @brief Initialize the lvgl subsystem, display buffer configuration, and
@@ -352,16 +398,22 @@ protected:
                 DisplayRotation rotation, const Task::BaseConfig &task_config) {
     lv_init();
 
+    // save the callbacks
+    flush_callback_ = flush_callback;
+    rotation_callback_ = rotation_callback;
+
     display_ = lv_display_create(width_, height_);
+    // store a pointer to this object in the display user data, so that we can
+    // access it in the flush callback
+    lv_display_set_user_data(display_, this);
 
     // Configure the lvgl display buffer with our pixel buffers
     lv_display_set_buffers(display_, vram_0_, vram_1_, vram_size_bytes(),
                            LV_DISPLAY_RENDER_MODE_PARTIAL);
-    lv_display_set_flush_cb(display_, flush_callback);
+    lv_display_set_flush_cb(display_, Display::flush_cb);
 
     if (rotation_callback != nullptr) {
-      lv_display_add_event_cb(display_, event_cb, LV_EVENT_RESOLUTION_CHANGED,
-                              reinterpret_cast<void *>(rotation_callback));
+      lv_display_add_event_cb(display_, event_cb, LV_EVENT_RESOLUTION_CHANGED, this);
     }
 
     lv_display_set_rotation(display_, static_cast<lv_display_rotation_t>(rotation));
@@ -449,6 +501,8 @@ protected:
   std::unique_ptr<Task> task_;
   size_t width_;
   size_t height_;
+  flush_fn flush_callback_;
+  rotation_fn rotation_callback_;
   size_t display_buffer_px_size_;
   Pixel *vram_0_{nullptr};
   Pixel *vram_1_{nullptr};
