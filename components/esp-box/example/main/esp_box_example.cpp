@@ -80,6 +80,12 @@ extern "C" void app_main(void) {
     return;
   }
 
+  // initialize the IMU
+  if (!box.initialize_imu()) {
+    logger.error("Failed to initialize IMU!");
+    return;
+  }
+
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
   lv_obj_set_size(bg, box.lcd_width(), box.lcd_height());
@@ -142,6 +148,60 @@ extern "C" void app_main(void) {
 
   // set the display brightness to be 75%
   box.brightness(75.0f);
+
+  // make a task to read out the IMU data and print it to console
+  espp::Task imu_task(
+      {.callback = [&label](std::mutex &m, std::condition_variable &cv) -> bool {
+         // sleep first in case we don't get IMU data and need to exit early
+         {
+           std::unique_lock<std::mutex> lock(m);
+           cv.wait_for(lock, 100ms);
+         }
+         static auto &box = espp::EspBox::get();
+         static auto imu = box.imu();
+
+         auto now = std::chrono::steady_clock::now();
+         static auto t0 = now;
+         auto t1 = now;
+         float dt = std::chrono::duration<float>(t1 - t0).count();
+         t0 = t1;
+
+         std::error_code ec;
+         // get accel
+         auto accel = imu->get_accelerometer(ec);
+         if (ec) {
+           return false;
+         }
+         auto gyro = imu->get_gyroscope(ec);
+         if (ec) {
+           return false;
+         }
+         auto temp = imu->get_temperature(ec);
+         if (ec) {
+           return false;
+         }
+
+         static espp::icm42607::ComplimentaryAngle angle{};
+         angle = imu->complimentary_filter(dt, angle, accel, gyro);
+
+         std::string text = "Touch the screen!\nPress the home button to clear circles.\n";
+         text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
+         text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", gyro.x, gyro.y, gyro.z);
+         text += fmt::format("Angle: {:03.2f} {:03.2f}\n", angle.roll, angle.pitch);
+         text += fmt::format("Temp: {:02.1f} C\n", temp);
+
+         std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+         lv_label_set_text(label, text.c_str());
+
+         return false;
+       },
+       .task_config = {
+           .name = "IMU",
+           .stack_size_bytes = 6 * 1024,
+           .priority = 10,
+           .core_id = 0,
+       }});
+  imu_task.start();
 
   // loop forever
   while (true) {
