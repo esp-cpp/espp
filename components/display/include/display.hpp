@@ -399,11 +399,19 @@ protected:
    */
   void init_gfx(const flush_fn flush_callback, const rotation_fn rotation_callback,
                 DisplayRotation rotation, const Task::BaseConfig &task_config) {
-    lv_init();
-
     // save the callbacks
+    if (flush_callback == nullptr) {
+      logger_.error("No flush callback provided, cannot initialize display!");
+      assert(false); // cannot continue without a flush callback
+    }
     flush_callback_ = flush_callback;
+    if (rotation_callback == nullptr) {
+      logger_.warn("No rotation callback provided, resolution changed event will not automatically "
+                   "update the display hardware rotation.");
+    }
     rotation_callback_ = rotation_callback;
+
+    lv_init();
 
     display_ = lv_display_create(width_, height_);
     // store a pointer to this object in the display user data, so that we can
@@ -415,9 +423,7 @@ protected:
                            LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_flush_cb(display_, Display::flush_cb);
 
-    if (rotation_callback != nullptr) {
-      lv_display_add_event_cb(display_, event_cb, LV_EVENT_RESOLUTION_CHANGED, this);
-    }
+    lv_display_add_event_cb(display_, event_cb, LV_EVENT_RESOLUTION_CHANGED, this);
 
     lv_display_set_rotation(display_, static_cast<lv_display_rotation_t>(rotation));
 
@@ -504,8 +510,8 @@ protected:
   std::unique_ptr<Task> task_;
   size_t width_;
   size_t height_;
-  flush_fn flush_callback_;
-  rotation_fn rotation_callback_;
+  flush_fn flush_callback_{nullptr};
+  rotation_fn rotation_callback_{nullptr};
   size_t display_buffer_px_size_;
   Pixel *vram_0_{nullptr};
   Pixel *vram_1_{nullptr};
