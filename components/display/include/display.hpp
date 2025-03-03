@@ -331,19 +331,22 @@ public:
   size_t vram_size_bytes() const { return display_buffer_px_size_ * sizeof(Pixel); }
 
   /**
-   * @brief Callback for the LVGL event handler to call when the display
-   *        rotation changes.
+   * @brief Set the rotation of the display.
+   * @note This function is called by the event handler when the display
+   *       resolution changes, so that the display hardware can be reconfigured
+   *       to match the new software rotation setting.
    * @param rotation The new rotation setting for the display.
    */
-  void rotate(DisplayRotation rotation) {
+  void set_rotation(DisplayRotation rotation) {
     if (rotation_callback_ != nullptr) {
       rotation_callback_(rotation);
     }
   }
 
   /**
-   * @brief Callback for the LVGL flush function to call when it needs to flush
-   *        data to the display.
+   * @brief Flush the data to the display.
+   * @warning This function is called by the LVGL flush callback, so it is
+   *          recommended to not call this function directly.
    * @param disp The display to flush data to.
    * @param area The area of the display to flush data to.
    * @param color_map The color data to flush to the display.
@@ -365,7 +368,7 @@ protected:
           static_cast<DisplayRotation>(lv_display_get_rotation(lv_display_get_default()));
       auto display = static_cast<Display *>(lv_display_get_user_data(lv_disp_get_default()));
       if (display != nullptr) {
-        display->rotate(rotation);
+        display->set_rotation(rotation);
       }
     }
   };
