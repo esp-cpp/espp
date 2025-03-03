@@ -149,6 +149,7 @@ static void on_rotate_pressed(lv_event_t *event) {
   lv_disp_set_rotation(disp, rotation);
 }
 
+// cppcheck-suppress constParameterCallback
 static void on_clear_pressed(lv_event_t *event) { clear_circles(); }
 
 static void draw_circle(int x0, int y0, int radius) {

@@ -84,7 +84,7 @@ public:
    * @brief Get the input history.
    * @return The input that has been entered so far, as History.
    */
-  History get_history() const { return input_history_; }
+  const History &get_history() const { return input_history_; }
 
   /**
    * @brief Replace any existing input history with \p history.

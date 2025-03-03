@@ -56,6 +56,7 @@ static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_
 // (DC_LEVEL_BIT).
 // Except for the T-Encoder Pro, which does not have a D/C line.
 #ifndef CONFIG_T_ENCODER_PRO
+// cppcheck-suppress constParameterCallback
 static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t) {
   uint32_t user_flags = (uint32_t)(t->user);
   bool dc_level = user_flags & DC_LEVEL_BIT;
@@ -68,6 +69,8 @@ static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t) {
 // This function is called (in irq context!) just after a transmission ends. It
 // will indicate to lvgl that the next flush is ready to be done if the
 // FLUSH_BIT is set.
+//
+// cppcheck-suppress constParameterCallback
 static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
   uint16_t user_flags = (uint32_t)(t->user);
   bool should_flush = user_flags & FLUSH_BIT;

@@ -25,7 +25,6 @@ extern "C" void app_main(void) {
                            .read = std::bind(&espp::I2c::read, &i2c, std::placeholders::_1,
                                              std::placeholders::_2, std::placeholders::_3),
                            .log_level = espp::Logger::Verbosity::WARN});
-  std::error_code ec;
 
   // and finally, make the task to periodically poll the max1704x and print
   // the state. NOTE: the Max1704x does not internally manage its own state

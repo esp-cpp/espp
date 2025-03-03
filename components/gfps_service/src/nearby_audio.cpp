@@ -63,7 +63,7 @@ bool nearby_platform_AutoReconnected() {
 // For example, if there are 5 bonded devices, then |length| should be set to 1.
 // Call |nearby_platform_AudioCallbacks::on_state_change| when this state
 // changes.
-void nearby_platform_GetConnectionBitmap(uint8_t *bitmap, size_t *length) {
+void nearby_platform_GetConnectionBitmap(uint8_t *, size_t *) {
   // TODO: implement
 }
 

@@ -15,6 +15,8 @@ static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_
 // This function is called (in irq context!) just before a transmission starts.
 // It will set the D/C line to the value indicated in the user field
 // (DC_LEVEL_BIT).
+//
+// cppcheck-suppress constParameterCallback
 static void lcd_spi_pre_transfer_callback(spi_transaction_t *t) {
   static auto lcd_dc_io = EspBox::get_lcd_dc_gpio();
   uint32_t user_flags = (uint32_t)(t->user);
@@ -25,6 +27,8 @@ static void lcd_spi_pre_transfer_callback(spi_transaction_t *t) {
 // This function is called (in irq context!) just after a transmission ends. It
 // will indicate to lvgl that the next flush is ready to be done if the
 // FLUSH_BIT is set.
+//
+// cppcheck-suppress constParameterCallback
 static void lcd_spi_post_transfer_callback(spi_transaction_t *t) {
   uint16_t user_flags = (uint32_t)(t->user);
   bool should_flush = user_flags & FLUSH_BIT;

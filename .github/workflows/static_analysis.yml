@@ -14,12 +14,12 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
 
     - name: Run static analysis
       uses: esp-cpp/StaticAnalysis@master
       with:
+        language: c++
+
         # Do not build the project and do not use cmake to generate compile_commands.json
         use_cmake: false
 
@@ -27,4 +27,4 @@ jobs:
         esp_idf_version: release/v5.4
 
         # (Optional) cppcheck args
-        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/external -i$GITHUB_WORKSPACE/components/binary-log/detail -i$GITHUB_WORKSPACE/components/esp_littlefs -i$GITHUB_WORKSPACE/components/esp-nimble-cpp -i$GITHUB_WORKSPACE/components/hid-rp/include/hid -i$GITHUB_WORKSPACE/components/lvgl -i$GITHUB_WORKSPACE/components/esp-dsp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
+        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/state_machine/example/main  -i$GITHUB_WORKSPACE/components/hid-rp/include/hid --check-level=exhaustive --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
