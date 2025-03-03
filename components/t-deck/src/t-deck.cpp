@@ -296,7 +296,7 @@ bool TDeck::initialize_lcd() {
   // initialize the controller
   using namespace std::placeholders;
   DisplayDriver::initialize(espp::display_drivers::Config{
-      .lcd_write = std::bind(&TDeck::write_lcd, this, _1, _2, _3),
+      .write_command = std::bind(&TDeck::write_command, this, _1, _2, _3),
       .lcd_send_lines = std::bind(&TDeck::write_lcd_lines, this, _1, _2, _3, _4, _5, _6),
       .reset_pin = lcd_reset_io,
       .data_command_pin = lcd_dc_io,
@@ -322,21 +322,21 @@ bool TDeck::initialize_display(size_t pixel_buffer_size, const espp::Task::BaseC
   }
   // initialize the display / lvgl
   using namespace std::chrono_literals;
-  display_ = std::make_shared<espp::Display<Pixel>>(espp::Display<Pixel>::AllocatingConfig{
-      .width = lcd_width_,
-      .height = lcd_height_,
-      .pixel_buffer_size = pixel_buffer_size,
-      .flush_callback = DisplayDriver::flush,
-      .rotation_callback = DisplayDriver::rotate,
-      .backlight_pin = backlight_io,
-      .backlight_on_value = backlight_value,
-      .task_config = task_config,
-      .update_period = 1ms * update_period_ms,
-      .double_buffered = true,
-      .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
-      .rotation = rotation,
-      .software_rotation_enabled = true,
-  });
+  display_ = std::make_shared<Display<Pixel>>(
+      Display<Pixel>::LvglConfig{.width = lcd_width_,
+                                 .height = lcd_height_,
+                                 .flush_callback = DisplayDriver::flush,
+                                 .rotation_callback = DisplayDriver::rotate,
+                                 .rotation = rotation,
+                                 .task_config = task_config,
+                                 .update_period = 1ms * update_period_ms},
+      Display<Pixel>::LcdConfig{.backlight_pin = backlight_io,
+                                .backlight_on_value = backlight_value},
+      Display<Pixel>::DynamicMemoryConfig{
+          .pixel_buffer_size = pixel_buffer_size,
+          .double_buffered = true,
+          .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
+      });
 
   frame_buffer0_ =
       (uint8_t *)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
@@ -363,29 +363,44 @@ void IRAM_ATTR TDeck::lcd_wait_lines() {
   }
 }
 
-void IRAM_ATTR TDeck::write_lcd(const uint8_t *data, size_t length, uint32_t user_data) {
-  if (length == 0) {
-    return;
-  }
+void IRAM_ATTR TDeck::write_command(uint8_t command, std::span<const uint8_t> parameters,
+                                    uint32_t user_data) {
   lcd_wait_lines();
-  esp_err_t ret;
   memset(&trans[0], 0, sizeof(spi_transaction_t));
-  trans[0].length = length * 8;
-  trans[0].user = (void *)user_data;
-  // look at the length of the data and use tx_data if it is <= 32 bits
-  if (length <= 4) {
+  memset(&trans[1], 0, sizeof(spi_transaction_t));
+
+  trans[0].length = 8;
+  trans[0].user = reinterpret_cast<void *>(user_data);
+  trans[0].flags = SPI_TRANS_USE_TXDATA;
+  trans[0].tx_data[0] = command;
+
+  trans[1].length = parameters.size() * 8;
+  if (parameters.size() <= 4) {
     // copy the data pointer to trans[0].tx_data
-    memcpy(trans[0].tx_data, data, length);
-    trans[0].flags = SPI_TRANS_USE_TXDATA;
-  } else {
-    trans[0].tx_buffer = data;
-    trans[0].flags = 0;
+    memcpy(trans[1].tx_data, parameters.data(), parameters.size());
+    trans[1].flags = SPI_TRANS_USE_TXDATA;
+  } else if (!parameters.empty()) {
+    trans[1].tx_buffer = parameters.data();
+    trans[1].flags = 0;
   }
-  ret = spi_device_queue_trans(lcd_handle_, &trans[0], 10 / portTICK_PERIOD_MS);
+  trans[1].user = reinterpret_cast<void *>(
+      user_data | (1 << static_cast<int>(display_drivers::Flags::DC_LEVEL_BIT)));
+
+  esp_err_t ret = spi_device_queue_trans(lcd_handle_, &trans[0], 10 / portTICK_PERIOD_MS);
   if (ret != ESP_OK) {
-    logger_.error("Couldn't queue spi trans for display: {} '{}'", ret, esp_err_to_name(ret));
+    logger_.error("Couldn't queue spi command trans for display: {} '{}'", ret,
+                  esp_err_to_name(ret));
   } else {
-    num_queued_trans++;
+    if (!parameters.empty()) {
+      ret = spi_device_queue_trans(lcd_handle_, &trans[1], 10 / portTICK_PERIOD_MS);
+      if (ret != ESP_OK) {
+        logger_.error("Couldn't queue spi data trans for display: {} '{}'", ret,
+                      esp_err_to_name(ret));
+      } else {
+        ++num_queued_trans;
+      }
+    }
+    ++num_queued_trans;
   }
 }
 
@@ -487,5 +502,5 @@ void TDeck::brightness(float brightness) {
 
 float TDeck::brightness() const {
   // display returns a value between 0 and 1
-  return display_->get_brightness() * 100.0f;
+  return display_->get_brightness();
 }

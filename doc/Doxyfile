@@ -134,6 +134,7 @@ INPUT += $(PROJECT_PATH)/components/display/include/display.hpp
 INPUT += $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp
 INPUT += $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp
 INPUT += $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp
+INPUT += $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp
 INPUT += $(PROJECT_PATH)/components/drv2605/include/drv2605.hpp
 INPUT += $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp
 INPUT += $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp

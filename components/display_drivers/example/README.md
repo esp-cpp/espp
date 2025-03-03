@@ -4,6 +4,14 @@ This example is designed to show how the `display_drivers` component can be used
 to drive various different displays with LVGL and a simple GUI (that is
 contained within the example: `main/gui.hpp`).
 
+## Demo
+
+Below can be seen what the demo looks like on the T-Encoder-Pro devkit:
+
+![SH8601](https://github.com/user-attachments/assets/2bca4a03-3777-4e49-a467-29fa50ca0202)
+
+https://github.com/user-attachments/assets/fef57074-bab7-4fdf-a25e-f4590773c926
+
 ## How to use example
 
 ### Hardware Required
@@ -47,3 +55,4 @@ The example has the following functionality:
 * `lcd_send_lines` and `lcd_wait_lines` for queued (non-blocking) transmit example
 * `Gui` class (contained in `main/gui.hpp`) which encapsulates some very basic
   LVGL components into an object that manages gui update task and synchronization.
+

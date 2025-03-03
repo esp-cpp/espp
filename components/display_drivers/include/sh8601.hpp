@@ -6,21 +6,25 @@
 
 namespace espp {
 /**
- * @brief Display driver for the GC9A01 display controller.
+ * @brief Display driver for the SH8601 display controller.
  *
- *   This code is modified from
- *   https://github.com/lvgl/lvgl_esp32_drivers/blob/master/lvgl_tft/GC9A01.c
+ *   This code is based off this datasheet:
+ *   https://dl.espressif.com/AE/esp-iot-solution/SH8601A0_DataSheet_Preliminary_V0.0_UCS__191107_1_.pdf
  *
- *   See also:
- *   https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_gc9a01/esp_lcd_gc9a01.c
- *
- * \section smartknob_ha_cfg SmartKnob Config
- * \snippet display_drivers_example.cpp smartknob_config example
- * \section gc9a01_ex1 Gc9a01 Example
+ * \section t_encoder_pro_cfg SmartKnob Config
+ * \snippet display_drivers_example.cpp t_encoder_pro_config example
+ * \section sh8601_ex1 Sh8601 Example
  * \snippet display_drivers_example.cpp display_drivers example
  */
-class Gc9a01 {
+class Sh8601 {
 public:
+  // Initial bytes for all transactions, indicating whether the data is being sent over just MOSI or
+  // all QSPI lines.
+  enum class TransferMode : uint8_t {
+    SINGLE_LINE = 0x02,
+    MULTI_LINE = 0x32,
+  };
+
   enum class Command : uint8_t {
     nop = 0x00,     // no operation
     swreset = 0x01, // software reset
@@ -39,7 +43,7 @@ public:
     dispon = 0x29,  // display on
 
     caset = 0x2a, // column address set
-    raset = 0x2b, // row address set
+    paset = 0x2b, // page address set
     ramwr = 0x2c, // ram write
 
     ptlar = 0x30,   // partial area
@@ -124,70 +128,23 @@ public:
       madctl |= LCD_CMD_MV_BIT;
     }
 
-    // init the display
-    auto init_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
-        {0xEF},
-        {0xEB, {0x14}},
-        {0xFE},
-        {0xEF},
-        {0xEB, {0x14}},
-        {0x84, {0x40}},
-        {0x85, {0xFF}},
-        {0x86, {0xFF}},
-        {0x87, {0xFF}},
-        {0x88, {0x0A}},
-        {0x89, {0x21}},
-        {0x8A, {0x00}},
-        {0x8B, {0x80}},
-        {0x8C, {0x01}},
-        {0x8D, {0x01}},
-        {0x8E, {0xFF}},
-        {0x8F, {0xFF}},
-        {0xB6, {0x00, 0x20}},
-        // call orientation
-        {0x36, {madctl}},
-        {0x3A, {0x05}},
-        {0x90, {0x08, 0x08, 0X08, 0X08}},
-        {0xBD, {0x06}},
-        {0xBC, {0x00}},
-        {0xFF, {0x60, 0x01, 0x04}},
-        {0xC3, {0x13}},
-        {0xC4, {0x13}},
-        {0xC9, {0x22}},
-        {0xBE, {0x11}},
-        {0xE1, {0x10, 0x0E}},
-        {0xDF, {0x21, 0x0C, 0x02}},
-        {0xF0, {0x45, 0x09, 0x08, 0x08, 0x26, 0x2A}},
-        {0xF1, {0x43, 0x70, 0x72, 0x36, 0x37, 0x6F}},
-        {0xF2, {0x45, 0x09, 0x08, 0x08, 0x26, 0x2A}},
-        {0xF3, {0x43, 0x70, 0x72, 0x36, 0x37, 0x6F}},
-        {0xED, {0x1B, 0x0B}},
-        {0xAE, {0x77}},
-        {0xCD, {0x63}},
-        {0x70, {0x07, 0x07, 0x04, 0x0E, 0x0F, 0x09, 0x07, 0X08, 0x03}},
-        {0xE8, {0x34}},
-        {0x62, {0x18, 0x0D, 0x71, 0xED, 0x70, 0x70, 0x18, 0X0F, 0x71, 0xEF, 0x70, 0x70}},
-        {0x63, {0x18, 0x11, 0x71, 0xF1, 0x70, 0x70, 0x18, 0X13, 0x71, 0xF3, 0x70, 0x70}},
-        {0x64, {0x28, 0x29, 0xF1, 0x01, 0xF1, 0x00, 0x07}},
-        {0x66, {0x3C, 0x00, 0xCD, 0x67, 0x45, 0x45, 0x10, 0X00, 0x00, 0x00}},
-        {0x67, {0x00, 0x3C, 0x00, 0x00, 0x00, 0x01, 0x54, 0X10, 0x32, 0x98}},
-        {0x74, {0x10, 0x85, 0x80, 0x00, 0x00, 0x4E, 0x00}},
-        {0x98, {0x3E, 0x07}},
-        {0x35},
-        {0x21},
-        {0x11, {}, 100},
-        {0x29, {}, 100},
+    auto init_cmds = std::to_array<display_drivers::DisplayInitCmd<Command>>({
+        {Command::slpout, {}, 120},                                // sleep out
+        {Command::noron},                                          // normal mode
+        {config.invert_colors ? Command::invon : Command::invoff}, // inversion
+#ifdef CONFIG_LV_COLOR_DEPTH_16
+        {Command::colmod, {0x05}}, // color mode 16 bit
+#else
+        {Command::colmod, {0x07}}, // color mode 24 bit
+#endif
+
+        {Command::dispon},             // display on
+        {Command::wrctrldp, {0x28}},   // write CTRL display
+        {Command::wrdpbr, {0xFF}, 10}, // brightness normal mode   // end of commands
     });
 
     // send the init commands
-    send_commands(init_commands);
-
-    // configure the display color configuration
-    if (config.invert_colors) {
-      write_command_(static_cast<uint8_t>(Command::invon), {}, 0);
-    } else {
-      write_command_(static_cast<uint8_t>(Command::invoff), {}, 0);
-    }
+    send_commands(init_cmds);
   }
 
   /**
@@ -208,6 +165,7 @@ public:
     if (swap_xy_) {
       data |= LCD_CMD_MV_BIT;
     }
+
     switch (rotation) {
     case DisplayRotation::LANDSCAPE:
       break;
@@ -243,13 +201,24 @@ public:
    * @param *color_map Pointer to array of colors to flush to the display.
    */
   static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map) {
-    fill(disp, area, color_map, (1 << (int)display_drivers::Flags::FLUSH_BIT));
+    // No need to swap the colors when in RGB888 mode
+#if LV_COLOR_DEPTH == 16
+    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
+#endif
+
+    int offset_x = 0;
+    int offset_y = 0;
+    get_offset_rotated(offset_x, offset_y);
+
+    lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
+                    area->y2 + offset_y, color_map,
+                    (1 << static_cast<int>(display_drivers::Flags::FLUSH_BIT)));
   }
 
   /**
    * @brief Set the drawing area for the display, resets the cursor to the
    *        starting position of the area.
-   * @param *area Pointer to lv_area_t strcuture with start/end x/y
+   * @param area Pointer to lv_area_t strcuture with start/end x/y
    *              coordinates.
    */
   static void set_drawing_area(const lv_area_t *area) {
@@ -271,16 +240,17 @@ public:
     int offset_y = 0;
     get_offset_rotated(offset_x, offset_y);
 
-    uint16_t start_x = xs + offset_x;
-    uint16_t end_x = xe + offset_x;
-    uint16_t start_y = ys + offset_y;
-    uint16_t end_y = ye + offset_y;
+    const uint16_t start_x = xs + offset_x;
+    const uint16_t end_x = xe + offset_x;
+    const uint16_t start_y = ys + offset_y;
+    const uint16_t end_y = ye + offset_y;
 
     // Set the column (x) start / end addresses
     data[0] = (start_x >> 8) & 0xFF;
     data[1] = start_x & 0xFF;
     data[2] = (end_x >> 8) & 0xFF;
     data[3] = end_x & 0xFF;
+    std::scoped_lock lock{spi_mutex_};
     write_command_(static_cast<uint8_t>(Command::caset), data, 0);
 
     // Set the row (y) start / end addresses
@@ -288,66 +258,14 @@ public:
     data[1] = start_y & 0xFF;
     data[2] = (end_y >> 8) & 0xFF;
     data[3] = end_y & 0xFF;
-    write_command_(static_cast<uint8_t>(Command::raset), data, 0);
+    write_command_(static_cast<uint8_t>(Command::paset), data, 0);
   }
 
-  /**
-   * @brief Flush the pixel data for the provided area to the display.
-   * @param *drv Pointer to the LVGL display driver.
-   * @param *area Pointer to the structure describing the pixel area.
-   * @param *color_map Pointer to array of colors to flush to the display.
-   * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
-   */
-  static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,
-                   uint32_t flags = 0) {
-    std::scoped_lock lock{spi_mutex_};
-    lv_draw_sw_rgb565_swap(color_map, lv_area_get_width(area) * lv_area_get_height(area));
-    if (lcd_send_lines_) {
-      int offset_x = 0;
-      int offset_y = 0;
-      get_offset_rotated(offset_x, offset_y);
-      lcd_send_lines_(area->x1 + offset_x, area->y1 + offset_y, area->x2 + offset_x,
-                      area->y2 + offset_y, color_map, flags);
-    } else {
-      set_drawing_area(area);
-      uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      write_command_(static_cast<uint8_t>(Command::ramwr), {color_map, size * 2}, flags);
-    }
-  }
-
-  /**
-   * @brief Clear the display area, filling it with the provided color.
-   * @param x X coordinate of the upper left corner of the display area.
-   * @param y Y coordinate of the upper left corner of the display area.
-   * @param width Width of the display area to clear.
-   * @param height Height of the display area to clear.
-   * @param color 16 bit color (default 0x0000) to fill with.
-   */
-  static void clear(size_t x, size_t y, size_t width, size_t height, uint16_t color = 0x0000) {
-    set_drawing_area(x, y, x + width, y + height);
-
-    // Write the color data to controller RAM
-    uint32_t size = width * height;
-    static constexpr int max_bytes_to_send = 1024 * 2;
-    uint16_t color_data[max_bytes_to_send];
-    memset(color_data, color, max_bytes_to_send * sizeof(uint16_t));
-    for (int i = 0; i < size; i += max_bytes_to_send) {
-      size_t num_bytes = std::min(static_cast<int>(size - i), (int)(max_bytes_to_send));
-      write_command_(static_cast<uint8_t>(Command::ramwr),
-                     {reinterpret_cast<uint8_t *>(color_data), num_bytes * 2}, 0);
-    }
-  }
-
-  /**
-   * @brief Send the provided commands to the display controller.
-   * @param commands Array of display_drivers::LcdInitCmd structures.
-   */
-  static void send_commands(std::span<const display_drivers::DisplayInitCmd<>> commands) {
+  static void send_commands(std::span<const display_drivers::DisplayInitCmd<Command>> commands) {
     using namespace std::chrono_literals;
-
     for (const auto &[command, parameters, delay_ms] : commands) {
       std::scoped_lock lock{spi_mutex_};
-      write_command_(command, parameters, 0);
+      write_command_(static_cast<uint8_t>(command), parameters, 0);
       std::this_thread::sleep_for(delay_ms * 1ms);
     }
   }
@@ -395,8 +313,7 @@ public:
    *          or set by set_offset(), updated for the current rotation.
    */
   static void get_offset_rotated(int &x, int &y) {
-    auto rotation = lv_display_get_rotation(lv_display_get_default());
-    switch (rotation) {
+    switch (auto rotation = lv_display_get_rotation(lv_display_get_default())) {
     case LV_DISPLAY_ROTATION_90:
       // intentional fallthrough
     case LV_DISPLAY_ROTATION_270:
@@ -414,6 +331,18 @@ public:
     }
   }
 
+  static void set_brightness(const float brightness) {
+    // Update the local brightness value
+    brightness_ = brightness;
+
+    // This display has a 10-bit brightness control
+    uint16_t data = brightness * 1023;
+    write_command_(static_cast<uint8_t>(Command::wrdpbr), {reinterpret_cast<uint8_t *>(&data), 2},
+                   0);
+  }
+
+  static float get_brightness() { return brightness_; }
+
 protected:
   static inline display_drivers::write_command_fn write_command_;
   static inline display_drivers::send_lines_fn lcd_send_lines_;
@@ -421,11 +350,12 @@ protected:
   static inline gpio_num_t dc_pin_;
   static inline int offset_x_;
   static inline int offset_y_;
-  static inline bool mirror_x_;
-  static inline bool mirror_y_;
-  static inline bool mirror_portrait_;
-  static inline bool swap_xy_;
-  static inline bool swap_color_order_;
+  static inline bool mirror_x_ = false;
+  static inline bool mirror_y_ = false;
+  static inline bool mirror_portrait_ = false;
+  static inline bool swap_xy_ = false;
+  static inline bool swap_color_order_ = false;
   static inline std::mutex spi_mutex_;
+  static inline float brightness_ = 0;
 };
 } // namespace espp

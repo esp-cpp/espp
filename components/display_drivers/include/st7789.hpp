@@ -116,7 +116,7 @@ public:
    */
   static void initialize(const display_drivers::Config &config) {
     // update the static members
-    lcd_write_ = config.lcd_write;
+    write_command_ = config.write_command;
     lcd_send_lines_ = config.lcd_send_lines;
     reset_pin_ = config.reset_pin;
     dc_pin_ = config.data_command_pin;
@@ -146,43 +146,42 @@ public:
     }
 
     // set up the init commands
-    display_drivers::LcdInitCmd st_init_cmds[] = {
-        {0xCF, {0x00, 0x83, 0X30}, 3},
-        {0xED, {0x64, 0x03, 0X12, 0X81}, 4},
-        {(uint8_t)Command::pwctrl2, {0x85, 0x01, 0x79}, 3},
-        {0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}, 5},
-        {0xF7, {0x20}, 1},
-        {0xEA, {0x00, 0x00}, 2},
-        {(uint8_t)Command::lcmctrl, {0x26}, 1},
-        {(uint8_t)Command::idset, {0x11}, 1},
-        {(uint8_t)Command::vcmofset, {0x35, 0x3E}, 2},
-        {(uint8_t)Command::cabcctrl, {0xBE}, 1},
-        {(uint8_t)Command::madctl, {madctl}, 1},
-        {(uint8_t)Command::colmod, {0x55}, 1},
-        {(uint8_t)Command::invon, {0}, 0},
-        {(uint8_t)Command::rgbctrl, {0x00, 0x1B}, 2},
-        {0xF2, {0x08}, 1},
-        {(uint8_t)Command::gamset, {0x01}, 1},
-        {(uint8_t)Command::caset, {0x00, 0x00, 0x00, 0xEF}, 4},
-        {(uint8_t)Command::raset, {0x00, 0x00, 0x01, 0x3f}, 4},
-        {(uint8_t)Command::ramwr, {0}, 0},
-        {(uint8_t)Command::gctrl, {0x07}, 1},
-        {0xB6, {0x0A, 0x82, 0x27, 0x00}, 4},
-        {(uint8_t)Command::slpout, {0}, 0x80},
-        {(uint8_t)Command::dispon, {0}, 0x80},
-        {0, {0}, 0xff},
-    };
+    auto init_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
+        {0xCF, {0x00, 0x83, 0X30}},
+        {0xED, {0x64, 0x03, 0X12, 0X81}},
+        {(uint8_t)Command::pwctrl2, {0x85, 0x01, 0x79}},
+        {0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}},
+        {0xF7, {0x20}},
+        {0xEA, {0x00, 0x00}},
+        {(uint8_t)Command::lcmctrl, {0x26}},
+        {(uint8_t)Command::idset, {0x11}},
+        {(uint8_t)Command::vcmofset, {0x35, 0x3E}},
+        {(uint8_t)Command::cabcctrl, {0xBE}},
+        {(uint8_t)Command::madctl, {madctl}},
+        {(uint8_t)Command::colmod, {0x55}},
+        {(uint8_t)Command::invon},
+        {(uint8_t)Command::rgbctrl, {0x00, 0x1B}},
+        {0xF2, {0x08}},
+        {(uint8_t)Command::gamset, {0x01}},
+        {(uint8_t)Command::caset, {0x00, 0x00, 0x00, 0xEF}},
+        {(uint8_t)Command::raset, {0x00, 0x00, 0x01, 0x3f}},
+        {(uint8_t)Command::ramwr},
+        {(uint8_t)Command::gctrl, {0x07}},
+        {0xB6, {0x0A, 0x82, 0x27, 0x00}},
+        {(uint8_t)Command::slpout, {0}, 100},
+        {(uint8_t)Command::dispon, {0}, 100},
+    });
 
     // NOTE: ST7789 setting the reverse color is the normal color so we inver
     // the logic here.
     if (config.invert_colors) {
-      st_init_cmds[12].command = (uint8_t)Command::invoff;
+      init_commands[12].command = (uint8_t)Command::invoff;
     } else {
-      st_init_cmds[12].command = (uint8_t)Command::invon;
+      init_commands[12].command = (uint8_t)Command::invon;
     }
 
     // send the init commands
-    send_commands(st_init_cmds);
+    send_commands(init_commands);
   }
 
   /**
@@ -228,8 +227,7 @@ public:
       break;
     }
     std::scoped_lock lock{spi_mutex_};
-    send_command(Command::madctl);
-    send_data(&data, 1);
+    write_command_(static_cast<uint8_t>(Command::madctl), {&data, 1}, 0);
   }
 
   /**
@@ -261,7 +259,7 @@ public:
    * @param ye Ending y coordinate of the area.
    */
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    uint8_t data[4] = {0};
+    std::array<uint8_t, 4> data;
 
     int offset_x = 0;
     int offset_y = 0;
@@ -273,20 +271,18 @@ public:
     uint16_t end_y = ye + offset_y;
 
     // Set the column (x) start / end addresses
-    send_command(Command::caset);
     data[0] = (start_x >> 8) & 0xFF;
     data[1] = start_x & 0xFF;
     data[2] = (end_x >> 8) & 0xFF;
     data[3] = end_x & 0xFF;
-    send_data(data, 4);
+    write_command_(static_cast<uint8_t>(Command::caset), data, 0);
 
     // Set the row (y) start / end addresses
-    send_command(Command::raset);
     data[0] = (start_y >> 8) & 0xFF;
     data[1] = start_y & 0xFF;
     data[2] = (end_y >> 8) & 0xFF;
     data[3] = end_y & 0xFF;
-    send_data(data, 4);
+    write_command_(static_cast<uint8_t>(Command::raset), data, 0);
   }
 
   /**
@@ -308,9 +304,8 @@ public:
                       area->y2 + offset_y, color_map, flags);
     } else {
       set_drawing_area(area);
-      send_command(Command::ramwr);
       uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
-      send_data(color_map, size * 2, flags);
+      write_command_(static_cast<uint8_t>(Command::ramwr), {color_map, size * 2}, flags);
     }
   }
 
@@ -326,62 +321,28 @@ public:
     set_drawing_area(x, y, x + width, y + height);
 
     // Write the color data to controller RAM
-    send_command(Command::ramwr);
     uint32_t size = width * height;
     static constexpr int max_bytes_to_send = 1024 * 2;
     static uint16_t color_data[max_bytes_to_send];
     memset(color_data, color, max_bytes_to_send * sizeof(uint16_t));
     for (int i = 0; i < size; i += max_bytes_to_send) {
-      int num_bytes = std::min((int)(size - i), (int)(max_bytes_to_send));
-      send_data((uint8_t *)color_data, num_bytes * 2);
+      size_t num_bytes = std::min(static_cast<int>(size - i), (int)(max_bytes_to_send));
+      write_command_(static_cast<uint8_t>(Command::ramwr),
+                     {reinterpret_cast<uint8_t *>(color_data), num_bytes * 2}, 0);
     }
   }
 
   /**
-   * @brief Sends the command, sets flags (to 0) such that the pre-cb should
-   *        set the DC pin to command mode.
-   * @param command Command code to send
+   * @brief Send the provided commands to the display controller.
+   * @param commands Array of display_drivers::LcdInitCmd structures.
    */
-  static void send_command(uint8_t command) {
-    uint16_t flags = 0;
-    lcd_write_(&command, 1, flags);
-  }
-
-  /**
-   * @brief Sends the command, sets flags such that the pre-cb should set the
-   *        DC pin to command mode.
-   * @param command Command code to send
-   */
-  static void send_command(Command command) {
-    uint16_t flags = 0;
-    auto command_ = static_cast<uint8_t>(command);
-    lcd_write_(&command_, 1, flags);
-  }
-
-  /**
-   * @brief Send data to the display. Adds (1<<DC_LEVEL_BIT) to the flags so
-   *        that the pre-cb receives it in user data and can configure the DC
-   *        pin to data mode.
-   * @param data Pointer to array of bytes to be sent
-   * @param length Number of bytes of data to send.
-   * @param flags Optional (default = 0) flags associated with transfer.
-   */
-  static void send_data(const uint8_t *data, size_t length, uint32_t flags = 0) {
-    flags |= (1 << (int)display_drivers::Flags::DC_LEVEL_BIT);
-    lcd_write_(data, length, flags);
-  }
-
-  static void send_commands(display_drivers::LcdInitCmd *commands) {
+  static void send_commands(std::span<const display_drivers::DisplayInitCmd<>> commands) {
     using namespace std::chrono_literals;
-    // Send all the commands
-    uint16_t cmd = 0;
-    while (commands[cmd].length != 0xff) {
-      send_command(commands[cmd].command);
-      send_data(commands[cmd].data, commands[cmd].length & 0x1F);
-      if (commands[cmd].length & 0x80) {
-        std::this_thread::sleep_for(100ms);
-      }
-      cmd++;
+
+    for (const auto &[command, parameters, delay_ms] : commands) {
+      std::scoped_lock lock{spi_mutex_};
+      write_command_(command, parameters, 0);
+      std::this_thread::sleep_for(delay_ms * 1ms);
     }
   }
 
@@ -448,17 +409,17 @@ public:
   }
 
 protected:
-  static display_drivers::write_fn lcd_write_;
-  static display_drivers::send_lines_fn lcd_send_lines_;
-  static gpio_num_t reset_pin_;
-  static gpio_num_t dc_pin_;
-  static int offset_x_;
-  static int offset_y_;
-  static bool mirror_x_;
-  static bool mirror_y_;
-  static bool mirror_portrait_;
-  static bool swap_xy_;
-  static bool swap_color_order_;
-  static std::mutex spi_mutex_;
+  static inline display_drivers::write_command_fn write_command_;
+  static inline display_drivers::send_lines_fn lcd_send_lines_;
+  static inline gpio_num_t reset_pin_;
+  static inline gpio_num_t dc_pin_;
+  static inline int offset_x_;
+  static inline int offset_y_;
+  static inline bool mirror_x_;
+  static inline bool mirror_y_;
+  static inline bool mirror_portrait_;
+  static inline bool swap_xy_;
+  static inline bool swap_color_order_;
+  static inline std::mutex spi_mutex_;
 };
 } // namespace espp

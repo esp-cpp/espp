@@ -48,6 +48,7 @@ protected:
     column_ = lv_obj_create(lv_screen_active());
     lv_obj_set_size(column_, hor_res, ver_res);
     lv_obj_set_flex_flow(column_, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(column_, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     label_ = lv_label_create(column_);
     lv_label_set_text(label_, "Hello world");

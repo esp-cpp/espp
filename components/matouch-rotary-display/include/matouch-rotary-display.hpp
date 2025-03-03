@@ -208,14 +208,14 @@ public:
   /// \note This is null unless initialize_display() has been called
   uint8_t *frame_buffer1() const;
 
-  /// Write data to the LCD
-  /// \param data The data to write
-  /// \param length The length of the data
+  /// Write command and optional parameters to the LCD
+  /// \param command The command to write
+  /// \param parameters The command parameters to write
   /// \param user_data User data to pass to the spi transaction callback
   /// \note This method is designed to be used by the display driver
   /// \note This method queues the data to be written to the LCD, only blocking
   ///      if there is an ongoing SPI transaction
-  void write_lcd(const uint8_t *data, size_t length, uint32_t user_data);
+  void write_command(uint8_t command, std::span<const uint8_t> parameters, uint32_t user_data);
 
   /// Write a frame to the LCD
   /// \param x The x coordinate
