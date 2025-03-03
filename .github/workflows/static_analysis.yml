@@ -4,11 +4,11 @@ on:
   pull_request:
     branches:
       - "*"
-  # 'pull_request_target' allows this Action to also run on forked repositories
-  # The output will be shown in PR comments (unless the 'force_console_print' flag is used)
-  pull_request_target:
-    branches:
-      - "*"
+  # # 'pull_request_target' allows this Action to also run on forked repositories
+  # # The output will be shown in PR comments (unless the 'force_console_print' flag is used)
+  # pull_request_target:
+  #   branches:
+  #     - "*"
 
 jobs:
   static_analysis:
@@ -21,6 +21,8 @@ jobs:
     - name: Run static analysis
       uses: esp-cpp/StaticAnalysis@master
       with:
+        language: c++
+
         # Do not build the project and do not use cmake to generate compile_commands.json
         use_cmake: false
 
