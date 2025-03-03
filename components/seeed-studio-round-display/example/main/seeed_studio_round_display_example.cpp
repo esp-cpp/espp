@@ -14,7 +14,7 @@ static std::recursive_mutex lvgl_mutex;
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
 static void on_rotate_pressed(lv_event_t *event);
-static void on_clear_pressed(lv_event_t *event);
+static void on_clear_pressed(const lv_event_t *event);
 
 extern "C" void app_main(void) {
   espp::Logger logger(
@@ -149,7 +149,7 @@ static void on_rotate_pressed(lv_event_t *event) {
   lv_disp_set_rotation(disp, rotation);
 }
 
-static void on_clear_pressed(lv_event_t *event) { clear_circles(); }
+static void on_clear_pressed(const lv_event_t *event) { clear_circles(); }
 
 static void draw_circle(int x0, int y0, int radius) {
   std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);

@@ -24,8 +24,9 @@ extern "C" void app_main(void) {
     std::string device_name = "Espp BLE GATT Server";
     ble_gatt_server.set_log_level(espp::Logger::Verbosity::INFO);
     ble_gatt_server.set_callbacks({
-        .connect_callback = [&](NimBLEConnInfo &conn_info) { logger.info("Device connected"); },
-        .disconnect_callback = [&](auto &conn_info,
+        .connect_callback =
+            [&](const NimBLEConnInfo &conn_info) { logger.info("Device connected"); },
+        .disconnect_callback = [&](const auto &conn_info,
                                    auto reason) { logger.info("Device disconnected: {}", reason); },
         .authentication_complete_callback =
             [&](const NimBLEConnInfo &conn_info) { logger.info("Device authenticated"); },

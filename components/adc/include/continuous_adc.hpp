@@ -170,7 +170,7 @@ protected:
     return static_cast<int>(unit) * 32 + static_cast<int>(channel);
   }
 
-  bool update_task(std::mutex &task_m, std::condition_variable &task_cv, bool &task_notified) {
+  bool update_task(std::mutex &, std::condition_variable &, bool &) {
     task_handle_ = xTaskGetCurrentTaskHandle();
     static auto previous_timestamp = std::chrono::high_resolution_clock::now();
     // wait until conversion is ready (will be notified by the registered

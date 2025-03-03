@@ -407,7 +407,7 @@ protected:
     return level == static_cast<int>(active_level);
   }
 
-  bool task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
+  bool task_callback(std::mutex &, std::condition_variable &, bool &) {
     EventData event_data;
     // record the min number of free spaces in the queue
     size_t free_spaces = uxQueueSpacesAvailable(queue_);
