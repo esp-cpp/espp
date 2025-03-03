@@ -58,7 +58,7 @@ extern "C" void app_main(void) {
                                          }},
             .encode = [&led_encoder_state](auto channel, auto *copy_encoder, auto *bytes_encoder,
                                            const void *data, size_t data_size,
-                                           const rmt_encode_state_t *ret_state) -> size_t {
+                                           rmt_encode_state_t *ret_state) -> size_t {
               // divide the transmit resolution (10MHz) by 1,000,000 to get the
               // number of ticks per microsecond
               // we divide by two since we have both duration0 and duration1 in the
