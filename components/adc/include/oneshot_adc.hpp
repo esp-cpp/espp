@@ -150,7 +150,7 @@ protected:
     memset(&init_config, 0, sizeof(init_config));
     init_config.unit_id = config.unit;
     ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle_));
-    for (auto &conf : config.channels) {
+    for (const auto &conf : config.channels) {
       auto channel = conf.channel;
       auto attenuation = conf.attenuation;
       auto channel_unit = conf.unit;

@@ -31,7 +31,6 @@ extern "C" void app_main(void) {
   //! [button example]
   static auto start = std::chrono::high_resolution_clock::now();
   std::string button_topic = "button/state";
-  std::string button_component_name = "button";
 
   // create a button
   espp::Button button({

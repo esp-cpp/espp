@@ -192,7 +192,7 @@ public:
     // fill all 0s
     std::fill(raw_report, raw_report + sizeof(raw_report), 0);
     // now set the counter to the previous value
-    counter = prev_counter;
+    counter = prev_counter; // cppcheck-suppress redundantAssignment
     // set the joysticks to 0 since their config may not put them at 0
     set_left_joystick(0, 0);
     set_right_joystick(0, 0);

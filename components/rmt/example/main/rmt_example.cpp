@@ -73,9 +73,9 @@ extern "C" void app_main(void) {
             }
             if (session_state & RMT_ENCODING_MEM_FULL) {
               state |= RMT_ENCODING_MEM_FULL;
-              goto out; // yield if there's no free space for encoding artifacts
+              break; // yield if there's no free space for encoding artifacts
             }
-            // fall-through
+            // intentional fall-through
           case 1: // send reset code
             encoded_symbols += copy_encoder->encode(copy_encoder, channel, &led_reset_code,
                                                     sizeof(led_reset_code), &session_state);
@@ -85,10 +85,9 @@ extern "C" void app_main(void) {
             }
             if (session_state & RMT_ENCODING_MEM_FULL) {
               state |= RMT_ENCODING_MEM_FULL;
-              goto out; // yield if there's no free space for encoding artifacts
+              break; // yield if there's no free space for encoding artifacts
             }
           }
-        out:
           *ret_state = static_cast<rmt_encode_state_t>(state);
           return encoded_symbols;
         },

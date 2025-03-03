@@ -51,7 +51,7 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
       // the function returns something
       decltype(f()) ret_val;
       auto f_task = espp::Task::make_unique({
-          .callback = [&mutex, &cv, &f, &ret_val, &notified](auto &cb_m, auto &cb_cv) -> bool {
+          .callback = [&mutex, &cv, &f, &ret_val, &notified](auto &, auto &) -> bool {
             // synchronize with the main thread - block here until the main thread
             // waits on the condition variable (cv), then run the function
             std::unique_lock lock(mutex);
@@ -76,7 +76,7 @@ static auto run_on_core(const auto &f, int core_id, size_t stack_size_bytes = 20
     } else {
       // the function returns void
       auto f_task = espp::Task::make_unique({
-          .callback = [&mutex, &cv, &f, &notified](auto &cb_m, auto &cb_cv) -> bool {
+          .callback = [&mutex, &cv, &f, &notified](auto &, auto &) -> bool {
             // synchronize with the main thread - block here until the main thread
             // waits on the condition variable (cv), then run the function
             std::unique_lock lock(mutex);

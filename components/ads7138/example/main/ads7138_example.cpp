@@ -125,7 +125,7 @@ extern "C" void app_main(void) {
 
     // start the gpio task
     auto alert_task = espp::Task::make_unique({
-        .callback = [&ads](auto &m, auto &cv) -> bool {
+        .callback = [&ads](auto &, auto &) -> bool {
           static uint32_t io_num;
           // block until we get a message from the interrupt handler
           if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {

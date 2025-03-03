@@ -25,9 +25,6 @@ extern "C" void app_main(void) {
   {
     fmt::print("Starting hfsm example!\n");
     //! [hfsm example]
-    const espp::state_machine::Complex::GeneratedEventBase *e = nullptr;
-    bool handled = false;
-
     // create the HFSM
     espp::state_machine::Complex::Root complex_root;
 
@@ -87,8 +84,6 @@ extern "C" void app_main(void) {
     // NOTE: we need to configure stdin/stdout to use std::cin for
     //       get_user_selection() function.
     espp::Cli::configure_stdin_stdout();
-
-    const espp::state_machine::Complex::GeneratedEventBase *e = nullptr;
 
     // create the HFSM
     espp::state_machine::Complex::Root complex_root;

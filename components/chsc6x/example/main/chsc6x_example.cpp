@@ -10,7 +10,6 @@ using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
   {
-    std::atomic<bool> quit_test = false;
     fmt::print("Starting chsc6x example\n");
     //! [chsc6x example]
     // make the I2C that we'll use to communicate
