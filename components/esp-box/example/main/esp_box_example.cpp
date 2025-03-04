@@ -217,7 +217,6 @@ extern "C" void app_main(void) {
          float roll = 0, pitch = 0;
          static constexpr float angle_noise = 0.001f;
          static constexpr float rate_noise = 0.1f;
-         static constexpr float measurement_noise = 0.003f;
          static espp::KalmanFilter<2> kf;
          kf.set_process_noise(rate_noise);
          kf.set_measurement_noise(angle_noise);
@@ -228,24 +227,25 @@ extern "C" void app_main(void) {
                   gyro.z * M_PI / 180.0f);
          float yaw; // ignore / unused since we only have 6-axis
          f.get_euler(roll, pitch, yaw);
+         pitch *= M_PI / 180.0f;
+         roll *= M_PI / 180.0f;
 
          std::string text = fmt::format("{}\n\n\n\n\n", label_text);
          text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
-         text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", gyro.x, gyro.y, gyro.z);
-         text += fmt::format("Angle: {:03.2f} {:03.2f}\n", roll, pitch);
+         text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", gyro.x * M_PI / 180.0f,
+                             gyro.y * M_PI / 180.0f, gyro.z * M_PI / 180.0f);
+         text +=
+             fmt::format("Angle: {:03.2f} {:03.2f}\n", roll * 180.0f / M_PI, pitch * 180.0f / M_PI);
          text += fmt::format("Temp: {:02.1f} C\n", temp);
-
-         float rollRad = roll * M_PI / 180.0f;
-         float pitchRad = pitch * M_PI / 180.0f;
 
          // use the pitch to to draw a line on the screen indiating the
          // direction from the center of the screen to "down"
          int x0 = box.lcd_width() / 2;
          int y0 = box.lcd_height() / 2;
 
-         float vx = sin(pitchRad);
-         float vy = -cos(pitchRad) * sin(rollRad);
-         float vz = -cos(pitchRad) * cos(rollRad);
+         float vx = sin(pitch);
+         float vy = -cos(pitch) * sin(roll);
+         float vz = -cos(pitch) * cos(roll);
 
          int x1 = x0 + 50 * vx;
          int y1 = y0 + 50 * vy;
@@ -263,12 +263,9 @@ extern "C" void app_main(void) {
          pitch = state[0];
          roll = state[1];
 
-         rollRad = roll;
-         pitchRad = pitch;
-
-         vx = sin(pitchRad);
-         vy = -cos(pitchRad) * sin(rollRad);
-         vz = -cos(pitchRad) * cos(rollRad);
+         vx = sin(pitch);
+         vy = -cos(pitch) * sin(roll);
+         vz = -cos(pitch) * cos(roll);
 
          x1 = x0 + 50 * vx;
          y1 = y0 + 50 * vy;

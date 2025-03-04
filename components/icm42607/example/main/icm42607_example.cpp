@@ -112,6 +112,7 @@ extern "C" void app_main(void) {
            return false;
          }
 
+         // print time and raw IMU data
          std::string text = "";
          text += fmt::format("{:.3f},", now / 1'000'000.0f);
          text += fmt::format("{:02.3f},{:02.3f},{:02.3f},", accel.x, accel.y, accel.z);
@@ -131,16 +132,18 @@ extern "C" void app_main(void) {
 
          f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
                   gyro.z * M_PI / 180.0f);
+         float yaw; // ignore / unused since we only have 6-axis
+         f.get_euler(roll, pitch, yaw);
+         roll *= M_PI / 180.0f;
+         pitch *= M_PI / 180.0f;
 
-         float rollRad = roll * M_PI / 180.0f;
-         float pitchRad = pitch * M_PI / 180.0f;
+         float vx = sin(pitch);
+         float vy = -cos(pitch) * sin(roll);
+         float vz = -cos(pitch) * cos(roll);
 
-         float vx = sin(pitchRad);
-         float vy = -cos(pitchRad) * sin(rollRad);
-         float vz = -cos(pitchRad) * cos(rollRad);
-
+         // print madgwick filter outputs
          text += fmt::format("{:03.3f},{:03.3f},", roll, pitch);
-         text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
+         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", vx, vy, vz);
 
          // Apply Kalman filter
          float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
@@ -151,13 +154,11 @@ extern "C" void app_main(void) {
          pitch = state[0];
          roll = state[1];
 
-         rollRad = roll;
-         pitchRad = pitch;
+         vx = sin(pitch);
+         vy = -cos(pitch) * sin(roll);
+         vz = -cos(pitch) * cos(roll);
 
-         vx = sin(pitchRad);
-         vy = -cos(pitchRad) * sin(rollRad);
-         vz = -cos(pitchRad) * cos(rollRad);
-
+         // print kalman filter outputs
          text += fmt::format("{:03.3f},{:03.3f},", roll, pitch);
          text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
 
@@ -173,9 +174,17 @@ extern "C" void app_main(void) {
        }});
 
   // print the header for the IMU data (for plotting)
-  fmt::print("% Time (s), Accel X (m/s^2), Accel Y (m/s^2), Accel Z (m/s^2), Gyro X (rad/s), Gyro "
-             "Y (rad/s), Gyro Z (rad/s), Temp (C), Roll (deg), Pitch (deg), Gravity X, Gravity Y, "
-             "Gravity Z, Roll (KF), Pitch (KF), Gravity X (KF), Gravity Y (KF), Gravity Z (KF)\n");
+  fmt::print("% Time (s), "
+             // raw IMU data (accel, gyro, temp)
+             "Accel X (m/s^2), Accel Y (m/s^2), Accel Z (m/s^2), "
+             "Gyro X (rad/s), Gyro Y (rad/s), Gyro Z (rad/s), "
+             "Temp (C), "
+             // madgwick filter outputs
+             "Madgwick Roll (rad), Madgwick Pitch (rad), "
+             "Madgwick Gravity X, Madgwick Gravity Y, Madgwick Gravity Z, "
+             // kalman filter outputs
+             "Kalman Roll (rad), Kalman Pitch (rad), "
+             "Kalman Gravity X, Kalman Gravity Y, Kalman Gravity Z\n");
 
   logger.info("Starting IMU task");
   imu_task.start();

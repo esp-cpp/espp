@@ -3,6 +3,8 @@
 This example shows how to use the `espp::Icm42607` component to initialize and
 communicate with an ICM42607 / ICM42670 6-axis IMU.
 
+![CleanShot 2025-03-04 at 15 14 10](https://github.com/user-attachments/assets/131e102c-bcab-4732-8593-aa0c56aaebd5)
+
 ## How to use example
 
 ### Hardware Required
@@ -27,3 +29,7 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+![CleanShot 2025-03-04 at 15 15 45](https://github.com/user-attachments/assets/ac2db65c-8be5-4a31-820c-2f7e88cc8ea5)
+
+Running with `esp-cpp/uart-serial-plotter`:
+![CleanShot 2025-03-04 at 15 14 10](https://github.com/user-attachments/assets/131e102c-bcab-4732-8593-aa0c56aaebd5)

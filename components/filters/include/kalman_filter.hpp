@@ -140,7 +140,7 @@ public:
   /// @return State estimate
   /// @note The state estimate is the current estimate of the state based on
   ///       the measurements.
-  std::array<float, N> get_state() const { return X; }
+  const std::array<float, N> &get_state() const { return X; }
 
 protected:
   std::array<float, N> X;                // State vector
