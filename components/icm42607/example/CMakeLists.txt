@@ -11,11 +11,11 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py esp-box filters"
+  "main esptool_py i2c icm42607 filters"
   CACHE STRING
   "List of components to include"
   )
 
-project(esp_box_example)
+project(icm42607_example)
 
 set(CMAKE_CXX_STANDARD 20)

@@ -47,10 +47,10 @@ extern "C" void app_main(void) {
     //! [fast_ln example]
   }
   {
-    //! [fast_sqrt example]
+    //! [fast_inv_sqrt example]
     float x = 3.0f;
     auto slow = sqrt(x);
-    auto fast = espp::fast_sqrt(x);
+    auto fast = 1.0f / espp::fast_inv_sqrt(x);
     auto diff = std::abs(slow - fast);
     fmt::print("sqrt({}) = {} (slow), {} (fast), diff = {}\n", x, slow, fast, diff);
     //! [fast_sqrt example]

@@ -5,6 +5,9 @@
 
 #include "esp-box.hpp"
 
+#include "kalman_filter.hpp"
+#include "madgwick_filter.hpp"
+
 using namespace std::chrono_literals;
 
 static constexpr size_t MAX_CIRCLES = 100;
@@ -80,6 +83,12 @@ extern "C" void app_main(void) {
     return;
   }
 
+  // initialize the IMU
+  if (!box.initialize_imu()) {
+    logger.error("Failed to initialize IMU!");
+    return;
+  }
+
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_screen_active());
   lv_obj_set_size(bg, box.lcd_width(), box.lcd_height());
@@ -87,9 +96,24 @@ extern "C" void app_main(void) {
 
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_screen_active());
-  lv_label_set_text(label, "Touch the screen!\nPress the home button to clear circles.");
-  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+  static std::string label_text =
+      "\n\n\n\nTouch the screen!\nPress the home button to clear circles.";
+  lv_label_set_text(label, label_text.c_str());
+  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
+
+  /*Create style*/
+  static lv_style_t style_line;
+  lv_style_init(&style_line);
+  lv_style_set_line_width(&style_line, 8);
+  lv_style_set_line_color(&style_line, lv_palette_main(LV_PALETTE_BLUE));
+  lv_style_set_line_rounded(&style_line, true);
+
+  // make a line for showing the direction of "down"
+  lv_obj_t *line = lv_line_create(lv_screen_active());
+  static lv_point_precise_t line_points[] = {{0, 0}, {box.lcd_width(), box.lcd_height()}};
+  lv_line_set_points(line, line_points, 2);
+  lv_obj_add_style(line, &style_line, 0);
 
   // add a button in the top left which (when pressed) will rotate the display
   // through 0, 90, 180, 270 degrees
@@ -129,6 +153,7 @@ extern "C" void app_main(void) {
                       },
                       .task_config = {
                           .name = "lv_task",
+                          .stack_size_bytes = 6 * 1024,
                       }});
   lv_task.start();
 
@@ -142,6 +167,98 @@ extern "C" void app_main(void) {
 
   // set the display brightness to be 75%
   box.brightness(75.0f);
+
+  // make a task to read out the IMU data and print it to console
+  espp::Task imu_task(
+      {.callback = [&label, &line](std::mutex &m, std::condition_variable &cv) -> bool {
+         // sleep first in case we don't get IMU data and need to exit early
+         {
+           std::unique_lock<std::mutex> lock(m);
+           cv.wait_for(lock, 10ms);
+         }
+         static auto &box = espp::EspBox::get();
+         static auto imu = box.imu();
+
+         auto now = esp_timer_get_time(); // time in microseconds
+         static auto t0 = now;
+         auto t1 = now;
+         float dt = (t1 - t0) / 1'000'000.0f; // convert us to s
+         t0 = t1;
+
+         std::error_code ec;
+         // get accel
+         auto accel = imu->get_accelerometer(ec);
+         if (ec) {
+           return false;
+         }
+         auto gyro = imu->get_gyroscope(ec);
+         if (ec) {
+           return false;
+         }
+         auto temp = imu->get_temperature(ec);
+         if (ec) {
+           return false;
+         }
+
+         // with only the accelerometer + gyroscope, we can't get yaw :(
+         float roll = 0, pitch = 0;
+         static espp::KalmanFilter kalmanPitch;
+         static espp::KalmanFilter kalmanRoll;
+         static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
+         static espp::MadgwickFilter f(beta);
+
+         // Compute pitch and roll from accelerometer
+         float accelPitch =
+             atan2(accel.y, sqrt(accel.x * accel.x + accel.z * accel.z)) * 180.0f / M_PI;
+         float accelRoll = atan2(-accel.x, accel.z) * 180.0f / M_PI;
+
+         // Apply Kalman filter
+         pitch = kalmanPitch.update(accelPitch, gyro.y, dt);
+         roll = kalmanRoll.update(accelRoll, gyro.x, dt);
+
+         f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
+                  gyro.z * M_PI / 180.0f);
+         float yaw; // ignore / unused since we only have 6-axis
+         f.get_euler(roll, pitch, yaw);
+
+         std::string text = fmt::format("{}\n\n\n\n\n", label_text);
+         text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
+         text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", gyro.x, gyro.y, gyro.z);
+         text += fmt::format("Angle: {:03.2f} {:03.2f}\n", roll, pitch);
+         text += fmt::format("Temp: {:02.1f} C\n", temp);
+
+         float rollRad = roll * M_PI / 180.0f;
+         float pitchRad = pitch * M_PI / 180.0f;
+
+         // use the pitch to to draw a line on the screen indiating the
+         // direction from the center of the screen to "down"
+         int x0 = box.lcd_width() / 2;
+         int y0 = box.lcd_height() / 2;
+
+         float vx = sin(pitchRad);
+         float vy = -cos(pitchRad) * sin(rollRad);
+         float vz = -cos(pitchRad) * cos(rollRad);
+
+         int x1 = x0 + 50 * vx;
+         int y1 = y0 + 50 * vy;
+
+         static lv_point_precise_t line_points[] = {{x0, y0}, {x1, y1}};
+         line_points[1].x = x1;
+         line_points[1].y = y1;
+
+         std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+         lv_label_set_text(label, text.c_str());
+         lv_line_set_points(line, line_points, 2);
+
+         return false;
+       },
+       .task_config = {
+           .name = "IMU",
+           .stack_size_bytes = 6 * 1024,
+           .priority = 10,
+           .core_id = 0,
+       }});
+  imu_task.start();
 
   // loop forever
   while (true) {
