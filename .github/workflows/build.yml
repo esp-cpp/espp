@@ -81,6 +81,8 @@ jobs:
           target: esp32s3
         - path: 'components/i2c/example'
           target: esp32
+        - path: 'components/icm42607/example'
+          target: esp32s3
         - path: 'components/interrupt/example'
           target: esp32s3
         - path: 'components/joystick/example'

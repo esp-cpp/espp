@@ -373,11 +373,11 @@ void py_init_module_espp(py::module &m) {
         "*\n * @brief Simple cube of the input.\n * @param f Value to cube.\n * @return The cube "
         "of f (f*f*f).\n");
 
-  m.def("fast_sqrt", espp::fast_sqrt, py::arg("value"),
+  m.def("fast_inv_sqrt", espp::fast_inv_sqrt, py::arg("value"),
         "*\n * @brief Fast square root approximation.\n * @note Using "
         "https://reprap.org/forum/read.php?147,219210 and\n *       "
         "https://en.wikipedia.org/wiki/Fast_inverse_square_root\n * @param value Value to take the "
-        "square root of.\n * @return Approximation of the square root of value.\n");
+        "inverse square root of.\n * @return Approximation of the inverse square root of value.\n");
 
   m.def("sgn", py::overload_cast<int>(espp::sgn<int>), py::arg("x"),
         "*\n * @brief Get the sign of a number (+1, 0, or -1)\n * @param x Value to get the sign "

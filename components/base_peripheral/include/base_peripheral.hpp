@@ -636,6 +636,28 @@ protected:
     write_u8_to_register(register_address, data, ec);
   }
 
+  /// Set bits in a register on the peripheral by mask
+  /// \param register_address The address of the register to modify
+  /// \param mask The mask to use when setting the bits. All bits not in the
+  ///             mask will be unmodified, while all bits within the mask will
+  ///             be set to the value of the corresponding bit in the value
+  /// \param value The value to set. Bits in the value should correspond to the
+  ///             bits in the mask
+  /// \param ec The error code to set if there is an error
+  void set_bits_in_register_by_mask(RegisterAddressType register_address, uint8_t mask,
+                                    uint8_t value, std::error_code &ec) {
+    logger_.debug("set_bits_in_register_by_mask 0x{:x} with mask 0x{:x} and value 0x{:x}",
+                  register_address, mask, value);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    uint8_t data = read_u8_from_register(register_address, ec);
+    if (ec) {
+      return;
+    }
+    data &= ~mask;
+    data |= value & mask;
+    write_u8_to_register(register_address, data, ec);
+  }
+
   /// Clear bits in a register on the peripheral
   /// \param register_address The address of the register to modify
   /// \param mask The mask to clear

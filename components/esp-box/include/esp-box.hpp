@@ -19,6 +19,7 @@
 #include "es8311.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "icm42607.hpp"
 #include "interrupt.hpp"
 #include "st7789.hpp"
 #include "touchpad_input.hpp"
@@ -32,6 +33,9 @@ namespace espp {
 /// - Touchpad
 /// - Display
 /// - Audio
+/// - Interrupts
+/// - I2C
+/// - IMU (Inertial Measurement Unit)
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
@@ -44,7 +48,12 @@ public:
 
   /// Alias for the display driver used by the ESP-Box display
   using DisplayDriver = espp::St7789;
+
+  /// Alias for the touchpad data used by the ESP-Box touchpad
   using TouchpadData = espp::TouchpadData;
+
+  /// Alias the IMU used by the ESP-Box
+  using Imu = espp::Icm42607<icm42607::Interface::I2C>;
 
   /// The type of the box
   enum class BoxType {
@@ -286,6 +295,18 @@ public:
   /// \param num_bytes The number of bytes to play
   void play_audio(const uint8_t *data, uint32_t num_bytes);
 
+  /////////////////////////////////////////////////////////////////////////////
+  // IMU
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the IMU
+  /// \return true if the IMU was successfully initialized, false otherwise
+  bool initialize_imu();
+
+  /// Get the IMU
+  /// \return A shared pointer to the IMU
+  std::shared_ptr<Imu> imu() const;
+
 protected:
   EspBox();
   void detect();
@@ -440,6 +461,9 @@ protected:
   i2s_std_config_t audio_std_cfg;
   i2s_event_callbacks_t audio_tx_callbacks_;
   std::atomic<bool> has_sound{false};
+
+  // IMU
+  std::shared_ptr<Imu> imu_;
 }; // class EspBox
 } // namespace espp
 
