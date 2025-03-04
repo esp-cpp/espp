@@ -1,8 +1,10 @@
 #pragma once
 
+#include <bit>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <stdfloat>
 #include <utility>
 #include <vector>
 
@@ -22,27 +24,16 @@ namespace espp {
 [[maybe_unused]] static float cube(float f) { return f * f * f; }
 
 /**
- * @brief Fast square root approximation.
+ * @brief Fast inverse square root approximation.
  * @note Using https://reprap.org/forum/read.php?147,219210 and
  *       https://en.wikipedia.org/wiki/Fast_inverse_square_root
- * @param value Value to take the square root of.
- * @return Approximation of the square root of value.
+ * @param value Value to take the inverse square root of.
+ * @return Approximation of the inverse square root of value.
  */
-[[maybe_unused]] static float fast_sqrt(float value) {
-  uint32_t i{0};
-  float y{0};
-  // float x;
-  // const float f = 1.5F; // better precision
-
-  // x = number * 0.5F;
-  y = value;
-  memcpy(&i, &y, sizeof(i));
-  // i = * reinterpret_cast<uint32_t *>(&y);
-  i = 0x5f375a86 - (i >> 1);
-  // y = * reinterpret_cast<float *>(&i);
-  memcpy(&y, &i, sizeof(y));
-  // y = y * ( f - ( x * y * y ) ); // better precision
-  return value * y;
+[[maybe_unused]] static constexpr float fast_inv_sqrt(float value) noexcept {
+  const auto y =
+      std::bit_cast<std::float32_t>(0x5f3759df - (std::bit_cast<std::uint32_t>(value) >> 1));
+  return y * (1.5f - (0.5f * value * y * y));
 }
 
 /**

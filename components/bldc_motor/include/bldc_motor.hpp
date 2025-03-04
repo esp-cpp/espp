@@ -407,8 +407,9 @@ public:
       float Uout;
       // a bit of optitmisation
       if (ud) { // only if ud and uq set
-        // fast_sqrt is an approx of sqrt (3-4% error)
-        Uout = fast_sqrt(ud * ud + uq * uq) / driver_->get_voltage_limit();
+        // fast_inv_sqrt is an approx of invsqrt (3-4% error), so we need to
+        // invert it to get the correct value (1/inv_sqrt = sqrt)
+        Uout = 1.0f / (fast_inv_sqrt(ud * ud + uq * uq) * driver_->get_voltage_limit());
         // angle normalisation in between 0 and 2pi
         // only necessary if using fast_sin and fast_cos - approximation functions
         el_angle = normalize_angle(el_angle + atan2(uq, ud));
