@@ -4,6 +4,7 @@
 #include "i2c.hpp"
 #include "icm42607.hpp"
 #include "kalman_filter.hpp"
+#include "madgwick_filter.hpp"
 
 using namespace std::chrono_literals;
 
@@ -116,6 +117,8 @@ extern "C" void app_main(void) {
          // with only the accelerometer + gyroscope, we can't get yaw :(
          static espp::KalmanFilter kalmanPitch;
          static espp::KalmanFilter kalmanRoll;
+         static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
+         static espp::MadgwickFilter f(beta);
 
          // Compute pitch and roll from accelerometer
          float accelPitch =
@@ -125,6 +128,11 @@ extern "C" void app_main(void) {
          // Apply Kalman filter
          pitch = kalmanPitch.update(accelPitch, gyro.y, dt);
          roll = kalmanRoll.update(accelRoll, gyro.x, dt);
+
+         f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
+                  gyro.z * M_PI / 180.0f);
+         float yaw; // ignore / unused since we only have 6-axis
+         f.get_euler(roll, pitch, yaw);
 
          float rollRad = roll * M_PI / 180.0f;
          float pitchRad = pitch * M_PI / 180.0f;
