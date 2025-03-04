@@ -16,9 +16,9 @@ extern "C" void app_main(void) {
 
   // make the i2c we'll use to communicate
   static constexpr auto i2c_port = I2C_NUM_0;
-  static constexpr auto i2c_clock_speed = 400 * 1000;
-  static constexpr gpio_num_t i2c_sda = GPIO_NUM_8;
-  static constexpr gpio_num_t i2c_scl = GPIO_NUM_18;
+  static constexpr auto i2c_clock_speed = CONFIG_EXAMPLE_I2C_CLOCK_SPEED_HZ;
+  static constexpr gpio_num_t i2c_sda = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO;
+  static constexpr gpio_num_t i2c_scl = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO;
   espp::I2c i2c({.port = i2c_port,
                  .sda_io_num = i2c_sda,
                  .scl_io_num = i2c_scl,
