@@ -204,7 +204,8 @@ extern "C" void app_main(void) {
          float roll = 0, pitch = 0;
          static espp::KalmanFilter kalmanPitch;
          static espp::KalmanFilter kalmanRoll;
-         static espp::MadgwickFilter f(0.01f);
+         static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
+         static espp::MadgwickFilter f(beta);
 
          // Compute pitch and roll from accelerometer
          float accelPitch =
@@ -239,7 +240,7 @@ extern "C" void app_main(void) {
          float vz = -cos(pitchRad) * cos(rollRad);
 
          int x1 = x0 + 50 * vx;
-         int y1 = y0 - 50 * vy;
+         int y1 = y0 + 50 * vy;
 
          static lv_point_precise_t line_points[] = {{x0, y0}, {x1, y1}};
          line_points[1].x = x1;
