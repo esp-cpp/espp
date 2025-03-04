@@ -342,7 +342,7 @@ public:
   /// @param power_mode The power mode
   /// @param ec The error code to set if an error occurs
   /// @return True if the power mode was set successfully, false otherwise
-  bool set_accelerometer_power_mode(AccelerometerPowerMode power_mode, std::error_code &ec) {
+  bool set_accelerometer_power_mode(const AccelerometerPowerMode &power_mode, std::error_code &ec) {
     uint8_t bitmask = 0x03;
     set_bits_in_register_by_mask(static_cast<uint8_t>(Register::PWR_MGMT0), bitmask,
                                  static_cast<uint8_t>(power_mode) & bitmask, ec);
@@ -353,7 +353,7 @@ public:
   /// @param power_mode The power mode
   /// @param ec The error code to set if an error occurs
   /// @return True if the power mode was set successfully, false otherwise
-  bool set_gyroscope_power_mode(GyroscopePowerMode power_mode, std::error_code &ec) {
+  bool set_gyroscope_power_mode(const GyroscopePowerMode &power_mode, std::error_code &ec) {
     uint8_t bitmask = 0x03;
     set_bits_in_register_by_mask(static_cast<uint8_t>(Register::PWR_MGMT0), bitmask << 2,
                                  (static_cast<uint8_t>(power_mode) & bitmask) << 2, ec);
@@ -364,7 +364,7 @@ public:
   /// @param bw The filter bandwidth
   /// @param ec The error code to set if an error occurs
   /// @return True if the filter bandwidth was set successfully, false otherwise
-  bool set_accelerometer_filter(SensorFilterBandwidth bw, std::error_code &ec) {
+  bool set_accelerometer_filter(const SensorFilterBandwidth &bw, std::error_code &ec) {
     // ACCEL_FILT_BW is bits 2-0 in ACCEL_CONFIG1
     uint8_t mask = 0x07;
     uint8_t data = static_cast<uint8_t>(bw) & mask;
@@ -376,7 +376,7 @@ public:
   /// @param bw The filter bandwidth
   /// @param ec The error code to set if an error occurs
   /// @return True if the filter bandwidth was set successfully, false otherwise
-  bool set_gyroscope_filter(SensorFilterBandwidth bw, std::error_code &ec) {
+  bool set_gyroscope_filter(const SensorFilterBandwidth &bw, std::error_code &ec) {
     // GYRO_FILT_BW is bits 2-0 in GYRO_CONFIG1
     uint8_t mask = 0x07;
     uint8_t data = static_cast<uint8_t>(bw) & mask;
@@ -412,7 +412,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if the DMP output data rate was set successfully, false
   ///         otherwise
-  bool set_dmp_odr(DmpODR odr, std::error_code &ec) {
+  bool set_dmp_odr(const DmpODR &odr, std::error_code &ec) {
     // DMP ODR is bits 1-0 in APEX_CONFIG1
     uint8_t mask = 0x03;
     uint8_t data = static_cast<uint8_t>(odr) & mask;
@@ -504,7 +504,7 @@ public:
   /// @param bypassed True if the FIFO is bypassed, false otherwise
   /// @param ec The error code to set if an error occurs
   /// @return True if the FIFO buffer was configured successfully, false otherwise
-  bool configure_fifo(FifoMode mode, bool bypassed, std::error_code &ec) {
+  bool configure_fifo(const FifoMode &mode, bool bypassed, std::error_code &ec) {
     // FIFO_MODE is bit 1, FIFO_BYPASS is bit 0
     uint8_t data = (static_cast<uint8_t>(mode) << 1) | (bypassed ? 1 : 0);
     write_u8_to_register(static_cast<uint8_t>(Register::FIFO_CONFIG1), data, ec);
@@ -559,14 +559,8 @@ public:
   }
 
   /// Get the FIFO data
-  /// @param data The buffer to store the FIFO data
-  /// @param size The size of the buffer
   /// @param ec The error code to set if an error occurs
-  /// @return The number of bytes read
-  size_t fifo_data(uint8_t *data, size_t size, std::error_code &ec) {
-    return read(static_cast<uint8_t>(Register::FIFO_DATA), data, size, ec);
-  }
-
+  /// @return The FIFO data
   std::vector<uint8_t> fifo_data(std::error_code &ec) {
     // get the count
     uint16_t count = fifo_count(ec);
@@ -578,7 +572,7 @@ public:
     std::vector<uint8_t> buffer(count);
 
     // read the data
-    size_t read_count = fifo_data(buffer.data(), count, ec);
+    size_t read_count = read(static_cast<uint8_t>(Register::FIFO_DATA), buffer.data(), count, ec);
     if (ec) {
       return {};
     }
@@ -830,7 +824,7 @@ protected:
         z_extension; ///< Z-axis extension data (accelz [3:0] high nibble + gyroz [3:0] low nibble)
   };
 
-  static float accelerometer_range_to_sensitivty(AccelerometerRange range) {
+  static float accelerometer_range_to_sensitivty(const AccelerometerRange &range) {
     switch (range) {
     case AccelerometerRange::RANGE_16G:
       return ACCEL_FS_16G_SENS;
@@ -845,7 +839,7 @@ protected:
     }
   }
 
-  static float gyroscope_range_to_sensitivty(GyroscopeRange range) {
+  static float gyroscope_range_to_sensitivty(const GyroscopeRange &range) {
     switch (range) {
     case GyroscopeRange::RANGE_2000DPS:
       return GYRO_FS_2000_SENS;
@@ -881,8 +875,8 @@ protected:
     };
   }
 
-  ImuConfig imu_config_; ///< IMU configuration
-};                       // class Icm42607
+  ImuConfig imu_config_{}; ///< IMU configuration
+};                         // class Icm42607
 } // namespace espp
 
 // for libfmt printing of relevant imu types and structs
