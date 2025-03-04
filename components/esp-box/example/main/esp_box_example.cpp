@@ -218,7 +218,7 @@ extern "C" void app_main(void) {
 
          f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
                   gyro.z * M_PI / 180.0f);
-         float yaw;
+         float yaw; // ignore / unused since we only have 6-axis
          f.get_euler(roll, pitch, yaw);
 
          std::string text = fmt::format("{}\n\n\n\n\n", label_text);
