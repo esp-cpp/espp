@@ -7,7 +7,10 @@ Filter APIs
     filters_example
     biquad
     butterworth
+    complementary
+    kalman
     lowpass
+    madgwick
     simple_lowpass
     sos
     transfer_function

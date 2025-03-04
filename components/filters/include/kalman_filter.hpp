@@ -10,25 +10,34 @@ namespace espp {
 /// @tparam N Number of states
 ///
 /// This class implements a simple Kalman filter for estimating the state of a
-/// variable, such as the angle of a system. The filter is based on the
+/// variable, such as the orientation of a system. The filter is based on the
 /// following state-space model:
-///  x(k+1) = A * x(k) + B * u(k) + w(k)
-///  z(k) = H * x(k) + v(k)
-///  where:
-///  - x(k) is the state vector at time k
-///  - u(k) is the control input at time k
-///  - z(k) is the measurement at time k
-///  - w(k) is the process noise at time k
-///  - v(k) is the measurement noise at time k
-///  - A, B, and H are matrices
-///  - A is the state transition matrix
-///  - B is the control input matrix
-///  - H is the measurement matrix
-///  The Kalman filter estimates the state x(k) based on the measurements z(k).
-///  The filter is implemented in two steps: prediction and correction.
-///  The prediction step estimates the state at the next time step based on the
-///  current state and the control input. The correction step updates the state
-///  estimate based on the measurement.
+/// \f[
+/// X' = X + U \cdot dt
+/// \f]
+/// \f[
+/// P' = P + Q
+/// \f]
+/// \f[
+/// Y = Z - X
+/// \f]
+/// \f[
+/// K = P / (P + R)
+/// \f]
+/// \f[
+/// X = X + K \cdot Y
+/// \f]
+/// \f[
+/// P = (1 - K) \cdot P
+/// \f]
+/// where:
+/// - \f$X\f$ is the state vector
+/// - \f$P\f$ is the covariance matrix
+/// - \f$Q\f$ is the process noise
+/// - \f$R\f$ is the measurement noise
+/// - \f$U\f$ is the control input
+/// - \f$dt\f$ is the time step
+/// - \f$Z\f$ is the measurement
 template <size_t N> class KalmanFilter {
 public:
   /// Constructor

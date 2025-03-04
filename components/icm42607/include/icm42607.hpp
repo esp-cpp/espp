@@ -43,6 +43,9 @@ namespace espp {
 ///
 /// For more information see, the datasheet:
 /// https://invensense.tdk.com/wp-content/uploads/2021/07/ds-000451_icm-42670-p-datasheet.pdf
+///
+/// \section icm42607_example Example
+/// \snippet icm42607_example.cpp icm42607 example
 template <icm42607::Interface Interface = icm42607::Interface::I2C>
 class Icm42607 : public espp::BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C> {
   // Since the BasePeripheral is a dependent base class (e.g. its template
