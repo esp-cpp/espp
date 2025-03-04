@@ -114,20 +114,6 @@ public:
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
 
-    uint8_t madctl = 0;
-    if (swap_color_order_) {
-      madctl |= LCD_CMD_BGR_BIT;
-    }
-    if (mirror_x_) {
-      madctl |= LCD_CMD_MX_BIT;
-    }
-    if (mirror_y_) {
-      madctl |= LCD_CMD_MY_BIT;
-    }
-    if (swap_xy_) {
-      madctl |= LCD_CMD_MV_BIT;
-    }
-
     auto init_cmds = std::to_array<display_drivers::DisplayInitCmd<Command>>({
         {Command::slpout, {}, 120},                                // sleep out
         {Command::noron},                                          // normal mode
