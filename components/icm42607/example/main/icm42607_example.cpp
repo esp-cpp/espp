@@ -112,27 +112,25 @@ extern "C" void app_main(void) {
            return false;
          }
 
+         std::string text = "";
+         text += fmt::format("{:.3f},", now / 1'000'000.0f);
+         text += fmt::format("{:02.3f},{:02.3f},{:02.3f},", accel.x, accel.y, accel.z);
+         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", gyro.x, gyro.y, gyro.z);
+         text += fmt::format("{:02.1f},", temp);
+
          float roll = 0, pitch = 0;
 
          // with only the accelerometer + gyroscope, we can't get yaw :(
-         static espp::KalmanFilter kalmanPitch;
-         static espp::KalmanFilter kalmanRoll;
+         static constexpr float angle_noise = 0.001f;
+         static constexpr float rate_noise = 0.1f;
+         static espp::KalmanFilter<2> kf;
+         kf.set_process_noise(rate_noise);
+         kf.set_measurement_noise(angle_noise);
          static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
          static espp::MadgwickFilter f(beta);
 
-         // Compute pitch and roll from accelerometer
-         float accelPitch =
-             atan2(accel.y, sqrt(accel.x * accel.x + accel.z * accel.z)) * 180.0f / M_PI;
-         float accelRoll = atan2(-accel.x, accel.z) * 180.0f / M_PI;
-
-         // Apply Kalman filter
-         pitch = kalmanPitch.update(accelPitch, gyro.y, dt);
-         roll = kalmanRoll.update(accelRoll, gyro.x, dt);
-
          f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
                   gyro.z * M_PI / 180.0f);
-         float yaw; // ignore / unused since we only have 6-axis
-         f.get_euler(roll, pitch, yaw);
 
          float rollRad = roll * M_PI / 180.0f;
          float pitchRad = pitch * M_PI / 180.0f;
@@ -141,13 +139,28 @@ extern "C" void app_main(void) {
          float vy = -cos(pitchRad) * sin(rollRad);
          float vz = -cos(pitchRad) * cos(rollRad);
 
-         std::string text = "";
-         text += fmt::format("{:.3f},", now / 1'000'000.0f);
-         text += fmt::format("{:02.3f},{:02.3f},{:02.3f},", accel.x, accel.y, accel.z);
-         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", gyro.x, gyro.y, gyro.z);
-         text += fmt::format("{:02.1f},", temp);
          text += fmt::format("{:03.3f},{:03.3f},", roll, pitch);
          text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
+
+         // Apply Kalman filter
+         float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
+         float accelRoll = atan2(accel.y, accel.z);
+         kf.predict({float(gyro.x * M_PI / 180.0f), float(gyro.y * M_PI / 180.0f)}, dt);
+         kf.update({accelPitch, accelRoll});
+         auto state = kf.get_state();
+         pitch = state[0];
+         roll = state[1];
+
+         rollRad = roll;
+         pitchRad = pitch;
+
+         vx = sin(pitchRad);
+         vy = -cos(pitchRad) * sin(rollRad);
+         vz = -cos(pitchRad) * cos(rollRad);
+
+         text += fmt::format("{:03.3f},{:03.3f},", roll, pitch);
+         text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
+
          fmt::print("{}\n", text);
 
          return false;
@@ -162,7 +175,7 @@ extern "C" void app_main(void) {
   // print the header for the IMU data (for plotting)
   fmt::print("% Time (s), Accel X (m/s^2), Accel Y (m/s^2), Accel Z (m/s^2), Gyro X (rad/s), Gyro "
              "Y (rad/s), Gyro Z (rad/s), Temp (C), Roll (deg), Pitch (deg), Gravity X, Gravity Y, "
-             "Gravity Z\n");
+             "Gravity Z, Roll (KF), Pitch (KF), Gravity X (KF), Gravity Y (KF), Gravity Z (KF)\n");
 
   logger.info("Starting IMU task");
   imu_task.start();
