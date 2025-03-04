@@ -32,9 +32,7 @@ static read_register_fn i2c_read_register_ = nullptr;
 void set_es8311_write(write_fn fn) { i2c_write_ = fn; }
 void set_es8311_read(read_register_fn fn) { i2c_read_register_ = fn; }
 
-#if !defined(BIT)
-#define BIT(x) (1U << (x))
-#endif
+static inline int BIT(int n) { return 1 << n; }
 
 /* ES8311 address
  * 0x32:CE=1;0x30:CE=0

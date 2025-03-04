@@ -114,20 +114,6 @@ public:
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
 
-    uint8_t madctl = 0;
-    if (swap_color_order_) {
-      madctl |= LCD_CMD_BGR_BIT;
-    }
-    if (mirror_x_) {
-      madctl |= LCD_CMD_MX_BIT;
-    }
-    if (mirror_y_) {
-      madctl |= LCD_CMD_MY_BIT;
-    }
-    if (swap_xy_) {
-      madctl |= LCD_CMD_MV_BIT;
-    }
-
     auto init_cmds = std::to_array<display_drivers::DisplayInitCmd<Command>>({
         {Command::slpout, {}, 120},                                // sleep out
         {Command::noron},                                          // normal mode
@@ -153,16 +139,16 @@ public:
    */
   static void rotate(const DisplayRotation &rotation) {
     uint8_t data = 0;
-    if (swap_color_order_) {
+    if (swap_color_order_) { // cppcheck-suppress knownConditionTrueFalse
       data |= LCD_CMD_BGR_BIT;
     }
-    if (mirror_x_) {
+    if (mirror_x_) { // cppcheck-suppress knownConditionTrueFalse
       data |= LCD_CMD_MX_BIT;
     }
-    if (mirror_y_) {
+    if (mirror_y_) { // cppcheck-suppress knownConditionTrueFalse
       data |= LCD_CMD_MY_BIT;
     }
-    if (swap_xy_) {
+    if (swap_xy_) { // cppcheck-suppress knownConditionTrueFalse
       data |= LCD_CMD_MV_BIT;
     }
 
@@ -171,7 +157,7 @@ public:
       break;
     case DisplayRotation::PORTRAIT:
       // flip the mx and mv bits (xor)
-      if (mirror_portrait_) {
+      if (mirror_portrait_) { // cppcheck-suppress knownConditionTrueFalse
         data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
       } else {
         data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
@@ -183,7 +169,7 @@ public:
       break;
     case DisplayRotation::PORTRAIT_INVERTED:
       // flip the my and mv bits (xor)
-      if (mirror_portrait_) {
+      if (mirror_portrait_) { // cppcheck-suppress knownConditionTrueFalse
         data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
       } else {
         data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
