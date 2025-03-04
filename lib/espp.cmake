@@ -101,6 +101,8 @@ endfunction()
 function(espp_install_python_module FOLDER)
   pybind11_add_module(espp ${ESPP_PYTHON_SOURCES})
   target_compile_features(espp PRIVATE cxx_std_20)
+  # disable certain compiler warnings for this module
+  target_compile_options(espp PRIVATE -Wno-braced-scalar-init -Wno-unused-variable -Wno-unused-parameter)
   target_link_libraries(espp PRIVATE ${ESPP_EXTERNAL_LIBS})
   install(TARGETS espp
     LIBRARY DESTINATION ${FOLDER}/)

@@ -2,9 +2,9 @@
 
 #include <bit>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <stdfloat>
 #include <utility>
 #include <vector>
 
@@ -31,8 +31,7 @@ namespace espp {
  * @return Approximation of the inverse square root of value.
  */
 [[maybe_unused]] static constexpr float fast_inv_sqrt(float value) noexcept {
-  const auto y =
-      std::bit_cast<std::float32_t>(0x5f3759df - (std::bit_cast<std::uint32_t>(value) >> 1));
+  const auto y = std::bit_cast<float>(0x5f3759df - (std::bit_cast<std::uint32_t>(value) >> 1));
   return y * (1.5f - (0.5f * value * y * y));
 }
 
