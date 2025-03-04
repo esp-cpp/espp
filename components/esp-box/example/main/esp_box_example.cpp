@@ -259,9 +259,7 @@ extern "C" void app_main(void) {
          float accelRoll = atan2(accel.y, accel.z);
          kf.predict({float(gyro.x * M_PI / 180.0f), float(gyro.y * M_PI / 180.0f)}, dt);
          kf.update({accelPitch, accelRoll});
-         auto state = kf.get_state();
-         pitch = state[0];
-         roll = state[1];
+         std::tie(pitch, roll) = kf.get_state();
 
          vx = sin(pitch);
          vy = -cos(pitch) * sin(roll);
