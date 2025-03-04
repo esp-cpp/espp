@@ -5,6 +5,8 @@
 
 #include "esp-box.hpp"
 
+#include "kalman_filter.hpp"
+
 using namespace std::chrono_literals;
 
 static constexpr size_t MAX_CIRCLES = 100;
@@ -93,9 +95,24 @@ extern "C" void app_main(void) {
 
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_screen_active());
-  lv_label_set_text(label, "Touch the screen!\nPress the home button to clear circles.");
-  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+  static std::string label_text =
+      "\n\n\n\n\nTouch the screen!\nPress the home button to clear circles.";
+  lv_label_set_text(label, label_text.c_str());
+  lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
+  lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
+
+  /*Create style*/
+  static lv_style_t style_line;
+  lv_style_init(&style_line);
+  lv_style_set_line_width(&style_line, 8);
+  lv_style_set_line_color(&style_line, lv_palette_main(LV_PALETTE_BLUE));
+  lv_style_set_line_rounded(&style_line, true);
+
+  // make a line for showing the direction of "down"
+  lv_obj_t *line = lv_line_create(lv_screen_active());
+  static lv_point_precise_t line_points[] = {{0, 0}, {box.lcd_width(), box.lcd_height()}};
+  lv_line_set_points(line, line_points, 2);
+  lv_obj_add_style(line, &style_line, 0);
 
   // add a button in the top left which (when pressed) will rotate the display
   // through 0, 90, 180, 270 degrees
@@ -135,6 +152,7 @@ extern "C" void app_main(void) {
                       },
                       .task_config = {
                           .name = "lv_task",
+                          .stack_size_bytes = 6 * 1024,
                       }});
   lv_task.start();
 
@@ -151,19 +169,19 @@ extern "C" void app_main(void) {
 
   // make a task to read out the IMU data and print it to console
   espp::Task imu_task(
-      {.callback = [&label](std::mutex &m, std::condition_variable &cv) -> bool {
+      {.callback = [&label, &line](std::mutex &m, std::condition_variable &cv) -> bool {
          // sleep first in case we don't get IMU data and need to exit early
          {
            std::unique_lock<std::mutex> lock(m);
-           cv.wait_for(lock, 100ms);
+           cv.wait_for(lock, 10ms);
          }
          static auto &box = espp::EspBox::get();
          static auto imu = box.imu();
 
-         auto now = std::chrono::steady_clock::now();
+         auto now = esp_timer_get_time(); // time in microseconds
          static auto t0 = now;
          auto t1 = now;
-         float dt = std::chrono::duration<float>(t1 - t0).count();
+         float dt = (t1 - t0) / 1'000'000.0f; // convert us to s
          t0 = t1;
 
          std::error_code ec;
@@ -181,17 +199,51 @@ extern "C" void app_main(void) {
            return false;
          }
 
-         static espp::icm42607::ComplimentaryAngle angle{};
-         angle = imu->complimentary_filter(dt, angle, accel, gyro);
+         float roll = 0, pitch = 0;
 
-         std::string text = "Touch the screen!\nPress the home button to clear circles.\n";
+         // with only the accelerometer + gyroscope, we can't get yaw :(
+         static espp::KalmanFilter kalmanPitch;
+         static espp::KalmanFilter kalmanRoll;
+
+         // Compute pitch and roll from accelerometer
+         float accelPitch =
+             atan2(accel.y, sqrt(accel.x * accel.x + accel.z * accel.z)) * 180.0f / M_PI;
+         float accelRoll = atan2(-accel.x, accel.z) * 180.0f / M_PI;
+
+         // Apply Kalman filter
+         pitch = kalmanPitch.update(accelPitch, gyro.y, dt);
+         roll = kalmanRoll.update(accelRoll, gyro.x, dt);
+
+         std::string text = fmt::format("{}\n\n\n\n", label_text);
          text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
          text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", gyro.x, gyro.y, gyro.z);
-         text += fmt::format("Angle: {:03.2f} {:03.2f}\n", angle.roll, angle.pitch);
+         text += fmt::format("Angle: {:03.2f} {:03.2f}\n", roll, pitch);
          text += fmt::format("Temp: {:02.1f} C\n", temp);
+
+         float rollRad = roll * M_PI / 180.0f;
+         float pitchRad = pitch * M_PI / 180.0f;
+
+         // use the pitch to to draw a line on the screen indiating the
+         // direction from the center of the screen to "down"
+         int x0 = box.lcd_width() / 2;
+         int y0 = box.lcd_height() / 2;
+         int x1 = x0 - 50 * cos(-pitchRad);
+         int y1 = y0 + 50 * sin(-pitchRad);
+
+         float vx = sin(pitchRad);
+         float vy = -cos(pitchRad) * sin(rollRad);
+         float vz = -cos(pitchRad) * cos(rollRad);
+
+         x1 = x0 - 50 * vy;
+         y1 = y0 - 50 * vx;
+
+         static lv_point_precise_t line_points[] = {{x0, y0}, {x1, y1}};
+         line_points[1].x = x1;
+         line_points[1].y = y1;
 
          std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
          lv_label_set_text(label, text.c_str());
+         lv_line_set_points(line, line_points, 2);
 
          return false;
        },
