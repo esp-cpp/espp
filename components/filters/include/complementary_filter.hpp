@@ -19,7 +19,7 @@ class ComplementaryFilter {
 public:
   /// Constructor
   /// \param alpha Filter coefficient (0 < alpha < 1)
-  ComplementaryFilter(float alpha = 0.98)
+  explicit ComplementaryFilter(float alpha = 0.98)
       : alpha(alpha)
       , pitch(0.0f)
       , roll(0.0f) {}

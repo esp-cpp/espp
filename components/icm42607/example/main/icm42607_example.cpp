@@ -15,17 +15,18 @@ extern "C" void app_main(void) {
   using Imu = espp::Icm42607<espp::icm42607::Interface::I2C>;
 
   // make the i2c we'll use to communicate
-  static constexpr auto internal_i2c_port = I2C_NUM_0;
-  static constexpr auto internal_i2c_clock_speed = 400 * 1000;
-  static constexpr gpio_num_t internal_i2c_sda = GPIO_NUM_8;
-  static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_18;
-  espp::I2c i2c{{.port = internal_i2c_port,
-                 .sda_io_num = internal_i2c_sda,
-                 .scl_io_num = internal_i2c_scl,
+  static constexpr auto i2c_port = I2C_NUM_0;
+  static constexpr auto i2c_clock_speed = 400 * 1000;
+  static constexpr gpio_num_t i2c_sda = GPIO_NUM_8;
+  static constexpr gpio_num_t i2c_scl = GPIO_NUM_18;
+  espp::I2c i2c({.port = i2c_port,
+                 .sda_io_num = i2c_sda,
+                 .scl_io_num = i2c_scl,
                  .sda_pullup_en = GPIO_PULLUP_ENABLE,
-                 .scl_pullup_en = GPIO_PULLUP_ENABLE}};
+                 .scl_pullup_en = GPIO_PULLUP_ENABLE,
+                 .clk_speed = i2c_clock_speed});
 
-  // initialize the IMU
+  // make the IMU config
   Imu::Config config{
       .device_address = Imu::DEFAULT_ADDRESS,
       .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
@@ -42,22 +43,34 @@ extern "C" void app_main(void) {
       .auto_init = true,
   };
 
+  // create the IMU
+  logger.info("Creating IMU");
   Imu imu(config);
   std::error_code ec;
+
   // turn on DMP
+  logger.info("Turning on DMP");
   if (!imu.set_dmp_power_save(false, ec)) {
     logger.error("Failed to set DMP power save mode: {}", ec.message());
     return;
   }
+
+  // initialize the DMP
+  logger.info("Initializing DMP");
   if (!imu.dmp_initialize(ec)) {
     logger.error("Failed to initialize DMP: {}", ec.message());
     return;
   }
+
+  // set the DMP output data rate
+  logger.info("Setting DMP output data rate (ODR)");
   if (!imu.set_dmp_odr(espp::icm42607::DmpODR::ODR_25_HZ, ec)) {
     logger.error("Failed to set DMP ODR: {}", ec.message());
     return;
   }
+
   // set filters for the accel / gyro
+  logger.info("Setting accel and gyro filters");
   static constexpr auto filter_bw = espp::icm42607::SensorFilterBandwidth::BW_16_HZ;
   if (!imu.set_accelerometer_filter(filter_bw, ec)) {
     logger.error("Failed to set accel filter: {}", ec.message());
@@ -113,12 +126,6 @@ extern "C" void app_main(void) {
          pitch = kalmanPitch.update(accelPitch, gyro.y, dt);
          roll = kalmanRoll.update(accelRoll, gyro.x, dt);
 
-         std::string text = "";
-         text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
-         text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", gyro.x, gyro.y, gyro.z);
-         text += fmt::format("Angle: {:03.2f} {:03.2f}\n", roll, pitch);
-         text += fmt::format("Temp: {:02.1f} C\n", temp);
-
          float rollRad = roll * M_PI / 180.0f;
          float pitchRad = pitch * M_PI / 180.0f;
 
@@ -126,10 +133,14 @@ extern "C" void app_main(void) {
          float vy = -cos(pitchRad) * sin(rollRad);
          float vz = -cos(pitchRad) * cos(rollRad);
 
-         int x0 = 50;
-         int y0 = 50;
-         int x1 = x0 - 50 * vy;
-         int y1 = y0 - 50 * vx;
+         std::string text = "";
+         text += fmt::format("{:.3f},", now / 1'000'000.0f);
+         text += fmt::format("{:02.3f},{:02.3f},{:02.3f},", accel.x, accel.y, accel.z);
+         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", gyro.x, gyro.y, gyro.z);
+         text += fmt::format("{:02.1f},", temp);
+         text += fmt::format("{:03.3f},{:03.3f},", roll, pitch);
+         text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
+         fmt::print("{}\n", text);
 
          return false;
        },
@@ -139,6 +150,13 @@ extern "C" void app_main(void) {
            .priority = 10,
            .core_id = 0,
        }});
+
+  // print the header for the IMU data (for plotting)
+  fmt::print("% Time (s), Accel X (m/s^2), Accel Y (m/s^2), Accel Z (m/s^2), Gyro X (rad/s), Gyro "
+             "Y (rad/s), Gyro Z (rad/s), Temp (C), Roll (deg), Pitch (deg), Gravity X, Gravity Y, "
+             "Gravity Z\n");
+
+  logger.info("Starting IMU task");
   imu_task.start();
 
   // loop forever

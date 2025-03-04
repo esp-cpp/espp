@@ -5,9 +5,15 @@
 #include "fast_math.hpp"
 
 namespace espp {
+/// Madgwick filter for IMU data Based on:
+/// https://x-io.co.uk/open-source-imu-and-ahrs-algorithms/ (now
+/// https://github.com/xioTechnologies/Fusion)
 class MadgwickFilter {
 public:
-  MadgwickFilter(float beta = 0.1f, float sampleFreq = 100.0f)
+  /// @brief Constructor
+  /// @param beta Filter gain
+  /// @param sampleFreq Sample frequency
+  explicit MadgwickFilter(float beta = 0.1f, float sampleFreq = 100.0f)
       : beta(beta)
       , sampleFreq(sampleFreq)
       , q0(1.0f)
@@ -15,7 +21,16 @@ public:
       , q2(0.0f)
       , q3(0.0f) {}
 
-  void update(float gx, float gy, float gz, float ax, float ay, float az) {
+  /// @brief Update the filter with new data
+  /// @param ax Accelerometer x value in g
+  /// @param ay Accelerometer y value in g
+  /// @param az Accelerometer z value in g
+  /// @param gx Gyroscope x value in degrees/s
+  /// @param gy Gyroscope y value in degrees/s
+  /// @param gz Gyroscope z value in degrees/s
+  /// @note Accelerometer values should be normalized
+  /// @note Gyroscope values should be in degrees/s
+  void update(float ax, float ay, float az, float gx, float gy, float gz) {
     float recipNorm;
     float s0, s1, s2, s3;
     float qDot1, qDot2, qDot3, qDot4;
@@ -70,7 +85,12 @@ public:
     q3 *= recipNorm;
   }
 
-  void get_euler(float &pitch, float &roll, float &yaw) {
+  /// @brief Get the current quaternion values as euler angles
+  /// @param[out] pitch Pitch angle in degrees
+  /// @param[out] roll Roll angle in degrees
+  /// @param[out] yaw Yaw angle in degrees
+  /// @note Euler angles are in degrees
+  void get_euler(float &pitch, float &roll, float &yaw) const {
     pitch = atan2(2.0f * (q0 * q1 + q2 * q3), 1.0f - 2.0f * (q1 * q1 + q2 * q2)) * 180.0f / M_PI;
     roll = asin(2.0f * (q0 * q2 - q3 * q1)) * 180.0f / M_PI;
     yaw = atan2(2.0f * (q0 * q3 + q1 * q2), 1.0f - 2.0f * (q2 * q2 + q3 * q3)) * 180.0f / M_PI;

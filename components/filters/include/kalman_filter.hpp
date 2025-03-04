@@ -33,6 +33,7 @@ public:
   KalmanFilter() {
     angle = 0.0f;
     bias = 0.0f;
+    rate = 0.0f;
     P[0][0] = 1.0f;
     P[0][1] = 0.0f;
     P[1][0] = 0.0f;
@@ -60,7 +61,7 @@ public:
 
     // Correction step
     float S = P[0][0] + R_measure;
-    float K[2] = {P[0][0] / S, P[1][0] / S};
+    const float K[2] = {P[0][0] / S, P[1][0] / S};
 
     float y = newAngle - angle;
     angle += K[0] * y;
