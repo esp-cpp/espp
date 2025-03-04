@@ -6,6 +6,7 @@
 #include "esp-box.hpp"
 
 #include "kalman_filter.hpp"
+#include "madgwick_filter.hpp"
 
 using namespace std::chrono_literals;
 
@@ -96,7 +97,7 @@ extern "C" void app_main(void) {
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_screen_active());
   static std::string label_text =
-      "\n\n\n\n\nTouch the screen!\nPress the home button to clear circles.";
+      "\n\n\n\nTouch the screen!\nPress the home button to clear circles.";
   lv_label_set_text(label, label_text.c_str());
   lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
@@ -199,11 +200,11 @@ extern "C" void app_main(void) {
            return false;
          }
 
-         float roll = 0, pitch = 0;
-
          // with only the accelerometer + gyroscope, we can't get yaw :(
+         float roll = 0, pitch = 0;
          static espp::KalmanFilter kalmanPitch;
          static espp::KalmanFilter kalmanRoll;
+         static espp::MadgwickFilter f(0.01f);
 
          // Compute pitch and roll from accelerometer
          float accelPitch =
@@ -214,7 +215,12 @@ extern "C" void app_main(void) {
          pitch = kalmanPitch.update(accelPitch, gyro.y, dt);
          roll = kalmanRoll.update(accelRoll, gyro.x, dt);
 
-         std::string text = fmt::format("{}\n\n\n\n", label_text);
+         f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
+                  gyro.z * M_PI / 180.0f);
+         float yaw;
+         f.get_euler(roll, pitch, yaw);
+
+         std::string text = fmt::format("{}\n\n\n\n\n", label_text);
          text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
          text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", gyro.x, gyro.y, gyro.z);
          text += fmt::format("Angle: {:03.2f} {:03.2f}\n", roll, pitch);
@@ -227,15 +233,13 @@ extern "C" void app_main(void) {
          // direction from the center of the screen to "down"
          int x0 = box.lcd_width() / 2;
          int y0 = box.lcd_height() / 2;
-         int x1 = x0 - 50 * cos(-pitchRad);
-         int y1 = y0 + 50 * sin(-pitchRad);
 
          float vx = sin(pitchRad);
          float vy = -cos(pitchRad) * sin(rollRad);
          float vz = -cos(pitchRad) * cos(rollRad);
 
-         x1 = x0 - 50 * vy;
-         y1 = y0 - 50 * vx;
+         int x1 = x0 + 50 * vx;
+         int y1 = y0 - 50 * vy;
 
          static lv_point_precise_t line_points[] = {{x0, y0}, {x1, y1}};
          line_points[1].x = x1;
