@@ -395,6 +395,7 @@ void IRAM_ATTR TDeck::write_command(uint8_t command, std::span<const uint8_t> pa
     logger_.error("Couldn't queue spi command trans for display: {} '{}'", ret,
                   esp_err_to_name(ret));
   } else {
+    ++num_queued_trans;
     if (!parameters.empty()) {
       ret = spi_device_queue_trans(lcd_handle_, &trans[1], 10 / portTICK_PERIOD_MS);
       if (ret != ESP_OK) {
@@ -404,7 +405,6 @@ void IRAM_ATTR TDeck::write_command(uint8_t command, std::span<const uint8_t> pa
         ++num_queued_trans;
       }
     }
-    ++num_queued_trans;
   }
 }
 
