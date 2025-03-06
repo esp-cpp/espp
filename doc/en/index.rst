@@ -54,6 +54,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    rmt
    rtc/index
    rtsp
+   runqueue
    seeed_studio_round_display
    serialization
    state_machine
