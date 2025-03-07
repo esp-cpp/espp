@@ -80,12 +80,6 @@ public:
         nullptr}; /**< Optional function used to configure display with new rotation setting. */
     DisplayRotation rotation{
         DisplayRotation::LANDSCAPE}; /**< Default / Initial rotation of the display. */
-    Task::BaseConfig task_config{.name = "Display",
-                                 .stack_size_bytes = 4096,
-                                 .priority = 20,
-                                 .core_id = 0}; /**< Task configuration. */
-    std::chrono::duration<float> update_period{
-        0.01}; /**< How frequently to run the update function. */
   };
 
   /**
@@ -148,11 +142,9 @@ public:
       , height_(lvgl_conf.height)
       , display_buffer_px_size_(mem_conf.pixel_buffer_size)
       , vram_0_(mem_conf.vram0)
-      , vram_1_(mem_conf.vram1)
-      , update_period_(lvgl_conf.update_period) {
+      , vram_1_(mem_conf.vram1) {
     init_backlight(lcd_config.backlight_pin, lcd_config.backlight_on_value);
-    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
-             lvgl_conf.task_config);
+    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation);
     set_brightness(1.0);
   }
 
@@ -170,12 +162,10 @@ public:
       : BaseComponent("Display", log_level)
       , width_(lvgl_conf.width)
       , height_(lvgl_conf.height)
-      , display_buffer_px_size_(mem_conf.pixel_buffer_size)
-      , update_period_(lvgl_conf.update_period) {
+      , display_buffer_px_size_(mem_conf.pixel_buffer_size) {
     init_memory(mem_conf.double_buffered, mem_conf.allocation_flags);
     init_backlight(lcd_config.backlight_pin, lcd_config.backlight_on_value);
-    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
-             lvgl_conf.task_config);
+    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation);
     set_brightness(1.0);
   }
 
@@ -196,11 +186,9 @@ public:
       , display_buffer_px_size_(mem_conf.pixel_buffer_size)
       , vram_0_(mem_conf.vram0)
       , vram_1_(mem_conf.vram1)
-      , update_period_(lvgl_conf.update_period)
       , set_brightness_(oled_config.set_brightness_callback)
       , get_brightness_(oled_config.get_brightness_callback) {
-    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
-             lvgl_conf.task_config);
+    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation);
     set_brightness(1.0);
   }
 
@@ -219,12 +207,10 @@ public:
       , width_(lvgl_conf.width)
       , height_(lvgl_conf.height)
       , display_buffer_px_size_(mem_conf.pixel_buffer_size)
-      , update_period_(lvgl_conf.update_period)
       , set_brightness_(oled_config.set_brightness_callback)
       , get_brightness_(oled_config.get_brightness_callback) {
     init_memory(mem_conf.double_buffered, mem_conf.allocation_flags);
-    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation,
-             lvgl_conf.task_config);
+    init_gfx(lvgl_conf.flush_callback, lvgl_conf.rotation_callback, lvgl_conf.rotation);
     set_brightness(1.0);
   }
 
@@ -232,7 +218,6 @@ public:
    * @brief Stops the upate task and frees the display buffer memory.
    */
   ~Display() {
-    task_->stop();
     if (created_vram_) {
       free(vram_0_);
       free(vram_1_);
@@ -281,18 +266,6 @@ public:
     }
     return 0.0f;
   }
-
-  /**
-   * @brief Pause the display update task, to prevent LVGL from writing to the
-   *        display.
-   */
-  void pause() { paused_ = true; }
-
-  /**
-   * @brief Resume the display update task, to allow LVGL to write to the
-   *        display.
-   */
-  void resume() { paused_ = false; }
 
   /**
    * @brief Force a redraw / refresh of the display.
@@ -395,10 +368,9 @@ protected:
    * @param flush_callback Callback used to flush color data to the display.
    * @param rotation_callback function to call in the event handler on rotation change.
    * @param rotation Default / initial rotation of the display.
-   * @param task_config Configuration for the task that runs the lvgl tick
    */
   void init_gfx(const flush_fn flush_callback, const rotation_fn rotation_callback,
-                DisplayRotation rotation, const Task::BaseConfig &task_config) {
+                DisplayRotation rotation) {
     // save the callbacks
     if (flush_callback == nullptr) {
       logger_.error("No flush callback provided, cannot initialize display!");
@@ -412,6 +384,10 @@ protected:
     rotation_callback_ = rotation_callback;
 
     lv_init();
+
+    lv_tick_set_cb(xTaskGetTickCount);
+
+    lv_delay_set_cb(vTaskDelay);
 
     display_ = lv_display_create(width_, height_);
     // store a pointer to this object in the display user data, so that we can
@@ -429,14 +405,6 @@ protected:
 
     // Setting as default display, allows the use of lv_disp_get_default()
     lv_display_set_default(display_);
-
-    // Now start the task for the ui management
-    using namespace std::placeholders;
-    task_ = Task::make_unique({
-        .callback = std::bind(&Display::update, this, _1, _2, _3),
-        .task_config = task_config,
-    });
-    task_->start();
   }
 
   /**
@@ -479,35 +447,12 @@ protected:
   }
 
   /**
-   * @brief Flush the data to the display, called within the task_.
-   *
-   *   This task should always be high priority, so that it is higher than
-   *   than the task running lv_task_handler(). For more info, see
-   *   https://docs.lvgl.io/latest/en/html/porting/tick.html
+   * @brief Wrapper around vTaskDelay, to pass to LVGL.
+   *        If not, LVGL will do random math as to delay the task instead.
+   * @param ms The number of milliseconds to delay.
    */
-  bool update(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-    auto now = std::chrono::high_resolution_clock::now();
-    static auto prev = now;
-    if (!paused_) {
-      int elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - prev).count();
-      // we shouldn't stop, update the display
-      lv_tick_inc(elapsed_ms);
-    }
-    // update previous timestamp
-    prev = now;
-    // delay
-    {
-      using namespace std::chrono_literals;
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, update_period_, [&task_notified] { return task_notified; });
-      task_notified = false;
-    }
-    // don't want to stop the task
-    return false;
-  }
+  static void vTaskDelay_wrapper(const uint32_t ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }
 
-  std::atomic<bool> paused_{false};
-  std::unique_ptr<Task> task_;
   size_t width_;
   size_t height_;
   flush_fn flush_callback_{nullptr};
@@ -518,7 +463,6 @@ protected:
   bool created_vram_{false};
   std::vector<Led::ChannelConfig> led_channel_configs_;
   std::unique_ptr<Led> backlight_{nullptr};
-  std::chrono::duration<float> update_period_;
   lv_display_t *display_;
   set_brightness_fn set_brightness_{nullptr};
   get_brightness_fn get_brightness_{nullptr};
