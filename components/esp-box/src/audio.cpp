@@ -111,7 +111,10 @@ bool EspBox::initialize_i2s(uint32_t default_audio_rate) {
 
 bool EspBox::initialize_sound(uint32_t default_audio_rate,
                               const espp::Task::BaseConfig &task_config) {
-
+  if (sound_initialized_) {
+    logger_.warn("Sound already initialized");
+    return true;
+  }
   if (!initialize_i2s(default_audio_rate)) {
     logger_.error("Could not initialize I2S driver");
     return false;
@@ -130,6 +133,8 @@ bool EspBox::initialize_sound(uint32_t default_audio_rate,
       .callback = std::bind(&EspBox::audio_task_callback, this, _1, _2, _3),
       .task_config = task_config,
   });
+
+  sound_initialized_ = true;
 
   return audio_task_->start();
 }
@@ -154,6 +159,9 @@ bool EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv, boo
 }
 
 void EspBox::update_volume_output() {
+  if (!sound_initialized_) {
+    return;
+  }
   if (mute_) {
     es8311_codec_set_voice_volume(0);
   } else {
