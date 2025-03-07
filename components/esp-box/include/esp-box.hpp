@@ -34,8 +34,9 @@ namespace espp {
 /// - Display
 /// - Audio
 /// - Interrupts
+/// - Buttons (boot and mute)
 /// - I2C
-/// - IMU (Inertial Measurement Unit)
+/// - IMU (Inertial Measurement Unit), 6-axis ICM42607
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
@@ -43,6 +44,9 @@ namespace espp {
 /// \snippet esp_box_example.cpp esp box example
 class EspBox : public BaseComponent {
 public:
+  /// Alias for the button callback function
+  using button_callback_t = espp::Interrupt::event_callback_fn;
+
   /// Alias for the pixel type used by the ESP-Box display
   using Pixel = lv_color16_t;
 
@@ -234,6 +238,28 @@ public:
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////
+  // Button
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the boot button (side of the box)
+  /// \param callback The callback function to call when the button is pressed
+  /// \return true if the button was successfully initialized, false otherwise
+  bool initialize_boot_button(const button_callback_t &callback = nullptr);
+
+  /// Get the boot button state
+  /// \return The button state (true = button pressed, false = button released)
+  bool boot_button_state() const;
+
+  /// Initialize the mute button (top of the box)
+  /// \param callback The callback function to call when the button is pressed
+  /// \return true if the button was successfully initialized, false otherwise
+  bool initialize_mute_button(const button_callback_t &callback = nullptr);
+
+  /// Get the mute button state
+  /// \return The button state (true = button pressed, false = button released)
+  bool mute_button_state() const;
+
+  /////////////////////////////////////////////////////////////////////////////
   // Audio
   /////////////////////////////////////////////////////////////////////////////
 
@@ -351,6 +377,9 @@ protected:
   bool touch_interrupt_pullup_enabled;
 
   // common:
+  // button (boot button)
+  static constexpr gpio_num_t boot_button_io = GPIO_NUM_0; // active low
+
   // internal i2c (touchscreen, audio codec)
   static constexpr auto internal_i2c_port = I2C_NUM_0;
   static constexpr auto internal_i2c_clock_speed = 400 * 1000;
@@ -408,6 +437,29 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
+  espp::Interrupt::PinConfig boot_button_interrupt_pin_{
+      .gpio_num = boot_button_io,
+      .callback =
+          [this](const auto &event) {
+            if (boot_button_callback_) {
+              boot_button_callback_(event);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+      .pullup_enabled = true};
+  espp::Interrupt::PinConfig mute_button_interrupt_pin_{
+      .gpio_num = mute_pin,
+      .callback =
+          [this](const auto &event) {
+            mute(event.active);
+            if (mute_button_callback_) {
+              mute_button_callback_(event);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+      .pullup_enabled = true};
   // NOTE: the active level, interrupt type, and pullup configuration is set by
   // detect(), since it depends on the box type
   espp::Interrupt::PinConfig touch_interrupt_pin_{
@@ -430,6 +482,12 @@ protected:
        .task_config = {.name = "esp-box interrupts",
                        .stack_size_bytes = CONFIG_ESP_BOX_INTERRUPT_STACK_SIZE}}};
 
+  // button
+  std::atomic<bool> boot_button_initialized_{false};
+  button_callback_t boot_button_callback_{nullptr};
+  std::atomic<bool> mute_button_initialized_{false};
+  button_callback_t mute_button_callback_{nullptr};
+
   // touch
   std::shared_ptr<Gt911> gt911_;     // only used on ESP32-S3-BOX-3
   std::shared_ptr<Tt21100> tt21100_; // only used on ESP32-S3-BOX
@@ -451,6 +509,7 @@ protected:
   uint8_t *frame_buffer1_{nullptr};
 
   // sound
+  std::atomic<bool> sound_initialized_{false};
   std::atomic<float> volume_{50.0f};
   std::atomic<bool> mute_{false};
   std::unique_ptr<espp::Task> audio_task_{nullptr};

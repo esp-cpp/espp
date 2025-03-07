@@ -20,7 +20,9 @@ bool QtPy::initialize_button(const QtPy::button_callback_t &callback) {
   button_callback_ = callback;
 
   // configure the button
-  interrupts_.add_interrupt(button_interrupt_pin_);
+  if (!button_initialized_) {
+    interrupts_.add_interrupt(button_interrupt_pin_);
+  }
   button_initialized_ = true;
   return true;
 }
