@@ -43,20 +43,20 @@ namespace espp {
 ///
 /// The RunQueue is thread-safe and can be used from multiple threads.
 ///
-/// \warn Care should be taken to ensure that no functions in the queue are
-///       blocking on each other, and all functions in the queue must return
-///       (they cannot be infinite loops).
+/// \warning Care should be taken to ensure that no functions in the queue are
+///          blocking on each other, and all functions in the queue must return
+///          (they cannot be infinite loops).
 ///
-/// \warn Functions take a long time to run may delay or prevent the execution
-///       of other functions in the queue. For this reason it's recommended to
-///       try to keep the functions as short-lived as possible, and to
-///       minimize the priorities of any functions which take longer to
-///       execute.
+/// \warning Functions take a long time to run may delay or prevent the
+///          execution of other functions in the queue. For this reason it's
+///          recommended to try to keep the functions as short-lived as
+///          possible, and to minimize the priorities of any functions which
+///          take longer to execute.
 ///
 /// \section runq_ex0 RunQueue Example
 /// \snippet runqueue_example.cpp runqueue example
 /// \section runq_ex1 Multiple RunQueues Example
-/// \snippet runqueue_example.cpp multiple runqueues example
+/// \snippet runqueue_example.cpp multiple runqueue example
 class RunQueue : public espp::BaseComponent {
 public:
   /// The type used to represent the priority of a function.
