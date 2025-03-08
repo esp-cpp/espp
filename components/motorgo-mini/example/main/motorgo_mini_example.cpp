@@ -19,7 +19,6 @@ extern "C" void app_main(void) {
   motorgo_mini.init_motor_channel_2();
   auto &motor1 = motorgo_mini.motor1();
   auto &motor2 = motorgo_mini.motor2();
-  auto &button = motorgo_mini.button();
 
   static constexpr uint64_t core_update_period_us = 1000;                   // microseconds
   static constexpr float core_update_period = core_update_period_us / 1e6f; // seconds
@@ -169,30 +168,29 @@ extern "C" void app_main(void) {
   });
   target_task.start();
 
-  bool button_state = false;
+  logger.info("Initializing the button");
+  auto on_button_pressed = [&](const auto &event) {
+    if (event.active) {
+      logger.info("Button pressed, changing motion control type");
+      // switch between ANGLE and VELOCITY
+      if (motion_control_type == espp::detail::MotionControlType::ANGLE ||
+          motion_control_type == espp::detail::MotionControlType::ANGLE_OPENLOOP) {
+        motion_control_type = espp::detail::MotionControlType::VELOCITY;
+        target_is_angle = false;
+      } else {
+        motion_control_type = espp::detail::MotionControlType::ANGLE;
+        target_is_angle = true;
+      }
+      initialize_target();
+      motor1.set_motion_control_type(motion_control_type);
+      motor2.set_motion_control_type(motion_control_type);
+    } else {
+      logger.info("Button released");
+    }
+  };
+  motorgo_mini.initialize_button(on_button_pressed);
 
   while (true) {
-    bool new_button_state = button.is_pressed();
-    if (new_button_state != button_state) {
-      button_state = new_button_state;
-      if (button_state) {
-        logger.info("Button pressed, changing motion control type");
-        // switch between ANGLE and VELOCITY
-        if (motion_control_type == espp::detail::MotionControlType::ANGLE ||
-            motion_control_type == espp::detail::MotionControlType::ANGLE_OPENLOOP) {
-          motion_control_type = espp::detail::MotionControlType::VELOCITY;
-          target_is_angle = false;
-        } else {
-          motion_control_type = espp::detail::MotionControlType::ANGLE;
-          target_is_angle = true;
-        }
-        initialize_target();
-        motor1.set_motion_control_type(motion_control_type);
-        motor2.set_motion_control_type(motion_control_type);
-      } else {
-        logger.info("Button released");
-      }
-    }
     std::this_thread::sleep_for(50ms);
   }
   //! [motorgo-mini example]

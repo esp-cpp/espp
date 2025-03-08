@@ -8,9 +8,9 @@
 #include "base_component.hpp"
 #include "bldc_driver.hpp"
 #include "bldc_motor.hpp"
-#include "button.hpp"
 #include "gaussian.hpp"
 #include "i2c.hpp"
+#include "interrupt.hpp"
 #include "led.hpp"
 #include "mt6701.hpp"
 #include "oneshot_adc.hpp"
@@ -40,7 +40,13 @@ namespace espp {
 /// \snippet motorgo_mini_example.cpp motorgo-mini example
 class MotorGoMini : public BaseComponent {
 public:
+  /// Alias for the button callback function
+  using button_callback_t = espp::Interrupt::event_callback_fn;
+
+  /// Alias for the encoder type
   using Encoder = espp::Mt6701<espp::Mt6701Interface::SSI>;
+
+  /// Alias for the BLDC motor type
   using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
 
   /// @brief Access the singleton instance of the MotorGoMini class
@@ -59,8 +65,26 @@ public:
   /// \return A reference to the external I2C bus
   I2c &get_external_i2c();
 
-  /// Get a reference to the boot button
-  espp::Button &button();
+  /// Get a reference to the interrupts
+  /// \return A reference to the interrupts
+  espp::Interrupt &interrupts();
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Button
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the button
+  /// \param callback The callback function to call when the button is pressed
+  /// \return true if the button was successfully initialized, false otherwise
+  bool initialize_button(const button_callback_t &callback = nullptr);
+
+  /// Get the button state
+  /// \return The button state (true = button pressed, false = button released)
+  bool button_state() const;
+
+  /////////////////////////////////////////////////////////////////////////////
+  // LEDs
+  /////////////////////////////////////////////////////////////////////////////
 
   /// Get a reference to the yellow LED channel (channel 0)
   /// \return A reference to the yellow LED channel (channel 0)
@@ -117,6 +141,22 @@ public:
   ///         effectively turning off the LEDs.
   void stop_breathing();
 
+  /////////////////////////////////////////////////////////////////////////////
+  // ADCs
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Get a reference to the ADC_UNIT_1 OneshotAdc object
+  /// \return A reference to the ADC_UNIT_1 OneshotAdc object
+  espp::OneshotAdc &adc1();
+
+  /// Get a reference to the ADC_UNIT_2 OneshotAdc object
+  /// \return A reference to the ADC_UNIT_2 OneshotAdc object
+  espp::OneshotAdc &adc2();
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Motors
+  /////////////////////////////////////////////////////////////////////////////
+
   /// Initialize the MotorGo-Mini's components for motor channel 1
   /// \details This function initializes the encoder and motor for motor channel
   ///          1. This consists of initializing encoder1 and motor1.
@@ -126,14 +166,6 @@ public:
   /// \details This function initializes the encoder and motor for motor channel
   ///          2. This consists of initializing encoder2 and motor2.
   void init_motor_channel_2();
-
-  /// Get a reference to the encoder 1
-  /// \return A reference to the encoder 1
-  Encoder &encoder1();
-
-  /// Get a reference to the encoder 2
-  /// \return A reference to the encoder 2
-  Encoder &encoder2();
 
   /// Get a reference to the motor 1 driver
   /// \return A reference to the motor 1 driver
@@ -151,13 +183,21 @@ public:
   /// \return A reference to the motor 2
   BldcMotor &motor2();
 
-  /// Get a reference to the ADC_UNIT_1 OneshotAdc object
-  /// \return A reference to the ADC_UNIT_1 OneshotAdc object
-  espp::OneshotAdc &adc1();
+  /////////////////////////////////////////////////////////////////////////////
+  // Encoders
+  /////////////////////////////////////////////////////////////////////////////
 
-  /// Get a reference to the ADC_UNIT_2 OneshotAdc object
-  /// \return A reference to the ADC_UNIT_2 OneshotAdc object
-  espp::OneshotAdc &adc2();
+  /// Get a reference to the encoder 1
+  /// \return A reference to the encoder 1
+  Encoder &encoder1();
+
+  /// Get a reference to the encoder 2
+  /// \return A reference to the encoder 2
+  Encoder &encoder2();
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Motor Current Sense
+  /////////////////////////////////////////////////////////////////////////////
 
   /// Get the current sense value for motor 1 phase U
   /// \return The current sense value for motor 1 phase U in amps
@@ -388,15 +428,28 @@ protected:
       .channels = {current_sense_m2_u_},
   }};
 
-  // button
-  espp::Button button_{{
-      .name = "MotorGo Mini Button",
+  // Interrupts
+  espp::Interrupt::PinConfig button_interrupt_pin_{
       .gpio_num = BUTTON_GPIO,
+      .callback =
+          [this](const auto &event) {
+            if (button_callback_) {
+              button_callback_(event);
+            }
+          },
       .active_level = espp::Interrupt::ActiveLevel::LOW,
-      .pullup_enabled = false,
-      .pulldown_enabled = false,
-      .log_level = espp::Logger::Verbosity::WARN,
-  }};
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+      .pullup_enabled = true};
+
+  // we'll only add each interrupt pin if the initialize method is called
+  espp::Interrupt interrupts_{
+      {.interrupts = {},
+       .task_config = {.name = "motorgo mini interrupts",
+                       .stack_size_bytes = CONFIG_MOTORGO_MINI_INTERRUPT_STACK_SIZE}}};
+
+  // button
+  std::atomic<bool> button_initialized_{false};
+  button_callback_t button_callback_{nullptr};
 
   // led
   std::vector<espp::Led::ChannelConfig> led_channels_{
