@@ -9,7 +9,7 @@ MotorGoMini::MotorGoMini()
 
 I2c &MotorGoMini::get_external_i2c() { return external_i2c_; }
 
-espp::Button &MotorGoMini::button() { return button_; }
+espp::Interrupt &MotorGoMini::interrupts() { return interrupts_; }
 
 espp::Led::ChannelConfig &MotorGoMini::yellow_led() { return led_channels_[0]; }
 
