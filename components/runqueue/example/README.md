@@ -23,4 +23,5 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-![CleanShot 2025-03-06 at 14 38 32](https://github.com/user-attachments/assets/57dbbe6c-dc46-448b-b86f-750a19142658)
+![CleanShot 2025-03-07 at 21 55 15@2x](https://github.com/user-attachments/assets/d339b4ab-0cf6-4b90-85c3-4c228e913a92)
+
