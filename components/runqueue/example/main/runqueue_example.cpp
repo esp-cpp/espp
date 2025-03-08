@@ -77,16 +77,23 @@ extern "C" void app_main(void) {
 
     // check the API for removing an invalid id
     if (runqueue.remove_function(espp::RunQueue::INVALID_ID)) {
-      logger.error("Removed invalid id!");
+      logger.error("Incorrectly Removed invalid id!");
     } else {
       logger.info("Correctly failed to remove invalid id!");
     }
 
     // check the api for removing a valid but non-existent id
     if (runqueue.remove_function(999)) {
-      logger.error("Removed non-existent id!");
+      logger.error("Incorrectly Removed non-existent id!");
     } else {
       logger.info("Correctly failed to remove non-existent id!");
+    }
+
+    // check the api for removing the currently running id (which should fail)
+    if (runqueue.remove_function(runqueue.get_running_id().value())) {
+      logger.error("Incorrectly Removed currently running id!");
+    } else {
+      logger.info("Correctly failed to remove currently running id!");
     }
 
     // NOTE: in the next example (below) we'll check removing a valid ID

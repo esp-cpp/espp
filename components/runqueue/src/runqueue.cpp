@@ -54,11 +54,13 @@ RunQueue::Id RunQueue::add_function(const Function &function, Priority priority)
 bool RunQueue::remove_function(RunQueue::Id id) {
   // return false if the id is invalid
   if (id == INVALID_ID) {
+    logger_.debug("Cannot remove function with id: {}, it is invalid", id);
     return false;
   }
   // return false if the function is the one currently running, as we cannot
   // remove the running function
   if (id == running_id_) {
+    logger_.debug("Cannot remove function with id: {}, it is running", id);
     return false;
   }
   logger_.debug("Removing function from queue with id: {}", id);
@@ -69,6 +71,7 @@ bool RunQueue::remove_function(RunQueue::Id id) {
     priority_function_queue_.erase(it);
     return true;
   }
+  logger_.debug("Function with id: {} not found in queue", id);
   return false;
 }
 
