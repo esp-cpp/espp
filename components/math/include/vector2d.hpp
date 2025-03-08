@@ -238,6 +238,23 @@ public:
   T dot(const Vector2d &other) const { return (x_ * other.x_) + (y_ * other.y_); }
 
   /**
+   * @brief Angle between this vector and another vector.
+   * @note This function is only available if T is a floating point value.
+   * @param other The second vector
+   * @return The angle between the two vectors in radians.
+   *         Returns 0 if either vector is a zero vector.
+   * @details The angle is calculated as acos(dot(v1, v2) / (||v1|| * ||v2||))
+   */
+  T angle(const Vector2d &other) const requires std::is_floating_point<T>::value {
+    T dot = this->dot(other);
+    T mag = this->magnitude() * other.magnitude();
+    if (mag == T(0)) {
+      return T(0);
+    }
+    return acos(dot / mag);
+  }
+
+  /**
    * @brief Return normalized (unit length) version of the vector.
    * @return The normalized vector.
    */
