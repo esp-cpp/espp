@@ -63,10 +63,16 @@ public:
   using Priority = std::uint8_t;
 
   /// The minimum priority a function can have.
-  static constexpr int MIN_PRIORITY = std::numeric_limits<Priority>::min();
+  static constexpr Priority MIN_PRIORITY = std::numeric_limits<Priority>::min();
 
   /// The maximum priority a function can have.
-  static constexpr int MAX_PRIORITY = std::numeric_limits<Priority>::max();
+  static constexpr Priority MAX_PRIORITY = std::numeric_limits<Priority>::max();
+
+  /// The type used to represent the id of a function.
+  using Id = std::uint32_t;
+
+  /// The invalid id value. This is used to know if an id is valid or not.
+  static constexpr Id INVALID_ID = std::numeric_limits<Id>::min();
 
   /// A function that takes no arguments and returns void.
   using Function = std::function<void(void)>;
@@ -74,7 +80,8 @@ public:
 
   /// A pair of a priority and a function.
   struct PriorityFunction {
-    Priority priority; ///< The priority of the function.
+    Priority priority; ///< The priority of the function. Lower values have lower priority.
+    Id id;             ///< The id of the function. Can be provided or auto-generated.
     Function function; ///< The function.
   };
 
@@ -92,6 +99,14 @@ public:
   /// \return True if the left hand side has a greater priority.
   friend bool operator>(const PriorityFunction &lhs, const PriorityFunction &rhs) {
     return lhs.priority > rhs.priority;
+  }
+
+  /// Equality operator for PriorityFunction.
+  /// \param lhs The left hand side of the comparison.
+  /// \param rhs The right hand side of the comparison.
+  /// \return True if the left and right hand side have the same priority and id.
+  friend bool operator==(const PriorityFunction &lhs, const PriorityFunction &rhs) {
+    return lhs.priority == rhs.priority && lhs.id == rhs.id;
   }
 
   /// Configuration struct for the RunQueue
@@ -121,12 +136,57 @@ public:
   void start();
 
   /// Stop the run queue.
+  /// \note This must wait until the currently running function (if any) has
+  ///       completed before stopping the run queue.
   void stop();
 
   /// Add a function to the queue.
   /// \param function The function to add.
   /// \param priority The priority of the function. Defaults to MIN_PRIORITY.
-  void add_function(const Function &function, Priority priority = MIN_PRIORITY);
+  /// \return The id of the function. This will be auto-generated and can be
+  ///         used to query or remove the function from the queue.
+  Id add_function(const Function &function, Priority priority = MIN_PRIORITY);
+
+  /// Remove a function from the queue.
+  /// \param id The id of the function to remove. Cannot be INVALID_ID.
+  /// \return True if the function was removed.
+  /// \note This will not remove or stop the currently running function (if
+  ///       any).
+  /// \note This will return false if the id is INVALID_ID.
+  /// \note This will return false if the id is the id of the currently running
+  ///       function.
+  bool remove_function(Id id);
+
+  /// Check if a function is queued or running.
+  /// \param id The id of the function to check. Cannot be INVALID_ID.
+  /// \return True if the function is queued or is currently running.
+  /// \note This will return false if the the id is INVALID_ID.
+  bool is_function_queued(Id id);
+
+  /// Remove all functions from the queue.
+  /// \note This will not remove or stop the currently running function (if
+  ///       any).
+  void clear_queue();
+
+  /// Get the ids of all functions in the queue in order of priority.
+  /// \param include_running Whether to include the id of the currently running
+  ///                        function (if any) in the returned vector.
+  /// \return A vector of the ids of all functions in the queue, optionally
+  ///         including the id of the currently running function. Maybe empty if
+  ///         there are no functions queued or running.
+  /// \note The vector will be in order of priority, with the highest priority
+  ///       function at the end of the vector. This means that if include_running
+  ///       is true, the id of the currently running function will be the last
+  ///       element in the vector.
+  std::vector<Id> get_queued_ids(bool include_running = false);
+
+  /// Get the id of the currently running function.
+  /// \return The id of the currently running function, or std::nullopt if no
+  ///         function is currently running.
+  /// \note This may return nullopt if the currently running function has
+  ///       completed but the runner task has not yet fetched the next function
+  ///       from the queue.
+  std::optional<Id> get_running_id();
 
 protected:
   /// Manage the run queue.
@@ -140,6 +200,8 @@ protected:
   bool task_fn(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   std::unique_ptr<espp::Task> runner_;
+  std::atomic<Id> id_counter_{INVALID_ID};
+  std::atomic<Id> running_id_{INVALID_ID};
   std::mutex queue_mutex_;
   std::condition_variable queue_cv_;
   bool queue_notified_ = false;
