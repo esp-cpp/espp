@@ -184,6 +184,11 @@ public:
   int get_accumulator() const { return accumulator_.load(); }
 
   /**
+   * @brief Reset the accumulator to zero.
+   */
+  void reset_accumulator() { accumulator_ = 0; }
+
+  /**
    * @brief Return the mechanical / shaft angle of the encoder, in radians,
    *        within the range [0, 2pi].
    * @return Angle in radians of the encoder within the range [0, 2pi].

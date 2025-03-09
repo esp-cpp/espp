@@ -195,6 +195,18 @@ public:
   /// \return A reference to the encoder 2
   Encoder &encoder2();
 
+  /// Reset the encoder 1 accumulator
+  /// \details This function resets the encoder 1 accumulator to 0.
+  ///          This will reset the encoder's position to be within the range
+  ///          of 0 to 2*pi.
+  void reset_encoder1_accumulator();
+
+  /// Reset the encoder 2 accumulator
+  /// \details This function resets the encoder 2 accumulator to 0.
+  ///          This will reset the encoder's position to be within the range
+  ///          of 0 to 2*pi.
+  void reset_encoder2_accumulator();
+
   /////////////////////////////////////////////////////////////////////////////
   // Motor Current Sense
   /////////////////////////////////////////////////////////////////////////////
