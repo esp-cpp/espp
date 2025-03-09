@@ -249,7 +249,18 @@ extern "C" void app_main(void) {
     fmt::print("magnitude:      {}\n", v.magnitude());
     fmt::print("normalized:     {}\n", v.normalized());
     fmt::print("norm mag:       {}\n", v.normalized().magnitude());
-    fmt::print("rotated pi/2:   {}\n", v.rotated(M_PI_2));
+    fmt::print("rotated -pi/2:  {}\n", v.rotated(-M_PI_2));
+    // now compute the angle and signed angle between two vectors
+    auto rotated = v.rotated(-M_PI_2);
+    fmt::print("angle:          {}\n", v.angle(rotated));
+    fmt::print("signed angle:   {}\n", v.signed_angle(rotated));
+    fmt::print("actual angle:   {}\n", -M_PI_2);
+    // now test inv_magnitude on it
+    fmt::print("inv_magnitude:  {}\n", rotated.inv_magnitude());
+    // and show that it produces the correct normalized vector
+    fmt::print("normalized (fast):     {}\n", rotated * rotated.inv_magnitude());
+    // and that that's (close enough to) the same as the normalized vector
+    fmt::print("normalized (slow):     {}\n", rotated.normalized());
     //! [vector2d example]
   }
 

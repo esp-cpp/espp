@@ -3,6 +3,8 @@
 #include <array>
 #include <math.h>
 
+#include "fast_math.hpp"
+
 namespace espp {
 /**
  * @brief Container representing a 2 dimensional vector.
@@ -41,6 +43,21 @@ public:
     x_ = other.x_;
     y_ = other.y_;
     return *this;
+  }
+
+  /**
+   * @brief Returns the inverse magnitude of the vector.
+   * @return The inverse magnitude.
+   * @note This function is only available if T is a floating point value.
+   * @details This function is more efficient than 1.0 / magnitude() as it
+   *          uses a fast inverse square root.
+   */
+  T inv_magnitude() const requires std::is_floating_point<T>::value {
+    auto mag2 = magnitude_squared();
+    if (mag2 == T(0)) {
+      return T(0);
+    }
+    return fast_inv_sqrt(mag2);
   }
 
   /**
@@ -243,15 +260,39 @@ public:
    * @param other The second vector
    * @return The angle between the two vectors in radians.
    *         Returns 0 if either vector is a zero vector.
-   * @details The angle is calculated as acos(dot(v1, v2) / (||v1|| * ||v2||))
+   *         Returns a value in the range [0, pi].
    */
   T angle(const Vector2d &other) const requires std::is_floating_point<T>::value {
-    T dot = this->dot(other);
-    T mag = this->magnitude() * other.magnitude();
-    if (mag == T(0)) {
+    T mag1 = magnitude();
+    T mag2 = other.magnitude();
+    if (mag1 == T(0) || mag2 == T(0)) {
       return T(0);
     }
-    return acos(dot / mag);
+    T dot_product = dot(other);
+    return acos(dot_product / (mag1 * mag2));
+  }
+
+  /**
+   * @brief Signed angle between this vector and another vector.
+   * @note This function is only available if T is a floating point value.
+   * @param other The second vector
+   * @return The angle between the two vectors in radians.
+   *         Returns 0 if either vector is a zero vector.
+   *         Returns a value in the range [-pi, pi].
+   * @details The angle is calculated using atan2 of the cross product and dot
+   *          product of the two vectors. This method is more numerically
+   *          stable than acos(dot(v1, v2) / (||v1|| * ||v2||)) and produces
+   *          a result in the range of [-pi, pi].
+   */
+  T signed_angle(const Vector2d &other) const requires std::is_floating_point<T>::value {
+    T mag1 = magnitude();
+    T mag2 = other.magnitude();
+    if (mag1 == T(0) || mag2 == T(0)) {
+      return T(0);
+    }
+    T dot_product = dot(other);
+    T cross_product = x_ * other.y_ - y_ * other.x_;
+    return atan2(cross_product, dot_product);
   }
 
   /**
