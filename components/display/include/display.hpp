@@ -387,7 +387,7 @@ protected:
 
     lv_tick_set_cb(xTaskGetTickCount);
 
-    lv_delay_set_cb(vTaskDelay);
+    lv_delay_set_cb(vTaskDelay_wrapper);
 
     display_ = lv_display_create(width_, height_);
     // store a pointer to this object in the display user data, so that we can
