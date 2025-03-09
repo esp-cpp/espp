@@ -66,6 +66,10 @@ MotorGoMini::Encoder &MotorGoMini::encoder1() { return encoder1_; }
 
 MotorGoMini::Encoder &MotorGoMini::encoder2() { return encoder2_; }
 
+void MotorGoMini::reset_encoder1_accumulator() { encoder1_.reset_accumulator(); }
+
+void MotorGoMini::reset_encoder2_accumulator() { encoder2_.reset_accumulator(); }
+
 espp::BldcDriver &MotorGoMini::motor1_driver() { return motor1_driver_; }
 
 espp::BldcDriver &MotorGoMini::motor2_driver() { return motor2_driver_; }
