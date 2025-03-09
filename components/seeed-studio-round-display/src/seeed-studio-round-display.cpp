@@ -243,9 +243,7 @@ bool SsRoundDisplay::initialize_lcd() {
   return true;
 }
 
-bool SsRoundDisplay::initialize_display(size_t pixel_buffer_size,
-                                        const espp::Task::BaseConfig &task_config,
-                                        int update_period_ms) {
+bool SsRoundDisplay::initialize_display(size_t pixel_buffer_size) {
   if (!lcd_handle_) {
     logger_.error(
         "LCD not initialized, you must call initialize_lcd() before initialize_display()!");
@@ -262,9 +260,7 @@ bool SsRoundDisplay::initialize_display(size_t pixel_buffer_size,
                                  .height = lcd_height_,
                                  .flush_callback = DisplayDriver::flush,
                                  .rotation_callback = DisplayDriver::rotate,
-                                 .rotation = rotation,
-                                 .task_config = task_config,
-                                 .update_period = 1ms * update_period_ms},
+                                 .rotation = rotation},
       Display<Pixel>::LcdConfig{.backlight_pin = pin_config_.lcd_backlight,
                                 .backlight_on_value = backlight_value},
       Display<Pixel>::DynamicMemoryConfig{

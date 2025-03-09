@@ -66,14 +66,8 @@ extern "C" void app_main(void) {
   }
   // set the pixel buffer to be 50 lines high
   static constexpr size_t pixel_buffer_size = box.lcd_width() * 50;
-  espp::Task::BaseConfig display_task_config = {
-      .name = "Display",
-      .stack_size_bytes = 6 * 1024,
-      .priority = 10,
-      .core_id = 0,
-  };
   // initialize the LVGL display for the esp-box
-  if (!box.initialize_display(pixel_buffer_size, display_task_config)) {
+  if (!box.initialize_display(pixel_buffer_size)) {
     logger.error("Failed to initialize display!");
     return;
   }

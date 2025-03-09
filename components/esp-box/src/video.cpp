@@ -86,8 +86,7 @@ bool EspBox::initialize_lcd() {
   return true;
 }
 
-bool EspBox::initialize_display(size_t pixel_buffer_size, const espp::Task::BaseConfig &task_config,
-                                int update_period_ms) {
+bool EspBox::initialize_display(size_t pixel_buffer_size) {
   if (!lcd_handle_) {
     logger_.error(
         "LCD not initialized, you must call initialize_lcd() before initialize_display()!");
@@ -104,9 +103,7 @@ bool EspBox::initialize_display(size_t pixel_buffer_size, const espp::Task::Base
                                  .height = lcd_height_,
                                  .flush_callback = DisplayDriver::flush,
                                  .rotation_callback = DisplayDriver::rotate,
-                                 .rotation = rotation,
-                                 .task_config = task_config,
-                                 .update_period = 1ms * update_period_ms},
+                                 .rotation = rotation},
       Display<Pixel>::LcdConfig{.backlight_pin = backlight_io,
                                 .backlight_on_value = backlight_value},
       Display<Pixel>::DynamicMemoryConfig{
