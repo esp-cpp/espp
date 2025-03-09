@@ -1,0 +1,17 @@
+BM8563
+******
+
+The `Bm8563` component provides a driver for the Bm8563 RTC chip.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   bm8563_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/bm8563.inc
