@@ -28,8 +28,9 @@ extern "C" void app_main(void) {
   motor1_config.velocity_pid_config.kd = 0.000f;
   // angle PID config:
   motor1_config.angle_pid_config.kp = 5.000f;
-  motor1_config.angle_pid_config.ki = 0.500f;
-  motor1_config.angle_pid_config.kd = 0.050f;
+  motor1_config.angle_pid_config.ki = 1.000f;
+  motor1_config.angle_pid_config.kd = 0.000f;
+
   auto motor2_config = motorgo_mini.default_motor2_config;
   motor2_config.phase_resistance = 4.0f; // ohms
   motor2_config.current_limit = 1.0f;    // amps
@@ -39,8 +40,8 @@ extern "C" void app_main(void) {
   motor2_config.velocity_pid_config.kd = 0.000f;
   // angle PID config:
   motor2_config.angle_pid_config.kp = 5.000f;
-  motor2_config.angle_pid_config.ki = 0.500f;
-  motor2_config.angle_pid_config.kd = 0.050f;
+  motor2_config.angle_pid_config.ki = 1.000f;
+  motor2_config.angle_pid_config.kd = 0.000f;
 
   // now initialize the motors
   motorgo_mini.init_motor_channel_1(motor1_config);
@@ -53,8 +54,8 @@ extern "C" void app_main(void) {
   static constexpr uint64_t core_update_period_us = 1'000;                  // microseconds
   static constexpr float core_update_period = core_update_period_us / 1e6f; // seconds
 
-  static auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
-  // static auto motion_control_type = espp::detail::MotionControlType::ANGLE;
+  // static auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
+  static auto motion_control_type = espp::detail::MotionControlType::ANGLE;
 
   logger.info("Setting motion control type to {}", motion_control_type);
   motor1->set_motion_control_type(motion_control_type);

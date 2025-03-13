@@ -190,8 +190,8 @@ public:
       .angle_pid_config =
           {
               .kp = 5.000f,
-              .ki = 0.500f,
-              .kd = 0.050f,
+              .ki = 1.000f,
+              .kd = 0.000f,
               .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
               .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
               .output_min = -20.0,      // angle pid works on velocity (rad/s)
@@ -221,8 +221,8 @@ public:
       .angle_pid_config =
           {
               .kp = 5.000f,
-              .ki = 0.500f,
-              .kd = 0.050f,
+              .ki = 1.000f,
+              .kd = 0.000f,
               .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
               .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
               .output_min = -20.0,      // angle pid works on velocity (rad/s)
