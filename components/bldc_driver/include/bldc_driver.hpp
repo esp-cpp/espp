@@ -236,6 +236,27 @@ public:
    */
   float get_power_supply_limit() const { return power_supply_voltage_.load(); }
 
+  /**
+   * @brief Set the power supply voltage.
+   * @param voltage New power supply voltage.
+   * @note Will update the voltage limit to the minimum of the current limit and
+   *       the new power supply voltage.
+   */
+  void set_power_supply_voltage(float voltage) {
+    power_supply_voltage_ = voltage;
+    limit_voltage_ = std::min(limit_voltage_.load(), voltage);
+  }
+
+  /**
+   * @brief Set the voltage limit.
+   * @param voltage New voltage limit.
+   * @note Will be clamped to the power supply voltage.
+   */
+  void set_voltage_limit(float voltage) {
+    limit_voltage_ = voltage;
+    limit_voltage_ = std::min(limit_voltage_.load(), power_supply_voltage_.load());
+  }
+
 protected:
   static int GROUP_ID;
 

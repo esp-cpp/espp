@@ -15,10 +15,24 @@ extern "C" void app_main(void) {
   //! [motorgo-mini example]
   auto &motorgo_mini = espp::MotorGoMini::get();
   motorgo_mini.set_log_level(espp::Logger::Verbosity::INFO);
-  motorgo_mini.init_motor_channel_1();
-  motorgo_mini.init_motor_channel_2();
-  auto &motor1 = motorgo_mini.motor1();
-  auto &motor2 = motorgo_mini.motor2();
+
+  // set the configuration for the motors
+  auto motor1_config = motorgo_mini.default_motor1_config;
+  motor1_config.angle_pid_config.kp = 6.000f;
+  motor1_config.angle_pid_config.ki = 0.300f;
+  motor1_config.angle_pid_config.kd = 0.010f;
+  auto motor2_config = motorgo_mini.default_motor2_config;
+  motor2_config.angle_pid_config.kp = 6.000f;
+  motor2_config.angle_pid_config.ki = 0.300f;
+  motor2_config.angle_pid_config.kd = 0.025f;
+
+  // now initialize the motors
+  motorgo_mini.init_motor_channel_1(motor1_config);
+  motorgo_mini.init_motor_channel_2(motor2_config);
+
+  // get the motor objects (shared pointers) for use in the script
+  auto motor1 = motorgo_mini.motor1();
+  auto motor2 = motorgo_mini.motor2();
 
   static constexpr uint64_t core_update_period_us = 1000;                   // microseconds
   static constexpr float core_update_period = core_update_period_us / 1e6f; // seconds
@@ -29,11 +43,11 @@ extern "C" void app_main(void) {
   static auto motion_control_type = espp::detail::MotionControlType::ANGLE;
 
   logger.info("Setting motion control type to {}", motion_control_type);
-  motor1.set_motion_control_type(motion_control_type);
-  motor2.set_motion_control_type(motion_control_type);
+  motor1->set_motion_control_type(motion_control_type);
+  motor2->set_motion_control_type(motion_control_type);
 
-  motor1.enable();
-  motor2.enable();
+  motor1->enable();
+  motor2->enable();
 
   std::atomic<float> target1 = 60.0f;
   std::atomic<float> target2 = 60.0f;
@@ -43,8 +57,8 @@ extern "C" void app_main(void) {
   // Function for initializing the target based on the motion control type
   auto initialize_target = [&]() {
     if (target_is_angle) {
-      target1 = motor1.get_shaft_angle();
-      target2 = motor2.get_shaft_angle();
+      target1 = motor1->get_shaft_angle();
+      target2 = motor2->get_shaft_angle();
     } else {
       target1 = 50.0f * espp::RPM_TO_RADS;
       target2 = 50.0f * espp::RPM_TO_RADS;
@@ -54,10 +68,10 @@ extern "C" void app_main(void) {
   initialize_target();
 
   auto dual_motor_fn = [&]() -> bool {
-    motor1.loop_foc();
-    motor2.loop_foc();
-    motor1.move(target1);
-    motor2.move(target2);
+    motor1->loop_foc();
+    motor1->move(target1);
+    motor2->loop_foc();
+    motor2->move(target2);
     return false; // don't want to stop the task
   };
 
@@ -98,10 +112,10 @@ extern "C" void app_main(void) {
     auto _target2 = target2.load();
     if (!target_is_angle)
       _target2 *= espp::RADS_TO_RPM;
-    auto rpm1 = filter1(motor1.get_shaft_velocity() * espp::RADS_TO_RPM);
-    auto rpm2 = filter2(motor2.get_shaft_velocity() * espp::RADS_TO_RPM);
-    auto rads1 = motor1.get_shaft_angle();
-    auto rads2 = motor2.get_shaft_angle();
+    auto rpm1 = filter1(motor1->get_shaft_velocity() * espp::RADS_TO_RPM);
+    auto rpm2 = filter2(motor2->get_shaft_velocity() * espp::RADS_TO_RPM);
+    auto rads1 = motor1->get_shaft_angle();
+    auto rads2 = motor2->get_shaft_angle();
     fmt::print("{:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}, {:.3f}\n", seconds, _target1, rads1,
                rpm1, _target2, rads2, rpm2);
     // NOTE: sleeping in this way allows the sleep to exit early when the
@@ -182,8 +196,8 @@ extern "C" void app_main(void) {
         target_is_angle = true;
       }
       initialize_target();
-      motor1.set_motion_control_type(motion_control_type);
-      motor2.set_motion_control_type(motion_control_type);
+      motor1->set_motion_control_type(motion_control_type);
+      motor2->set_motion_control_type(motion_control_type);
     } else {
       logger.info("Button released");
     }

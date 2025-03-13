@@ -40,43 +40,77 @@ void MotorGoMini::stop_breathing() {
   led_.set_duty(led_channels_[1].channel, 0.0f);
 }
 
-void MotorGoMini::init_motor_channel_1() {
+void MotorGoMini::init_motor_channel_1(const MotorGoMini::BldcMotor::Config &motor_config,
+                                       const MotorGoMini::DriverConfig &driver_config) {
   bool run_task = true;
   std::error_code ec;
-  encoder1_.initialize(run_task, ec);
+  // make the encoder
+  encoder1_ = std::make_shared<Encoder>(encoder1_config_);
+  // initialize the encoder
+  encoder1_->initialize(run_task, ec);
   if (ec) {
     logger_.error("Could not initialize encoder1: {}", ec.message());
     return;
   }
-  motor1_.initialize();
+
+  // copy the config data for the driver
+  motor1_driver_config_.power_supply_voltage = driver_config.power_supply_voltage;
+  motor1_driver_config_.limit_voltage = driver_config.limit_voltage;
+  // make the driver
+  motor1_driver_ = std::make_shared<BldcDriver>(motor1_driver_config_);
+
+  // now copy the relevant configs into the motor config
+  auto motor1_config = motor_config;
+  motor1_config.driver = motor1_driver_;
+  motor1_config.sensor = encoder1_;
+  // now make the motor
+  motor1_ = std::make_shared<BldcMotor>(motor1_config);
+  motor1_->initialize();
 }
 
-void MotorGoMini::init_motor_channel_2() {
+void MotorGoMini::init_motor_channel_2(const MotorGoMini::BldcMotor::Config &motor_config,
+                                       const MotorGoMini::DriverConfig &driver_config) {
   bool run_task = true;
   std::error_code ec;
-  encoder2_.initialize(run_task, ec);
+  // make the encoder
+  encoder2_ = std::make_shared<Encoder>(encoder2_config_);
+  // initialize the encoder
+  encoder2_->initialize(run_task, ec);
   if (ec) {
     logger_.error("Could not initialize encoder2: {}", ec.message());
     return;
   }
-  motor2_.initialize();
+
+  // copy the config data for the driver
+  motor2_driver_config_.power_supply_voltage = driver_config.power_supply_voltage;
+  motor2_driver_config_.limit_voltage = driver_config.limit_voltage;
+  // make the driver
+  motor2_driver_ = std::make_shared<BldcDriver>(motor2_driver_config_);
+
+  // now copy the relevant configs into the motor config
+  auto motor2_config = motor_config;
+  motor2_config.driver = motor2_driver_;
+  motor2_config.sensor = encoder2_;
+  // now make the motor
+  motor2_ = std::make_shared<BldcMotor>(motor2_config);
+  motor2_->initialize();
 }
 
-MotorGoMini::Encoder &MotorGoMini::encoder1() { return encoder1_; }
+std::shared_ptr<MotorGoMini::Encoder> MotorGoMini::encoder1() { return encoder1_; }
 
-MotorGoMini::Encoder &MotorGoMini::encoder2() { return encoder2_; }
+std::shared_ptr<MotorGoMini::Encoder> MotorGoMini::encoder2() { return encoder2_; }
 
-void MotorGoMini::reset_encoder1_accumulator() { encoder1_.reset_accumulator(); }
+void MotorGoMini::reset_encoder1_accumulator() { encoder1_->reset_accumulator(); }
 
-void MotorGoMini::reset_encoder2_accumulator() { encoder2_.reset_accumulator(); }
+void MotorGoMini::reset_encoder2_accumulator() { encoder2_->reset_accumulator(); }
 
-espp::BldcDriver &MotorGoMini::motor1_driver() { return motor1_driver_; }
+std::shared_ptr<espp::BldcDriver> MotorGoMini::motor1_driver() { return motor1_driver_; }
 
-espp::BldcDriver &MotorGoMini::motor2_driver() { return motor2_driver_; }
+std::shared_ptr<espp::BldcDriver> MotorGoMini::motor2_driver() { return motor2_driver_; }
 
-MotorGoMini::BldcMotor &MotorGoMini::motor1() { return motor1_; }
+std::shared_ptr<MotorGoMini::BldcMotor> MotorGoMini::motor1() { return motor1_; }
 
-MotorGoMini::BldcMotor &MotorGoMini::motor2() { return motor2_; }
+std::shared_ptr<MotorGoMini::BldcMotor> MotorGoMini::motor2() { return motor2_; }
 
 espp::OneshotAdc &MotorGoMini::adc1() { return adc_1; }
 
