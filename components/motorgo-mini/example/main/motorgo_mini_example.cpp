@@ -50,7 +50,7 @@ extern "C" void app_main(void) {
   auto motor1 = motorgo_mini.motor1();
   auto motor2 = motorgo_mini.motor2();
 
-  static constexpr uint64_t core_update_period_us = 1000;                   // microseconds
+  static constexpr uint64_t core_update_period_us = 1'000;                  // microseconds
   static constexpr float core_update_period = core_update_period_us / 1e6f; // seconds
 
   static auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
@@ -218,8 +218,9 @@ extern "C" void app_main(void) {
   };
   motorgo_mini.initialize_button(on_button_pressed);
 
+  // now loop forever (do nothing)
   while (true) {
-    std::this_thread::sleep_for(50ms);
+    std::this_thread::sleep_for(1s);
   }
   //! [motorgo-mini example]
 }
