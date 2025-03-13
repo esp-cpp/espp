@@ -16,15 +16,31 @@ extern "C" void app_main(void) {
   auto &motorgo_mini = espp::MotorGoMini::get();
   motorgo_mini.set_log_level(espp::Logger::Verbosity::INFO);
 
-  // set the configuration for the motors
+  // set the configuration for the motors For simplicity, we'll copy the
+  // defaults and modify them, but you can also just make a type of
+  // espp::MotorGoMini::BldcMotor::Config
   auto motor1_config = motorgo_mini.default_motor1_config;
-  motor1_config.angle_pid_config.kp = 6.000f;
-  motor1_config.angle_pid_config.ki = 0.300f;
-  motor1_config.angle_pid_config.kd = 0.010f;
+  motor1_config.phase_resistance = 4.0f; // ohms
+  motor1_config.current_limit = 1.0f;    // amps
+  // velocity PID config:
+  motor1_config.velocity_pid_config.kp = 0.020f;
+  motor1_config.velocity_pid_config.ki = 0.700f;
+  motor1_config.velocity_pid_config.kd = 0.000f;
+  // angle PID config:
+  motor1_config.angle_pid_config.kp = 5.000f;
+  motor1_config.angle_pid_config.ki = 0.500f;
+  motor1_config.angle_pid_config.kd = 0.050f;
   auto motor2_config = motorgo_mini.default_motor2_config;
-  motor2_config.angle_pid_config.kp = 6.000f;
-  motor2_config.angle_pid_config.ki = 0.300f;
-  motor2_config.angle_pid_config.kd = 0.025f;
+  motor2_config.phase_resistance = 4.0f; // ohms
+  motor2_config.current_limit = 1.0f;    // amps
+  // velocity PID config:
+  motor2_config.velocity_pid_config.kp = 0.020f;
+  motor2_config.velocity_pid_config.ki = 0.700f;
+  motor2_config.velocity_pid_config.kd = 0.000f;
+  // angle PID config:
+  motor2_config.angle_pid_config.kp = 5.000f;
+  motor2_config.angle_pid_config.ki = 0.500f;
+  motor2_config.angle_pid_config.kd = 0.050f;
 
   // now initialize the motors
   motorgo_mini.init_motor_channel_1(motor1_config);
@@ -37,10 +53,8 @@ extern "C" void app_main(void) {
   static constexpr uint64_t core_update_period_us = 1000;                   // microseconds
   static constexpr float core_update_period = core_update_period_us / 1e6f; // seconds
 
-  // static constexpr auto motion_control_type = espp::detail::MotionControlType::VELOCITY_OPENLOOP;
-  // static constexpr auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
-  // static const auto motion_control_type = espp::detail::MotionControlType::ANGLE_OPENLOOP;
-  static auto motion_control_type = espp::detail::MotionControlType::ANGLE;
+  static auto motion_control_type = espp::detail::MotionControlType::VELOCITY;
+  // static auto motion_control_type = espp::detail::MotionControlType::ANGLE;
 
   logger.info("Setting motion control type to {}", motion_control_type);
   motor1->set_motion_control_type(motion_control_type);

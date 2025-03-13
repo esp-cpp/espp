@@ -171,7 +171,7 @@ public:
 
   const BldcMotor::Config default_motor1_config{
       .num_pole_pairs = 7,
-      .phase_resistance = 5.0f,
+      .phase_resistance = 4.0f,
       .kv_rating = 320,
       .current_limit = 1.0f,
       .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
@@ -179,8 +179,8 @@ public:
       .sensor = encoder1_,      // NOTE: user cannot override this
       .velocity_pid_config =
           {
-              .kp = 0.010f,
-              .ki = 1.000f,
+              .kp = 0.020f,
+              .ki = 0.700f,
               .kd = 0.000f,
               .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
               .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
@@ -189,9 +189,9 @@ public:
           },
       .angle_pid_config =
           {
-              .kp = 7.000f,
-              .ki = 0.300f,
-              .kd = 0.010f,
+              .kp = 5.000f,
+              .ki = 0.500f,
+              .kd = 0.050f,
               .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
               .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
               .output_min = -20.0,      // angle pid works on velocity (rad/s)
@@ -202,7 +202,7 @@ public:
   };
   const BldcMotor::Config default_motor2_config{
       .num_pole_pairs = 7,
-      .phase_resistance = 5.0f,
+      .phase_resistance = 4.0f,
       .kv_rating = 320,
       .current_limit = 1.0f,
       .foc_type = espp::detail::FocType::SPACE_VECTOR_PWM,
@@ -210,8 +210,8 @@ public:
       .sensor = encoder2_,      // NOTE: user cannot override this
       .velocity_pid_config =
           {
-              .kp = 0.010f,
-              .ki = 1.000f,
+              .kp = 0.020f,
+              .ki = 0.700f,
               .kd = 0.000f,
               .integrator_min = -1.0f, // same scale as output_min (so same scale as current)
               .integrator_max = 1.0f,  // same scale as output_max (so same scale as current)
@@ -220,9 +220,9 @@ public:
           },
       .angle_pid_config =
           {
-              .kp = 7.000f,
-              .ki = 0.300f,
-              .kd = 0.010f,
+              .kp = 5.000f,
+              .ki = 0.500f,
+              .kd = 0.050f,
               .integrator_min = -10.0f, // same scale as output_min (so same scale as velocity)
               .integrator_max = 10.0f,  // same scale as output_max (so same scale as velocity)
               .output_min = -20.0,      // angle pid works on velocity (rad/s)
