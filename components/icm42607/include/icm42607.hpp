@@ -89,7 +89,6 @@ public:
   using ImuConfig = icm42607::ImuConfig;                         ///< IMU configuration
   using RawValue = icm42607::RawValue;                           ///< Raw IMU data
   using Value = icm42607::Value;                                 ///< IMU data
-  using ComplimentaryAngle = icm42607::ComplimentaryAngle;       ///< Complimentary angle
   using InterruptDriveMode = icm42607::InterruptDriveMode;       ///< Interrupt drive mode
   using InterruptPolarity = icm42607::InterruptPolarity;         ///< Interrupt polarity
   using InterruptMode = icm42607::InterruptMode;                 ///< Interrupt mode
