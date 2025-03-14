@@ -169,6 +169,7 @@ public:
     float limit_voltage;        ///< The limit voltage in volts
   };
 
+  /// Default configuration for the MotorGo-Mini's BLDC motor on channel 1
   const BldcMotor::Config default_motor1_config{
       .num_pole_pairs = 7,
       .phase_resistance = 4.0f,
@@ -200,6 +201,8 @@ public:
       .velocity_filter = [this](float v) { return motor1_velocity_filter_(v); },
       .angle_filter = [this](float a) { return motor1_angle_filter_(a); },
   };
+
+  /// Default configuration for the MotorGo-Mini's BLDC motor on channel 2
   const BldcMotor::Config default_motor2_config{
       .num_pole_pairs = 7,
       .phase_resistance = 4.0f,
