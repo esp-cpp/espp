@@ -253,8 +253,7 @@ public:
    * @note Will be clamped to the power supply voltage.
    */
   void set_voltage_limit(float voltage) {
-    limit_voltage_ = voltage;
-    limit_voltage_ = std::min(limit_voltage_.load(), power_supply_voltage_.load());
+    limit_voltage_ = std::min(voltage, power_supply_voltage_.load());
   }
 
 protected:
