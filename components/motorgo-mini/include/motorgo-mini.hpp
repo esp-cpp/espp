@@ -283,6 +283,10 @@ public:
   /// \return A reference to the motor 2 velocity filter
   VelocityFilter &motor2_velocity_filter();
 
+  /// Get a reference to the motor 2 angle filter
+  /// \return A reference to the motor 2 angle filter
+  AngleFilter &motor2_angle_filter();
+
   /////////////////////////////////////////////////////////////////////////////
   // Encoders
   /////////////////////////////////////////////////////////////////////////////

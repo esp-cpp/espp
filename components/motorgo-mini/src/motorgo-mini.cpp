@@ -112,6 +112,18 @@ std::shared_ptr<MotorGoMini::BldcMotor> MotorGoMini::motor1() { return motor1_; 
 
 std::shared_ptr<MotorGoMini::BldcMotor> MotorGoMini::motor2() { return motor2_; }
 
+MotorGoMini::VelocityFilter &MotorGoMini::motor1_velocity_filter() {
+  return motor1_velocity_filter_;
+}
+
+MotorGoMini::AngleFilter &MotorGoMini::motor1_angle_filter() { return motor1_angle_filter_; }
+
+MotorGoMini::VelocityFilter &MotorGoMini::motor2_velocity_filter() {
+  return motor2_velocity_filter_;
+}
+
+MotorGoMini::AngleFilter &MotorGoMini::motor2_angle_filter() { return motor2_angle_filter_; }
+
 espp::OneshotAdc &MotorGoMini::adc1() { return adc_1; }
 
 espp::OneshotAdc &MotorGoMini::adc2() { return adc_2; }
