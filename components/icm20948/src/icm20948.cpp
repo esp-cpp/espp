@@ -210,27 +210,68 @@ bool Icm20948::set_magnetometer_mode(const icm20948::MagnetometerMode &mode, std
   return !ec;
 }
 
+float Icm20948::get_magnetometer_sensitivity() { return MAG_SENS; }
+
 bool Icm20948::reset_magnetometer(std::error_code &ec) { return !ec; }
 
 /////////////////////////////////
 // Raw / Low level data
 /////////////////////////////////
 Value Icm20948::get_accelerometer(std::error_code &ec) {
-  Value value;
-  return value;
+  RawValue raw = get_accelerometer_raw(ec);
+  if (ec) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+  float sensitivity = get_accelerometer_sensitivity();
+  if (ec) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+  return {
+      static_cast<float>(raw.x) / sensitivity,
+      static_cast<float>(raw.y) / sensitivity,
+      static_cast<float>(raw.z) / sensitivity,
+  };
 }
 
 Value Icm20948::get_gyroscope(std::error_code &ec) {
-  Value value;
-  return value;
+  RawValue raw = get_gyroscope_raw(ec);
+  if (ec) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+  float sensitivity = get_gyroscope_sensitivity();
+  if (ec) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+  return {
+      static_cast<float>(raw.x) / sensitivity,
+      static_cast<float>(raw.y) / sensitivity,
+      static_cast<float>(raw.z) / sensitivity,
+  };
 }
 
 Value Icm20948::get_magnetometer(std::error_code &ec) {
-  Value value;
-  return value;
+  RawValue raw = get_magnetometer_raw(ec);
+  if (ec) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+  float sensitivity = get_magnetometer_sensitivity();
+  if (ec) {
+    return {0.0f, 0.0f, 0.0f};
+  }
+  return {
+      static_cast<float>(raw.x) / sensitivity,
+      static_cast<float>(raw.y) / sensitivity,
+      static_cast<float>(raw.z) / sensitivity,
+  };
 }
 
-float Icm20948::get_temperature(std::error_code &ec) { return 0.0f; }
+float Icm20948::get_temperature(std::error_code &ec) {
+  uint16_t raw = get_temperature_raw(ec);
+  if (ec) {
+    return 0.0f;
+  }
+  return static_cast<float>(raw) / 128.0f + 25.0f; // 132.48 + 25
+}
 
 /////////////////////////////////
 // DMP
@@ -323,6 +364,10 @@ Icm20948::RawValue Icm20948::get_accelerometer_raw(std::error_code &ec) {
 
 Icm20948::RawValue Icm20948::get_gyroscope_raw(std::error_code &ec) {
   return get_raw(Register::GYRO_DATA, ec);
+}
+
+Icm20948::RawValue Icm20948::get_magnetometer_raw(std::error_code &ec) {
+  return get_raw(Register::MAG_DATA, ec);
 }
 
 Icm20948::RawValue Icm20948::get_raw(Icm20948::Register reg, std::error_code &ec) {

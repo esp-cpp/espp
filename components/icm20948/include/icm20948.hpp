@@ -203,6 +203,7 @@ public:
   bool init_magnetometer(std::error_code &ec);
   uint16_t get_magnetometer_device_id(std::error_code &ec);
   bool set_magnetometer_mode(const icm20948::MagnetometerMode &mode, std::error_code &ec);
+  float get_magnetometer_sensitivity();
   bool reset_magnetometer(std::error_code &ec);
 
   /////////////////////////////////
@@ -295,7 +296,7 @@ protected:
     DELAY_TIMEH = 0x28,    ///< Delay time high register
     DELAY_TIMEL = 0x29,    ///< Delay time low register
 
-    ACCEL_START = 0x2D,  ///< Accelerometer start register
+    ACCEL_DATA = 0x2D,   ///< Accelerometer start register
     ACCEL_XOUT_H = 0x2D, ///< Accelerometer X-axis output high byte register
     ACCEL_XOUT_L = 0x2E, ///< Accelerometer X-axis output low byte register
     ACCEL_YOUT_H = 0x2F, ///< Accelerometer Y-axis output high byte register
@@ -303,7 +304,7 @@ protected:
     ACCEL_ZOUT_H = 0x31, ///< Accelerometer Z-axis output high byte register
     ACCEL_ZOUT_L = 0x32, ///< Accelerometer Z-axis output low byte register
 
-    GYRO_START = 0x33,  ///< Gyroscope start register
+    GYRO_DATA = 0x33,   ///< Gyroscope start register
     GYRO_XOUT_H = 0x33, ///< Gyroscope X-axis output high byte register
     GYRO_XOUT_L = 0x34, ///< Gyroscope X-axis output low byte register
     GYRO_YOUT_H = 0x35, ///< Gyroscope Y-axis output high byte register
@@ -311,9 +312,18 @@ protected:
     GYRO_ZOUT_H = 0x37, ///< Gyroscope Z-axis output high byte register
     GYRO_ZOUT_L = 0x38, ///< Gyroscope Z-axis output low byte register
 
-    TEMP_START = 0x39, ///< Temperature start register
+    TEMP_DATA = 0x39,  ///< Temperature start register
     TEMP_OUT_H = 0x39, ///< Temperature output high byte register
     TEMP_OUT_L = 0x3A, ///< Temperature output low byte register
+
+    MAG_DATA = 0x3B,         ///< Magnetometer start register
+    EXT_SENS_DATA_00 = 0x3B, ///< External sensor data 00 register
+    EXT_SENS_DATA_01 = 0x3C, ///< External sensor data 01 register
+    EXT_SENS_DATA_02 = 0x3D, ///< External sensor data 02 register
+    EXT_SENS_DATA_03 = 0x3E, ///< External sensor data 03 register
+    EXT_SENS_DATA_04 = 0x3F, ///< External sensor data 04 register
+    EXT_SENS_DATA_05 = 0x40, ///< External sensor data 05 register
+    EXT_SENS_DATA_06 = 0x41, ///< External sensor data 06 register
 
     FIFO_EN_1 = 0x66,   ///< FIFO enable 1 register
     FIFO_EN_2 = 0x67,   ///< FIFO enable 2 register
