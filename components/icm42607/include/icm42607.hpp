@@ -183,6 +183,10 @@ public:
     return true;
   }
 
+  /// Get the IMU configuration
+  /// @return The IMU configuration
+  ImuConfig get_config() const { return imu_config_; }
+
   /// Set the Accelerometer power mode
   /// @param power_mode The power mode
   /// @param ec The error code to set if an error occurs
@@ -265,10 +269,16 @@ public:
     return !ec;
   }
 
+  /// Get the accelerometer sensitivity from memory
+  /// @return The accelerometer sensitivity in g/LSB
+  float get_accelerometer_sensitivity() {
+    return accelerometer_range_to_sensitivty(imu_config_.accelerometer_range);
+  }
+
   /// Read the accelerometer sensitivity
   /// @param ec The error code to set if an error occurs
   /// @return The accelerometer sensitivity in g/LSB
-  float get_accelerometer_sensitivity(std::error_code &ec) {
+  float read_accelerometer_sensitivity(std::error_code &ec) {
     // read the byte from the register
     uint8_t data = read_u8_from_register(static_cast<uint8_t>(Register::ACCEL_CONFIG0), ec);
     if (ec) {
@@ -276,14 +286,22 @@ public:
     }
     // get the range
     AccelerometerRange range = static_cast<AccelerometerRange>((data >> 5) & 0x03);
+    // update the config
+    imu_config_.accelerometer_range = range;
     // convert to sensitivity
     return accelerometer_range_to_sensitivty(range);
+  }
+
+  /// Get the gyroscope sensitivity from memory
+  /// @return The gyroscope sensitivity in °/s/LSB
+  float get_gyroscope_sensitivity() {
+    return gyroscope_range_to_sensitivty(imu_config_.gyroscope_range);
   }
 
   /// Read the gyroscope sensitivity
   /// @param ec The error code to set if an error occurs
   /// @return The gyroscope sensitivity in °/s/LSB
-  float get_gyroscope_sensitivity(std::error_code &ec) {
+  float read_gyroscope_sensitivity(std::error_code &ec) {
     // read the byte from the register
     uint8_t data = read_u8_from_register(static_cast<uint8_t>(Register::GYRO_CONFIG0), ec);
     if (ec) {
@@ -291,6 +309,8 @@ public:
     }
     // get the range
     GyroscopeRange range = static_cast<GyroscopeRange>((data >> 5) & 0x03);
+    // update the config
+    imu_config_.gyroscope_range = range;
     // convert to sensitivity
     return gyroscope_range_to_sensitivty(range);
   }
@@ -303,7 +323,7 @@ public:
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
-    float sensitivity = get_accelerometer_sensitivity(ec);
+    float sensitivity = get_accelerometer_sensitivity();
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
@@ -322,7 +342,7 @@ public:
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
-    float sensitivity = get_gyroscope_sensitivity(ec);
+    float sensitivity = get_gyroscope_sensitivity();
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }

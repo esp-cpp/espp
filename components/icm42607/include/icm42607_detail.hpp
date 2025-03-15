@@ -320,11 +320,3 @@ template <> struct fmt::formatter<espp::icm42607::Value> {
     return format_to(ctx.out(), "{{ x: {:.2f}, y: {:.2f}, z: {:.2f} }}", value.x, value.y, value.z);
   }
 };
-
-template <> struct fmt::formatter<espp::icm42607::ComplimentaryAngle> {
-  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
-  template <typename FormatContext>
-  auto format(const espp::icm42607::ComplimentaryAngle &angle, FormatContext &ctx) const {
-    return format_to(ctx.out(), "{{ roll: {:.2f}, pitch: {:.2f} }}", angle.roll, angle.pitch);
-  }
-};
