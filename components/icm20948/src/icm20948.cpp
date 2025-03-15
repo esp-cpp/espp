@@ -78,10 +78,18 @@ bool Icm20948::get_gyroscope_offsets(float &x, float &y, float &z, std::error_co
 // Accelerometer
 /////////////////////////////////
 
-bool Icm20948::enable_accelerometer(bool enable, std::error_code &ec) { return true; }
+bool Icm20948::enable_accelerometer(bool enable, std::error_code &ec) {
+  uint8_t bitmask = 0x38;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::PWR_MGMT_2), bitmask,
+                               enable ? bitmask : 0, ec);
+  return !ec;
+}
 
 bool Icm20948::set_accelerometer_range(const AccelerometerRange &range, std::error_code &ec) {
-  return true;
+  uint8_t bitmask = 0x06;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::ACCEL_CONFIG), bitmask,
+                               static_cast<uint8_t>(range) << 1, ec);
+  return !ec;
 }
 
 bool Icm20948::set_accelerometer_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec) {
@@ -96,10 +104,18 @@ bool Icm20948::set_accelerometer_odr(const AccelerometerODR &odr, std::error_cod
 // Gyroscope
 /////////////////////////////////
 
-bool Icm20948::enable_gyroscope(bool enable, std::error_code &ec) { return true; }
+bool Icm20948::enable_gyroscope(bool enable, std::error_code &ec) {
+  uint8_t bitmask = 0x07;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::PWR_MGMT_2), bitmask,
+                               enable ? bitmask : 0, ec);
+  return !ec;
+}
 
 bool Icm20948::set_gyroscope_range(const GyroscopeRange &range, std::error_code &ec) {
-  return true;
+  uint8_t bitmask = 0x06;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::GYRO_CONFIG_1), bitmask,
+                               static_cast<uint8_t>(range) << 1, ec);
+  return !ec;
 }
 
 bool Icm20948::set_gyroscope_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec) {
@@ -114,7 +130,9 @@ bool Icm20948::set_gyroscope_odr(const GyroscopeODR &odr, std::error_code &ec) {
 
 bool Icm20948::set_temperature_dlpf(const TemperatureFilterBandwidth &bandwidth,
                                     std::error_code &ec) {
-  return true;
+  set_bits_in_register(static_cast<uint8_t>(Register::TEMP_CONFIG), static_cast<uint8_t>(bandwidth),
+                       ec);
+  return !ec;
 }
 
 /////////////////////////////////
