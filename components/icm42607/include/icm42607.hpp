@@ -343,7 +343,7 @@ public:
       return false;
     }
     // update temp
-    float temp = read_temperature(ec);
+    read_temperature(ec);
     if (ec) {
       return false;
     }

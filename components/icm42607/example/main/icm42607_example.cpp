@@ -148,11 +148,10 @@ extern "C" void app_main(void) {
                          text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)gravity_vector.x,
                                              (float)gravity_vector.y, (float)gravity_vector.z);
 
-                         float roll = 0, pitch = 0;
+                         float roll = 0, pitch = 0, yaw = 0;
                          // with only the accelerometer + gyroscope, we can't get yaw :(
                          f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f,
                                   gyro.y * M_PI / 180.0f, gyro.z * M_PI / 180.0f);
-                         float yaw; // ignore / unused since we only have 6-axis
                          f.get_euler(roll, pitch, yaw);
                          roll *= M_PI / 180.0f;
                          pitch *= M_PI / 180.0f;
@@ -162,8 +161,8 @@ extern "C" void app_main(void) {
                          float vz = -cos(pitch) * cos(roll);
 
                          // print madgwick filter outputs
-                         text += fmt::format("{:03.3f},{:03.3f},", roll, pitch);
-                         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", vx, vy, vz);
+                         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", roll, pitch, yaw);
+                         text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
 
                          fmt::print("{}\n", text);
 
@@ -182,12 +181,12 @@ extern "C" void app_main(void) {
              "Accel X (m/s^2), Accel Y (m/s^2), Accel Z (m/s^2), "
              "Gyro X (rad/s), Gyro Y (rad/s), Gyro Z (rad/s), "
              "Temp (C), "
-             // madgwick filter outputs
-             "Madgwick Roll (rad), Madgwick Pitch (rad), "
-             "Madgwick Gravity X, Madgwick Gravity Y, Madgwick Gravity Z, "
              // kalman filter outputs
-             "Kalman Roll (rad), Kalman Pitch (rad), "
-             "Kalman Gravity X, Kalman Gravity Y, Kalman Gravity Z\n");
+             "Kalman Roll (rad), Kalman Pitch (rad), Kalman Yaw (rad), "
+             "Kalman Gravity X, Kalman Gravity Y, Kalman Gravity Z, "
+             // madgwick filter outputs
+             "Madgwick Roll (rad), Madgwick Pitch (rad), Magwick Yaw (rad), "
+             "Madgwick Gravity X, Madgwick Gravity Y, Madgwick Gravity Z\n");
 
   logger.info("Starting IMU task");
   imu_task.start();
