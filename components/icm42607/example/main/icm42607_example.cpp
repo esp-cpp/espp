@@ -36,7 +36,8 @@ extern "C" void app_main(void) {
   static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
   static espp::MadgwickFilter f(beta);
 
-  auto filter_fn = [](float dt, const Imu::Value &accel, const Imu::Value &gyro) -> Imu::Value {
+  auto kalman_filter_fn = [](float dt, const Imu::Value &accel,
+                             const Imu::Value &gyro) -> Imu::Value {
     // Apply Kalman filter
     float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
     float accelRoll = atan2(accel.y, accel.z);
@@ -48,6 +49,21 @@ extern "C" void app_main(void) {
     Imu::Value orientation{};
     orientation.pitch = pitch;
     orientation.roll = roll;
+    return orientation;
+  };
+
+  auto madgwick_filter_fn = [](float dt, const Imu::Value &accel,
+                               const Imu::Value &gyro) -> Imu::Value {
+    // Apply Madgwick filter
+    f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
+             gyro.z * M_PI / 180.0f);
+    float roll, pitch, yaw;
+    f.get_euler(roll, pitch, yaw);
+    // return the computed orientation
+    Imu::Value orientation{};
+    orientation.pitch = pitch * M_PI / 180.0f;
+    orientation.roll = roll * M_PI / 180.0f;
+    orientation.yaw = yaw * M_PI / 180.0f;
     return orientation;
   };
 
@@ -65,7 +81,7 @@ extern "C" void app_main(void) {
               .gyroscope_range = Imu::GyroscopeRange::RANGE_2000DPS,
               .gyroscope_odr = Imu::GyroscopeODR::ODR_400_HZ,
           },
-      .orientation_filter = filter_fn,
+      .orientation_filter = kalman_filter_fn,
       .auto_init = true,
   };
 
@@ -108,7 +124,7 @@ extern "C" void app_main(void) {
   }
 
   // make a task to read out the IMU data and print it to console
-  espp::Task imu_task({.callback = [&imu](std::mutex &m, std::condition_variable &cv) -> bool {
+  espp::Task imu_task({.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
                          // sleep first in case we don't get IMU data and need to exit early
                          {
                            std::unique_lock<std::mutex> lock(m);
@@ -148,14 +164,10 @@ extern "C" void app_main(void) {
                          text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)gravity_vector.x,
                                              (float)gravity_vector.y, (float)gravity_vector.z);
 
-                         float roll = 0, pitch = 0, yaw = 0;
-                         // with only the accelerometer + gyroscope, we can't get yaw :(
-                         f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f,
-                                  gyro.y * M_PI / 180.0f, gyro.z * M_PI / 180.0f);
-                         f.get_euler(roll, pitch, yaw);
-                         roll *= M_PI / 180.0f;
-                         pitch *= M_PI / 180.0f;
-
+                         auto madgwick_orientation = madgwick_filter_fn(dt, accel, gyro);
+                         float roll = madgwick_orientation.roll;
+                         float pitch = madgwick_orientation.pitch;
+                         float yaw = madgwick_orientation.yaw;
                          float vx = sin(pitch);
                          float vy = -cos(pitch) * sin(roll);
                          float vz = -cos(pitch) * cos(roll);
