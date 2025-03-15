@@ -96,8 +96,8 @@ public:
 
   /// Filter function for filtering 6-axis data into 3-axis orientation data
   /// @param dt The time step in seconds
-  /// @param gyro The gyroscope data
   /// @param accel The accelerometer data
+  /// @param gyro The gyroscope data
   /// @return The filtered orientation data in radians
   typedef std::function<Value(float, const Value &, const Value &)> filter_fn; ///< Filter function
 
@@ -350,7 +350,7 @@ public:
     // if we have a filter function, then filter the data and update the
     // orientation
     if (orientation_filter_) {
-      orientation_ = orientation_filter_(dt, gyro, accel);
+      orientation_ = orientation_filter_(dt, accel, gyro);
       // now calculate the gravity vector
       gravity_vector_ = {
           (float)(sin(orientation_.pitch)),

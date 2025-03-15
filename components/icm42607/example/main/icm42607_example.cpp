@@ -39,16 +39,17 @@ extern "C" void app_main(void) {
   auto kalman_filter_fn = [](float dt, const Imu::Value &accel,
                              const Imu::Value &gyro) -> Imu::Value {
     // Apply Kalman filter
-    float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
     float accelRoll = atan2(accel.y, accel.z);
+    float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
     kf.predict({espp::deg_to_rad(gyro.x), espp::deg_to_rad(gyro.y)}, dt);
-    kf.update({accelPitch, accelRoll});
-    float pitch, roll;
-    std::tie(pitch, roll) = kf.get_state();
+    kf.update({accelRoll, accelPitch});
+    float roll, pitch;
+    std::tie(roll, pitch) = kf.get_state();
     // return the computed orientation
     Imu::Value orientation{};
-    orientation.pitch = pitch;
     orientation.roll = roll;
+    orientation.pitch = pitch;
+    orientation.yaw = 0.0f;
     return orientation;
   };
 
