@@ -57,6 +57,8 @@ bool EspBox::initialize_i2s(uint32_t default_audio_rate) {
       .dma_desc_num = 16,  // TODO: calculate form audio rate
       .dma_frame_num = 48, // TODO: calculate from audio rate
       .auto_clear = true,
+      .auto_clear_before_cb = false,
+      .allow_pd = false,
       .intr_priority = 0,
   };
 
