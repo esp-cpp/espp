@@ -41,7 +41,7 @@ extern "C" void app_main(void) {
     // Apply Kalman filter
     float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
     float accelRoll = atan2(accel.y, accel.z);
-    kf.predict({float(gyro.x * M_PI / 180.0f), float(gyro.y * M_PI / 180.0f)}, dt);
+    kf.predict({espp::deg_to_rad(gyro.x), espp::deg_to_rad(gyro.y)}, dt);
     kf.update({accelPitch, accelRoll});
     float pitch, roll;
     std::tie(pitch, roll) = kf.get_state();
@@ -55,15 +55,15 @@ extern "C" void app_main(void) {
   auto madgwick_filter_fn = [](float dt, const Imu::Value &accel,
                                const Imu::Value &gyro) -> Imu::Value {
     // Apply Madgwick filter
-    f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
-             gyro.z * M_PI / 180.0f);
+    f.update(dt, accel.x, accel.y, accel.z, espp::deg_to_rad(gyro.x), espp::deg_to_rad(gyro.y),
+             espp::deg_to_rad(gyro.z));
     float roll, pitch, yaw;
     f.get_euler(roll, pitch, yaw);
     // return the computed orientation
     Imu::Value orientation{};
-    orientation.pitch = pitch * M_PI / 180.0f;
-    orientation.roll = roll * M_PI / 180.0f;
-    orientation.yaw = yaw * M_PI / 180.0f;
+    orientation.pitch = espp::deg_to_rad(pitch);
+    orientation.roll = espp::deg_to_rad(roll);
+    orientation.yaw = espp::deg_to_rad(yaw);
     return orientation;
   };
 

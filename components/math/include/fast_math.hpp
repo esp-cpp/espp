@@ -10,6 +10,20 @@
 
 namespace espp {
 /**
+ * @brief Convert degrees to radians
+ * @param degrees Angle in degrees
+ * @return Angle in radians
+ */
+[[maybe_unused]] static float deg_to_rad(float degrees) { return degrees * M_PI / 180.0f; }
+
+/**
+ * @brief Convert radians to degrees
+ * @param radians Angle in radians
+ * @return Angle in degrees
+ */
+[[maybe_unused]] static float rad_to_deg(float radians) { return radians * 180.0f / M_PI; }
+
+/**
  * @brief Simple square of the input.
  * @param f Value to square.
  * @return The square of f (f*f).
