@@ -172,6 +172,10 @@ public:
   // Accelerometer
   /////////////////////////////////
   bool enable_accelerometer(bool enable, std::error_code &ec);
+  float get_accelerometer_sensitivity();
+  float read_accelerometer_sensitivity(std::error_code &ec);
+  AccelerometerRange get_accelerometer_range();
+  AccelerometerRange read_accelerometer_range(std::error_code &ec);
   bool set_accelerometer_range(const AccelerometerRange &range, std::error_code &ec);
   bool set_accelerometer_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec);
   bool set_accelerometer_odr(const AccelerometerODR &odr, std::error_code &ec);
@@ -180,6 +184,10 @@ public:
   // Gyroscope
   /////////////////////////////////
   bool enable_gyroscope(bool enable, std::error_code &ec);
+  float get_gyroscope_sensitivity();
+  float read_gyroscope_sensitivity(std::error_code &ec);
+  GyroscopeRange get_gyroscope_range();
+  GyroscopeRange read_gyroscope_range(std::error_code &ec);
   bool set_gyroscope_range(const GyroscopeRange &range, std::error_code &ec);
   bool set_gyroscope_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec);
   bool set_gyroscope_odr(const GyroscopeODR &odr, std::error_code &ec);
