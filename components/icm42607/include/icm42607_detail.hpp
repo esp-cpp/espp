@@ -130,15 +130,15 @@ struct Value {
       float x; ///< X-axis value
       float y; ///< Y-axis value
       float z; ///< Z-axis value
-    } __attribute__((packed));
+    };
     struct {
       float roll;  ///< Roll value
       float pitch; ///< Pitch value
       float yaw;   ///< Yaw value
-    } __attribute__((packed));
+    };
     float values[3];
-  } __attribute__((packed));
-} __attribute__((packed));
+  };
+};
 
 /// @brief Enum class for the ICM42607 interrupt configuration
 enum class InterruptDriveMode {

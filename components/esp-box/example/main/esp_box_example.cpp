@@ -77,8 +77,49 @@ extern "C" void app_main(void) {
     return;
   }
 
+  // make the filter we'll use for the IMU to compute the orientation
+  static constexpr float angle_noise = 0.001f;
+  static constexpr float rate_noise = 0.1f;
+  static espp::KalmanFilter<2> kf;
+  kf.set_process_noise(rate_noise);
+  kf.set_measurement_noise(angle_noise);
+  static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
+  static espp::MadgwickFilter f(beta);
+
+  using Imu = espp::EspBox::Imu;
+  auto kalman_filter_fn = [](float dt, const Imu::Value &accel,
+                             const Imu::Value &gyro) -> Imu::Value {
+    // Apply Kalman filter
+    float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
+    float accelRoll = atan2(accel.y, accel.z);
+    kf.predict({espp::deg_to_rad(gyro.x), espp::deg_to_rad(gyro.y)}, dt);
+    kf.update({accelPitch, accelRoll});
+    float pitch, roll;
+    std::tie(pitch, roll) = kf.get_state();
+    // return the computed orientation
+    Imu::Value orientation{};
+    orientation.pitch = pitch;
+    orientation.roll = roll;
+    return orientation;
+  };
+
+  auto madgwick_filter_fn = [](float dt, const Imu::Value &accel,
+                               const Imu::Value &gyro) -> Imu::Value {
+    // Apply Madgwick filter
+    f.update(dt, accel.x, accel.y, accel.z, espp::deg_to_rad(gyro.x), espp::deg_to_rad(gyro.y),
+             espp::deg_to_rad(gyro.z));
+    float roll, pitch, yaw;
+    f.get_euler(roll, pitch, yaw);
+    // return the computed orientation
+    Imu::Value orientation{};
+    orientation.pitch = espp::deg_to_rad(pitch);
+    orientation.roll = espp::deg_to_rad(roll);
+    orientation.yaw = espp::deg_to_rad(yaw);
+    return orientation;
+  };
+
   // initialize the IMU
-  if (!box.initialize_imu()) {
+  if (!box.initialize_imu(kalman_filter_fn)) {
     logger.error("Failed to initialize IMU!");
     return;
   }
@@ -177,7 +218,7 @@ extern "C" void app_main(void) {
 
   // make a task to read out the IMU data and print it to console
   espp::Task imu_task(
-      {.callback = [&label, &line0, &line1](std::mutex &m, std::condition_variable &cv) -> bool {
+      {.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
          // sleep first in case we don't get IMU data and need to exit early
          {
            std::unique_lock<std::mutex> lock(m);
@@ -193,43 +234,23 @@ extern "C" void app_main(void) {
          t0 = t1;
 
          std::error_code ec;
+         // update the imu data
+         if (!imu->update(dt, ec)) {
+           return false;
+         }
          // get accel
-         auto accel = imu->get_accelerometer(ec);
-         if (ec) {
-           return false;
-         }
-         auto gyro = imu->get_gyroscope(ec);
-         if (ec) {
-           return false;
-         }
-         auto temp = imu->get_temperature(ec);
-         if (ec) {
-           return false;
-         }
-
-         // with only the accelerometer + gyroscope, we can't get yaw :(
-         float roll = 0, pitch = 0;
-         static constexpr float angle_noise = 0.001f;
-         static constexpr float rate_noise = 0.1f;
-         static espp::KalmanFilter<2> kf;
-         kf.set_process_noise(rate_noise);
-         kf.set_measurement_noise(angle_noise);
-         static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
-         static espp::MadgwickFilter f(beta);
-
-         f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
-                  gyro.z * M_PI / 180.0f);
-         float yaw; // ignore / unused since we only have 6-axis
-         f.get_euler(roll, pitch, yaw);
-         pitch *= M_PI / 180.0f;
-         roll *= M_PI / 180.0f;
+         auto accel = imu->get_accelerometer();
+         auto gyro = imu->get_gyroscope();
+         auto temp = imu->get_temperature();
+         auto orientation = imu->get_orientation();
+         auto gravity_vector = imu->get_gravity_vector();
 
          std::string text = fmt::format("{}\n\n\n\n\n", label_text);
          text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
-         text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", gyro.x * M_PI / 180.0f,
-                             gyro.y * M_PI / 180.0f, gyro.z * M_PI / 180.0f);
-         text +=
-             fmt::format("Angle: {:03.2f} {:03.2f}\n", roll * 180.0f / M_PI, pitch * 180.0f / M_PI);
+         text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", espp::deg_to_rad(gyro.x),
+                             espp::deg_to_rad(gyro.y), espp::deg_to_rad(gyro.z));
+         text += fmt::format("Angle: {:03.2f} {:03.2f}\n", espp::rad_to_deg(orientation.roll),
+                             espp::rad_to_deg(orientation.pitch));
          text += fmt::format("Temp: {:02.1f} C\n", temp);
 
          // use the pitch to to draw a line on the screen indiating the
@@ -237,28 +258,21 @@ extern "C" void app_main(void) {
          int x0 = box.lcd_width() / 2;
          int y0 = box.lcd_height() / 2;
 
-         float vx = sin(pitch);
-         float vy = -cos(pitch) * sin(roll);
-         float vz = -cos(pitch) * cos(roll);
-
-         int x1 = x0 + 50 * vx;
-         int y1 = y0 + 50 * vy;
+         int x1 = x0 + 50 * gravity_vector.x;
+         int y1 = y0 + 50 * gravity_vector.y;
 
          static lv_point_precise_t line_points0[] = {{x0, y0}, {x1, y1}};
          line_points0[1].x = x1;
          line_points0[1].y = y1;
 
-         // Apply Kalman filter
-         float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
-         float accelRoll = atan2(accel.y, accel.z);
-         kf.predict({float(gyro.x * M_PI / 180.0f), float(gyro.y * M_PI / 180.0f)}, dt);
-         kf.update({accelPitch, accelRoll});
-         std::tie(pitch, roll) = kf.get_state();
-
-         vx = sin(pitch);
-         vy = -cos(pitch) * sin(roll);
-         vz = -cos(pitch) * cos(roll);
-
+         // Now show the madgwick filter
+         auto madgwick_orientation = madgwick_filter_fn(dt, accel, gyro);
+         float roll = madgwick_orientation.roll;
+         float pitch = madgwick_orientation.pitch;
+         [[maybe_unused]] float yaw = madgwick_orientation.yaw;
+         float vx = sin(pitch);
+         float vy = -cos(pitch) * sin(roll);
+         [[maybe_unused]] float vz = -cos(pitch) * cos(roll);
          x1 = x0 + 50 * vx;
          y1 = y0 + 50 * vy;
 
