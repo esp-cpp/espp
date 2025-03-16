@@ -107,7 +107,6 @@ extern "C" void app_main(void) {
   // create the IMU
   logger.info("Creating IMU");
   Imu imu(config);
-  std::error_code ec;
 
   // print the header for the IMU data (for plotting)
   fmt::print("% Time (s), "
