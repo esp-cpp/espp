@@ -2,11 +2,11 @@
 
 using namespace espp;
 
-Icm20948::Icm20948(const Config &config)
-    : BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>({}, "Icm20948",
-                                                                     config.log_level)
+template <espp::icm20948::Interface I>
+Icm20948<I>::Icm20948(const Icm20948<I>::Config &config)
+    : BasePeripheral<uint8_t, I == icm20948::Interface::I2C>({}, "Icm20948", config.log_level)
     , imu_config_(config.imu_config) {
-  if constexpr (Interface == icm20948::Interface::I2C) {
+  if constexpr (I == icm20948::Interface::I2C) {
     set_address(config.device_address);
   }
   set_write(config.write);
@@ -17,10 +17,35 @@ Icm20948::Icm20948(const Config &config)
   }
 }
 
-bool Icm20948::init(std::error_code &ec) {
+template <espp::icm20948::Interface I> bool Icm20948<I>::init(std::error_code &ec) {
   auto device_id = get_device_id(ec);
   if (device_id != ICM20948_ID) {
     logger_.error("Invalid device ID: 0x{:02X}", device_id);
+    return false;
+  }
+
+  // disable sleep
+  if (!sleep(false, ec)) {
+    return false;
+  }
+
+  // Align ODR
+  if (!set_odr_align_enabled(true, ec)) {
+    return false;
+  }
+
+  // enable the I2C master
+  if (!set_i2c_master_enabled(true, ec)) {
+    return false;
+  }
+
+  // turn on the accelerometer
+  if (!enable_accelerometer(true, ec)) {
+    return false;
+  }
+
+  // turn on the gyroscope
+  if (!enable_gyroscope(true, ec)) {
     return false;
   }
 
@@ -29,44 +54,128 @@ bool Icm20948::init(std::error_code &ec) {
     return false;
   }
 
-  // turn on the accelerometer
-  if (!set_accelerometer_power_mode(AccelerometerPowerMode::LOW_NOISE, ec)) {
-    return false;
-  }
-
-  // turn on the gyroscope
-  if (!set_gyroscope_power_mode(GyroscopePowerMode::LOW_NOISE, ec)) {
-    return false;
-  }
-
   return !ec;
 }
 
-uint8_t Icm20948::get_device_id(std::error_code &ec) {
-  return read_u8_from_register(static_cast<uint8_t>(Register::WHO_AM_I), ec);
+template <espp::icm20948::Interface I> uint8_t Icm20948<I>::get_device_id(std::error_code &ec) {
+  return read_u8_from_register(static_cast<uint8_t>(RegisterBank0::WHO_AM_I), ec);
+}
+
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_config(const Icm20948<I>::ImuConfig &imu_config, std::error_code &ec) {
+  // save the config
+  imu_config_ = imu_config;
+
+  // // the config is set as two bytes containing the configuration for the
+  // // accelerometer and gyroscope (full scale range and output data rate)
+  // uint8_t data[2] = {// first byte is gyro fs + odr
+  //   uint8_t((static_cast<uint8_t>(imu_config.gyroscope_range) & 0x3) << 5 |
+  //           (static_cast<uint8_t>(imu_config.gyroscope_odr) & 0x0F)),
+  //   // second byte is accel fs + odr
+  //   uint8_t((static_cast<uint8_t>(imu_config.accelerometer_range) & 0x3) << 5 |
+  //           (static_cast<uint8_t>(imu_config.accelerometer_odr) & 0x0F))};
+
+  // write_many_to_register(static_cast<uint8_t>(Register::GYRO_CONFIG0), data, 2, ec);
+  // if (ec) {
+  //   return false;
+  // }
+
+  if (!set_accelerometer_range(imu_config.accelerometer_range, ec)) {
+    return false;
+  }
+  if (!set_gyroscope_range(imu_config.gyroscope_range, ec)) {
+    return false;
+  }
+
+  // now set the magnetometer operational mode
+  if (!set_magnetometer_mode(imu_config.magnetometer_mode, ec)) {
+    return false;
+  }
+
+  return true;
+}
+
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_i2c_master_enabled(bool enable, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x20; // enable I2C master is bit 5 in USER_CTRL
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::USER_CTRL), bitmask,
+                               enable ? bitmask : 0, ec);
+  if (ec) {
+    return false;
+  }
+  // select bank 3
+  if (!select_bank(Bank::_3, ec)) {
+    return false;
+  }
+  // set the i2c clock to 400kHz
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank3::I2C_MST_CTRL), 0x07, ec);
+  return !ec;
 }
 
 /////////////////////////////////
 // Configuration / Offsets
 /////////////////////////////////
 
-bool Icm20948::auto_offsets(std::error_code &ec) { return !ec; }
-
-bool Icm20948::set_accelerometer_offsets(const Range &x, const Range &y, const Range &z,
-                                         std::error_code &ec) {
+template <espp::icm20948::Interface I> bool Icm20948<I>::auto_offsets(std::error_code &ec) {
   return !ec;
 }
 
-bool Icm20948::get_accelerometer_offsets(Range &x, Range &y, Range &z, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_odr_align_enabled(bool enable, std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x01; // enable is bit 0 in ODR_ALIGN_EN
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::ODR_ALIGN_EN), bitmask,
+                               enable ? bitmask : 0, ec);
   return !ec;
 }
 
-bool Icm20948::set_gyroscope_offsets(const float &x, const float &y, const float &z,
-                                     std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_accelerometer_offsets(const Range &x, const Range &y, const Range &z,
+                                            std::error_code &ec) {
   return !ec;
 }
 
-bool Icm20948::get_gyroscope_offsets(float &x, float &y, float &z, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::get_accelerometer_offsets(Range &x, Range &y, Range &z, std::error_code &ec) {
+  return !ec;
+}
+
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_gyroscope_offsets(const float &x, const float &y, const float &z,
+                                        std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  // convert the offsets to raw values based on the sensitivity
+  int16_t x_raw =
+      static_cast<int16_t>(x / gyroscope_range_to_sensitivty(imu_config_.gyroscope_range));
+  int16_t y_raw =
+      static_cast<int16_t>(y / gyroscope_range_to_sensitivty(imu_config_.gyroscope_range));
+  int16_t z_raw =
+      static_cast<int16_t>(z / gyroscope_range_to_sensitivty(imu_config_.gyroscope_range));
+
+  // build the data into an array to write as a single transaction
+  uint8_t data[6] = {
+      (uint8_t)((x_raw >> 8) & 0xFF), (uint8_t)(x_raw & 0xFF),
+      (uint8_t)((y_raw >> 8) & 0xFF), (uint8_t)(y_raw & 0xFF),
+      (uint8_t)((z_raw >> 8) & 0xFF), (uint8_t)(z_raw & 0xFF),
+  };
+
+  // write the offsets to the registers
+  write_many_to_register(static_cast<uint8_t>(RegisterBank2::GYRO_OFFSETS_START), data, 6, ec);
+  return !ec;
+}
+
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::get_gyroscope_offsets(float &x, float &y, float &z, std::error_code &ec) {
   return !ec;
 }
 
@@ -74,22 +183,93 @@ bool Icm20948::get_gyroscope_offsets(float &x, float &y, float &z, std::error_co
 // Power / Sleep / Standby
 /////////////////////////////////
 
-/////////////////////////////////
-// Accelerometer
-/////////////////////////////////
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_power_mode(const PowerMode &mode, std::error_code &ec) {
+  return !ec;
+}
 
-bool Icm20948::enable_accelerometer(bool enable, std::error_code &ec) {
-  uint8_t bitmask = 0x38;
-  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::PWR_MGMT_2), bitmask,
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_low_power_enabled(bool enable, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x20; // enable low power is bit 5 in PWR_MGMT_1
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::PWR_MGMT_1), bitmask,
                                enable ? bitmask : 0, ec);
   return !ec;
 }
 
-float Icm20948::get_accelerometer_sensitivity() {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_low_power_duty_cycle_mode(const DutyCycleMode &mode, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  // duty cycle mode is bits 4,5,6 in LP_CONFIG
+  uint8_t bitmask = 0x70;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::LP_CONFIG), bitmask,
+                               static_cast<uint8_t>(mode), ec);
+  return !ec;
+}
+
+// bool Icm20948<I>::set_gyroscope_average_in_low_power_mode(const GyroscopeAverage &average,
+//                                                        std::error_code &ec) {
+//   return !ec;
+// }
+
+// bool Icm20948<I>::set_accelerometer_average_in_low_power_mode(const AccelerometerAverage
+// &average,
+//                                                            std::error_code &ec) {
+//   return !ec;
+// }
+
+template <espp::icm20948::Interface I> bool Icm20948<I>::sleep(bool enable, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x40; // sleep is bit 6 in PWR_MGMT_1
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::PWR_MGMT_1), bitmask,
+                               enable ? bitmask : 0, ec);
+  return !ec;
+}
+
+template <espp::icm20948::Interface I> bool Icm20948<I>::reset(std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x80; // reset is bit 7 in PWR_MGMT_1
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::PWR_MGMT_1), bitmask, bitmask,
+                               ec);
+  return !ec;
+}
+
+/////////////////////////////////
+// Accelerometer
+/////////////////////////////////
+
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::enable_accelerometer(bool enable, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  // accelerometer bits are 5:3 in PWR_MGMT_2
+  uint8_t bitmask = 0x38;
+  // NOTE: 111 is DISABLED, so we need to invert the enable flag
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::PWR_MGMT_2), bitmask,
+                               !enable ? bitmask : 0, ec);
+  return !ec;
+}
+
+template <espp::icm20948::Interface I> float Icm20948<I>::get_accelerometer_sensitivity() {
   return accelerometer_range_to_sensitivty(imu_config_.accelerometer_range);
 }
 
-float Icm20948::read_accelerometer_sensitivity(std::error_code &ec) {
+template <espp::icm20948::Interface I>
+float Icm20948<I>::read_accelerometer_sensitivity(std::error_code &ec) {
   // read the data
   auto range = read_accelerometer_range(ec);
   if (ec) {
@@ -99,37 +279,64 @@ float Icm20948::read_accelerometer_sensitivity(std::error_code &ec) {
   return accelerometer_range_to_sensitivty(range);
 }
 
-Icm20948::AccelerometerRange Icm20948::get_accelerometer_range() {
+template <espp::icm20948::Interface I>
+Icm20948<I>::AccelerometerRange Icm20948<I>::get_accelerometer_range() {
   return imu_config_.accelerometer_range;
 }
 
-Icm20948::AccelerometerRange Icm20948::read_accelerometer_range(std::error_code &ec) {
+template <espp::icm20948::Interface I>
+Icm20948<I>::AccelerometerRange Icm20948<I>::read_accelerometer_range(std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return AccelerometerRange::RANGE_2G;
+  }
   // read the byte from the register
-  uint8_t data = read_u8_from_register(static_cast<uint8_t>(Register::ACCEL_CONFIG0), ec);
+  uint8_t data = read_u8_from_register(static_cast<uint8_t>(RegisterBank2::ACCEL_CONFIG), ec);
   if (ec) {
     return AccelerometerRange::RANGE_2G;
   }
   // get the range
-  AccelerometerRange range = static_cast<AccelerometerRange>((data >> 5) & 0x03);
+  AccelerometerRange range = static_cast<AccelerometerRange>(data & 0x06);
   // update the config
   imu_config_.accelerometer_range = range;
   return range;
 }
 
-bool Icm20948::set_accelerometer_range(const AccelerometerRange &range, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_accelerometer_range(const AccelerometerRange &range, std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  // accelerometer range is bits 2:1 in ACCEL_CONFIG
   uint8_t bitmask = 0x06;
-  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::ACCEL_CONFIG), bitmask,
-                               static_cast<uint8_t>(range) << 1, ec);
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::ACCEL_CONFIG), bitmask,
+                               static_cast<uint8_t>(range), ec);
   // update the config
   imu_config_.accelerometer_range = range;
   return !ec;
 }
 
-bool Icm20948::set_accelerometer_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_accelerometer_dlpf_enabled(bool enable, std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x01; // enable DLPF is bit 0 in ACCEL_CONFIG
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::ACCEL_CONFIG), bitmask,
+                               enable ? bitmask : 0, ec);
   return !ec;
 }
 
-bool Icm20948::set_accelerometer_odr(const AccelerometerODR &odr, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_accelerometer_dlpf(const SensorFilterBandwidth &bandwidth,
+                                         std::error_code &ec) {
+  return !ec;
+}
+
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_accelerometer_odr(const AccelerometerODR &odr, std::error_code &ec) {
   return !ec;
 }
 
@@ -137,18 +344,26 @@ bool Icm20948::set_accelerometer_odr(const AccelerometerODR &odr, std::error_cod
 // Gyroscope
 /////////////////////////////////
 
-bool Icm20948::enable_gyroscope(bool enable, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::enable_gyroscope(bool enable, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  // gyroscope bits are 2:0 in PWR_MGMT_2
   uint8_t bitmask = 0x07;
-  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::PWR_MGMT_2), bitmask,
-                               enable ? bitmask : 0, ec);
+  // NOTE: 111 is DISABLED, so we need to invert the enable flag
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::PWR_MGMT_2), bitmask,
+                               !enable ? bitmask : 0, ec);
   return !ec;
 }
 
-float Icm20948::get_gyroscope_sensitivity() {
+template <espp::icm20948::Interface I> float Icm20948<I>::get_gyroscope_sensitivity() {
   return gyroscope_range_to_sensitivty(imu_config_.gyroscope_range);
 }
 
-float Icm20948::read_gyroscope_sensitivity(std::error_code &ec) {
+template <espp::icm20948::Interface I>
+float Icm20948<I>::read_gyroscope_sensitivity(std::error_code &ec) {
   // read the data
   auto range = read_gyroscope_range(ec);
   if (ec) {
@@ -158,163 +373,332 @@ float Icm20948::read_gyroscope_sensitivity(std::error_code &ec) {
   return gyroscope_range_to_sensitivty(range);
 }
 
-Icm20948::GyroscopeRange Icm20948::get_gyroscope_range() { return imu_config_.gyroscope_range; }
+template <espp::icm20948::Interface I>
+Icm20948<I>::GyroscopeRange Icm20948<I>::get_gyroscope_range() {
+  return imu_config_.gyroscope_range;
+}
 
-Icm20948::GyroscopeRange Icm20948::read_gyroscope_range(std::error_code &ec) {
+template <espp::icm20948::Interface I>
+Icm20948<I>::GyroscopeRange Icm20948<I>::read_gyroscope_range(std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return GyroscopeRange::RANGE_250DPS;
+  }
   // read the byte from the register
-  uint8_t data = read_u8_from_register(static_cast<uint8_t>(Register::GYRO_CONFIG0), ec);
+  uint8_t data = read_u8_from_register(static_cast<uint8_t>(RegisterBank2::GYRO_CONFIG_1), ec);
   if (ec) {
     return GyroscopeRange::RANGE_250DPS;
   }
   // get the range
-  GyroscopeRange range = static_cast<GyroscopeRange>((data >> 5) & 0x03);
+  GyroscopeRange range = static_cast<GyroscopeRange>(data & 0x06);
   // update the config
   imu_config_.gyroscope_range = range;
   return range;
 }
 
-bool Icm20948::set_gyroscope_range(const GyroscopeRange &range, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_gyroscope_range(const GyroscopeRange &range, std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
   uint8_t bitmask = 0x06;
-  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::GYRO_CONFIG_1), bitmask,
-                               static_cast<uint8_t>(range) << 1, ec);
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::GYRO_CONFIG_1), bitmask,
+                               static_cast<uint8_t>(range), ec);
   // update the config
   imu_config_.gyroscope_range = range;
   return !ec;
 }
 
-bool Icm20948::set_gyroscope_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_gyroscope_dlpf_enabled(bool enable, std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x01; // enable DLPF is bit 0 in GYRO_CONFIG_1
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::GYRO_CONFIG_2), bitmask,
+                               enable ? bitmask : 0, ec);
   return !ec;
 }
 
-bool Icm20948::set_gyroscope_odr(const GyroscopeODR &odr, std::error_code &ec) { return !ec; }
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_gyroscope_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec) {
+  return !ec;
+}
+
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_gyroscope_odr(const GyroscopeODR &odr, std::error_code &ec) {
+  return !ec;
+}
 
 /////////////////////////////////
 // Temperature
 /////////////////////////////////
 
-bool Icm20948::set_temperature_dlpf(const TemperatureFilterBandwidth &bandwidth,
-                                    std::error_code &ec) {
-  set_bits_in_register(static_cast<uint8_t>(Register::TEMP_CONFIG), static_cast<uint8_t>(bandwidth),
-                       ec);
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_temperature_dlpf(const TemperatureFilterBandwidth &bandwidth,
+                                       std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  set_bits_in_register(static_cast<uint8_t>(RegisterBank2::TEMP_CONFIG),
+                       static_cast<uint8_t>(bandwidth), ec);
   return !ec;
 }
 
 /////////////////////////////////
 // Magnetometer
 /////////////////////////////////
-bool Icm20948::init_magnetometer(std::error_code &ec) { return !ec; }
-
-uint16_t Icm20948::get_magnetometer_device_id(std::error_code &ec) { return 0; }
-
-bool Icm20948::set_magnetometer_mode(const icm20948::MagnetometerMode &mode, std::error_code &ec) {
+template <espp::icm20948::Interface I> bool Icm20948<I>::init_magnetometer(std::error_code &ec) {
   return !ec;
 }
 
-float Icm20948::get_magnetometer_sensitivity() { return MAG_SENS; }
+template <espp::icm20948::Interface I>
+uint16_t Icm20948<I>::get_magnetometer_device_id(std::error_code &ec) {
+  return 0;
+}
 
-bool Icm20948::reset_magnetometer(std::error_code &ec) { return !ec; }
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_magnetometer_mode(const icm20948::MagnetometerMode &mode,
+                                        std::error_code &ec) {
+  if (!write_magnetometer(static_cast<uint8_t>(Ak09916Register::CONTROL_2),
+                          static_cast<uint8_t>(mode), ec)) {
+    return false;
+  }
+  // make sure to enable reading the magnetometer data
+  if (mode != icm20948::MagnetometerMode::POWER_DOWN) {
+    if (!enable_magnetometer_data_read(static_cast<uint8_t>(Ak09916Register::HXL), 8, ec)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <espp::icm20948::Interface I> float Icm20948<I>::get_magnetometer_sensitivity() {
+  return MAG_SENS;
+}
+
+template <espp::icm20948::Interface I> bool Icm20948<I>::reset_magnetometer(std::error_code &ec) {
+  return !ec;
+}
 
 /////////////////////////////////
 // Raw / Low level data
 /////////////////////////////////
-Value Icm20948::get_accelerometer(std::error_code &ec) {
+template <espp::icm20948::Interface I> Icm20948<I>::Value Icm20948<I>::get_accelerometer() {
+  return accel_values_;
+}
+
+template <espp::icm20948::Interface I> Icm20948<I>::Value Icm20948<I>::get_gyroscope() {
+  return gyro_values_;
+}
+
+template <espp::icm20948::Interface I> Icm20948<I>::Value Icm20948<I>::get_magnetometer() {
+  return mag_values_;
+}
+
+template <espp::icm20948::Interface I> float Icm20948<I>::get_temperature() { return temperature_; }
+
+template <espp::icm20948::Interface I>
+Icm20948<I>::Value Icm20948<I>::read_accelerometer(std::error_code &ec) {
   RawValue raw = get_accelerometer_raw(ec);
   if (ec) {
     return {0.0f, 0.0f, 0.0f};
   }
   float sensitivity = get_accelerometer_sensitivity();
-  if (ec) {
-    return {0.0f, 0.0f, 0.0f};
-  }
-  return {
+  Value value = {
       static_cast<float>(raw.x) / sensitivity,
       static_cast<float>(raw.y) / sensitivity,
       static_cast<float>(raw.z) / sensitivity,
   };
+  accel_values_ = value;
+  return value;
 }
 
-Value Icm20948::get_gyroscope(std::error_code &ec) {
+template <espp::icm20948::Interface I>
+Icm20948<I>::Value Icm20948<I>::read_gyroscope(std::error_code &ec) {
   RawValue raw = get_gyroscope_raw(ec);
   if (ec) {
     return {0.0f, 0.0f, 0.0f};
   }
   float sensitivity = get_gyroscope_sensitivity();
-  if (ec) {
-    return {0.0f, 0.0f, 0.0f};
-  }
-  return {
+  Value value = {
       static_cast<float>(raw.x) / sensitivity,
       static_cast<float>(raw.y) / sensitivity,
       static_cast<float>(raw.z) / sensitivity,
   };
+  gyro_values_ = value;
+  return value;
 }
 
-Value Icm20948::get_magnetometer(std::error_code &ec) {
+template <espp::icm20948::Interface I>
+Icm20948<I>::Value Icm20948<I>::read_magnetometer(std::error_code &ec) {
   RawValue raw = get_magnetometer_raw(ec);
   if (ec) {
     return {0.0f, 0.0f, 0.0f};
   }
   float sensitivity = get_magnetometer_sensitivity();
-  if (ec) {
-    return {0.0f, 0.0f, 0.0f};
-  }
-  return {
+  Value value = {
       static_cast<float>(raw.x) / sensitivity,
       static_cast<float>(raw.y) / sensitivity,
       static_cast<float>(raw.z) / sensitivity,
   };
+  mag_values_ = value;
+  return value;
 }
 
-float Icm20948::get_temperature(std::error_code &ec) {
+template <espp::icm20948::Interface I> float Icm20948<I>::read_temperature(std::error_code &ec) {
   uint16_t raw = get_temperature_raw(ec);
   if (ec) {
     return 0.0f;
   }
-  return static_cast<float>(raw) / 128.0f + 25.0f; // 132.48 + 25
+  float temp = static_cast<float>(raw) / 128.0f + 25.0f; // 132.48 + 25
+  temperature_ = temp;
+  return temp;
 }
 
 /////////////////////////////////
 // DMP
 /////////////////////////////////
 
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::enable_dmp(bool enable, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x80; // enable DMP is bit 7
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::USER_CTRL), bitmask,
+                               enable ? bitmask : 0, ec);
+  return !ec;
+}
+
+template <espp::icm20948::Interface I> bool Icm20948<I>::reset_dmp(std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x08; // reset DMP is bit 3
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::USER_CTRL), bitmask, bitmask,
+                               ec);
+  return !ec;
+}
+
 /////////////////////////////////
 // Angles and Orientation
 /////////////////////////////////
-Value Icm20948::get_angles(std::error_code &ec) {
-  Value value;
+
+template <espp::icm20948::Interface I> bool Icm20948<I>::update(float dt, std::error_code &ec) {
+  // update accel
+  Value accel = read_accelerometer(ec);
+  if (ec) {
+    return false;
+  }
+  // update gyro
+  Value gyro = read_gyroscope(ec);
+  if (ec) {
+    return false;
+  }
+  // update temp
+  read_temperature(ec);
+  if (ec) {
+    return false;
+  }
+  Value mag = read_magnetometer(ec);
+  if (ec) {
+    return false;
+  }
+
+  // if we have a filter function, then filter the data and update the
+  // orientation
+  if (orientation_filter_) {
+    orientation_ = orientation_filter_(dt, accel, gyro, mag);
+    // now calculate the gravity vector
+    gravity_vector_ = {
+        (float)(sin(orientation_.pitch)),
+        (float)(-sin(orientation_.roll) * cos(orientation_.pitch)),
+        (float)(-cos(orientation_.roll) * cos(orientation_.pitch)),
+    };
+  }
+  return true;
+}
+
+template <espp::icm20948::Interface I> Icm20948<I>::Value Icm20948<I>::get_orientation() {
+  return orientation_;
+}
+
+template <espp::icm20948::Interface I> Icm20948<I>::Value Icm20948<I>::get_gravity_vector() {
+  return gravity_vector_;
+}
+
+template <espp::icm20948::Interface I> Icm20948<I>::Value Icm20948<I>::get_angles() {
+  Value value{};
   return value;
 }
 
-float Icm20948::get_pitch(std::error_code &ec) { return 0.0f; }
+template <espp::icm20948::Interface I> float Icm20948<I>::get_pitch() { return 0.0f; }
 
-float Icm20948::get_roll(std::error_code &ec) { return 0.0f; }
+template <espp::icm20948::Interface I> float Icm20948<I>::get_roll() { return 0.0f; }
 
-float Icm20948::get_yaw(std::error_code &ec) { return 0.0f; }
+template <espp::icm20948::Interface I> float Icm20948<I>::get_yaw() { return 0.0f; }
 
 /////////////////////////////////
 // FIFO
 /////////////////////////////////
-bool Icm20948::enable_fifo(bool enable, std::error_code &ec) {
-  uint8_t bitmask = 0x06;
-  set_bits_in_register_by_mask(static_cast<uint8_t>(Register::USER_CTRL), bitmask,
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::enable_fifo(bool enable, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  uint8_t bitmask = 0x40; // enable FIFO is bit 6
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::USER_CTRL), bitmask,
                                enable ? bitmask : 0, ec);
-  // update the config
-  imu_config_.gyroscope_range = range;
   return !ec;
 }
 
-bool Icm20948::set_fifo_mode(const FifoMode &mode, std::error_code &ec) {
-  set_bits_in_register(static_cast<uint8_t>(Register::FIFO_MODE), static_cast<uint8_t>(mode), ec);
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_fifo_mode(const FifoMode &mode, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  set_bits_in_register(static_cast<uint8_t>(RegisterBank0::FIFO_MODE), static_cast<uint8_t>(mode),
+                       ec);
   return !ec;
 }
 
-bool Icm20948::start_fifo(const FifoType &fifo_type, std::error_code &ec) { return !ec; }
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::start_fifo(const FifoType &fifo_type, std::error_code &ec) {
+  return !ec;
+}
 
-bool Icm20948::stop_fifo(std::error_code &ec) { return !ec; }
+template <espp::icm20948::Interface I> bool Icm20948<I>::stop_fifo(std::error_code &ec) {
+  return !ec;
+}
 
-bool Icm20948::reset_fifo(std::error_code &ec) { return !ec; }
+template <espp::icm20948::Interface I> bool Icm20948<I>::reset_fifo(std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return false;
+  }
+  // fifo reset are bits 4:0 in FIFO_RST. assert and hold to set fifo size to 0,
+  // assert and de-assert to reset fifo
+  uint8_t bitmask = 0x1F;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::FIFO_RST), bitmask, bitmask, ec);
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank0::FIFO_RST), bitmask, 0, ec);
+  return !ec;
+}
 
-uint16_t Icm20948::get_fifo_count(std::error_code &ec) { return 0; }
+template <espp::icm20948::Interface I> uint16_t Icm20948<I>::get_fifo_count(std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return 0;
+  }
+  return read_u16_from_register(static_cast<uint8_t>(RegisterBank0::FIFO_COUNTH), ec);
+}
 
 /////////////////////////////////
 // Interrupts
@@ -324,7 +708,8 @@ uint16_t Icm20948::get_fifo_count(std::error_code &ec) { return 0; }
 // Utility
 /////////////////////////////////
 
-float Icm20948::accelerometer_range_to_sensitivty(const Icm20948::AccelerometerRange &range) {
+template <espp::icm20948::Interface I>
+float Icm20948<I>::accelerometer_range_to_sensitivty(const Icm20948<I>::AccelerometerRange &range) {
   switch (range) {
   case AccelerometerRange::RANGE_16G:
     return ACCEL_FS_16G_SENS;
@@ -339,7 +724,8 @@ float Icm20948::accelerometer_range_to_sensitivty(const Icm20948::AccelerometerR
   }
 }
 
-float Icm20948::gyroscope_range_to_sensitivty(const Icm20948::GyroscopeRange &range) {
+template <espp::icm20948::Interface I>
+float Icm20948<I>::gyroscope_range_to_sensitivty(const Icm20948<I>::GyroscopeRange &range) {
   switch (range) {
   case GyroscopeRange::RANGE_2000DPS:
     return GYRO_FS_2000_SENS;
@@ -354,23 +740,91 @@ float Icm20948::gyroscope_range_to_sensitivty(const Icm20948::GyroscopeRange &ra
   }
 }
 
-uint16_t Icm20948::get_temperature_raw(std::error_code &ec) {
-  return read_u16_from_register(static_cast<uint8_t>(Register::TEMP_DATA), ec);
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::write_magnetometer(uint8_t reg, uint8_t val, std::error_code &ec) {
+  // select bank 3
+  if (!select_bank(Bank::_3, ec)) {
+    return false;
+  }
+  // write the address of the magnetometer
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank3::I2C_SLV4_ADDR), AK09916C_ADDRESS, ec);
+  if (ec) {
+    return false;
+  }
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank3::I2C_SLV4_DO), val, ec);
+  if (ec) {
+    return false;
+  }
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank3::I2C_SLV4_REG), reg, ec);
+  if (ec) {
+    return false;
+  }
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank3::I2C_SLV4_CTRL), I2C_SLVX_EN, ec);
+
+  // wait for the write to complete
+  while (read_u8_from_register(static_cast<uint8_t>(RegisterBank3::I2C_SLV4_CTRL), ec) &
+         I2C_SLVX_EN) {
+    if (ec) {
+      return false;
+    }
+  }
+
+  return !ec;
 }
 
-Icm20948::RawValue Icm20948::get_accelerometer_raw(std::error_code &ec) {
-  return get_raw(Register::ACCEL_DATA, ec);
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::enable_magnetometer_data_read(uint8_t reg_addr, uint8_t num_bytes,
+                                                std::error_code &ec) {
+  // select bank 3
+  if (!select_bank(Bank::_3, ec)) {
+    return false;
+  }
+
+  // write the address of the magnetometer
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank3::I2C_SLV0_ADDR), AK09916C_ADDRESS | 0x80,
+                       ec);
+  if (ec) {
+    return false;
+  }
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank3::I2C_SLV0_REG), reg_addr, ec);
+  if (ec) {
+    return false;
+  }
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank3::I2C_SLV0_CTRL), I2C_SLVX_EN | num_bytes,
+                       ec);
+  return !ec;
 }
 
-Icm20948::RawValue Icm20948::get_gyroscope_raw(std::error_code &ec) {
-  return get_raw(Register::GYRO_DATA, ec);
+template <espp::icm20948::Interface I>
+uint16_t Icm20948<I>::get_temperature_raw(std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return 0;
+  }
+  return read_u16_from_register(static_cast<uint8_t>(RegisterBank0::TEMP_DATA), ec);
 }
 
-Icm20948::RawValue Icm20948::get_magnetometer_raw(std::error_code &ec) {
-  return get_raw(Register::MAG_DATA, ec);
+template <espp::icm20948::Interface I>
+Icm20948<I>::RawValue Icm20948<I>::get_accelerometer_raw(std::error_code &ec) {
+  return get_raw(RegisterBank0::ACCEL_DATA, ec);
 }
 
-Icm20948::RawValue Icm20948::get_raw(Icm20948::Register reg, std::error_code &ec) {
+template <espp::icm20948::Interface I>
+Icm20948<I>::RawValue Icm20948<I>::get_gyroscope_raw(std::error_code &ec) {
+  return get_raw(RegisterBank0::GYRO_DATA, ec);
+}
+
+template <espp::icm20948::Interface I>
+Icm20948<I>::RawValue Icm20948<I>::get_magnetometer_raw(std::error_code &ec) {
+  return get_raw(RegisterBank0::MAG_DATA, ec);
+}
+
+template <espp::icm20948::Interface I>
+Icm20948<I>::RawValue Icm20948<I>::get_raw(Icm20948<I>::RegisterBank0 reg, std::error_code &ec) {
+  // select bank 0
+  if (!select_bank(Bank::_0, ec)) {
+    return {0, 0, 0};
+  }
   uint8_t data[6];
   read_many_from_register(static_cast<uint8_t>(reg), data, 6, ec);
   if (ec) {
@@ -382,3 +836,20 @@ Icm20948::RawValue Icm20948::get_raw(Icm20948::Register reg, std::error_code &ec
       static_cast<int16_t>((data[4] << 8) | data[5]),
   };
 }
+
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::select_bank(const Icm20948<I>::Bank &bank, std::error_code &ec) {
+  // if the bank is already selected, then return
+  if (current_bank_ == bank) {
+    return true;
+  }
+  // store the new bank
+  current_bank_ = bank;
+  // write the bank to the register
+  write_u8_to_register(BANK_SEL, static_cast<uint8_t>(bank), ec);
+  return !ec;
+}
+
+// explicit template instantiation
+template class espp::Icm20948<espp::icm20948::Interface::I2C>;
+template class espp::Icm20948<espp::icm20948::Interface::SSI>;

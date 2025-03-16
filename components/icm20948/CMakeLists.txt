@@ -1,4 +1,5 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  REQUIRES "base_peripheral" "math"
+  SRC_DIRS "src"
+  REQUIRES "base_peripheral" "math" "utils"
   )

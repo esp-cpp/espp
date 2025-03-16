@@ -96,29 +96,40 @@ public:
 
   static constexpr uint8_t AK09916C_ADDRESS = 0x0C; ///< I2C address of the AK09916C magnetometer
 
-  using FifoMode = icm20948::FifoMode;                             ///< FIFO mode
-  using AccelerometerRange = icm20948::AccelerometerRange;         ///< Accelerometer range
-  using AccelerometerPowerMode = icm20948::AccelerometerPowerMode; ///< Accelerometer power mode
+  using PowerMode = icm20948::PowerMode;                   ///< Power mode
+  using DutyCycleMode = icm20948::DutyCycleMode;           ///< Duty cycle mode
+  using FifoMode = icm20948::FifoMode;                     ///< FIFO mode
+  using FifoType = icm20948::FifoType;                     ///< FIFO type
+  using AccelerometerRange = icm20948::AccelerometerRange; ///< Accelerometer range
   using AccelerometerODR = icm20948::AccelerometerODR;     ///< Accelerometer output data rate
   using GyroscopeRange = icm20948::GyroscopeRange;         ///< Gyroscope range
-  using GyroscopePowerMode = icm20948::GyroscopePowerMode; ///< Gyroscope power mode
   using GyroscopeODR = icm20948::GyroscopeODR;             ///< Gyroscope output data rate
   using DmpODR = icm20948::DmpODR;                         ///< DMP output data rate
   using TemperatureFilterBandwidth =
       icm20948::TemperatureFilterBandwidth;                      ///< Temperature filter bandwidth
+  using MagnetometerMode = icm20948::MagnetometerMode;           ///< Magnetometer mode
   using SensorFilterBandwidth = icm20948::SensorFilterBandwidth; ///< Sensor filter bandwidth
   using ImuConfig = icm20948::ImuConfig;                         ///< IMU configuration
   using RawValue = icm20948::RawValue;                           ///< Raw IMU data
   using Value = icm20948::Value;                                 ///< IMU data
-  using ComplimentaryAngle = icm20948::ComplimentaryAngle;       ///< Complimentary angle
   using InterruptDriveMode = icm20948::InterruptDriveMode;       ///< Interrupt drive mode
   using InterruptPolarity = icm20948::InterruptPolarity;         ///< Interrupt polarity
   using InterruptMode = icm20948::InterruptMode;                 ///< Interrupt mode
   using InterruptConfig = icm20948::InterruptConfig;             ///< Interrupt configuration
 
+  /// Filter function for filtering 9-axis data into 3-axis orientation data
+  /// @param dt The time step in seconds
+  /// @param accel The accelerometer data
+  /// @param gyro The gyroscope data
+  /// @param mag The magnetometer data
+  /// @return The filtered orientation data in radians
+  typedef std::function<Value(float, const Value &, const Value &, const Value &)>
+      filter_fn; ///< Filter function
+
+  /// Range struct
   struct Range {
-    float min;
-    float max;
+    float min; ///< Minimum value
+    float max; ///< Maximum value
   };
 
   /// Configuration struct for the ICM20948
@@ -129,6 +140,7 @@ public:
     BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::read_fn read =
         nullptr;                                          ///< Read function
     ImuConfig imu_config;                                 ///< IMU configuration
+    filter_fn orientation_filter = nullptr;               ///< Orientation filter function
     bool auto_init{true};                                 ///< Automatically initialize the ICM20948
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log level
   };
@@ -147,10 +159,23 @@ public:
   /// @return The device ID
   uint8_t get_device_id(std::error_code &ec);
 
+  /// Set the IMU configuration
+  /// @param imu_config The IMU configuration
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the configuration was set successfully, false otherwise
+  bool set_config(const ImuConfig &imu_config, std::error_code &ec);
+
+  /// Set whether the I2C master is enabled
+  /// @param enable True to enable the I2C master, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the I2C master was enabled or disabled successfully, false otherwise
+  bool set_i2c_master_enabled(bool enable, std::error_code &ec);
+
   /////////////////////////////////
   // Configuration / Offsets
   /////////////////////////////////
   bool auto_offsets(std::error_code &ec);
+  bool set_odr_align_enabled(bool enable, std::error_code &ec);
   bool set_accelerometer_offsets(const Range &x, const Range &y, const Range &z,
                                  std::error_code &ec);
   bool get_accelerometer_offsets(Range &x, Range &y, Range &z, std::error_code &ec);
@@ -160,13 +185,15 @@ public:
   /////////////////////////////////
   // Power / Sleep / Standby
   /////////////////////////////////
-  bool enable_low_power_duty_cycle_mode(const LowPowerDutyCycle &mode, std::error_code &ec);
-  bool enable_low_power(bool enable, std::error_code &ec);
-  bool set_gyroscope_average_in_low_power_mode(const GyroscopeAverage &average,
-                                               std::error_code &ec);
-  bool set_accelerometer_average_in_low_power_mode(const AccelerometerAverage &average,
-                                                   std::error_code &ec);
+  bool set_power_mode(const PowerMode &mode, std::error_code &ec);
+  bool set_low_power_enabled(bool enable, std::error_code &ec);
+  bool set_low_power_duty_cycle_mode(const DutyCycleMode &mode, std::error_code &ec);
+  // bool set_gyroscope_average_in_low_power_mode(const GyroscopeAverage &average,
+  //                                              std::error_code &ec);
+  // bool set_accelerometer_average_in_low_power_mode(const AccelerometerAverage &average,
+  //                                                  std::error_code &ec);
   bool sleep(bool enable, std::error_code &ec);
+  bool reset(std::error_code &ec);
 
   /////////////////////////////////
   // Accelerometer
@@ -177,6 +204,7 @@ public:
   AccelerometerRange get_accelerometer_range();
   AccelerometerRange read_accelerometer_range(std::error_code &ec);
   bool set_accelerometer_range(const AccelerometerRange &range, std::error_code &ec);
+  bool set_accelerometer_dlpf_enabled(bool enable, std::error_code &ec);
   bool set_accelerometer_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec);
   bool set_accelerometer_odr(const AccelerometerODR &odr, std::error_code &ec);
 
@@ -189,6 +217,7 @@ public:
   GyroscopeRange get_gyroscope_range();
   GyroscopeRange read_gyroscope_range(std::error_code &ec);
   bool set_gyroscope_range(const GyroscopeRange &range, std::error_code &ec);
+  bool set_gyroscope_dlpf_enabled(bool enable, std::error_code &ec);
   bool set_gyroscope_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec);
   bool set_gyroscope_odr(const GyroscopeODR &odr, std::error_code &ec);
 
@@ -209,22 +238,41 @@ public:
   /////////////////////////////////
   // Raw / Low level data
   /////////////////////////////////
-  Value get_accelerometer(std::error_code &ec);
-  Value get_gyroscope(std::error_code &ec);
-  Value get_magnetometer(std::error_code &ec);
-  float get_temperature(std::error_code &ec);
+  Value get_accelerometer();
+  Value get_gyroscope();
+  Value get_magnetometer();
+  float get_temperature();
+  Value read_accelerometer(std::error_code &ec);
+  Value read_gyroscope(std::error_code &ec);
+  Value read_magnetometer(std::error_code &ec);
+  float read_temperature(std::error_code &ec);
 
   /////////////////////////////////
   // DMP
   /////////////////////////////////
 
+  bool enable_dmp(bool enable, std::error_code &ec);
+  bool reset_dmp(std::error_code &ec);
+
   /////////////////////////////////
   // Angles and Orientation
   /////////////////////////////////
-  Value get_angles(std::error_code &ec);
-  float get_pitch(std::error_code &ec);
-  float get_roll(std::error_code &ec);
-  float get_yaw(std::error_code &ec);
+
+  /// Update the accelerometer, gyroscope, temperature, and magnetometer values
+  /// @param dt The time step in seconds
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the values were updated successfully, false otherwise
+  /// @note The values can be retrieved with get_accelerometer_values and
+  ///       get_gyroscope_values, and the temperature can be retrieved with
+  ///       get_temperature. The orientation can be retrieved with
+  ///       get_orientation.
+  bool update(float dt, std::error_code &ec);
+  Value get_orientation();
+  Value get_gravity_vector();
+  Value get_angles();
+  float get_pitch();
+  float get_roll();
+  float get_yaw();
 
   /////////////////////////////////
   // FIFO
@@ -275,8 +323,22 @@ protected:
 
   static constexpr uint8_t FIFO_EN = (1 << 6); ///< FIFO enable bit, in register USER_CTRL
 
+  static constexpr uint8_t BANK_SEL =
+      0x7F; ///< Register bank select register (all banks). Bits [5:4] select the bank
+
+  static const uint8_t I2C_SLVX_EN = 0x80;
+
+  /// User register banks available
+  /// Values are the bank select bits for the BANK_SEL register
+  enum class Bank : uint8_t {
+    _0 = 0x00, ///< Register bank 0
+    _1 = 0x10, ///< Register bank 1
+    _2 = 0x20, ///< Register bank 2
+    _3 = 0x30, ///< Register bank 3
+  };
+
   /// Register addresses
-  enum class Register : uint8_t {
+  enum class RegisterBank0 : uint8_t {
     /// USER BANK 0
     WHO_AM_I = 0x00,       ///< Who am I register
     USER_CTRL = 0x03,      ///< User control register
@@ -336,7 +398,9 @@ protected:
     DATA_RDY_STATUS = 0x74, ///< Data ready status register
 
     FIFO_CFG = 0x76, ///< FIFO configuration register
+  };
 
+  enum class RegisterBank1 : uint8_t {
     /// USER BANK 1
     SELF_TEST_X_GYRO = 0x02,  ///< X-axis gyroscope self-test register
     SELF_TEST_Y_GYRO = 0x03,  ///< Y-axis gyroscope self-test register
@@ -353,11 +417,14 @@ protected:
     ACCEL_Z_OFFS_L = 0x7E, ///< Accelerometer Z-axis offset low byte register
 
     TIMEBASE_CORRECTION_PLL = 0x28, ///< Timebase correction PLL register
+  };
 
+  enum class RegisterBank2 : uint8_t {
     /// USER BANK 2
     GYRO_SMPLRT_DIV = 0x00,    ///< Gyroscope sample rate divider register
     GYRO_CONFIG_1 = 0x01,      ///< Gyroscope configuration 1 register
     GYRO_CONFIG_2 = 0x02,      ///< Gyroscope configuration 2 register
+    GYRO_OFFSETS_START = 0x03, ///< Gyroscope offsets start register
     GYRO_X_OFFS_H = 0x03,      ///< Gyroscope X-axis offset high byte register
     GYRO_X_OFFS_L = 0x04,      ///< Gyroscope X-axis offset low byte register
     GYRO_Y_OFFS_H = 0x05,      ///< Gyroscope Y-axis offset high byte register
@@ -374,7 +441,9 @@ protected:
     FSYNC_CONFIG = 0x52,       ///< FSYNC configuration register
     TEMP_CONFIG = 0x53,        ///< Temperature configuration register
     MOD_CTRL_USR = 0x54,       ///< Mode control user register
+  };
 
+  enum class RegisterBank3 : uint8_t {
     /// USER BANK 3
     I2C_MST_ODR_CONFIG = 0x00, ///< I2C master output data rate configuration register
     I2C_MST_CTRL = 0x01,       ///< I2C master control register
@@ -471,11 +540,30 @@ protected:
 
   static float accelerometer_range_to_sensitivty(const AccelerometerRange &range);
   static float gyroscope_range_to_sensitivty(const GyroscopeRange &range);
-  uint16_t get_temperature_raw(std::error_code &ec);
-  RawValue get_accelerometer_raw(std::error_code &ec) RawValue
-      get_gyroscope_raw(std::error_code &ec);
-  RawValue get_raw(Register reg, std::error_code &ec);
 
+  bool write_magnetometer(uint8_t reg, uint8_t val, std::error_code &ec);
+  bool enable_magnetometer_data_read(uint8_t reg_addr, uint8_t num_bytes, std::error_code &ec);
+
+  uint16_t get_temperature_raw(std::error_code &ec);
+  RawValue get_accelerometer_raw(std::error_code &ec);
+  RawValue get_gyroscope_raw(std::error_code &ec);
+  RawValue get_magnetometer_raw(std::error_code &ec);
+  RawValue get_raw(RegisterBank0 reg, std::error_code &ec);
+
+  bool select_bank(const Bank &bank, std::error_code &ec);
+
+  Bank current_bank_{Bank::_0}; ///< Current register bank
+  Value accel_values_{};
+  Value gyro_values_{};
+  Value mag_values_{};
+  float temperature_{0.0f};
+  Value orientation_{};
+  Value gravity_vector_{};
+  filter_fn orientation_filter_{nullptr};
   ImuConfig imu_config_{}; ///< IMU configuration
 };                         // class Icm20948
 } // namespace espp
+
+// explicit template instantiation
+extern template class espp::Icm20948<espp::icm20948::Interface::I2C>;
+extern template class espp::Icm20948<espp::icm20948::Interface::SSI>;

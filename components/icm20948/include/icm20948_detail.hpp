@@ -2,29 +2,40 @@
 
 #include <cstdint>
 
+#include "bitmask_operators.hpp"
+
 namespace espp {
 /// @brief Namespace for the ICM20948 9-axis motion sensor
 namespace icm20948 {
 /// @brief Enum class for the interface type of the ICM20948
 enum class Interface : uint8_t {
-  I2C = 0, ///< Inter-Integrated Circuit (I2C)
-  SSI = 1, ///< Synchronous Serial Interface (SSI), which can be SPI or SSI
+  I2C = 0, ///< Inter-Integrated Circuit (I2C). Max bus speed in this mode is 400 kHz.
+  SSI = 1, ///< Synchronous Serial Interface (SSI), which can be SPI or SSI. Max bus speed in this
+           ///< mode is 7 MHz.
 };
 
-/// @brief Enum class for the ICM20948 low power duty cycle mode configuration
-enum class LowPowerDutyCycle : uint8_t {
-  NONE = 0,        ///< No sensors active in duty cycled mode
-  GYRO = (1 << 4), ///< Gyroscope active in duty cycled mode. ODR is determined by GYRO_SMPLRT_DIV
-  ACCEL =
-      (1 << 5), ///< Accelerometer active in duty cycled mode. ODR is determined by ACCEL_SMPLRT_DIV
-  GYRO_ACCEL = (1 << 4) | (1 << 5), ///< Gyroscope and accelerometer active in duty cycled mode. ODR
-                                    ///< is determined by GYRO_SMPLRT_DIV and ACCEL_SMPLRT_DIV
-  I2C_MST =
-      (1 << 6), ///< I2C master active in duty cycled mode. ODR is determined by I2C_MST_ODR_CONFIG
-  GYRO_ACCEL_I2C_MST =
-      (1 << 4) | (1 << 5) | (1 << 6), ///< Gyroscope, accelerometer, and I2C master active in duty
-                                      ///< cycled mode. ODR is determined by GYRO_SMPLRT_DIV,
-                                      ///< ACCEL_SMPLRT_DIV, and I2C_MST_ODR_CONFIG
+/// @brief Enum class for the ICM20948 low power mode configuration
+enum class PowerMode : uint8_t {
+  SLEEP = 0,                          ///< Sleep mode
+  LOW_POWER_ACCELEROMETER_ONLY = 1,   ///< Low power accelerometer only mode
+  LOW_NOISE_ACCELEROMETER_ONLY = 2,   ///< Low noise accelerometer only mode
+  GYROSCOPE_ONLY = 3,                 ///< Gyroscope only mode
+  MAGNETOMETER_ONLY = 4,              ///< Magnetometer only mode
+  ACCELEROMETER_AND_GYROSCOPE = 5,    ///< Accelerometer and gyroscope mode
+  ACCELEROMETER_AND_MAGNETOMETER = 6, ///< Accelerometer and magnetometer mode
+  NINE_AXIS = 7,                      ///< Nine-axis mode
+};
+
+enum class DutyCycleMode : uint8_t {
+  GYRO_ONLY = (1 << 4),                                     ///< Gyroscope enabled
+  ACCEL_ENABLED = (1 << 5),                                 ///< Accelerometer enabled
+  I2C_MAST_ENABLED = (1 << 6),                              ///< I2C master enabled
+  GYRO_AND_ACCEL_ENABLED = GYRO_ONLY | ACCEL_ENABLED,       ///< Gyroscope and accelerometer enabled
+  GYRO_AND_I2C_MAST_ENABLED = GYRO_ONLY | I2C_MAST_ENABLED, ///< Gyroscope and I2C master enabled
+  ACCEL_AND_I2C_MAST_ENABLED =
+      ACCEL_ENABLED | I2C_MAST_ENABLED, ///< Accelerometer and I2C master enabled
+  ALL_ENABLED = GYRO_ONLY | ACCEL_ENABLED |
+                I2C_MAST_ENABLED, ///< Gyroscope, accelerometer, and I2C master enabled
 };
 
 /// @brief Enum class for the ICM20948 interrupt types
@@ -32,7 +43,7 @@ enum class InterruptType : uint8_t {
   FSYNC = 0x01,          ///< FSYNC interrupt
   WAKE_ON_MOTION = 0x02, ///< Wake on motion interrupt
   DMP = 0x04,            ///< DMP interrupt
-  DATA_READY = 0x08,     ///< Data ready interrupt
+  DATA_READY = 0x08,     ///< Raw data ready interrupt
   FIFO_OVERFLOW = 0x10,  ///< FIFO overflow interrupt
   FIFO_WATERMARK = 0x20, ///< FIFO watermark interrupt
 };
@@ -52,18 +63,10 @@ enum class FifoMode : uint8_t {
 
 /// Accelerometer range
 enum class AccelerometerRange : uint8_t {
-  RANGE_16G = 0, ///< ±16g
-  RANGE_8G = 1,  ///< ±8g
-  RANGE_4G = 2,  ///< ±4g
-  RANGE_2G = 3,  ///< ±2g
-};
-
-/// Accelerometer power mode
-enum class AccelerometerPowerMode : uint8_t {
-  OFF = 0,       ///< Off
-  ON = 1,        ///< On
-  LOW_POWER = 2, ///< Low power
-  LOW_NOISE = 3, ///< Low noise
+  RANGE_2G = (0 << 1),  ///< ±2g
+  RANGE_4G = (1 << 1),  ///< ±4g
+  RANGE_8G = (2 << 1),  ///< ±8g
+  RANGE_16G = (3 << 1), ///< ±16g
 };
 
 /// Accelerometer output data rate
@@ -84,17 +87,10 @@ enum class AccelerometerODR : uint8_t {
 
 /// Gyroscope range
 enum class GyroscopeRange : uint8_t {
-  RANGE_2000DPS = 0, ///< ±2000°/s
-  RANGE_1000DPS = 1, ///< ±1000°/s
-  RANGE_500DPS = 2,  ///< ±500°/s
-  RANGE_250DPS = 3,  ///< ±250°/s
-};
-
-/// Gyroscope power mode
-enum class GyroscopePowerMode : uint8_t {
-  OFF = 0,       ///< Off
-  STANDBY = 1,   ///< Standby
-  LOW_NOISE = 3, ///< Low noise
+  RANGE_250DPS = (0 << 1),  ///< ±250°/s
+  RANGE_500DPS = (1 << 1),  ///< ±500°/s
+  RANGE_1000DPS = (2 << 1), ///< ±1000°/s
+  RANGE_2000DPS = (3 << 1), ///< ±2000°/s
 };
 
 /// Gyroscope output data rate
@@ -158,6 +154,8 @@ struct ImuConfig {
       AccelerometerODR::ODR_100_HZ; ///< Accelerometer output data rate
   GyroscopeRange gyroscope_range = GyroscopeRange::RANGE_2000DPS; ///< Gyroscope range
   GyroscopeODR gyroscope_odr = GyroscopeODR::ODR_100_HZ;          ///< Gyroscope output data rate
+  MagnetometerMode magnetometer_mode =
+      MagnetometerMode::CONTINUOUS_MODE_100_HZ; ///< Magnetometer mode
 };
 
 /// Raw IMU data
@@ -170,16 +168,17 @@ struct RawValue {
 /// IMU data
 struct Value {
   union {
-    float x;     ///< X-axis value
-    float pitch; ///< Roll angle
-  };
-  union {
-    float y;    ///< Y-axis value
-    float roll; ///< Pitch angle
-  };
-  union {
-    float z;   ///< Z-axis value
-    float yaw; ///< Yaw angle
+    struct {
+      float x; ///< X-axis value
+      float y; ///< Y-axis value
+      float z; ///< Z-axis value
+    };
+    struct {
+      float roll;  ///< Roll value
+      float pitch; ///< Pitch value
+      float yaw;   ///< Yaw value
+    };
+    float values[3];
   };
 };
 
@@ -210,9 +209,68 @@ struct InterruptConfig {
 } // namespace icm20948
 } // namespace espp
 
+// enable bitmaks operators for DutyCycleMode
+template <> struct enable_bitmask_operators<espp::icm20948::DutyCycleMode> {
+  static constexpr bool enable = true;
+};
+
 #include "format.hpp"
 
 // for libfmt printing of relevant imu types and structs
+
+template <> struct fmt::formatter<espp::icm20948::Interface> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::icm20948::Interface interface, FormatContext &ctx) const {
+    switch (interface) {
+    case espp::icm20948::Interface::I2C:
+      return format_to(ctx.out(), "I2C");
+    case espp::icm20948::Interface::SSI:
+      return format_to(ctx.out(), "SSI");
+    default:
+      return format_to(ctx.out(), "Unknown");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::icm20948::PowerMode> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::icm20948::PowerMode power_mode, FormatContext &ctx) const {
+    switch (power_mode) {
+    case espp::icm20948::PowerMode::SLEEP:
+      return format_to(ctx.out(), "Sleep");
+    case espp::icm20948::PowerMode::LOW_POWER_ACCELEROMETER_ONLY:
+      return format_to(ctx.out(), "Low power accelerometer only");
+    case espp::icm20948::PowerMode::LOW_NOISE_ACCELEROMETER_ONLY:
+      return format_to(ctx.out(), "Low noise accelerometer only");
+    case espp::icm20948::PowerMode::GYROSCOPE_ONLY:
+      return format_to(ctx.out(), "Gyroscope only");
+    case espp::icm20948::PowerMode::MAGNETOMETER_ONLY:
+      return format_to(ctx.out(), "Magnetometer only");
+    case espp::icm20948::PowerMode::ACCELEROMETER_AND_GYROSCOPE:
+      return format_to(ctx.out(), "Accelerometer and gyroscope");
+    case espp::icm20948::PowerMode::ACCELEROMETER_AND_MAGNETOMETER:
+      return format_to(ctx.out(), "Accelerometer and magnetometer");
+    case espp::icm20948::PowerMode::NINE_AXIS:
+      return format_to(ctx.out(), "Nine-axis");
+    default:
+      return format_to(ctx.out(), "Unknown");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::icm20948::DutyCycleMode> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::icm20948::DutyCycleMode mode, FormatContext &ctx) const {
+    return format_to(ctx.out(), "Gyro: {}, Accel: {}, I2C: {}",
+                     (mode & espp::icm20948::DutyCycleMode::GYRO_ONLY) != 0,
+                     (mode & espp::icm20948::DutyCycleMode::ACCEL_ENABLED) != 0,
+                     (mode & espp::icm20948::DutyCycleMode::I2C_MAST_ENABLED) != 0);
+  }
+};
+
 template <> struct fmt::formatter<espp::icm20948::AccelerometerRange> {
   constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
@@ -226,25 +284,6 @@ template <> struct fmt::formatter<espp::icm20948::AccelerometerRange> {
       return format_to(ctx.out(), "±4g");
     case espp::icm20948::AccelerometerRange::RANGE_2G:
       return format_to(ctx.out(), "±2g");
-    default:
-      return format_to(ctx.out(), "Unknown");
-    }
-  }
-};
-
-template <> struct fmt::formatter<espp::icm20948::AccelerometerPowerMode> {
-  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
-  template <typename FormatContext>
-  auto format(espp::icm20948::AccelerometerPowerMode power_mode, FormatContext &ctx) const {
-    switch (power_mode) {
-    case espp::icm20948::AccelerometerPowerMode::OFF:
-      return format_to(ctx.out(), "Off");
-    case espp::icm20948::AccelerometerPowerMode::ON:
-      return format_to(ctx.out(), "On");
-    case espp::icm20948::AccelerometerPowerMode::LOW_POWER:
-      return format_to(ctx.out(), "Low power");
-    case espp::icm20948::AccelerometerPowerMode::LOW_NOISE:
-      return format_to(ctx.out(), "Low noise");
     default:
       return format_to(ctx.out(), "Unknown");
     }
@@ -303,23 +342,6 @@ template <> struct fmt::formatter<espp::icm20948::GyroscopeRange> {
   }
 };
 
-template <> struct fmt::formatter<espp::icm20948::GyroscopePowerMode> {
-  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
-  template <typename FormatContext>
-  auto format(espp::icm20948::GyroscopePowerMode power_mode, FormatContext &ctx) const {
-    switch (power_mode) {
-    case espp::icm20948::GyroscopePowerMode::OFF:
-      return format_to(ctx.out(), "Off");
-    case espp::icm20948::GyroscopePowerMode::STANDBY:
-      return format_to(ctx.out(), "Standby");
-    case espp::icm20948::GyroscopePowerMode::LOW_NOISE:
-      return format_to(ctx.out(), "Low noise");
-    default:
-      return format_to(ctx.out(), "Unknown");
-    }
-  }
-};
-
 template <> struct fmt::formatter<espp::icm20948::GyroscopeODR> {
   constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
@@ -371,13 +393,5 @@ template <> struct fmt::formatter<espp::icm20948::Value> {
   template <typename FormatContext>
   auto format(const espp::icm20948::Value &value, FormatContext &ctx) const {
     return format_to(ctx.out(), "{{ x: {:.2f}, y: {:.2f}, z: {:.2f} }}", value.x, value.y, value.z);
-  }
-};
-
-template <> struct fmt::formatter<espp::icm20948::ComplimentaryAngle> {
-  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
-  template <typename FormatContext>
-  auto format(const espp::icm20948::ComplimentaryAngle &angle, FormatContext &ctx) const {
-    return format_to(ctx.out(), "{{ roll: {:.2f}, pitch: {:.2f} }}", angle.roll, angle.pitch);
   }
 };
