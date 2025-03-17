@@ -69,40 +69,12 @@ enum class AccelerometerRange : uint8_t {
   RANGE_16G = (3 << 1), ///< ±16g
 };
 
-/// Accelerometer output data rate
-enum class AccelerometerODR : uint8_t {
-  ODR_4500_HZ = 0,    ///< 4500 Hz
-  ODR_1600_HZ = 5,    ///< 1600 Hz
-  ODR_800_HZ = 6,     ///< 800 Hz
-  ODR_400_HZ = 7,     ///< 400 Hz
-  ODR_200_HZ = 8,     ///< 200 Hz
-  ODR_100_HZ = 9,     ///< 100 Hz
-  ODR_50_HZ = 10,     ///< 50 Hz
-  ODR_25_HZ = 11,     ///< 25 Hz
-  ODR_12_5_HZ = 12,   ///< 12.5 Hz
-  ODR_6_25_HZ = 13,   ///< 6.25 Hz
-  ODR_3_125_HZ = 14,  ///< 3.125 Hz
-  ODR_1_5625_HZ = 15, ///< 1.5625 Hz
-};
-
 /// Gyroscope range
 enum class GyroscopeRange : uint8_t {
   RANGE_250DPS = (0 << 1),  ///< ±250°/s
   RANGE_500DPS = (1 << 1),  ///< ±500°/s
   RANGE_1000DPS = (2 << 1), ///< ±1000°/s
   RANGE_2000DPS = (3 << 1), ///< ±2000°/s
-};
-
-/// Gyroscope output data rate
-enum class GyroscopeODR : uint8_t {
-  ODR_1600_HZ = 5,  ///< 1600 Hz
-  ODR_800_HZ = 6,   ///< 800 Hz
-  ODR_400_HZ = 7,   ///< 400 Hz
-  ODR_200_HZ = 8,   ///< 200 Hz
-  ODR_100_HZ = 9,   ///< 100 Hz
-  ODR_50_HZ = 10,   ///< 50 Hz
-  ODR_25_HZ = 11,   ///< 25 Hz
-  ODR_12_5_HZ = 12, ///< 12.5 Hz
 };
 
 /// Digital Motion Processor (DMP) output data rate
@@ -116,25 +88,56 @@ enum class DmpODR : uint8_t {
 /// Temperature DLPF Bandwidth
 enum class TemperatureFilterBandwidth : uint8_t {
   FILTER_OFF = 0, ///< Filter off
-  BW_180_HZ = 1,  ///< 180 Hz
-  BW_72_HZ = 2,   ///< 72 Hz
-  BW_34_HZ = 3,   ///< 34 Hz
-  BW_16_HZ = 4,   ///< 16 Hz
-  BW_8_HZ = 5,    ///< 8 Hz
-  BW_4_HZ = 6,    ///< 4 Hz
-  // NOTE: datasheet has both 0b111 and 0b110 matching to 4 Hz
+  BW_218_HZ = 1,  ///< 218 Hz
+  BW_123_HZ = 2,  ///< 123 Hz
+  BW_66_HZ = 3,   ///< 66 Hz
+  BW_34_HZ = 4,   ///< 34 Hz
+  BW_17_HZ = 5,   ///< 17 Hz
+  BW_8_HZ = 6,    ///< 8 Hz
+  BW_4_HZ = 7,    ///< 4 Hz
 };
 
-/// @brief Sensor DLPF Bandwidth for both accelerometer and gyroscope
-enum class SensorFilterBandwidth : uint8_t {
-  FILTER_OFF = 0, ///< Filter off
-  BW_180_HZ = 1,  ///< 180 Hz
-  BW_121_HZ = 2,  ///< 121 Hz
-  BW_73_HZ = 3,   ///< 73 Hz
-  BW_53_HZ = 4,   ///< 53 Hz
-  BW_34_HZ = 5,   ///< 34 Hz
-  BW_25_HZ = 6,   ///< 25 Hz
-  BW_16_HZ = 7,   ///< 16 Hz
+/// @brief Sensor DLPF Bandwidth for accelerometer
+enum class AccelerometerFilterBandwidth : uint8_t {
+  BW_246_HZ = 0, ///< 246 Hz
+  BW_111_HZ = 2, ///< 111 Hz
+  BW_50_HZ = 3,  ///< 50 Hz
+  BW_24_HZ = 4,  ///< 24 Hz
+  BW_12_HZ = 5,  ///< 12 Hz
+  BW_6_HZ = 6,   ///< 6 Hz
+  BW_473_HZ = 7, ///< 473 Hz
+};
+
+/// @brief Sensor DLPF Bandwidth for both gyroscope
+enum class GyroscopeFilterBandwidth : uint8_t {
+  BW_196_HZ = 0, ///< 196 Hz
+  BW_151_HZ = 1, ///< 151 Hz
+  BW_119_HZ = 2, ///< 119 Hz
+  BW_51_HZ = 3,  ///< 51 Hz
+  BW_23_HZ = 4,  ///< 23 Hz
+  BW_11_HZ = 5,  ///< 11 Hz
+  BW_5_HZ = 6,   ///< 5 Hz
+  BW_361_HZ = 7, ///< 361 Hz
+};
+
+/// @brief Averaging filter configuration settings for the accelerometer in low power mode
+enum class AccelerometerAveraging : uint8_t {
+  X1_4 = 0, ///< 1x averaging (or 4x depending on ACCEL_FCHOICE)
+  X8 = 1,   ///< 8x averaging
+  X16 = 2,  ///< 16x averaging
+  X32 = 3,  ///< 32x averaging
+};
+
+/// @brief Averaging filter configuration settings for the gyroscope in low power mode
+enum class GyroscopeAveraging : uint8_t {
+  X1 = 0,   ///< 1x averaging
+  X2 = 1,   ///< 2x averaging
+  X4 = 2,   ///< 4x averaging
+  X8 = 3,   ///< 8x averaging
+  X16 = 4,  ///< 16x averaging
+  X32 = 5,  ///< 32x averaging
+  X64 = 6,  ///< 64x averaging
+  X128 = 7, ///< 128x averaging
 };
 
 /// @brief Magnetometer operation mode
@@ -150,10 +153,13 @@ enum class MagnetometerMode : uint8_t {
 /// IMU Configuration
 struct ImuConfig {
   AccelerometerRange accelerometer_range = AccelerometerRange::RANGE_16G; ///< Accelerometer range
-  AccelerometerODR accelerometer_odr =
-      AccelerometerODR::ODR_100_HZ; ///< Accelerometer output data rate
-  GyroscopeRange gyroscope_range = GyroscopeRange::RANGE_2000DPS; ///< Gyroscope range
-  GyroscopeODR gyroscope_odr = GyroscopeODR::ODR_100_HZ;          ///< Gyroscope output data rate
+  GyroscopeRange gyroscope_range = GyroscopeRange::RANGE_250DPS;          ///< Gyroscope range
+  uint8_t accelerometer_sample_rate_divider =
+      0; ///< Accelerometer sample rate divider. Output data rate is
+         ///< calculated as follows: 1 kHz / (1 + sample_rate_divider)
+  uint8_t gyroscope_sample_rate_divider =
+      0; ///< Gyroscope sample rate divider. Output data rate is
+         ///< calculated as follows: 1 kHz / (1 + sample_rate_divider)
   MagnetometerMode magnetometer_mode =
       MagnetometerMode::CONTINUOUS_MODE_100_HZ; ///< Magnetometer mode
 };
@@ -290,39 +296,6 @@ template <> struct fmt::formatter<espp::icm20948::AccelerometerRange> {
   }
 };
 
-template <> struct fmt::formatter<espp::icm20948::AccelerometerODR> {
-  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
-  template <typename FormatContext>
-  auto format(espp::icm20948::AccelerometerODR odr, FormatContext &ctx) const {
-    switch (odr) {
-    case espp::icm20948::AccelerometerODR::ODR_1600_HZ:
-      return format_to(ctx.out(), "1600 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_800_HZ:
-      return format_to(ctx.out(), "800 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_400_HZ:
-      return format_to(ctx.out(), "400 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_200_HZ:
-      return format_to(ctx.out(), "200 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_100_HZ:
-      return format_to(ctx.out(), "100 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_50_HZ:
-      return format_to(ctx.out(), "50 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_25_HZ:
-      return format_to(ctx.out(), "25 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_12_5_HZ:
-      return format_to(ctx.out(), "12.5 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_6_25_HZ:
-      return format_to(ctx.out(), "6.25 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_3_125_HZ:
-      return format_to(ctx.out(), "3.125 Hz");
-    case espp::icm20948::AccelerometerODR::ODR_1_5625_HZ:
-      return format_to(ctx.out(), "1.5625 Hz");
-    default:
-      return format_to(ctx.out(), "Unknown");
-    }
-  }
-};
-
 template <> struct fmt::formatter<espp::icm20948::GyroscopeRange> {
   constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
@@ -342,27 +315,121 @@ template <> struct fmt::formatter<espp::icm20948::GyroscopeRange> {
   }
 };
 
-template <> struct fmt::formatter<espp::icm20948::GyroscopeODR> {
+template <> struct fmt::formatter<espp::icm20948::DmpODR> {
   constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext>
-  auto format(espp::icm20948::GyroscopeODR odr, FormatContext &ctx) const {
+  auto format(espp::icm20948::DmpODR odr, FormatContext &ctx) const {
     switch (odr) {
-    case espp::icm20948::GyroscopeODR::ODR_1600_HZ:
-      return format_to(ctx.out(), "1600 Hz");
-    case espp::icm20948::GyroscopeODR::ODR_800_HZ:
-      return format_to(ctx.out(), "800 Hz");
-    case espp::icm20948::GyroscopeODR::ODR_400_HZ:
-      return format_to(ctx.out(), "400 Hz");
-    case espp::icm20948::GyroscopeODR::ODR_200_HZ:
-      return format_to(ctx.out(), "200 Hz");
-    case espp::icm20948::GyroscopeODR::ODR_100_HZ:
-      return format_to(ctx.out(), "100 Hz");
-    case espp::icm20948::GyroscopeODR::ODR_50_HZ:
-      return format_to(ctx.out(), "50 Hz");
-    case espp::icm20948::GyroscopeODR::ODR_25_HZ:
+    case espp::icm20948::DmpODR::ODR_25_HZ:
       return format_to(ctx.out(), "25 Hz");
-    case espp::icm20948::GyroscopeODR::ODR_12_5_HZ:
-      return format_to(ctx.out(), "12.5 Hz");
+    case espp::icm20948::DmpODR::ODR_400_HZ:
+      return format_to(ctx.out(), "400 Hz");
+    case espp::icm20948::DmpODR::ODR_50_HZ:
+      return format_to(ctx.out(), "50 Hz");
+    case espp::icm20948::DmpODR::ODR_100_HZ:
+      return format_to(ctx.out(), "100 Hz");
+    default:
+      return format_to(ctx.out(), "Unknown");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::icm20948::TemperatureFilterBandwidth> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::icm20948::TemperatureFilterBandwidth bandwidth, FormatContext &ctx) const {
+    switch (bandwidth) {
+    case espp::icm20948::TemperatureFilterBandwidth::FILTER_OFF:
+      return format_to(ctx.out(), "Filter off");
+    case espp::icm20948::TemperatureFilterBandwidth::BW_218_HZ:
+      return format_to(ctx.out(), "218 Hz");
+    case espp::icm20948::TemperatureFilterBandwidth::BW_123_HZ:
+      return format_to(ctx.out(), "123 Hz");
+    case espp::icm20948::TemperatureFilterBandwidth::BW_66_HZ:
+      return format_to(ctx.out(), "66 Hz");
+    case espp::icm20948::TemperatureFilterBandwidth::BW_34_HZ:
+      return format_to(ctx.out(), "34 Hz");
+    case espp::icm20948::TemperatureFilterBandwidth::BW_17_HZ:
+      return format_to(ctx.out(), "17 Hz");
+    case espp::icm20948::TemperatureFilterBandwidth::BW_8_HZ:
+      return format_to(ctx.out(), "8 Hz");
+    case espp::icm20948::TemperatureFilterBandwidth::BW_4_HZ:
+      return format_to(ctx.out(), "4 Hz");
+    default:
+      return format_to(ctx.out(), "Unknown");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::icm20948::AccelerometerFilterBandwidth> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::icm20948::AccelerometerFilterBandwidth bandwidth, FormatContext &ctx) const {
+    switch (bandwidth) {
+    case espp::icm20948::AccelerometerFilterBandwidth::BW_246_HZ:
+      return format_to(ctx.out(), "246 Hz");
+    case espp::icm20948::AccelerometerFilterBandwidth::BW_111_HZ:
+      return format_to(ctx.out(), "111 Hz");
+    case espp::icm20948::AccelerometerFilterBandwidth::BW_50_HZ:
+      return format_to(ctx.out(), "50 Hz");
+    case espp::icm20948::AccelerometerFilterBandwidth::BW_24_HZ:
+      return format_to(ctx.out(), "24 Hz");
+    case espp::icm20948::AccelerometerFilterBandwidth::BW_12_HZ:
+      return format_to(ctx.out(), "12 Hz");
+    case espp::icm20948::AccelerometerFilterBandwidth::BW_6_HZ:
+      return format_to(ctx.out(), "6 Hz");
+    case espp::icm20948::AccelerometerFilterBandwidth::BW_473_HZ:
+      return format_to(ctx.out(), "473 Hz");
+    default:
+      return format_to(ctx.out(), "Unknown");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::icm20948::GyroscopeFilterBandwidth> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::icm20948::GyroscopeFilterBandwidth bandwidth, FormatContext &ctx) const {
+    switch (bandwidth) {
+    case espp::icm20948::GyroscopeFilterBandwidth::BW_196_HZ:
+      return format_to(ctx.out(), "196 Hz");
+    case espp::icm20948::GyroscopeFilterBandwidth::BW_151_HZ:
+      return format_to(ctx.out(), "151 Hz");
+    case espp::icm20948::GyroscopeFilterBandwidth::BW_119_HZ:
+      return format_to(ctx.out(), "119 Hz");
+    case espp::icm20948::GyroscopeFilterBandwidth::BW_51_HZ:
+      return format_to(ctx.out(), "51 Hz");
+    case espp::icm20948::GyroscopeFilterBandwidth::BW_23_HZ:
+      return format_to(ctx.out(), "23 Hz");
+    case espp::icm20948::GyroscopeFilterBandwidth::BW_11_HZ:
+      return format_to(ctx.out(), "11 Hz");
+    case espp::icm20948::GyroscopeFilterBandwidth::BW_5_HZ:
+      return format_to(ctx.out(), "5 Hz");
+    case espp::icm20948::GyroscopeFilterBandwidth::BW_361_HZ:
+      return format_to(ctx.out(), "361 Hz");
+    default:
+      return format_to(ctx.out(), "Unknown");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::icm20948::MagnetometerMode> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(espp::icm20948::MagnetometerMode mode, FormatContext &ctx) const {
+    switch (mode) {
+    case espp::icm20948::MagnetometerMode::POWER_DOWN:
+      return format_to(ctx.out(), "Power down");
+    case espp::icm20948::MagnetometerMode::TRIGGER_MODE:
+      return format_to(ctx.out(), "Trigger mode");
+    case espp::icm20948::MagnetometerMode::CONTINUOUS_MODE_10_HZ:
+      return format_to(ctx.out(), "Continuous mode 10 Hz");
+    case espp::icm20948::MagnetometerMode::CONTINUOUS_MODE_20_HZ:
+      return format_to(ctx.out(), "Continuous mode 20 Hz");
+    case espp::icm20948::MagnetometerMode::CONTINUOUS_MODE_50_HZ:
+      return format_to(ctx.out(), "Continuous mode 50 Hz");
+    case espp::icm20948::MagnetometerMode::CONTINUOUS_MODE_100_HZ:
+      return format_to(ctx.out(), "Continuous mode 100 Hz");
     default:
       return format_to(ctx.out(), "Unknown");
     }
@@ -374,9 +441,11 @@ template <> struct fmt::formatter<espp::icm20948::ImuConfig> {
   template <typename FormatContext>
   auto format(const espp::icm20948::ImuConfig &config, FormatContext &ctx) const {
     return format_to(ctx.out(),
-                     "Accelerometer: {{ range: {}, odr: {} }}, Gyroscope: {{ range: {}, odr: {} }}",
-                     config.accelerometer_range, config.accelerometer_odr, config.gyroscope_range,
-                     config.gyroscope_odr);
+                     "{{ Accelerometer: {}, Gyroscope: {}, Accel Sample Rate Divider: {}, Gyro "
+                     "Sample Rate Divider: {}, Magnetometer Mode: {} }}",
+                     config.accelerometer_range, config.gyroscope_range,
+                     config.accelerometer_sample_rate_divider, config.gyroscope_sample_rate_divider,
+                     config.magnetometer_mode);
   }
 };
 

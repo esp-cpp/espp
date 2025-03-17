@@ -96,9 +96,7 @@ extern "C" void app_main(void) {
       .imu_config =
           {
               .accelerometer_range = Imu::AccelerometerRange::RANGE_2G,
-              .accelerometer_odr = Imu::AccelerometerODR::ODR_400_HZ,
-              .gyroscope_range = Imu::GyroscopeRange::RANGE_2000DPS,
-              .gyroscope_odr = Imu::GyroscopeODR::ODR_400_HZ,
+              .gyroscope_range = Imu::GyroscopeRange::RANGE_250DPS,
           },
       .orientation_filter = kalman_filter_fn,
       .auto_init = true,

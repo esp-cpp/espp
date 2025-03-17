@@ -77,6 +77,7 @@ class Icm20948 : public espp::BasePeripheral<uint8_t, Interface == icm20948::Int
   using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::set_write;
   using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::set_read;
   using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::write_u8_to_register;
+  using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::write_u16_to_register;
   using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::write_many_to_register;
   using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::read_u8_from_register;
   using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::read_u16_from_register;
@@ -101,21 +102,24 @@ public:
   using FifoMode = icm20948::FifoMode;                     ///< FIFO mode
   using FifoType = icm20948::FifoType;                     ///< FIFO type
   using AccelerometerRange = icm20948::AccelerometerRange; ///< Accelerometer range
-  using AccelerometerODR = icm20948::AccelerometerODR;     ///< Accelerometer output data rate
   using GyroscopeRange = icm20948::GyroscopeRange;         ///< Gyroscope range
-  using GyroscopeODR = icm20948::GyroscopeODR;             ///< Gyroscope output data rate
   using DmpODR = icm20948::DmpODR;                         ///< DMP output data rate
   using TemperatureFilterBandwidth =
-      icm20948::TemperatureFilterBandwidth;                      ///< Temperature filter bandwidth
-  using MagnetometerMode = icm20948::MagnetometerMode;           ///< Magnetometer mode
-  using SensorFilterBandwidth = icm20948::SensorFilterBandwidth; ///< Sensor filter bandwidth
-  using ImuConfig = icm20948::ImuConfig;                         ///< IMU configuration
-  using RawValue = icm20948::RawValue;                           ///< Raw IMU data
-  using Value = icm20948::Value;                                 ///< IMU data
-  using InterruptDriveMode = icm20948::InterruptDriveMode;       ///< Interrupt drive mode
-  using InterruptPolarity = icm20948::InterruptPolarity;         ///< Interrupt polarity
-  using InterruptMode = icm20948::InterruptMode;                 ///< Interrupt mode
-  using InterruptConfig = icm20948::InterruptConfig;             ///< Interrupt configuration
+      icm20948::TemperatureFilterBandwidth;            ///< Temperature filter bandwidth
+  using MagnetometerMode = icm20948::MagnetometerMode; ///< Magnetometer mode
+  using AccelerometerFilterBandwidth =
+      icm20948::AccelerometerFilterBandwidth; ///< Sensor filter bandwidth for the accelerometer
+  using GyroscopeFilterBandwidth =
+      icm20948::GyroscopeFilterBandwidth; ///< Sensor filter bandwidth for the gyroscope
+  using AccelerometerAveraging = icm20948::AccelerometerAveraging; ///< Accelerometer averaging
+  using GyroscopeAveraging = icm20948::GyroscopeAveraging;         ///< Gyroscope averaging
+  using ImuConfig = icm20948::ImuConfig;                           ///< IMU configuration
+  using RawValue = icm20948::RawValue;                             ///< Raw IMU data
+  using Value = icm20948::Value;                                   ///< IMU data
+  using InterruptDriveMode = icm20948::InterruptDriveMode;         ///< Interrupt drive mode
+  using InterruptPolarity = icm20948::InterruptPolarity;           ///< Interrupt polarity
+  using InterruptMode = icm20948::InterruptMode;                   ///< Interrupt mode
+  using InterruptConfig = icm20948::InterruptConfig;               ///< Interrupt configuration
 
   /// Filter function for filtering 9-axis data into 3-axis orientation data
   /// @param dt The time step in seconds
@@ -188,10 +192,10 @@ public:
   bool set_power_mode(const PowerMode &mode, std::error_code &ec);
   bool set_low_power_enabled(bool enable, std::error_code &ec);
   bool set_low_power_duty_cycle_mode(const DutyCycleMode &mode, std::error_code &ec);
-  // bool set_gyroscope_average_in_low_power_mode(const GyroscopeAverage &average,
-  //                                              std::error_code &ec);
-  // bool set_accelerometer_average_in_low_power_mode(const AccelerometerAverage &average,
-  //                                                  std::error_code &ec);
+  bool set_gyroscope_average_in_low_power_mode(const GyroscopeAveraging &average,
+                                               std::error_code &ec);
+  bool set_accelerometer_average_in_low_power_mode(const AccelerometerAveraging &average,
+                                                   std::error_code &ec);
   bool sleep(bool enable, std::error_code &ec);
   bool reset(std::error_code &ec);
 
@@ -205,8 +209,8 @@ public:
   AccelerometerRange read_accelerometer_range(std::error_code &ec);
   bool set_accelerometer_range(const AccelerometerRange &range, std::error_code &ec);
   bool set_accelerometer_dlpf_enabled(bool enable, std::error_code &ec);
-  bool set_accelerometer_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec);
-  bool set_accelerometer_odr(const AccelerometerODR &odr, std::error_code &ec);
+  bool set_accelerometer_dlpf(const AccelerometerFilterBandwidth &bandwidth, std::error_code &ec);
+  bool set_accelerometer_sample_rate_divider(uint16_t sample_rate_divider, std::error_code &ec);
 
   /////////////////////////////////
   // Gyroscope
@@ -218,8 +222,8 @@ public:
   GyroscopeRange read_gyroscope_range(std::error_code &ec);
   bool set_gyroscope_range(const GyroscopeRange &range, std::error_code &ec);
   bool set_gyroscope_dlpf_enabled(bool enable, std::error_code &ec);
-  bool set_gyroscope_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec);
-  bool set_gyroscope_odr(const GyroscopeODR &odr, std::error_code &ec);
+  bool set_gyroscope_dlpf(const GyroscopeFilterBandwidth &bandwidth, std::error_code &ec);
+  bool set_gyroscope_sample_rate_divider(uint8_t sample_rate_divider, std::error_code &ec);
 
   /////////////////////////////////
   // Temperature

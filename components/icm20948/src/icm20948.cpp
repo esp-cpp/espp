@@ -67,25 +67,19 @@ bool Icm20948<I>::set_config(const Icm20948<I>::ImuConfig &imu_config, std::erro
   // save the config
   imu_config_ = imu_config;
 
-  // TODO: implement
-  // // the config is set as two bytes containing the configuration for the
-  // // accelerometer and gyroscope (full scale range and output data rate)
-  // uint8_t data[2] = {// first byte is gyro fs + odr
-  //   uint8_t((static_cast<uint8_t>(imu_config.gyroscope_range) & 0x3) << 5 |
-  //           (static_cast<uint8_t>(imu_config.gyroscope_odr) & 0x0F)),
-  //   // second byte is accel fs + odr
-  //   uint8_t((static_cast<uint8_t>(imu_config.accelerometer_range) & 0x3) << 5 |
-  //           (static_cast<uint8_t>(imu_config.accelerometer_odr) & 0x0F))};
-
-  // write_many_to_register(static_cast<uint8_t>(Register::GYRO_CONFIG0), data, 2, ec);
-  // if (ec) {
-  //   return false;
-  // }
-
+  // Set the ranges
   if (!set_accelerometer_range(imu_config.accelerometer_range, ec)) {
     return false;
   }
   if (!set_gyroscope_range(imu_config.gyroscope_range, ec)) {
+    return false;
+  }
+
+  // set the sample rate dividers
+  if (!set_accelerometer_sample_rate_divider(imu_config.accelerometer_sample_rate_divider, ec)) {
+    return false;
+  }
+  if (!set_gyroscope_sample_rate_divider(imu_config.gyroscope_sample_rate_divider, ec)) {
     return false;
   }
 
@@ -220,18 +214,33 @@ bool Icm20948<I>::set_low_power_duty_cycle_mode(const DutyCycleMode &mode, std::
   return !ec;
 }
 
-// TODO: implement
-// bool Icm20948<I>::set_gyroscope_average_in_low_power_mode(const GyroscopeAverage &average,
-//                                                        std::error_code &ec) {
-//   return !ec;
-// }
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_gyroscope_average_in_low_power_mode(const GyroscopeAveraging &average,
+                                                          std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  // bits 2:0 in GYRO_CONFIG_2
+  uint8_t bitmask = 0x07;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::GYRO_CONFIG_2), bitmask,
+                               static_cast<uint8_t>(average), ec);
+  return !ec;
+}
 
-// TODO: implement
-// bool Icm20948<I>::set_accelerometer_average_in_low_power_mode(const AccelerometerAverage
-// &average,
-//                                                            std::error_code &ec) {
-//   return !ec;
-// }
+template <espp::icm20948::Interface I>
+bool Icm20948<I>::set_accelerometer_average_in_low_power_mode(const AccelerometerAveraging &average,
+                                                              std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  // bits 1:0 in ACCEL_CONFIG_2
+  uint8_t bitmask = 0x03;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::ACCEL_CONFIG_2), bitmask,
+                               static_cast<uint8_t>(average), ec);
+  return !ec;
+}
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::sleep(bool enable, std::error_code &ec) {
   // select bank 0
@@ -338,16 +347,35 @@ bool Icm20948<I>::set_accelerometer_dlpf_enabled(bool enable, std::error_code &e
   return !ec;
 }
 
-// TODO: implement
 template <espp::icm20948::Interface I>
-bool Icm20948<I>::set_accelerometer_dlpf(const SensorFilterBandwidth &bandwidth,
+bool Icm20948<I>::set_accelerometer_dlpf(const AccelerometerFilterBandwidth &bandwidth,
                                          std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  // bits 5:3 in ACCEL_CONFIG
+  uint8_t bitmask = 0x38;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::ACCEL_CONFIG), bitmask,
+                               static_cast<uint8_t>(bandwidth) << 3, ec);
   return !ec;
 }
 
-// TODO: implement
 template <espp::icm20948::Interface I>
-bool Icm20948<I>::set_accelerometer_odr(const AccelerometerODR &odr, std::error_code &ec) {
+bool Icm20948<I>::set_accelerometer_sample_rate_divider(uint16_t sample_rate_divider,
+                                                        std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  // the sample rate bits 11:0 are in ACCEL_SMPLRT_DIV_1 and ACCEL_SMPLRT_DIV_2
+  // make sure the value is within the range
+  if (sample_rate_divider > 0x0FFF) {
+    sample_rate_divider = 0x0FFF;
+  }
+  // write the value
+  write_u16_to_register(static_cast<uint8_t>(RegisterBank2::ACCEL_SMPLRT_DIV_1),
+                        sample_rate_divider, ec);
   return !ec;
 }
 
@@ -433,15 +461,29 @@ bool Icm20948<I>::set_gyroscope_dlpf_enabled(bool enable, std::error_code &ec) {
   return !ec;
 }
 
-// TODO: implement
 template <espp::icm20948::Interface I>
-bool Icm20948<I>::set_gyroscope_dlpf(const SensorFilterBandwidth &bandwidth, std::error_code &ec) {
+bool Icm20948<I>::set_gyroscope_dlpf(const GyroscopeFilterBandwidth &bandwidth,
+                                     std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  // bits 5:3 in GYRO_CONFIG_1
+  uint8_t bitmask = 0x38;
+  set_bits_in_register_by_mask(static_cast<uint8_t>(RegisterBank2::GYRO_CONFIG_1), bitmask,
+                               static_cast<uint8_t>(bandwidth) << 3, ec);
   return !ec;
 }
 
-// TODO: implement
 template <espp::icm20948::Interface I>
-bool Icm20948<I>::set_gyroscope_odr(const GyroscopeODR &odr, std::error_code &ec) {
+bool Icm20948<I>::set_gyroscope_sample_rate_divider(uint8_t sample_rate_divider,
+                                                    std::error_code &ec) {
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  write_u8_to_register(static_cast<uint8_t>(RegisterBank2::GYRO_SMPLRT_DIV), sample_rate_divider,
+                       ec);
   return !ec;
 }
 
@@ -449,7 +491,6 @@ bool Icm20948<I>::set_gyroscope_odr(const GyroscopeODR &odr, std::error_code &ec
 // Temperature
 /////////////////////////////////
 
-// TODO: implement
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_temperature_dlpf(const TemperatureFilterBandwidth &bandwidth,
                                        std::error_code &ec) {
