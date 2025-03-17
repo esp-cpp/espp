@@ -757,16 +757,11 @@ template <espp::icm20948::Interface I> Icm20948<I>::Value Icm20948<I>::get_gravi
   return gravity_vector_;
 }
 
-template <espp::icm20948::Interface I> Icm20948<I>::Value Icm20948<I>::get_angles() {
-  Value value{};
-  return value;
-}
+template <espp::icm20948::Interface I> float Icm20948<I>::get_pitch() { return orientation_.pitch; }
 
-template <espp::icm20948::Interface I> float Icm20948<I>::get_pitch() { return 0.0f; }
+template <espp::icm20948::Interface I> float Icm20948<I>::get_roll() { return orientation_.roll; }
 
-template <espp::icm20948::Interface I> float Icm20948<I>::get_roll() { return 0.0f; }
-
-template <espp::icm20948::Interface I> float Icm20948<I>::get_yaw() { return 0.0f; }
+template <espp::icm20948::Interface I> float Icm20948<I>::get_yaw() { return orientation_.yaw; }
 
 /////////////////////////////////
 // FIFO

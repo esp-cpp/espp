@@ -172,82 +172,293 @@ public:
   /////////////////////////////////
   // Configuration / Offsets
   /////////////////////////////////
+
+  /// Enable ODR alignment
+  /// @param enable True to enable ODR alignment, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if ODR alignment was enabled or disabled successfully, false otherwise
   bool set_odr_align_enabled(bool enable, std::error_code &ec);
+
+  /// Set the accelerometer offsets
+  /// @param x The X-axis offset
+  /// @param y The Y-axis offset
+  /// @param z The Z-axis offset
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the offsets were set successfully, false otherwise
   bool set_accelerometer_offsets(const float &x, const float &y, const float &z,
                                  std::error_code &ec);
+
+  /// Get the accelerometer offsets
+  /// @param x The X-axis offset
+  /// @param y The Y-axis offset
+  /// @param z The Z-axis offset
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the offsets were retrieved successfully, false otherwise
   bool get_accelerometer_offsets(float &x, float &y, float &z, std::error_code &ec);
+
+  /// Set the gyroscope offsets
+  /// @param x The X-axis offset
+  /// @param y The Y-axis offset
+  /// @param z The Z-axis offset
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the offsets were set successfully, false otherwise
   bool set_gyroscope_offsets(const float &x, const float &y, const float &z, std::error_code &ec);
+
+  /// Get the gyroscope offsets
+  /// @param x The X-axis offset
+  /// @param y The Y-axis offset
+  /// @param z The Z-axis offset
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the offsets were retrieved successfully, false otherwise
   bool get_gyroscope_offsets(float &x, float &y, float &z, std::error_code &ec);
 
   /////////////////////////////////
   // Power / Sleep / Standby
   /////////////////////////////////
+
+  /// Set whether the ICM20948 is in low power mode
+  /// @param enable True to enable low power mode, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if low power mode was enabled or disabled successfully, false otherwise
   bool set_low_power_enabled(bool enable, std::error_code &ec);
+
+  /// Set the low power duty cycle mode
+  /// @param mode The duty cycle mode
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the duty cycle mode was set successfully, false otherwise
   bool set_low_power_duty_cycle_mode(const DutyCycleMode &mode, std::error_code &ec);
+
+  /// Set the gyroscope average in low power mode
+  /// @param average The gyroscope averaging
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the gyroscope average was set successfully, false otherwise
   bool set_gyroscope_average_in_low_power_mode(const GyroscopeAveraging &average,
                                                std::error_code &ec);
+
+  /// Set the accelerometer average in low power mode
+  /// @param average The accelerometer averaging
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the accelerometer average was set successfully, false otherwise
   bool set_accelerometer_average_in_low_power_mode(const AccelerometerAveraging &average,
                                                    std::error_code &ec);
+
+  /// Set whether the ICM20948 is in sleep mode
+  /// @param enable True to enable sleep mode, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if sleep mode was enabled or disabled successfully, false otherwise
   bool sleep(bool enable, std::error_code &ec);
+
+  /// Reset the ICM20948
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the ICM20948 was reset successfully, false otherwise
   bool reset(std::error_code &ec);
 
   /////////////////////////////////
   // Accelerometer
   /////////////////////////////////
+
+  /// Enable or disable the accelerometer
+  /// @param enable True to enable the accelerometer, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the accelerometer was enabled or disabled successfully, false otherwise
   bool enable_accelerometer(bool enable, std::error_code &ec);
+
+  /// Get the accelerometer sensitivity
+  /// @return The accelerometer sensitivity in LSB/g
   float get_accelerometer_sensitivity();
+
+  /// Read the accelerometer sensitivity
+  /// @param ec The error code to set if an error occurs
+  /// @return The accelerometer sensitivity in LSB/g
   float read_accelerometer_sensitivity(std::error_code &ec);
+
+  /// Get the accelerometer range
+  /// @return The accelerometer range
   AccelerometerRange get_accelerometer_range();
+
+  /// Read the accelerometer range
+  /// @param ec The error code to set if an error occurs
+  /// @return The accelerometer range
   AccelerometerRange read_accelerometer_range(std::error_code &ec);
+
+  /// Set the accelerometer range
+  /// @param range The accelerometer range
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the range was set successfully, false otherwise
   bool set_accelerometer_range(const AccelerometerRange &range, std::error_code &ec);
+
+  /// Enable or disable the accelerometer digital low pass filter
+  /// @param enable True to enable the digital low pass filter, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the digital low pass filter was enabled or disabled successfully, false
+  /// otherwise
   bool set_accelerometer_dlpf_enabled(bool enable, std::error_code &ec);
+
+  /// Set the accelerometer digital low pass filter
+  /// @param bandwidth The filter bandwidth
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the filter bandwidth was set successfully, false otherwise
   bool set_accelerometer_dlpf(const AccelerometerFilterBandwidth &bandwidth, std::error_code &ec);
+
+  /// Set the accelerometer sample rate divider
+  /// @param sample_rate_divider The sample rate divider
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the sample rate divider was set successfully, false otherwise
   bool set_accelerometer_sample_rate_divider(uint16_t sample_rate_divider, std::error_code &ec);
 
   /////////////////////////////////
   // Gyroscope
   /////////////////////////////////
+
+  /// Enable or disable the gyroscope
+  /// @param enable True to enable the gyroscope, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the gyroscope was enabled or disabled successfully, false otherwise
   bool enable_gyroscope(bool enable, std::error_code &ec);
+
+  /// Get the gyroscope sensitivity
+  /// @return The gyroscope sensitivity in LSB/(°/s)
   float get_gyroscope_sensitivity();
+
+  /// Read the gyroscope sensitivity
+  /// @param ec The error code to set if an error occurs
+  /// @return The gyroscope sensitivity in LSB/(°/s)
   float read_gyroscope_sensitivity(std::error_code &ec);
+
+  /// Get the gyroscope range
+  /// @return The gyroscope range
   GyroscopeRange get_gyroscope_range();
+
+  /// Read the gyroscope range
+  /// @param ec The error code to set if an error occurs
+  /// @return The gyroscope range
   GyroscopeRange read_gyroscope_range(std::error_code &ec);
+
+  /// Set the gyroscope range
+  /// @param range The gyroscope range
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the range was set successfully, false otherwise
   bool set_gyroscope_range(const GyroscopeRange &range, std::error_code &ec);
+
+  /// Enable or disable the gyroscope digital low pass filter
+  /// @param enable True to enable the digital low pass filter, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the digital low pass filter was enabled or disabled successfully, false
+  /// otherwise
   bool set_gyroscope_dlpf_enabled(bool enable, std::error_code &ec);
+
+  /// Set the gyroscope digital low pass filter
+  /// @param bandwidth The filter bandwidth
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the filter bandwidth was set successfully, false otherwise
   bool set_gyroscope_dlpf(const GyroscopeFilterBandwidth &bandwidth, std::error_code &ec);
+
+  /// Set the gyroscope sample rate divider
+  /// @param sample_rate_divider The sample rate divider
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the sample rate divider was set successfully, false otherwise
   bool set_gyroscope_sample_rate_divider(uint8_t sample_rate_divider, std::error_code &ec);
 
   /////////////////////////////////
   // Temperature
   /////////////////////////////////
+
+  /// Set the temperature digital low pass filter
+  /// @param bandwidth The filter bandwidth
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the filter bandwidth was set successfully, false otherwise
   bool set_temperature_dlpf(const TemperatureFilterBandwidth &bandwidth, std::error_code &ec);
 
   /////////////////////////////////
   // Magnetometer
   /////////////////////////////////
+
+  /// Initialize the magnetometer
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the magnetometer was initialized successfully, false otherwise
   bool init_magnetometer(std::error_code &ec);
+
+  /// Get the magnetometer device ID
+  /// @param ec The error code to set if an error occurs
+  /// @return The device ID
   uint16_t get_magnetometer_device_id(std::error_code &ec);
+
+  /// Set the magnetometer mode
+  /// @param mode The magnetometer mode
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the mode was set successfully, false otherwise
   bool set_magnetometer_mode(const icm20948::MagnetometerMode &mode, std::error_code &ec);
+
+  /// Get the magnetometer sensitivity
+  /// @return The magnetometer sensitivity in µT/LSB
   float get_magnetometer_sensitivity();
+
+  /// Reset the magnetometer
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the magnetometer was reset successfully, false otherwise
   bool reset_magnetometer(std::error_code &ec);
 
   /////////////////////////////////
   // Raw / Low level data
   /////////////////////////////////
+
+  /// Get the raw accelerometer data
+  /// @return The raw accelerometer data
+  /// @note This returns the most recent data, not the data at the time of the
+  ///       call. It is refreshed when update or read_accelerometer is called.
   Value get_accelerometer();
+
+  /// Get the raw gyroscope data
+  /// @return The raw gyroscope data
+  /// @note This returns the most recent data, not the data at the time of the
+  ///       call. It is refreshed when update or read_gyroscope is called.
   Value get_gyroscope();
+
+  /// Get the raw magnetometer data
+  /// @return The raw magnetometer data
+  /// @note This returns the most recent data, not the data at the time of the
+  ///       call. It is refreshed when update or read_magnetometer is called.
   Value get_magnetometer();
+
+  /// Get the raw temperature data
+  /// @return The raw temperature data
+  /// @note This returns the most recent data, not the data at the time of the
+  ///       call. It is refreshed when update or read_temperature is called.
   float get_temperature();
+
+  /// Read the raw accelerometer data
+  /// @param ec The error code to set if an error occurs
+  /// @return The raw accelerometer data
   Value read_accelerometer(std::error_code &ec);
+
+  /// Read the raw gyroscope data
+  /// @param ec The error code to set if an error occurs
+  /// @return The raw gyroscope data
   Value read_gyroscope(std::error_code &ec);
+
+  /// Read the raw magnetometer data
+  /// @param ec The error code to set if an error occurs
+  /// @return The raw magnetometer data
   Value read_magnetometer(std::error_code &ec);
+
+  /// Read the raw temperature data
+  /// @param ec The error code to set if an error occurs
+  /// @return The raw temperature data
   float read_temperature(std::error_code &ec);
 
   /////////////////////////////////
   // DMP
   /////////////////////////////////
 
+  /// Enable or disable the DMP
+  /// @param enable True to enable the DMP, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the DMP was enabled or disabled successfully, false otherwise
   bool enable_dmp(bool enable, std::error_code &ec);
+
+  /// Reset the DMP
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the DMP was reset successfully, false otherwise
   bool reset_dmp(std::error_code &ec);
 
   /////////////////////////////////
@@ -263,21 +474,67 @@ public:
   ///       get_temperature. The orientation can be retrieved with
   ///       get_orientation.
   bool update(float dt, std::error_code &ec);
+
+  /// Get the orientation
+  /// @return The orientation in radians
+  /// @note The orientation is calculated using the accelerometer, gyroscope, and
+  ///       magnetometer data. The orientation is filtered using the orientation
+  ///       filter function. It is updated each time update is called.
   Value get_orientation();
+
+  /// Get the gravity vector
+  /// @return The gravity vector
+  /// @note The gravity vector is calculated using the accelerometer data.
+  ///       It is updated each time update is called.
   Value get_gravity_vector();
-  Value get_angles();
+
+  /// Get the pitch angle
+  /// @return The pitch angle in radians
   float get_pitch();
+
+  /// Get the roll angle
+  /// @return The roll angle in radians
   float get_roll();
+
+  /// Get the yaw angle
+  /// @return The yaw angle in radians
   float get_yaw();
 
   /////////////////////////////////
   // FIFO
   /////////////////////////////////
+
+  /// Enable or disable the FIFO
+  /// @param enable True to enable the FIFO, false to disable it
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the FIFO was enabled or disabled successfully, false otherwise
   bool enable_fifo(bool enable, std::error_code &ec);
+
+  /// Set the FIFO mode
+  /// @param mode The FIFO mode
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the FIFO mode was set successfully, false otherwise
   bool set_fifo_mode(const FifoMode &mode, std::error_code &ec);
+
+  /// Start the FIFO
+  /// @param fifo_type The FIFO type
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the FIFO was started successfully, false otherwise
   bool start_fifo(const FifoType &fifo_type, std::error_code &ec);
+
+  /// Stop the FIFO
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the FIFO was stopped successfully, false otherwise
   bool stop_fifo(std::error_code &ec);
+
+  /// Reset the FIFO
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the FIFO was reset successfully, false otherwise
   bool reset_fifo(std::error_code &ec);
+
+  /// Get the FIFO count
+  /// @param ec The error code to set if an error occurs
+  /// @return The FIFO count
   uint16_t get_fifo_count(std::error_code &ec);
 
   /////////////////////////////////
