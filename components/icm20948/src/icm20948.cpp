@@ -523,7 +523,7 @@ template <espp::icm20948::Interface I> bool Icm20948<I>::init_magnetometer(std::
     logger_.error("Invalid magnetometer device ID: 0x{:02X}", device_id);
     return false;
   }
-  return !ec;
+  return true;
 }
 
 template <espp::icm20948::Interface I>

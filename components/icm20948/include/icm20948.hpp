@@ -62,6 +62,7 @@ namespace espp {
 /// Thanks and credits to the following sources:
 /// - https://wolles-elektronikkiste.de/en/icm-20948-9-axis-sensor-part-i
 /// - https://github.com/wollewald/ICM20948_WE/blob/main/src/ICM20948_WE.h
+/// - https://github.com/sparkfun/SparkFun_ICM-20948_ArduinoLibrary/tree/main
 ///
 /// \section icm20948_example Example
 /// \snippet icm20948_example.cpp icm20948 example
