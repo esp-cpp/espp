@@ -541,7 +541,8 @@ protected:
   static float accelerometer_range_to_sensitivty(const AccelerometerRange &range);
   static float gyroscope_range_to_sensitivty(const GyroscopeRange &range);
 
-  bool write_magnetometer(uint8_t reg, uint8_t val, std::error_code &ec);
+  uint8_t read_from_magnetometer(const Ak09916Register &reg, std::error_code &ec);
+  bool write_to_magnetometer(const Ak09916Register &reg, uint8_t val, std::error_code &ec);
   bool enable_magnetometer_data_read(uint8_t reg_addr, uint8_t num_bytes, std::error_code &ec);
 
   uint16_t get_temperature_raw(std::error_code &ec);
