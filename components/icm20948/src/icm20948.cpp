@@ -121,11 +121,6 @@ bool Icm20948<I>::set_i2c_master_enabled(bool enable, std::error_code &ec) {
 // Configuration / Offsets
 /////////////////////////////////
 
-// TODO: implement
-template <espp::icm20948::Interface I> bool Icm20948<I>::auto_offsets(std::error_code &ec) {
-  return !ec;
-}
-
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_odr_align_enabled(bool enable, std::error_code &ec) {
   // select bank 2
@@ -138,17 +133,54 @@ bool Icm20948<I>::set_odr_align_enabled(bool enable, std::error_code &ec) {
   return !ec;
 }
 
-// TODO: implement
 template <espp::icm20948::Interface I>
-bool Icm20948<I>::set_accelerometer_offsets(const Range &x, const Range &y, const Range &z,
+bool Icm20948<I>::set_accelerometer_offsets(const float &x, const float &y, const float &z,
                                             std::error_code &ec) {
+  // select bank 1
+  if (!select_bank(Bank::_1, ec)) {
+    return false;
+  }
+  // convert the offsets to raw values based on the sensitivity
+  int16_t x_raw =
+      static_cast<int16_t>(x / accelerometer_range_to_sensitivity(imu_config_.accelerometer_range));
+  int16_t y_raw =
+      static_cast<int16_t>(y / accelerometer_range_to_sensitivity(imu_config_.accelerometer_range));
+  int16_t z_raw =
+      static_cast<int16_t>(z / accelerometer_range_to_sensitivity(imu_config_.accelerometer_range));
+  // build the data into an array to write as a single transaction
+  uint8_t data[6] = {
+      (uint8_t)((x_raw >> 8) & 0xFF), (uint8_t)(x_raw & 0xFF),
+      (uint8_t)((y_raw >> 8) & 0xFF), (uint8_t)(y_raw & 0xFF),
+      (uint8_t)((z_raw >> 8) & 0xFF), (uint8_t)(z_raw & 0xFF),
+  };
+  // write the offsets to the registers
+  write_many_to_register(static_cast<uint8_t>(RegisterBank1::ACCEL_OFFSETS_START), data, 6, ec);
   return !ec;
 }
 
-// TODO: implement
 template <espp::icm20948::Interface I>
-bool Icm20948<I>::get_accelerometer_offsets(Range &x, Range &y, Range &z, std::error_code &ec) {
-  return !ec;
+bool Icm20948<I>::get_accelerometer_offsets(float &x, float &y, float &z, std::error_code &ec) {
+  // select bank 1
+  if (!select_bank(Bank::_1, ec)) {
+    return false;
+  }
+  // read the data from the registers
+  uint8_t data[6];
+  read_many_from_register(static_cast<uint8_t>(RegisterBank1::ACCEL_OFFSETS_START), data, 6, ec);
+  if (ec) {
+    return false;
+  }
+  // convert the data to floats
+  int16_t x_raw = (data[0] << 8) | data[1];
+  int16_t y_raw = (data[2] << 8) | data[3];
+  int16_t z_raw = (data[4] << 8) | data[5];
+  x = static_cast<float>(x_raw) *
+      accelerometer_range_to_sensitivity(imu_config_.accelerometer_range);
+  y = static_cast<float>(y_raw) *
+      accelerometer_range_to_sensitivity(imu_config_.accelerometer_range);
+  z = static_cast<float>(z_raw) *
+      accelerometer_range_to_sensitivity(imu_config_.accelerometer_range);
+  return true;
 }
 
 template <espp::icm20948::Interface I>
@@ -178,21 +210,31 @@ bool Icm20948<I>::set_gyroscope_offsets(const float &x, const float &y, const fl
   return !ec;
 }
 
-// TODO: implement
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::get_gyroscope_offsets(float &x, float &y, float &z, std::error_code &ec) {
-  return !ec;
+  // select bank 2
+  if (!select_bank(Bank::_2, ec)) {
+    return false;
+  }
+  // read the data from the registers
+  uint8_t data[6];
+  read_many_from_register(static_cast<uint8_t>(RegisterBank2::GYRO_OFFSETS_START), data, 6, ec);
+  if (ec) {
+    return false;
+  }
+  // convert the data to floats
+  int16_t x_raw = (data[0] << 8) | data[1];
+  int16_t y_raw = (data[2] << 8) | data[3];
+  int16_t z_raw = (data[4] << 8) | data[5];
+  x = static_cast<float>(x_raw) * gyroscope_range_to_sensitivty(imu_config_.gyroscope_range);
+  y = static_cast<float>(y_raw) * gyroscope_range_to_sensitivty(imu_config_.gyroscope_range);
+  z = static_cast<float>(z_raw) * gyroscope_range_to_sensitivty(imu_config_.gyroscope_range);
+  return true;
 }
 
 /////////////////////////////////
 // Power / Sleep / Standby
 /////////////////////////////////
-
-// TODO: implement
-template <espp::icm20948::Interface I>
-bool Icm20948<I>::set_power_mode(const PowerMode &mode, std::error_code &ec) {
-  return !ec;
-}
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_low_power_enabled(bool enable, std::error_code &ec) {
@@ -288,7 +330,7 @@ bool Icm20948<I>::enable_accelerometer(bool enable, std::error_code &ec) {
 }
 
 template <espp::icm20948::Interface I> float Icm20948<I>::get_accelerometer_sensitivity() {
-  return accelerometer_range_to_sensitivty(imu_config_.accelerometer_range);
+  return accelerometer_range_to_sensitivity(imu_config_.accelerometer_range);
 }
 
 template <espp::icm20948::Interface I>
@@ -299,7 +341,7 @@ float Icm20948<I>::read_accelerometer_sensitivity(std::error_code &ec) {
     return 0.0f;
   }
   // convert to sensitivity
-  return accelerometer_range_to_sensitivty(range);
+  return accelerometer_range_to_sensitivity(range);
 }
 
 template <espp::icm20948::Interface I>
@@ -791,7 +833,8 @@ template <espp::icm20948::Interface I> uint16_t Icm20948<I>::get_fifo_count(std:
 /////////////////////////////////
 
 template <espp::icm20948::Interface I>
-float Icm20948<I>::accelerometer_range_to_sensitivty(const Icm20948<I>::AccelerometerRange &range) {
+float Icm20948<I>::accelerometer_range_to_sensitivity(
+    const Icm20948<I>::AccelerometerRange &range) {
   switch (range) {
   case AccelerometerRange::RANGE_16G:
     return ACCEL_FS_16G_SENS;

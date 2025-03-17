@@ -14,18 +14,6 @@ enum class Interface : uint8_t {
            ///< mode is 7 MHz.
 };
 
-/// @brief Enum class for the ICM20948 low power mode configuration
-enum class PowerMode : uint8_t {
-  SLEEP = 0,                          ///< Sleep mode
-  LOW_POWER_ACCELEROMETER_ONLY = 1,   ///< Low power accelerometer only mode
-  LOW_NOISE_ACCELEROMETER_ONLY = 2,   ///< Low noise accelerometer only mode
-  GYROSCOPE_ONLY = 3,                 ///< Gyroscope only mode
-  MAGNETOMETER_ONLY = 4,              ///< Magnetometer only mode
-  ACCELEROMETER_AND_GYROSCOPE = 5,    ///< Accelerometer and gyroscope mode
-  ACCELEROMETER_AND_MAGNETOMETER = 6, ///< Accelerometer and magnetometer mode
-  NINE_AXIS = 7,                      ///< Nine-axis mode
-};
-
 enum class DutyCycleMode : uint8_t {
   GYRO_ONLY = (1 << 4),                                     ///< Gyroscope enabled
   ACCEL_ENABLED = (1 << 5),                                 ///< Accelerometer enabled
@@ -233,33 +221,6 @@ template <> struct fmt::formatter<espp::icm20948::Interface> {
       return format_to(ctx.out(), "I2C");
     case espp::icm20948::Interface::SSI:
       return format_to(ctx.out(), "SSI");
-    default:
-      return format_to(ctx.out(), "Unknown");
-    }
-  }
-};
-
-template <> struct fmt::formatter<espp::icm20948::PowerMode> {
-  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
-  template <typename FormatContext>
-  auto format(espp::icm20948::PowerMode power_mode, FormatContext &ctx) const {
-    switch (power_mode) {
-    case espp::icm20948::PowerMode::SLEEP:
-      return format_to(ctx.out(), "Sleep");
-    case espp::icm20948::PowerMode::LOW_POWER_ACCELEROMETER_ONLY:
-      return format_to(ctx.out(), "Low power accelerometer only");
-    case espp::icm20948::PowerMode::LOW_NOISE_ACCELEROMETER_ONLY:
-      return format_to(ctx.out(), "Low noise accelerometer only");
-    case espp::icm20948::PowerMode::GYROSCOPE_ONLY:
-      return format_to(ctx.out(), "Gyroscope only");
-    case espp::icm20948::PowerMode::MAGNETOMETER_ONLY:
-      return format_to(ctx.out(), "Magnetometer only");
-    case espp::icm20948::PowerMode::ACCELEROMETER_AND_GYROSCOPE:
-      return format_to(ctx.out(), "Accelerometer and gyroscope");
-    case espp::icm20948::PowerMode::ACCELEROMETER_AND_MAGNETOMETER:
-      return format_to(ctx.out(), "Accelerometer and magnetometer");
-    case espp::icm20948::PowerMode::NINE_AXIS:
-      return format_to(ctx.out(), "Nine-axis");
     default:
       return format_to(ctx.out(), "Unknown");
     }

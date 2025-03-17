@@ -98,7 +98,6 @@ public:
 
   static constexpr uint8_t AK09916C_ADDRESS = 0x0C; ///< I2C address of the AK09916C magnetometer
 
-  using PowerMode = icm20948::PowerMode;                   ///< Power mode
   using DutyCycleMode = icm20948::DutyCycleMode;           ///< Duty cycle mode
   using FifoMode = icm20948::FifoMode;                     ///< FIFO mode
   using FifoType = icm20948::FifoType;                     ///< FIFO type
@@ -130,12 +129,6 @@ public:
   /// @return The filtered orientation data in radians
   typedef std::function<Value(float, const Value &, const Value &, const Value &)>
       filter_fn; ///< Filter function
-
-  /// Range struct
-  struct Range {
-    float min; ///< Minimum value
-    float max; ///< Maximum value
-  };
 
   /// Configuration struct for the ICM20948
   struct Config {
@@ -179,18 +172,16 @@ public:
   /////////////////////////////////
   // Configuration / Offsets
   /////////////////////////////////
-  bool auto_offsets(std::error_code &ec);
   bool set_odr_align_enabled(bool enable, std::error_code &ec);
-  bool set_accelerometer_offsets(const Range &x, const Range &y, const Range &z,
+  bool set_accelerometer_offsets(const float &x, const float &y, const float &z,
                                  std::error_code &ec);
-  bool get_accelerometer_offsets(Range &x, Range &y, Range &z, std::error_code &ec);
+  bool get_accelerometer_offsets(float &x, float &y, float &z, std::error_code &ec);
   bool set_gyroscope_offsets(const float &x, const float &y, const float &z, std::error_code &ec);
   bool get_gyroscope_offsets(float &x, float &y, float &z, std::error_code &ec);
 
   /////////////////////////////////
   // Power / Sleep / Standby
   /////////////////////////////////
-  bool set_power_mode(const PowerMode &mode, std::error_code &ec);
   bool set_low_power_enabled(bool enable, std::error_code &ec);
   bool set_low_power_duty_cycle_mode(const DutyCycleMode &mode, std::error_code &ec);
   bool set_gyroscope_average_in_low_power_mode(const GyroscopeAveraging &average,
@@ -414,12 +405,13 @@ protected:
     SELF_TEST_Y_ACCEL = 0x0F, ///< Y-axis accelerometer self-test register
     SELF_TEST_Z_ACCEL = 0x10, ///< Z-axis accelerometer self-test register
 
-    ACCEL_X_OFFS_H = 0x77, ///< Accelerometer X-axis offset high byte register
-    ACCEL_X_OFFS_L = 0x78, ///< Accelerometer X-axis offset low byte register
-    ACCEL_Y_OFFS_H = 0x7A, ///< Accelerometer Y-axis offset high byte register
-    ACCEL_Y_OFFS_L = 0x7B, ///< Accelerometer Y-axis offset low byte register
-    ACCEL_Z_OFFS_H = 0x7D, ///< Accelerometer Z-axis offset high byte register
-    ACCEL_Z_OFFS_L = 0x7E, ///< Accelerometer Z-axis offset low byte register
+    ACCEL_OFFSETS_START = 0x77, ///< Accelerometer offsets start register
+    ACCEL_X_OFFS_H = 0x77,      ///< Accelerometer X-axis offset high byte register
+    ACCEL_X_OFFS_L = 0x78,      ///< Accelerometer X-axis offset low byte register
+    ACCEL_Y_OFFS_H = 0x7A,      ///< Accelerometer Y-axis offset high byte register
+    ACCEL_Y_OFFS_L = 0x7B,      ///< Accelerometer Y-axis offset low byte register
+    ACCEL_Z_OFFS_H = 0x7D,      ///< Accelerometer Z-axis offset high byte register
+    ACCEL_Z_OFFS_L = 0x7E,      ///< Accelerometer Z-axis offset low byte register
 
     TIMEBASE_CORRECTION_PLL = 0x28, ///< Timebase correction PLL register
   };
@@ -543,7 +535,7 @@ protected:
         z_extension; ///< Z-axis extension data (accelz [3:0] high nibble + gyroz [3:0] low nibble)
   };
 
-  static float accelerometer_range_to_sensitivty(const AccelerometerRange &range);
+  static float accelerometer_range_to_sensitivity(const AccelerometerRange &range);
   static float gyroscope_range_to_sensitivty(const GyroscopeRange &range);
 
   uint8_t read_from_magnetometer(const Ak09916Register &reg, std::error_code &ec);
