@@ -50,6 +50,11 @@ template <espp::icm20948::Interface I> bool Icm20948<I>::init(std::error_code &e
     return false;
   }
 
+  // initialize the magnetometer
+  if (!init_magnetometer(ec)) {
+    return false;
+  }
+
   // set the configuration
   if (!set_config(imu_config_, ec)) {
     return false;
@@ -507,8 +512,17 @@ bool Icm20948<I>::set_temperature_dlpf(const TemperatureFilterBandwidth &bandwid
 // Magnetometer
 /////////////////////////////////
 
-// TODO: implement
 template <espp::icm20948::Interface I> bool Icm20948<I>::init_magnetometer(std::error_code &ec) {
+  // get the device ID and ensure it's correct
+  uint16_t device_id = get_magnetometer_device_id(ec);
+  if (ec) {
+    return false;
+  }
+  // company ID is 0x48, device ID is 0x09
+  if (device_id != AK09916C_ID) {
+    logger_.error("Invalid magnetometer device ID: 0x{:02X}", device_id);
+    return false;
+  }
   return !ec;
 }
 

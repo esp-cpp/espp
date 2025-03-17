@@ -298,9 +298,9 @@ protected:
   static constexpr float TEMP_SENS = 333.87f; ///< Temperature sensitivity
   static constexpr float MAG_SENS = 0.1495f;  ///< Magnetometer sensitivity
 
-  static constexpr uint8_t ICM20948_ID = 0xEA;      ///< ICM20948 ID
-  static constexpr uint16_t AK09916C_ID_1 = 0x4809; ///< AK09916C ID 1 (company id)
-  static constexpr uint16_t AK09916C_ID_2 = 0x0948; ///< AK09916C ID 2 (device id)
+  static constexpr uint8_t ICM20948_ID = 0xEA; ///< ICM20948 ID
+  static constexpr uint16_t AK09916C_ID =
+      0x4809; ///< AK09916C ID 1 (company id = 0x48, device id = 0x09)
 
   static constexpr float GYRO_FS_2000_SENS = 16.4f; ///< Gyroscope sensitivity for ±2000°/s
   static constexpr float GYRO_FS_1000_SENS = 32.8f; ///< Gyroscope sensitivity for ±1000°/s
