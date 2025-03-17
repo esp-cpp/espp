@@ -152,8 +152,9 @@ extern "C" void app_main(void) {
                            text += fmt::format("{:.3f},", now / 1'000'000.0f);
                            text += fmt::format("{:02.3f},{:02.3f},{:02.3f},", (float)accel.x,
                                                (float)accel.y, (float)accel.z);
-                           text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)gyro.x,
-                                               (float)gyro.y, (float)gyro.z);
+                           text +=
+                               fmt::format("{:03.3f},{:03.3f},{:03.3f},", espp::deg_to_rad(gyro.x),
+                                           espp::deg_to_rad(gyro.y), espp::deg_to_rad(gyro.z));
                            text += fmt::format("{:02.1f},", temp);
                            // print kalman filter outputs
                            text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)orientation.x,

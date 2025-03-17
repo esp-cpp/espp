@@ -5,6 +5,7 @@ using namespace espp;
 template <espp::icm20948::Interface I>
 Icm20948<I>::Icm20948(const Icm20948<I>::Config &config)
     : BasePeripheral<uint8_t, I == icm20948::Interface::I2C>({}, "Icm20948", config.log_level)
+    , orientation_filter_(config.orientation_filter)
     , imu_config_(config.imu_config) {
   if constexpr (I == icm20948::Interface::I2C) {
     set_address(config.device_address);
