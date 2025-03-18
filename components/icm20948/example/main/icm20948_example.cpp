@@ -97,6 +97,9 @@ extern "C" void app_main(void) {
           {
               .accelerometer_range = Imu::AccelerometerRange::RANGE_2G,
               .gyroscope_range = Imu::GyroscopeRange::RANGE_250DPS,
+              .accelerometer_sample_rate_divider = 9, // 1kHz / (1 + 9) = 100Hz
+              .gyroscope_sample_rate_divider = 9,     // 1kHz / (1 + 9) = 100Hz
+              .magnetometer_mode = Imu::MagnetometerMode::CONTINUOUS_MODE_100_HZ,
           },
       .orientation_filter = kalman_filter_fn,
       .auto_init = true,
