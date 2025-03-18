@@ -12,6 +12,8 @@ communicate with an ICM20948 9-axis IMU.
 This example is designed to run on a QtPy Pico or QtPy ESP32-S3 with an ICM20948
 qwiic breakout board connected over I2C.
 
+![CleanShot 2025-03-18 at 12 27 13](https://github.com/user-attachments/assets/0531a03d-bc92-4e7a-a3a3-b48cc4405e7e)
+
 ### Build and Flash
 
 Build the project and flash it to the board, then run monitor tool to view
