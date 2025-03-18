@@ -319,8 +319,16 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   /// Initialize the IMU
+  /// \param orientation_filter The orientation filter, if provided
+  /// \param imu_config The IMU configuration
   /// \return true if the IMU was successfully initialized, false otherwise
-  bool initialize_imu();
+  bool initialize_imu(const Imu::filter_fn &orientation_filter = nullptr,
+                      const Imu::ImuConfig &imu_config = {
+                          .accelerometer_range = Imu::AccelerometerRange::RANGE_2G,
+                          .accelerometer_odr = Imu::AccelerometerODR::ODR_400_HZ,
+                          .gyroscope_range = Imu::GyroscopeRange::RANGE_2000DPS,
+                          .gyroscope_odr = Imu::GyroscopeODR::ODR_400_HZ,
+                      });
 
   /// Get the IMU
   /// \return A shared pointer to the IMU

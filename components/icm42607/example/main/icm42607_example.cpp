@@ -27,6 +27,47 @@ extern "C" void app_main(void) {
                  .scl_pullup_en = GPIO_PULLUP_ENABLE,
                  .clk_speed = i2c_clock_speed});
 
+  // make the orientation filter to compute orientation from accel + gyro
+  static constexpr float angle_noise = 0.001f;
+  static constexpr float rate_noise = 0.1f;
+  static espp::KalmanFilter<2> kf;
+  kf.set_process_noise(rate_noise);
+  kf.set_measurement_noise(angle_noise);
+  static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
+  static espp::MadgwickFilter f(beta);
+
+  auto kalman_filter_fn = [](float dt, const Imu::Value &accel,
+                             const Imu::Value &gyro) -> Imu::Value {
+    // Apply Kalman filter
+    float accelRoll = atan2(accel.y, accel.z);
+    float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
+    kf.predict({espp::deg_to_rad(gyro.x), espp::deg_to_rad(gyro.y)}, dt);
+    kf.update({accelRoll, accelPitch});
+    float roll, pitch;
+    std::tie(roll, pitch) = kf.get_state();
+    // return the computed orientation
+    Imu::Value orientation{};
+    orientation.roll = roll;
+    orientation.pitch = pitch;
+    orientation.yaw = 0.0f;
+    return orientation;
+  };
+
+  auto madgwick_filter_fn = [](float dt, const Imu::Value &accel,
+                               const Imu::Value &gyro) -> Imu::Value {
+    // Apply Madgwick filter
+    f.update(dt, accel.x, accel.y, accel.z, espp::deg_to_rad(gyro.x), espp::deg_to_rad(gyro.y),
+             espp::deg_to_rad(gyro.z));
+    float roll, pitch, yaw;
+    f.get_euler(roll, pitch, yaw);
+    // return the computed orientation
+    Imu::Value orientation{};
+    orientation.pitch = espp::deg_to_rad(pitch);
+    orientation.roll = espp::deg_to_rad(roll);
+    orientation.yaw = espp::deg_to_rad(yaw);
+    return orientation;
+  };
+
   // make the IMU config
   Imu::Config config{
       .device_address = Imu::DEFAULT_ADDRESS,
@@ -41,6 +82,7 @@ extern "C" void app_main(void) {
               .gyroscope_range = Imu::GyroscopeRange::RANGE_2000DPS,
               .gyroscope_odr = Imu::GyroscopeODR::ODR_400_HZ,
           },
+      .orientation_filter = kalman_filter_fn,
       .auto_init = true,
   };
 
@@ -83,93 +125,68 @@ extern "C" void app_main(void) {
   }
 
   // make a task to read out the IMU data and print it to console
-  espp::Task imu_task(
-      {.callback = [&imu](std::mutex &m, std::condition_variable &cv) -> bool {
-         // sleep first in case we don't get IMU data and need to exit early
-         {
-           std::unique_lock<std::mutex> lock(m);
-           cv.wait_for(lock, 10ms);
-         }
+  espp::Task imu_task({.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
+                         // sleep first in case we don't get IMU data and need to exit early
+                         {
+                           std::unique_lock<std::mutex> lock(m);
+                           cv.wait_for(lock, 10ms);
+                         }
 
-         auto now = esp_timer_get_time(); // time in microseconds
-         static auto t0 = now;
-         auto t1 = now;
-         float dt = (t1 - t0) / 1'000'000.0f; // convert us to s
-         t0 = t1;
+                         auto now = esp_timer_get_time(); // time in microseconds
+                         static auto t0 = now;
+                         auto t1 = now;
+                         float dt = (t1 - t0) / 1'000'000.0f; // convert us to s
+                         t0 = t1;
 
-         std::error_code ec;
-         // get accel
-         auto accel = imu.get_accelerometer(ec);
-         if (ec) {
-           return false;
-         }
-         auto gyro = imu.get_gyroscope(ec);
-         if (ec) {
-           return false;
-         }
-         auto temp = imu.get_temperature(ec);
-         if (ec) {
-           return false;
-         }
+                         std::error_code ec;
+                         // update the imu data
+                         if (!imu.update(dt, ec)) {
+                           return false;
+                         }
 
-         // print time and raw IMU data
-         std::string text = "";
-         text += fmt::format("{:.3f},", now / 1'000'000.0f);
-         text += fmt::format("{:02.3f},{:02.3f},{:02.3f},", accel.x, accel.y, accel.z);
-         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", gyro.x, gyro.y, gyro.z);
-         text += fmt::format("{:02.1f},", temp);
+                         // get accel
+                         auto accel = imu.get_accelerometer();
+                         auto gyro = imu.get_gyroscope();
+                         auto temp = imu.get_temperature();
+                         auto orientation = imu.get_orientation();
+                         auto gravity_vector = imu.get_gravity_vector();
 
-         float roll = 0, pitch = 0;
+                         // print time and raw IMU data
+                         std::string text = "";
+                         text += fmt::format("{:.3f},", now / 1'000'000.0f);
+                         text += fmt::format("{:02.3f},{:02.3f},{:02.3f},", (float)accel.x,
+                                             (float)accel.y, (float)accel.z);
+                         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)gyro.x,
+                                             (float)gyro.y, (float)gyro.z);
+                         text += fmt::format("{:02.1f},", temp);
+                         // print kalman filter outputs
+                         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)orientation.x,
+                                             (float)orientation.y, (float)orientation.z);
+                         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", (float)gravity_vector.x,
+                                             (float)gravity_vector.y, (float)gravity_vector.z);
 
-         // with only the accelerometer + gyroscope, we can't get yaw :(
-         static constexpr float angle_noise = 0.001f;
-         static constexpr float rate_noise = 0.1f;
-         static espp::KalmanFilter<2> kf;
-         kf.set_process_noise(rate_noise);
-         kf.set_measurement_noise(angle_noise);
-         static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
-         static espp::MadgwickFilter f(beta);
+                         auto madgwick_orientation = madgwick_filter_fn(dt, accel, gyro);
+                         float roll = madgwick_orientation.roll;
+                         float pitch = madgwick_orientation.pitch;
+                         float yaw = madgwick_orientation.yaw;
+                         float vx = sin(pitch);
+                         float vy = -cos(pitch) * sin(roll);
+                         float vz = -cos(pitch) * cos(roll);
 
-         f.update(dt, accel.x, accel.y, accel.z, gyro.x * M_PI / 180.0f, gyro.y * M_PI / 180.0f,
-                  gyro.z * M_PI / 180.0f);
-         float yaw; // ignore / unused since we only have 6-axis
-         f.get_euler(roll, pitch, yaw);
-         roll *= M_PI / 180.0f;
-         pitch *= M_PI / 180.0f;
+                         // print madgwick filter outputs
+                         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", roll, pitch, yaw);
+                         text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
 
-         float vx = sin(pitch);
-         float vy = -cos(pitch) * sin(roll);
-         float vz = -cos(pitch) * cos(roll);
+                         fmt::print("{}\n", text);
 
-         // print madgwick filter outputs
-         text += fmt::format("{:03.3f},{:03.3f},", roll, pitch);
-         text += fmt::format("{:03.3f},{:03.3f},{:03.3f},", vx, vy, vz);
-
-         // Apply Kalman filter
-         float accelPitch = atan2(-accel.x, sqrt(accel.y * accel.y + accel.z * accel.z));
-         float accelRoll = atan2(accel.y, accel.z);
-         kf.predict({float(gyro.x * M_PI / 180.0f), float(gyro.y * M_PI / 180.0f)}, dt);
-         kf.update({accelPitch, accelRoll});
-         std::tie(pitch, roll) = kf.get_state();
-
-         vx = sin(pitch);
-         vy = -cos(pitch) * sin(roll);
-         vz = -cos(pitch) * cos(roll);
-
-         // print kalman filter outputs
-         text += fmt::format("{:03.3f},{:03.3f},", roll, pitch);
-         text += fmt::format("{:03.3f},{:03.3f},{:03.3f}", vx, vy, vz);
-
-         fmt::print("{}\n", text);
-
-         return false;
-       },
-       .task_config = {
-           .name = "IMU",
-           .stack_size_bytes = 6 * 1024,
-           .priority = 10,
-           .core_id = 0,
-       }});
+                         return false;
+                       },
+                       .task_config = {
+                           .name = "IMU",
+                           .stack_size_bytes = 6 * 1024,
+                           .priority = 10,
+                           .core_id = 0,
+                       }});
 
   // print the header for the IMU data (for plotting)
   fmt::print("% Time (s), "
@@ -177,12 +194,12 @@ extern "C" void app_main(void) {
              "Accel X (m/s^2), Accel Y (m/s^2), Accel Z (m/s^2), "
              "Gyro X (rad/s), Gyro Y (rad/s), Gyro Z (rad/s), "
              "Temp (C), "
-             // madgwick filter outputs
-             "Madgwick Roll (rad), Madgwick Pitch (rad), "
-             "Madgwick Gravity X, Madgwick Gravity Y, Madgwick Gravity Z, "
              // kalman filter outputs
-             "Kalman Roll (rad), Kalman Pitch (rad), "
-             "Kalman Gravity X, Kalman Gravity Y, Kalman Gravity Z\n");
+             "Kalman Roll (rad), Kalman Pitch (rad), Kalman Yaw (rad), "
+             "Kalman Gravity X, Kalman Gravity Y, Kalman Gravity Z, "
+             // madgwick filter outputs
+             "Madgwick Roll (rad), Madgwick Pitch (rad), Magwick Yaw (rad), "
+             "Madgwick Gravity X, Madgwick Gravity Y, Madgwick Gravity Z\n");
 
   logger.info("Starting IMU task");
   imu_task.start();

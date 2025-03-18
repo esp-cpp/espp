@@ -125,15 +125,19 @@ struct RawValue {
 
 /// IMU data
 struct Value {
-  float x; ///< X-axis value
-  float y; ///< Y-axis value
-  float z; ///< Z-axis value
-};
-
-/// Complimentary angle
-struct ComplimentaryAngle {
-  float roll;  ///< Roll angle
-  float pitch; ///< Pitch angle
+  union {
+    struct {
+      float x; ///< X-axis value
+      float y; ///< Y-axis value
+      float z; ///< Z-axis value
+    };
+    struct {
+      float roll;  ///< Roll value
+      float pitch; ///< Pitch value
+      float yaw;   ///< Yaw value
+    };
+    float values[3];
+  };
 };
 
 /// @brief Enum class for the ICM42607 interrupt configuration
@@ -324,13 +328,5 @@ template <> struct fmt::formatter<espp::icm42607::Value> {
   template <typename FormatContext>
   auto format(const espp::icm42607::Value &value, FormatContext &ctx) const {
     return format_to(ctx.out(), "{{ x: {:.2f}, y: {:.2f}, z: {:.2f} }}", value.x, value.y, value.z);
-  }
-};
-
-template <> struct fmt::formatter<espp::icm42607::ComplimentaryAngle> {
-  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
-  template <typename FormatContext>
-  auto format(const espp::icm42607::ComplimentaryAngle &angle, FormatContext &ctx) const {
-    return format_to(ctx.out(), "{{ roll: {:.2f}, pitch: {:.2f} }}", angle.roll, angle.pitch);
   }
 };

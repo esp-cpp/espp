@@ -89,11 +89,17 @@ public:
   using ImuConfig = icm42607::ImuConfig;                         ///< IMU configuration
   using RawValue = icm42607::RawValue;                           ///< Raw IMU data
   using Value = icm42607::Value;                                 ///< IMU data
-  using ComplimentaryAngle = icm42607::ComplimentaryAngle;       ///< Complimentary angle
   using InterruptDriveMode = icm42607::InterruptDriveMode;       ///< Interrupt drive mode
   using InterruptPolarity = icm42607::InterruptPolarity;         ///< Interrupt polarity
   using InterruptMode = icm42607::InterruptMode;                 ///< Interrupt mode
   using InterruptConfig = icm42607::InterruptConfig;             ///< Interrupt configuration
+
+  /// Filter function for filtering 6-axis data into 3-axis orientation data
+  /// @param dt The time step in seconds
+  /// @param accel The accelerometer data
+  /// @param gyro The gyroscope data
+  /// @return The filtered orientation data in radians
+  typedef std::function<Value(float, const Value &, const Value &)> filter_fn; ///< Filter function
 
   /// Configuration struct for the ICM42607
   struct Config {
@@ -103,6 +109,7 @@ public:
     BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::read_fn read =
         nullptr;                                          ///< Read function
     ImuConfig imu_config;                                 ///< IMU configuration
+    filter_fn orientation_filter = nullptr;               ///< Filter function for orientation
     bool auto_init{true};                                 ///< Automatically initialize the ICM42607
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log level
   };
@@ -112,6 +119,7 @@ public:
   explicit Icm42607(const Config &config)
       : BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>({}, "Icm42607",
                                                                        config.log_level)
+      , orientation_filter_(config.orientation_filter)
       , imu_config_(config.imu_config) {
     if constexpr (Interface == icm42607::Interface::I2C) {
       set_address(config.device_address);
@@ -183,6 +191,10 @@ public:
 
     return true;
   }
+
+  /// Get the IMU configuration
+  /// @return The IMU configuration
+  ImuConfig get_config() const { return imu_config_; }
 
   /// Set the Accelerometer power mode
   /// @param power_mode The power mode
@@ -266,10 +278,16 @@ public:
     return !ec;
   }
 
+  /// Get the accelerometer sensitivity from memory
+  /// @return The accelerometer sensitivity in g/LSB
+  float get_accelerometer_sensitivity() {
+    return accelerometer_range_to_sensitivty(imu_config_.accelerometer_range);
+  }
+
   /// Read the accelerometer sensitivity
   /// @param ec The error code to set if an error occurs
   /// @return The accelerometer sensitivity in g/LSB
-  float get_accelerometer_sensitivity(std::error_code &ec) {
+  float read_accelerometer_sensitivity(std::error_code &ec) {
     // read the byte from the register
     uint8_t data = read_u8_from_register(static_cast<uint8_t>(Register::ACCEL_CONFIG0), ec);
     if (ec) {
@@ -277,14 +295,22 @@ public:
     }
     // get the range
     AccelerometerRange range = static_cast<AccelerometerRange>((data >> 5) & 0x03);
+    // update the config
+    imu_config_.accelerometer_range = range;
     // convert to sensitivity
     return accelerometer_range_to_sensitivty(range);
+  }
+
+  /// Get the gyroscope sensitivity from memory
+  /// @return The gyroscope sensitivity in °/s/LSB
+  float get_gyroscope_sensitivity() {
+    return gyroscope_range_to_sensitivty(imu_config_.gyroscope_range);
   }
 
   /// Read the gyroscope sensitivity
   /// @param ec The error code to set if an error occurs
   /// @return The gyroscope sensitivity in °/s/LSB
-  float get_gyroscope_sensitivity(std::error_code &ec) {
+  float read_gyroscope_sensitivity(std::error_code &ec) {
     // read the byte from the register
     uint8_t data = read_u8_from_register(static_cast<uint8_t>(Register::GYRO_CONFIG0), ec);
     if (ec) {
@@ -292,58 +318,141 @@ public:
     }
     // get the range
     GyroscopeRange range = static_cast<GyroscopeRange>((data >> 5) & 0x03);
+    // update the config
+    imu_config_.gyroscope_range = range;
     // convert to sensitivity
     return gyroscope_range_to_sensitivty(range);
   }
 
+  /// Update the accelerometer and gyroscope, and read the temperature
+  /// @param dt The time step in seconds
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the values were updated successfully, false otherwise
+  /// @note The values can be retrieved with get_accelerometer_values and
+  ///       get_gyroscope_values, and the temperature can be retrieved with
+  ///       get_temperature
+  bool update(float dt, std::error_code &ec) {
+    // update accel
+    Value accel = read_accelerometer(ec);
+    if (ec) {
+      return false;
+    }
+    // update gyro
+    Value gyro = read_gyroscope(ec);
+    if (ec) {
+      return false;
+    }
+    // update temp
+    read_temperature(ec);
+    if (ec) {
+      return false;
+    }
+    // if we have a filter function, then filter the data and update the
+    // orientation
+    if (orientation_filter_) {
+      orientation_ = orientation_filter_(dt, accel, gyro);
+      // now calculate the gravity vector
+      gravity_vector_ = {
+          (float)(sin(orientation_.pitch)),
+          (float)(-sin(orientation_.roll) * cos(orientation_.pitch)),
+          (float)(-cos(orientation_.roll) * cos(orientation_.pitch)),
+      };
+    }
+    return true;
+  }
+
+  /// Get the accelerometer values
+  /// @return The accelerometer values
+  /// @note The values are in g and are updated when read_accelerometer is
+  ///       called or update_values is called
+  Value get_accelerometer() const { return accel_values_; }
+
   /// Read the accelerometer data
   /// @param ec The error code to set if an error occurs
   /// @return The accelerometer data
-  Value get_accelerometer(std::error_code &ec) {
+  Value read_accelerometer(std::error_code &ec) {
     RawValue raw = get_accelerometer_raw(ec);
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
-    float sensitivity = get_accelerometer_sensitivity(ec);
+    float sensitivity = get_accelerometer_sensitivity();
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
-    return {
+    Value v = {
         static_cast<float>(raw.x) / sensitivity,
         static_cast<float>(raw.y) / sensitivity,
         static_cast<float>(raw.z) / sensitivity,
     };
+    // update accel values
+    accel_values_ = v;
+    return v;
   }
+
+  /// Get the gyroscope values
+  /// @return The gyroscope values
+  /// @note The values are in °/s and are updated when read_gyroscope is
+  ///       called or update_values is called
+  Value get_gyroscope() const { return gyro_values_; }
 
   /// Read the gyroscope data
   /// @param ec The error code to set if an error occurs
   /// @return The gyroscope data
-  Value get_gyroscope(std::error_code &ec) {
+  Value read_gyroscope(std::error_code &ec) {
     RawValue raw = get_gyroscope_raw(ec);
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
-    float sensitivity = get_gyroscope_sensitivity(ec);
+    float sensitivity = get_gyroscope_sensitivity();
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
-    return {
+    Value v = {
         static_cast<float>(raw.x) / sensitivity,
         static_cast<float>(raw.y) / sensitivity,
         static_cast<float>(raw.z) / sensitivity,
     };
+    // update gyro values
+    gyro_values_ = v;
+    return v;
   }
+
+  /// Get the temperature
+  /// @return The temperature in °C
+  /// @note The temperature is updated when read_temperature is called or
+  ///       update_values is called
+  float get_temperature() const { return temperature_; }
 
   /// Read the temperature
   /// @param ec The error code to set if an error occurs
   /// @return The temperature in °C
-  float get_temperature(std::error_code &ec) {
+  float read_temperature(std::error_code &ec) {
     uint16_t raw = get_temperature_raw(ec);
     if (ec) {
       return 0.0f;
     }
-    return static_cast<float>(raw) / 128.0f + 25.0f; // 132.48 + 25
+    static constexpr float TEMP_SENSITIVITY = 1.0f / 128.0f;
+    static constexpr float TEMP_OFFSET = 25.0f;
+    float temp = static_cast<float>(raw) * TEMP_SENSITIVITY + TEMP_OFFSET;
+    // update temperature
+    temperature_ = temp;
+    return temp;
   }
+
+  /// Get the most recently calculated orientation, if any.
+  /// @return The orientation angles in radians - pitch, roll, yaw
+  /// @note The orientation is updated when update_values is called
+  /// @note The orientation is calculated using the orientation filter function.
+  ///       If no filter function is set, the orientation will not be updated.
+  Value get_orientation() const { return orientation_; }
+
+  /// Get the most recently calculated gravity vector, if any.
+  /// @return The gravity vector
+  /// @note The gravity vector is updated when update_values is called
+  /// @note The gravity vector is calculated using the orientation filter
+  ///       function. If no filter function is set, the gravity vector will not
+  ///       be calculated.
+  Value get_gravity_vector() const { return gravity_vector_; }
 
   /// Configure the FIFO buffer
   /// @param mode The FIFO mode
@@ -695,6 +804,12 @@ protected:
     };
   }
 
+  Value accel_values_{};
+  Value gyro_values_{};
+  float temperature_{0.0f};
+  Value orientation_{};
+  Value gravity_vector_{};
+  filter_fn orientation_filter_{nullptr};
   ImuConfig imu_config_{}; ///< IMU configuration
 };                         // class Icm42607
 } // namespace espp
