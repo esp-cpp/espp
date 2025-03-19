@@ -6,6 +6,8 @@
 #include "base_peripheral.hpp"
 
 namespace espp {
+using vl53l_register_t = uint16_t;
+
 /// \brief VL53LXXX Time-of-Flight Distance Sensor
 /// \details
 /// The VL53LXX is a new generation Time-of-Flight (ToF) laser-ranging module
@@ -27,21 +29,21 @@ namespace espp {
 ///
 /// \section example Example
 /// \snippet vl53l_example.cpp vl53l example
-class Vl53l : public espp::BasePeripheral<uint8_t, true> {
-  using BasePeripheral<uint8_t, true>::set_address;
-  using BasePeripheral<uint8_t, true>::set_write;
-  using BasePeripheral<uint8_t, true>::set_read;
-  using BasePeripheral<uint8_t, true>::write_u8_to_register;
-  using BasePeripheral<uint8_t, true>::write_u16_to_register;
-  using BasePeripheral<uint8_t, true>::write_many_to_register;
-  using BasePeripheral<uint8_t, true>::read_u8_from_register;
-  using BasePeripheral<uint8_t, true>::read_u16_from_register;
-  using BasePeripheral<uint8_t, true>::read_many_from_register;
-  using BasePeripheral<uint8_t, true>::clear_bits_in_register;
-  using BasePeripheral<uint8_t, true>::set_bits_in_register;
-  using BasePeripheral<uint8_t, true>::set_bits_in_register_by_mask;
-  using BasePeripheral<uint8_t, true>::read;
-  using BasePeripheral<uint8_t, true>::logger_;
+class Vl53l : public espp::BasePeripheral<vl53l_register_t, true> {
+  using BasePeripheral<vl53l_register_t, true>::set_address;
+  using BasePeripheral<vl53l_register_t, true>::set_write;
+  using BasePeripheral<vl53l_register_t, true>::set_read;
+  using BasePeripheral<vl53l_register_t, true>::write_u8_to_register;
+  using BasePeripheral<vl53l_register_t, true>::write_u16_to_register;
+  using BasePeripheral<vl53l_register_t, true>::write_many_to_register;
+  using BasePeripheral<vl53l_register_t, true>::read_u8_from_register;
+  using BasePeripheral<vl53l_register_t, true>::read_u16_from_register;
+  using BasePeripheral<vl53l_register_t, true>::read_many_from_register;
+  using BasePeripheral<vl53l_register_t, true>::clear_bits_in_register;
+  using BasePeripheral<vl53l_register_t, true>::set_bits_in_register;
+  using BasePeripheral<vl53l_register_t, true>::set_bits_in_register_by_mask;
+  using BasePeripheral<vl53l_register_t, true>::read;
+  using BasePeripheral<vl53l_register_t, true>::logger_;
 
 public:
   static constexpr uint8_t DEFAULT_ADDRESS = 0x29; // 7-bit address (decimal: 41)
@@ -89,9 +91,9 @@ public:
 
   /// \brief Configuration for the VL53LXX
   struct Config {
-    uint8_t device_address = DEFAULT_ADDRESS;                ///< I2C address of the VL53LXX
-    BasePeripheral<uint8_t, true>::write_fn write = nullptr; ///< Write function
-    BasePeripheral<uint8_t, true>::read_fn read = nullptr;   ///< Read function
+    uint8_t device_address = DEFAULT_ADDRESS; ///< I2C address of the VL53LXX
+    BasePeripheral<vl53l_register_t, true>::write_fn write = nullptr; ///< Write function
+    BasePeripheral<vl53l_register_t, true>::read_fn read = nullptr;   ///< Read function
     bool auto_init = true;                                 ///< Automatically initialize the sensor
     Logger::Verbosity log_level = Logger::Verbosity::WARN; ///< Log level for this class
   };
@@ -100,7 +102,7 @@ public:
   /// \param config Configuration
   /// \see Config
   explicit Vl53l(const Config &config)
-      : BasePeripheral<uint8_t, true>({}, "VL53LXX", config.log_level) {
+      : BasePeripheral<vl53l_register_t, true>({}, "VL53LXX", config.log_level) {
     set_address(config.device_address);
     set_write(config.write);
     set_read(config.read);
@@ -771,7 +773,7 @@ protected:
   /// \see read_reg
   /// \see write_reg
   bool write_reg(Register reg, uint8_t *data, size_t len, std::error_code &ec) {
-    write_many_to_register(static_cast<uint8_t>(reg), data, len, ec);
+    write_many_to_register(static_cast<vl53l_register_t>(reg), data, len, ec);
     return !ec;
   }
 
@@ -795,7 +797,7 @@ protected:
   /// \see write_reg
   /// \see read_reg
   bool read_reg(Register reg, uint8_t *val, size_t len, std::error_code &ec) {
-    read_many_from_register(static_cast<uint8_t>(reg), val, len, ec);
+    read_many_from_register(static_cast<vl53l_register_t>(reg), val, len, ec);
     return !ec;
   }
 
