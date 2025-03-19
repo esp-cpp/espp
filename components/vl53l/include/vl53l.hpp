@@ -711,13 +711,7 @@ protected:
     if (!write_reg(Register::RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_MCPS, (uint8_t *)&val, 2, ec)) {
       return false;
     }
-    // set inter-measurement period to 0
-    if (!set_inter_measurement_period_ms(0, ec)) {
-      return false;
-    }
-    // set timing budget to 50ms
-    set_timing_budget_ms(50, ec);
-    return !ec;
+    return true;
   }
 
   /// \brief Wait for the sensor to boot
