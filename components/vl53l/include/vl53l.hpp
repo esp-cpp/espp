@@ -48,8 +48,8 @@ public:
 
   /// \brief Model ID and module type
   struct ModelInfo {
-    uint8_t model_id;    ///< Model ID
-    uint8_t module_type; ///< Module type
+    uint8_t model_id{0};    ///< Model ID
+    uint8_t module_type{0}; ///< Module type
   };
 
   /// \brief Distance mode
@@ -115,11 +115,11 @@ public:
   /// \return ModelInfo
   /// \see VL53L0X_GetModelID
   ModelInfo get_model_info(std::error_code &ec) {
-    ModelInfo info;
     uint8_t data[2];
     if (!read_reg(Register::IDENTIFICATION_MODEL_ID, data, 2, ec)) {
-      return info;
+      return {};
     }
+    ModelInfo info;
     info.model_id = data[0];
     info.module_type = data[1];
     logger_.debug("Model ID: {:#04x}, Module Type: {:#04x}", info.model_id, info.module_type);
@@ -221,7 +221,7 @@ public:
     }
 
     // read the OSC_CALIBRATE register (2 bytes) to get the clock pll
-    uint8_t data[2];
+    uint8_t data[4];
     if (!read_reg(Register::OSC_CALIBRATE_VAL, data, 2, ec)) {
       return false;
     }
@@ -355,10 +355,11 @@ public:
 
     uint8_t ls_byte = (macrop_high & 0x00FF) << 4;
     uint8_t ms_byte = (macrop_high & 0xFF00) >> 8;
-    ms_byte = 0x04 - (ms_byte - 1) - 1;
+    ms_byte = 0x04 - (ms_byte - 1) - 1; // intentionally allowed underflow
 
     int timing_budget_ms =
         (((ls_byte + 1) * (macro_period_us >> 6)) - ((macro_period_us >> 6) >> 1)) >> 12;
+    // cppcheck-suppress knownConditionTrueFalse
     if (ms_byte < 12) {
       timing_budget_ms >>= ms_byte;
     }
