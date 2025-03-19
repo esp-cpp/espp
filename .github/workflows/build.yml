@@ -157,6 +157,8 @@ jobs:
           target: esp32
         - path: 'components/tt21100/example'
           target: esp32s3
+        - path: 'components/vl53l/example'
+          target: esp32s3
         - path: 'components/wifi/example'
           target: esp32
         - path: 'components/wrover-kit/example'

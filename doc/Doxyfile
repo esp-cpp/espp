@@ -89,6 +89,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/thermistor/example/main/thermistor_ex
 EXAMPLE_PATH += $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp
 
@@ -232,6 +233,7 @@ INPUT += $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp
 INPUT += $(PROJECT_PATH)/components/timer/include/timer.hpp
 INPUT += $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp
 INPUT += $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp
+INPUT += $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp
 INPUT += $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp
