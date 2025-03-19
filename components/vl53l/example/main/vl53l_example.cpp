@@ -39,9 +39,20 @@ extern "C" void app_main(void) {
                             .log_level = espp::Logger::Verbosity::WARN});
 
     std::error_code ec;
+    // set the timing budget to 10ms, which must be shorter than the
+    // inter-measurement period. We'll log every 20ms so this guarantees we get
+    // new data every time
+    if (!vl53l.set_timing_budget_ms(10, ec)) {
+      logger.error("Failed to set inter measurement period: {}", ec.message());
+      return;
+    }
+    // set the inter-measurement period to 10ms, so we should be sure to get new
+    // data each measurement
+    if (!vl53l.set_inter_measurement_period_ms(10, ec)) {
+      logger.error("Failed to set inter measurement period: {}", ec.message());
+      return;
+    }
     // tell it to start ranging
-    // vl53l.set_inter_measurement_period_ms(0);
-    // vl53l.set_timing_budget_ms(50);
     if (!vl53l.start_ranging(ec)) {
       logger.error("Failed to start ranging: {}", ec.message());
       return;
@@ -73,7 +84,7 @@ extern "C" void app_main(void) {
       return false;
     };
 
-    espp::Timer timer({.period = 50ms,
+    espp::Timer timer({.period = 20ms,
                        .callback = read_task_fn,
                        .task_config =
                            {

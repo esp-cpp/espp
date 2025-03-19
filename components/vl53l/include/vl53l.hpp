@@ -154,14 +154,18 @@ public:
   /// \return Distance in meters
   float get_distance_meters(std::error_code &ec) { return get_distance_mm(ec) / 1000.0f; }
 
-  /// \brief Get the current inter-measurement time in milliseconds
+  /// \brief Get the inter-measurement period in milliseconds
+  /// \return Inter-measurement period in milliseconds
+  int get_inter_measurement_period_ms() const { return inter_measurement_period_ms_; }
+
+  /// \brief Read the current inter-measurement time in milliseconds
   /// \details
   /// The inter-measurement period determines how often the sensor takes a
   /// measurement. Valid range is timing_budget to 5000 ms. Set to 0 to
   /// disable continuous mode.
   /// \param ec Error code if unsuccessful
   /// \return Inter-measurement time in milliseconds
-  int get_inter_measurement_period_ms(std::error_code &ec) {
+  int read_inter_measurement_period_ms(std::error_code &ec) {
     logger_.debug("Getting inter-measurement period");
     // read the intermeasurement_ms register (4 bytes)
     uint8_t data[4];
@@ -180,6 +184,8 @@ public:
     float factor = ((float)clock_pll * 1.065f);
     int inter_measurement_ms = (int)(reg_val / factor);
     logger_.debug("Inter-measurement period is {} ms", inter_measurement_ms);
+    // store the inter-measurement period
+    inter_measurement_period_ms_ = inter_measurement_ms;
     return inter_measurement_ms;
   }
 
@@ -211,10 +217,7 @@ public:
     }
 
     // make sure the inter-measurement period is at least the timing budget
-    int timing_budget_ms = get_timing_budget_ms(ec);
-    if (ec) {
-      return false;
-    }
+    int timing_budget_ms = get_timing_budget_ms();
     if (period_ms != 0 && period_ms < timing_budget_ms) {
       logger_.warn("Inter-measurement period ({} ms) is less than timing budget ({} ms). Setting "
                    "to timing budget.",
@@ -244,6 +247,8 @@ public:
       return false;
     }
     logger_.debug("Inter-measurement period set to {} ms", period_ms);
+    // store the inter-measurement period
+    inter_measurement_period_ms_ = period_ms;
     return true;
   }
 
@@ -312,7 +317,7 @@ public:
     }
     val = val & 0x01;
     logger_.debug("Data ready: {}", val);
-    return (bool)val == get_interrupt_polarity(ec);
+    return (bool)val == get_interrupt_polarity();
   }
 
   /// \brief Clear the interrupt
@@ -325,7 +330,15 @@ public:
     return write_reg(Register::SYSTEM_INTERRUPT_CLEAR, 0x01, ec);
   }
 
+  /// \brief Get the current timing budget in milliseconds
+  /// \return Timing budget in milliseconds
+  int get_timing_budget_ms() const { return timing_budget_us_ / 1000; }
+
   /// \brief Get the current timing budget in microseconds
+  /// \return Timing budget in microseconds
+  uint32_t get_timing_budget_us() const { return timing_budget_us_; }
+
+  /// \brief Read the current timing budget in microseconds
   /// \details
   /// The timing budget is the time allowed for one measurement. Valid range
   /// is 10ms to 200ms. It cannot be greater than the inter-measurement
@@ -335,7 +348,7 @@ public:
   /// \see set_timing_budget_us()
   /// \see set_inter_measurement_period_ms()
   /// \see get_inter_measurement_period_ms()
-  uint32_t get_timing_budget_ms(std::error_code &ec) {
+  uint32_t read_timing_budget_ms(std::error_code &ec) {
     logger_.info("Getting timing budget");
 
     // NOTE: I have no idea what the code below is doing...
@@ -359,29 +372,43 @@ public:
     uint8_t ms_byte = (macrop_high & 0xFF00) >> 8;
     ms_byte = 0x04 - (ms_byte - 1) - 1; // intentionally allowed underflow
 
-    int timing_budget_ms =
+    int timing_budget_us =
         (((ls_byte + 1) * (macro_period_us >> 6)) - ((macro_period_us >> 6) >> 1)) >> 12;
     // cppcheck-suppress knownConditionTrueFalse
     if (ms_byte < 12) {
-      timing_budget_ms >>= ms_byte;
+      timing_budget_us >>= ms_byte;
     }
-    auto intermeasurement_period_ms = get_inter_measurement_period_ms(ec);
+    auto intermeasurement_period_ms = get_inter_measurement_period_ms();
     if (ec) {
       return 0;
     }
     if (intermeasurement_period_ms == 0) {
       // we're in continuous mode
-      timing_budget_ms += 2500;
+      timing_budget_us += 2500;
     } else {
       // we're in autonomous mode
-      timing_budget_ms *= 2;
-      timing_budget_ms += 4300;
+      timing_budget_us *= 2;
+      timing_budget_us += 4300;
     }
 
-    return timing_budget_ms;
+    logger_.debug("Timing budget is {} us", timing_budget_us);
+    // store the timing budget
+    timing_budget_us_ = timing_budget_us;
+    return timing_budget_us / 1000;
   }
 
   /// \brief Get the current timing budget in seconds
+  /// \details
+  /// The timing budget is the time allowed for one measurement. Valid range
+  /// is 10ms to 200ms. It cannot be greater than the inter-measurement
+  /// period.
+  /// \return Timing budget in seconds
+  /// \see set_timing_budget_us()
+  /// \see set_inter_measurement_period_ms()
+  /// \see get_inter_measurement_period_ms()
+  float get_timing_budget_seconds() { return get_timing_budget_ms() / 1000.0f; }
+
+  /// \brief Read the current timing budget in seconds
   /// \details
   /// The timing budget is the time allowed for one measurement. Valid range
   /// is 10ms to 200ms. It cannot be greater than the inter-measurement
@@ -391,11 +418,10 @@ public:
   /// \see set_timing_budget_us()
   /// \see set_inter_measurement_period_ms()
   /// \see get_inter_measurement_period_ms()
-  float get_timing_budget_seconds(std::error_code &ec) {
-    return get_timing_budget_ms(ec) / 1000.0f;
+  float read_timing_budget_seconds(std::error_code &ec) {
+    return read_timing_budget_ms(ec) / 1000.0f;
   }
 
-  // TODO: fix this function
   /// \brief Set the timing budget in microseconds
   /// \details
   /// The timing budget is the time allowed for one measurement. Valid range
@@ -419,10 +445,7 @@ public:
       return false;
     }
 
-    auto intermeasurement_period_ms = get_inter_measurement_period_ms(ec);
-    if (ec) {
-      return false;
-    }
+    auto intermeasurement_period_ms = get_inter_measurement_period_ms();
     if (intermeasurement_period_ms != 0 && budget_us > intermeasurement_period_ms * 1000) {
       logger_.error("Invalid timing budget {}, must be less than inter-measurement period {}.",
                     budget_us, intermeasurement_period_ms * 1000);
@@ -431,7 +454,6 @@ public:
     }
 
     logger_.info("Setting timing budget to {} us.", budget_us);
-    // NOTE: I have no idea what the code below is doing...
 
     // get the oscillator frequency (1 byte from register 0x0006)
     uint8_t data[2];
@@ -441,6 +463,10 @@ public:
     uint16_t oscillator_frequency = (data[0] << 8) | data[1];
 
     int macro_period_us = int(2304 * (0x40000000 / oscillator_frequency)) >> 6;
+
+    logger_.debug("Oscillator frequency: {}", oscillator_frequency);
+    logger_.debug("Macro period: {} us", macro_period_us);
+    logger_.debug("Intermeasurement period: {} ms", intermeasurement_period_ms);
 
     if (intermeasurement_period_ms == 0) {
       // we're in continuous mode
@@ -463,6 +489,7 @@ public:
     uint8_t ms_byte_array[2];
     ms_byte_array[0] = ms_byte >> 8;
     ms_byte_array[1] = ms_byte & 0x00FF;
+    logger_.debug("ms_byte: {:#04x}, {:#04x}", ms_byte_array[0], ms_byte_array[1]);
     if (!write_reg(Register::RANGE_CONFIG_A, ms_byte_array, 2, ec)) {
       return false;
     }
@@ -477,6 +504,7 @@ public:
     ms_byte = (ms_byte << 8) + (ls_byte & 0xFF);
     ms_byte_array[0] = ms_byte >> 8;
     ms_byte_array[1] = ms_byte & 0x00FF;
+    logger_.debug("ms_byte: {:#04x}, {:#04x}", ms_byte_array[0], ms_byte_array[1]);
     if (!write_reg(Register::RANGE_CONFIG_B, ms_byte_array, 2, ec)) {
       return false;
     }
@@ -737,9 +765,13 @@ protected:
   }
 
   /// \brief Get the interrupt polarity
+  /// \return True if active high, false if active low
+  bool get_interrupt_polarity() const { return interrupt_polarity_; }
+
+  /// \brief Get the interrupt polarity
   /// \param ec Error code if unsuccessful
   /// \return True if active high, false if active low
-  bool get_interrupt_polarity(std::error_code &ec) {
+  bool read_interrupt_polarity(std::error_code &ec) {
     // read the GPIO_HV_MUX_CTRL register and return true if the fourth bit is
     // set
     uint8_t val;
@@ -750,6 +782,8 @@ protected:
     // 0 = active high, 1 = active low
     bool polarity = val != 1;
     logger_.debug("Interrupt polarity: {}", polarity);
+    // store the interrupt polarity
+    interrupt_polarity_ = polarity;
     return polarity;
   }
 
@@ -803,5 +837,8 @@ protected:
 
   bool ranging_{false};
   bool continuous_{false};
+  std::atomic<bool> interrupt_polarity_{false};
+  std::atomic<int> inter_measurement_period_ms_{0};
+  std::atomic<int> timing_budget_us_{0};
 };
 } // namespace espp
