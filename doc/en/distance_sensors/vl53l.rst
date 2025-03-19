@@ -25,4 +25,4 @@ distance through glass or other transparent materials.
 API Reference
 -------------
 
-.. include-build-file:: inc/icm20948.inc
+.. include-build-file:: inc/vl53l.inc
