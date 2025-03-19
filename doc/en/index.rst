@@ -22,6 +22,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    color
    csv
    display/index
+   distance_sensors/index
    encoder/index
    esp32_timer_cam
    esp_box

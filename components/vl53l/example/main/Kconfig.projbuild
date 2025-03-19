@@ -1,0 +1,41 @@
+menu "Example Configuration"
+
+    choice EXAMPLE_HARDWARE
+        prompt "Hardware"
+        default EXAMPLE_HARDWARE_QTPY
+        help
+            Select the hardware to run this example on.
+
+        config EXAMPLE_HARDWARE_QTPY
+            bool "QtPy ESP32 Pico or QtPy ESP32-S3"
+
+        config EXAMPLE_HARDWARE_CUSTOM
+            bool "Custom"
+    endchoice
+
+    config EXAMPLE_I2C_SCL_GPIO
+        int "SCL GPIO Num"
+        range 0 50
+        default 40 if EXAMPLE_HARDWARE_QTPY && IDF_TARGET_ESP32S3
+        default 19 if EXAMPLE_HARDWARE_QTPY && IDF_TARGET_ESP32
+        default 19 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master clock line.
+
+    config EXAMPLE_I2C_SDA_GPIO
+        int "SDA GPIO Num"
+        range 0 50
+        default 41 if EXAMPLE_HARDWARE_QTPY && IDF_TARGET_ESP32S3
+        default 22 if EXAMPLE_HARDWARE_QTPY && IDF_TARGET_ESP32
+        default 22 if EXAMPLE_HARDWARE_CUSTOM
+        help
+            GPIO number for I2C Master data line.
+
+    config EXAMPLE_I2C_CLOCK_SPEED_HZ
+        int "I2C Clock Speed"
+        range 100 1000000
+        default 400000
+        help
+            I2C clock speed in Hz.
+
+endmenu
