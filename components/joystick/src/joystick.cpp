@@ -88,7 +88,7 @@ void espp::Joystick::recalculate(float raw_x, float raw_y) {
     if (magnitude < center_deadzone_radius_) {
       position_.x(0);
       position_.y(0);
-    } else if (magnitude > 1.0f - range_deadzone_) {
+    } else if (magnitude >= 1.0f - range_deadzone_) {
       position_ = position_.normalized();
     } else {
       const float magnitude_range = 1.0f - center_deadzone_radius_ - range_deadzone_;
