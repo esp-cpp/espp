@@ -90,15 +90,16 @@ protected:
           // Byte 0: Counter which increments with each packet
           uint8_t counter;
           // Byte 1:
-          // - Battery level.
+          // - low nibble: Connection info.
+          //     Bit 0 is USB powered, bits 1-2 are connection info.
+          // - high nibble: Battery level.
           //     8=full, 6=medium, 4=low, 2=critical, 0=empty. Bit 0 is charging status.
           //     low = 10%,
           //     medium = 50%,
           //     full = 100%
-          // - Connection info.
-          //     Bit 0 is USB powered, bits 1-2 are connection info.
-          uint8_t battery_level : 4;
           uint8_t connection_info : 4;
+          uint8_t battery_charging : 1;
+          uint8_t battery_level : 3;
           // Byte 2, 3, 4: Button status
           bool btn_y : 1;
           bool btn_x : 1;
@@ -334,37 +335,23 @@ public:
   /// Set the battery level
   /// @param level battery level, in the range [0, 100]
   constexpr void set_battery_level(float level) {
-    // BATT_EMPTY = 0,    // 0000
-    // BATT_CHARGING = 1, // 0001
-    // BATT_CRITICAL = 2, // 0010
-    // BATT_LOW = 4,      // 0100
-    // BATT_MEDIUM = 6,   // 0110
-    // BATT_FULL = 8,     // 1000
-
-    // unset all level bits, leaving only the charging bit unchanged.
-    battery_level = battery_level & 0x1;
-
-    // now set the level bits
-    if (level > 75) {
-      // set full bit
-      battery_level |= 8;
-    } else if (level > 50) {
-      // set medium bits
-      battery_level |= 6;
+    // now set the level bits (3 bits)
+    if (level > 90) {
+      battery_level = 4;
+    } else if (level > 60) {
+      battery_level = 3;
+    } else if (level > 30) {
+      battery_level = 2;
     } else if (level > 10) {
-      // set low bit
-      battery_level |= 4;
-    } else if (level > 0) {
-      // set critical bit
-      battery_level |= 2;
+      battery_level = 1;
+    } else {
+      battery_level = 0;
     }
   }
 
-  constexpr void set_battery_charging(bool charging) {
-    // charging is the least significant bit of the battery level
-    // so we just need to set the least significant bit of the battery level
-    battery_level = (battery_level & 0xE) | (charging ? 1 : 0);
-  }
+  /// Set the battery charging status
+  /// @param charging whether the battery is charging or not
+  constexpr void set_battery_charging(bool charging) { battery_charging = charging; }
 
   /// Set the connection info
   /// @param info connection info
