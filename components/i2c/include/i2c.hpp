@@ -276,7 +276,8 @@ public:
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_WRITE, true);
     i2c_master_stop(cmd);
-    if (i2c_master_cmd_begin(config_.port, cmd, 1000) == ESP_OK) {
+    if (i2c_master_cmd_begin(config_.port, cmd, config_.timeout_ms / portTICK_PERIOD_MS) ==
+        ESP_OK) {
       success = true;
     }
     i2c_cmd_link_delete(cmd);
