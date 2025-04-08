@@ -131,6 +131,11 @@ public:
     BasePeripheral::read_fn read;   ///< Function to read from the ADC
     bool auto_init = true;          ///< Automatically initialize the ADC on construction. If false,
                                     ///< initialize() must be called before any other functions.
+    bool auto_calibrate =
+        false; ///< Automatically calibrate the ADC on construction. If false, calibrate() should be
+               ///< called to increase the accuracy of the ADC.
+               ///< @note Can only be set to true if auto_init is also true, otherwise it will be
+               ///< ignored.
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN}; ///< Verbosity for the logger.
   };
 
@@ -163,6 +168,12 @@ public:
       if (ec) {
         logger_.error("Error initializing ADC: {}", ec.message());
       }
+      if (config.auto_calibrate) {
+        calibrate(ec);
+        if (ec) {
+          logger_.error("Error calibrating ADC: {}", ec.message());
+        }
+      }
     }
   }
 
@@ -175,6 +186,41 @@ public:
    *       configures the ADC pins and sets the mode.
    */
   void initialize(std::error_code &ec) { init(config_, ec); }
+
+  /// @brief Calibrate the ADC
+  ///        This function will set the calibration bit in the GENERAL_CFG register
+  ///        to start the calibration process and will wait for the calibration to
+  ///        complete (CAL bit in GENERAL_CFG register to be cleared).
+  /// @param ec Error code to set if an error occurs.
+  /// @param poll_interval The time to wait between polls for the calibration
+  ///        to complete.
+  /// @param timeout The time to wait for the calibration to complete before
+  ///        returning an error.
+  void calibrate(std::error_code &ec,
+                 std::chrono::milliseconds poll_interval = std::chrono::milliseconds(10),
+                 std::chrono::milliseconds timeout = std::chrono::milliseconds(100)) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    logger_.info("Starting calibration");
+    set_bits_(Register::GENERAL_CFG, CAL, ec);
+    if (ec) {
+      return;
+    }
+    // wait for the calibration to complete
+    auto start_time = std::chrono::steady_clock::now();
+    while (read_one_(Register::GENERAL_CFG, ec) & CAL) {
+      std::this_thread::sleep_for(poll_interval);
+      if (ec) {
+        return;
+      }
+      auto now = std::chrono::steady_clock::now();
+      if (now - start_time > timeout) {
+        logger_.error("Calibration timed out");
+        ec = std::make_error_code(std::errc::timed_out);
+        return;
+      }
+    }
+    logger_.info("Calibration complete");
+  }
 
   /**
    * @brief Communicate with the ADC to get the analog value for the channel

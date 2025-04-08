@@ -21,7 +21,50 @@ extern "C" void app_main(void) {
         .port = I2C_NUM_0,
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
     });
+
+    std::vector<uint8_t> found_addresses;
+    for (uint8_t address = 0; address < 128; address++) {
+      logger.debug("probing address {:#02x}", address);
+      if (i2c.probe_device(address)) {
+        found_addresses.push_back(address);
+      }
+    }
+    // print out the addresses that were found
+    logger.info("Found devices at addresses: {::#02x}", found_addresses);
+
+    if (found_addresses.size() == 0) {
+      logger.error("No devices found!");
+      return;
+    }
+
+    // make sure one of the TLA addresses is in the list, and use one if it was found
+    //
+    // NOTE: the TLA2528 has 8 addresses, so we need to check for them all
+    // 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
+    //
+    // Example: Address pin is connected via 11k to ADC_DECAP, so the default
+    // address of 0x10 becomes 0x16: espp::Tla2528::DEFAULT_ADDRESS | 0x06
+    const uint8_t tla_addresses[] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17};
+    bool found = false;
+    uint8_t tla_address = 0;
+    for (auto address : tla_addresses) {
+      if (std::find(found_addresses.begin(), found_addresses.end(), address) !=
+          found_addresses.end()) {
+        tla_address = address;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      logger.error("No TLA2528 found!");
+      return;
+    }
+
+    logger.info("Found TLA2528 at address {:#02x}", tla_address);
 
     static std::vector<espp::Tla2528::Channel> channels = {
         espp::Tla2528::Channel::CH0, espp::Tla2528::Channel::CH1, espp::Tla2528::Channel::CH2,
@@ -30,9 +73,7 @@ extern "C" void app_main(void) {
 
     // make the actual tla class
     espp::Tla2528 tla(espp::Tla2528::Config{
-        // Address pin is connected via 11k to ADC_DECAP, so the default address
-        // of 0x10 becomes 0x16
-        .device_address = espp::Tla2528::DEFAULT_ADDRESS | 0x06,
+        .device_address = tla_address,
         .mode = espp::Tla2528::Mode::AUTO_SEQ,
         .analog_inputs = channels,
         .digital_inputs = {},
@@ -45,6 +86,20 @@ extern "C" void app_main(void) {
                           std::placeholders::_3),
         .log_level = espp::Logger::Verbosity::WARN,
     });
+
+    // calibrate the ADC
+    //
+    // NOTE: this is not strictly necessary, but improves the accuracy of the
+    //       ADC.
+    auto cal_start_us = esp_timer_get_time();
+    std::error_code ec;
+    tla.calibrate(ec);
+    auto cal_end_us = esp_timer_get_time();
+    if (ec) {
+      logger.error("error calibrating TLA2528: {}", ec.message());
+      return;
+    }
+    logger.info("calibration took {} us", cal_end_us - cal_start_us);
 
     // make the task which will get the raw data from the I2C ADC
     fmt::print("%time (s), ntc (mV), x (mV), y (mV)\n");
