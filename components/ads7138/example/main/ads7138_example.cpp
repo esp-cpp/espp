@@ -107,6 +107,14 @@ extern "C" void app_main(void) {
         .log_level = espp::Logger::Verbosity::WARN,
     });
 
+    // calibrate the ADC
+    std::error_code ec;
+    ads.calibrate(ec);
+    if (ec) {
+      logger.error("error calibrating: {}", ec.message());
+      return;
+    }
+
     // create the gpio event queue
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
     // setup gpio interrupts for mute button
@@ -163,7 +171,6 @@ extern "C" void app_main(void) {
     });
     alert_task->start();
 
-    std::error_code ec;
     // configure the alert pin
     ads.configure_alert(espp::Ads7138::OutputMode::PUSH_PULL, espp::Ads7138::AlertLogic::ACTIVE_LOW,
                         ec);

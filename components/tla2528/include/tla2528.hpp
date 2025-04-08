@@ -167,6 +167,7 @@ public:
       initialize(ec);
       if (ec) {
         logger_.error("Error initializing ADC: {}", ec.message());
+        return;
       }
       if (config.auto_calibrate) {
         calibrate(ec);

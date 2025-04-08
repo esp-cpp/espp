@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <sdkconfig.h>
 #include <vector>
@@ -47,19 +48,13 @@ extern "C" void app_main(void) {
     //
     // Example: Address pin is connected via 11k to ADC_DECAP, so the default
     // address of 0x10 becomes 0x16: espp::Tla2528::DEFAULT_ADDRESS | 0x06
-    const uint8_t tla_addresses[] = {0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17};
-    bool found = false;
+    const std::vector<uint8_t> tla_addresses{0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17};
     uint8_t tla_address = 0;
-    for (auto address : tla_addresses) {
-      if (std::find(found_addresses.begin(), found_addresses.end(), address) !=
-          found_addresses.end()) {
-        tla_address = address;
-        found = true;
-        break;
-      }
-    }
-
-    if (!found) {
+    auto it = std::find_first_of(tla_addresses.begin(), tla_addresses.end(),
+                                 found_addresses.begin(), found_addresses.end());
+    if (it != tla_addresses.end()) {
+      tla_address = *it;
+    } else {
       logger.error("No TLA2528 found!");
       return;
     }
