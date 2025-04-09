@@ -88,7 +88,7 @@ public:
    * @brief Getter for the y value.
    * @return The current y value.
    */
-  T y() const { return y_; }
+  const T &y() const { return y_; }
 
   /**
    * @brief Setter for the y value.
