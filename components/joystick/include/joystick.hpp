@@ -203,6 +203,11 @@ public:
    * @brief Get the most recently updated calibrated position.
    * @return The most recent position (from when update() was last called).
    */
+  /**
+   * @brief Get the most recently updated calibrated position.
+   * @return The most recent position (from when update() was last called).
+   * @note The returned reference is valid as long as the Joystick object is alive.
+   */
   const espp::Vector2f &position() const;
 
   /**
