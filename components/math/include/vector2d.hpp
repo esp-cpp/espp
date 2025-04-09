@@ -76,7 +76,7 @@ public:
    * @brief Getter for the x value.
    * @return The current x value.
    */
-  T x() const { return x_; }
+  const T &x() const { return x_; }
 
   /**
    * @brief Setter for the x value.

@@ -74,9 +74,9 @@ float espp::Joystick::x() const { return position_.x(); }
 
 float espp::Joystick::y() const { return position_.y(); }
 
-espp::Vector2f espp::Joystick::position() const { return position_; }
+const espp::Vector2f &espp::Joystick::position() const { return position_; }
 
-espp::Vector2f espp::Joystick::raw() const { return raw_; }
+const espp::Vector2f &espp::Joystick::raw() const { return raw_; }
 
 void espp::Joystick::recalculate(float raw_x, float raw_y) {
   raw_.x(raw_x);

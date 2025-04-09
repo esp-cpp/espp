@@ -203,7 +203,7 @@ public:
    * @brief Get the most recently updated calibrated position.
    * @return The most recent position (from when update() was last called).
    */
-  espp::Vector2f position() const;
+  const espp::Vector2f &position() const;
 
   /**
    * @brief Get the most recently updated raw / uncalibrated readings. This
@@ -213,7 +213,7 @@ public:
    * @return The most recent raw measurements (from when update() was last
    *         called).
    */
-  espp::Vector2f raw() const;
+  const espp::Vector2f &raw() const;
 
   friend struct fmt::formatter<Joystick>;
 
