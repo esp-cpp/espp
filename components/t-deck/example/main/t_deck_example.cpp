@@ -179,9 +179,9 @@ extern "C" void app_main(void) {
   size_t wav_size = load_audio();
   logger.info("Loaded {} bytes of audio", wav_size);
 
-  // unmute the audio and set the volume to 60%
+  // unmute the audio and set the volume to 20%
   tdeck.mute(false);
-  tdeck.volume(10.0f);
+  tdeck.volume(20.0f);
 
   // set the display brightness to be 75%
   tdeck.brightness(75.0f);
