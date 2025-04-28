@@ -7,15 +7,48 @@ TDeck::TDeck()
   // initialize the pweripheral power pin and set it to high
   gpio_set_direction(peripheral_power_pin_, GPIO_MODE_OUTPUT);
   peripheral_power(true);
+  // set all CS pins to be high to disable the devices
+  gpio_set_direction(lcd_cs_io, GPIO_MODE_OUTPUT);
+  gpio_set_level(lcd_cs_io, 1);
+  gpio_set_direction(sdcard_cs, GPIO_MODE_OUTPUT);
+  gpio_set_level(sdcard_cs, 1);
+  gpio_set_direction(lora_cs_io, GPIO_MODE_OUTPUT);
+  gpio_set_level(lora_cs_io, 1);
 }
-
-espp::I2c &TDeck::internal_i2c() { return internal_i2c_; }
-
-espp::Interrupt &TDeck::interrupts() { return interrupts_; }
 
 void TDeck::peripheral_power(bool on) { gpio_set_level(peripheral_power_pin_, on); }
 
 bool TDeck::peripheral_power() const { return gpio_get_level(peripheral_power_pin_); }
+
+////////////////////////
+//   SPI Functions    //
+////////////////////////
+
+bool TDeck::init_spi_bus() {
+  if (spi_bus_initialized_) {
+    return true;
+  }
+
+  spi_bus_config_t bus_cfg;
+  memset(&bus_cfg, 0, sizeof(bus_cfg));
+  bus_cfg.mosi_io_num = spi_mosi_io;
+  bus_cfg.miso_io_num = spi_miso_io;
+  bus_cfg.sclk_io_num = spi_sclk_io;
+  bus_cfg.quadwp_io_num = -1;
+  bus_cfg.quadhd_io_num = -1;
+  bus_cfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
+  auto ret = spi_bus_initialize(spi_num, &bus_cfg,
+                                SDSPI_DEFAULT_DMA); // SPI_DMA_CH_AUTO); // SDSPI_DEFAULT_DMA);
+  if (ret != ESP_OK) {
+    logger_.error("Failed to initialize bus.");
+    return false;
+  }
+
+  logger_.info("SPI bus initialized");
+  spi_bus_initialized_ = true;
+
+  return true;
+}
 
 ////////////////////////
 // Keyboard Functions //
@@ -271,16 +304,12 @@ bool TDeck::initialize_lcd() {
     return false;
   }
 
+  if (!init_spi_bus()) {
+    logger_.error("Failed to initialize SPI bus for LCD.");
+    return false;
+  }
+
   esp_err_t ret;
-
-  memset(&lcd_spi_bus_config_, 0, sizeof(lcd_spi_bus_config_));
-  lcd_spi_bus_config_.mosi_io_num = lcd_mosi_io;
-  lcd_spi_bus_config_.miso_io_num = -1;
-  lcd_spi_bus_config_.sclk_io_num = lcd_sclk_io;
-  lcd_spi_bus_config_.quadwp_io_num = -1;
-  lcd_spi_bus_config_.quadhd_io_num = -1;
-  lcd_spi_bus_config_.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
-
   memset(&lcd_config_, 0, sizeof(lcd_config_));
   lcd_config_.mode = 0;
   // lcd_config_.flags = SPI_DEVICE_NO_RETURN_RESULT;
@@ -291,11 +320,8 @@ bool TDeck::initialize_lcd() {
   lcd_config_.pre_cb = lcd_spi_pre_transfer_callback;
   lcd_config_.post_cb = lcd_spi_post_transfer_callback;
 
-  // Initialize the SPI bus
-  ret = spi_bus_initialize(lcd_spi_num, &lcd_spi_bus_config_, SPI_DMA_CH_AUTO);
-  ESP_ERROR_CHECK(ret);
   // Attach the LCD to the SPI bus
-  ret = spi_bus_add_device(lcd_spi_num, &lcd_config_, &lcd_handle_);
+  ret = spi_bus_add_device(spi_num, &lcd_config_, &lcd_handle_);
   ESP_ERROR_CHECK(ret);
   // initialize the controller
   using namespace std::placeholders;
