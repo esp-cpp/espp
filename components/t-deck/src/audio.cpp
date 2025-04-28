@@ -126,7 +126,7 @@ bool TDeck::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool
       int16_t *ptr = reinterpret_cast<int16_t *>(buffer);
       for (int i = 0; i < (available / 2); ++i) {
         int16_t sample = ptr[i];
-        ptr[i] = (sample * volume_) / 100.0f;
+        ptr[i] = static_cast<int16_t>((sample * volume_) / 100.0f);
       }
     }
 
