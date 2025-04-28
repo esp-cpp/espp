@@ -38,7 +38,6 @@ namespace espp {
 /// - Keyboard
 /// - Audio
 /// - Interrupts
-/// - Buttons (boot)
 /// - I2C
 ///
 /// For more information, see
@@ -371,19 +370,6 @@ public:
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
   /////////////////////////////////////////////////////////////////////////////
-  // Button
-  /////////////////////////////////////////////////////////////////////////////
-
-  /// Initialize the boot button
-  /// \param callback The callback function to call when the button is pressed
-  /// \return true if the button was successfully initialized, false otherwise
-  bool initialize_boot_button(const button_callback_t &callback = nullptr);
-
-  /// Get the boot button state
-  /// \return The button state (true = button pressed, false = button released)
-  bool boot_button_state() const;
-
-  /////////////////////////////////////////////////////////////////////////////
   // Audio
   /////////////////////////////////////////////////////////////////////////////
 
@@ -451,8 +437,6 @@ protected:
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // common:
-  // button (boot button)
-  static constexpr gpio_num_t boot_button_io = GPIO_NUM_0; // active low
   // internal i2c (touchscreen, keyboard)
   static constexpr auto internal_i2c_port = I2C_NUM_0;
   static constexpr auto internal_i2c_clock_speed = 400 * 1000;
@@ -529,7 +513,7 @@ protected:
   static constexpr gpio_num_t trackball_down = GPIO_NUM_3;
   static constexpr gpio_num_t trackball_left = GPIO_NUM_1;
   static constexpr gpio_num_t trackball_right = GPIO_NUM_2;
-  static constexpr gpio_num_t trackball_btn = GPIO_NUM_0;
+  static constexpr gpio_num_t trackball_btn = GPIO_NUM_0; // NOTE: this is the boot button
 
   // uSD card
   static constexpr gpio_num_t sdcard_cs = GPIO_NUM_39;
@@ -553,17 +537,6 @@ protected:
   // sdcard
   sdmmc_card_t *sdcard_{nullptr};
 
-  espp::Interrupt::PinConfig boot_button_interrupt_pin_{
-      .gpio_num = boot_button_io,
-      .callback =
-          [this](const auto &event) {
-            if (boot_button_callback_) {
-              boot_button_callback_(event);
-            }
-          },
-      .active_level = espp::Interrupt::ActiveLevel::LOW,
-      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
-      .pullup_enabled = true};
   espp::Interrupt::PinConfig touch_interrupt_pin_{
       .gpio_num = touch_interrupt,
       .callback =
@@ -622,10 +595,6 @@ protected:
        .task_config = {.name = "t-deck interrupts",
                        .stack_size_bytes = CONFIG_TDECK_INTERRUPT_STACK_SIZE,
                        .priority = 20}}};
-
-  // button
-  std::atomic<bool> boot_button_initialized_{false};
-  button_callback_t boot_button_callback_{nullptr};
 
   // keyboard
   std::shared_ptr<TKeyboard> keyboard_{nullptr};
