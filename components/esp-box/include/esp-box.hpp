@@ -59,14 +59,15 @@ public:
   /// Alias the IMU used by the ESP-Box
   using Imu = espp::Icm42607<icm42607::Interface::I2C>;
 
+  /// Alias for the touch callback when touch events are received
+  using touch_callback_t = std::function<void(const TouchpadData &)>;
+
   /// The type of the box
   enum class BoxType {
     UNKNOWN, ///< unknown box
     BOX,     ///< ESP32-S3-BOX
     BOX3,    ///< ESP32-S3-BOX-3
   };
-
-  using touch_callback_t = std::function<void(const TouchpadData &)>;
 
   /// @brief Access the singleton instance of the EspBox class
   /// @return Reference to the singleton instance of the EspBox class

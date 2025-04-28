@@ -8,10 +8,14 @@ using namespace std::chrono_literals;
 
 static constexpr size_t MAX_CIRCLES = 100;
 static std::deque<lv_obj_t *> circles;
+static std::vector<uint8_t> audio_bytes;
 
 static std::recursive_mutex lvgl_mutex;
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
+
+static size_t load_audio();
+static void play_click(espp::TDeck &tdeck);
 
 LV_IMG_DECLARE(mouse_cursor_icon);
 
@@ -28,14 +32,33 @@ extern "C" void app_main(void) {
   auto keypress_callback = [&](uint8_t key) {
     logger.info("Key pressed: {}", key);
     if (key == 8) {
+      // delete key will clear the circles
+      logger.info("Clearing circles");
       std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
       clear_circles();
     } else if (key == ' ') {
+      // space key will rotate the display
+      logger.info("Rotating display");
       std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
       clear_circles();
       rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
       lv_display_t *disp = lv_display_get_default();
       lv_disp_set_rotation(disp, rotation);
+    } else if (key == 'm') {
+      // 'm' key will toggle audio mute
+      logger.info("Toggling mute");
+      tdeck.mute(!tdeck.is_muted());
+      logger.info("Muted: {}", tdeck.is_muted());
+    } else if (key == 'n') {
+      // 'n' key will decrease audio volume (left of 'm' key)
+      logger.info("Decreasing volume");
+      tdeck.volume(tdeck.volume() - 10.0f);
+      logger.info("Volume: {}", tdeck.volume());
+    } else if (key == '$') {
+      // '$' key will increase audio volume (right of 'm' key)
+      logger.info("Increasing volume");
+      tdeck.volume(tdeck.volume() + 10.0f);
+      logger.info("Volume: {}", tdeck.volume());
     }
   };
 
@@ -51,6 +74,7 @@ extern "C" void app_main(void) {
       previous_touchpad_data = touchpad_data;
       // if there is a touch point, draw a circle
       if (touchpad_data.num_touch_points > 0) {
+        play_click(tdeck);
         std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
         draw_circle(touchpad_data.x, touchpad_data.y, 10);
       }
@@ -61,10 +85,19 @@ extern "C" void app_main(void) {
     logger.debug("Trackball: {}", trackball);
   };
 
+  // initialize the uSD card
+  if (!tdeck.initialize_sdcard()) {
+    logger.warn("Failed to initialize uSD card, there may not be a uSD card inserted!");
+  }
   // initialize the Keyboard
   bool start_task = true;
   if (!tdeck.initialize_keyboard(start_task, keypress_callback)) {
     logger.error("Failed to initialize Keyboard!");
+    return;
+  }
+  // initialize the sound
+  if (!tdeck.initialize_sound()) {
+    logger.error("Failed to initialize sound!");
     return;
   }
   // initialize the LCD
@@ -142,6 +175,14 @@ extern "C" void app_main(void) {
                       }});
   lv_task.start();
 
+  // load the audio file (wav file bundled in memory)
+  size_t wav_size = load_audio();
+  logger.info("Loaded {} bytes of audio", wav_size);
+
+  // unmute the audio and set the volume to 60%
+  tdeck.mute(false);
+  tdeck.volume(10.0f);
+
   // set the display brightness to be 75%
   tdeck.brightness(75.0f);
 
@@ -176,4 +217,41 @@ static void clear_circles() {
   }
   // clear the vector
   circles.clear();
+}
+
+static size_t load_audio() {
+  // if the audio_bytes vector is already populated, return the size
+  if (audio_bytes.size() > 0) {
+    return audio_bytes.size();
+  }
+
+  // these are configured in the CMakeLists.txt file
+  extern const char wav_start[] asm("_binary_click_wav_start"); // cppcheck-suppress syntaxError
+  extern const char wav_end[] asm("_binary_click_wav_end");     // cppcheck-suppress syntaxError
+
+  // -1 due to the size being 1 byte too large, I think because end is the byte
+  // immediately after the last byte in the memory but I'm not sure - cmm 2022-08-20
+  //
+  // Suppression as these are linker symbols and cppcheck doesn't know how to ensure
+  // they are the same object
+  // cppcheck-suppress comparePointers
+  size_t wav_size = (wav_end - wav_start) - 1;
+  FILE *fp = fmemopen((void *)wav_start, wav_size, "rb");
+  // read the file into the audio_bytes vector
+  audio_bytes.resize(wav_size);
+  fread(audio_bytes.data(), 1, wav_size, fp);
+  fclose(fp);
+  return wav_size;
+}
+
+static void play_click(espp::TDeck &tdeck) {
+  // use the box.play_audio() function to play a sound, breaking it into
+  // audio_buffer_size chunks
+  auto audio_buffer_size = tdeck.audio_buffer_size();
+  size_t offset = 0;
+  while (offset < audio_bytes.size()) {
+    size_t bytes_to_play = std::min(audio_buffer_size, audio_bytes.size() - offset);
+    tdeck.play_audio(audio_bytes.data() + offset, bytes_to_play);
+    offset += bytes_to_play;
+  }
 }

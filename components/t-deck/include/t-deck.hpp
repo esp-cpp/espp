@@ -4,9 +4,20 @@
 #include <string>
 #include <vector>
 
+#include <esp_err.h>
+#include <esp_partition.h>
+#include <esp_vfs_fat.h>
+#include <sdmmc_cmd.h>
+
 #include <driver/gpio.h>
+#include <driver/i2s_std.h>
 #include <driver/spi_master.h>
 #include <hal/spi_types.h>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/stream_buffer.h>
+#include <freertos/task.h>
 
 #include "base_component.hpp"
 #include "gt911.hpp"
@@ -25,12 +36,16 @@ namespace espp {
 /// - Touchpad
 /// - Display
 /// - Keyboard
+/// - Audio
+/// - Interrupts
+/// - Buttons (boot)
+/// - I2C
 ///
 /// For more information, see
 /// https://github.com/Xinyuan-LilyGO/T-Deck/tree/master and
 /// https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/utilities.h
 ///
-/// \note They keyboard has a backlight, which you can control with the shortcut
+/// \note The keyboard has a backlight, which you can control with the shortcut
 ///       `alt + b`. The keyboard backlight is off by default.
 ///
 /// The class is a singleton and can be accessed using the get() method.
@@ -39,12 +54,29 @@ namespace espp {
 /// \snippet t_deck_example.cpp t-deck example
 class TDeck : public BaseComponent {
 public:
+  /// Alias for the button callback function
+  using button_callback_t = espp::Interrupt::event_callback_fn;
+
   /// Alias for the pixel type used by the TDeck display
   using Pixel = lv_color16_t;
 
+  /// Alias for the keypress callback for keyboard keypresses.
   using keypress_callback_t = TKeyboard::key_cb_fn;
-  using touch_callback_t = std::function<void(const espp::TouchpadData &)>;
-  using trackball_callback_t = std::function<void(const espp::PointerData &)>;
+
+  /// Alias for the touchpad data used by the TDeck touchpad
+  using TouchpadData = espp::TouchpadData;
+
+  /// Alias for the touch callback when touch events are received
+  using touch_callback_t = std::function<void(const TouchpadData &)>;
+
+  /// Alias for the pointer data used by the TDeck trackball
+  using PointerData = espp::PointerData;
+
+  /// Alias for the callback used to inform the user code of new trackball data.
+  using trackball_callback_t = std::function<void(const PointerData &)>;
+
+  /// Mount point for the uSD card on the TDeck.
+  static constexpr char mount_point[] = "/sdcard";
 
   /// @brief Access the singleton instance of the TDeck class
   /// @return Reference to the singleton instance of the TDeck class
@@ -61,11 +93,11 @@ public:
   /// Get a reference to the internal I2C bus
   /// \return A reference to the internal I2C bus
   /// \note The internal I2C bus is used for the touchscreen
-  I2c &internal_i2c();
+  I2c &internal_i2c() { return internal_i2c_; }
 
   /// Get a reference to the interrupts
   /// \return A reference to the interrupts
-  espp::Interrupt &interrupts();
+  espp::Interrupt &interrupts() { return interrupts_; }
 
   /// Get the GPIO pin for the peripheral power
   /// \return The GPIO pin for the peripheral power
@@ -80,6 +112,17 @@ public:
   /// Get the state of the peripheral power
   /// \return true if power is enabled, false otherwise
   bool peripheral_power() const;
+
+  /////////////////////////////////////////////////////////////////////////////
+  // uSD Card
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the uSD card
+  /// \return True if the uSD card was initialized properly.
+  bool initialize_sdcard();
+
+  ///
+  sdmmc_card_t *sdcard() const { return sdcard_; }
 
   /////////////////////////////////////////////////////////////////////////////
   // Keyboard
@@ -175,7 +218,7 @@ public:
 
   /// Get the most recent trackball data
   /// \return The trackball data
-  espp::PointerData trackball_data() const;
+  PointerData trackball_data() const;
 
   /// Get the most recent trackball data
   /// \param x The x coordinate
@@ -209,7 +252,7 @@ public:
 
   /// Get the most recent touchpad data
   /// \return The touchpad data
-  espp::TouchpadData touchpad_data() const;
+  TouchpadData touchpad_data() const;
 
   /// Get the most recent touchpad data
   /// \param num_touch_points The number of touch points
@@ -227,7 +270,7 @@ public:
   /// \return The converted touchpad data
   /// \note Uses the touch_invert_x and touch_invert_y settings to determine
   ///       if the x and y coordinates should be inverted
-  espp::TouchpadData touchpad_convert(const espp::TouchpadData &data) const;
+  TouchpadData touchpad_convert(const TouchpadData &data) const;
 
   /////////////////////////////////////////////////////////////////////////////
   // Display
@@ -324,13 +367,93 @@ public:
   ///      if there is an ongoing SPI transaction
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
+  /////////////////////////////////////////////////////////////////////////////
+  // Button
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the boot button
+  /// \param callback The callback function to call when the button is pressed
+  /// \return true if the button was successfully initialized, false otherwise
+  bool initialize_boot_button(const button_callback_t &callback = nullptr);
+
+  /// Get the boot button state
+  /// \return The button state (true = button pressed, false = button released)
+  bool boot_button_state() const;
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Audio
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Get the GPIO pin for the mute button (top of the box)
+  /// \return The GPIO pin for the mute button
+  static constexpr auto get_mute_pin() { return mute_pin; }
+
+  /// Initialize the sound subsystem
+  /// \param default_audio_rate The default audio rate
+  /// \param task_config The task configuration for the audio task
+  /// \return true if the sound subsystem was successfully initialized, false
+  ///         otherwise
+  bool initialize_sound(uint32_t default_audio_rate = 48000,
+                        const espp::Task::BaseConfig &task_config = {
+                            .name = "audio",
+                            .stack_size_bytes = 4096,
+                            .priority = 19,
+                            .core_id = 1,
+                        });
+
+  /// Enable or disable sound
+  /// \note This method sets the power pin to the appropriate value
+  void enable_sound(bool enable);
+
+  /// Get the audio sample rate
+  /// \return The audio sample rate, in Hz
+  uint32_t audio_sample_rate() const;
+
+  /// Set the audio sample rate
+  /// \param sample_rate The audio sample rate, in Hz
+  void audio_sample_rate(uint32_t sample_rate);
+
+  /// Get the audio buffer size
+  /// \return The audio buffer size, in bytes
+  size_t audio_buffer_size() const;
+
+  /// Mute or unmute the audio
+  /// \param mute true to mute the audio, false to unmute the audio
+  void mute(bool mute);
+
+  /// Check if the audio is muted
+  /// \return true if the audio is muted, false otherwise
+  bool is_muted() const;
+
+  /// Set the volume
+  /// \param volume The volume in percent (0 - 100)
+  void volume(float volume);
+
+  /// Get the volume
+  /// \return The volume in percent (0 - 100)
+  float volume() const;
+
+  /// Play audio
+  /// \param data The audio data to play
+  void play_audio(const std::vector<uint8_t> &data);
+
+  /// Play audio
+  /// \param data The audio data to play
+  /// \param num_bytes The number of bytes to play
+  void play_audio(const uint8_t *data, uint32_t num_bytes);
+
 protected:
   TDeck();
+  bool init_spi_bus();
   bool update_gt911();
   void lcd_wait_lines();
   void on_trackball_interrupt(const espp::Interrupt::Event &event);
+  bool initialize_i2s(uint32_t default_audio_rate);
+  bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // common:
+  // button (boot button)
+  static constexpr gpio_num_t boot_button_io = GPIO_NUM_0; // active low
   // internal i2c (touchscreen, keyboard)
   static constexpr auto internal_i2c_port = I2C_NUM_0;
   static constexpr auto internal_i2c_clock_speed = 400 * 1000;
@@ -343,16 +466,47 @@ protected:
   // keyboard
   static constexpr gpio_num_t keyboard_interrupt_io = GPIO_NUM_46; // NOTE: unused by default
 
+  // Audio In (ES7210)
+  static constexpr gpio_num_t es7210_mclk_io = GPIO_NUM_48;
+  static constexpr gpio_num_t es7210_sclk_io = GPIO_NUM_47;
+  static constexpr gpio_num_t es7210_lrck_io = GPIO_NUM_21;
+  static constexpr gpio_num_t es7210_sdout_io = GPIO_NUM_14;
+  // NOTE: schematic has this pinned out on the es7210, but it doesn't go anywhere
+  //
+  // static constexpr gpio_num_t es7210_int_io = GPIO_NUM_17;
+  static constexpr gpio_num_t dmic_clk_io = GPIO_NUM_17;
+
+  // Audio Out (MAX98357A)
+  static constexpr gpio_num_t sound_power_pin = GPIO_NUM_46;
+  static constexpr auto i2s_port = I2S_NUM_0;
+  // static constexpr gpio_num_t i2s_mck_io = GPIO_NUM_2;
+  static constexpr gpio_num_t i2s_bck_io = GPIO_NUM_7;
+  static constexpr gpio_num_t i2s_do_io = GPIO_NUM_6;
+  // static constexpr gpio_num_t i2s_di_io = GPIO_NUM_6;
+  static constexpr gpio_num_t i2s_ws_io = GPIO_NUM_5;
+  static constexpr gpio_num_t mute_pin = GPIO_NUM_1;
+
+  static constexpr int NUM_CHANNELS = 2;
+  static constexpr int NUM_BYTES_PER_CHANNEL = 2;
+  static constexpr int UPDATE_FREQUENCY = 60;
+
+  static constexpr int calc_audio_buffer_size(int sample_rate) {
+    return sample_rate * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
+  }
+
+  // SPI (shared between LCD and uSD card)
+  static constexpr gpio_num_t spi_mosi_io = GPIO_NUM_41;
+  static constexpr gpio_num_t spi_miso_io = GPIO_NUM_38;
+  static constexpr gpio_num_t spi_sclk_io = GPIO_NUM_40;
+  static constexpr auto spi_num = SPI2_HOST;
+
   // LCD
   static constexpr size_t lcd_width_ = 320;
   static constexpr size_t lcd_height_ = 240;
   static constexpr size_t lcd_bytes_per_pixel = 2;
   static constexpr size_t frame_buffer_size = (((lcd_width_)*lcd_bytes_per_pixel) * lcd_height_);
   static constexpr int lcd_clock_speed = 40 * 1000 * 1000;
-  static constexpr auto lcd_spi_num = SPI2_HOST;
   static constexpr gpio_num_t lcd_cs_io = GPIO_NUM_12;
-  static constexpr gpio_num_t lcd_mosi_io = GPIO_NUM_41;
-  static constexpr gpio_num_t lcd_sclk_io = GPIO_NUM_40;
   static constexpr gpio_num_t lcd_reset_io = GPIO_NUM_NC;
   static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_11;
   static constexpr bool backlight_value = true;
@@ -381,9 +535,12 @@ protected:
 
   // uSD card
   static constexpr gpio_num_t sdcard_cs = GPIO_NUM_39;
-  static constexpr gpio_num_t sdcard_mosi = GPIO_NUM_41;
-  static constexpr gpio_num_t sdcard_miso = GPIO_NUM_38;
-  static constexpr gpio_num_t sdcard_sclk = GPIO_NUM_40;
+
+  // LoRa (HPD16A)
+  static constexpr gpio_num_t lora_enable_io = GPIO_NUM_17;
+  static constexpr gpio_num_t lora_cs_io = GPIO_NUM_9;
+  static constexpr gpio_num_t lora_dio1_io = GPIO_NUM_45;
+  static constexpr gpio_num_t lora_busy_io = GPIO_NUM_13;
 
   // TODO: allow core id configuration
   I2c internal_i2c_{{.port = internal_i2c_port,
@@ -392,6 +549,23 @@ protected:
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
                      .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
+  // spi bus shared between sdcard and lcd
+  std::atomic<bool> spi_bus_initialized_{false};
+
+  // sdcard
+  sdmmc_card_t *sdcard_{nullptr};
+
+  espp::Interrupt::PinConfig boot_button_interrupt_pin_{
+      .gpio_num = boot_button_io,
+      .callback =
+          [this](const auto &event) {
+            if (boot_button_callback_) {
+              boot_button_callback_(event);
+            }
+          },
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+      .pullup_enabled = true};
   espp::Interrupt::PinConfig touch_interrupt_pin_{
       .gpio_num = touch_interrupt,
       .callback =
@@ -451,6 +625,10 @@ protected:
                        .stack_size_bytes = CONFIG_TDECK_INTERRUPT_STACK_SIZE,
                        .priority = 20}}};
 
+  // button
+  std::atomic<bool> boot_button_initialized_{false};
+  button_callback_t boot_button_callback_{nullptr};
+
   // keyboard
   std::shared_ptr<TKeyboard> keyboard_{nullptr};
 
@@ -458,20 +636,19 @@ protected:
   std::atomic<int> trackball_sensitivity_{10};
   std::shared_ptr<PointerInput> pointer_input_{nullptr};
   std::recursive_mutex trackball_data_mutex_;
-  espp::PointerData trackball_data_{};
+  PointerData trackball_data_{};
   trackball_callback_t trackball_callback_{nullptr};
 
   // touch
   std::shared_ptr<Gt911> gt911_;
   std::shared_ptr<TouchpadInput> touchpad_input_;
   std::recursive_mutex touchpad_data_mutex_;
-  espp::TouchpadData touchpad_data_;
+  TouchpadData touchpad_data_;
   touch_callback_t touch_callback_{nullptr};
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
   /// SPI bus for communication with the LCD
-  spi_bus_config_t lcd_spi_bus_config_;
   spi_device_interface_config_t lcd_config_;
   spi_device_handle_t lcd_handle_{nullptr};
   static constexpr int spi_queue_size = 6;
@@ -479,5 +656,18 @@ protected:
   std::atomic<int> num_queued_trans = 0;
   uint8_t *frame_buffer0_{nullptr};
   uint8_t *frame_buffer1_{nullptr};
+
+  // sound
+  std::atomic<bool> sound_initialized_{false};
+  std::atomic<float> volume_{50.0f};
+  std::atomic<bool> mute_{false};
+  std::unique_ptr<espp::Task> audio_task_{nullptr};
+  // i2s / low-level audio
+  i2s_chan_handle_t audio_tx_handle{nullptr};
+  std::vector<uint8_t> audio_tx_buffer;
+  StreamBufferHandle_t audio_tx_stream;
+  i2s_std_config_t audio_std_cfg;
+  i2s_event_callbacks_t audio_tx_callbacks_;
+  std::atomic<bool> has_sound{false};
 }; // class TDeck
 } // namespace espp
