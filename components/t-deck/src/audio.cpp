@@ -84,14 +84,13 @@ bool TDeck::initialize_sound(uint32_t default_audio_rate,
     logger_.warn("Sound already initialized");
     return true;
   }
+
+  logger_.info("Initializing sound");
+
   if (!initialize_i2s(default_audio_rate)) {
     logger_.error("Could not initialize I2S driver");
     return false;
   }
-
-  // Config power control IO
-  gpio_set_direction(sound_power_pin, GPIO_MODE_OUTPUT);
-  enable_sound(true);
 
   using namespace std::placeholders;
   audio_task_ = espp::Task::make_unique({
@@ -103,8 +102,6 @@ bool TDeck::initialize_sound(uint32_t default_audio_rate,
 
   return audio_task_->start();
 }
-
-void TDeck::enable_sound(bool enable) { gpio_set_level(sound_power_pin, enable); }
 
 bool TDeck::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
   // Queue the next I2S out frame to write

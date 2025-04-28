@@ -404,10 +404,6 @@ public:
                             .core_id = 1,
                         });
 
-  /// Enable or disable sound
-  /// \note This method sets the power pin to the appropriate value
-  void enable_sound(bool enable);
-
   /// Get the audio sample rate
   /// \return The audio sample rate, in Hz
   uint32_t audio_sample_rate() const;
@@ -480,7 +476,6 @@ protected:
   static constexpr gpio_num_t dmic_clk_io = GPIO_NUM_17;
 
   // Audio Out (MAX98357A)
-  static constexpr gpio_num_t sound_power_pin = GPIO_NUM_46;
   static constexpr auto i2s_port = I2S_NUM_0;
   // static constexpr gpio_num_t i2s_mck_io = GPIO_NUM_2;
   static constexpr gpio_num_t i2s_bck_io = GPIO_NUM_7;
