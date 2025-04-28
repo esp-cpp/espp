@@ -121,7 +121,10 @@ public:
   /// \return True if the uSD card was initialized properly.
   bool initialize_sdcard();
 
-  ///
+  /// Get the uSD card
+  /// \return A pointer to the uSD card
+  /// \note The uSD card is only available if it was successfully initialized
+  ///       and the mount point is valid
   sdmmc_card_t *sdcard() const { return sdcard_; }
 
   /////////////////////////////////////////////////////////////////////////////
