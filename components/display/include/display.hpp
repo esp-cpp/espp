@@ -274,10 +274,7 @@ public:
    *       (to draw to it with something other than LVGL) and want to switch
    *       back to the LVGL gui. Normally you should not call this function.
    */
-  void force_refresh() const {
-    auto disp = lv_display_get_default();
-    lv_obj_invalidate(lv_scr_act());
-  }
+  void force_refresh() const { lv_obj_invalidate(lv_scr_act()); }
 
   /**
    * @brief Get pointer to main display buffer for custom writing.
