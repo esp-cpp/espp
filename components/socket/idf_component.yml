@@ -8,11 +8,11 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/network/index.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Socket
-  - TCP/IP
-  - UDP/IP
+  - TCP
+  - UDP
   - Network
 dependencies:
   idf:

@@ -8,12 +8,12 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/distance_sensors/vl53l.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Sensing
   - VL53L
   - ToF
-  - Time of Flight
+  - Time-of-Flight
   - Distance
   - Laser
 dependencies:

@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/input/cst816.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Touch
   - Touchscreen

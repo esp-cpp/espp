@@ -8,10 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/runqueue.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Asynchronous
-  - Run Queue
+  - RunQueue
 dependencies:
   idf:
     version: '>=5.0'

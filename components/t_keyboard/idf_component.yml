@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/input/t_keyboard.html"
 tags:
-  - C++
+  - cpp
   - Component
   - LilyGo
   - Input

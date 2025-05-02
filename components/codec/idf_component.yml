@@ -9,7 +9,7 @@ maintainers:
 # TODO: refactor this component and add docs for it
 # documentation: "https://esp-cpp.github.io/espp/logger.html#logger"
 tags:
-  - C++
+  - cpp
   - Component
   - Audio
   - Codec

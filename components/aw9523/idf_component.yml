@@ -8,9 +8,9 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/io_expander/aw9523.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - I/O Expander
+  - Expander
   - I2C
   - Peripheral
 dependencies:

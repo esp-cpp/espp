@@ -8,11 +8,11 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/rtsp.html"
 tags:
-  - C++
+  - cpp
   - Component
   - RTSP
-  - TCP/IP
-  - UDP/IP
+  - TCP
+  - UDP
   - Video
   - MJPEG
   - Client

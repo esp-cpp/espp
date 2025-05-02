@@ -8,9 +8,9 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/ble/gfps_service.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - Google Fast Pair Service
+  - Google_Fast_Pair_Service
   - GFPS
   - BLE
   - NimBLE

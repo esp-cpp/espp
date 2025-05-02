@@ -8,10 +8,11 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/battery/max1704x.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Battery
-  - Fuel Gauge
+  - Fuel
+  - Gauge
   - MAX1704x
 dependencies:
   idf:

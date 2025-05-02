@@ -8,10 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/seeed_studio_round_display.html"
 tags:
-  - C++
+  - cpp
   - Component
   - BSP
-  - Seeed Studio
+  - Seeed_Studio
   - Round
   - Display
 dependencies:

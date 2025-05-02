@@ -8,10 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/io_expander/mcp23x17.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Input
-  - I/O Expander
+  - Expander
   - I2C
   - Peripheral
 dependencies:

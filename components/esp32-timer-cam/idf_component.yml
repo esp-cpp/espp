@@ -8,9 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/esp32_timer_cam.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - ESP32 TimerCam
+  - ESP32
+  - TimerCam
   - BSP
 targets:
   - esp32

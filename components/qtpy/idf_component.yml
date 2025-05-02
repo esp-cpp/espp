@@ -8,11 +8,11 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/qtpy.html"
 tags:
-  - C++
+  - cpp
   - Component
   - QtPy
-  - QtPy Pico
-  - QtPy ESP32-S3
+  - Pico
+  - ESP32-S3
 targets:
   - esp32
   - esp32s3

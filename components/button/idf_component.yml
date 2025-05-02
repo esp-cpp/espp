@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/button.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Button
   - Interrupt

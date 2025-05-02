@@ -8,11 +8,12 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/ftp/index.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - TCP/IP
-  - UDP/IP
-  - File Transfer
+  - TCP
+  - UDP
+  - File
+  - Transfer
   - WiFi
   - Ethernet
   - FTP

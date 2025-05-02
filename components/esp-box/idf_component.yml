@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/esp_box.html"
 tags:
-  - C++
+  - cpp
   - Component
   - BSP
   - ESP-BOX

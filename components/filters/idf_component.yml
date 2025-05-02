@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/filters/index.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Filter
   - Butterworth
@@ -17,7 +17,7 @@ tags:
   - Lowpass
   - Madgwick
   - SoS
-  - Transfer Functions
+  - Transfer
 dependencies:
   idf:
     version: '>=5.0'

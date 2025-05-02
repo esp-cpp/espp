@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/imu/icm42607.html"
 tags:
-  - C++
+  - cpp
   - Component
   - ICM42607
   - IMU

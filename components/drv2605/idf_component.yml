@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/haptics/drv2605.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Haptics
   - DRV2605

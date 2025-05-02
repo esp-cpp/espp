@@ -8,11 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/ble/ble_gatt_server.html"
 tags:
-  - C++
+  - cpp
   - Component
   - NimBLE
   - BLE
-  - Bluetooth Low Energy
   - GATT
   - Server
 dependencies:

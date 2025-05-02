@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/motorgo_mini.html"
 tags:
-  - C++
+  - cpp
   - Component
   - MotorGo Mini
   - BSP

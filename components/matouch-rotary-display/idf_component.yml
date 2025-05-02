@@ -8,9 +8,11 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/matouch_rotary_display.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - MaTouch Rotary Display
+  - MaTouch
+  - Rotary
+  - Display
   - BSP
 targets:
   - esp32s3

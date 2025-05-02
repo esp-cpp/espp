@@ -8,12 +8,13 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/encoder/abi_encoder.html"
 tags:
-  - C++
+  - cpp
   - Component
+  - ABI
   - Encoder
   - Rotation
-  - Motor Control
-  - ABI Encoder
+  - Motor
+  - Control
 dependencies:
   idf:
     version: '>=5.0'

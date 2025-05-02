@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/nfc/st25dv.html"
 tags:
-  - C++
+  - cpp
   - Component
   - ST25DV
   - NFC

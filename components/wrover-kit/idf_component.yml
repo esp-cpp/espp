@@ -8,10 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/wrover_kit.html"
 tags:
-  - C++
+  - cpp
   - Component
   - BSP
-  - Wrover Kit
+  - Wrover-Kit
 targets:
   - esp32
 dependencies:

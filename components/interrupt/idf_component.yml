@@ -8,7 +8,7 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/interrupt.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Interrupt
 dependencies:

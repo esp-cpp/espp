@@ -8,10 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/encoder/as5600.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Encoder
-  - Magnetic Encoder
+  - Magnetic
   - Peripheral
   - I2C
 dependencies:

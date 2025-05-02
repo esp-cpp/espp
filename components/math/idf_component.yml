@@ -8,13 +8,14 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/math/index.html"
 tags:
-  - C++
+  - cpp
   - Component
   - Math
   - Bezier
-  - Fast Math
+  - Fast
   - Gaussian
-  - Range Mapper
+  - Range
+  - Mapper
   - Vector
   - Vector2d
 dependencies:

@@ -8,10 +8,11 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/bldc/bldc_motor.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - BLDC Motor
-  - Motor Control
+  - BLDC
+  - Motor
+  - Control
 dependencies:
   idf:
     version: '>=5.0'

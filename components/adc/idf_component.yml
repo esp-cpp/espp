@@ -8,11 +8,11 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/adc/index.html"
 tags:
-  - C++
+  - cpp
   - Component
   - ADC
-  - Oneshot ADC
-  - Continuous ADC
+  - Oneshot
+  - Continuous
 dependencies:
   idf:
     version: '>=5.0'

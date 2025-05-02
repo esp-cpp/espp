@@ -8,11 +8,11 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/wifi/index.html"
 tags:
-  - C++
+  - cpp
   - Component
   - WiFi
   - Station
-  - Access Point
+  - Access-Point
 dependencies:
   idf:
     version: '>=5.0'

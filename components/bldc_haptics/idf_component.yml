@@ -8,11 +8,13 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/haptics/bldc_haptics.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - BLDC Motor
+  - BLDC
+  - Motor
   - Haptics
-  - Haptic Feedback
+  - Haptic
+  - Feedback
 dependencies:
   idf:
     version: '>=5.0'

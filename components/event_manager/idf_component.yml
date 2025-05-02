@@ -8,9 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/event_manager.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - Event Manager
+  - Event
+  - Manager
   - Publish
   - Subscribe
   - Asynchronous

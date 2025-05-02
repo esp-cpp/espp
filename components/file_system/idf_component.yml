@@ -8,9 +8,10 @@ maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/file_system.html"
 tags:
-  - C++
+  - cpp
   - Component
-  - File System
+  - File
+  - System
   - LittleFS
 dependencies:
   idf:
