@@ -1,0 +1,21 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "Asynchronous RunQueue component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/runqueue"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/runqueue.html"
+tags:
+  - C++
+  - Component
+  - Asynchronous
+  - Run Queue
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_component:
+    version: '>=0.20.2'
+  esp-cpp/task:
+    version: '>=0.20.2'

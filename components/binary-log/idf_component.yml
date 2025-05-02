@@ -1,0 +1,17 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "Binary Logging component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/binary-log"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/logger.html#binary-log"
+tags:
+  - C++
+  - Component
+  - Logging
+  - Binary Logging
+dependencies:
+  idf:
+    version: '>=5.0'

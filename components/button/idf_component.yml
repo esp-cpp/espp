@@ -1,0 +1,20 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "Button component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/button"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/button.html"
+tags:
+  - C++
+  - Component
+  - Button
+  - Interrupt
+  - Input
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/interrupt:
+    version: '>=0.20.2'

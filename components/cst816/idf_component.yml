@@ -1,0 +1,22 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "CST816 Touch Controller component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/cst816"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/input/cst816.html"
+tags:
+  - C++
+  - Component
+  - Touch
+  - Touchscreen
+  - Peripheral
+  - Input
+  - I2C
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_peripheral:
+    version: '>=0.20.2'

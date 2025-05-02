@@ -1,0 +1,20 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "HID Report (using hid-rp) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/hid-rp"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/hid/hid-rp.html"
+tags:
+  - C++
+  - Component
+  - HID
+  - Human Interface Device
+  - Report Builder
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/format:
+    version: '>=0.20.2'

@@ -1,0 +1,21 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "Joystick component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/joystick"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/joystick.html"
+tags:
+  - C++
+  - Component
+  - Joystick
+  - Input
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_component:
+    version: '>=0.20.2'
+  esp-cpp/math:
+    version: '>=0.20.2'

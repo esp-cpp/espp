@@ -1,0 +1,20 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "BLDC Motor Drvier component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/bldc_driver"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/bldc/bldc_driver.html"
+tags:
+  - C++
+  - Component
+  - BLDC Motor
+  - Motor Driver
+  - Driver
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_component:
+    version: '>=0.20.2'

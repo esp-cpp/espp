@@ -1,0 +1,22 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "HID Service (BLE) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/hid_service"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/ble/hid_service.html"
+tags:
+  - C++
+  - Component
+  - HID
+  - BLE
+  - NimBLE
+dependencies:
+  idf:
+    version: '>=5.0'
+  h2zero/esp-nimble-cpp:
+    version: '>=2.2.1'
+  esp-cpp/base_component:
+    version: '>=0.20.2'

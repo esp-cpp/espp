@@ -1,0 +1,22 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "Controller / Gamepad component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/controller"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/controller.html"
+tags:
+  - C++
+  - Component
+  - Gamepad
+  - Controller
+  - Joystick
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_component:
+    version: '>=0.20.2'
+  esp-cpp/joystick:
+    version: '>=0.20.2'

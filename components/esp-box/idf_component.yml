@@ -1,0 +1,42 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "ESP-BOX board support package (BSP) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/esp-box"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/esp_box.html"
+tags:
+  - C++
+  - Component
+  - BSP
+  - ESP-BOX
+  - ESP-BOX-3
+targets:
+  - esp32s3
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_component:
+    version: '>=0.20.2'
+  esp-cpp/codec:
+    version: '>=0.20.2'
+  esp-cpp/display:
+    version: '>=0.20.2'
+  esp-cpp/display_drivers:
+    version: '>=0.20.2'
+  esp-cpp/i2c:
+    version: '>=0.20.2'
+  esp-cpp/input_drivers:
+    version: '>=0.20.2'
+  esp-cpp/interrupt:
+    version: '>=0.20.2'
+  esp-cpp/gt911:
+    version: '>=0.20.2'
+  esp-cpp/task:
+    version: '>=0.20.2'
+  esp-cpp/tt21100:
+    version: '>=0.20.2'
+  esp-cpp/icm42607:
+    version: '>=0.20.2'

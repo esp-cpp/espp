@@ -1,0 +1,20 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "AW9523 I2C I/O Expander component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/aw9523"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/io_expander/aw9523.html"
+tags:
+  - C++
+  - Component
+  - I/O Expander
+  - I2C
+  - Peripheral
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_peripheral:
+    version: '>=0.20.2'

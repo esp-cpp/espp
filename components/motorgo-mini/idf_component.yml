@@ -1,0 +1,43 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "MotorGo Mini Board Support Package (BSP) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/motorgo-mini"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/motorgo_mini.html"
+tags:
+  - C++
+  - Component
+  - MotorGo Mini
+  - BSP
+targets:
+  - esp32s3
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/adc:
+    version: '>=0.20.2'
+  esp-cpp/base_component:
+    version: '>=0.20.2'
+  esp-cpp/bldc_driver:
+    version: '>=0.20.2'
+  esp-cpp/bldc_motor:
+    version: '>=0.20.2'
+  esp-cpp/filters:
+    version: '>=0.20.2'
+  esp-cpp/i2c:
+    version: '>=0.20.2'
+  esp-cpp/interrupt:
+    version: '>=0.20.2'
+  esp-cpp/led:
+    version: '>=0.20.2'
+  esp-cpp/math:
+    version: '>=0.20.2'
+  esp-cpp/mt6701:
+    version: '>=0.20.2'
+  esp-cpp/pid:
+    version: '>=0.20.2'
+  esp-cpp/task:
+    version: '>=0.20.2'

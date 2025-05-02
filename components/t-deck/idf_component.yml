@@ -1,0 +1,38 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "LilyGo T-Deck Board Support Package (BSP) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/t-deck"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/t_deck.html"
+tags:
+  - C++
+  - Component
+  - LilyGo
+  - T-Deck
+  - BSP
+targets:
+  - esp32s3
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/base_component:
+    version: '>=0.20.2'
+  esp-cpp/display:
+    version: '>=0.20.2'
+  esp-cpp/display_drivers:
+    version: '>=0.20.2'
+  esp-cpp/gt911:
+    version: '>=0.20.2'
+  esp-cpp/i2c:
+    version: '>=0.20.2'
+  esp-cpp/input_drivers:
+    version: '>=0.20.2'
+  esp-cpp/interrupt:
+    version: '>=0.20.2'
+  esp-cpp/task:
+    version: '>=0.20.2'
+  esp-cpp/t_keyboard:
+    version: '>=0.20.2'

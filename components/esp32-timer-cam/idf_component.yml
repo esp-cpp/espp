@@ -1,0 +1,35 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "ESP32 Timer-Cam Board Support Package (BSP) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/esp32-timer-cam"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/esp32_timer_cam.html"
+tags:
+  - C++
+  - Component
+  - ESP32 TimerCam
+  - BSP
+targets:
+  - esp32
+dependencies:
+  idf:
+    version: '>=5.0'
+  esp-cpp/adc:
+    version: '>=0.20.2'
+  esp-cpp/base_component:
+    version: '>=0.20.2'
+  esp-cpp/bm8563:
+    version: '>=0.20.2'
+  esp-cpp/i2c:
+    version: '>=0.20.2'
+  esp-cpp/interrupt:
+    version: '>=0.20.2'
+  esp-cpp/led:
+    version: '>=0.20.2'
+  esp-cpp/math:
+    version: '>=0.20.2'
+  esp-cpp/task:
+    version: '>=0.20.2'
