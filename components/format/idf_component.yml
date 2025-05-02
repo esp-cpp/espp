@@ -1,8 +1,18 @@
+## IDF Component Manager Manifest File
+version: "0.20.2"
+license: "MIT"
+description: "C++ Component wrapping libfmt for esp-idf"
+url: "https://github.com/esp-cpp/espp/tree/main/components/format"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/logger.html#format"
+tags:
+  - C++
+  - Component
+  - libfmt
+  - Formatting
+  - Logging
 dependencies:
   idf:
     version: '>=5.0'
-description: Component wrapping libfmt for esp-idf
-documentation: https://esp-cpp.github.io/espp/logger.html#format
-repository: git://github.com/esp-cpp/espp.git
-url: https://github.com/esp-cpp/espp/tree/main/components/format
-version: 0.14.1
