@@ -57,8 +57,6 @@ jobs:
             components/encoder
             components/esp_littlefs
             components/esp-box
-            # esp-dsp
-            # esp-nimble-cpp
             components/esp32-timer-cam
             components/event_manager
             components/file_system
@@ -80,7 +78,6 @@ jobs:
             components/led
             components/led_strip
             components/logger
-            # lvgl
             components/math
             components/matouch-rotary-display
             components/max1704x
