@@ -10,7 +10,7 @@ documentation: "https://esp-cpp.github.io/espp/cli.html"
 tags:
   - cpp
   - Component
-  - Command Line
+  - Command-Line
   - CLI
   - Input
 dependencies:

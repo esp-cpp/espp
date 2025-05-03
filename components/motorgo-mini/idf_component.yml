@@ -10,7 +10,8 @@ documentation: "https://esp-cpp.github.io/espp/motorgo_mini.html"
 tags:
   - cpp
   - Component
-  - MotorGo Mini
+  - MotorGo
+  - MotorGo-Mini
   - BSP
 targets:
   - esp32s3
