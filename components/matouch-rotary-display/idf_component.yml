@@ -14,8 +14,6 @@ tags:
   - Rotary
   - Display
   - BSP
-targets:
-  - esp32s3
 dependencies:
   idf:
     version: '>=5.0'

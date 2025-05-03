@@ -12,8 +12,6 @@ tags:
   - Component
   - BSP
   - Wrover-Kit
-targets:
-  - esp32
 dependencies:
   idf:
     version: '>=5.0'

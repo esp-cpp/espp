@@ -1,20 +1,19 @@
 set(ESPP_COMPONENTS "${CMAKE_CURRENT_LIST_DIR}/../components")
-set(ESPP_EXTERNAL "${CMAKE_CURRENT_LIST_DIR}/../external")
 
 set(ESPP_EXTERNAL_INCLUDES
-  ${ESPP_EXTERNAL}/alpaca/include
-  ${ESPP_EXTERNAL}/cli/include
-  ${ESPP_EXTERNAL}/csv2/include
-  ${ESPP_EXTERNAL}/fmt/include
-  ${ESPP_EXTERNAL}/tabulate/include
+  ${ESPP_COMPONENTS}/serialization/detail/alpaca/include
+  ${ESPP_COMPONENTS}/cli/detail/cli/include
+  ${ESPP_COMPONENTS}/csv/detail/csv2/include
+  ${ESPP_COMPONENTS}/format/detail/fmt/include
+  ${ESPP_COMPONENTS}/tabulate/detail/tabulate/include
 )
 
 # NOTE: these are separate because they do not follow the standard format of
 # having their include files be in the "include" directory, so when we install
 # them we need to handle them separately
 set(ESPP_EXTERNAL_INCLUDES_SEPARATE
-  ${ESPP_EXTERNAL}/hid-rp/hid-rp/
-  ${ESPP_EXTERNAL}/magic_enum/include/magic_enum/
+  ${ESPP_COMPONENTS}/hid-rp/detail/hid-rp/hid-rp/
+  ${ESPP_COMPONENTS}/state_machine/detail/magic_enum/include/magic_enum/
 )
 
 set(ESPP_INCLUDES
