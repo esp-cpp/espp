@@ -7,7 +7,7 @@ repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 # TODO: refactor this component and add docs for it
-# documentation: "https://esp-cpp.github.io/espp/logger.html#logger"
+# documentation: "https://esp-cpp.github.io/espp/codec.html"
 tags:
   - cpp
   - Component

@@ -7,6 +7,8 @@ repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/display/display_drivers.html"
+examples:
+  - path: example
 tags:
   - cpp
   - Component
