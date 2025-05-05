@@ -1,6 +1,10 @@
 # MAX1704X Example
 
-This example shows how to use the MAX1704X driver to control 
+This example shows how to use the MAX1704X driver to talk to the MAX1704x and
+retrieve the current battery:
+* Voltage
+* Percentage
+* Charge rate (%/hr)
 
 ## How to use example
 

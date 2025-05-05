@@ -29,9 +29,7 @@ enum class DisplaySignal : uint32_t { NONE, FLUSH };
  * @brief Wrapper class around LVGL display buffer and display driver.
  *
  *  Optionally allocates and owns the memory associated with the pixel display
- *  buffers. Initializes the LVGL subsystem then starts and maintains a task
- *  which runs the high priority lv_tick_inc() function every update period
- *  (default = 10 ms).
+ *  buffers. Initializes the LVGL subsystem.
  *
  *  For more information, see
  *  https://docs.lvgl.io/9.1/porting/display.html#display-interface
@@ -127,7 +125,7 @@ public:
   };
 
   /**
-   * @brief Initialize LVGL then start the update task.
+   * @brief Initialize LVGL.
    * @param lvgl_conf LVGL Configuration, including display size, flush callback and optional
    * rotation callback.
    * @param lcd_config LCD specific configuration.
@@ -149,7 +147,7 @@ public:
   }
 
   /**
-   * @brief Allocate the display buffers, initialize LVGL then start the update task.
+   * @brief Allocate the display buffers and initialize LVGL.
    * @param lvgl_conf LVGL Configuration, including display size, flush callback and optional
    * rotation callback.
    * @param lcd_config LCD specific configuration.
@@ -170,7 +168,7 @@ public:
   }
 
   /**
-   * @brief Initialize LVGL then start the update task.
+   * @brief Initialize LVGL.
    * @param lvgl_conf LVGL Configuration, including display size, flush callback and optional
    * rotation callback.
    * @param oled_config OLED specific configuration.
@@ -193,7 +191,7 @@ public:
   }
 
   /**
-   * @brief Allocate the display buffers, initialize LVGL then start the update task.
+   * @brief Allocate the display buffers then initialize LVGL.
    * @param lvgl_conf LVGL Configuration, including display size, flush callback and optional
    * rotation callback.
    * @param oled_config OLED specific configuration.
@@ -215,7 +213,7 @@ public:
   }
 
   /**
-   * @brief Stops the upate task and frees the display buffer memory.
+   * @brief Frees the display buffer memory.
    */
   ~Display() {
     if (created_vram_) {
@@ -360,8 +358,7 @@ protected:
 
   /**
    * @brief Initialize the lvgl subsystem, display buffer configuration, and
-   *        display driver. Start the task to run the high-priority lvgl
-   *        task.
+   *        display driver.
    * @param flush_callback Callback used to flush color data to the display.
    * @param rotation_callback function to call in the event handler on rotation change.
    * @param rotation Default / initial rotation of the display.

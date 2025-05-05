@@ -5,6 +5,8 @@ The `hid-rp` component provides a wrapper around
 https://github.com/intergatedcircuits/hid-rp and also provides an example
 implementation of a configurable HID Gamepad using hid-rp.
 
+It also implements Switch Pro and Xbox gamepad reports.
+
 .. ------------------------------- Example -------------------------------------
 
 .. toctree::

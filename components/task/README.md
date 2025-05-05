@@ -1,8 +1,4 @@
-Task APIs
-*********
-
-Task
-----
+# Task Component
 
 The `Task` component provides a cross-platform API around `std::thread` with
 some additional configuration of stack size, priority, and core affinity for
@@ -13,18 +9,9 @@ It also supports firing off syncrhonous (blocking) and asynchronous
 (non-blocking) functions in separate threads, with the option of configuring the
 core id and other esp-specific paramters.
 
-Code examples for the task API are provided in the `task` example folder.
+## Example
 
-.. ------------------------------- Example -------------------------------------
+The [example](./example) shows some various different ways of starting and
+stopping tasks, as well as examples of how to wait, block, exit early, and run
+long-running computations within tasks using the `task` component.
 
-.. toctree::
-
-   task_example
-
-.. ---------------------------- API Reference ----------------------------------
-
-API Reference
--------------
-
-.. include-build-file:: inc/task.inc
-.. include-build-file:: inc/run_on_core.inc

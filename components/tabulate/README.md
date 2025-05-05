@@ -1,25 +1,16 @@
-Tabulate APIs
-*************
+# Tabulate Component
 
 The `tabulate` component provides a nice and easy way to perform pretty-printing
 of tabular data to the console or file.
 
 The `tabulate.hpp` header provides a convenience include / wrapper around
-`p-ranav/tabulate <https://github.com/p-pranav/tabulate>`_. It also exposes
+[p-ranav/tabulate](https://github.com/p-pranav/tabulate). It also exposes
 `tabulate`'s include folder, so including `tabulate.hpp` is completely
 equivalent to including both `tabulate/table.hpp`. Please see the documentation
 for tabulate if you have any questions about usage beyond the examples provided
 here.
 
-.. ------------------------------- Example -------------------------------------
+## Example
 
-.. toctree::
-
-   tabulate_example
-
-.. ---------------------------- API Reference ----------------------------------
-
-API Reference
--------------
-
-.. include-build-file:: inc/tabulate.inc
+The [example](./example) shows the use of the `tabulate` component to easily
+create and pretty print tables to the console.
