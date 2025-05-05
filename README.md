@@ -28,7 +28,7 @@ If you have questions or would like to chat, feel free to hop over to our discor
 ## Getting Started
 
 The components in this repository are targeted towards ESP-IDF >=5.0, though
-they are mainly tested against 5.2 right now.
+they are mainly tested against 5.4 right now.
 
 To use the components in this repository, you have a few options:
 
@@ -38,7 +38,31 @@ To use the components in this repository, you have a few options:
    submodule, along with the appropriate configuration in the top-level
    CMakeLists.txt.
 
-2. If you have an existing project with a `components` directory, then you can
+1. You can add dependencies on the components you want using the `idf component
+   manager`. All `espp` components are published to the [ESP Component
+   Registry](https://components.espressif.com) under the namespace `esp-cpp`.
+   
+   For example, if you want to use the `task` component and the
+   `ble_gatt_server` components, you could run:
+
+   ```console
+   idf.py add-dependency "esp-cpp/task^0.20.2"
+   idf.py add-dependency "esp-cpp/ble_gatt_server^0.20.2"
+   ```
+   
+   Alternatively, you could add the following dependencies to your
+   `main/idf_component.yml`:
+   
+   ```yaml
+   dependencies:
+      esp-cpp/ble_gatt_server:
+        version: '>=0.20.2'
+      esp-cpp/task:
+        version: '>=0.20.2'
+      # other dependencies here...
+   ```
+
+1. If you have an existing project with a `components` directory, then you can
    clone `espp` as a submodule within that directory e.g. `git submodule add
    https://github.com/esp-cpp/espp components/espp`, then make sure to run `git
    submodule update --init --recursive`. Afterwards, simply update your
@@ -51,12 +75,9 @@ To use the components in this repository, you have a few options:
   )
   ```
 
-3. You can clone espp somewhere on your computer and then point your project to
+1. You can clone espp somewhere on your computer and then point your project to
    its `components` directory to use any of the components it contains, similar
    to the step above.
-
-In the future (as part of #312), we may publish espp components (or even the
-whole espp repo) as an IDF component via the idf-component-registry.
 
 ## Additional Information and Links
 
