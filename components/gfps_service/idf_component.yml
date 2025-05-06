@@ -1,0 +1,36 @@
+## IDF Component Manager Manifest File
+version: "0.21.0"
+license: "MIT"
+description: "Google Fast Pair Service (GFPS) BLE Service component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/gfps_service"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/ble/gfps_service.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Google_Fast_Pair_Service
+  - GFPS
+  - BLE
+  - NimBLE
+files:
+  exclude:
+    - "detail/nearby/**/*" # exclude everything in the nearby repo
+  include:
+    - "detail/nearby/embedded/**/*" # explicitly only include the embedded submodule
+dependencies:
+  idf:
+    version: '>=5.4'
+  h2zero/esp-nimble-cpp:
+    version: '>=2.2.1'
+  espp/base_component:
+    version: '>=0.21.0'
+  espp/logger:
+    version: '>=0.21.0'
+  espp/task:
+    version: '>=0.21.0'
+  espp/timer:
+    version: '>=0.21.0'

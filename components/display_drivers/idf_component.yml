@@ -1,0 +1,27 @@
+## IDF Component Manager Manifest File
+version: "0.21.0"
+license: "MIT"
+description: "Display Drivers component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/display_drivers"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/display/display_drivers.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Display
+  - Drivers
+  - GC9A01
+  - ILI9341
+  - SH8601
+  - ST7789
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/display:
+    version: '>=0.21.0'
+  espp/led:
+    version: '>=0.21.0'

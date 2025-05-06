@@ -1,5 +1,5 @@
-Base Compoenent
-***************
+Base Component
+**************
 
 The `espp::BaseComponent` provides a simple base class for all components in the
 ESP-CPP package. It provides a simple interface for the component to be

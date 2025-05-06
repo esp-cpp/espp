@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+version: "0.21.0"
+license: "MIT"
+description: "LVGL Input Drivers component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/input_drivers"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/input/index.html"
+tags:
+  - cpp
+  - Component
+  - Input
+  - Driver
+  - LVGL
+  - Keypad
+  - Encoder
+  - Pointer
+  - Touchpad
+dependencies:
+  idf:
+    version: '>=5.0'
+  lvgl/lvgl:
+    version: '>=9.2.2'
+  espp/base_component:
+    version: '>=0.21.0'

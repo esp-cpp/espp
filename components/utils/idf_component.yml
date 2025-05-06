@@ -1,0 +1,15 @@
+## IDF Component Manager Manifest File
+version: "0.21.0"
+license: "MIT"
+description: "Utilities component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/utils"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+tags:
+  - cpp
+  - Component
+  - Utilities
+dependencies:
+  idf:
+    version: '>=5.0'

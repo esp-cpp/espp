@@ -1,0 +1,116 @@
+name: Push component to https://components.espressif.com
+on:
+  # For pull requests: perform upload with "--dry-run" argument,
+  # i.e. validate that the component passes all checks for being uploaded.
+  pull_request:
+
+  push:
+    branches:
+      - main
+    tags:
+      # only upload components on tagged commits
+      - v*
+jobs:
+  upload_components:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+      - name: Upload component to the component registry
+        uses: espressif/upload-components-ci-action@v2
+        with:
+          # Please try to keep the directories list sorted.
+          #
+          # Do note, however, that if you are updating two components in the same PR
+          # and one depends on the other, the new version of the 2nd component won't
+          # be found in the registry when the 1st component is uploaded.
+          #
+          # This is only a problem if you are adding two components for the first time,
+          # or if the 2nd component depends on the exact (new) version of the first one.
+          #
+          components: |
+            components/adc
+            components/ads1x15
+            components/ads7138
+            components/as5600
+            components/aw9523
+            components/base_component
+            components/base_peripheral
+            components/binary-log
+            components/bldc_driver
+            components/bldc_haptics
+            components/bldc_motor
+            components/ble_gatt_server
+            components/bm8563
+            components/button
+            components/chsc6x
+            components/cli
+            components/codec
+            components/color
+            components/controller
+            components/cst816
+            components/csv
+            components/display
+            components/display_drivers
+            components/drv2605
+            components/encoder
+            components/esp-box
+            components/esp32-timer-cam
+            components/event_manager
+            components/file_system
+            components/filters
+            components/format
+            components/ft5x06
+            components/ftp
+            components/gfps_service
+            components/gt911
+            components/hid_service
+            components/hid-rp
+            components/i2c
+            components/icm20948
+            components/icm42607
+            components/input_drivers
+            components/interrupt
+            components/joystick
+            components/kts1622
+            components/led
+            components/led_strip
+            components/logger
+            components/math
+            components/matouch-rotary-display
+            components/max1704x
+            components/mcp23x17
+            components/monitor
+            components/motorgo-mini
+            components/mt6701
+            components/ndef
+            components/neopixel
+            components/nvs
+            components/pid
+            components/qtpy
+            components/qwiicnes
+            components/rmt
+            components/rtsp
+            components/runqueue
+            components/seeed-studio-round-display
+            components/serialization
+            components/socket
+            components/st25dv
+            components/state_machine
+            components/t_keyboard
+            components/t-deck
+            components/t-dongle-s3
+            components/tabulate
+            components/task
+            components/thermistor
+            components/timer
+            components/tla2528
+            components/tt21100
+            components/utils
+            components/vl53l
+            components/wifi
+            components/wrover-kit
+          namespace: "espp"
+          api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
+          dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' || ! (github.event.release && github.event.action == 'published') }}

@@ -2,8 +2,8 @@ Display
 *******
 
 The `display` component is responsible for managing the memory associated the
-display buffer / video RAM (vram) and is also responsible for managing the
-high-priority lvgl update task which sends data to the display.
+display buffer / video RAM (vram). It ensures that the LVGL subsystem is
+configured appropriately.
 
 .. ---------------------------- API Reference ----------------------------------
 

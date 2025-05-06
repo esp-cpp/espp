@@ -176,3 +176,5 @@ jobs:
         esp_idf_version: release-v5.4
         target: ${{ matrix.test.target }}
         path: ${{ matrix.test.path }}
+        # do not do CI build using component manager
+        command: IDF_COMPONENT_MANAGER=0 idf.py build

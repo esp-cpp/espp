@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+version: "0.21.0"
+license: "MIT"
+description: "Display component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/display"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/display/display.html"
+tags:
+  - cpp
+  - Component
+  - Display
+  - Graphics
+  - LVGL
+dependencies:
+  idf:
+    version: '>=5.0'
+  lvgl/lvgl:
+    version: '>=9.2.2'
+  espp/base_component:
+    version: '>=0.21.0'
+  espp/led:
+    version: '>=0.21.0'
+  espp/task:
+    version: '>=0.21.0'

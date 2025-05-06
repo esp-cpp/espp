@@ -9,6 +9,10 @@ some additional configuration of stack size, priority, and core affinity for
 FreeRTOS / ESP, as well as providing a callback API which enables interruptible
 sleeps and termination of the task.
 
+It also supports firing off syncrhonous (blocking) and asynchronous
+(non-blocking) functions in separate threads, with the option of configuring the
+core id and other esp-specific paramters.
+
 Code examples for the task API are provided in the `task` example folder.
 
 .. ------------------------------- Example -------------------------------------

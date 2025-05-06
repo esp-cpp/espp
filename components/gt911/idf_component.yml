@@ -1,0 +1,25 @@
+## IDF Component Manager Manifest File
+version: "0.21.0"
+license: "MIT"
+description: "GT911 Touch Controller component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/gt911"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/input/gt911.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - GT911
+  - Touch
+  - Touchscreen
+  - Input
+  - I2C
+  - Peripheral
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_peripheral:
+    version: '>=0.21.0'

@@ -1,0 +1,27 @@
+## IDF Component Manager Manifest File
+version: "0.21.0"
+license: "MIT"
+description: "Math component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/math"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/math/index.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Math
+  - Bezier
+  - Fast
+  - Gaussian
+  - Range
+  - Mapper
+  - Vector
+  - Vector2d
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/format:
+    version: '>=0.21.0'

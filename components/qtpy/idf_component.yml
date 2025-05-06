@@ -1,0 +1,30 @@
+## IDF Component Manager Manifest File
+version: "0.21.0"
+license: "MIT"
+description: "QtPy Board Support Package (BSP) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/qtpy"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/qtpy.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - QtPy
+  - Pico
+  - ESP32-S3
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component:
+    version: '>=0.21.0'
+  espp/i2c:
+    version: '>=0.21.0'
+  espp/neopixel:
+    version: '>=0.21.0'
+  espp/task:
+    version: '>=0.21.0'
+  espp/interrupt:
+    version: '>=0.21.0'
