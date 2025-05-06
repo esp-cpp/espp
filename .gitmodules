@@ -1,7 +1,7 @@
-[submodule "external/fmt"]
+[submodule "components/format/detail/fmt"]
 	path = components/format/detail/fmt
 	url = https://github.com/fmtlib/fmt
-[submodule "external/alpaca"]
+[submodule "components/serialization/detail/alpaca"]
 	path = components/serialization/detail/alpaca
 	url = https://github.com/p-ranav/alpaca
 [submodule "components/esp_littlefs"]
@@ -13,28 +13,28 @@
 [submodule "components/esp-dsp"]
 	path = components/esp-dsp
 	url = https://github.com/espressif/esp-dsp
-[submodule "external/csv2"]
+[submodule "components/csv/detail/csv2"]
 	path = components/csv/detail/csv2
 	url = https://github.com/p-ranav/csv2
-[submodule "external/cli"]
+[submodule "components/cli/detail/cli"]
 	path = components/cli/detail/cli
 	url = https://github.com/daniele77/cli
-[submodule "external/tabulate"]
+[submodule "components/tabulate/detail/tabulate"]
 	path = components/tabulate/detail/tabulate
 	url = https://github.com/p-ranav/tabulate
 [submodule "lib/pybind11"]
 	path = lib/pybind11
 	url = https://github.com/pybind/pybind11
-[submodule "external/magic_enum"]
+[submodule "components/state_machine/detail/magic_enum"]
 	path = components/state_machine/detail/magic_enum
 	url = https://github.com/neargye/magic_enum
 [submodule "components/esp-nimble-cpp"]
 	path = components/esp-nimble-cpp
 	url = https://github.com/esp-cpp/esp-nimble-cpp
-[submodule "external/hid-rp"]
+[submodule "components/hid-rp/detail/hid-rp"]
 	path = components/hid-rp/detail/hid-rp
 	url = https://github.com/intergatedcircuits/hid-rp
-[submodule "external/nearby"]
+[submodule "components/gfps_service/detail/nearby"]
 	path = components/gfps_service/detail/nearby
 	url = https://github.com/google/nearby
 [submodule "components/binary-log/detail"]

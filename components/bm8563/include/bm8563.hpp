@@ -8,7 +8,7 @@ namespace espp {
 /// @brief The BM8563 RTC driver.
 /// @details This driver is for the BM8563 RTC chip.
 ///
-/// \section Example
+/// \section bm8563_ex1 Example
 /// \snippet bm8563_example.cpp bm8563 example
 class Bm8563 : public BasePeripheral<> {
 public:
@@ -21,6 +21,19 @@ public:
     uint8_t month;   ///< The month.
     uint8_t weekday; ///< The day of the week.
     uint8_t day;     ///< The day of the month.
+
+    /// @brief Equality operator.
+    /// @param other The other date.
+    /// @return True if equal, false otherwise.
+    bool operator==(const Date &other) const {
+      return year == other.year && month == other.month && weekday == other.weekday &&
+             day == other.day;
+    }
+
+    /// @brief Inequality operator.
+    /// @param other The other date.
+    /// @return True if not equal, false otherwise.
+    bool operator!=(const Date &other) const { return !(*this == other); }
   };
 
   /// @brief The time structure.
@@ -28,12 +41,36 @@ public:
     uint8_t hour;   ///< The hour.
     uint8_t minute; ///< The minute.
     uint8_t second; ///< The second.
+
+    /// @brief Equality operator.
+    /// @param other The other time.
+    /// @return True if equal, false otherwise.
+    bool operator==(const Time &other) const {
+      return hour == other.hour && minute == other.minute && second == other.second;
+    }
+
+    /// @brief Inequality operator.
+    /// @param other The other time.
+    /// @return True if not equal, false otherwise.
+    bool operator!=(const Time &other) const { return !(*this == other); }
   };
 
   /// @brief The date and time structure.
   struct DateTime {
     Date date; ///< The date.
     Time time; ///< The time.
+
+    /// @brief Equality operator.
+    /// @param other The other date and time.
+    /// @return True if equal, false otherwise.
+    bool operator==(const DateTime &other) const {
+      return date == other.date && time == other.time;
+    }
+
+    /// @brief Inequality operator.
+    /// @param other The other date and time.
+    /// @return True if not equal, false otherwise.
+    bool operator!=(const DateTime &other) const { return !(*this == other); }
   };
 
   /// @brief The configuration structure.
@@ -180,32 +217,6 @@ protected:
 };
 } // namespace espp
 
-/// @brief Compare two Date objects.
-/// @param lhs The left hand side.
-/// @param rhs The right hand side.
-/// @return True if the objects are equal.
-[[maybe_unused]] static bool operator==(const espp::Bm8563::Date &lhs,
-                                        const espp::Bm8563::Date &rhs) {
-  return lhs.year == rhs.year && lhs.month == rhs.month && lhs.weekday == rhs.weekday &&
-         lhs.day == rhs.day;
-}
-
-/// @brief Compare two Time objects.
-/// @param lhs The left hand side.
-/// @param rhs The right hand side.
-[[maybe_unused]] static bool operator==(const espp::Bm8563::Time &lhs,
-                                        const espp::Bm8563::Time &rhs) {
-  return lhs.hour == rhs.hour && lhs.minute == rhs.minute && lhs.second == rhs.second;
-}
-
-/// @brief Compare two DateTime objects.
-/// @param lhs The left hand side.
-/// @param rhs The right hand side.
-/// @return True if the objects are equal.
-[[maybe_unused]] static bool operator==(const espp::Bm8563::DateTime &lhs,
-                                        const espp::Bm8563::DateTime &rhs) {
-  return lhs.date == rhs.date && lhs.time == rhs.time;
-}
 // for allowing easy serialization/printing of the
 // espp::Bm8563::Date, espp::Bm8563::Time, and espp::Bm8563::DateTime
 template <> struct fmt::formatter<espp::Bm8563::Date> {

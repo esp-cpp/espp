@@ -13,7 +13,7 @@ namespace espp {
 /// buttons, hat switch, joysticks, and triggers, as well as serializing the
 /// input report and getting the report descriptor.
 ///
-/// \section hid_rp_ex1 HID-RP Example
+/// \section hid_rp_gamepad_ex1 HID-RP Gamepad Example
 /// \snippet hid_rp_example.cpp hid rp example
 template <size_t BUTTON_COUNT = 15, typename JOYSTICK_TYPE = std::uint16_t,
           typename TRIGGER_TYPE = std::uint16_t, JOYSTICK_TYPE JOYSTICK_MIN = 0,

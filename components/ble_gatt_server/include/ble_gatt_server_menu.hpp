@@ -21,12 +21,12 @@ namespace espp {
 /// the paired devices, viewing the connected devices, disconnecting devices,
 /// and more.
 ///
-/// \section Example
+/// \section ble_gatt_server_menu_ex1 Example
 /// \snippet ble_gatt_server_example.cpp ble gatt server example
 class BleGattServerMenu {
 public:
-  /// @brief Construct a new I2cMenu object.
-  /// @param i2c A reference to the I2c bus to interact with.
+  /// @brief Construct a new BleGattServerMenu.
+  /// @param server The BleGattServer to use.
   explicit BleGattServerMenu(std::reference_wrapper<espp::BleGattServer> server)
       : server_(server) {}
 

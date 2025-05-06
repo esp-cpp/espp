@@ -15,7 +15,7 @@ namespace espp {
 /// @details
 /// This class is a wrapper around the ESP-IDF I2C driver.
 ///
-/// \section Example
+/// \section i2c_ex1 Example
 /// \snippet i2c_example.cpp i2c example
 class I2c : public espp::BaseComponent {
 public:

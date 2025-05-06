@@ -1,5 +1,5 @@
 CHSC6X Touch Controller
-**********************
+***********************
 
 The `Chsc6x` class provides an interface to the CHSC6X touch controller.
 

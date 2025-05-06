@@ -56,6 +56,20 @@ public:
       };
       uint8_t raw = 0;
     };
+
+    /// @brief Equivalence operator for IT_STS.
+    /// @details This is used to compare the raw value of the IT_STS register
+    ///          to another IT_STS register.
+    /// @param other The other IT_STS register to compare to.
+    /// @return True if the two registers are equal, false otherwise.
+    bool operator==(const IT_STS &other) const { return raw == other.raw; }
+
+    /// @brief Inequivalence operator for IT_STS.
+    /// @details This is used to compare the raw value of the IT_STS register
+    ///          to another IT_STS register.
+    /// @param other The other IT_STS register to compare to.
+    /// @return True if the two registers are not equal, false otherwise.
+    bool operator!=(const IT_STS &other) const { return raw != other.raw; }
   };
 
   /**
@@ -590,12 +604,6 @@ protected:
   uint64_t password_;
 };
 } // namespace espp
-
-// comparison operators for IT_STS
-[[maybe_unused]] inline bool operator==(const espp::St25dv::IT_STS &lhs,
-                                        const espp::St25dv::IT_STS &rhs) {
-  return lhs.raw == rhs.raw;
-}
 
 // For printing out the IT_STS register using libfmt
 template <> struct fmt::formatter<espp::St25dv::IT_STS> {

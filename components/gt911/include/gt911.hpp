@@ -8,7 +8,7 @@
 namespace espp {
 /// @brief Driver for the GT911 touch controller
 ///
-/// \section Example
+/// \section gt911_ex1 Example
 /// \snippet gt911_example.cpp gt911 example
 class Gt911 : public BasePeripheral<std::uint16_t> {
 public:

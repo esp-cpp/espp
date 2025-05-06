@@ -26,7 +26,7 @@ namespace espp {
 /// [camera-streamer]https://github.com/esp-cpp/camera-streamer) project, but it
 /// should work with any RTSP server that sends JPEG frames over RTP.
 ///
-/// \section RtspClient Example
+/// \section rtsp_client_ex1 RtspClient Example
 /// \snippet rtsp_example.cpp rtsp_client_example
 class RtspClient : public BaseComponent {
 public:

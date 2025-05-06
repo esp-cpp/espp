@@ -50,7 +50,7 @@ concept SwitchProButtonStruct = requires(T t) {
 /// setting the buttons, d-pad, joysticks, and triggers, as well as serializing
 /// the input report and getting the report descriptor.
 ///
-/// \section hid_rp_ex1 HID-RP Example
+/// \section hid_rp_switch_pro_ex1 HID-RP Switch Pro Example
 /// \snippet hid_rp_example.cpp hid rp example
 template <uint8_t REPORT_ID = 0x30>
 class SwitchProGamepadInputReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
