@@ -60,31 +60,31 @@ public:
   /// @brief The default pin configuration for the Seeed Studio Round Display
   ///        connected to the Xiao ESP32-S3
   static constexpr PinConfig XiaoS3Config = {
-      .sda = GPIO_NUM_5,              ///< I2C data. D4 on the Xiao
-      .scl = GPIO_NUM_6,              ///< I2C clock. D5 on the Xiao
-      .usd_cs = GPIO_NUM_3,           ///< uSD card chip select. D2 on the Xiao
-      .lcd_cs = GPIO_NUM_2,           ///< LCD chip select. D1 on the Xiao
-      .lcd_dc = GPIO_NUM_4,           ///< LCD data/command. D3 on the Xiao
-      .lcd_backlight = GPIO_NUM_43,   ///< LCD backlight. D6/TX on the Xiao
-      .miso = GPIO_NUM_8,             ///< SPI MISO. D9 / MISO on the Xiao
-      .mosi = GPIO_NUM_9,             ///< SPI MOSI. D10 / MOSI on the Xiao
-      .sck = GPIO_NUM_7,              ///< SPI SCK. D8 / SCK on the Xiao
-      .touch_interrupt = GPIO_NUM_44, ///< Touch interrupt. D7/RX on the Xiao
+      .sda = GPIO_NUM_5,             ///< I2C data. D4 on the Xiao
+      .scl = GPIO_NUM_6,             ///< I2C clock. D5 on the Xiao
+      .usd_cs = GPIO_NUM_3,          ///< uSD card chip select. D2 on the Xiao
+      .lcd_cs = GPIO_NUM_2,          ///< LCD chip select. D1 on the Xiao
+      .lcd_dc = GPIO_NUM_4,          ///< LCD data/command. D3 on the Xiao
+      .lcd_backlight = GPIO_NUM_43,  ///< LCD backlight. D6/TX on the Xiao
+      .miso = GPIO_NUM_8,            ///< SPI MISO. D9 / MISO on the Xiao
+      .mosi = GPIO_NUM_9,            ///< SPI MOSI. D10 / MOSI on the Xiao
+      .sck = GPIO_NUM_7,             ///< SPI SCK. D8 / SCK on the Xiao
+      .touch_interrupt = GPIO_NUM_44 ///< Touch interrupt. D7/RX on the Xiao
   };
 
   /// @brief The default pin configuration for the Seeed Studio Round Display
   ///        connected to the Qtpy Esp32S3
   static constexpr PinConfig QtpyS3Config = {
-      .sda = GPIO_NUM_7,              ///< I2C data. SDA on the Qtpy
-      .scl = GPIO_NUM_6,              ///< I2C clock. SCL on the Qtpy
-      .usd_cs = GPIO_NUM_9,           ///< uSD card chip select. A2 on the Qtpy
-      .lcd_cs = GPIO_NUM_17,          ///< LCD chip select. A1 on the Qtpy
-      .lcd_dc = GPIO_NUM_8,           ///< LCD data/command. A3 on the Qtpy
-      .lcd_backlight = GPIO_NUM_5,    ///< LCD backlight. TX on the Qtpy
-      .miso = GPIO_NUM_37,            ///< SPI MISO. MISO on the Qtpy
-      .mosi = GPIO_NUM_35,            ///< SPI MOSI. MOSI on the Qtpy
-      .sck = GPIO_NUM_36,             ///< SPI SCK. SCK on the Qtpy
-      .touch_interrupt = GPIO_NUM_16, ///< Touch interrupt. RX on the Qtpy
+      .sda = GPIO_NUM_7,             ///< I2C data. SDA on the Qtpy
+      .scl = GPIO_NUM_6,             ///< I2C clock. SCL on the Qtpy
+      .usd_cs = GPIO_NUM_9,          ///< uSD card chip select. A2 on the Qtpy
+      .lcd_cs = GPIO_NUM_17,         ///< LCD chip select. A1 on the Qtpy
+      .lcd_dc = GPIO_NUM_8,          ///< LCD data/command. A3 on the Qtpy
+      .lcd_backlight = GPIO_NUM_5,   ///< LCD backlight. TX on the Qtpy
+      .miso = GPIO_NUM_37,           ///< SPI MISO. MISO on the Qtpy
+      .mosi = GPIO_NUM_35,           ///< SPI MOSI. MOSI on the Qtpy
+      .sck = GPIO_NUM_36,            ///< SPI SCK. SCK on the Qtpy
+      .touch_interrupt = GPIO_NUM_16 ///< Touch interrupt. RX on the Qtpy
   };
 
   /// @brief Set the pin configuration for the controller board connected to the

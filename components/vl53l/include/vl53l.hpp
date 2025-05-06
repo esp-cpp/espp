@@ -27,7 +27,7 @@ using vl53l_register_t = uint16_t;
 /// \see https://github.com/adafruit/Adafruit_CircuitPython_VL53L4CD/tree/main
 /// for a CircuitPython library
 ///
-/// \section example Example
+/// \section vl53l_ex1 Example
 /// \snippet vl53l_example.cpp vl53l example
 class Vl53l : public espp::BasePeripheral<vl53l_register_t, true> {
   using BasePeripheral<vl53l_register_t, true>::set_address;
@@ -195,6 +195,8 @@ public:
   /// measurement. Valid range is timing_budget to 5000 ms. Set to 0 to
   /// disable continuous mode.
   /// \param period_ms Inter-measurement time in milliseconds
+  /// \param ec Error code if unsuccessful
+  /// \return True if successful
   bool set_inter_measurement_period_ms(int period_ms, std::error_code &ec) {
     if (ranging_) {
       logger_.error("Cannot set inter-measurement period while ranging. Stop ranging first.");
@@ -428,6 +430,8 @@ public:
   /// is 10ms to 200ms. It cannot be greater than the inter-measurement
   /// period.
   /// \param budget_us Timing budget in microseconds
+  /// \param ec Error code if unsuccessful
+  /// \return True if successful
   /// \see get_timing_budget_us()
   /// \see set_inter_measurement_period_ms()
   /// \see get_inter_measurement_period_ms()

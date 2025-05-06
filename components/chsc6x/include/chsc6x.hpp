@@ -8,7 +8,7 @@
 namespace espp {
 /// @brief Driver for the Chsc6x touch controller
 ///
-/// \section Example
+/// \section chsc6x_ex1 Example
 /// \snippet chsc6x_example.cpp chsc6x example
 class Chsc6x : public BasePeripheral<> {
 public:

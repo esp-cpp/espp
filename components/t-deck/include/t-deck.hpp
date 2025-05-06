@@ -382,13 +382,10 @@ public:
   /// \param task_config The task configuration for the audio task
   /// \return true if the sound subsystem was successfully initialized, false
   ///         otherwise
-  bool initialize_sound(uint32_t default_audio_rate = 48000,
-                        const espp::Task::BaseConfig &task_config = {
-                            .name = "audio",
-                            .stack_size_bytes = 4096,
-                            .priority = 19,
-                            .core_id = 1,
-                        });
+  bool
+  initialize_sound(uint32_t default_audio_rate = 48000,
+                   const espp::Task::BaseConfig &task_config = {
+                       .name = "audio", .stack_size_bytes = 4096, .priority = 19, .core_id = 1});
 
   /// Get the audio sample rate
   /// \return The audio sample rate, in Hz

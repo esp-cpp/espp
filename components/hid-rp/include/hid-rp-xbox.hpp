@@ -31,7 +31,7 @@ concept XboxButtonStruct = requires(T t) {
 /// This class implements a HID Xbox Gamepad Report. It supports 15 buttons, a
 /// d-pad, 4 joystick axes, 2 trigger axes as well as consumer record button.
 ///
-/// \section hid_rp_ex1 HID-RP Example
+/// \section hid_rp_xbox_ex1 HID-RP Xbox Gamepad Example
 /// \snippet hid_rp_example.cpp hid rp example
 template <uint8_t REPORT_ID = 1>
 class XboxGamepadInputReport : public espp::GamepadInputReport<15, std::uint16_t, std::uint16_t, 0,
@@ -166,7 +166,7 @@ public:
   constexpr auto get_enabled() { return enabled; }
 
   /// Set the enabled mask for the rumble motors
-  /// \param enabled The enabled mask for the rumble motors
+  /// \param new_enabled The enabled mask for the rumble motors
   constexpr void set_enabled(std::uint8_t new_enabled) { enabled = new_enabled; }
 
   /// Get the magnitude of the rumble effect for the specified motor
@@ -294,7 +294,7 @@ public:
 /// single byte input which contains information about the type of the battery,
 /// its battery level, as well as a few other things.
 ///
-/// \section hid_rp_ex1 HID-RP Example
+/// \section hid_rp_xbox_battery_input_ex1 HID-RP Xbox Battery Input Example
 /// \snippet hid_rp_example.cpp hid rp example
 template <uint8_t REPORT_ID = 4>
 class XboxBatteryInputReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {

@@ -238,7 +238,7 @@ public:
 
   /**
    * @brief Flush the pixel data for the provided area to the display.
-   * @param *drv Pointer to the LVGL display driver.
+   * @param *disp Pointer to the LVGL display.
    * @param *area Pointer to the structure describing the pixel area.
    * @param *color_map Pointer to array of colors to flush to the display.
    */
@@ -292,10 +292,10 @@ public:
   }
 
   /**
-   * @brief Flush the pixel data for the provided area to the display.
-   * @param *drv Pointer to the LVGL display driver.
+   * @brief Fill the display area with the provided color map.
+   * @param *disp Pointer to the LVGL display.
    * @param *area Pointer to the structure describing the pixel area.
-   * @param *color_map Pointer to array of colors to flush to the display.
+   * @param *color_map Pointer to array of colors to fill the display with.
    * @param flags uint32_t user data / flags to pass to the lcd_write transfer function.
    */
   static void fill(lv_display_t *disp, const lv_area_t *area, uint8_t *color_map,

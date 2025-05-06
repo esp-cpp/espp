@@ -7,7 +7,7 @@
 namespace espp {
 /// @brief Driver for the Tt21100 touch controller
 ///
-/// \section Example
+/// \section tt21100_ex1 Example
 /// \snippet tt21100_example.cpp tt21100 example
 class Tt21100 : public BasePeripheral<> {
 public:

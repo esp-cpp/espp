@@ -1,5 +1,5 @@
 CST816 Touch Controller
-**********************
+***********************
 
 The `Cst816` class provides an interface to the CST816 touch controller.
 

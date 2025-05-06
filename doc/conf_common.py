@@ -7,7 +7,7 @@ extensions += ['sphinx_copybutton',
                'myst_parser'
                ]
 
-exclude_paterns = ['build', '_build']
+exclude_paterns = ['build', '_build', 'detail']
 
 # link roles config
 github_repo = 'esp-cpp/espp'

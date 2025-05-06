@@ -16,7 +16,7 @@ namespace espp {
 /// here:
 /// https://github.com/espressif/esp-bsp/tree/master/components/lcd_touch/esp_lcd_touch_cst816s
 ///
-/// \section Example
+/// \section cst816_ex1 Example
 /// \snippet cst816_example.cpp cst816 example
 class Cst816 : public BasePeripheral<std::uint8_t> {
 public:

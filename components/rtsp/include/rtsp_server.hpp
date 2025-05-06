@@ -32,7 +32,7 @@ namespace espp {
 /// @see RtspSession
 /// @note This class does not currently send RTCP packets
 ///
-/// \section RtspServer example
+/// \section rtsp_server_ex1 RtspServer example
 /// \snippet rtsp_example.cpp rtsp_server_example
 class RtspServer : public BaseComponent {
 public:

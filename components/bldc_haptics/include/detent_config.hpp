@@ -1,5 +1,3 @@
-/// @file Defines the detent configuration
-
 #pragma once
 
 #include "format.hpp"

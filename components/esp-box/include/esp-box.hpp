@@ -266,13 +266,10 @@ public:
   /// \param task_config The task configuration for the audio task
   /// \return true if the sound subsystem was successfully initialized, false
   ///         otherwise
-  bool initialize_sound(uint32_t default_audio_rate = 48000,
-                        const espp::Task::BaseConfig &task_config = {
-                            .name = "audio",
-                            .stack_size_bytes = 4096,
-                            .priority = 19,
-                            .core_id = 1,
-                        });
+  bool
+  initialize_sound(uint32_t default_audio_rate = 48000,
+                   const espp::Task::BaseConfig &task_config = {
+                       .name = "audio", .stack_size_bytes = 4096, .priority = 19, .core_id = 1});
 
   /// Enable or disable sound
   /// \note This method sets the power pin to the appropriate value
@@ -328,8 +325,7 @@ public:
                           .accelerometer_range = Imu::AccelerometerRange::RANGE_2G,
                           .accelerometer_odr = Imu::AccelerometerODR::ODR_400_HZ,
                           .gyroscope_range = Imu::GyroscopeRange::RANGE_2000DPS,
-                          .gyroscope_odr = Imu::GyroscopeODR::ODR_400_HZ,
-                      });
+                          .gyroscope_odr = Imu::GyroscopeODR::ODR_400_HZ});
 
   /// Get the IMU
   /// \return A shared pointer to the IMU

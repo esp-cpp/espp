@@ -14,7 +14,7 @@ namespace espp {
 ///          interface such as I2C. On The T-Keyboard, you can press Alt+B to
 ///          toggle the keyboard backlight.
 ///
-/// \section Example
+/// \section t_keyboard_ex1 Example
 /// \snippet t_keyboard_example.cpp tkeyboard example
 class TKeyboard : public BasePeripheral<> {
 public:

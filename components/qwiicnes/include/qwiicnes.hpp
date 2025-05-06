@@ -11,7 +11,7 @@ namespace espp {
 ///         controller.
 ///         The Qwiic NES controller uses the I2C bus to communicate.
 ///
-/// \section Example
+/// \section qwiicnes_ex1 Example
 /// \snippet qwiicnes_example.cpp qwiicnes example
 class QwiicNes : public BasePeripheral<> {
 public:
@@ -40,6 +40,11 @@ public:
       };
       uint8_t raw = 0;
     };
+
+    /// @brief Equality operator for the espp::QwiicNes::ButtonState struct.
+    /// @param other The other ButtonState to compare to.
+    /// @return true if the two ButtonState structs are equal.
+    bool operator==(const espp::QwiicNes::ButtonState &other) const { return raw == other.raw; }
   };
 
   /// @brief The configuration for the QwiicNes class.
@@ -174,16 +179,6 @@ protected:
   ButtonState button_state_{};
 };
 } // namespace espp
-
-/// @brief Overload the equality operator for the espp::QwiicNes::ButtonState
-///        struct.
-/// @param lhs The left hand side of the operator.
-/// @param rhs The right hand side of the operator.
-/// @return true if the two ButtonState structs are equal.
-static bool operator==(const espp::QwiicNes::ButtonState &lhs,
-                       const espp::QwiicNes::ButtonState &rhs) {
-  return lhs.raw == rhs.raw;
-}
 
 // for allowing easy serialization/printing of the
 // espp::QwiicNes::ButtonState struct

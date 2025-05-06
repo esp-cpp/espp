@@ -19,7 +19,7 @@ namespace espp {
 /// devices, probing for a device at a specific address, reading from a device,
 /// and writing to a device.
 ///
-/// \section Example
+/// \section i2c_menu_ex1 Example
 /// \snippet i2c_example.cpp i2c menu example
 class I2cMenu {
 public:

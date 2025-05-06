@@ -1400,7 +1400,7 @@ protected:
   }
 
   /// @brief Configure an alert events for an analog channel.
-  /// @param channel Channel to configure.
+  /// @param ch Channel to configure.
   /// @param low_threshold_mv Low threshold in mV.
   /// @param high_threshold_mv High threshold in mV.
   /// @param event_count Number of events to trigger an alert.

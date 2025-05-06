@@ -182,7 +182,7 @@ public:
 
   /**
    * @brief Flush the pixel data for the provided area to the display.
-   * @param *drv Pointer to the LVGL display driver.
+   * @param *disp Pointer to the LVGL display.
    * @param *area Pointer to the structure describing the pixel area.
    * @param *color_map Pointer to array of colors to flush to the display.
    */
