@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.20.2"
+version: "0.21.0"
 license: "MIT"
 description: "I2C (Legacy) component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/i2c"
@@ -17,8 +17,8 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_component:
-    version: '>=0.20.2'
+    version: '>=0.21.0'
   espp/cli:
-    version: '>=0.20.2'
+    version: '>=0.21.0'
   espp/task:
-    version: '>=0.20.2'
+    version: '>=0.21.0'

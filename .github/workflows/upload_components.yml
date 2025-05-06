@@ -6,7 +6,7 @@ on:
 
   push:
     branches:
-      - master
+      - main
     tags:
       # only upload components on tagged commits
       - v*
@@ -113,4 +113,4 @@ jobs:
             components/wrover-kit
           namespace: "espp"
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
-          dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' }}
+          dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' || ! (github.event.release && github.event.action == 'published') }}

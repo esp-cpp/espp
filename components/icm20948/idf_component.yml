@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.20.2"
+version: "0.21.0"
 license: "MIT"
 description: "ICM20948 9-Axis IMU component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/icm20948"
@@ -19,8 +19,8 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_peripheral:
-    version: '>=0.20.2'
+    version: '>=0.21.0'
   espp/math:
-    version: '>=0.20.2'
+    version: '>=0.21.0'
   espp/utils:
-    version: '>=0.20.2'
+    version: '>=0.21.0'

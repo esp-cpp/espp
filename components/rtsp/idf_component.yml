@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.20.2"
+version: "0.21.0"
 license: "MIT"
 description: "RTSP (Real-Time Streaming Protocol) Client & Server component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/rtsp"
@@ -23,8 +23,8 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_component:
-    version: '>=0.20.2'
+    version: '>=0.21.0'
   espp/socket:
-    version: '>=0.20.2'
+    version: '>=0.21.0'
   espp/task:
-    version: '>=0.20.2'
+    version: '>=0.21.0'

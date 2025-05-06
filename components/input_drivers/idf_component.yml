@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.20.2"
+version: "0.21.0"
 license: "MIT"
 description: "LVGL Input Drivers component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/input_drivers"
@@ -23,4 +23,4 @@ dependencies:
   lvgl/lvgl:
     version: '>=9.2.2'
   espp/base_component:
-    version: '>=0.20.2'
+    version: '>=0.21.0'
