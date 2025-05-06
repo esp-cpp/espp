@@ -4,12 +4,9 @@ on:
   # i.e. validate that the component passes all checks for being uploaded.
   pull_request:
 
-  push:
-    branches:
-      - main
-    tags:
-      # only upload components on tagged commits
-      - v*
+  release:
+    types: [published]
+
 jobs:
   upload_components:
     runs-on: ubuntu-latest
@@ -17,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: "recursive"
-      - name: Upload component to the component registry
+      - name: Upload components to the component registry
         uses: espressif/upload-components-ci-action@v2
         with:
           # Please try to keep the directories list sorted.
@@ -112,5 +109,7 @@ jobs:
             components/wifi
             components/wrover-kit
           namespace: "espp"
+          # use old version if this isn't a release for testing
+          version: ${{ github.event.release && github.event.release.tag_name || 'v0.20.2' }}
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
-          dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' || ! (github.event.release && github.event.action == 'published') }}
+          dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' }}
