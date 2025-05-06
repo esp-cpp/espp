@@ -109,6 +109,6 @@ jobs:
             components/wifi
             components/wrover-kit
           namespace: "espp"
-          version: ${{ github.event.release && github.ref_name || 'merge-test' }}
+          version: ${{ github.event.release && github.ref_name || 'git' }}
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
           dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' }}
