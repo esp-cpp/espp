@@ -4,12 +4,9 @@ on:
   # i.e. validate that the component passes all checks for being uploaded.
   pull_request:
 
-  push:
-    branches:
-      - main
-    tags:
-      # only upload components on tagged commits
-      - v*
+  release:
+    types: [published]
+
 jobs:
   upload_components:
     runs-on: ubuntu-latest
@@ -112,5 +109,6 @@ jobs:
             components/wifi
             components/wrover-kit
           namespace: "espp"
+          version: ${{ github.ref_name }}
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
-          dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' || ! (github.event.release && github.event.action == 'published') }}
+          dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' }}
