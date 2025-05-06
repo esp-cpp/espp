@@ -55,7 +55,6 @@ jobs:
             components/display_drivers
             components/drv2605
             components/encoder
-            components/esp_littlefs
             components/esp-box
             components/esp32-timer-cam
             components/event_manager
