@@ -18,7 +18,7 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  esp-cpp/base_peripheral:
+  espp/base_peripheral:
     version: '>=0.20.2'
-  esp-cpp/math:
+  espp/math:
     version: '>=0.20.2'

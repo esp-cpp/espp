@@ -20,21 +20,21 @@ targets:
 dependencies:
   idf:
     version: '>=5.0'
-  esp-cpp/base_component:
+  espp/base_component:
     version: '>=0.20.2'
-  esp-cpp/display:
+  espp/display:
     version: '>=0.20.2'
-  esp-cpp/display_drivers:
+  espp/display_drivers:
     version: '>=0.20.2'
-  esp-cpp/gt911:
+  espp/gt911:
     version: '>=0.20.2'
-  esp-cpp/i2c:
+  espp/i2c:
     version: '>=0.20.2'
-  esp-cpp/input_drivers:
+  espp/input_drivers:
     version: '>=0.20.2'
-  esp-cpp/interrupt:
+  espp/interrupt:
     version: '>=0.20.2'
-  esp-cpp/task:
+  espp/task:
     version: '>=0.20.2'
-  esp-cpp/t_keyboard:
+  espp/t_keyboard:
     version: '>=0.20.2'

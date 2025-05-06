@@ -20,5 +20,5 @@ dependencies:
     version: '>=5.0'
   joltwallet/littlefs:
     version: '1.16.2'
-  esp-cpp/base_component:
+  espp/base_component:
     version: '>=0.20.2'

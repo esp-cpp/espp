@@ -26,11 +26,11 @@ dependencies:
     version: '>=5.4'
   h2zero/esp-nimble-cpp:
     version: '>=2.2.1'
-  esp-cpp/base_component:
+  espp/base_component:
     version: '>=0.20.2'
-  esp-cpp/logger:
+  espp/logger:
     version: '>=0.20.2'
-  esp-cpp/task:
+  espp/task:
     version: '>=0.20.2'
-  esp-cpp/timer:
+  espp/timer:
     version: '>=0.20.2'

@@ -22,9 +22,9 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  esp-cpp/base_component:
+  espp/base_component:
     version: '>=0.20.2'
-  esp-cpp/socket:
+  espp/socket:
     version: '>=0.20.2'
-  esp-cpp/task:
+  espp/task:
     version: '>=0.20.2'

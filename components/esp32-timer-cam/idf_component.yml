@@ -20,19 +20,19 @@ targets:
 dependencies:
   idf:
     version: '>=5.0'
-  esp-cpp/adc:
+  espp/adc:
     version: '>=0.20.2'
-  esp-cpp/base_component:
+  espp/base_component:
     version: '>=0.20.2'
-  esp-cpp/bm8563:
+  espp/bm8563:
     version: '>=0.20.2'
-  esp-cpp/i2c:
+  espp/i2c:
     version: '>=0.20.2'
-  esp-cpp/interrupt:
+  espp/interrupt:
     version: '>=0.20.2'
-  esp-cpp/led:
+  espp/led:
     version: '>=0.20.2'
-  esp-cpp/math:
+  espp/math:
     version: '>=0.20.2'
-  esp-cpp/task:
+  espp/task:
     version: '>=0.20.2'

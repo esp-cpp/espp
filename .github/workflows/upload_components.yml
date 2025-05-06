@@ -112,6 +112,6 @@ jobs:
             components/vl53l
             components/wifi
             components/wrover-kit
-          namespace: "esp-cpp"
+          namespace: "espp"
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
           dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' }}
