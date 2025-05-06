@@ -112,4 +112,4 @@ jobs:
           # use old version if this isn't a release for testing
           version: ${{ github.event.release && github.event.release.tag_name || 'v0.20.2' }}
           api_token: ${{ secrets.IDF_COMPONENT_API_TOKEN }}
-          dry_run: ${{ github.ref_name != 'main' || github.repository_owner != 'esp-cpp' }}
+          dry_run: ${{ ! github.event.release }}
