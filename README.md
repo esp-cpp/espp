@@ -45,22 +45,22 @@ To use the components in this repository, you have a few options:
    For example, if you want to use the `task` component and the
    `ble_gatt_server` components, you could run:
 
-   ```console
-   idf.py add-dependency "esp-cpp/task^0.21.0"
-   idf.py add-dependency "esp-cpp/ble_gatt_server^0.21.0"
-   ```
+     ```console
+     idf.py add-dependency "esp-cpp/task^0.21.0"
+     idf.py add-dependency "esp-cpp/ble_gatt_server^0.21.0"
+     ```
    
    Alternatively, you could add the following dependencies to your
    `main/idf_component.yml`:
    
-   ```yaml
-   dependencies:
-      esp-cpp/ble_gatt_server:
-        version: '>=0.21.0'
-      esp-cpp/task:
-        version: '>=0.21.0'
-      # other dependencies here...
-   ```
+     ```yaml
+     dependencies:
+        esp-cpp/ble_gatt_server:
+          version: '>=0.21.0'
+        esp-cpp/task:
+          version: '>=0.21.0'
+        # other dependencies here...
+     ```
 
 1. If you have an existing project with a `components` directory, then you can
    clone `espp` as a submodule within that directory e.g. `git submodule add
@@ -68,12 +68,12 @@ To use the components in this repository, you have a few options:
    submodule update --init --recursive`. Afterwards, simply update your
    `CMakeLists.txt` to add
 
-  ```cmake
-  # add the component directories that we want to use
-  set(EXTRA_COMPONENT_DIRS
-    "components/espp/components"
-  )
-  ```
+    ```cmake
+    # add the component directories that we want to use
+    set(EXTRA_COMPONENT_DIRS
+      "components/espp/components"
+    )
+    ```
 
 1. You can clone espp somewhere on your computer and then point your project to
    its `components` directory to use any of the components it contains, similar
