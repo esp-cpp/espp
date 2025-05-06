@@ -15,8 +15,6 @@ tags:
   - ESP32
   - TimerCam
   - BSP
-targets:
-  - esp32
 dependencies:
   idf:
     version: '>=5.0'
