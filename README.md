@@ -40,7 +40,7 @@ To use the components in this repository, you have a few options:
 
 1. You can add dependencies on the components you want using the `idf component
    manager`. All `espp` components are published to the [ESP Component
-   Registry](https://components.espressif.com) under the namespace `esp-cpp`.
+   Registry](https://components.espressif.com/components?q=namespace:espp) under the namespace `espp`.
    
    For example, if you want to use the `task` component and the
    `ble_gatt_server` components, you could run:
