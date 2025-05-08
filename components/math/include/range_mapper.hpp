@@ -194,21 +194,24 @@ public:
     T calibrated{0};
     // compare against center
     calibrated = clamped - center_;
-    bool positive_input = calibrated >= 0;
+    bool min_eq_center = minimum_ == center_;
+    bool max_eq_center = maximum_ == center_;
     bool within_center_deadband = std::abs(calibrated) < center_deadband_;
-    bool within_range_deadband =
-        clamped >= maximum_ - range_deadband_ || clamped <= minimum_ + range_deadband_;
+    // Ensure we handle the case that the center is equal to the min or max,
+    // which may happen if the user wants a uni-directional output (e.g. [0,1]
+    // instead of [-1,1]). In this case, we only apply the center deadband, not
+    // the range deadband.
+    bool within_max_deadband = !max_eq_center && clamped >= (maximum_ - range_deadband_);
+    bool within_min_deadband = !min_eq_center && clamped <= (minimum_ + range_deadband_);
     if (within_center_deadband) {
-      // if it's within the center deadband, return the output center
       return output_center_;
-    } else if (within_range_deadband) {
-      // if it's within the range deadband around the min/max, return the output
-      // min/max, taking into account the output inversion
-      return positive_input   ? invert_output_ ? output_min_ : output_max_
-             : invert_output_ ? output_max_
-                              : output_min_;
+    } else if (within_min_deadband) {
+      return invert_output_ ? output_max_ : output_min_;
+    } else if (within_max_deadband) {
+      return invert_output_ ? output_min_ : output_max_;
     }
 
+    bool positive_input = calibrated >= 0;
     // remove the deadband from the calibrated value
     calibrated = positive_input ? calibrated - center_deadband_ : calibrated + center_deadband_;
 

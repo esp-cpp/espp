@@ -183,8 +183,8 @@ extern "C" void app_main(void) {
     // You can even invert the ouput distribution, and add a deadband around the
     // min/max values
     espp::FloatRangeMapper rm4({
-        .center = center,
-        .center_deadband = deadband,
+        .center = max,                      // test uni-directional mapping
+        .center_deadband = deadband / 2.0f, // test different deadband around center / range
         .minimum = min,
         .maximum = max,
         .range_deadband = deadband,
@@ -192,9 +192,40 @@ extern "C" void app_main(void) {
     });
     // make a vector of float values min - 10 to max + 10 in increments of 5
     std::vector<float> vals;
-    for (float v = min - 10; v <= max + 10; v += 5) {
+    static constexpr float increment = deadband / 3.0f;
+    static constexpr float oob_range = deadband * 3.0f;
+    for (float v = min - oob_range; v <= max + oob_range; v += increment) {
       vals.push_back(v);
     }
+    // ensure that very small values around center, max, and min are mapped to
+    // 0, 1, and -1 respectively
+    vals.push_back(center - 0.0001f);
+    vals.push_back(center - 0.00001f);
+    vals.push_back(center - 0.000001f);
+    vals.push_back(center - std::numeric_limits<float>::epsilon());
+    vals.push_back(center + 0.0001f);
+    vals.push_back(center + 0.00001f);
+    vals.push_back(center + 0.000001f);
+    vals.push_back(center + std::numeric_limits<float>::epsilon());
+    vals.push_back(max - 0.0001f);
+    vals.push_back(max - 0.00001f);
+    vals.push_back(max - 0.000001f);
+    vals.push_back(max - std::numeric_limits<float>::epsilon());
+    vals.push_back(max + 0.0001f);
+    vals.push_back(max + 0.00001f);
+    vals.push_back(max + 0.000001f);
+    vals.push_back(max + std::numeric_limits<float>::epsilon());
+    vals.push_back(min - 0.0001f);
+    vals.push_back(min - 0.00001f);
+    vals.push_back(min - 0.000001f);
+    vals.push_back(min - std::numeric_limits<float>::epsilon());
+    vals.push_back(min + 0.0001f);
+    vals.push_back(min + 0.00001f);
+    vals.push_back(min + 0.000001f);
+    vals.push_back(min + std::numeric_limits<float>::epsilon());
+
+    std::sort(vals.begin(), vals.end());
+
     // test the mapping and unmapping
     fmt::print(
         "% value, mapped [0;255] to [-1;1], unmapped [-1;1] to [0;255], mapped [0;255] to "
