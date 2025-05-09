@@ -1,5 +1,7 @@
 # Google Fast Pair Service (GFPS) Service BLE Service Component
 
+[![Badge](https://components.espressif.com/components/espp/gfps_service/badge.svg)](https://components.espressif.com/components/espp/gfps_service)
+
 The `GfpsService` implements the Google Fast Pair Service, allowing first-party
 fast-pair experience on Android devices using the google nearby framework. This
 also supports app matching / launching, as well as Google's `Find My Device`

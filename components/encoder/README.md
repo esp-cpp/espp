@@ -1,5 +1,7 @@
 # ABI Encoder Component
 
+[![Badge](https://components.espressif.com/components/espp/encoder/badge.svg)](https://components.espressif.com/components/espp/encoder)
+
 The `AbiEncoder` allow the user a configurable container wrapping the `pulse
 count
 <https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-reference/peripherals/pcnt.html>`_

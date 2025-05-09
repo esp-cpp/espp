@@ -1,5 +1,7 @@
 # BLDC (Brushless DC) Motor Haptics Component
 
+[![Badge](https://components.espressif.com/components/espp/bldc_haptics/badge.svg)](https://components.espressif.com/components/espp/bldc_haptics)
+
 The `BldcHaptics` class is a high-level interface for controlling a BLDC motor
 with a haptic feedback loop. It is designed to be used to provide haptic
 feedback as part of a rotary input device (the BLDC motor). The component

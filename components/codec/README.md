@@ -1,5 +1,7 @@
 # Codec (Audio) Component
 
+[![Badge](https://components.espressif.com/components/espp/codec/badge.svg)](https://components.espressif.com/components/espp/codec)
+
 The `codec` component contains a couple audio codec components copied and
 modified from [esp-adf](https://github.com/espressif/esp-adf), specifically from
 the

@@ -1,5 +1,7 @@
 # MAX1704X I2C Battery Fuel Gauge Component
 
+[![Badge](https://components.espressif.com/components/espp/max1704x/badge.svg)](https://components.espressif.com/components/espp/max1704x)
+
 The MAX17048/MAX17049 ICs are tiny, micropower current fuel gauges for
 lithium-ion (Li+) batteries in handheld and portable equipment. The MAX17048
 operates with a single lithium cell and the MAX17049 with two lithium cells in

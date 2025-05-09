@@ -1,5 +1,7 @@
 # Binary Logging Component
 
+[![Badge](https://components.espressif.com/components/espp/binary_log/badge.svg)](https://components.espressif.com/components/espp/binary_log)
+
 The binary log component provides a wrapper around
 https://github.com/p-ranav/binary_log for enabling compact binary logging of
 basic integer, floating point, and string data types.

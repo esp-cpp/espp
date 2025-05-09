@@ -1,5 +1,7 @@
 # Tla2528 ADC Exapander Peripheral Component
 
+[![Badge](https://components.espressif.com/components/espp/tla2528/badge.svg)](https://components.espressif.com/components/espp/tla2528)
+
 The `Tla2528` class implements support for the Texas Instruments TLA2528 12-bit
 8-channel ADC. The TLA2528 is a 12-bit, 8-channel, low-power, successive
 approximation register (SAR) analog-to-digital converter (ADC) which can

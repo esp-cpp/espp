@@ -1,5 +1,7 @@
 # Socket Component
 
+[![Badge](https://components.espressif.com/components/espp/socket/badge.svg)](https://components.espressif.com/components/espp/socket)
+
 The network APIs provide a useful abstraction over POSIX sockets enabling easily
 starting client/server sockets and allowing their use with std::function
 callbacks for servers.

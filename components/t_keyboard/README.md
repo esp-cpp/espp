@@ -1,5 +1,7 @@
 # LilyGo T-Keyboard Component
 
+[![Badge](https://components.espressif.com/components/espp/t_keyboard/badge.svg)](https://components.espressif.com/components/espp/t_keyboard)
+
 The `TKeyboard` component provides a simple interface to the T-Keyboard
 keypad. It allows you to read which key is currently pressed.
 

@@ -1,5 +1,7 @@
 # Monitor Component
 
+[![Badge](https://components.espressif.com/components/espp/monitor/badge.svg)](https://components.espressif.com/components/espp/monitor)
+
 The `monitor` component provides utilities for monitoring various aspects of the
 system.
 

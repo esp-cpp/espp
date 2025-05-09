@@ -1,5 +1,7 @@
 # Filters Component
 
+[![Badge](https://components.espressif.com/components/espp/filters/badge.svg)](https://components.espressif.com/components/espp/filters)
+
 The `filters` component contains various types of filters that can be used for
 various signal processing and state estimation tasks.
 

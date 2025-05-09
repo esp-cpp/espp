@@ -1,5 +1,7 @@
 # MotorGo-Mini Board Support Package (BSP) Component
 
+[![Badge](https://components.espressif.com/components/espp/motorgo-mini/badge.svg)](https://components.espressif.com/components/espp/motorgo-mini)
+
 The MotorGo Mini is a small, low-cost, low-power motor controller that can be
 used to control a two motors.
 

@@ -1,5 +1,7 @@
 # RMT (Remote Control Trasceiver) Component
 
+[![Badge](https://components.espressif.com/components/espp/rmt/badge.svg)](https://components.espressif.com/components/espp/rmt)
+
 The `Rmt` class provides a wrapper around the ESP32 RMT peripheral. It allows
 you to send infrared signals with the ESP32. See the esp-idf documentation for
 more information about the RMT peripheral.

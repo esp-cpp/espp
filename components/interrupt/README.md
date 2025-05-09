@@ -1,5 +1,7 @@
 # Interrupt Component
 
+[![Badge](https://components.espressif.com/components/espp/interrupt/badge.svg)](https://components.espressif.com/components/espp/interrupt)
+
 The `Interrupt` class provides APIs to register interrupt handlers for GPIO and
 configure the interrupts. Interrupts can be configured to trigger on rising
 edge, falling edge, high level, low level, or any change in the input signal. A

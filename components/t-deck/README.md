@@ -1,5 +1,7 @@
 # LilyGo T-Deck Board Support Package (BSP) Component 
 
+[![Badge](https://components.espressif.com/components/espp/t-deck/badge.svg)](https://components.espressif.com/components/espp/t-deck)
+
 The LilyGo T-Deck is a development board for the ESP32-S3 module. It features a
 nice touchscreen display and expansion headers.
 

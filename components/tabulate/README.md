@@ -1,5 +1,7 @@
 # Tabulate Component
 
+[![Badge](https://components.espressif.com/components/espp/tabulate/badge.svg)](https://components.espressif.com/components/espp/tabulate)
+
 The `tabulate` component provides a nice and easy way to perform pretty-printing
 of tabular data to the console or file.
 

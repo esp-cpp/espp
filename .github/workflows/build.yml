@@ -8,6 +8,7 @@ on:
       - 'external/**'
       - '.github/workflows/build.yml'
       - '!**/idf_component.yml'
+      - '!**/README.md'
 
 jobs:
   build:

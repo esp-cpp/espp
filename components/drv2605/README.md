@@ -1,5 +1,7 @@
 # Drv2605 I2C Haptic Motor Driver Component
 
+[![Badge](https://components.espressif.com/components/espp/drv2605/badge.svg)](https://components.espressif.com/components/espp/drv2605)
+
 The `DRV2605` haptic motor driver component allows the user to configure and
 play custom or preconfigured haptic feedback sequences via a serial interface
 such as I2C. It supports directly driving ECM (eccentric rotating mass) and LRA

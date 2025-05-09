@@ -1,5 +1,7 @@
 # BLE GATT Server Component
 
+[![Badge](https://components.espressif.com/components/espp/ble_gatt_server/badge.svg)](https://components.espressif.com/components/espp/ble_gatt_server)
+
 The `ble_gatt_server` component provides a few different classes for
 implementing standard / common GATT server requirements, including the server
 itself, the Device Information Service, and the Battery Service.

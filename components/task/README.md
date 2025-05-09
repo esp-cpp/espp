@@ -1,5 +1,7 @@
 # Task Component
 
+[![Badge](https://components.espressif.com/components/espp/task/badge.svg)](https://components.espressif.com/components/espp/task)
+
 The `Task` component provides a cross-platform API around `std::thread` with
 some additional configuration of stack size, priority, and core affinity for
 FreeRTOS / ESP, as well as providing a callback API which enables interruptible

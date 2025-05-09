@@ -1,5 +1,7 @@
 # File System Component
 
+[![Badge](https://components.espressif.com/components/espp/file_system/badge.svg)](https://components.espressif.com/components/espp/file_system)
+
 The `FileSystem` class provides a simple interface for interacting with the
 filesystem. It provides a singleton class which manages the filesystem and also
 includes the relevant POSIX, newlib, and C++ standard library headers providing

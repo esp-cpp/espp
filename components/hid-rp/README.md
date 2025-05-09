@@ -1,5 +1,7 @@
 # HID-RP Component
 
+[![Badge](https://components.espressif.com/components/espp/hid-rp/badge.svg)](https://components.espressif.com/components/espp/hid-rp)
+
 The `hid-rp` component provides a wrapper around
 https://github.com/intergatedcircuits/hid-rp and also provides an example
 implementation of a configurable HID Gamepad using hid-rp.
