@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.0"
+version: "0.21.1"
 license: "MIT"
 description: "BLDC Motor Haptics component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/bldc_haptics"
@@ -21,12 +21,12 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_component:
-    version: '>=0.21.0'
+    version: '>=0.21.1'
   espp/bldc_motor:
-    version: '>=0.21.0'
+    version: '>=0.21.1'
   espp/math:
-    version: '>=0.21.0'
+    version: '>=0.21.1'
   espp/pid:
-    version: '>=0.21.0'
+    version: '>=0.21.1'
   espp/task:
-    version: '>=0.21.0'
+    version: '>=0.21.1'

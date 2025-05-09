@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 RUN apt-get update
 
 # install doxygen
-RUN apt-get install -y doxygen
+RUN apt-get install -y doxygen graphviz texlive-full pandoc
 
 COPY requirements.txt ./
 

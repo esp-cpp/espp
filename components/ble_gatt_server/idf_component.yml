@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.0"
+version: "0.21.1"
 license: "MIT"
 description: "BLE GATT Server (NimBLE) component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/ble_gatt_server"
@@ -22,6 +22,6 @@ dependencies:
   h2zero/esp-nimble-cpp:
     version: '>=2.2.1'
   espp/base_component:
-    version: '>=0.21.0'
+    version: '>=0.21.1'
   espp/cli:
-    version: '>=0.21.0'
+    version: '>=0.21.1'
