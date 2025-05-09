@@ -4,7 +4,7 @@
 [submodule "components/serialization/detail/alpaca"]
 	path = components/serialization/detail/alpaca
 	url = https://github.com/p-ranav/alpaca
-[submodule "components/esp_littlefs"]
+[submodule "components/littlefs"]
 	path = components/littlefs
 	url = https://github.com/joltwallet/esp_littlefs
 [submodule "components/lvgl"]
