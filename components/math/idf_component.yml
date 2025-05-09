@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.1"
+version: "0.22.0"
 license: "MIT"
 description: "Math component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/math"
@@ -24,4 +24,4 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/format:
-    version: '>=0.21.1'
+    version: '>=0.22.0'

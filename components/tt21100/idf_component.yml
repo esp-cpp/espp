@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.1"
+version: "0.22.0"
 license: "MIT"
 description: "TT21100 Touch Controller component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/tt21100"
@@ -21,4 +21,4 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_peripheral:
-    version: '>=0.21.1'
+    version: '>=0.22.0'
