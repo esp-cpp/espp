@@ -1,5 +1,7 @@
 # WiFi Component
 
+https://components.espressif.com/components/espp/wifi/badge.svg
+
 The `wifi` component provides classes implementing various functionality useful
 to WiFi-enabled devices.
 

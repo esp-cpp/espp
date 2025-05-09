@@ -1,5 +1,7 @@
 # Seeed Studio Round Display Board Support Package (BSP) Component
 
+https://components.espressif.com/components/espp/seeed-studio-round-display/badge.svg
+
 The Seeed Studio Round Display is a development board containing a 240x240 round
 display with touchscreen, RTC, battery charger, and uSD card slot. It support
 connection to a QtyPy or a XIAO module.

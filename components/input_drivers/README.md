@@ -1,5 +1,7 @@
 # Input Drivers Component for LVGL
 
+https://components.espressif.com/components/espp/input_drivers/badge.svg
+
 This component provides a set of convenience classes for configuring various
 types of input for LVGL displays.
 

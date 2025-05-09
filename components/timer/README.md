@@ -1,5 +1,7 @@
 # Timer Component
 
+https://components.espressif.com/components/espp/timer/badge.svg
+
 The `timer` component provides a few different types of timers to cover standard
 periodic execution as well as periodic / sporadic exectuion which requires
 high-resolution timing.

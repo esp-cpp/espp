@@ -1,5 +1,7 @@
 # Controller Component
 
+https://components.espressif.com/components/espp/controller/badge.svg
+
 The `Controller` class provides a convenience for reading multiple GPIOs at once
 and mapping their state to common controller buttons. It can optionally be
 configured to support joystick select, as well as to convert analog joystick

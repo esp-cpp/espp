@@ -1,5 +1,7 @@
 # BLDC (Brushless DC) Motor Driver Component
 
+https://components.espressif.com/components/espp/bldc_driver/badge.svg
+
 The `BldcDriver` component wraps around the `ESP MCPWM Peripheral
 <https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/mcpwm.html>`_
 to provide full 6 PWM control over a 3 phase brushless dc motor.

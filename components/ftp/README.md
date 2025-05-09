@@ -1,5 +1,7 @@
 # FTP (File Transfer Protocol) Component
 
+https://components.espressif.com/components/espp/ftp/badge.svg
+
 The `ftp` component provides an implementation of various parts of the file
 transfer protocol.
 

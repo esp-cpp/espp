@@ -1,5 +1,7 @@
 # ICM42607 Example
 
+https://components.espressif.com/components/espp/icm42607/badge.svg
+
 The `Icm42607` component provides a driver for the ICM42607 and ICM42670 6-Axis
 Inertial Measurement Units (IMUs).
 

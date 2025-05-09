@@ -1,5 +1,7 @@
 # ICM20948 9-Axis IMU Component
 
+https://components.espressif.com/components/espp/icm20948/badge.svg
+
 The `Icm20948` component provides a driver for the ICM20948 9-Axis Inertial
 Measurement Unit (IMU). 
 

@@ -1,5 +1,7 @@
 # VL53LXX Time of Flight (Tof) Distance Sensor Peripheral Component
 
+https://components.espressif.com/components/espp/vl53l/badge.svg
+
 The
 [Vl53L0X](https://www.st.com/en/imaging-and-photonics-solutions/vl53l0x.html) is
 a Time-of-Flight (ToF) distance sensor. It is a sensor that can measure distance

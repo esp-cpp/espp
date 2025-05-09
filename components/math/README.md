@@ -1,5 +1,7 @@
 # Math Component
 
+https://components.espressif.com/components/espp/math/badge.svg
+
 The `math` component provides various classes and static functions for commonly
 used math operations.
 

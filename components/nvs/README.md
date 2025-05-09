@@ -1,5 +1,7 @@
 # NVS (Non-Volatile Storage) Component
 
+https://components.espressif.com/components/espp/nvs/badge.svg
+
 The `nvs` component provides various utility classes for interfacing with the
 ESP `nvs` subsystem to store and retrieve data that persists between power
 cycles and power loss.

@@ -1,5 +1,7 @@
 # ESP-BOX Board Support Package (BSP) Component
 
+https://components.espressif.com/components/espp/esp-box/badge.svg
+
 The ESP32-S3-BOX and ESP32-S3-BOX-3 are development boards for the ESP32-S3
 module. They feature a nice touchscreen display, an IMU, a speaker, microphones,
 and expansion headers.

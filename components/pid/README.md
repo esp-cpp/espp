@@ -1,5 +1,7 @@
 # PID (Proportional-Integral-Derivative) Feedback Control Component
 
+https://components.espressif.com/components/espp/pid/badge.svg
+
 The `PID` component provides a simple, thread-safe class representing a PID
 controller. It tracks how frequently its `update()` method is called and can
 have its gains change dynamically.

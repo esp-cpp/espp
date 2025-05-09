@@ -1,5 +1,7 @@
 # Mt6701 Magnetic Encoder Component
 
+https://components.espressif.com/components/espp/mt6701/badge.svg
+
 The `MT6701` magnetic encoder component provides the user a convenient way to
 measure
 

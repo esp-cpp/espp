@@ -1,5 +1,7 @@
 # ADC (Analog to Digital Converter) Component
 
+https://components.espressif.com/components/espp/adc/badge.svg
+
 This component provides some classes which encapsulate analog value sampling
 using the ESP's built-in ADC hardware and peripheral drivers.
 

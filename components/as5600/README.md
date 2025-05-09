@@ -1,5 +1,7 @@
 # As5600 Magnetic Encoder
 
+https://components.espressif.com/components/espp/as5600/badge.svg
+
 The `AS5600` magnetic encoder component provides the user a convenient way to
 measure
 

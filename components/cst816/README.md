@@ -1,5 +1,7 @@
 # CST816 I2C Touch Controller Component
 
+https://components.espressif.com/components/espp/cst816/badge.svg
+
 The `Cst816` class provides an interface to the CST816 touch controller. It
 allows you to query the data for the touch points on the touchscreen.
 

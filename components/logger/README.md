@@ -1,5 +1,7 @@
 # Logger Component
 
+https://components.espressif.com/components/espp/logger/badge.svg
+
 The logger provides a cross-platform wrapper around `libfmt` for providing
 configurable log output with different levels that can be turned on / off at
 runtime.

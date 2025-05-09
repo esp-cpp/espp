@@ -1,5 +1,7 @@
 # Serialization Component
 
+https://components.espressif.com/components/espp/serialization/badge.svg
+
 The serialization library is a light wrapper around the third-party `alpaca
 <https://github.com/p-ranav/alpaca>`_ serialization library, providing
 boilerplate-free binary (de-)serialization of arbitrary objects.

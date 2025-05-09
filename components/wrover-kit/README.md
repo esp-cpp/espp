@@ -1,5 +1,7 @@
 # Wrover-Kit Board Support Package (BSP) Component
 
+https://components.espressif.com/components/espp/wrover-kit/badge.svg
+
 The ESP32-WROVER-KIT is a development board for the ESP32-WROVER module. It
 features a nice display and a lot of expansion headers.
 
