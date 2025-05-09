@@ -1,6 +1,6 @@
 # BLE HID Service Example
 
-https://components.espressif.com/components/espp/hid_service/badge.svg
+[![Badge](https://components.espressif.com/components/espp/hid_service/badge.svg)](https://components.espressif.com/components/espp/hid_service)
 
 The `HidService` implements the standard BLE HID service, providing dynamic and
 configurable HID input, output, and feature reports from a BLE peripheral to a

@@ -1,6 +1,6 @@
 # Ads7138 I2C ADC Expander
 
-https://components.espressif.com/components/espp/ads7138/badge.svg
+[![Badge](https://components.espressif.com/components/espp/ads7138/badge.svg)](https://components.espressif.com/components/espp/ads7138)
 
 The `Ads7138` class implements support for the Texas Instruments ADS7138 12-bit
 8-channel ADC. The ADS7138 is a 12-bit, 8-channel, low-power, successive

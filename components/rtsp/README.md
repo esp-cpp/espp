@@ -1,6 +1,6 @@
 # RTSP (Real-Time Streaming Protocol) Component
 
-https://components.espressif.com/components/espp/rtsp/badge.svg
+[![Badge](https://components.espressif.com/components/espp/rtsp/badge.svg)](https://components.espressif.com/components/espp/rtsp)
 
 The `rtsp` component provides various classes for implementing both sides of an
 RTSP stream for transmitting MJPEG video data.

@@ -1,6 +1,6 @@
 # LED Strip Component 
 
-https://components.espressif.com/components/espp/led_strip/badge.svg
+[![Badge](https://components.espressif.com/components/espp/led_strip/badge.svg)](https://components.espressif.com/components/espp/led_strip)
 
 The `LedStrip` component provides APIs to control LED strips. It supports
 various LED strip types, such as WS2812, WS2811, WS2813, SK6812, APA102, etc.

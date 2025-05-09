@@ -1,6 +1,6 @@
 # Timer Component
 
-https://components.espressif.com/components/espp/timer/badge.svg
+[![Badge](https://components.espressif.com/components/espp/timer/badge.svg)](https://components.espressif.com/components/espp/timer)
 
 The `timer` component provides a few different types of timers to cover standard
 periodic execution as well as periodic / sporadic exectuion which requires

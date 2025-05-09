@@ -1,6 +1,6 @@
 # Joystick Component
 
-https://components.espressif.com/components/espp/joystick/badge.svg
+[![Badge](https://components.espressif.com/components/espp/joystick/badge.svg)](https://components.espressif.com/components/espp/joystick)
 
 The `Joystick` class provides a wrapper around a 2-axis analog joystick, with an
 associated reader function for grabbing the raw values. When the joystick

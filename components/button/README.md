@@ -1,6 +1,6 @@
 # Button Component
 
-https://components.espressif.com/components/espp/button/badge.svg
+[![Badge](https://components.espressif.com/components/espp/button/badge.svg)](https://components.espressif.com/components/espp/button)
 
 The `Button` class provides a simple way to read the state of a button. There
 are two ways to configure the functionality of the button.

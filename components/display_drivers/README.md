@@ -1,6 +1,6 @@
 # Display Drivers Components
 
-https://components.espressif.com/components/espp/display_drivers/badge.svg
+[![Badge](https://components.espressif.com/components/espp/display_drivers/badge.svg)](https://components.espressif.com/components/espp/display_drivers)
 
 This component contains a few different display drivers, corresponding to common
 display drivers on espressif development boards. These display drivers are

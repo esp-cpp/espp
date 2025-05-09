@@ -1,6 +1,6 @@
 # I2C Component
 
-https://components.espressif.com/components/espp/i2c/badge.svg
+[![Badge](https://components.espressif.com/components/espp/i2c/badge.svg)](https://components.espressif.com/components/espp/i2c)
 
 The `I2C` class provides a simple interface to the I2C bus. It is a wrapper
 around the esp-idf I2C driver.

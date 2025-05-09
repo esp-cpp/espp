@@ -1,6 +1,6 @@
 # CLI (Command Line Interface) Component
 
-https://components.espressif.com/components/espp/cli/badge.svg
+[![Badge](https://components.espressif.com/components/espp/cli/badge.svg)](https://components.espressif.com/components/espp/cli)
 
 The `cli.hpp` header provides a convenience include / wrapper around
 `daniele77/cli <https://github.com/daniele77/cli>`_. It also exposes `cli`'s

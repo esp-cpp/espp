@@ -1,6 +1,6 @@
 # KTS1622 I2C I/O Expander
 
-https://components.espressif.com/components/espp/kts1622/badge.svg
+[![Badge](https://components.espressif.com/components/espp/kts1622/badge.svg)](https://components.espressif.com/components/espp/kts1622)
 
 The `KTS1622` I/O expander component allows the user to configure inputs,
 outputs, interrupts, etc. via a serial interface such as I2C.

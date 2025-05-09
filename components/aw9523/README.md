@@ -1,6 +1,6 @@
 # AW9523 I2C I/O Expander and LED Driver
 
-https://components.espressif.com/components/espp/aw9523/badge.svg
+[![Badge](https://components.espressif.com/components/espp/aw9523/badge.svg)](https://components.espressif.com/components/espp/aw9523)
 
 The `AW9523` I/O expander component allows the user to configure inputs,
 outputs, interrupts, etc. via a serial interface such as I2C. It also supports

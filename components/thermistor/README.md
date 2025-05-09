@@ -1,6 +1,6 @@
 # Thermistor Component
 
-https://components.espressif.com/components/espp/thermistor/badge.svg
+[![Badge](https://components.espressif.com/components/espp/thermistor/badge.svg)](https://components.espressif.com/components/espp/thermistor)
 
 The Thermistor APIs provide a set of functions to read the temperature from a
 thermistor. The thermistor stores the relevant information (from the datasheet)

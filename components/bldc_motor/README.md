@@ -1,6 +1,6 @@
 # BLDC (Brushless DC) Motor Component
 
-https://components.espressif.com/components/espp/bldc_motor/badge.svg
+[![Badge](https://components.espressif.com/components/espp/bldc_motor/badge.svg)](https://components.espressif.com/components/espp/bldc_motor)
 
 The `BldcMotor` implements the Field-Oriented Control (FOC) algorithm with
 support for multiple transforms to drive voltage (such as Sinusoidal and Space

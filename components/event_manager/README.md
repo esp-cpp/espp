@@ -1,6 +1,6 @@
 # Event Manager Component
 
-https://components.espressif.com/components/espp/event_manager/badge.svg
+[![Badge](https://components.espressif.com/components/espp/event_manager/badge.svg)](https://components.espressif.com/components/espp/event_manager)
 
 The `EventManager` class enables anonymous publish/subscribe interactions
 between different software components and contexts in the system. It provides a

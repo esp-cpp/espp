@@ -1,6 +1,6 @@
 # Comma-Separated Value (CSV) Parsing Component
 
-https://components.espressif.com/components/espp/csv/badge.svg
+[![Badge](https://components.espressif.com/components/espp/csv/badge.svg)](https://components.espressif.com/components/espp/csv)
 
 The `csv.hpp` header provides a convenience include / wrapper around
 `p-ranav/csv2 <https://github.com/p-pranav/csv2`_. It also exposes `csv2`'s

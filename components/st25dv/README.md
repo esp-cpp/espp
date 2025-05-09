@@ -1,6 +1,6 @@
 # St25dv I2C Dynamic Near Field Communications (NFC) Tag Component
 
-https://components.espressif.com/components/espp/st25dv/badge.svg
+[![Badge](https://components.espressif.com/components/espp/st25dv/badge.svg)](https://components.espressif.com/components/espp/st25dv)
 
 The `St25dv` provides a utility class for NFC using the ST25DV Dynamic NFC /
 RFID tag. The tag includes 4Kb, 16Kb, or 64Kb EEPROM along with support for fast

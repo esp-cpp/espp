@@ -1,6 +1,6 @@
 # VL53LXX Time of Flight (Tof) Distance Sensor Peripheral Component
 
-https://components.espressif.com/components/espp/vl53l/badge.svg
+[![Badge](https://components.espressif.com/components/espp/vl53l/badge.svg)](https://components.espressif.com/components/espp/vl53l)
 
 The
 [Vl53L0X](https://www.st.com/en/imaging-and-photonics-solutions/vl53l0x.html) is

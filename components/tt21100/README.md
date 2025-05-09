@@ -1,6 +1,6 @@
 # TT21100 I2C Touch Controller Peripheral Component
 
-https://components.espressif.com/components/espp/tt21100/badge.svg
+[![Badge](https://components.espressif.com/components/espp/tt21100/badge.svg)](https://components.espressif.com/components/espp/tt21100)
 
 The `TT21100` is a touch controller that supports up to 10 touch points. It
 supports both mutual and self capacitance sensing. It can be used with `TT21100`

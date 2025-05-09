@@ -1,6 +1,6 @@
 # Color Component
 
-https://components.espressif.com/components/espp/color/badge.svg
+[![Badge](https://components.espressif.com/components/espp/color/badge.svg)](https://components.espressif.com/components/espp/color)
 
 The `color.hpp` header provides two classes for performing color management,
 interpolation, and conversion - `espp::Rgb` and `espp::Hsv` which can be

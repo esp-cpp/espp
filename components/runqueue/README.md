@@ -1,6 +1,6 @@
 # RunQueue Asynchronous Execution Component
 
-https://components.espressif.com/components/espp/runqueue/badge.svg
+[![Badge](https://components.espressif.com/components/espp/runqueue/badge.svg)](https://components.espressif.com/components/espp/runqueue)
 
 The `RunQueue` component provides an implementation of a task runqueue which can
 be used to run functions asynchronously and with optional relative priorities.

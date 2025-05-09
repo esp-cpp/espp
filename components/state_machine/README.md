@@ -1,6 +1,6 @@
 # Hierarchichal Finite State Machine (HFSM) Component
 
-https://components.espressif.com/components/espp/state_machine/badge.svg
+[![Badge](https://components.espressif.com/components/espp/state_machine/badge.svg)](https://components.espressif.com/components/espp/state_machine)
 
 The `state_machine` component is a light wrapper around the
 [webgme-hfsm](https://github.com/finger563/webgme-hfsm) static generated code.

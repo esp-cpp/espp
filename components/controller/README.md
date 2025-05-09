@@ -1,6 +1,6 @@
 # Controller Component
 
-https://components.espressif.com/components/espp/controller/badge.svg
+[![Badge](https://components.espressif.com/components/espp/controller/badge.svg)](https://components.espressif.com/components/espp/controller)
 
 The `Controller` class provides a convenience for reading multiple GPIOs at once
 and mapping their state to common controller buttons. It can optionally be

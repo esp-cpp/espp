@@ -1,6 +1,6 @@
 # Base Peripheral
 
-https://components.espressif.com/components/espp/base_peripheral/badge.svg
+[![Badge](https://components.espressif.com/components/espp/base_peripheral/badge.svg)](https://components.espressif.com/components/espp/base_peripheral)
 
 The `espp::BasePeripheral` class is a base class for all peripherals. It
 provides a common interface for all peripherals and is used to access the

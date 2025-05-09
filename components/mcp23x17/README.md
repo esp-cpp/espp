@@ -1,6 +1,6 @@
 # MCP23x17 I/O Expander
 
-https://components.espressif.com/components/espp/mcp23x17/badge.svg
+[![Badge](https://components.espressif.com/components/espp/mcp23x17/badge.svg)](https://components.espressif.com/components/espp/mcp23x17)
 
 The `MCP23x17` I/O expander component allows the user to configure inputs,
 outputs, interrupts, etc. via a serial interface such as SPI or I2C.

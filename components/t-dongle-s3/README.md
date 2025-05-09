@@ -1,6 +1,6 @@
 # LilyGo T-Dongle-S3 Board Support Package (BSP) Component
 
-https://components.espressif.com/components/espp/t-dongle-s3/badge.svg
+[![Badge](https://components.espressif.com/components/espp/t-dongle-s3/badge.svg)](https://components.espressif.com/components/espp/t-dongle-s3)
 
 The LilyGo T-Dongle S3 is a development board for the ESP32-S3 module. It
 features a USB-A connector which doubles as a micro-SD card reader, a color LCD,

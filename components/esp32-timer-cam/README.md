@@ -1,6 +1,6 @@
 # ESP32-TIMER-CAM Board Support Package (BSP) Component
 
-https://components.espressif.com/components/espp/esp32-timer-cam/badge.svg
+[![Badge](https://components.espressif.com/components/espp/esp32-timer-cam/badge.svg)](https://components.espressif.com/components/espp/esp32-timer-cam)
 
 The ESP32 TimerCam is a little usb-c webcamera using the ESP32. It has a little
 blue LED, a real-time clock (RTC), and supports battery operation with battery

@@ -1,6 +1,6 @@
 # Matouch-Rotary-Display Board Support Package (BSP) Component
 
-https://components.espressif.com/components/espp/matouch-rotary-display/badge.svg
+[![Badge](https://components.espressif.com/components/espp/matouch-rotary-display/badge.svg)](https://components.espressif.com/components/espp/matouch-rotary-display)
 
 The Matouch Rotary Display is a development board for the ESP32-S3 module. It
 features a nice touchscreen display, a rotary encoder, a push button behind the
