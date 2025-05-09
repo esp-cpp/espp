@@ -2,6 +2,6 @@
 # pip install --user -r requirements.txt
 #
 cairosvg
-sphinx==4.5.0
-esp-docs==1.10.0
+sphinx
+esp-docs
 myst-parser

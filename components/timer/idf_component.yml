@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.0"
+version: "0.21.1"
 license: "MIT"
 description: "C++ Timers for ESP-IDF which can be started / stopped / resumed."
 url: "https://github.com/esp-cpp/espp/tree/main/components/timer"
@@ -18,4 +18,4 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/task:
-    version: '>=0.21.0'
+    version: '>=0.21.1'
