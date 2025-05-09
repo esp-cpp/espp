@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.1"
+version: "0.22.0"
 license: "MIT"
 description: "A C++ base component class for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/base_component"
@@ -14,4 +14,4 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/logger:
-    version: '>=0.21.1'
+    version: '>=0.22.0'

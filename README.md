@@ -46,8 +46,8 @@ To use the components in this repository, you have a few options:
    `ble_gatt_server` components, you could run:
 
      ```console
-     idf.py add-dependency "espp/task^0.21.1"
-     idf.py add-dependency "espp/ble_gatt_server^0.21.1"
+     idf.py add-dependency "espp/task^0.22.0"
+     idf.py add-dependency "espp/ble_gatt_server^0.22.0"
      ```
    
    Alternatively, you could add the following dependencies to your
@@ -56,9 +56,9 @@ To use the components in this repository, you have a few options:
      ```yaml
      dependencies:
         esp-cpp/ble_gatt_server:
-          version: '>=0.21.1'
+          version: '>=0.22.0'
         esp-cpp/task:
-          version: '>=0.21.1'
+          version: '>=0.22.0'
         # other dependencies here...
      ```
 

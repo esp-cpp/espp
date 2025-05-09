@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.1"
+version: "0.22.0"
 license: "MIT"
 description: "Google Fast Pair Service (GFPS) BLE Service component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/gfps_service"
@@ -27,10 +27,10 @@ dependencies:
   h2zero/esp-nimble-cpp:
     version: '>=2.2.1'
   espp/base_component:
-    version: '>=0.21.1'
+    version: '>=0.22.0'
   espp/logger:
-    version: '>=0.21.1'
+    version: '>=0.22.0'
   espp/task:
-    version: '>=0.21.1'
+    version: '>=0.22.0'
   espp/timer:
-    version: '>=0.21.1'
+    version: '>=0.22.0'

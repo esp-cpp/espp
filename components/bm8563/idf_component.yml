@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.1"
+version: "0.22.0"
 license: "MIT"
 description: "BM8563 Real-Time Clock (RTC) component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/bm8563"
@@ -18,4 +18,4 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_peripheral:
-    version: '>=0.21.1'
+    version: '>=0.22.0'

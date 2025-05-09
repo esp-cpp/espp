@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-version: "0.21.1"
+version: "0.22.0"
 license: "MIT"
 description: "NVS (non-volatile storage) component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/nvs"
@@ -17,4 +17,4 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_component:
-    version: '>=0.21.1'
+    version: '>=0.22.0'
