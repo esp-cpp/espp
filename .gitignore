@@ -46,3 +46,4 @@ dependencies.lock
 lib/pc
 _build/
 __pycache__/
+managed_components/
