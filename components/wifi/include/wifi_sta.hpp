@@ -83,7 +83,12 @@ public:
     if (err != ESP_OK) {
       logger_.error("Could not create default event loop: {}", err);
     }
-    esp_netif_create_default_wifi_sta();
+
+    // Create default WiFi STA
+    netif_ = esp_netif_create_default_wifi_sta();
+    if (netif_ == nullptr) {
+      logger_.error("Could not create default WiFi STA");
+    }
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     err = esp_wifi_init(&cfg);
@@ -164,6 +169,9 @@ public:
       logger_.error("Could not deinit WiFiSta: {}", err);
     }
     logger_.info("WiFi stopped");
+    // destroy (free the memory)
+    logger_.debug("Destroying default WiFi STA");
+    esp_netif_destroy_default_wifi(netif_);
   }
 
   /**
@@ -213,6 +221,7 @@ protected:
 
   size_t attempts_{0};
   size_t num_retries_{0};
+  esp_netif_t *netif_{nullptr};
   connect_callback connect_callback_{nullptr};
   disconnect_callback disconnect_callback_{nullptr};
   ip_callback ip_callback_{nullptr};
