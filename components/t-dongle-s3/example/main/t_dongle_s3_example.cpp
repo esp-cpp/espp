@@ -38,6 +38,14 @@ extern "C" void app_main(void) {
     return;
   }
 
+  // initialize the uSD card
+  using SdCardConfig = espp::TDongleS3::SdCardConfig;
+  SdCardConfig sdcard_config{};
+  if (!tdongle.initialize_sdcard(sdcard_config)) {
+    logger.error("Failed to initialize SD card!");
+    return;
+  }
+
   // initialize the button, which we'll use to cycle the rotation of the display
   logger.info("Initializing the button");
   auto on_button_pressed = [&](const auto &event) {

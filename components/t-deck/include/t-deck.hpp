@@ -39,6 +39,7 @@ namespace espp {
 /// - Audio
 /// - Interrupts
 /// - I2C
+/// - microSD (uSD) card
 ///
 /// For more information, see
 /// https://github.com/Xinyuan-LilyGO/T-Deck/tree/master and
@@ -116,9 +117,17 @@ public:
   // uSD Card
   /////////////////////////////////////////////////////////////////////////////
 
+  /// Configuration for the uSD card
+  struct SdCardConfig {
+    bool format_if_mount_failed = false;    ///< Format the uSD card if mount failed
+    int max_files = 5;                      ///< The maximum number of files to open at once
+    size_t allocation_unit_size = 2 * 1024; ///< The allocation unit size in bytes
+  };
+
   /// Initialize the uSD card
+  /// \param config The configuration for the uSD card
   /// \return True if the uSD card was initialized properly.
-  bool initialize_sdcard();
+  bool initialize_sdcard(const SdCardConfig &config);
 
   /// Get the uSD card
   /// \return A pointer to the uSD card

@@ -4,7 +4,13 @@
 #include <string>
 #include <vector>
 
+#include <esp_err.h>
+#include <esp_partition.h>
+#include <esp_vfs_fat.h>
+#include <sdmmc_cmd.h>
+
 #include <driver/gpio.h>
+#include <driver/sdmmc_host.h>
 #include <driver/spi_master.h>
 #include <hal/spi_types.h>
 
@@ -21,6 +27,7 @@ namespace espp {
 /// - Button (boot button)
 /// - Display
 /// - RGB LED
+/// - micro-SD (uSD) card
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
@@ -33,6 +40,9 @@ public:
 
   /// Alias for the pixel type used by the T-Dongle-S3 display
   using Pixel = lv_color16_t;
+
+  /// Mount point for the uSD card on the TDeck.
+  static constexpr char mount_point[] = "/sdcard";
 
   /// @brief Access the singleton instance of the TDongleS3 class
   /// @return Reference to the singleton instance of the TDongleS3 class
@@ -186,6 +196,28 @@ public:
   ///      if there is an ongoing SPI transaction
   void write_lcd_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data);
 
+  /////////////////////////////////////////////////////////////////////////////
+  // uSD Card
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Configuration for the uSD card
+  struct SdCardConfig {
+    bool format_if_mount_failed = false;    ///< Format the uSD card if mount failed
+    int max_files = 5;                      ///< The maximum number of files to open at once
+    size_t allocation_unit_size = 2 * 1024; ///< The allocation unit size in bytes
+  };
+
+  /// Initialize the uSD card
+  /// \param config The configuration for the uSD card
+  /// \return True if the uSD card was initialized properly.
+  bool initialize_sdcard(const SdCardConfig &config);
+
+  /// Get the uSD card
+  /// \return A pointer to the uSD card
+  /// \note The uSD card is only available if it was successfully initialized
+  ///       and the mount point is valid
+  sdmmc_card_t *sdcard() const { return sdcard_; }
+
 protected:
   TDongleS3();
   void led_write(const uint8_t *data, size_t length);
@@ -226,6 +258,17 @@ protected:
 
   // button (boot button)
   static constexpr gpio_num_t button_io = GPIO_NUM_0; // active low
+
+  // uSD card
+  static constexpr gpio_num_t sdcard_d0 = GPIO_NUM_14;
+  static constexpr gpio_num_t sdcard_d1 = GPIO_NUM_17;
+  static constexpr gpio_num_t sdcard_d2 = GPIO_NUM_21;
+  static constexpr gpio_num_t sdcard_d3 = GPIO_NUM_18;
+  static constexpr gpio_num_t sdcard_clk = GPIO_NUM_12;
+  static constexpr gpio_num_t sdcard_cmd = GPIO_NUM_16;
+
+  // sdcard
+  sdmmc_card_t *sdcard_{nullptr};
 
   // Interrupts
   espp::Interrupt::PinConfig button_interrupt_pin_{

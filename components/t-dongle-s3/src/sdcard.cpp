@@ -1,4 +1,4 @@
-#include "t-deck.hpp"
+#include "t-dongle-s3.hpp"
 
 using namespace espp;
 
@@ -6,15 +6,9 @@ using namespace espp;
 // uSD Card
 /////////////////////////////////////////////////////////////////////////////
 
-bool TDeck::initialize_sdcard(const TDeck::SdCardConfig &config) {
+bool TDongleS3::initialize_sdcard(const TDongleS3::SdCardConfig &config) {
   if (sdcard_) {
     logger_.error("SD card already initialized!");
-    return false;
-  }
-
-  // ensure that the SPI bus is initialized
-  if (!init_spi_bus()) {
-    logger_.error("Failed to initialize SPI bus.");
     return false;
   }
 
@@ -38,24 +32,25 @@ bool TDeck::initialize_sdcard(const TDeck::SdCardConfig &config) {
 
   // By default, SD card frequency is initialized to SDMMC_FREQ_DEFAULT (20MHz)
   // For setting a specific frequency, use host.max_freq_khz (range 400kHz - 20MHz for SDSPI)
-  // Example: for fixed frequency of 10MHz, use host.max_freq_khz = 10000;
-  sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = spi_num;
-  // host.max_freq_khz = 20 * 1000;
+  sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+  host.max_freq_khz = SDMMC_FREQ_HIGHSPEED; // 40MHz
 
   // This initializes the slot without card detect (CD) and write protect (WP) signals.
   // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
-  spi_host_device_t host_id = (spi_host_device_t)host.slot;
-  sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-  slot_config.gpio_cs = sdcard_cs;
-  slot_config.host_id = host_id;
+  sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+  slot_config.clk = sdcard_clk;
+  slot_config.cmd = sdcard_cmd;
+  slot_config.d0 = sdcard_d0;
+  slot_config.d1 = sdcard_d1;
+  slot_config.d2 = sdcard_d2;
+  slot_config.d3 = sdcard_d3;
 
   logger_.debug("Mounting filesystem");
-  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
+  ret = esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
 
   if (ret != ESP_OK) {
     if (ret == ESP_FAIL) {
-      logger_.error("Failed to mount filesystem.");
+      logger_.error("Failed to mount filesystem. ");
       return false;
     } else {
       logger_.error("Failed to initialize the card ({}). "

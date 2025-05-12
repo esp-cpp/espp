@@ -86,7 +86,9 @@ extern "C" void app_main(void) {
   };
 
   // initialize the uSD card
-  if (!tdeck.initialize_sdcard()) {
+  using SdCardConfig = espp::TDeck::SdCardConfig;
+  SdCardConfig sdcard_config{};
+  if (!tdeck.initialize_sdcard(sdcard_config)) {
     logger.warn("Failed to initialize uSD card, there may not be a uSD card inserted!");
   }
   // initialize the Keyboard
