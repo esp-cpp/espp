@@ -28,6 +28,7 @@ extern "C" void app_main(void) {
 #endif
 
   {
+    fmt::print("Starting WiFi STA example...\n");
     //! [wifi sta example]
     espp::WifiSta wifi_sta({.ssid = CONFIG_ESP_WIFI_SSID,
                             .password = CONFIG_ESP_WIFI_PASSWORD,
@@ -44,14 +45,17 @@ extern "C" void app_main(void) {
     //! [wifi sta example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
+    fmt::print("WiFi STA example complete!\n");
   }
 
   {
+    fmt::print("Starting WiFi AP example...\n");
     //! [wifi ap example]
     espp::WifiAp wifi_ap({.ssid = CONFIG_ESP_WIFI_SSID, .password = CONFIG_ESP_WIFI_PASSWORD});
     //! [wifi ap example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
+    fmt::print("WiFi AP example complete!\n");
   }
 
   fmt::print("WiFi example complete!\n");

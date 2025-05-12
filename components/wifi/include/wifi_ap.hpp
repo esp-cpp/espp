@@ -54,8 +54,12 @@ public:
     if (err != ESP_OK) {
       logger_.error("Could not create default event loop: {}", err);
     }
+
     logger_.debug("Creating default WiFi AP");
-    esp_netif_create_default_wifi_ap();
+    netif_ = esp_netif_create_default_wifi_ap();
+    if (netif_ == nullptr) {
+      logger_.error("Could not create default WiFi AP: {}", err);
+    }
 
     // NOTE: Configure phase
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -129,6 +133,9 @@ public:
       logger_.error("Could not deinit WiFiAp: {}", err);
     }
     logger_.info("WiFi stopped");
+    // destroy (free the memory)
+    logger_.debug("Destroying default WiFi AP");
+    esp_netif_destroy_default_wifi(netif_);
   }
 
 protected:
@@ -150,6 +157,7 @@ protected:
     }
   }
 
+  esp_netif_t *netif_{nullptr}; ///< Pointer to the default WiFi AP netif.
   esp_event_handler_instance_t *event_handler_instance_{nullptr};
 };
 } // namespace espp
