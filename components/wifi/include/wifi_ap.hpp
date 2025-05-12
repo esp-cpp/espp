@@ -58,7 +58,7 @@ public:
     logger_.debug("Creating default WiFi AP");
     netif_ = esp_netif_create_default_wifi_ap();
     if (netif_ == nullptr) {
-      logger_.error("Could not create default WiFi AP: {}", err);
+      logger_.error("Could not create default WiFi AP");
     }
 
     // NOTE: Configure phase

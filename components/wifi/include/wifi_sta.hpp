@@ -87,7 +87,7 @@ public:
     // Create default WiFi STA
     netif_ = esp_netif_create_default_wifi_sta();
     if (netif_ == nullptr) {
-      logger_.error("Could not create default WiFi STA: {}", err);
+      logger_.error("Could not create default WiFi STA");
     }
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
