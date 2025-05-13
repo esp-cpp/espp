@@ -18,9 +18,6 @@ dependencies:
     version: '>=5.0'
   lvgl/lvgl:
     version: '>=9.2.2'
-  espp/base_component:
-    version: '>=0.22.0'
-  espp/led:
-    version: '>=0.22.0'
-  espp/task:
-    version: '>=0.22.0'
+  espp/base_component: '>=1.0'
+  espp/led: '>=1.0'
+  espp/task: '>=1.0'

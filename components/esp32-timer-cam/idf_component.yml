@@ -18,19 +18,11 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/adc:
-    version: '>=0.22.0'
-  espp/base_component:
-    version: '>=0.22.0'
-  espp/bm8563:
-    version: '>=0.22.0'
-  espp/i2c:
-    version: '>=0.22.0'
-  espp/interrupt:
-    version: '>=0.22.0'
-  espp/led:
-    version: '>=0.22.0'
-  espp/math:
-    version: '>=0.22.0'
-  espp/task:
-    version: '>=0.22.0'
+  espp/adc: '>=1.0'
+  espp/base_component: '>=1.0'
+  espp/bm8563: '>=1.0'
+  espp/i2c: '>=1.0'
+  espp/interrupt: '>=1.0'
+  espp/led: '>=1.0'
+  espp/math: '>=1.0'
+  espp/task: '>=1.0'

@@ -19,7 +19,5 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/base_component:
-    version: '>=0.22.0'
-  espp/task:
-    version: '>=0.22.0'
+  espp/base_component: '>=1.0'
+  espp/task: '>=1.0'

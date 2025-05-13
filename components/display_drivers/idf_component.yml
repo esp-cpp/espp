@@ -21,7 +21,5 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/display:
-    version: '>=0.22.0'
-  espp/led:
-    version: '>=0.22.0'
+  espp/display: '>=1.0'
+  espp/led: '>=1.0'

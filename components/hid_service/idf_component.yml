@@ -20,5 +20,4 @@ dependencies:
     version: '>=5.0'
   h2zero/esp-nimble-cpp:
     version: '>=2.2.1'
-  espp/base_component:
-    version: '>=0.22.0'
+  espp/base_component: '>=1.0'
