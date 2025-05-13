@@ -20,13 +20,8 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/base_component:
-    version: '>=0.22.0'
-  espp/bldc_motor:
-    version: '>=0.22.0'
-  espp/math:
-    version: '>=0.22.0'
-  espp/pid:
-    version: '>=0.22.0'
-  espp/task:
-    version: '>=0.22.0'
+  espp/base_component: '>=1.0'
+  espp/bldc_motor: '>=1.0'
+  espp/math: '>=1.0'
+  espp/pid: '>=1.0'
+  espp/task: '>=1.0'

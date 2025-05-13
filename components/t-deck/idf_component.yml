@@ -18,21 +18,12 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/base_component:
-    version: '>=0.22.0'
-  espp/display:
-    version: '>=0.22.0'
-  espp/display_drivers:
-    version: '>=0.22.0'
-  espp/gt911:
-    version: '>=0.22.0'
-  espp/i2c:
-    version: '>=0.22.0'
-  espp/input_drivers:
-    version: '>=0.22.0'
-  espp/interrupt:
-    version: '>=0.22.0'
-  espp/task:
-    version: '>=0.22.0'
-  espp/t_keyboard:
-    version: '>=0.22.0'
+  espp/base_component: '>=1.0'
+  espp/display: '>=1.0'
+  espp/display_drivers: '>=1.0'
+  espp/gt911: '>=1.0'
+  espp/i2c: '>=1.0'
+  espp/input_drivers: '>=1.0'
+  espp/interrupt: '>=1.0'
+  espp/task: '>=1.0'
+  espp/t_keyboard: '>=1.0'

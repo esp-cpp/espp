@@ -18,5 +18,4 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/logger:
-    version: '>=0.22.0'
+  espp/logger: '>=1.0'

@@ -20,5 +20,4 @@ dependencies:
     version: '>=5.0'
   joltwallet/littlefs:
     version: '1.16.2'
-  espp/base_component:
-    version: '>=0.22.0'
+  espp/base_component: '>=1.0'

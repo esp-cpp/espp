@@ -18,9 +18,6 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/base_peripheral:
-    version: '>=0.22.0'
-  espp/math:
-    version: '>=0.22.0'
-  espp/utils:
-    version: '>=0.22.0'
+  espp/base_peripheral: '>=1.0'
+  espp/math: '>=1.0'
+  espp/utils: '>=1.0'

@@ -18,5 +18,4 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/format:
-    version: '>=0.22.0'
+  espp/format: '>=1.0'
