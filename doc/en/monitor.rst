@@ -24,6 +24,21 @@ Finally, the class provides some static methods for some common use cases to
 quickly get the available memory for various regions as well as easily format
 them into csv/table output.
 
+Code examples for the monitor API are provided in the `monitor` example folder.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   monitor_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+Heap Monitor API Reference
+--------------------------
+
+.. include-build-file:: inc/heap_monitor.inc
+
 Task Monitor
 ------------
 
@@ -45,7 +60,7 @@ Code examples for the monitor API are provided in the `monitor` example folder.
 
 .. ---------------------------- API Reference ----------------------------------
 
-API Reference
--------------
+Task Monitor API Reference
+--------------------------
 
 .. include-build-file:: inc/task_monitor.inc
