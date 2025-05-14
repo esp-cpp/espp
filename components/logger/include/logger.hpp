@@ -116,25 +116,25 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @note This will NOT copy the last_print_ time, as this is not meaningful
    *       for the new logger.
    */
-  Logger(const Logger &other)
+  Logger(const Logger &other) // cppcheck-suppress missingMemberCopy
       : tag_(other.get_tag())
       , rate_limit_(other.rate_limit_)
       , include_time_(other.include_time_.load())
-      , level_(other.level_.load()) { // cppcheck-suppress missingMemberCopy
-  }
+      , level_(other.level_.load()) {}
 
   /**
    * @brief Move constructor
    * @param other The other logger to move from.
    */
-  Logger(Logger &&other) noexcept
-      : rate_limit_(std::move(other.rate_limit_))
+  Logger(Logger &&other) noexcept // cppcheck-suppress missingMemberCopy
+      : tag_([&other] {
+        std::lock_guard<std::mutex> lock(other.tag_mutex_);
+        return std::move(other.tag_);
+      }())
+      , rate_limit_(std::move(other.rate_limit_))
       , last_print_(std::move(other.last_print_))
       , include_time_(other.include_time_.load())
-      , level_(other.level_.load()) { // cppcheck-suppress missingMemberCopy
-    std::lock_guard<std::mutex> lock(other.tag_mutex_);
-    tag_ = std::move(other.tag_);
-  }
+      , level_(other.level_.load()) {}
 
   /**
    * @brief Get the current verbosity for the logger.
