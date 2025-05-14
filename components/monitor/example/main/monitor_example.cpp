@@ -34,12 +34,12 @@ extern "C" void app_main(void) {
     {
       std::vector<espp::HeapMonitor> heap_monitors;
       for (const auto &heap_cap : heap_caps) {
+        // cppcheck-suppress useStlAlgorithm
         heap_monitors.push_back(espp::HeapMonitor({.heap_flags = heap_cap}));
       }
       // print a table with all the monitors
       fmt::print("Heap Monitor Info (table 't'):\n");
       fmt::print("{}\n", espp::HeapMonitor::get_table_header());
-      // cppcheck-suppress useStlAlgorithm
       for (const auto &hm : heap_monitors) {
         auto info = hm.get_info();
         fmt::print("{:t}\n", info);
@@ -47,7 +47,6 @@ extern "C" void app_main(void) {
       // print a csv with all the monitors
       fmt::print("Heap Monitor Info (csv 'c'):\n");
       fmt::print("{}\n", espp::HeapMonitor::get_csv_header());
-      // cppcheck-suppress useStlAlgorithm
       for (const auto &hm : heap_monitors) {
         auto info = hm.get_info();
         fmt::print("{:c}\n", info);
