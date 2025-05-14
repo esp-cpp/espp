@@ -183,6 +183,7 @@ INPUT += $(PROJECT_PATH)/components/kts1622/include/kts1622.hpp
 INPUT += $(PROJECT_PATH)/components/led/include/led.hpp
 INPUT += $(PROJECT_PATH)/components/led_strip/include/led_strip.hpp
 INPUT += $(PROJECT_PATH)/components/logger/include/logger.hpp
+INPUT += $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp
 INPUT += $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp
 INPUT += $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp
 INPUT += $(PROJECT_PATH)/components/math/include/bezier.hpp
