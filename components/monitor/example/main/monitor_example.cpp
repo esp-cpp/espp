@@ -31,7 +31,7 @@ extern "C" void app_main(void) {
     for (const auto &heap_cap : heap_caps) {
       heap_monitors.push_back(espp::HeapMonitor({.heap_flags = heap_cap}));
     }
-    // pint a table with all the monitors
+    // print a table with all the monitors
     fmt::print("Heap Monitor Info (table 't'):\n");
     fmt::print("{}\n", espp::HeapMonitor::get_table_header());
     for (const auto &hm : heap_monitors) {
