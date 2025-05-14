@@ -18,6 +18,5 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  joltwallet/littlefs:
-    version: '1.16.2'
+  joltwallet/littlefs: '1.19.2'
   espp/base_component: '>=1.0'
