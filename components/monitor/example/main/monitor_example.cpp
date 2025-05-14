@@ -16,35 +16,42 @@ extern "C" void app_main(void) {
   fmt::print("Stating monitor example!\n");
   {
     //! [HeapMonitor example]
-    // create the monitor
-    espp::HeapMonitor hm({});
-    auto info = hm.get_info();
-    fmt::print("Heap Monitor Info (single line 's', default):\n");
-    fmt::print("{}\n", info);
-    // should be the exact same as the default
-    fmt::print("{:s}\n", info);
 
-    // now test multiple monitors
+    // test a single monitor
+    {
+      espp::HeapMonitor hm({});
+      auto info = hm.get_info();
+      fmt::print("Heap Monitor Info (single line 's', default):\n");
+      fmt::print("{}\n", info);
+      // should be the exact same as the default
+      fmt::print("{:s}\n", info);
+    }
+
     std::vector<int> heap_caps = {MALLOC_CAP_DEFAULT, MALLOC_CAP_INTERNAL, MALLOC_CAP_SPIRAM,
                                   MALLOC_CAP_DMA};
-    std::vector<espp::HeapMonitor> heap_monitors;
-    for (const auto &heap_cap : heap_caps) {
-      heap_monitors.push_back(espp::HeapMonitor({.heap_flags = heap_cap}));
+
+    // now test multiple monitors
+    {
+      std::vector<espp::HeapMonitor> heap_monitors;
+      for (const auto &heap_cap : heap_caps) {
+        heap_monitors.push_back(espp::HeapMonitor({.heap_flags = heap_cap}));
+      }
+      // print a table with all the monitors
+      fmt::print("Heap Monitor Info (table 't'):\n");
+      fmt::print("{}\n", espp::HeapMonitor::get_table_header());
+      for (const auto &hm : heap_monitors) {
+        auto info = hm.get_info();
+        fmt::print("{:t}\n", info);
+      }
+      // print a csv with all the monitors
+      fmt::print("Heap Monitor Info (csv 'c'):\n");
+      fmt::print("{}\n", espp::HeapMonitor::get_csv_header());
+      for (const auto &hm : heap_monitors) {
+        auto info = hm.get_info();
+        fmt::print("{:c}\n", info);
+      }
     }
-    // print a table with all the monitors
-    fmt::print("Heap Monitor Info (table 't'):\n");
-    fmt::print("{}\n", espp::HeapMonitor::get_table_header());
-    for (const auto &hm : heap_monitors) {
-      auto info = hm.get_info();
-      fmt::print("{:t}\n", info);
-    }
-    // print a csv with all the monitors
-    fmt::print("Heap Monitor Info (csv 'c'):\n");
-    fmt::print("{}\n", espp::HeapMonitor::get_csv_header());
-    for (const auto &hm : heap_monitors) {
-      auto info = hm.get_info();
-      fmt::print("{:c}\n", info);
-    }
+
     // Print a table with the static API
     fmt::print("Heap monitor table:\n");
     fmt::print("{}\n", espp::HeapMonitor::get_table(heap_caps));

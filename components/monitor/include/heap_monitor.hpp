@@ -40,7 +40,7 @@ public:
 
   /// @brief Constructor
   /// @param config Configuration for heap monitor
-  HeapMonitor(const Config &config)
+  explicit HeapMonitor(const Config &config)
       : BaseComponent(config.name, config.log_level)
       , heap_flags_(config.heap_flags) {}
 
