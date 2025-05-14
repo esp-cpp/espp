@@ -113,8 +113,8 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
   /**
    * @brief Copy constructor
    * @param other The other logger to copy from.
-   * @note This will copy the tag and the rate limit, but not the last print
-   *       time.
+   * @note This will NOT copy the last_print_ time, as this is not meaningful
+   *       for the new logger.
    */
   Logger(const Logger &other) {
     rate_limit_ = other.rate_limit_;
