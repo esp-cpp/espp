@@ -73,7 +73,7 @@ public:
   /// @brief Get the header for the table output
   /// @return Table header string
   static const std::string get_table_header() {
-    return " Min Free /     Free /  Biggest /    Total | Type";
+    return " Min Free /     Free /  Biggest /   Total | Type";
   }
 
   /// @brief Get a string representation of the heap info in table format
