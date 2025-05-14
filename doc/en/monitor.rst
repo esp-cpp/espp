@@ -1,6 +1,29 @@
 Monitoring APIs
 ***************
 
+Heap Monitor
+------------
+
+The heap monitor provides some simple utilities for monitoring and printing out
+the state of the heap memory in the system. It uses various `heap_caps_get_*`
+functions to provide information about a memory region specified by a bitmask of
+capabilities defining the region:
+
+* `minimum free bytes`: The minimum free bytes available in the region over the
+  lifetime of the region.
+* `free bytes`: The current number of free bytes available in the region.
+* `allocated bytes`: The current number of allocated bytes in the region.
+* `largest free block`: The size of the current largest free block (in bytes) in
+  the region. Any mallocs over the size will fail.
+* `total size`: The size (in bytes) of the memory region.
+
+It provides some utilities for formatting the output as single line output, CSV
+output, or a nice table.
+
+Finally, the class provides some static methods for some common use cases to
+quickly get the available memory for various regions as well as easily format
+them into csv/table output.
+
 Task Monitor
 ------------
 
