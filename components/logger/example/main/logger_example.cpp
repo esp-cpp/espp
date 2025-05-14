@@ -33,6 +33,31 @@ extern "C" void app_main(void) {
   }
 
   {
+    //! [logger copy/move example]
+    // create loggers
+    std::vector<espp::Logger> loggers;
+    for (int i = 0; i < 5; i++) {
+      loggers.emplace_back(espp::Logger(
+          {.tag = fmt::format("Logger {}", i),
+           .include_time = i % 2 == 0,
+           .level = i % 2 == 0 ? espp::Logger::Verbosity::DEBUG : espp::Logger::Verbosity::INFO}));
+    }
+    // copy loggers
+    std::vector<espp::Logger> loggers_copy(loggers);
+    // move loggers
+    std::vector<espp::Logger> loggers_move(std::move(loggers));
+    // use the loggers and make sure they are valid
+    for (auto &logger : loggers_copy) {
+      logger.info("Logger copy: {}", logger.get_verbosity());
+    }
+    for (auto &logger : loggers_move) {
+      logger.info("Logger move: {}", logger.get_verbosity());
+    }
+    // loggers_copy and loggers_move are valid, but loggers is not
+    //! [logger copy/move example]
+  }
+
+  {
     //! [Cursor Commands example]
     float num_seconds_to_run = 10.0f;
     // create loggers
