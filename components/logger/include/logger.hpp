@@ -107,7 +107,34 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
   explicit Logger(const Config &config)
       : tag_(config.tag)
       , rate_limit_(config.rate_limit)
+      , include_time_(config.include_time)
       , level_(config.level) {}
+
+  /**
+   * @brief Copy constructor
+   * @param other The other logger to copy from.
+   * @note This will copy the tag and the rate limit, but not the last print
+   *       time.
+   */
+  Logger(const Logger &other) {
+    rate_limit_ = other.rate_limit_;
+    level_ = other.level_.load();
+    include_time_ = other.include_time_.load();
+    tag_ = other.get_tag();
+  }
+
+  /**
+   * @brief Move constructor
+   * @param other The other logger to move from.
+   */
+  Logger(Logger &&other) noexcept {
+    rate_limit_ = other.rate_limit_;
+    level_ = other.level_.load();
+    include_time_ = other.include_time_.load();
+    last_print_ = other.last_print_;
+    std::lock_guard<std::mutex> lock(other.tag_mutex_);
+    tag_ = std::move(other.tag_);
+  }
 
   /**
    * @brief Get the current verbosity for the logger.
@@ -422,3 +449,5 @@ protected:
       espp::Logger::Verbosity::WARN; ///< Current verbosity level of the logger.
 };
 } // namespace espp
+
+#include "logger_formatters.hpp"
