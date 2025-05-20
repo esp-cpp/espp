@@ -25,7 +25,7 @@ dependencies:
   idf:
     version: '>=5.4'
   h2zero/esp-nimble-cpp:
-    version: '>=2.2.1'
+    version: '>=2.3.0'
   espp/base_component: '>=1.0'
   espp/logger: '>=1.0'
   espp/task: '>=1.0'
