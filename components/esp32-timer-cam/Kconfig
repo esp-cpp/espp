@@ -1,4 +1,4 @@
-menu "Esp-Box Configuration"
+menu "Esp32 TimerCam Configuration"
     config ESP_TIMER_CAM_INTERRUPT_STACK_SIZE
         int "Interrupt stack size"
         default 4096
