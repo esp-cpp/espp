@@ -45,24 +45,28 @@ public:
     //       endian format, but this chip sends the data in big endian format meaning
     //       the bytes are swapped
 
-    read_many((uint8_t *)&data_len, 2, ec);
-    if (ec) {
-      logger_.error("Failed to read data length: {}", ec.message());
-      return false;
-    }
+    {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
-    logger_.debug("Data length: {}", data_len);
+      read_many((uint8_t *)&data_len, 2, ec);
+      if (ec) {
+        logger_.error("Failed to read data length: {}", ec.message());
+        return false;
+      }
 
-    if (data_len >= 0xff) {
-      logger_.error("Invalid data length");
-      ec = std::make_error_code(std::errc::io_error);
-      return false;
-    }
+      logger_.debug("Data length: {}", data_len);
 
-    read_many(data, data_len, ec);
-    if (ec) {
-      logger_.error("Failed to read data");
-      return false;
+      if (data_len >= 0xff) {
+        logger_.error("Invalid data length");
+        ec = std::make_error_code(std::errc::io_error);
+        return false;
+      }
+
+      read_many(data, data_len, ec);
+      if (ec) {
+        logger_.error("Failed to read data");
+        return false;
+      }
     }
 
     bool new_data = false;
@@ -127,6 +131,7 @@ public:
 
 protected:
   void init(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     logger_.debug("Initializing...");
     uint16_t reg_val = 0;
     static constexpr int max_tries = 10;

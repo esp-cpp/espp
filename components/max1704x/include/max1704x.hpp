@@ -82,7 +82,6 @@ public:
    * @return The IC version.
    */
   uint16_t get_version(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t data = read_u16_from_register((uint8_t)Register::VERSION, ec);
     if (ec) {
       return 0;
@@ -97,7 +96,6 @@ public:
    * @return The chip ID.
    */
   uint8_t get_chip_id(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t data = read_u16_from_register((uint8_t)Register::CHIPID, ec);
     if (ec) {
       return 0;
@@ -112,7 +110,6 @@ public:
    * @return The battery voltage in V.
    */
   float get_battery_voltage(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t data = read_u16_from_register((uint8_t)Register::VCELL, ec);
     if (ec) {
       return 0;
@@ -128,7 +125,6 @@ public:
    * @return The battery state of charge in %.
    */
   float get_battery_percentage(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t data = read_u16_from_register((uint8_t)Register::SOC, ec);
     if (ec) {
       return 0;
@@ -146,7 +142,6 @@ public:
    * @return The battery charge or discharge rate in %/hr.
    */
   float get_battery_charge_rate(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     int16_t data = read_u16_from_register((uint8_t)Register::CRATE, ec);
     if (ec) {
       return 0;
@@ -162,7 +157,6 @@ public:
    * @return The battery alert status as an AlertStatus.
    */
   AlertStatus get_alert_status(std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t data = read_u16_from_register((uint8_t)Register::STATUS, ec);
     if (ec) {
       return AlertStatus::SOC_CHANGE;

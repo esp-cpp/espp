@@ -161,6 +161,7 @@ public:
 protected:
   int read_count(std::error_code &ec) {
     logger_.info("read_count");
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // read the angle count registers
     uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
     if (ec) {
@@ -175,6 +176,7 @@ protected:
 
   void update(std::error_code &ec) {
     logger_.info("update");
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // update raw count
     auto count = read_count(ec);
     if (ec) {
@@ -230,6 +232,7 @@ protected:
   }
 
   void init(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // initialize the accumulator to have the current angle
     auto count = read_count(ec);
     if (ec) {

@@ -136,6 +136,7 @@ public:
    *       output pins on the ports.
    */
   void output(uint8_t p0, uint8_t p1, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     output(Port::PORT0, p0, ec);
     if (ec)
       return;
@@ -150,6 +151,7 @@ public:
    *       output pins on the ports.
    */
   void output(uint16_t value, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     output(Port::PORT0, value & 0xFF, ec);
     if (ec)
       return;
@@ -165,6 +167,7 @@ public:
    */
   void clear_pins(Port port, uint8_t mask, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     auto data = read_u8_from_register((uint8_t)addr, ec);
     if (ec)
       return;
@@ -180,6 +183,7 @@ public:
    * @param ec Error code to set if an error occurs.
    */
   void clear_pins(uint8_t p0, uint8_t p1, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     clear_pins(Port::PORT0, p0, ec);
     if (ec)
       return;
@@ -193,6 +197,7 @@ public:
    * @param ec Error code to set if an error occurs.
    */
   void clear_pins(uint16_t mask, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     clear_pins(Port::PORT0, mask & 0xFF, ec);
     if (ec)
       return;
@@ -208,6 +213,7 @@ public:
    */
   void set_pins(Port port, uint8_t mask, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     auto data = read_u8_from_register((uint8_t)addr, ec);
     if (ec)
       return;
@@ -223,6 +229,7 @@ public:
    * @param ec Error code to set if an error occurs.
    */
   void set_pins(uint8_t p0, uint8_t p1, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     set_pins(Port::PORT0, p0, ec);
     if (ec)
       return;
@@ -236,6 +243,7 @@ public:
    * @param ec Error code to set if an error occurs.
    */
   void set_pins(uint16_t mask, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     set_pins(Port::PORT0, mask & 0xFF, ec);
     if (ec)
       return;
@@ -259,6 +267,7 @@ public:
    * @return The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb).
    */
   uint16_t get_output(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t p0 = read_u8_from_register((uint8_t)Registers::OUTPORT0, ec);
     if (ec)
       return 0;
@@ -485,6 +494,7 @@ protected:
   };
 
   void init(const Config &config, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     configure_global_control(config.output_drive_mode_p0, config.max_led_current, ec);
     if (ec)
       return;

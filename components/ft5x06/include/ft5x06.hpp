@@ -61,6 +61,7 @@ public:
   /// @param y The y coordinate of the touch point.
   /// @param ec The error code if the function fails.
   void get_touch_point(uint8_t *num_touch_points, uint16_t *x, uint16_t *y, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     auto tp = get_num_touch_points(ec);
     if (ec) {
       return;
@@ -87,6 +88,7 @@ public:
 
 protected:
   void init(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // Valid touching detect threshold
     write_u8_to_register((uint8_t)Registers::ID_G_THGROUP, 70, ec);
     if (ec)

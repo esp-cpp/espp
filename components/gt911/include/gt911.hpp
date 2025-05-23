@@ -39,6 +39,7 @@ public:
     bool new_data = false;
     static constexpr size_t DATA_LEN = CONTACT_SIZE * MAX_CONTACTS;
     static uint8_t data[DATA_LEN];
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     read_many_from_register((uint16_t)Registers::POINT_INFO, data, 1, ec);
     if (ec)
       return false;
