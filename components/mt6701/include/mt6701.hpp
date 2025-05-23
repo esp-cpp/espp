@@ -50,6 +50,7 @@ class Mt6701 : public BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>
   using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::read_u8_from_register;
   using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::read;
   using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::logger_;
+  using BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>::base_mutex_;
 
 public:
   static constexpr uint8_t DEFAULT_ADDRESS =
