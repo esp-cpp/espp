@@ -97,7 +97,7 @@ template <MotorConcept M> class BldcHaptics : public BaseComponent {
 public:
   /// @brief Configuration for the haptic motor
   struct Config {
-    std::reference_wrapper<M> motor; ///< Pointer to the motor to use for haptics
+    std::shared_ptr<M> motor; ///< Pointer to the motor to use for haptics
     float kp_factor{2}; ///< Factor to multiply the detent strength by to get kp (default 2). Used
                         ///< for both detents and end stops. \note Depending on the motor, this may
                         ///< need to be adjusted to get the desired behavior.
@@ -132,7 +132,7 @@ public:
                  "\tkd_factor_max: {}",
                  kp_factor_, kd_factor_min_, kd_factor_max_);
     // set the motion control type to torque
-    motor_.get().set_motion_control_type(detail::MotionControlType::TORQUE);
+    motor_->set_motion_control_type(detail::MotionControlType::TORQUE);
     // create the motor task
     motor_task_ = Task::make_unique(
         {.callback = std::bind(&BldcHaptics::motor_task, this, std::placeholders::_1,
@@ -161,7 +161,7 @@ public:
     // enable the motor
     {
       std::unique_lock<std::mutex> lk(motor_mutex_);
-      motor_.get().enable();
+      motor_->enable();
     }
     if (is_running()) {
       return;
@@ -174,7 +174,7 @@ public:
     // disable the motor
     {
       std::unique_lock<std::mutex> lk(motor_mutex_);
-      motor_.get().disable();
+      motor_->disable();
     }
     if (!is_running()) {
       return;
@@ -199,7 +199,7 @@ public:
   void update_detent_config(const detail::DetentConfig &config) {
     std::unique_lock<std::mutex> lk(detent_mutex_);
     // update the detent center
-    current_detent_center_ = motor_.get().get_shaft_angle();
+    current_detent_center_ = motor_->get_shaft_angle();
 
     // update the detent config
     detent_config_ = config;
@@ -261,19 +261,19 @@ public:
     // TODO: Use the PID controller to control the haptics
     // Play a hardcoded haptic "click"
     float strength = config.strength; // 5 or 1.5 were used in SmartKnob
-    motor_.get().move(strength);
+    motor_->move(strength);
     using namespace std::chrono_literals;
     for (uint8_t i = 0; i < 3; i++) {
-      motor_.get().loop_foc();
+      motor_->loop_foc();
       std::this_thread::sleep_for(1ms);
     }
-    motor_.get().move(-strength);
+    motor_->move(-strength);
     for (uint8_t i = 0; i < 3; i++) {
-      motor_.get().loop_foc();
+      motor_->loop_foc();
       std::this_thread::sleep_for(1ms);
     }
-    motor_.get().move(0);
-    motor_.get().loop_foc();
+    motor_->move(0);
+    motor_->loop_foc();
   }
 
 protected:
@@ -313,7 +313,7 @@ protected:
 
       // check our position vs the nearest detent, and update our position if we're
       // close enough to snap to another detent
-      float motor_angle = motor_.get().get_shaft_angle();
+      float motor_angle = motor_->get_shaft_angle();
       float angle_to_detent_center = motor_angle - current_detent_center_;
 
       // Handle the snap point - if we're close enough to the snap point, snap
@@ -383,11 +383,11 @@ protected:
 
       // Apply motor torque based on our angle to the nearest detent (detent
       // strength, etc is handled by the pid parameters)
-      if (std::abs(motor_.get().get_shaft_velocity()) > 60) {
+      if (std::abs(motor_->get_shaft_velocity()) > 60) {
         // Don't apply torque if velocity is too high (helps avoid positive
         // feedback loop/runaway)
         logger_.info_rate_limited("velocity too high, not applying torque");
-        motor_.get().move(0);
+        motor_->move(0);
       } else {
         // apply torque based on our angle to the nearest detent
         float input = -angle_to_detent_center + dead_zone_adjustment;
@@ -409,9 +409,9 @@ protected:
         logger_.debug_rate_limited("angle: {:0.3f}, input: {:0.3f}, torque: {:0.3f}", motor_angle,
                                    input, torque);
         // apply the torque to the motor
-        motor_.get().move(torque);
-      } // end if std::abs(motor_.get().get_shaft_velocity()) > 60
-      motor_.get().loop_foc();
+        motor_->move(torque);
+      } // end if std::abs(motor_->get_shaft_velocity()) > 60
+      motor_->loop_foc();
     } // end motor_mutex_
 
     // now sleep
@@ -435,8 +435,8 @@ protected:
   std::mutex detent_mutex_;                     ///< Mutex for accessing the detents
   detail::DetentConfig detent_config_;          ///< Configuration for the detents
 
-  std::mutex motor_mutex_;          ///< Mutex for accessing the motor
-  std::reference_wrapper<M> motor_; ///< Pointer to the motor to use for haptics
+  std::mutex motor_mutex_;   ///< Mutex for accessing the motor
+  std::shared_ptr<M> motor_; ///< Pointer to the motor to use for haptics
 
   std::unique_ptr<Task> motor_task_; ///< Task which runs the haptic motor
 };

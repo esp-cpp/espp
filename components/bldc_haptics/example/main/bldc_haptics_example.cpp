@@ -58,7 +58,7 @@ extern "C" void app_main(void) {
 
     // now make the bldc motor
     using BldcMotor = espp::BldcMotor<espp::BldcDriver, Encoder>;
-    auto motor = BldcMotor(BldcMotor::Config{
+    auto motor = std::make_shared<BldcMotor>(BldcMotor::Config{
         // measured by setting it into ANGLE_OPENLOOP and then counting how many
         // spots you feel when rotating it.
         .num_pole_pairs = 7,
