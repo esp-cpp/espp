@@ -553,6 +553,7 @@ protected:
   };
 
   void init(const Config &config, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // Set the data format
     set_data_format(data_format_, append_, ec);
     if (ec)
@@ -601,6 +602,7 @@ protected:
   }
 
   void set_data_format(DataFormat format, Append append, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     data_format_ = format;
     logger_.info("Data format set to {}", data_format_);
     append_ = append;
@@ -712,20 +714,25 @@ protected:
     std::vector<uint16_t> values(num_inputs);
     size_t num_bytes = num_inputs * num_bytes_per_sample_;
     uint8_t raw_values[num_bytes];
-    // start the auto conversion sequence
-    start_auto_conversion(ec);
-    if (ec) {
-      return {};
+
+    {
+      std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+      // start the auto conversion sequence
+      start_auto_conversion(ec);
+      if (ec) {
+        return {};
+      }
+      read_many(raw_values, num_bytes, ec);
+      if (ec) {
+        return {};
+      }
+      // stop the auto conversion sequence
+      stop_auto_conversion(ec);
+      if (ec) {
+        return {};
+      }
     }
-    read_many(raw_values, num_bytes, ec);
-    if (ec) {
-      return {};
-    }
-    // stop the auto conversion sequence
-    stop_auto_conversion(ec);
-    if (ec) {
-      return {};
-    }
+
     int analog_index = 0;
     // only pull out the ones that were configured as analog inputs
     for (int i = 0; i < num_bytes; i += num_bytes_per_sample_) {
