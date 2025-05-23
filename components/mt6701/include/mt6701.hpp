@@ -259,6 +259,7 @@ public:
    *       initialize(true)).
    */
   void update(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // measure update timing
     uint64_t now_us = esp_timer_get_time();
     auto dt = now_us - prev_time_us_;
@@ -310,6 +311,7 @@ protected:
   } __attribute__((packed));
 
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::I2C) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // read the angle count registers
     uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
     if (ec) {
@@ -325,6 +327,7 @@ protected:
   }
 
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::SSI) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // read the angle count as 24 bits (3 bytes) from the serial stream
     uint8_t buffer[3] = {0};
     read(&buffer[0], 3, ec);
@@ -363,6 +366,7 @@ protected:
   }
 
   void init(bool run_task, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // initialize the accumulator to have the current angle
     read(ec);
     if (ec) {

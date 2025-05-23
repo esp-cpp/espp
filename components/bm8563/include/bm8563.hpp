@@ -109,6 +109,7 @@ public:
   /// @param ec The error code.
   /// @return The date and time.
   DateTime get_date_time(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     DateTime dt;
     dt.time = get_time(ec);
     if (ec)
@@ -123,6 +124,7 @@ public:
   /// @param dt The date and time.
   /// @param ec The error code.
   void set_date_time(const DateTime &dt, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     set_date(dt.date, ec);
     if (ec)
       return;

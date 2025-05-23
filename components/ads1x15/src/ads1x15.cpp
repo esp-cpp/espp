@@ -51,6 +51,7 @@ static constexpr uint16_t REG_CONFIG_CQUE_NONE =
     (0x0003); ///< Disable the comparator and put ALERT/RDY in high state (default)
 
 int16_t Ads1x15::sample_raw(int channel, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // Start with default values
   uint16_t config = REG_CONFIG_MODE_SINGLE;
   // This is equivalent to the below (since the rest are 0x0000):

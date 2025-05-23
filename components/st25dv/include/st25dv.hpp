@@ -347,6 +347,7 @@ public:
 protected:
   void init(std::error_code &ec) {
     logger_.info("Initializing");
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     [[maybe_unused]] auto uuid = read_uuid(ec);
     if (ec) {
       logger_.error("Failed to read uuid");

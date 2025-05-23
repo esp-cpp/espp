@@ -94,6 +94,7 @@ public:
    * @return The pin values as a 16 bit mask (PA_0 lsb, PB_7 msb).
    */
   uint16_t get_pins(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t p0 = read_u8_from_register((uint8_t)Registers::GPIOA, ec);
     if (ec)
       return 0;
@@ -152,6 +153,7 @@ public:
   void set_interrupt_on_value(Port port, uint8_t pin_mask, uint8_t val_mask, std::error_code &ec) {
     logger_.debug("Setting interrupt on value for {} pins {} to {}", (uint8_t)port, pin_mask,
                   val_mask);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // set the pin to enable interrupt
     auto addr = port == Port::PORT0 ? Registers::GPINTENA : Registers::GPINTENB;
     write_u8_to_register((uint8_t)addr, pin_mask, ec);
@@ -222,20 +224,11 @@ public:
   void set_interrupt_mirror(bool mirror, std::error_code &ec) {
     logger_.debug("Setting interrupt mirror: {}", mirror);
     auto addr = (uint8_t)Registers::IOCON;
-    auto config = read_u8_from_register(addr, ec);
-    if (ec) {
-      logger_.error("Failed to read config: {}", ec.message());
-      return;
-    }
-    logger_.debug("Read config: {}", config);
     if (mirror) {
-      config &= (1 << (int)ConfigBit::MIRROR);
+      set_bits_in_register(addr, (1 << (int)ConfigBit::MIRROR), ec);
     } else {
-      config ^= (1 << (int)ConfigBit::MIRROR);
+      clear_bits_in_register(addr, (1 << (int)ConfigBit::MIRROR), ec);
     }
-    // now write it back
-    logger_.debug("Writing new config: {}", config);
-    write_u8_to_register(addr, config, ec);
   }
 
   /**
@@ -247,20 +240,11 @@ public:
   void set_interrupt_polarity(bool active_high, std::error_code &ec) {
     logger_.debug("Setting interrupt polarity: {}", active_high);
     auto addr = (uint8_t)Registers::IOCON;
-    auto config = read_u8_from_register(addr, ec);
-    if (ec) {
-      logger_.error("Failed to read config: {}", ec.message());
-      return;
-    }
-    logger_.debug("Read config: {}", config);
     if (active_high) {
-      config &= (1 << (int)ConfigBit::INTPOL);
+      set_bits_in_register(addr, (1 << (int)ConfigBit::INTPOL), ec);
     } else {
-      config ^= (1 << (int)ConfigBit::INTPOL);
+      clear_bits_in_register(addr, (1 << (int)ConfigBit::INTPOL), ec);
     }
-    // now write it back
-    logger_.debug("Writing new config: {}", config);
-    write_u8_to_register(addr, config, ec);
   }
 
 protected:

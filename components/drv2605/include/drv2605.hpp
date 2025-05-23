@@ -185,6 +185,7 @@ public:
 
 protected:
   void init(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     logger_.info("Initializing motor");
     write_u8_to_register((uint8_t)Register::MODE, 0, ec); // out of standby
     if (ec)
@@ -226,6 +227,7 @@ protected:
 
   void set_motor_type(MotorType motor_type, std::error_code &ec) {
     logger_.info("Setting motor type {}", motor_type == MotorType::ERM ? "ERM" : "LRA");
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     motor_type_ = motor_type;
     auto current_feedback = read_u8_from_register((uint8_t)Register::FEEDBACK, ec);
     if (ec)
