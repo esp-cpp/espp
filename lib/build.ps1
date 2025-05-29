@@ -13,7 +13,7 @@ Set-Location -Path $buildDir
 cmake ..
 
 # Run cmake --build . --config Release --target install
-cmake --build . --config Release --target install
+cmake --build . --config Release --target install --parallel 4
 
 # Change back to the original directory
 Set-Location -Path ..

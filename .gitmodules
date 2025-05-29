@@ -22,9 +22,6 @@
 [submodule "components/tabulate/detail/tabulate"]
 	path = components/tabulate/detail/tabulate
 	url = https://github.com/p-ranav/tabulate
-[submodule "lib/pybind11"]
-	path = lib/pybind11
-	url = https://github.com/pybind/pybind11
 [submodule "components/state_machine/detail/magic_enum"]
 	path = components/state_machine/detail/magic_enum
 	url = https://github.com/neargye/magic_enum
