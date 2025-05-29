@@ -1,9 +1,22 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.20)
 
 # building PC c++ library and python binding
 message(STATUS "Building for PC: C++ & Python")
 
 project(espp)
+
+include(cmake/CPM.cmake)
+CPMAddPackage(
+    NAME pybind11
+    GIT_REPOSITORY https://github.com/pybind/pybind11.git
+    VERSION 2.13.6
+    DOWNLOAD_ONLY YES
+)
+if(pybind11_ADDED)
+  add_subdirectory(${pybind11_SOURCE_DIR})
+else()
+  message(FATAL_ERROR "pybind11 not found. Please ensure it is available in the specified version.")
+endif()
 
 set(CMAKE_COLOR_MAKEFILE   ON)
 
@@ -44,7 +57,5 @@ install(TARGETS ${TARGET_NAME}
 
 espp_install_includes(${PROJECT_SOURCE_DIR}/pc)
 
-# Build and install the python binding, which is built using pybind11, so we
-# need to include the pybind11 library
-add_subdirectory(pybind11)
+# Build and install the python binding
 espp_install_python_module(${PROJECT_SOURCE_DIR}/pc)
