@@ -46,13 +46,14 @@ public:
 
   /// @brief Erase the NVS
   /// @param[out] ec Saves a std::error_code representing success or failure
-  void erase(std::error_code &ec) {
+  bool erase(std::error_code &ec) {
     esp_err_t err = nvs_flash_erase();
     if (err != ESP_OK) {
       logger_.error("Failed to erase NVS partition: {}", esp_err_to_name(err));
       ec = make_nvs_error_code(NvsErrc::Erase_NVS_Failed);
-      return;
+      return false;
     }
+    return true;
   }
 
   /// @brief Erase a namespace from the NVS
@@ -82,6 +83,14 @@ public:
       return false;
 
     return true;
+  }
+
+  /// @brief Get a handle to the given namespace
+  /// @param[in] ns_name Namespace of the variable to get a handle to
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @return NvsHandle for the given namespace
+  NvsHandle get_handle(std::string_view ns_name, std::error_code &ec) {
+    return NvsHandle(ns_name.data(), ec);
   }
 
   /// @brief Save a variable in the NVS and commit

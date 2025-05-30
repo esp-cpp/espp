@@ -24,16 +24,44 @@ namespace espp {
  */
 class NvsHandle : public BaseComponent {
 public:
+  /// @brief Default constructor for NvsHandle
+  /// @details Initializes the NvsHandle without a specific namespace.
+  NvsHandle()
+      : BaseComponent("NvsHandle", espp::Logger::Verbosity::WARN)
+      , handle_(nullptr) {}
+
   /// @brief Construct a new NvsHandle object
   /// @param[in] ns_name Namespace for NVS
   /// @param[out] ec Saves a std::error_code representing success or failure
   /// @details Create an NvsHandle object for the key-value pairs in the ns_name namespace
   explicit NvsHandle(const char *ns_name, std::error_code &ec)
       : BaseComponent("NvsHandle", espp::Logger::Verbosity::WARN) {
+    if (!init(ns_name, ec)) {
+      logger_.error("Failed to initialize NvsHandle with namespace '{}'", ns_name);
+    }
+  }
+
+  /// @brief Construct a new NvsHandle object
+  /// @param[in] ns_name Namespace for NVS
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Create an NvsHandle object for the key-value pairs in the ns_name namespace
+  explicit NvsHandle(std::string_view ns_name, std::error_code &ec)
+      : BaseComponent("NvsHandle", espp::Logger::Verbosity::WARN) {
+    if (!init(ns_name, ec)) {
+      logger_.error("Failed to initialize NvsHandle with namespace '{}'", ns_name);
+    }
+  }
+
+  /// @brief Initializes the NvsHandle with a namespace
+  /// @param[in] ns_name Namespace for NVS
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Initializes the NvsHandle object for the key-value pairs in the ns_name namespace
+  /// @return true if successful, false otherwise
+  bool init(const char *ns_name, std::error_code &ec) {
     if (strlen(ns_name) > 15) {
       logger_.error("Namespace too long, must be <= 15 characters: {}", ns_name);
       ec = make_error_code(NvsErrc::Namespace_Length_Too_Long);
-      return;
+      return false;
     }
 
     esp_err_t err;
@@ -42,8 +70,17 @@ public:
       logger_.error("Error {} opening NVS handle for namespace '{}'!", esp_err_to_name(err),
                     ns_name);
       ec = make_error_code(NvsErrc::Open_NVS_Handle_Failed);
+      return false;
     }
+    return true;
   }
+
+  /// @brief Initializes the NvsHandle with a namespace
+  /// @param[in] ns_name Namespace for NVS
+  /// @param[out] ec Saves a std::error_code representing success or failure
+  /// @details Initializes the NvsHandle object for the key-value pairs in the ns_name namespace
+  /// @return true if successful, false otherwise
+  bool init(std::string_view ns_name, std::error_code &ec) { return init(ns_name.data(), ec); }
 
   /// @brief Reads a variable from the NVS
   /// @param[in] key NVS Key of the variable to read
