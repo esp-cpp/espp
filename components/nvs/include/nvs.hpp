@@ -90,7 +90,7 @@ public:
   /// @param[out] ec Saves a std::error_code representing success or failure
   /// @return NvsHandle for the given namespace
   NvsHandle get_handle(std::string_view ns_name, std::error_code &ec) {
-    return NvsHandle(ns_name.data(), ec);
+    return NvsHandle(ns_name, ec);
   }
 
   /// @brief Save a variable in the NVS and commit
