@@ -35,6 +35,34 @@ extern "C" void app_main(void) {
     ec.clear();
     fmt::print("Toggled Flag = {}\n", flag);
 
+    // test getting a handle to one of the NVS namespaces
+    espp::NvsHandle system_handle = nvs.get_handle("system", ec);
+    if (ec) {
+      fmt::print("Error getting handle: {}\n", ec.message());
+    } else {
+      fmt::print("Got handle to 'system' namespace\n");
+    }
+    ec.clear();
+    // test getting a handle to a new (non-existent) namespace
+    espp::NvsHandle new_handle = nvs.get_handle("new-namespace", ec);
+    if (ec) {
+      fmt::print("Error getting handle to new namespace: {}\n", ec.message());
+    } else {
+      fmt::print("Got handle to 'new-namespace'\n");
+    }
+    ec.clear();
+
+    // test delayed initialization of nvs handle
+    espp::NvsHandle test_handle;
+    test_handle.init("system", ec);
+    // now test getting a variable from the copied handle
+    test_handle.get("reset_counter", counter, ec);
+    if (ec) {
+      fmt::print("Error getting variable from delay-inited handle: {}\n", ec.message());
+    } else {
+      fmt::print("Got reset_counter from delay-inited handle: {}\n", counter);
+    }
+
     // test protection against really long namespace names (length > 15)
     std::string long_ns(16, 'a');
     nvs.get_or_set_var(long_ns, "flag", flag, flag, ec);
