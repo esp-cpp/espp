@@ -26,80 +26,79 @@ namespace espp {
 class Ssd1351 {
 public:
   enum class Command : uint8_t {
-    nop = 0x00,     // no operation
-    swreset = 0x01, // software reset
-    rddid = 0x04,   // read display id
-    rddst = 0x09,   // read display status
+    nop = 0xE3,        // No operation
+    swreset = 0x01,    // Software reset
+    rddid = 0x04,      // Read display ID
+    rddst = 0x09,      // Read display status
+    rddpm = 0x0A,      // Read display power mode
+    rdd_madctl = 0x0B, // Read display MADCTL
+    rdd_colmod = 0x0C, // Read display pixel format
+    rddim = 0x0D,      // Read display image mode
+    rddsm = 0x0E,      // Read display signal mode
+    rddsr = 0x0F,      // Read display self-diagnostic result
 
-    rddpm = 0x0a,      // read display power mode
-    rdd_madctl = 0x0b, // read display madctl
-    rdd_colmod = 0x0c, // read display pixel format
-    rddim = 0x0d,      // read display image mode
-    rddsm = 0x0e,      // read display signal mode
-    rddsr = 0x0f,      // read display self-diagnostic result (ssd1351v)
+    slpin = 0x10,  // Sleep in
+    slpout = 0x11, // Sleep out
+    ptlon = 0x12,  // Partial mode on
+    noron = 0x13,  // Normal display mode on
 
-    slpin = 0x10,  // sleep in
-    slpout = 0x11, // sleep out
-    ptlon = 0x12,  // partial mode on
-    noron = 0x13,  // normal display mode on
+    invoff = 0x20,  // Display inversion off
+    invon = 0x21,   // Display inversion on
+    gamset = 0x26,  // Gamma set
+    dispoff = 0x28, // Display off
+    dispon = 0x29,  // Display on
+    caset = 0x15,   // Column address set
+    raset = 0x75,   // Row address set
+    ramwr = 0x5C,   // RAM write
+    rgbset = 0x2D,  // Color setting
+    ramrd = 0x5D,   // RAM read
 
-    invoff = 0x20,  // display inversion off
-    invon = 0x21,   // display inversion on
-    gamset = 0x26,  // gamma set
-    dispoff = 0x28, // display off
-    dispon = 0x29,  // display on
-    caset = 0x2a,   // column address set
-    raset = 0x2b,   // row address set
-    ramwr = 0x2c,   // ram write
-    rgbset = 0x2d,  // color setting for 4096, 64k and 262k colors
-    ramrd = 0x2e,   // ram read
+    ptlar = 0x30,   // Partial area
+    vscrdef = 0x33, // Vertical scrolling definition
+    teoff = 0x34,   // Tearing effect line off
+    teon = 0x35,    // Tearing effect line on
+    madctl = 0x36,  // Memory data access control
+    idmoff = 0x38,  // Idle mode off
+    idmon = 0x39,   // Idle mode on
+    ramwrc = 0x3C,  // Memory write continue
+    ramrdc = 0x3E,  // Memory read continue
+    colmod = 0x3A,  // Color mode - pixel format
 
-    ptlar = 0x30,
-    vscrdef = 0x33, // vertical scrolling definition (ssd1351v)
-    teoff = 0x34,   // tearing effect line off
-    teon = 0x35,    // tearing effect line on
-    madctl = 0x36,  // memory data access control
-    idmoff = 0x38,  // idle mode off
-    idmon = 0x39,   // idle mode on
-    ramwrc = 0x3c,  // memory write continue (ssd1351v)
-    ramrdc = 0x3e,  // memory read continue (ssd1351v)
-    colmod = 0x3a,  // color mode - pixel format
-
-    ramctrl = 0xb0,   // ram control
-    rgbctrl = 0xb1,   // rgb control
-    porctrl = 0xb2,   // porch control
-    frctrl1 = 0xb3,   // frame rate control
-    parctrl = 0xb5,   // partial mode control
-    gctrl = 0xb7,     // gate control
-    gtadj = 0xb8,     // gate on timing adjustment
-    dgmen = 0xba,     // digital gamma enable
-    vcoms = 0xbb,     // vcoms setting
-    lcmctrl = 0xc0,   // lcm control
-    idset = 0xc1,     // id setting
-    vdvvrhen = 0xc2,  // vdv and vrh command enable
-    vrhs = 0xc3,      // vrh set
-    vdvset = 0xc4,    // vdv setting
-    vcmofset = 0xc5,  // vcoms offset set
-    frctr2 = 0xc6,    // fr control 2
-    cabcctrl = 0xc7,  // cabc control
-    regsel1 = 0xc8,   // register value section 1
-    regsel2 = 0xca,   // register value section 2
-    pwmfrsel = 0xcc,  // pwm frequency selection
-    pwctrl1 = 0xd0,   // power control 1
-    vapvanen = 0xd2,  // enable vap/van signal output
-    cmd2en = 0xdf,    // command 2 enable
-    pvgamctrl = 0xe0, // positive voltage gamma control
-    nvgamctrl = 0xe1, // negative voltage gamma control
-    dgmlutr = 0xe2,   // digital gamma look-up table for red
-    dgmlutb = 0xe3,   // digital gamma look-up table for blue
-    gatectrl = 0xe4,  // gate control
-    spi2en = 0xe7,    // spi2 enable
-    pwctrl2 = 0xe8,   // power control 2
-    eqctrl = 0xe9,    // equalize time control
-    promctrl = 0xec,  // program control
-    promen = 0xfa,    // program mode enable
-    nvmset = 0xfc,    // nvm setting
-    promact = 0xfe,   // program action
+    ramctrl = 0xB0,   // RAM control
+    rgbctrl = 0xB1,   // RGB control
+    porctrl = 0xB2,   // Porch control
+    frctrl1 = 0xB3,   // Frame rate control
+    parctrl = 0xB5,   // Partial mode control
+    gctrl = 0xB7,     // Gate control
+    gtadj = 0xB8,     // Gate on timing adjustment
+    dgmen = 0xBA,     // Digital gamma enable
+    vcoms = 0xBB,     // VCOMH setting
+    lcmctrl = 0xC0,   // LCM control
+    idset = 0xC1,     // ID setting
+    vdvvrhen = 0xC2,  // VDV and VRH command enable
+    vrhs = 0xC3,      // VRH set
+    vdvset = 0xC4,    // VDV setting
+    vcmofset = 0xC5,  // VCOMH offset set
+    frctr2 = 0xC6,    // Frame rate control 2
+    cabcctrl = 0xC7,  // CABC control
+    regsel1 = 0xC8,   // Register value section 1
+    regsel2 = 0xCA,   // Register value section 2
+    pwmfrsel = 0xCC,  // PWM frequency selection
+    pwctrl1 = 0xD0,   // Power control 1
+    vapvanen = 0xD2,  // Enable VAP/VAN signal output
+    cmd2en = 0xDF,    // Command 2 enable
+    pvgamctrl = 0xE0, // Positive voltage gamma control
+    nvgamctrl = 0xE1, // Negative voltage gamma control
+    dgmlutr = 0xE2,   // Digital gamma look-up table for red
+    dgmlutb = 0xE3,   // Digital gamma look-up table for blue
+    gatectrl = 0xE4,  // Gate control
+    spi2en = 0xE7,    // SPI2 enable
+    pwctrl2 = 0xE8,   // Power control 2
+    eqctrl = 0xE9,    // Equalize time control
+    promctrl = 0xEC,  // Program control
+    promen = 0xFA,    // Program mode enable
+    nvmset = 0xFC,    // NVM setting
+    promact = 0xFE,   // Program action
   };
 
   /**
@@ -140,38 +139,71 @@ public:
 
     // set up the init commands
     auto init_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
-        {0xCF, {0x00, 0x83, 0X30}},
-        {0xED, {0x64, 0x03, 0X12, 0X81}},
-        {(uint8_t)Command::pwctrl2, {0x85, 0x01, 0x79}},
-        {0xCB, {0x39, 0x2C, 0x00, 0x34, 0x02}},
-        {0xF7, {0x20}},
-        {0xEA, {0x00, 0x00}},
-        {(uint8_t)Command::lcmctrl, {0x26}},
-        {(uint8_t)Command::idset, {0x11}},
-        {(uint8_t)Command::vcmofset, {0x35, 0x3E}},
-        {(uint8_t)Command::cabcctrl, {0xBE}},
-        {(uint8_t)Command::madctl, {madctl}},
-        {(uint8_t)Command::colmod, {0x55}},
-        {(uint8_t)Command::invon},
-        {(uint8_t)Command::rgbctrl, {0x00, 0x1B}},
-        {0xF2, {0x08}},
-        {(uint8_t)Command::gamset, {0x01}},
-        {(uint8_t)Command::caset, {0x00, 0x00, 0x00, 0xEF}},
-        {(uint8_t)Command::raset, {0x00, 0x00, 0x01, 0x3f}},
-        {(uint8_t)Command::ramwr},
-        {(uint8_t)Command::gctrl, {0x07}},
-        {0xB6, {0x0A, 0x82, 0x27, 0x00}},
-        {(uint8_t)Command::slpout, {0}, 100},
-        {(uint8_t)Command::dispon, {0}, 100},
-    });
+        // Command lock - unlock OLED driver IC MCU interface
+        {(uint8_t)Command::cmd2en, {0x12}, 0}, // Unlock commands
+        {(uint8_t)Command::cmd2en, {0xB1}, 0}, // Make commands A2,B1,B3,BB,BE,C1 accessible
 
-    // NOTE: SSD1351 setting the reverse color is the normal color so we inver
-    // the logic here.
-    if (config.invert_colors) {
-      init_commands[12].command = (uint8_t)Command::invoff;
-    } else {
-      init_commands[12].command = (uint8_t)Command::invon;
-    }
+        // Display off
+        {(uint8_t)Command::dispoff, {}, 0},
+
+        // Clock divider and oscillator frequency
+        {(uint8_t)Command::frctrl1, {0xF1}, 0}, // 7:4 = Oscillator Frequency, 3:0 = CLK Div Ratio
+
+        // Multiplex ratio (128 lines)
+        {(uint8_t)Command::gctrl, {0x7F}, 0}, // 127 (128-1)
+
+        // Set remap and color depth
+        {(uint8_t)Command::madctl, {0x74}, 0}, // RGB Color, horizontal increment
+
+        // Set column address range
+        {(uint8_t)Command::caset, {0x00, 0x7F}, 0}, // Column start/end address
+
+        // Set row address range
+        {(uint8_t)Command::raset, {0x00, 0x7F}, 0}, // Row start/end address
+
+        // Set display start line
+        {(uint8_t)Command::idset, {0x00}, 0},
+
+        // Set display offset
+        {(uint8_t)Command::vdvvrhen, {0x00}, 0},
+
+        // Set GPIO pins
+        {(uint8_t)Command::lcmctrl, {0x00}, 0},
+
+        // Function selection (internal VDD regulator)
+        {(uint8_t)Command::pwctrl1, {0x01}, 0},
+
+        // Set segment low voltage
+        {(uint8_t)Command::vrhs, {0xA0, 0xB5, 0x55}, 0},
+
+        // Set contrast current for colors A, B, C
+        {(uint8_t)Command::regsel1, {0xC8}, 0}, // Red
+        {(uint8_t)Command::regsel2, {0x80}, 0}, // Green
+        {(uint8_t)Command::regsel1, {0xC8}, 0}, // Blue
+
+        // Master current control
+        {(uint8_t)Command::cabcctrl, {0x0F}, 0},
+
+        // Set precharge speed for colors A, B, C
+        {(uint8_t)Command::porctrl, {0x32, 0x32, 0x32}, 0},
+
+        // Set precharge voltage
+        {(uint8_t)Command::vcoms, {0x17}, 0},
+
+        // Set VCOMH voltage
+        {(uint8_t)Command::vcmofset, {0x05}, 0},
+
+        // Normal or inverted display
+        {config.invert_colors ? (uint8_t)Command::invoff : (uint8_t)Command::invon, {}, 0},
+
+        // Clear display memory
+        {(uint8_t)Command::caset, {0x00, 0x7F}, 0},
+        {(uint8_t)Command::raset, {0x00, 0x7F}, 0},
+        {(uint8_t)Command::ramwr, {}, 0},
+
+        // Display on
+        {(uint8_t)Command::dispon, {}, 0},
+    });
 
     // send the init commands
     send_commands(init_commands);
