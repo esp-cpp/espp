@@ -1,5 +1,4 @@
 ## IDF Component Manager Manifest File
-version: "0.22.0"
 license: "MIT"
 description: "VL53L Time of Flight (ToF) Distance Sensor component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/vl53l"

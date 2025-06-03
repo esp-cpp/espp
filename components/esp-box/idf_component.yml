@@ -1,5 +1,4 @@
 ## IDF Component Manager Manifest File
-version: "0.22.0"
 license: "MIT"
 description: "ESP-BOX board support package (BSP) component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/esp-box"
