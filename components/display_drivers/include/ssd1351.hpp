@@ -25,6 +25,60 @@ namespace espp {
  */
 class Ssd1351 {
 public:
+  /**
+   * @brief Power control settings for the SSD1351 display.
+   */
+  enum class PowerControl1 : uint8_t {
+    // Bits 7-6: Reserved
+    // Bits 5-4: Phase 2 period (0x0-0x3)
+    PHASE2_1 = 0x00, // 1 DCLK
+    PHASE2_2 = 0x10, // 2 DCLK
+    PHASE2_3 = 0x20, // 3 DCLK
+    PHASE2_4 = 0x30, // 4 DCLK
+
+    // Bits 3-2: Phase 1 period (0x0-0x3)
+    PHASE1_1 = 0x00, // 1 DCLK
+    PHASE1_2 = 0x04, // 2 DCLK
+    PHASE1_3 = 0x08, // 3 DCLK
+    PHASE1_4 = 0x0C, // 4 DCLK
+
+    // Bits 1-0: Clock divider ratio (0x0-0x3)
+    CLK_DIV_1 = 0x00, // Divide by 1
+    CLK_DIV_2 = 0x01, // Divide by 2
+    CLK_DIV_4 = 0x02, // Divide by 4
+    CLK_DIV_8 = 0x03, // Divide by 8
+
+    // Common configurations
+    DEFAULT = 0x32,   // Default power control setting
+    LOW_POWER = 0x33, // Low power mode
+    HIGH_PERF = 0x30, // High performance mode
+  };
+
+  /**
+   * @brief Power control settings for the SSD1351 display.
+   */
+  enum class PowerControl2 : uint8_t {
+    // Bits 7-6: Reserved
+    // Bits 5-4: VGH voltage level (0x0-0x3)
+    VGH_6_6V = 0x00, // 6.6V
+    VGH_7_4V = 0x10, // 7.4V
+    VGH_8_0V = 0x20, // 8.0V
+    VGH_9_0V = 0x30, // 9.0V
+
+    // Bits 3-2: VGL voltage level (0x0-0x3)
+    VGL_10_0V = 0x00, // -10.0V
+    VGL_9_0V = 0x04,  // -9.0V
+    VGL_8_0V = 0x08,  // -8.0V
+    VGL_7_0V = 0x0C,  // -7.0V
+
+    // Bits 1-0: Reserved
+
+    // Common configurations
+    DEFAULT = 0x01,   // Default power control setting
+    LOW_POWER = 0x00, // Low power mode
+    HIGH_PERF = 0x30, // High performance mode
+  };
+
   enum class Command : uint8_t {
     nop = 0xE3,        // No operation
     swreset = 0x01,    // Software reset
@@ -146,6 +200,10 @@ public:
         // Display off
         {(uint8_t)Command::dispoff, {}, 0},
 
+        // Power control settings
+        {(uint8_t)Command::pwctrl1, {static_cast<uint8_t>(PowerControl1::DEFAULT)}, 0},
+        {(uint8_t)Command::pwctrl2, {static_cast<uint8_t>(PowerControl2::DEFAULT)}, 0},
+
         // Clock divider and oscillator frequency
         {(uint8_t)Command::frctrl1, {0xF1}, 0}, // 7:4 = Oscillator Frequency, 3:0 = CLK Div Ratio
 
@@ -153,7 +211,16 @@ public:
         {(uint8_t)Command::gctrl, {0x7F}, 0}, // 127 (128-1)
 
         // Set remap and color depth
-        {(uint8_t)Command::madctl, {0x74}, 0}, // RGB Color, horizontal increment
+        {(uint8_t)Command::madctl,
+         {
+             (config.mirror_x ? 0x40 : 0) | (config.mirror_y ? 0x80 : 0) |
+             (config.swap_xy ? 0x20 : 0) | (config.swap_color_order ? 0x08 : 0) |
+             0x04 // RGB color order
+         },
+         0},
+
+        // Color mode setting
+        {(uint8_t)Command::colmod, {0x55}, 0}, // Set 16-bit color mode
 
         // Set column address range
         {(uint8_t)Command::caset, {0x00, 0x7F}, 0}, // Column start/end address
@@ -192,6 +259,14 @@ public:
 
         // Set VCOMH voltage
         {(uint8_t)Command::vcmofset, {0x05}, 0},
+
+        // Gamma correction
+        {(uint8_t)Command::pvgamctrl,
+         {0x3F, 0x25, 0x1C, 0x1E, 0x20, 0x12, 0x2A, 0x90, 0x24, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00},
+         0},
+        {(uint8_t)Command::nvgamctrl,
+         {0x3F, 0x20, 0x43, 0x45, 0x33, 0x16, 0x08, 0x09, 0x06, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00},
+         0},
 
         // Normal or inverted display
         {config.invert_colors ? (uint8_t)Command::invoff : (uint8_t)Command::invon, {}, 0},
@@ -431,6 +506,56 @@ public:
       y = offset_y_;
       break;
     }
+  }
+
+  /**
+   * @brief Set the power control settings for the display.
+   * @param pc1 Power control 1 settings
+   * @param pc2 Power control 2 settings
+   */
+  static void set_power_control(PowerControl1 pc1, PowerControl2 pc2) {
+    std::scoped_lock lock{spi_mutex_};
+    write_command_(static_cast<uint8_t>(Command::pwctrl1), {static_cast<uint8_t>(pc1)}, 0);
+    write_command_(static_cast<uint8_t>(Command::pwctrl2), {static_cast<uint8_t>(pc2)}, 0);
+  }
+
+  /**
+   * @brief Get the current power control settings.
+   * @param pc1 Reference to store power control 1 settings
+   * @param pc2 Reference to store power control 2 settings
+   */
+  static void get_power_control(PowerControl1 &pc1, PowerControl2 &pc2) {
+    std::scoped_lock lock{spi_mutex_};
+    uint8_t data[1];
+
+    // Read power control 1
+    write_command_(static_cast<uint8_t>(Command::rddid), data, 0);
+    pc1 = static_cast<PowerControl1>(data[0]);
+
+    // Read power control 2
+    write_command_(static_cast<uint8_t>(Command::rddid), data, 0);
+    pc2 = static_cast<PowerControl2>(data[0]);
+  }
+
+  /**
+   * @brief Set the display to low power mode.
+   */
+  static void set_low_power_mode() {
+    set_power_control(PowerControl1::LOW_POWER, PowerControl2::LOW_POWER);
+  }
+
+  /**
+   * @brief Set the display to high performance mode.
+   */
+  static void set_high_performance_mode() {
+    set_power_control(PowerControl1::HIGH_PERF, PowerControl2::HIGH_PERF);
+  }
+
+  /**
+   * @brief Set the display to default power mode.
+   */
+  static void set_default_power_mode() {
+    set_power_control(PowerControl1::DEFAULT, PowerControl2::DEFAULT);
   }
 
 protected:
