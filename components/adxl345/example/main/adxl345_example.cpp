@@ -67,7 +67,7 @@ extern "C" void app_main(void) {
   accel.set_low_power(false, ec);    // disable low power mode
   accel.set_sleep_mode(false, ec);   // disable sleep mode
   accel.set_auto_sleep(false, ec);   // disable auto sleep mode
-  bool active_high = true;
+  bool active_high = false;
   accel.set_interrupt_polarity(active_high, ec); // set interrupt polarity to active high
   // configure the interrupt to trigger on watermark on INT1 pin
   accel.set_interrupt_mapping(espp::Adxl345::InterruptType::WATERMARK,
@@ -108,10 +108,10 @@ extern "C" void app_main(void) {
   espp::Interrupt::PinConfig accel_int = {
       .gpio_num = (gpio_num_t)CONFIG_EXAMPLE_ALERT_GPIO,
       .callback = callback,
-      .active_level = espp::Interrupt::ActiveLevel::HIGH,
-      .interrupt_type = espp::Interrupt::Type::RISING_EDGE,
-      .pullup_enabled = false,
-      .pulldown_enabled = true,
+      .active_level = espp::Interrupt::ActiveLevel::LOW,
+      .interrupt_type = espp::Interrupt::Type::FALLING_EDGE,
+      .pullup_enabled = true,
+      .pulldown_enabled = false,
       .filter_type = espp::Interrupt::FilterType::PIN_GLITCH_FILTER,
   };
 

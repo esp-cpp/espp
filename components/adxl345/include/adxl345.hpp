@@ -17,6 +17,10 @@ namespace espp {
 /// complement and is accessible through either a SPI (3- or 4-wire) or I2C
 /// digital interface.
 ///
+/// The ADXL345 can support SPI up to 5 MHz and I2C up to 400 kHz. It has a
+/// programmable interrupt system that can be used to signal events such as
+/// data ready, free-fall, activity, inactivity, and tap detection.
+///
 /// The datasheet can be found here:
 /// https://www.analog.com/media/en/technical-documentation/data-sheets/adxl345.pdf
 ///
