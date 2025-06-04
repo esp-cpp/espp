@@ -30,6 +30,7 @@ jobs:
             components/adc
             components/ads1x15
             components/ads7138
+            components/adxl345
             components/as5600
             components/aw9523
             components/base_component
