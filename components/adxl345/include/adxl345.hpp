@@ -564,7 +564,7 @@ public:
     logger_.info("Setting interrupt polarity to {}", active_high ? "active high" : "active low");
 
     // Read current interrupt enable register
-    std::uint8_t int_enable = read_u8_from_register(Register::DATA_FORMAT, ec);
+    std::uint8_t data_format = read_u8_from_register(Register::DATA_FORMAT, ec);
     if (ec) {
       logger_.error("Failed to read DATA_FORMAT register: {}", ec.message());
       return false;
@@ -578,13 +578,13 @@ public:
 
     // Set or clear the polarity bit
     if (active_low) {
-      int_enable |= (1 << polarity_bit); // Set to active low
+      data_format |= (1 << polarity_bit); // Set to active low
     } else {
-      int_enable &= ~(1 << polarity_bit); // Set to active high
+      data_format &= ~(1 << polarity_bit); // Set to active high
     }
 
     // Write new interrupt enable value
-    write_u8_to_register(Register::DATA_FORMAT, int_enable, ec);
+    write_u8_to_register(Register::DATA_FORMAT, data_format, ec);
     if (ec) {
       logger_.error("Failed to write DATA_FORMAT register: {}", ec.message());
       return false;
@@ -601,18 +601,8 @@ public:
 
     logger_.info("Disabling all interrupts");
 
-    // Read current interrupt enable register
-    std::uint8_t int_enable = read_u8_from_register(Register::INT_ENABLE, ec);
-    if (ec) {
-      logger_.error("Failed to read INT_ENABLE register: {}", ec.message());
-      return false;
-    }
-
-    // Clear all interrupt bits
-    int_enable = 0x00;
-
-    // Write new interrupt enable value
-    write_u8_to_register(Register::INT_ENABLE, int_enable, ec);
+    // Write new interrupt enable value (all bits cleared)
+    write_u8_to_register(Register::INT_ENABLE, 0x00, ec);
     if (ec) {
       logger_.error("Failed to write INT_ENABLE register: {}", ec.message());
       return false;
