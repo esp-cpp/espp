@@ -1,5 +1,4 @@
 ## IDF Component Manager Manifest File
-version: "1.0.0"
 license: "MIT"
 description: "Adxl345 I2C Accelerometer component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/adxl345"
