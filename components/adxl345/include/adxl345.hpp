@@ -17,6 +17,9 @@ namespace espp {
 /// complement and is accessible through either a SPI (3- or 4-wire) or I2C
 /// digital interface.
 ///
+/// The datasheet can be found here:
+/// https://www.analog.com/media/en/technical-documentation/data-sheets/adxl345.pdf
+///
 /// \section adxl345_ex_1 ADXL345 Example
 /// \snippet adxl345_example.cpp adxl345 example
 class Adxl345 : public BasePeripheral<> {

@@ -4,6 +4,9 @@ This example demonstrates how to use the `espp::Adxl345` class to read
 acceleration data from an ADXL345 3-axis accelerometer over I2C using the
 ESP-IDF framework and ESPP.
 
+[esp-cpp/uart-serial-plotter output](https://github.com/esp-cpp/uart_serial_plotter):
+![CleanShot 2025-06-04 at 13 00 13](https://github.com/user-attachments/assets/e072f5f6-cde9-4c4a-97c9-ea68932993cd)
+
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
 
@@ -63,3 +66,7 @@ The example prints acceleration data in the following CSV format:
 ...
 ```
 
+Terminal output:
+![CleanShot 2025-06-04 at 13 01 06](https://github.com/user-attachments/assets/253f06d6-ea6e-4c2f-b42d-506dd1f7fbc6)
+[esp-cpp/uart-serial-plotter output](https://github.com/esp-cpp/uart_serial_plotter):
+![CleanShot 2025-06-04 at 13 00 13](https://github.com/user-attachments/assets/e072f5f6-cde9-4c4a-97c9-ea68932993cd)
