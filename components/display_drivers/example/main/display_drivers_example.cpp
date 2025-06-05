@@ -6,6 +6,11 @@
 #include "driver/spi_master.h"
 #include "hal/spi_types.h"
 
+// default, most displays use 16-bit coordinates
+#define DISPLAY_COORDINATES_16BIT 1
+#define DISPLAY_COORDINATES_8BIT 0
+#define DISPLAY_IS_OLED 0 // most displays are not OLEDs
+
 #if CONFIG_HARDWARE_WROVER_KIT
 #include "ili9341.hpp"
 static constexpr int DC_PIN_NUM = 21;
@@ -28,8 +33,17 @@ using Display = espp::Display<lv_color16_t>;
 using DisplayDriver = espp::Gc9a01;
 #elif CONFIG_T_ENCODER_PRO
 #include "sh8601.hpp"
+#define DISPLAY_IS_OLED 1 // T-Encoder Pro uses an OLED display
 using Display = espp::Display<lv_color16_t>;
 using DisplayDriver = espp::Sh8601;
+#elif CONFIG_HARDWARE_BYTE90
+#include "ssd1351.hpp"
+#define DISPLAY_COORDINATES_8BIT 1 // ssd1351 only supports 8-bit coordinates
+#define DISPLAY_COORDINATES_16BIT 0
+#define DISPLAY_IS_OLED 1 // Byte90 uses an OLED display
+static constexpr int DC_PIN_NUM = 43;
+using Display = espp::Display<lv_color16_t>;
+using DisplayDriver = espp::Ssd1351;
 #else
 #error "Misconfigured hardware!"
 #endif
@@ -279,41 +293,49 @@ void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *dat
       trans[i].user = (void *)0;
     } else {
       // Odd transfers are data
+#if DISPLAY_COORDINATES_8BIT
+      trans[i].length = 8 * 2; // byte90 only has 2 byte per pixel address (1 byte for each axis)
+#else // other displays support 16-bit coordinates
       trans[i].length = 8 * 4;
+#endif
       trans[i].user = (void *)DC_LEVEL_BIT;
     }
     trans[i].flags = SPI_TRANS_USE_TXDATA;
   }
-  size_t length = (xe - xs + 1) * (ye - ys + 1) * 2;
-#if CONFIG_HARDWARE_WROVER_KIT
-  trans[0].tx_data[0] = (uint8_t)espp::Ili9341::Command::caset;
-#elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
-  trans[0].tx_data[0] = (uint8_t)espp::St7789::Command::caset;
-#elif CONFIG_SMARTKNOB_HA
-  trans[0].tx_data[0] = (uint8_t)espp::Gc9a01::Command::caset;
+
+#ifdef CONFIG_HARDWARE_BYTE90
+  lv_display_t *disp = lv_disp_get_default();
+  auto rotation = lv_disp_get_rotation(disp);
+  if (rotation == lv_display_rotation_t::LV_DISPLAY_ROTATION_90 ||
+      rotation == lv_display_rotation_t::LV_DISPLAY_ROTATION_270) {
+    // swap x and y coordinates for 90/270 degree rotation
+    std::swap(xs, ys);
+    std::swap(xe, ye);
+  }
 #endif
+
+  size_t length = (xe - xs + 1) * (ye - ys + 1) * 2;
+  trans[0].tx_data[0] = (uint8_t)DisplayDriver::Command::caset;
+#if DISPLAY_COORDINATES_8BIT
+  trans[1].tx_data[0] = (xs)&0xff;
+  trans[1].tx_data[1] = (xe)&0xff;
+#else // other displays support 16-bit coordinates
   trans[1].tx_data[0] = (xs) >> 8;
   trans[1].tx_data[1] = (xs)&0xff;
   trans[1].tx_data[2] = (xe) >> 8;
   trans[1].tx_data[3] = (xe)&0xff;
-#if CONFIG_HARDWARE_WROVER_KIT
-  trans[2].tx_data[0] = (uint8_t)espp::Ili9341::Command::raset;
-#elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
-  trans[2].tx_data[0] = (uint8_t)espp::St7789::Command::raset;
-#elif CONFIG_SMARTKNOB_HA
-  trans[2].tx_data[0] = (uint8_t)espp::Gc9a01::Command::raset;
 #endif
+  trans[2].tx_data[0] = (uint8_t)DisplayDriver::Command::raset;
+#if DISPLAY_COORDINATES_8BIT
+  trans[3].tx_data[0] = (ys)&0xff;
+  trans[3].tx_data[1] = (ye)&0xff;
+#else // other displays support 16-bit coordinates
   trans[3].tx_data[0] = (ys) >> 8;
   trans[3].tx_data[1] = (ys)&0xff;
   trans[3].tx_data[2] = (ye) >> 8;
   trans[3].tx_data[3] = (ye)&0xff;
-#if CONFIG_HARDWARE_WROVER_KIT
-  trans[4].tx_data[0] = (uint8_t)espp::Ili9341::Command::ramwr;
-#elif CONFIG_HARDWARE_TTGO || CONFIG_HARDWARE_BOX
-  trans[4].tx_data[0] = (uint8_t)espp::St7789::Command::ramwr;
-#elif CONFIG_SMARTKNOB_HA
-  trans[4].tx_data[0] = (uint8_t)espp::Gc9a01::Command::ramwr;
 #endif
+  trans[4].tx_data[0] = (uint8_t)DisplayDriver::Command::ramwr;
   trans[5].tx_buffer = data;
   trans[5].length = length * 8;
   // undo SPI_TRANS_USE_TXDATA flag
@@ -460,6 +482,28 @@ extern "C" void app_main(void) {
   bool mirror_y = false;
   auto rotation = espp::DisplayRotation::LANDSCAPE;
   //! [t_encoder_pro_config example]
+#elif CONFIG_HARDWARE_BYTE90
+  //! [byte90_config example]
+  static constexpr std::string_view dev_kit = "ALXV Labs Byte90";
+  int clock_speed = 20 * 1000 * 1000;
+  constexpr gpio_num_t mosi = GPIO_NUM_9;
+  constexpr gpio_num_t miso = GPIO_NUM_NC;
+  constexpr gpio_num_t sclk = GPIO_NUM_7;
+  constexpr gpio_num_t spics = GPIO_NUM_44;
+  constexpr gpio_num_t reset = GPIO_NUM_1;
+  constexpr gpio_num_t dc_pin = (gpio_num_t)DC_PIN_NUM;
+  constexpr size_t width = 128;
+  constexpr size_t height = 128;
+  constexpr size_t pixel_buffer_size = width * height * sizeof(uint16_t);
+
+  bool reset_value = false;
+  bool invert_colors = false;
+  int offset_x = 0;
+  int offset_y = 0;
+  bool mirror_x = false;
+  bool mirror_y = true;
+  auto rotation = espp::DisplayRotation::LANDSCAPE;
+  //! [byte90_config example]
 #endif
 
   fmt::print("Starting display_drivers example for {}\n", dev_kit);
@@ -538,7 +582,7 @@ extern "C" void app_main(void) {
                             .flush_callback = DisplayDriver::flush,
                             .rotation_callback = DisplayDriver::rotate,
                             .rotation = rotation},
-#ifdef CONFIG_T_ENCODER_PRO
+#if DISPLAY_IS_OLED
         Display::OledConfig{.set_brightness_callback = DisplayDriver::set_brightness,
                             .get_brightness_callback = DisplayDriver::get_brightness},
 #else
