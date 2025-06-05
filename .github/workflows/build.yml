@@ -43,6 +43,8 @@ jobs:
           target: esp32
         - path: 'components/button/example'
           target: esp32
+        - path: 'components/byte90/example'
+          target: esp32s3
         - path: 'components/chsc6x/example'
           target: esp32s3
         - path: 'components/cli/example'
