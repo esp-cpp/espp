@@ -18,6 +18,9 @@ namespace espp {
  *   and
  *   https://github.com/Bodmer/TFT_eSPI/blob/master/TFT_Drivers/SSD1351_Defines.h
  *
+ *   Datasheet can be found here:
+ *   https://cdn-shop.adafruit.com/datasheets/SSD1351-Revision+1.3.pdf
+ *
  * \section ssd1351_byte90_cfg Byte90 Ssd1351 Config
  * \snippet display_drivers_example.cpp byte90_config example
  * \section ssd1351_ex1 ssd1351 Example
@@ -159,6 +162,7 @@ public:
         {(uint8_t)Command::CONTRASTMASTER, {0x0F}, 0},          // Set master contrast
         {(uint8_t)Command::SETVSL, {0xA0, 0xB5, 0x55}, 0},      // Set VSL voltage
         {(uint8_t)Command::PRECHARGE2, {0x01}, 0},              // Set precharge 2 speed
+        {(uint8_t)Command::PRECHARGELEVEL, {0x1C, 0x1C, 0x1C}, 0}, // Set precharge level
 
         // Display on
         {(uint8_t)Command::DISPLAYON, {}, 0},
