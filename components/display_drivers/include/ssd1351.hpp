@@ -7,7 +7,7 @@
 
 namespace espp {
 /**
- * @brief Display driver for the SSD1351 display controller.
+ * @brief Display driver for the SSD1351 128x128 RGB OLED display controller.
  *
  *   This code is modified from
  *   https://github.com/adafruit/Adafruit-SSD1351-library/blob/master/Adafruit_SSD1351.cpp
@@ -26,134 +26,72 @@ namespace espp {
 class Ssd1351 {
 public:
   /**
-   * @brief Power control settings for the SSD1351 display.
+   * @brief Enum for Command values used by the SSD1351 display controller.
    */
-  enum class PowerControl1 : uint8_t {
-    // Bits 7-6: Reserved
-    // Bits 5-4: Phase 2 period (0x0-0x3)
-    PHASE2_1 = 0x00, // 1 DCLK
-    PHASE2_2 = 0x10, // 2 DCLK
-    PHASE2_3 = 0x20, // 3 DCLK
-    PHASE2_4 = 0x30, // 4 DCLK
-
-    // Bits 3-2: Phase 1 period (0x0-0x3)
-    PHASE1_1 = 0x00, // 1 DCLK
-    PHASE1_2 = 0x04, // 2 DCLK
-    PHASE1_3 = 0x08, // 3 DCLK
-    PHASE1_4 = 0x0C, // 4 DCLK
-
-    // Bits 1-0: Clock divider ratio (0x0-0x3)
-    CLK_DIV_1 = 0x00, // Divide by 1
-    CLK_DIV_2 = 0x01, // Divide by 2
-    CLK_DIV_4 = 0x02, // Divide by 4
-    CLK_DIV_8 = 0x03, // Divide by 8
-
-    // Common configurations
-    DEFAULT = 0x32,   // Default power control setting
-    LOW_POWER = 0x33, // Low power mode
-    HIGH_PERF = 0x30, // High performance mode
-  };
-
-  /**
-   * @brief Power control settings for the SSD1351 display.
-   */
-  enum class PowerControl2 : uint8_t {
-    // Bits 7-6: Reserved
-    // Bits 5-4: VGH voltage level (0x0-0x3)
-    VGH_6_6V = 0x00, // 6.6V
-    VGH_7_4V = 0x10, // 7.4V
-    VGH_8_0V = 0x20, // 8.0V
-    VGH_9_0V = 0x30, // 9.0V
-
-    // Bits 3-2: VGL voltage level (0x0-0x3)
-    VGL_10_0V = 0x00, // -10.0V
-    VGL_9_0V = 0x04,  // -9.0V
-    VGL_8_0V = 0x08,  // -8.0V
-    VGL_7_0V = 0x0C,  // -7.0V
-
-    // Bits 1-0: Reserved
-
-    // Common configurations
-    DEFAULT = 0x01,   // Default power control setting
-    LOW_POWER = 0x00, // Low power mode
-    HIGH_PERF = 0x30, // High performance mode
-  };
-
   enum class Command : uint8_t {
-    nop = 0xE3,        // No operation
-    swreset = 0x01,    // Software reset
-    rddid = 0x04,      // Read display ID
-    rddst = 0x09,      // Read display status
-    rddpm = 0x0A,      // Read display power mode
-    rdd_madctl = 0x0B, // Read display MADCTL
-    rdd_colmod = 0x0C, // Read display pixel format
-    rddim = 0x0D,      // Read display image mode
-    rddsm = 0x0E,      // Read display signal mode
-    rddsr = 0x0F,      // Read display self-diagnostic result
+    caset = 0x15, ///< Column address set
+    raset = 0x75, ///< Row address set
+    ramwr = 0x5C, ///< RAM write
+    ramrd = 0x5D, ///< RAM read
 
-    slpin = 0x10,  // Sleep in
-    slpout = 0x11, // Sleep out
-    ptlon = 0x12,  // Partial mode on
-    noron = 0x13,  // Normal display mode on
+    madctl = 0xA0, ///< Memory data access control
 
-    invoff = 0x20,  // Display inversion off
-    invon = 0x21,   // Display inversion on
-    gamset = 0x26,  // Gamma set
-    dispoff = 0x28, // Display off
-    dispon = 0x29,  // Display on
-    caset = 0x15,   // Column address set
-    raset = 0x75,   // Row address set
-    ramwr = 0x5C,   // RAM write
-    rgbset = 0x2D,  // Color setting
-    ramrd = 0x5D,   // RAM read
+    STARTLINE = 0xA1, ///< Vertical Scroll by RAM
 
-    ptlar = 0x30,   // Partial area
-    vscrdef = 0x33, // Vertical scrolling definition
-    teoff = 0x34,   // Tearing effect line off
-    teon = 0x35,    // Tearing effect line on
-    madctl = 0x36,  // Memory data access control
-    idmoff = 0x38,  // Idle mode off
-    idmon = 0x39,   // Idle mode on
-    ramwrc = 0x3C,  // Memory write continue
-    ramrdc = 0x3E,  // Memory read continue
-    colmod = 0x3A,  // Color mode - pixel format
+    DISPLAYOFFSET = 0xA2, ///< Vertical Scroll by row (locked)
+    DISPLAYALLOFF = 0xA4, ///< All pixels off
+    DISPLAYALLON = 0xA5,  ///< All pixels on (all pixels have GS63)
+    NORMALDISPLAY = 0xA6, ///< Normal display mode
+    INVERTDISPLAY = 0xA7, ///< Inverted display mode
 
-    ramctrl = 0xB0,   // RAM control
-    rgbctrl = 0xB1,   // RGB control
-    porctrl = 0xB2,   // Porch control
-    frctrl1 = 0xB3,   // Frame rate control
-    parctrl = 0xB5,   // Partial mode control
-    gctrl = 0xB7,     // Gate control
-    gtadj = 0xB8,     // Gate on timing adjustment
-    dgmen = 0xBA,     // Digital gamma enable
-    vcoms = 0xBB,     // VCOMH setting
-    lcmctrl = 0xC0,   // LCM control
-    idset = 0xC1,     // ID setting
-    vdvvrhen = 0xC2,  // VDV and VRH command enable
-    vrhs = 0xC3,      // VRH set
-    vdvset = 0xC4,    // VDV setting
-    vcmofset = 0xC5,  // VCOMH offset set
-    frctr2 = 0xC6,    // Frame rate control 2
-    cabcctrl = 0xC7,  // CABC control
-    regsel1 = 0xC8,   // Register value section 1
-    regsel2 = 0xCA,   // Register value section 2
-    pwmfrsel = 0xCC,  // PWM frequency selection
-    pwctrl1 = 0xD0,   // Power control 1
-    vapvanen = 0xD2,  // Enable VAP/VAN signal output
-    cmd2en = 0xDF,    // Command 2 enable
-    pvgamctrl = 0xE0, // Positive voltage gamma control
-    nvgamctrl = 0xE1, // Negative voltage gamma control
-    dgmlutr = 0xE2,   // Digital gamma look-up table for red
-    dgmlutb = 0xE3,   // Digital gamma look-up table for blue
-    gatectrl = 0xE4,  // Gate control
-    spi2en = 0xE7,    // SPI2 enable
-    pwctrl2 = 0xE8,   // Power control 2
-    eqctrl = 0xE9,    // Equalize time control
-    promctrl = 0xEC,  // Program control
-    promen = 0xFA,    // Program mode enable
-    nvmset = 0xFC,    // NVM setting
-    promact = 0xFE,   // Program action
+    FUNCTIONSELECT = 0xAB, ///< See datasheet
+
+    DISPLAYOFF = 0xAE, ///< Sleep Mode On
+    DISPLAYON = 0xAF,  ///< Sleep Mode Off
+
+    PRECHARGE = 0xB1,      ///< See datasheet
+    DISPLAYENHANCE = 0xB2, ///< Not currently used
+    CLOCKDIV = 0xB3,       ///< See datasheet
+    SETVSL = 0xB4,         ///< See datasheet
+    SETGPIO = 0xB5,        ///< See datasheet
+    PRECHARGE2 = 0xB6,     ///< See datasheet
+    SETGRAY = 0xB8,        ///< Not currently used
+    USELUT = 0xB9,         ///< Not currently used
+    PRECHARGELEVEL = 0xBB, ///< Not currently used
+    VCOMH = 0xBE,          ///< See datasheet
+    CONTRASTABC = 0xC1,    ///< See datasheet
+    CONTRASTMASTER = 0xC7, ///< See datasheet
+    MUXRATIO = 0xCA,       ///< See datasheet
+    HORIZSCROLL = 0x96,    ///< Not currently used
+    STOPSCROLL = 0x9E,     ///< Not currently used
+    STARTSCROLL = 0x9F,    ///< Not currently used
+
+    nop0 = 0xD1, ///< No operation (0)
+    nop1 = 0xE3, ///< No operation (1)
+
+    COMMANDLOCK = 0xFD, ///< Command lock and MCU protection status
   };
+
+  // madctl bits:
+  // 6,7 Color depth (01 = 64K)
+  // 5   Odd/even split COM (0: disable, 1: enable) - split COM
+  // 4   Scan direction (0: top-down, 1: bottom-up) - mirror Y
+  // 3   Reserved - always 0
+  // 2   Color remap (0: A->B->C, 1: C->B->A) - BGR color order
+  // 1   Column remap (0: 0-127, 1: 127-0) - mirror X
+  // 0   Address increment (0: horizontal, 1: vertical) - swap X and Y
+  static constexpr int OLED_CMD_COLOR_DEPTH_65K1 = 0b00 << 6;  // 65K color mode
+  static constexpr int OLED_CMD_COLOR_DEPTH_65K2 = 0b01 << 6;  // 65K color mode
+  static constexpr int OLED_CMD_COLOR_DEPTH_262K1 = 0b10 << 6; // 262K color mode
+  static constexpr int OLED_CMD_COLOR_DEPTH_262K2 = 0b11 << 6; // 262K color mode, 16-bit format 2
+  static constexpr int OLED_CMD_COM_SPLIT = 0b1 << 5;          // Odd/even split COM
+  static constexpr int OLED_CMD_MY_BIT = 0b1 << 4;             // Mirror Y
+  static constexpr int OLED_CMD_BGR_BIT = 0b1 << 2;            // BGR color order
+  static constexpr int OLED_CMD_MX_BIT = 0b1 << 1;             // Mirror X
+  static constexpr int OLED_CMD_MV_BIT = 0b1 << 0;             // Swap X and Y
+
+  static constexpr int DEFAULT_MADCTL =
+      OLED_CMD_COLOR_DEPTH_65K2 | OLED_CMD_COM_SPLIT; ///< Default MADCTL value
 
   /**
    * @brief Store the config data and send the initialization commands to the
@@ -177,107 +115,59 @@ public:
     // Initialize display pins
     display_drivers::init_pins(reset_pin_, dc_pin_, config.reset_value);
 
-    uint8_t madctl = 0;
+    uint8_t madctl = DEFAULT_MADCTL; // Default MADCTL value
     if (swap_color_order_) {
-      madctl |= LCD_CMD_BGR_BIT;
+      madctl |= OLED_CMD_BGR_BIT;
     }
     if (mirror_x_) {
-      madctl |= LCD_CMD_MX_BIT;
+      madctl |= OLED_CMD_MX_BIT;
     }
     if (mirror_y_) {
-      madctl |= LCD_CMD_MY_BIT;
+      madctl |= OLED_CMD_MY_BIT;
     }
     if (swap_xy_) {
-      madctl |= LCD_CMD_MV_BIT;
+      madctl |= OLED_CMD_MV_BIT;
     }
 
     // set up the init commands
     auto init_commands = std::to_array<display_drivers::DisplayInitCmd<>>({
         // Command lock - unlock OLED driver IC MCU interface
-        {(uint8_t)Command::cmd2en, {0x12}, 0}, // Unlock commands
-        {(uint8_t)Command::cmd2en, {0xB1}, 0}, // Make commands A2,B1,B3,BB,BE,C1 accessible
+        {(uint8_t)Command::COMMANDLOCK, {0x12}, 0}, // Unlock commands
+        {(uint8_t)Command::COMMANDLOCK, {0xB1}, 0}, // Make commands A2,B1,B3,BB,BE,C1 accessible
 
         // Display off
-        {(uint8_t)Command::dispoff, {}, 0},
-
-        // Power control settings
-        {(uint8_t)Command::pwctrl1, {static_cast<uint8_t>(PowerControl1::DEFAULT)}, 0},
-        {(uint8_t)Command::pwctrl2, {static_cast<uint8_t>(PowerControl2::DEFAULT)}, 0},
+        {(uint8_t)Command::DISPLAYOFF, {}, 0},
 
         // Clock divider and oscillator frequency
-        {(uint8_t)Command::frctrl1, {0xF1}, 0}, // 7:4 = Oscillator Frequency, 3:0 = CLK Div Ratio
+        {(uint8_t)Command::CLOCKDIV, {0xF1}, 0}, // 7:4 = Oscillator Frequency, 3:0 = CLK Div Ratio
 
         // Multiplex ratio (128 lines)
-        {(uint8_t)Command::gctrl, {0x7F}, 0}, // 127 (128-1)
+        {(uint8_t)Command::MUXRATIO, {0x7F}, 0}, // 127 (128-1)
 
-        // Set remap and color depth
-        {(uint8_t)Command::madctl,
-         {
-             (config.mirror_x ? 0x40 : 0) | (config.mirror_y ? 0x80 : 0) |
-             (config.swap_xy ? 0x20 : 0) | (config.swap_color_order ? 0x08 : 0) |
-             0x04 // RGB color order
-         },
+        {(uint8_t)Command::DISPLAYOFFSET, {0x00}, 0},  // Set display offset to 0
+        {(uint8_t)Command::SETGPIO, {0x00}, 0},        // Set GPIO to 0 (disable)
+        {(uint8_t)Command::FUNCTIONSELECT, {0x01}, 0}, // Internal VDD regulator
+        {(uint8_t)Command::PRECHARGE, {0x32}, 0},      // Set precharge speed
+        {(uint8_t)Command::VCOMH, {0x05}, 0},          // Set VCOMH voltage
+
+        // // Normal or inverted display
+        {config.invert_colors ? (uint8_t)Command::INVERTDISPLAY : (uint8_t)Command::NORMALDISPLAY,
+         {},
          0},
 
-        // Color mode setting
-        {(uint8_t)Command::colmod, {0x55}, 0}, // Set 16-bit color mode
-
-        // Set column address range
-        {(uint8_t)Command::caset, {0x00, 0x7F}, 0}, // Column start/end address
-
-        // Set row address range
-        {(uint8_t)Command::raset, {0x00, 0x7F}, 0}, // Row start/end address
-
-        // Set display start line
-        {(uint8_t)Command::idset, {0x00}, 0},
-
-        // Set display offset
-        {(uint8_t)Command::vdvvrhen, {0x00}, 0},
-
-        // Set GPIO pins
-        {(uint8_t)Command::lcmctrl, {0x00}, 0},
-
-        // Function selection (internal VDD regulator)
-        {(uint8_t)Command::pwctrl1, {0x01}, 0},
-
-        // Set segment low voltage
-        {(uint8_t)Command::vrhs, {0xA0, 0xB5, 0x55}, 0},
-
-        // Set contrast current for colors A, B, C
-        {(uint8_t)Command::regsel1, {0xC8}, 0}, // Red
-        {(uint8_t)Command::regsel2, {0x80}, 0}, // Green
-        {(uint8_t)Command::regsel1, {0xC8}, 0}, // Blue
-
-        // Master current control
-        {(uint8_t)Command::cabcctrl, {0x0F}, 0},
-
-        // Set precharge speed for colors A, B, C
-        {(uint8_t)Command::porctrl, {0x32, 0x32, 0x32}, 0},
-
-        // Set precharge voltage
-        {(uint8_t)Command::vcoms, {0x17}, 0},
-
-        // Set VCOMH voltage
-        {(uint8_t)Command::vcmofset, {0x05}, 0},
-
-        // Gamma correction
-        {(uint8_t)Command::pvgamctrl,
-         {0x3F, 0x25, 0x1C, 0x1E, 0x20, 0x12, 0x2A, 0x90, 0x24, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00},
-         0},
-        {(uint8_t)Command::nvgamctrl,
-         {0x3F, 0x20, 0x43, 0x45, 0x33, 0x16, 0x08, 0x09, 0x06, 0x0F, 0x00, 0x00, 0x00, 0x00, 0x00},
-         0},
-
-        // Normal or inverted display
-        {config.invert_colors ? (uint8_t)Command::invoff : (uint8_t)Command::invon, {}, 0},
-
-        // Clear display memory
-        {(uint8_t)Command::caset, {0x00, 0x7F}, 0},
-        {(uint8_t)Command::raset, {0x00, 0x7F}, 0},
-        {(uint8_t)Command::ramwr, {}, 0},
+        {(uint8_t)Command::CONTRASTABC, {0xC8, 0x80, 0xC8}, 0}, // Set contrast for colors A, B, C
+        {(uint8_t)Command::CONTRASTMASTER, {0x0F}, 0},          // Set master contrast
+        {(uint8_t)Command::SETVSL, {0xA0, 0xB5, 0x55}, 0},      // Set VSL voltage
+        {(uint8_t)Command::PRECHARGE2, {0x01}, 0},              // Set precharge 2 speed
 
         // Display on
-        {(uint8_t)Command::dispon, {}, 0},
+        {(uint8_t)Command::DISPLAYON, {}, 0},
+
+        // Set remap and color depth
+        {(uint8_t)Command::madctl, {madctl}, 0},
+
+        // Set display start line
+        {(uint8_t)Command::STARTLINE, {0x00}, 0},
     });
 
     // send the init commands
@@ -289,45 +179,69 @@ public:
    * @param rotation New display rotation.
    */
   static void rotate(const DisplayRotation &rotation) {
-    uint8_t data = 0;
+    uint8_t madctl = DEFAULT_MADCTL; // Default MADCTL value
+    uint8_t startline = 0;
     if (swap_color_order_) {
-      data |= LCD_CMD_BGR_BIT;
+      madctl |= OLED_CMD_BGR_BIT;
     }
     if (mirror_x_) {
-      data |= LCD_CMD_MX_BIT;
+      madctl |= OLED_CMD_MX_BIT;
     }
     if (mirror_y_) {
-      data |= LCD_CMD_MY_BIT;
+      madctl |= OLED_CMD_MY_BIT;
     }
     if (swap_xy_) {
-      data |= LCD_CMD_MV_BIT;
+      madctl |= OLED_CMD_MV_BIT;
     }
     switch (rotation) {
-    case DisplayRotation::LANDSCAPE:
-      break;
-    case DisplayRotation::PORTRAIT:
-      // flip the mx and mv bits (xor)
+    case DisplayRotation::LANDSCAPE: {
+      // set startline to HEIGHT
+      startline = 127;
+      std::scoped_lock lock{spi_mutex_};
+      write_command_(static_cast<uint8_t>(Command::STARTLINE), {&startline, 1}, 0);
+    } break;
+    case DisplayRotation::PORTRAIT: {
+      // flip the mv bit (xor)
+      madctl ^= (OLED_CMD_MV_BIT);
       if (mirror_portrait_) {
-        data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+        // flip the my bit (xor)
+        madctl ^= (OLED_CMD_MY_BIT);
       } else {
-        data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+        // flip the mx bit (xor)
+        madctl ^= OLED_CMD_MX_BIT;
       }
-      break;
-    case DisplayRotation::LANDSCAPE_INVERTED:
+      // set startline to WIDTH
+      startline = 127;
+      std::scoped_lock lock{spi_mutex_};
+      write_command_(static_cast<uint8_t>(Command::STARTLINE), {&startline, 1}, 0);
+    } break;
+    case DisplayRotation::LANDSCAPE_INVERTED: {
       // flip the my and mx bits (xor)
-      data ^= (LCD_CMD_MY_BIT | LCD_CMD_MX_BIT);
-      break;
-    case DisplayRotation::PORTRAIT_INVERTED:
-      // flip the my and mv bits (xor)
+      madctl ^= (OLED_CMD_MY_BIT | OLED_CMD_MX_BIT);
+      // set startline to 0
+      startline = 0;
+      std::scoped_lock lock{spi_mutex_};
+      write_command_(static_cast<uint8_t>(Command::STARTLINE), {&startline, 1}, 0);
+    } break;
+    case DisplayRotation::PORTRAIT_INVERTED: {
+      // flip the mv bit (xor)
+      madctl ^= (OLED_CMD_MV_BIT);
       if (mirror_portrait_) {
-        data ^= (LCD_CMD_MY_BIT | LCD_CMD_MV_BIT);
+        // flip the mx bit (xor)
+        madctl ^= OLED_CMD_MX_BIT;
       } else {
-        data ^= (LCD_CMD_MX_BIT | LCD_CMD_MV_BIT);
+        // flip the my bit (xor)
+        madctl ^= (OLED_CMD_MY_BIT);
       }
-      break;
+      // set startline to 0
+      startline = 0;
+      std::scoped_lock lock{spi_mutex_};
+      write_command_(static_cast<uint8_t>(Command::STARTLINE), {&startline, 1}, 0);
+    } break;
     }
+    auto madctl_data = std::array<uint8_t, 1>{madctl};
     std::scoped_lock lock{spi_mutex_};
-    write_command_(static_cast<uint8_t>(Command::madctl), {&data, 1}, 0);
+    write_command_(static_cast<uint8_t>(Command::madctl), madctl_data, 0);
   }
 
   /**
@@ -359,7 +273,7 @@ public:
    * @param ye Ending y coordinate of the area.
    */
   static void set_drawing_area(size_t xs, size_t ys, size_t xe, size_t ye) {
-    std::array<uint8_t, 4> data;
+    std::array<uint8_t, 2> data;
 
     int offset_x = 0;
     int offset_y = 0;
@@ -371,17 +285,13 @@ public:
     uint16_t end_y = ye + offset_y;
 
     // Set the column (x) start / end addresses
-    data[0] = (start_x >> 8) & 0xFF;
-    data[1] = start_x & 0xFF;
-    data[2] = (end_x >> 8) & 0xFF;
-    data[3] = end_x & 0xFF;
+    data[0] = start_x & 0xFF;
+    data[1] = end_x & 0xFF;
     write_command_(static_cast<uint8_t>(Command::caset), data, 0);
 
     // Set the row (y) start / end addresses
-    data[0] = (start_y >> 8) & 0xFF;
-    data[1] = start_y & 0xFF;
-    data[2] = (end_y >> 8) & 0xFF;
-    data[3] = end_y & 0xFF;
+    data[0] = start_y & 0xFF;
+    data[1] = end_y & 0xFF;
     write_command_(static_cast<uint8_t>(Command::raset), data, 0);
   }
 
@@ -442,7 +352,9 @@ public:
     for (const auto &[command, parameters, delay_ms] : commands) {
       std::scoped_lock lock{spi_mutex_};
       write_command_(command, parameters, 0);
-      std::this_thread::sleep_for(delay_ms * 1ms);
+      if (delay_ms) {
+        std::this_thread::sleep_for(delay_ms * 1ms);
+      }
     }
   }
 
@@ -509,54 +421,23 @@ public:
   }
 
   /**
-   * @brief Set the power control settings for the display.
-   * @param pc1 Power control 1 settings
-   * @param pc2 Power control 2 settings
+   * @brief Set the display brightness.
+   * @param brightness Brightness value in range [0.0, 1.0].
    */
-  static void set_power_control(PowerControl1 pc1, PowerControl2 pc2) {
-    std::scoped_lock lock{spi_mutex_};
-    write_command_(static_cast<uint8_t>(Command::pwctrl1), {static_cast<uint8_t>(pc1)}, 0);
-    write_command_(static_cast<uint8_t>(Command::pwctrl2), {static_cast<uint8_t>(pc2)}, 0);
+  static void set_brightness(const float brightness) {
+    // Update the local brightness value
+    brightness_ = brightness;
+
+    // This display has a 4-bit brightness control
+    uint8_t data = brightness * 15.0f; // Scale to 0-15 range
+    write_command_(static_cast<uint8_t>(Command::CONTRASTMASTER), {&data, 1}, 0);
   }
 
   /**
-   * @brief Get the current power control settings.
-   * @param pc1 Reference to store power control 1 settings
-   * @param pc2 Reference to store power control 2 settings
+   * @brief Get the current display brightness.
+   * @return Current brightness value in range [0.0, 1.0].
    */
-  static void get_power_control(PowerControl1 &pc1, PowerControl2 &pc2) {
-    std::scoped_lock lock{spi_mutex_};
-    uint8_t data[1];
-
-    // Read power control 1
-    write_command_(static_cast<uint8_t>(Command::rddid), data, 0);
-    pc1 = static_cast<PowerControl1>(data[0]);
-
-    // Read power control 2
-    write_command_(static_cast<uint8_t>(Command::rddid), data, 0);
-    pc2 = static_cast<PowerControl2>(data[0]);
-  }
-
-  /**
-   * @brief Set the display to low power mode.
-   */
-  static void set_low_power_mode() {
-    set_power_control(PowerControl1::LOW_POWER, PowerControl2::LOW_POWER);
-  }
-
-  /**
-   * @brief Set the display to high performance mode.
-   */
-  static void set_high_performance_mode() {
-    set_power_control(PowerControl1::HIGH_PERF, PowerControl2::HIGH_PERF);
-  }
-
-  /**
-   * @brief Set the display to default power mode.
-   */
-  static void set_default_power_mode() {
-    set_power_control(PowerControl1::DEFAULT, PowerControl2::DEFAULT);
-  }
+  static float get_brightness() { return brightness_; }
 
 protected:
   static inline display_drivers::write_command_fn write_command_;
@@ -571,5 +452,6 @@ protected:
   static inline bool swap_xy_;
   static inline bool swap_color_order_;
   static inline std::mutex spi_mutex_;
+  static inline float brightness_ = 1.0f;
 };
 } // namespace espp
