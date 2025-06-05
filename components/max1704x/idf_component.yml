@@ -1,5 +1,4 @@
 ## IDF Component Manager Manifest File
-version: "0.22.0"
 license: "MIT"
 description: "MAX1704x Battery Fuel Gauge component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/max1704x"

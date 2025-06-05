@@ -1,5 +1,4 @@
 ## IDF Component Manager Manifest File
-version: "0.22.0"
 license: "MIT"
 description: "MT6701 Magnetic Encoder component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/mt6701"

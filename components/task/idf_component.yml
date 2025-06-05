@@ -1,5 +1,4 @@
 ## IDF Component Manager Manifest File
-version: "0.22.0"
 license: "MIT"
 description: "C++ component representing a task which can be started / stopped / resumed."
 url: "https://github.com/esp-cpp/espp/tree/main/components/task"
