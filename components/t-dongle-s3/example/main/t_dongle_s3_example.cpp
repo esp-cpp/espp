@@ -42,8 +42,7 @@ extern "C" void app_main(void) {
   using SdCardConfig = espp::TDongleS3::SdCardConfig;
   SdCardConfig sdcard_config{};
   if (!tdongle.initialize_sdcard(sdcard_config)) {
-    logger.error("Failed to initialize SD card!");
-    return;
+    logger.warn("Failed to initialize SD card, continuing without it.");
   }
 
   // initialize the button, which we'll use to cycle the rotation of the display
