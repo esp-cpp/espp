@@ -4,6 +4,7 @@ IMU APIs
 .. toctree::
     :maxdepth: 1
 
+    adxl345
     icm20948
     icm42607
 
