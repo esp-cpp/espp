@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "ALXV Labs Byte90 Board Support Package (BSP) component for ESPP"
+url: "https://github.com/esp-cpp/espp/tree/main/components/byte90"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/byte90.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - ALXV-Labs
+  - Byte90
+  - BSP
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/adxl345: '>=1.0'
+  espp/base_component: '>=1.0'
+  espp/display: '>=1.0'
+  espp/display_drivers: '>=1.0'
+  espp/i2c: '>=1.0'
+  espp/interrupt: '>=1.0'
+  espp/task: '>=1.0'

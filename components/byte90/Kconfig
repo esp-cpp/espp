@@ -1,0 +1,8 @@
+menu "Byte90 Configuration"
+    config BYTE90_INTERRUPT_STACK_SIZE
+        int "Interrupt stack size"
+        default 4096
+        help
+            Size of the stack used for the interrupt handler. Shared by the
+            keyboard callback and the touch callback.
+endmenu
