@@ -222,7 +222,7 @@ bool IRAM_ATTR MotorGoMini::read_encoder(const auto &encoder_handle, uint8_t *da
     t.flags = SPI_TRANS_USE_RXDATA;
     t.rx_buffer = nullptr;
   }
-  esp_err_t err = spi_device_polling_transmit(encoder_handle, &t);
+  esp_err_t err = spi_device_transmit(encoder_handle, &t);
   if (err != ESP_OK) {
     return false;
   }
