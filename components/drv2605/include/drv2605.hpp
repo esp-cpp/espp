@@ -551,6 +551,73 @@ public:
     return true; // return true if no error
   }
 
+  /**
+   * @brief Read the calibration data from the DRV2605.
+   * @details This method reads the calibration data from the DRV2605. It is
+   *          used to read the BEMF gain, A_CAL_COMP, and A_CAL_BEMF values.
+   * @param cal_data_out The structure to store the calibration data.
+   * @param ec Error code to set if there is an error.
+   * @return true if the calibration data was read successfully, false if there
+   *         was an error.
+   */
+  bool read_calibration_data(CalibratedData &cal_data_out, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    logger_.info("Reading calibration data");
+
+    // read BEMF_GAIN[1:0], which is bits 0-1 of the FEEDBACK register
+    uint8_t bemf_gain = read_u8_from_register((uint8_t)Register::FEEDBACK, ec);
+    if (ec)
+      return false;
+
+    // read A_CAL_COMP[7:0], which is bits 0-7 of the AUTOCALCOMP register
+    uint8_t a_cal_comp = read_u8_from_register((uint8_t)Register::AUTOCALCOMP, ec);
+    if (ec)
+      return false;
+
+    // read A_CAL_BEMF[7:0], which is bits 0-7 of the AUTOCALEMP register
+    uint8_t bemf = read_u8_from_register((uint8_t)Register::AUTOCALEMP, ec);
+    if (ec)
+      return false;
+
+    cal_data_out.bemf_gain = bemf_gain & 0x03; // mask to get only the first 2 bits
+    cal_data_out.a_cal_comp = a_cal_comp;
+    cal_data_out.a_cal_bemf = bemf;
+    return true; // return true if no error
+  }
+
+  /**
+   * @brief Set the calibration data for the DRV2605.
+   * @details This method sets the calibration data for the DRV2605. It is
+   *          used to set the BEMF gain, A_CAL_COMP, and A_CAL_BEMF values.
+   * @param cal_data The calibration data to set.
+   * @param ec Error code to set if there is an error.
+   * @return true if the calibration data was set successfully, false if there
+   *         was an error.
+   */
+  bool set_calibration_data(const CalibratedData &cal_data, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    logger_.info("Setting calibration data: {}", cal_data);
+
+    // set BEMF_GAIN[1:0], which is bits 0-1 of the FEEDBACK register
+    static constexpr uint8_t BEMF_GAIN_MASK = 0x03; // bits 0-1
+    set_bits_in_register_by_mask((uint8_t)Register::FEEDBACK, BEMF_GAIN_MASK, cal_data.bemf_gain,
+                                 ec);
+    if (ec)
+      return false;
+
+    // set A_CAL_COMP[7:0], which is bits 0-7 of the AUTOCALCOMP register
+    write_u8_to_register((uint8_t)Register::AUTOCALCOMP, cal_data.a_cal_comp, ec);
+    if (ec)
+      return false;
+
+    // set A_CAL_BEMF[7:0], which is bits 0-7 of the AUTOCALEMP register
+    write_u8_to_register((uint8_t)Register::AUTOCALEMP, cal_data.a_cal_bemf, ec);
+    if (ec)
+      return false;
+
+    return true; // return true if no error
+  }
+
 protected:
   bool init(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
@@ -637,31 +704,6 @@ protected:
                                  ec);
 
     return !ec; // return true if no error
-  }
-
-  bool read_calibration_data(CalibratedData &cal_data_out, std::error_code &ec) {
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    logger_.info("Reading calibration data");
-
-    // read BEMF_GAIN[1:0], which is bits 0-1 of the FEEDBACK register
-    uint8_t bemf_gain = read_u8_from_register((uint8_t)Register::FEEDBACK, ec);
-    if (ec)
-      return false;
-
-    // read A_CAL_COMP[7:0], which is bits 0-7 of the AUTOCALCOMP register
-    uint8_t a_cal_comp = read_u8_from_register((uint8_t)Register::AUTOCALCOMP, ec);
-    if (ec)
-      return false;
-
-    // read A_CAL_BEMF[7:0], which is bits 0-7 of the AUTOCALEMP register
-    uint8_t bemf = read_u8_from_register((uint8_t)Register::AUTOCALEMP, ec);
-    if (ec)
-      return false;
-
-    cal_data_out.bemf_gain = bemf_gain & 0x03; // mask to get only the first 2 bits
-    cal_data_out.a_cal_comp = a_cal_comp;
-    cal_data_out.a_cal_bemf = bemf;
-    return true; // return true if no error
   }
 
   enum class Register : uint8_t {
