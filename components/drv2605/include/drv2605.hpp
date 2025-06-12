@@ -25,7 +25,9 @@ public:
    * @brief Convert LRA frequency to drive time.
    * @details The drive time is half the period of the LRA frequency, in ms.
    *          The LRA frequency is in Hz, so we need to convert it to ms.
-   *          The formula is: drive_time = 1000 / (2 * lra_freq).
+   *          The formula is:
+   *            - drive_time_ms = 1000 / (2 * lra_freq).
+   *            - drive_time = (drive_time_ms - 0.5) / 0.1
    * @param lra_freq The frequency of the LRA in Hz.
    * @return The drive time in bits (0-31).
    */
@@ -125,14 +127,15 @@ public:
                                cause the feedback to react at slower rate. */
   };
 
-  using ErmCalibrationSettings =
-      BaseCalibrationSettings; /**< Calibration Routine Settings structure for ERM motors. */
+  /**< Calibration Routine Settings structure for ERM motors. */
+  using ErmCalibrationSettings = BaseCalibrationSettings;
 
+  /**< Calibration Routine Settings structure for LRA motors. */
   struct LraCalibrationSettings : BaseCalibrationSettings {
     uint8_t sample_time : 2 = 3;   /**< Sample time, 0-3. */
     uint8_t blanking_time : 2 = 1; /**< Blanking time, 0-3. */
     uint8_t idiss_time : 2 = 1;    /**< IDISS time, 0-3. */
-  };                               /**< Calibration Routine Settings structure for LRA motors. */
+  };
 
   /**
    * @brief Structure to hold the calibrated data for the DRV2605.
@@ -292,8 +295,6 @@ public:
    * @note This is only valid when the RTP data format is set to unsigned
    *       (requires set_rtp_data_format_unsigned(true)).
    * @param pwm_value The PWM value to set (0-255).
-   * @note The value is interpreted as unsigned by default, but can be set to
-   *       signed by using the `set_rtp_pwm` method.
    * @param ec Error code to set if there is an error.
    * @return true if the PWM value was set successfully, false if there was an
    *         error.
@@ -316,8 +317,6 @@ public:
    * @note This is only valid when the RTP data format is set to signed
    *       (default).
    * @param pwm_value The PWM value to set (-128 to 127).
-   * @note The value is interpreted as signed by default, but can be set to
-   *       unsigned by using the `set_rtp_pwm_unsigned` method.
    * @param ec Error code to set if there is an error.
    * @return true if the PWM value was set successfully, false if there was an
    *         error.
@@ -335,18 +334,19 @@ public:
   }
 
   /**
-   * @brief Set the waveform slot at \p slot to \w.
+   * @brief Set the waveform at slot.
    * @note When calling start() to play the configured waveform slots, the
    *       driver will always start playing from slot 0 and will continue
    *       until it reaches a slot that has been configured with the
    *       Waveform::END.
    * @param slot The slot (0-8) to set.
-   * @param w The Waveform to play in slot \p slot.
+   * @param w The Waveform to play in slot.
    * @param ec Error code to set if there is an error.
    * @return true if the waveform was set successfully, false if there was an
    *         error.
    */
   bool set_waveform(uint8_t slot, Waveform w, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     logger_.info("Setting waveform {}", (uint8_t)w);
     write_u8_to_register((uint8_t)Register::WAVESEQ1 + slot, (uint8_t)w, ec);
     return !ec; // return true if no error
@@ -360,6 +360,7 @@ public:
    *         error.
    */
   bool select_library(Library lib, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     logger_.info("Selecting library {}", lib);
     if (motor_type_ == MotorType::LRA && lib != Library::LRA) {
       logger_.warn("LRA motor selected, but library {} is not an LRA library", lib);
@@ -368,8 +369,22 @@ public:
     return !ec; // return true if no error
   }
 
+  /**
+   * @brief Calibrate the DRV2605 for an ERM motor.
+   * @details This method performs the auto-calibration routine for the DRV2605.
+   *          It will put the DRV2605 into auto-calibration
+   *          mode, and then start the calibration process. The calibration
+   *          data will be stored in the `cal_data_out` parameter.
+   * @param cal_conf The calibration settings to use.
+   * @param cal_data_out The structure to store the calibration data.
+   * @param ec Error code to set if there is an error.
+   * @return true if the calibration was successful, false if there was an
+   *         error.
+   */
   bool calibrate(const ErmCalibrationSettings &cal_conf, CalibratedData &cal_data_out,
                  std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
     // if the motor type is not ERM, log a warning
     if (motor_type_ != MotorType::ERM) {
       logger_.warn("Calibrating ERM motor while the motor type is set to {}", motor_type_);
@@ -447,8 +462,22 @@ public:
     return true; // return true if no error
   }
 
+  /**
+   * @brief Calibrate the DRV2605 for an LRA motor.
+   * @details This method performs the auto-calibration routine for the DRV2605.
+   *          It will put the DRV2605 into auto-calibration
+   *          mode, and then start the calibration process. The calibration
+   *          data will be stored in the `cal_data_out` parameter.
+   * @param cal_conf The calibration settings to use.
+   * @param cal_data_out The structure to store the calibration data.
+   * @param ec Error code to set if there is an error.
+   * @return true if the calibration was successful, false if there was an
+   *         error.
+   */
   bool calibrate(const LraCalibrationSettings &cal_conf, CalibratedData &cal_data_out,
                  std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
     // if the motor type is not LRA, log a warning
     if (motor_type_ != MotorType::LRA) {
       logger_.warn("Calibrating LRA motor while the motor type is set to {}", motor_type_);
