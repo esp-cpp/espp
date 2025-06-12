@@ -13,7 +13,7 @@ extern "C" void app_main(void) {
   static espp::Logger logger({.tag = "drv2605 example", .level = espp::Logger::Verbosity::INFO});
   // This example shows using the i2c haptic motor driver (drv2605)
   {
-    logger.info("Running i2c adc example!");
+    logger.info("Starting!");
     //! [drv2605 example]
     // make the I2C that we'll use to communicate
     espp::I2c i2c({
@@ -21,28 +21,43 @@ extern "C" void app_main(void) {
         .sda_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SDA_GPIO,
         .scl_io_num = (gpio_num_t)CONFIG_EXAMPLE_I2C_SCL_GPIO,
     });
+
+    using Driver = espp::Drv2605;
+
     // make the actual drv2605 class
-    espp::Drv2605 drv2605(espp::Drv2605::Config{
-        .device_address = espp::Drv2605::DEFAULT_ADDRESS,
+    Driver drv2605(Driver::Config{
+        .device_address = Driver::DEFAULT_ADDRESS,
         .write = std::bind(&espp::I2c::write, &i2c, std::placeholders::_1, std::placeholders::_2,
                            std::placeholders::_3),
         .read_register =
             std::bind(&espp::I2c::read_at_register, &i2c, std::placeholders::_1,
                       std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-        .motor_type = espp::Drv2605::MotorType::LRA});
+        .motor_type = Driver::MotorType::LRA,
+        .log_level = espp::Logger::Verbosity::INFO,
+    });
     std::error_code ec;
     // we're using an ERM motor, so select an ERM library (1-5).
     // drv2605.select_library(1, ec);
     // we're using an LRA motor, so select an LRA library (6).
-    drv2605.select_library(espp::Drv2605::Library::LRA, ec);
+    drv2605.select_library(Driver::Library::LRA, ec);
     if (ec) {
       logger.error("select library failed: {}", ec.message());
     }
+
+    // do the calibration for the LRA motor
+    Driver::LraCalibrationSettings lra_calibration_settings{};
+    lra_calibration_settings.rated_voltage = 255;
+    lra_calibration_settings.overdrive_clamp = 255;
+    lra_calibration_settings.drive_time = Driver::lra_freq_to_drive_time(200.0f);
+    Driver::CalibratedData calibrated_data;
+    if (!drv2605.calibrate(lra_calibration_settings, calibrated_data, ec)) {
+      logger.error("calibration failed: {}", ec.message());
+      return;
+    }
+    logger.info("calibration complete: {}", calibrated_data);
+
     // make the task which will cycle through all the waveforms
     auto task_fn = [&drv2605](std::mutex &m, std::condition_variable &cv) {
-      static auto start = std::chrono::high_resolution_clock::now();
-      auto now = std::chrono::high_resolution_clock::now();
-      auto elapsed = std::chrono::duration<float>(now - start).count();
       static uint8_t waveform = 0;
       std::error_code ec;
       drv2605.stop(ec);
@@ -50,12 +65,12 @@ extern "C" void app_main(void) {
         logger.error("stop failed: {}", ec.message());
         return false;
       }
-      drv2605.set_waveform(0, (espp::Drv2605::Waveform)waveform, ec);
+      drv2605.set_waveform(0, (Driver::Waveform)waveform, ec);
       if (ec) {
         logger.error("set waveform failed: {}", ec.message());
         return false;
       }
-      drv2605.set_waveform(1, espp::Drv2605::Waveform::END, ec);
+      drv2605.set_waveform(1, Driver::Waveform::END, ec);
       if (ec) {
         logger.error("set waveform failed: {}", ec.message());
         return false;
@@ -66,10 +81,10 @@ extern "C" void app_main(void) {
         return false;
       }
       waveform++;
-      if (waveform > (uint8_t)espp::Drv2605::Waveform::MAX) {
+      if (waveform > (uint8_t)Driver::Waveform::MAX) {
         waveform = 0;
       }
-      logger.info("{:.3f}, {}", elapsed, waveform);
+      logger.info("{}", waveform);
       // NOTE: sleeping in this way allows the sleep to exit early when the
       // task is being stopped / destroyed
       {

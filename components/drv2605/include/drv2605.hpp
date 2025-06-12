@@ -17,7 +17,26 @@ namespace espp {
  */
 class Drv2605 : public BasePeripheral<> {
 public:
-  static constexpr uint8_t DEFAULT_ADDRESS = (0x5A);
+  static constexpr uint8_t DEFAULT_ADDRESS =
+      (0x5A); ///< Default I2C address of the DRV2605. NOTE: this cannot be changed, as the DRV2605
+              ///< does not support changing its I2C address.
+
+  /**
+   * @brief Convert LRA frequency to drive time.
+   * @details The drive time is half the period of the LRA frequency, in ms.
+   *          The LRA frequency is in Hz, so we need to convert it to ms.
+   *          The formula is: drive_time = 1000 / (2 * lra_freq).
+   * @param lra_freq The frequency of the LRA in Hz.
+   * @return The drive time in bits (0-31).
+   */
+  static uint8_t lra_freq_to_drive_time(float lra_freq) {
+    // drive time is half the period of the LRA frequency, in ms
+    // lra_freq is in Hz, so we need to convert it to ms
+    // drive_time = 1000 / (2 * lra_freq)
+    float drive_time_ms = 1000.0f / (2.0f * lra_freq);
+    // convert to value for drive_time bits
+    return static_cast<uint8_t>((drive_time_ms - 0.5f) / 0.1f) & 0x1F; // 0.1 ms resolution, 5 bits
+  }
 
   /**
    * @brief The mode of the vibration.
@@ -28,9 +47,11 @@ public:
     EXTTRIGLVL,  ///< External level trigger (playback follows state of IN pin)
     PWMANALOG,   ///< PWM/Analog input
     AUDIOVIBE,   ///< Audio-to-vibe mode
-    REALTIME,    ///< Real-time playback (RTP)
+    REALTIME,    ///< Real-time playback (RTP). Drives the actuator based on the value of the RTPIN
+                 ///< register.
     DIAGNOS,     ///< Diagnostics
-    AUTOCAL,     ///< Auto-calibration
+    AUTOCAL,     ///< Auto-calibration. User must set all required input parameters then set the
+             ///< GO/START bit to start. Calibration is complete when the GO/START bit self-clears.
   };
 
   /**
@@ -89,6 +110,40 @@ public:
   };
 
   /**
+   * @brief Calibration Routine Settings structure for the DRV2605.
+   */
+  struct BaseCalibrationSettings {
+    uint8_t fb_brake_factor : 3 = 2; /**< Feedback brake factor, 0-7. */
+    uint8_t loop_gain : 2 = 2;       /**< Loop gain, 0-3. */
+    uint8_t rated_voltage : 8;       /**< Rated voltage, 0-255. */
+    uint8_t overdrive_clamp : 8 = 0; /**< Overdrive clamp, 0-255. */
+    uint8_t auto_cal_time : 2 = 3;   /**< Auto calibration time, 0-3. */
+    uint8_t drive_time : 5; /**< Drive time, 0-31. For LRA it should be used as an initial guess for
+                               the half-period. E.g. if the resonance freq is 200 Hz, then drive
+                               time should be 2.5ms. For ERM it controls the rate for back-EMF
+                               sampling. Higher drive times imply lower back-EMF sampling freq which
+                               cause the feedback to react at slower rate. */
+  };
+
+  using ErmCalibrationSettings =
+      BaseCalibrationSettings; /**< Calibration Routine Settings structure for ERM motors. */
+
+  struct LraCalibrationSettings : BaseCalibrationSettings {
+    uint8_t sample_time : 2 = 3;   /**< Sample time, 0-3. */
+    uint8_t blanking_time : 2 = 1; /**< Blanking time, 0-3. */
+    uint8_t idiss_time : 2 = 1;    /**< IDISS time, 0-3. */
+  };                               /**< Calibration Routine Settings structure for LRA motors. */
+
+  /**
+   * @brief Structure to hold the calibrated data for the DRV2605.
+   */
+  struct CalibratedData {
+    uint8_t bemf_gain : 2;  /**< Back-EMF gain, 0-3. */
+    uint8_t a_cal_comp : 8; /**< Auto calibration compensation result, 0-255. */
+    uint8_t a_cal_bemf : 8; /**< Auto calibration back-EMF result, 0-255. */
+  };
+
+  /**
    * @brief Configuration structure for the DRV2605
    */
   struct Config {
@@ -124,35 +179,159 @@ public:
   /**
    * @brief Initialize the DRV2605.
    * @param ec Error code to set if there is an error.
+   * @return true if the initialization was successful, false if there was an
+   *         error.
    */
-  void initialize(std::error_code &ec) { init(ec); }
+  bool initialize(std::error_code &ec) { return init(ec); }
 
   /**
-   * @brief Start playing the configured waveform / sequence.
+   * @brief Reset the DRV2605.
    * @param ec Error code to set if there is an error.
+   * @return true if the reset was successful, false if there was an error.
    */
-  void start(std::error_code &ec) {
-    logger_.info("Starting");
-    write_u8_to_register((uint8_t)Register::START, 1, ec);
+  bool reset(std::error_code &ec) {
+    // reset is bit 7 of the MODE register, so we want to set that bit
+    logger_.info("Resetting DRV2605");
+    static constexpr uint8_t RESET_BIT_MASK = 0x80; // bit 7
+    set_bits_in_register((uint8_t)Register::MODE, RESET_BIT_MASK, ec);
+    return !ec; // return true if no error
   }
 
   /**
-   * @brief Stop playing the waveform / sequence.
+   * @brief Set the standby mode of the DRV2605.
+   * @param standby_enabled If true, the DRV2605 will enter standby mode.
    * @param ec Error code to set if there is an error.
+   * @return true if the standby mode was set successfully, false if there was
+   *         an error.
    */
-  void stop(std::error_code &ec) {
-    logger_.info("Stopping");
-    write_u8_to_register((uint8_t)Register::START, 0, ec);
+  bool set_standby(bool standby_enabled, std::error_code &ec) {
+    // standby is bit 6 of the MODE register, so we want to set or clear that
+    // bit
+    logger_.info("{} standby mode", standby_enabled ? "Enabling" : "Disabling");
+    static constexpr uint8_t STANDBY_BIT_MASK = 0x40; // bit 6
+    if (standby_enabled) {
+      set_bits_in_register((uint8_t)Register::MODE, STANDBY_BIT_MASK, ec);
+    } else {
+      clear_bits_in_register((uint8_t)Register::MODE, STANDBY_BIT_MASK, ec);
+    }
+    return !ec; // return true if no error
   }
 
   /**
    * @brief Set the mode of the vibration.
    * @param mode Mode to set to.
    * @param ec Error code to set if there is an error.
+   * @return true if the mode was set successfully, false if there was an error.
    */
-  void set_mode(Mode mode, std::error_code &ec) {
+  bool set_mode(Mode mode, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     logger_.info("Setting mode {}", (uint8_t)mode);
-    write_u8_to_register((uint8_t)Register::MODE, (uint8_t)mode, ec);
+    // mode is bits 0-2 of the MODE register, so we want to set those bits
+    static constexpr uint8_t MODE_MASK = 0x07; // bits 0-2
+    set_bits_in_register_by_mask((uint8_t)Register::MODE, MODE_MASK, (uint8_t)mode, ec);
+    if (!ec) {
+      mode_ = mode; // update the current mode
+    } else {
+      logger_.error("Failed to set mode: {}", ec.message());
+    }
+    return !ec; // return true if no error
+  }
+
+  /**
+   * @brief Start playing the configured waveform / sequence.
+   * @param ec Error code to set if there is an error.
+   * @return true if the start was successful, false if there was an error.
+   */
+  bool start(std::error_code &ec) {
+    logger_.info("Starting");
+    write_u8_to_register((uint8_t)Register::START, 1, ec);
+    return !ec; // return true if no error
+  }
+
+  /**
+   * @brief Stop playing the waveform / sequence.
+   * @param ec Error code to set if there is an error.
+   * @return true if the stop was successful, false if there was an error.
+   */
+  bool stop(std::error_code &ec) {
+    logger_.info("Stopping");
+    write_u8_to_register((uint8_t)Register::START, 0, ec);
+    return !ec; // return true if no error
+  }
+
+  /**
+   * @brief Set the RTP (Real-Time Playback) data format.
+   * @details This method sets the data format for the RTP mode. The DRV2605
+   *          supports both signed and unsigned data formats for the RTP mode.
+   *          The default data format is signed, but you can change it to
+   *          unsigned by calling this method with `use_unsigned` set to true.
+   * @note This is only valid when the mode is set to Mode::REALTIME.
+   * @param use_unsigned If true, the data format will be set to unsigned,
+   *                     otherwise it will be set to signed.
+   * @param ec Error code to set if there is an error.
+   * @return true if the data format was set successfully, false if there was
+   *         an error.
+   */
+  bool set_rtp_data_format_unsigned(bool use_unsigned, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // set / clear the DATA_FORMAT_RTP bit (BIT 3) in register 0x1D (CONTROL3)
+    logger_.info("Setting RTP data format to {}", use_unsigned ? "unsigned" : "signed");
+    static constexpr uint8_t DATA_FORMAT_RTP_BIT_MASK = 0x08; // bit 3
+    if (use_unsigned) {
+      set_bits_in_register((uint8_t)Register::CONTROL3, DATA_FORMAT_RTP_BIT_MASK, ec); // set bit 3
+    } else {
+      clear_bits_in_register((uint8_t)Register::CONTROL3, DATA_FORMAT_RTP_BIT_MASK,
+                             ec); // clear bit 3
+    }
+    return !ec; // return true if no error
+  }
+
+  /**
+   * @brief Set the RTP (Real-Time Playback) mode PWM value as unsigned.
+   * @note This is only valid when the mode is set to Mode::REALTIME.
+   * @note This is only valid when the RTP data format is set to unsigned
+   *       (requires set_rtp_data_format_unsigned(true)).
+   * @param pwm_value The PWM value to set (0-255).
+   * @note The value is interpreted as unsigned by default, but can be set to
+   *       signed by using the `set_rtp_pwm` method.
+   * @param ec Error code to set if there is an error.
+   * @return true if the PWM value was set successfully, false if there was an
+   *         error.
+   */
+  bool set_rtp_pwm_unsigned(uint8_t pwm_value, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // we log a warning if mode_ is not Mode::REALTIME
+    if (mode_ != Mode::REALTIME) {
+      logger_.warn("Setting RTP PWM value while not in REALTIME mode. Current mode: {}", mode_);
+    } else {
+      logger_.info("Setting RTP PWM value to {}", pwm_value);
+    }
+    write_u8_to_register((uint8_t)Register::RTPIN, pwm_value, ec);
+    return !ec; // return true if no error
+  }
+
+  /**
+   * @brief Set the RTP (Real-Time Playback) mode PWM value.
+   * @note This is only valid when the mode is set to Mode::REALTIME.
+   * @note This is only valid when the RTP data format is set to signed
+   *       (default).
+   * @param pwm_value The PWM value to set (-128 to 127).
+   * @note The value is interpreted as signed by default, but can be set to
+   *       unsigned by using the `set_rtp_pwm_unsigned` method.
+   * @param ec Error code to set if there is an error.
+   * @return true if the PWM value was set successfully, false if there was an
+   *         error.
+   */
+  bool set_rtp_pwm_signed(int8_t pwm_value, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // we log a warning if mode_ is not Mode::REALTIME
+    if (mode_ != Mode::REALTIME) {
+      logger_.warn("Setting RTP PWM value while not in REALTIME mode. Current mode: {}", mode_);
+    } else {
+      logger_.info("Setting RTP PWM value to {}", pwm_value);
+    }
+    write_u8_to_register((uint8_t)Register::RTPIN, static_cast<uint8_t>(pwm_value), ec);
+    return !ec; // return true if no error
   }
 
   /**
@@ -164,76 +343,325 @@ public:
    * @param slot The slot (0-8) to set.
    * @param w The Waveform to play in slot \p slot.
    * @param ec Error code to set if there is an error.
+   * @return true if the waveform was set successfully, false if there was an
+   *         error.
    */
-  void set_waveform(uint8_t slot, Waveform w, std::error_code &ec) {
+  bool set_waveform(uint8_t slot, Waveform w, std::error_code &ec) {
     logger_.info("Setting waveform {}", (uint8_t)w);
     write_u8_to_register((uint8_t)Register::WAVESEQ1 + slot, (uint8_t)w, ec);
+    return !ec; // return true if no error
   }
 
   /**
    * @brief Select the waveform library to use.
    * @param lib Library to use, 0=Empty, 1-5 are ERM, 6 is LRA
    * @param ec Error code to set if there is an error.
+   * @return true if the library was selected successfully, false if there was an
+   *         error.
    */
-  void select_library(Library lib, std::error_code &ec) {
+  bool select_library(Library lib, std::error_code &ec) {
     logger_.info("Selecting library {}", lib);
     if (motor_type_ == MotorType::LRA && lib != Library::LRA) {
       logger_.warn("LRA motor selected, but library {} is not an LRA library", lib);
     }
     write_u8_to_register((uint8_t)Register::LIBRARY, (uint8_t)lib, ec);
+    return !ec; // return true if no error
+  }
+
+  bool calibrate(const ErmCalibrationSettings &cal_conf, CalibratedData &cal_data_out,
+                 std::error_code &ec) {
+    // if the motor type is not ERM, log a warning
+    if (motor_type_ != MotorType::ERM) {
+      logger_.warn("Calibrating ERM motor while the motor type is set to {}", motor_type_);
+    }
+
+    // save the mode here
+    Mode previous_mode = mode_;
+
+    logger_.info("Calibrating ERM motor with settings: {}", cal_conf);
+    // 1. put into auto-calibration mode
+    if (!set_mode(Mode::AUTOCAL, ec))
+      return false;
+
+    // 2. populate the data needed for the auto-calibration engine
+    if (!set_calibration_config(&cal_conf, ec)) {
+      logger_.error("Failed to set calibration configuration: {}", ec.message());
+      return false;
+    }
+
+    // 3. set the GO/START bit to start the calibration
+    write_u8_to_register((uint8_t)Register::START, 1, ec);
+    if (ec) {
+      logger_.error("Failed to start calibration: {}", ec.message());
+      return false;
+    }
+
+    // 4. wait for the GO/START bit to self-clear
+    logger_.info("Waiting for calibration to complete...");
+    // Note: The DRV2605 will automatically clear the GO/START bit when the
+    //       calibration is complete, so we can just wait for it to self-clear.
+    while (true) {
+      // sleep for a short time to avoid busy-waiting
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      uint8_t start_reg = read_u8_from_register((uint8_t)Register::START, ec);
+      if (ec) {
+        logger_.error("Failed to read START register: {}", ec.message());
+      } else if (start_reg == 0) {
+        logger_.info("Calibration completed successfully");
+        break; // calibration completed
+      }
+    }
+
+    // 5. read the value of the DIAG result bit t oensure that it completed
+    //    without faults.
+    uint8_t diag_result = read_u8_from_register((uint8_t)Register::STATUS, ec);
+    if (ec) {
+      logger_.error("Failed to read STATUS register: {}", ec.message());
+      return false;
+    }
+    // DIAG_RESULT is bit 3 of the STATUS register
+    static constexpr uint8_t DIAG_RESULT_BIT_MASK = 0x08; // bit 3
+    if ((diag_result & DIAG_RESULT_BIT_MASK) == 0) {
+      logger_.error("Calibration failed with DIAG_RESULT = 0");
+      ec = std::make_error_code(std::errc::operation_not_permitted);
+      return false;
+    }
+    logger_.info("Calibration completed successfully with DIAG_RESULT = 1");
+
+    // 6. get the data from the calibration output registers:
+    //  - BEMF_GAIN[1:0]
+    //  - A_CAL_COMP[7:0]
+    //  - A_CAL_BEMF[7:0]
+    if (!read_calibration_data(cal_data_out, ec)) {
+      logger_.error("Failed to read calibration data: {}", ec.message());
+      return false;
+    }
+    logger_.info("Calibration data read successfully: {}", cal_data_out);
+
+    // now set the mode back
+    if (!set_mode(previous_mode, ec)) {
+      logger_.error("Failed to set mode back to {}: {}", previous_mode, ec.message());
+      return false;
+    }
+
+    return true; // return true if no error
+  }
+
+  bool calibrate(const LraCalibrationSettings &cal_conf, CalibratedData &cal_data_out,
+                 std::error_code &ec) {
+    // if the motor type is not LRA, log a warning
+    if (motor_type_ != MotorType::LRA) {
+      logger_.warn("Calibrating LRA motor while the motor type is set to {}", motor_type_);
+    }
+
+    // save the mode here
+    Mode previous_mode = mode_;
+
+    logger_.info("Calibrating LRA motor");
+    // 1. put into auto-calibration mode
+    if (!set_mode(Mode::AUTOCAL, ec))
+      return false;
+
+    // 2. populate the data needed for the auto-calibration engine
+    if (!set_calibration_config(static_cast<const BaseCalibrationSettings *>(&cal_conf), ec)) {
+      logger_.error("Failed to set calibration configuration: {}", ec.message());
+      return false;
+    }
+    // also set the LRA-specific settings:
+    // set SAMPLE_TIME[1:0], which is bits 4-5 of CONTROL2 register
+    static constexpr uint8_t SAMPLE_TIME_MASK = 0x30; // bits 4-5
+    set_bits_in_register_by_mask((uint8_t)Register::CONTROL2, SAMPLE_TIME_MASK,
+                                 cal_conf.sample_time << 4, ec);
+    if (ec) {
+      logger_.error("Failed to set SAMPLE_TIME: {}", ec.message());
+      return false;
+    }
+    // set BLANKING_TIME[1:0], which is bits 2-3 of CONTROL2 register
+    static constexpr uint8_t BLANKING_TIME_MASK = 0x0C; // bits 2-3
+    set_bits_in_register_by_mask((uint8_t)Register::CONTROL2, BLANKING_TIME_MASK,
+                                 cal_conf.blanking_time << 2, ec);
+    if (ec) {
+      logger_.error("Failed to set BLANKING_TIME: {}", ec.message());
+      return false;
+    }
+    // set IDISS_TIME[1:0], which is bits 0-1 of CONTROL2 register
+    static constexpr uint8_t IDISS_TIME_MASK = 0x03; // bits 0-1
+    set_bits_in_register_by_mask((uint8_t)Register::CONTROL2, IDISS_TIME_MASK, cal_conf.idiss_time,
+                                 ec);
+    if (ec) {
+      logger_.error("Failed to set IDISS_TIME: {}", ec.message());
+      return false;
+    }
+
+    // 3. set the GO/START bit to start the calibration
+    write_u8_to_register((uint8_t)Register::START, 1, ec);
+    if (ec) {
+      logger_.error("Failed to start calibration: {}", ec.message());
+      return false;
+    }
+
+    // 4. wait for the GO/START bit to self-clear
+    logger_.info("Waiting for calibration to complete...");
+    // Note: The DRV2605 will automatically clear the GO/START bit when the
+    //       calibration is complete, so we can just wait for it to self-clear.
+    while (true) {
+      // sleep for a short time to avoid busy-waiting
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      uint8_t start_reg = read_u8_from_register((uint8_t)Register::START, ec);
+      if (ec) {
+        logger_.error("Failed to read START register: {}", ec.message());
+      } else if (start_reg == 0) {
+        logger_.info("Calibration completed successfully");
+        break; // calibration completed
+      }
+    }
+
+    // 5. read the value of the DIAG result bit t oensure that it completed
+    //    without faults.
+    uint8_t diag_result = read_u8_from_register((uint8_t)Register::STATUS, ec);
+    if (ec) {
+      logger_.error("Failed to read STATUS register: {}", ec.message());
+      return false;
+    }
+    // DIAG_RESULT is bit 3 of the STATUS register
+    static constexpr uint8_t DIAG_RESULT_BIT_MASK = 0x08; // bit 3
+    if ((diag_result & DIAG_RESULT_BIT_MASK) == 0) {
+      logger_.error("Calibration failed with DIAG_RESULT = 0");
+      ec = std::make_error_code(std::errc::operation_not_permitted);
+      return false;
+    }
+    logger_.info("Calibration completed successfully with DIAG_RESULT = 1");
+
+    // 6. get the data from the calibration output registers:
+    //  - BEMF_GAIN[1:0]
+    //  - A_CAL_COMP[7:0]
+    //  - A_CAL_BEMF[7:0]
+    if (!read_calibration_data(cal_data_out, ec)) {
+      logger_.error("Failed to read calibration data: {}", ec.message());
+      return false;
+    }
+    logger_.info("Calibration data read successfully: {}", cal_data_out);
+
+    // now set the mode back
+    if (!set_mode(previous_mode, ec)) {
+      logger_.error("Failed to set mode back to {}: {}", previous_mode, ec.message());
+      return false;
+    }
+
+    return true; // return true if no error
   }
 
 protected:
-  void init(std::error_code &ec) {
+  bool init(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     logger_.info("Initializing motor");
-    write_u8_to_register((uint8_t)Register::MODE, 0, ec); // out of standby
-    if (ec)
-      return;
-    write_u8_to_register((uint8_t)Register::RTPIN, 0, ec); // no real-time playback
-    if (ec)
-      return;
-    set_waveform(0, Waveform::STRONG_CLICK, ec); // Strong Click
-    if (ec)
-      return;
-    set_waveform(1, Waveform::END, ec); // end sequence
-    if (ec)
-      return;
-    write_u8_to_register((uint8_t)Register::OVERDRIVE, 0, ec); // no overdrive
-    if (ec)
-      return;
-    write_u8_to_register((uint8_t)Register::SUSTAINPOS, 0, ec);
-    if (ec)
-      return;
-    write_u8_to_register((uint8_t)Register::SUSTAINNEG, 0, ec);
-    if (ec)
-      return;
-    write_u8_to_register((uint8_t)Register::BREAK, 0, ec);
-    if (ec)
-      return;
-    write_u8_to_register((uint8_t)Register::AUDIOMAX, 0x64, ec);
-    if (ec)
-      return;
+
+    // disable standby mode
+    if (!set_standby(false, ec))
+      return false;
+
+    // set default mode to be INTTRIG
+    if (!set_mode(Mode::INTTRIG, ec))
+      return false;
+
+    // set a simple effect as the default waveform sequence
+    if (!set_waveform(0, Waveform::STRONG_CLICK, ec))
+      return false;
+    if (!set_waveform(1, Waveform::END, ec))
+      return false;
+
     // set the motor type based on the config
-    set_motor_type(motor_type_, ec);
-    if (ec)
-      return;
-    // turn on ERM OPEN LOOP
-    auto current_control3 = read_u8_from_register((uint8_t)Register::CONTROL3, ec);
-    if (ec)
-      return;
-    write_u8_to_register((uint8_t)Register::CONTROL3, current_control3 | 0x20, ec);
+    if (!set_motor_type(motor_type_, ec))
+      return false;
+
+    return true; // initialization successful
   }
 
-  void set_motor_type(MotorType motor_type, std::error_code &ec) {
-    logger_.info("Setting motor type {}", motor_type == MotorType::ERM ? "ERM" : "LRA");
+  bool set_motor_type(MotorType motor_type, std::error_code &ec) {
+    logger_.info("Setting motor type {}", motor_type);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     motor_type_ = motor_type;
-    auto current_feedback = read_u8_from_register((uint8_t)Register::FEEDBACK, ec);
+
+    static constexpr uint8_t MOTOR_TYPE_BIT_MASK = 0x80; // bit 7
+    // set the motor type in the FEEDBACK register, 0 = ERM, 1 = LRA
+    if (motor_type == MotorType::ERM) {
+      clear_bits_in_register((uint8_t)Register::FEEDBACK, MOTOR_TYPE_BIT_MASK, ec);
+    } else if (motor_type == MotorType::LRA) {
+      set_bits_in_register((uint8_t)Register::FEEDBACK, MOTOR_TYPE_BIT_MASK, ec);
+    } else {
+      logger_.error("Invalid motor type: {}", static_cast<uint8_t>(motor_type));
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+    return !ec; // return true if no error
+  }
+
+  bool set_calibration_config(const BaseCalibrationSettings *cal_conf, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    logger_.info("Setting calibration configuration: {}", *cal_conf);
+
+    // set FB_BRAKE_FACTOR[2:0], which is bits 4-6 of the FEEDBACK register
+    static constexpr uint8_t FB_BRAKE_FACTOR_MASK = 0x70; // bits 4-6
+    set_bits_in_register_by_mask((uint8_t)Register::FEEDBACK, FB_BRAKE_FACTOR_MASK,
+                                 cal_conf->fb_brake_factor << 4, ec);
     if (ec)
-      return;
-    uint8_t motor_config = (motor_type_ == MotorType::ERM) ? 0x7F : 0x80;
-    write_u8_to_register((uint8_t)Register::FEEDBACK, current_feedback | motor_config, ec);
+      return false;
+
+    // set LOOP_GAIN[1:0], which is bits 2-3 of the FEEDBACK register
+    static constexpr uint8_t LOOP_GAIN_MASK = 0x0C; // bits 2-3
+    set_bits_in_register_by_mask((uint8_t)Register::FEEDBACK, LOOP_GAIN_MASK,
+                                 cal_conf->loop_gain << 2, ec);
+    if (ec)
+      return false;
+
+    // set RATED_VOLTAGE[7:0], which is bits 0-7 of the RATEDV register
+    write_u8_to_register((uint8_t)Register::RATEDV, cal_conf->rated_voltage, ec);
+    if (ec)
+      return false;
+
+    // set OVERDRIVE_CLAMP[7:0], which is bits 0-7 of the CLAMPV register
+    write_u8_to_register((uint8_t)Register::CLAMPV, cal_conf->overdrive_clamp, ec);
+    if (ec)
+      return false;
+
+    // set AUTO_CAL_TIME[1:0], which is bits 4-5 of CONTROL4 register
+    static constexpr uint8_t AUTO_CAL_TIME_MASK = 0x30; // bits 4-5
+    set_bits_in_register_by_mask((uint8_t)Register::CONTROL4, AUTO_CAL_TIME_MASK,
+                                 cal_conf->auto_cal_time << 4, ec);
+    if (ec)
+      return false;
+
+    // set DRIVE_TIME[4:0], which is bits 0-4 of CONTROL1 register
+    static constexpr uint8_t DRIVE_TIME_MASK = 0x1F; // bits 0-4
+    set_bits_in_register_by_mask((uint8_t)Register::CONTROL1, DRIVE_TIME_MASK, cal_conf->drive_time,
+                                 ec);
+
+    return !ec; // return true if no error
+  }
+
+  bool read_calibration_data(CalibratedData &cal_data_out, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    logger_.info("Reading calibration data");
+
+    // read BEMF_GAIN[1:0], which is bits 0-1 of the FEEDBACK register
+    uint8_t bemf_gain = read_u8_from_register((uint8_t)Register::FEEDBACK, ec);
+    if (ec)
+      return false;
+
+    // read A_CAL_COMP[7:0], which is bits 0-7 of the AUTOCALCOMP register
+    uint8_t a_cal_comp = read_u8_from_register((uint8_t)Register::AUTOCALCOMP, ec);
+    if (ec)
+      return false;
+
+    // read A_CAL_BEMF[7:0], which is bits 0-7 of the AUTOCALEMP register
+    uint8_t bemf = read_u8_from_register((uint8_t)Register::AUTOCALEMP, ec);
+    if (ec)
+      return false;
+
+    cal_data_out.bemf_gain = bemf_gain & 0x03; // mask to get only the first 2 bits
+    cal_data_out.a_cal_comp = a_cal_comp;
+    cal_data_out.a_cal_bemf = bemf;
+    return true; // return true if no error
   }
 
   enum class Register : uint8_t {
@@ -249,7 +677,7 @@ protected:
     WAVESEQ6 = 0x09,    ///< Waveform sequence 6
     WAVESEQ7 = 0x0A,    ///< Waveform sequence 7
     WAVESEQ8 = 0x0B,    ///< Waveform sequence 8
-    START = 0x0C,       ///< Start/Stop playback control
+    START = 0x0C,       ///< Start/Stop playback control. ALso known as the GO register
     OVERDRIVE = 0x0D,   ///< Overdrive time offset
     SUSTAINPOS = 0x0E,  ///< Sustain time offset (positive)
     SUSTAINNEG = 0x0F,  ///< Sustain time offset (negative)
@@ -272,7 +700,8 @@ protected:
     LRARSON = 0x22,     ///< LRA resonance-period
   };
 
-  MotorType motor_type_;
+  std::atomic<MotorType> motor_type_;
+  std::atomic<Mode> mode_{Mode::INTTRIG};
 };
 } // namespace espp
 
@@ -377,5 +806,55 @@ template <> struct fmt::formatter<espp::Drv2605::Library> {
     default:
       return fmt::format_to(ctx.out(), "UNKNOWN");
     }
+  }
+};
+
+template <> struct fmt::formatter<espp::Drv2605::MotorType> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(espp::Drv2605::MotorType mt, FormatContext &ctx) const {
+    switch (mt) {
+    case espp::Drv2605::MotorType::ERM:
+      return fmt::format_to(ctx.out(), "ERM");
+    case espp::Drv2605::MotorType::LRA:
+      return fmt::format_to(ctx.out(), "LRA");
+    default:
+      return fmt::format_to(ctx.out(), "UNKNOWN");
+    }
+  }
+};
+
+template <> struct fmt::formatter<espp::Drv2605::BaseCalibrationSettings> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const espp::Drv2605::BaseCalibrationSettings &cal, FormatContext &ctx) const {
+    return fmt::format_to(ctx.out(),
+                          "FB_BRAKE_FACTOR: {}, LOOP_GAIN: {}, RATED_VOLTAGE: {}, OVERDRIVE_CLAMP: "
+                          "{}, AUTO_CAL_TIME: {}, DRIVE_TIME: {}",
+                          cal.fb_brake_factor, cal.loop_gain, cal.rated_voltage,
+                          cal.overdrive_clamp, cal.auto_cal_time, cal.drive_time);
+  }
+};
+
+template <> struct fmt::formatter<espp::Drv2605::LraCalibrationSettings> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const espp::Drv2605::LraCalibrationSettings &cal, FormatContext &ctx) const {
+    return fmt::format_to(ctx.out(), "{}, SAMPLE_TIME: {}, BLANKING_TIME: {}, IDISS_TIME: {}",
+                          static_cast<const espp::Drv2605::BaseCalibrationSettings &>(cal),
+                          cal.sample_time, cal.blanking_time, cal.idiss_time);
+  }
+};
+
+template <> struct fmt::formatter<espp::Drv2605::CalibratedData> {
+  constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const espp::Drv2605::CalibratedData &cal_data, FormatContext &ctx) const {
+    return fmt::format_to(ctx.out(), "BEMF_GAIN: {}, A_CAL_COMP: {}, A_CAL_BEMF: {}",
+                          cal_data.bemf_gain, cal_data.a_cal_comp, cal_data.a_cal_bemf);
   }
 };
