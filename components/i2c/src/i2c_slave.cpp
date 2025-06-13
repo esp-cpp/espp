@@ -1,7 +1,9 @@
-#include "i2c_slave.hpp"
+#include <sdkconfig.h>
 
 // Only compile this file if the new API is selected
 #if defined(CONFIG_I2C_USE_NEW_API)
+
+#include "i2c_slave.hpp"
 
 namespace espp {
 

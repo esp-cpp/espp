@@ -174,7 +174,7 @@ protected:
   /// @param out The output stream to write to.
   /// @param address The address to write to.
   /// @param data The data to write (first byte is register, rest is data).
-  void write_device(std::ostream &out, uint16_t address, std::vector<uint8_t> data) {
+  void write_device(std::ostream &out, uint16_t address, const std::vector<uint8_t> &data) {
     if (data.empty()) {
       out << "No register/data provided.\n";
       return;
