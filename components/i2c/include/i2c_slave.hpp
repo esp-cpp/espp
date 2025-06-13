@@ -3,7 +3,7 @@
 #include <sdkconfig.h>
 
 // Only include this header if the new API is selected
-#if defined(CONFIG_I2C_USE_NEW_API) || defined(_DOXYGEN_)
+#if defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(_DOXYGEN_)
 
 #include <functional>
 #include <memory>
@@ -120,5 +120,5 @@ protected:
 
 #else
 #error                                                                                             \
-    "i2c_slave.hpp included but CONFIG_I2C_USE_NEW_API is not set. Please select the correct I2C API in KConfig."
+    "i2c_slave.hpp included but CONFIG_ESPP_I2C_USE_NEW_API is not set. Please select the correct I2C API in KConfig."
 #endif

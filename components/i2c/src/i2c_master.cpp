@@ -1,7 +1,7 @@
 #include <sdkconfig.h>
 
 // Only compile this file if the new API is selected
-#if defined(CONFIG_I2C_USE_NEW_API)
+#if defined(CONFIG_ESPP_I2C_USE_NEW_API)
 
 #include "i2c_master.hpp"
 
@@ -343,4 +343,4 @@ template class I2cMasterDevice<uint16_t>;
 
 } // namespace espp
 
-#endif // CONFIG_I2C_USE_NEW_API
+#endif // CONFIG_ESPP_I2C_USE_NEW_API

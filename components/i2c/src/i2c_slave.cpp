@@ -1,7 +1,7 @@
 #include <sdkconfig.h>
 
 // Only compile this file if the new API is selected
-#if defined(CONFIG_I2C_USE_NEW_API)
+#if defined(CONFIG_ESPP_I2C_USE_NEW_API)
 
 #include "i2c_slave.hpp"
 
@@ -116,4 +116,4 @@ bool I2cSlaveDevice::register_callbacks(const Callbacks &cb, std::error_code &ec
 
 } // namespace espp
 
-#endif // CONFIG_I2C_USE_NEW_API
+#endif // CONFIG_ESPP_I2C_USE_NEW_API

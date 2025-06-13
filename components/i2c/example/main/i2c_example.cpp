@@ -2,11 +2,11 @@
 #include <sdkconfig.h>
 #include <vector>
 
-#if defined(CONFIG_I2C_USE_LEGACY_API)
+#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API)
 #include "i2c.hpp"
 #include "i2c_menu.hpp"
 #endif
-#if defined(CONFIG_I2C_USE_NEW_API)
+#if defined(CONFIG_ESPP_I2C_USE_NEW_API)
 #include "i2c_master.hpp"
 #include "i2c_master_device_menu.hpp"
 #include "i2c_master_menu.hpp"
@@ -22,7 +22,7 @@ extern "C" void app_main(void) {
 //////////////////////////////////
 // I2C Master Bus/Device Example using the Legacy API
 //////////////////////////////////
-#if defined(CONFIG_I2C_USE_LEGACY_API)
+#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API)
   {
 #if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
     //! [i2c menu example]
@@ -86,12 +86,12 @@ extern "C" void app_main(void) {
     }
     //! [i2c example]
   }
-#endif // CONFIG_I2C_USE_LEGACY_API
+#endif // CONFIG_ESPP_I2C_USE_LEGACY_API
 
 //////////////////////////////////
 // I2C Master Bus/Device Example using the New API
 //////////////////////////////////
-#if defined(CONFIG_I2C_USE_NEW_API)
+#if defined(CONFIG_ESPP_I2C_USE_NEW_API)
   {
     //! [i2c master bus creation example]
     logger.info("[NEW API] Starting I2C MasterBus/Device CLI example");
@@ -188,7 +188,7 @@ extern "C" void app_main(void) {
     // out of scope. Because the bus created the device, the destruction order
     // will be correct automaticaly in this case.
   }
-#endif // CONFIG_I2C_USE_NEW_API
+#endif // CONFIG_ESPP_I2C_USE_NEW_API
 
   logger.info("I2C example complete!");
 
