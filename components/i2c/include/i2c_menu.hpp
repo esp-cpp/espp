@@ -2,6 +2,9 @@
 
 #include <sdkconfig.h>
 
+// Only include this menu if the legacy API is selected
+#if defined(CONFIG_I2C_USE_LEGACY_API) || defined(__DOXYGEN__)
+
 #if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
 #include <functional>
@@ -214,3 +217,5 @@ protected:
 } // namespace espp
 
 #endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
+
+#endif // CONFIG_I2C_USE_LEGACY_API

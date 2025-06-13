@@ -1,5 +1,10 @@
 #pragma once
 
+#include <sdkconfig.h>
+
+// Only include this header if the legacy API is selected
+#if defined(CONFIG_I2C_USE_LEGACY_API) || defined(__DOXYGEN__)
+
 #include <mutex>
 #include <vector>
 
@@ -317,3 +322,8 @@ template <> struct fmt::formatter<espp::I2c::Config> {
         clk_speed_khz);
   }
 };
+
+#else
+#error                                                                                             \
+    "i2c.hpp included but CONFIG_I2C_USE_LEGACY_API is not set. Please select the correct I2C API in KConfig."
+#endif

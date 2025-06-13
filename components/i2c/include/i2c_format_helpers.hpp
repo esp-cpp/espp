@@ -1,6 +1,12 @@
 #pragma once
 
+#include <sdkconfig.h>
+
+#if defined(CONFIG_I2C_USE_LEGACY_API)
 #include <driver/i2c.h>
+#elseif defined(CONFIG_I2C_USE_NEW_API)
+#include <driver/i2c_master.h>
+#endif
 
 #include "format.hpp"
 
