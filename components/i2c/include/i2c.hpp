@@ -1,5 +1,10 @@
 #pragma once
 
+#include <sdkconfig.h>
+
+// Only include this header if the legacy API is selected
+#if defined(CONFIG_ESPP_I2C_USE_LEGACY_API) || defined(__DOXYGEN__)
+
 #include <mutex>
 #include <vector>
 
@@ -10,6 +15,12 @@
 
 #include "i2c_format_helpers.hpp"
 
+#if CONFIG_ESPP_I2C_LEGACY_API_DISABLE_DEPRECATION_WARNINGS
+#define ESPP_I2C_LEGACY_API_DEPRECATED_ATTR
+#else
+#define ESPP_I2C_LEGACY_API_DEPRECATED_ATTR [[deprecated("Use the new I2C API instead")]]
+#endif
+
 namespace espp {
 /// @brief I2C driver
 /// @details
@@ -17,7 +28,7 @@ namespace espp {
 ///
 /// \section i2c_ex1 Example
 /// \snippet i2c_example.cpp i2c example
-class I2c : public espp::BaseComponent {
+class ESPP_I2C_LEGACY_API_DEPRECATED_ATTR I2c : public espp::BaseComponent {
 public:
   /// Configuration for I2C
   struct Config {
@@ -317,3 +328,8 @@ template <> struct fmt::formatter<espp::I2c::Config> {
         clk_speed_khz);
   }
 };
+
+#else
+#error                                                                                             \
+    "i2c.hpp included but CONFIG_ESPP_I2C_USE_LEGACY_API is not set. Please select the correct I2C API in KConfig."
+#endif
