@@ -85,8 +85,22 @@ jobs:
           target: esp32s3
         - path: 'components/hid_service/example'
           target: esp32s3
+
+        # build variants of the i2c example for the different configurations to
+        # ensure they're all built and tested
         - path: 'components/i2c/example'
           target: esp32
+          command: IDF_COMPONENT_MANAGER=0 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api" build
+        - path: 'components/i2c/example'
+          target: esp32
+          command: IDF_COMPONENT_MANAGER=0 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api;sdkconfig.defaults.cli" build
+        - path: 'components/i2c/example'
+          target: esp32
+          command: IDF_COMPONENT_MANAGER=0 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api" build
+        - path: 'components/i2c/example'
+          target: esp32
+          command: IDF_COMPONENT_MANAGER=0 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api;sdkconfig.defaults.cli;" build
+
         - path: 'components/icm20948/example'
           target: esp32s3
         - path: 'components/icm42607/example'
@@ -182,5 +196,4 @@ jobs:
         esp_idf_version: release-v5.4
         target: ${{ matrix.test.target }}
         path: ${{ matrix.test.path }}
-        # do not do CI build using component manager
-        command: IDF_COMPONENT_MANAGER=0 idf.py build
+        command: ${{ matrix.test.command || 'IDF_COMPONENT_MANAGER=0 idf.py build' }}
