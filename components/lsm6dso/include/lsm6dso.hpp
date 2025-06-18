@@ -10,6 +10,9 @@ namespace espp {
 /// The LSM6DSO is a 6-axis IMU with a 3-axis accelerometer and 3-axis gyroscope.
 /// It supports both I2C and SPI, and on-chip filtering.
 ///
+/// For more information, see the LSM6DSO datasheet:
+/// https://www.st.com/resource/en/datasheet/lsm6dso.pdf
+///
 /// \section lsm6dso_example Example
 /// \snippet lsm6dso_example.cpp lsm6dso example
 ///
