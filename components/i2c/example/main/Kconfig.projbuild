@@ -1,67 +1,67 @@
 menu "Example Configuration"
 
-    choice EXAMPLE_HARDWARE
-        prompt "Hardware"
-        default EXAMPLE_HARDWARE_QTPYPICO
-        help
-            Select the hardware to run this example on.
+choice EXAMPLE_HARDWARE
+  prompt "Hardware"
+  default EXAMPLE_HARDWARE_QTPYPICO
+  help
+    Select the hardware to run this example on.
 
-        config EXAMPLE_HARDWARE_QTPYPICO
-            depends on IDF_TARGET_ESP32
-            bool "Qt Py PICO"
+config EXAMPLE_HARDWARE_QTPYPICO
+  depends on IDF_TARGET_ESP32
+  bool "Qt Py PICO"
 
-        config EXAMPLE_HARDWARE_QTPYS3
-            depends on IDF_TARGET_ESP32S3
-            bool "Qt Py S3"
+config EXAMPLE_HARDWARE_QTPYS3
+  depends on IDF_TARGET_ESP32S3
+  bool "Qt Py S3"
 
-        config EXAMPLE_HARDWARE_CUSTOM
-            bool "Custom"
-    endchoice
+config EXAMPLE_HARDWARE_CUSTOM
+  bool "Custom"
+endchoice
 
-    config EXAMPLE_I2C_SCL_GPIO
-        int "SCL GPIO Num"
-        range 0 50
-        default 19 if EXAMPLE_HARDWARE_QTPYPICO
-        default 40 if EXAMPLE_HARDWARE_QTPYS3
-        default 19 if EXAMPLE_HARDWARE_CUSTOM
-        help
-            GPIO number for I2C Master clock line.
+config EXAMPLE_I2C_SCL_GPIO
+  int "SCL GPIO Num"
+  range 0 50
+  default 19 if EXAMPLE_HARDWARE_QTPYPICO
+  default 40 if EXAMPLE_HARDWARE_QTPYS3
+  default 19 if EXAMPLE_HARDWARE_CUSTOM
+  help
+    GPIO number for I2C Master clock line.
 
-    config EXAMPLE_I2C_SDA_GPIO
-        int "SDA GPIO Num"
-        range 0 50
-        default 22 if EXAMPLE_HARDWARE_QTPYPICO
-        default 41 if EXAMPLE_HARDWARE_QTPYS3
-        default 22 if EXAMPLE_HARDWARE_CUSTOM
-        help
-            GPIO number for I2C Master data line.
+config EXAMPLE_I2C_SDA_GPIO
+  int "SDA GPIO Num"
+  range 0 50
+  default 22 if EXAMPLE_HARDWARE_QTPYPICO
+  default 41 if EXAMPLE_HARDWARE_QTPYS3
+  default 22 if EXAMPLE_HARDWARE_CUSTOM
+  help
+    GPIO number for I2C Master data line.
 
-    config EXAMPLE_I2C_CLOCK_SPEED_HZ
-        int "I2C Clock Speed"
-        range 100 1000000
-        default 400000
-        help
-            I2C clock speed in Hz.
+config EXAMPLE_I2C_CLOCK_SPEED_HZ
+  int "I2C Clock Speed"
+  range 100 1000000
+  default 400000
+  help
+      I2C clock speed in Hz.
 
-    config EXAMPLE_I2C_DEVICE_ADDR
-        hex "I2C Device Address"
-        range 0x00 0x7F
-        default 0x3C
-        help
-            I2C device address of the device.
+config EXAMPLE_I2C_DEVICE_ADDR
+  hex "I2C Device Address"
+  range 0x00 0x7F
+  default 0x3C
+  help
+      I2C device address of the device.
 
-    config EXAMPLE_I2C_DEVICE_REG_ADDR
-        hex "I2C Device Register Address"
-        range 0x00 0xFF
-        default 0x00
-        help
-            I2C device register address of the device.
+config EXAMPLE_I2C_DEVICE_REG_ADDR
+  hex "I2C Device Register Address"
+  range 0x00 0xFF
+  default 0x00
+  help
+      I2C device register address of the device.
 
-    config EXAMPLE_I2C_DEVICE_REG_SIZE
-        int "I2C Device Register Size"
-        range 1 100
-        default 1
-        help
-            I2C device register size of the device.
+config EXAMPLE_I2C_DEVICE_REG_SIZE
+  int "I2C Device Register Size"
+  range 1 100
+  default 1
+  help
+      I2C device register size of the device.
 
 endmenu

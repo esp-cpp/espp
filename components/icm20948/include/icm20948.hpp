@@ -88,6 +88,7 @@ class Icm20948 : public espp::BasePeripheral<uint8_t, Interface == icm20948::Int
   using BasePeripheral<uint8_t,
                        Interface == icm20948::Interface::I2C>::set_bits_in_register_by_mask;
   using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::read;
+  using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::base_mutex_;
   using BasePeripheral<uint8_t, Interface == icm20948::Interface::I2C>::logger_;
 
 public:

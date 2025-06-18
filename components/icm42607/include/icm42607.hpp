@@ -67,6 +67,7 @@ class Icm42607 : public espp::BasePeripheral<uint8_t, Interface == icm42607::Int
   using BasePeripheral<uint8_t,
                        Interface == icm42607::Interface::I2C>::set_bits_in_register_by_mask;
   using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::read;
+  using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::base_mutex_;
   using BasePeripheral<uint8_t, Interface == icm42607::Interface::I2C>::logger_;
 
 public:
@@ -136,6 +137,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if the ICM42607 was initialized successfully, false otherwise
   bool init(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     auto device_id = get_device_id(ec);
     if (device_id != ICM42607_ID && device_id != ICM42670_ID) {
       logger_.error("Invalid device ID: 0x{:02X}", device_id);
@@ -172,6 +174,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if the configuration was set successfully, false otherwise
   bool set_config(const ImuConfig &imu_config, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // save the config
     imu_config_ = imu_config;
 
@@ -288,6 +291,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return The accelerometer sensitivity in g/LSB
   float read_accelerometer_sensitivity(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // read the byte from the register
     uint8_t data = read_u8_from_register(static_cast<uint8_t>(Register::ACCEL_CONFIG0), ec);
     if (ec) {
@@ -311,6 +315,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return The gyroscope sensitivity in °/s/LSB
   float read_gyroscope_sensitivity(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // read the byte from the register
     uint8_t data = read_u8_from_register(static_cast<uint8_t>(Register::GYRO_CONFIG0), ec);
     if (ec) {
@@ -332,6 +337,7 @@ public:
   ///       get_gyroscope_values, and the temperature can be retrieved with
   ///       get_temperature
   bool update(float dt, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // update accel
     Value accel = read_accelerometer(ec);
     if (ec) {
@@ -371,14 +377,12 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return The accelerometer data
   Value read_accelerometer(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     RawValue raw = get_accelerometer_raw(ec);
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
     float sensitivity = get_accelerometer_sensitivity();
-    if (ec) {
-      return {0.0f, 0.0f, 0.0f};
-    }
     Value v = {
         static_cast<float>(raw.x) / sensitivity,
         static_cast<float>(raw.y) / sensitivity,
@@ -399,14 +403,12 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return The gyroscope data
   Value read_gyroscope(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     RawValue raw = get_gyroscope_raw(ec);
     if (ec) {
       return {0.0f, 0.0f, 0.0f};
     }
     float sensitivity = get_gyroscope_sensitivity();
-    if (ec) {
-      return {0.0f, 0.0f, 0.0f};
-    }
     Value v = {
         static_cast<float>(raw.x) / sensitivity,
         static_cast<float>(raw.y) / sensitivity,
@@ -427,6 +429,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return The temperature in °C
   float read_temperature(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     uint16_t raw = get_temperature_raw(ec);
     if (ec) {
       return 0.0f;
@@ -517,6 +520,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return The FIFO data
   std::vector<uint8_t> fifo_data(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // get the count
     uint16_t count = fifo_count(ec);
     if (ec) {
@@ -546,6 +550,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if the interrupt was configured successfully, false otherwise
   bool configure_interrupt_1(const InterruptConfig &config, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // interrupt 1 is bits 0-2 in INT_CONFIG (MODE << 2) | (POLARITY << 1) | DRIVE_MODE
     uint8_t mask = 0b111;
     uint8_t data = (static_cast<uint8_t>(config.mode) << 2) |
@@ -560,6 +565,7 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if the interrupt was configured successfully, false otherwise
   bool configure_interrupt_2(const InterruptConfig &config, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // interrupt 2 is bits 3-5 in INT_CONFIG (MODE << 5) | (POLARITY << 4) | (DRIVE_MODE << 3)
     uint8_t mask = 0b111 << 3;
     uint8_t data = (static_cast<uint8_t>(config.mode) << 5) |
