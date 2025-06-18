@@ -19,6 +19,7 @@ Icm20948<I>::Icm20948(const Icm20948<I>::Config &config)
 }
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::init(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   auto device_id = get_device_id(ec);
   if (device_id != ICM20948_ID) {
     logger_.error("Invalid device ID: 0x{:02X}", device_id);
@@ -69,6 +70,7 @@ template <espp::icm20948::Interface I> uint8_t Icm20948<I>::get_device_id(std::e
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_config(const Icm20948<I>::ImuConfig &imu_config, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // save the config
   imu_config_ = imu_config;
 
@@ -98,6 +100,7 @@ bool Icm20948<I>::set_config(const Icm20948<I>::ImuConfig &imu_config, std::erro
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_i2c_master_enabled(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -123,6 +126,7 @@ bool Icm20948<I>::set_i2c_master_enabled(bool enable, std::error_code &ec) {
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_odr_align_enabled(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -136,6 +140,7 @@ bool Icm20948<I>::set_odr_align_enabled(bool enable, std::error_code &ec) {
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_accelerometer_offsets(const float &x, const float &y, const float &z,
                                             std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 1
   if (!select_bank(Bank::_1, ec)) {
     return false;
@@ -160,6 +165,7 @@ bool Icm20948<I>::set_accelerometer_offsets(const float &x, const float &y, cons
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::get_accelerometer_offsets(float &x, float &y, float &z, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 1
   if (!select_bank(Bank::_1, ec)) {
     return false;
@@ -186,6 +192,7 @@ bool Icm20948<I>::get_accelerometer_offsets(float &x, float &y, float &z, std::e
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_gyroscope_offsets(const float &x, const float &y, const float &z,
                                         std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -212,6 +219,7 @@ bool Icm20948<I>::set_gyroscope_offsets(const float &x, const float &y, const fl
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::get_gyroscope_offsets(float &x, float &y, float &z, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -238,6 +246,7 @@ bool Icm20948<I>::get_gyroscope_offsets(float &x, float &y, float &z, std::error
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_low_power_enabled(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -250,6 +259,7 @@ bool Icm20948<I>::set_low_power_enabled(bool enable, std::error_code &ec) {
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_low_power_duty_cycle_mode(const DutyCycleMode &mode, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -264,6 +274,7 @@ bool Icm20948<I>::set_low_power_duty_cycle_mode(const DutyCycleMode &mode, std::
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_gyroscope_average_in_low_power_mode(const GyroscopeAveraging &average,
                                                           std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -278,6 +289,7 @@ bool Icm20948<I>::set_gyroscope_average_in_low_power_mode(const GyroscopeAveragi
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_accelerometer_average_in_low_power_mode(const AccelerometerAveraging &average,
                                                               std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -290,6 +302,7 @@ bool Icm20948<I>::set_accelerometer_average_in_low_power_mode(const Acceleromete
 }
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::sleep(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -301,6 +314,7 @@ template <espp::icm20948::Interface I> bool Icm20948<I>::sleep(bool enable, std:
 }
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::reset(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -317,6 +331,7 @@ template <espp::icm20948::Interface I> bool Icm20948<I>::reset(std::error_code &
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::enable_accelerometer(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -335,6 +350,7 @@ template <espp::icm20948::Interface I> float Icm20948<I>::get_accelerometer_sens
 
 template <espp::icm20948::Interface I>
 float Icm20948<I>::read_accelerometer_sensitivity(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // read the data
   auto range = read_accelerometer_range(ec);
   if (ec) {
@@ -351,6 +367,7 @@ Icm20948<I>::AccelerometerRange Icm20948<I>::get_accelerometer_range() {
 
 template <espp::icm20948::Interface I>
 Icm20948<I>::AccelerometerRange Icm20948<I>::read_accelerometer_range(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return AccelerometerRange::RANGE_2G;
@@ -369,6 +386,7 @@ Icm20948<I>::AccelerometerRange Icm20948<I>::read_accelerometer_range(std::error
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_accelerometer_range(const AccelerometerRange &range, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -384,6 +402,7 @@ bool Icm20948<I>::set_accelerometer_range(const AccelerometerRange &range, std::
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_accelerometer_dlpf_enabled(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -397,6 +416,7 @@ bool Icm20948<I>::set_accelerometer_dlpf_enabled(bool enable, std::error_code &e
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_accelerometer_dlpf(const AccelerometerFilterBandwidth &bandwidth,
                                          std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -411,6 +431,7 @@ bool Icm20948<I>::set_accelerometer_dlpf(const AccelerometerFilterBandwidth &ban
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_accelerometer_sample_rate_divider(uint16_t sample_rate_divider,
                                                         std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -432,6 +453,7 @@ bool Icm20948<I>::set_accelerometer_sample_rate_divider(uint16_t sample_rate_div
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::enable_gyroscope(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -450,6 +472,7 @@ template <espp::icm20948::Interface I> float Icm20948<I>::get_gyroscope_sensitiv
 
 template <espp::icm20948::Interface I>
 float Icm20948<I>::read_gyroscope_sensitivity(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // read the data
   auto range = read_gyroscope_range(ec);
   if (ec) {
@@ -466,6 +489,7 @@ Icm20948<I>::GyroscopeRange Icm20948<I>::get_gyroscope_range() {
 
 template <espp::icm20948::Interface I>
 Icm20948<I>::GyroscopeRange Icm20948<I>::read_gyroscope_range(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return GyroscopeRange::RANGE_250DPS;
@@ -484,6 +508,7 @@ Icm20948<I>::GyroscopeRange Icm20948<I>::read_gyroscope_range(std::error_code &e
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_gyroscope_range(const GyroscopeRange &range, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -498,6 +523,7 @@ bool Icm20948<I>::set_gyroscope_range(const GyroscopeRange &range, std::error_co
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_gyroscope_dlpf_enabled(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -511,6 +537,7 @@ bool Icm20948<I>::set_gyroscope_dlpf_enabled(bool enable, std::error_code &ec) {
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_gyroscope_dlpf(const GyroscopeFilterBandwidth &bandwidth,
                                      std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -525,6 +552,7 @@ bool Icm20948<I>::set_gyroscope_dlpf(const GyroscopeFilterBandwidth &bandwidth,
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_gyroscope_sample_rate_divider(uint8_t sample_rate_divider,
                                                     std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -541,6 +569,7 @@ bool Icm20948<I>::set_gyroscope_sample_rate_divider(uint8_t sample_rate_divider,
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_temperature_dlpf(const TemperatureFilterBandwidth &bandwidth,
                                        std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 2
   if (!select_bank(Bank::_2, ec)) {
     return false;
@@ -555,6 +584,7 @@ bool Icm20948<I>::set_temperature_dlpf(const TemperatureFilterBandwidth &bandwid
 /////////////////////////////////
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::init_magnetometer(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // get the device ID and ensure it's correct
   uint16_t device_id = get_magnetometer_device_id(ec);
   if (ec) {
@@ -570,6 +600,7 @@ template <espp::icm20948::Interface I> bool Icm20948<I>::init_magnetometer(std::
 
 template <espp::icm20948::Interface I>
 uint16_t Icm20948<I>::get_magnetometer_device_id(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   uint8_t msb = read_from_magnetometer(Ak09916Register::WHO_AM_I_1, ec);
   if (ec) {
     return 0;
@@ -584,6 +615,7 @@ uint16_t Icm20948<I>::get_magnetometer_device_id(std::error_code &ec) {
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_magnetometer_mode(const icm20948::MagnetometerMode &mode,
                                         std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   if (!write_to_magnetometer(Ak09916Register::CONTROL_2, static_cast<uint8_t>(mode), ec)) {
     return false;
   }
@@ -623,6 +655,7 @@ template <espp::icm20948::Interface I> float Icm20948<I>::get_temperature() { re
 
 template <espp::icm20948::Interface I>
 Icm20948<I>::Value Icm20948<I>::read_accelerometer(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   RawValue raw = get_accelerometer_raw(ec);
   if (ec) {
     return {0.0f, 0.0f, 0.0f};
@@ -640,6 +673,7 @@ Icm20948<I>::Value Icm20948<I>::read_accelerometer(std::error_code &ec) {
 
 template <espp::icm20948::Interface I>
 Icm20948<I>::Value Icm20948<I>::read_gyroscope(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   RawValue raw = get_gyroscope_raw(ec);
   if (ec) {
     return {0.0f, 0.0f, 0.0f};
@@ -657,6 +691,7 @@ Icm20948<I>::Value Icm20948<I>::read_gyroscope(std::error_code &ec) {
 
 template <espp::icm20948::Interface I>
 Icm20948<I>::Value Icm20948<I>::read_magnetometer(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   RawValue raw = get_magnetometer_raw(ec);
   if (ec) {
     return {0.0f, 0.0f, 0.0f};
@@ -673,6 +708,7 @@ Icm20948<I>::Value Icm20948<I>::read_magnetometer(std::error_code &ec) {
 }
 
 template <espp::icm20948::Interface I> float Icm20948<I>::read_temperature(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   uint16_t raw = get_temperature_raw(ec);
   if (ec) {
     return 0.0f;
@@ -689,6 +725,7 @@ template <espp::icm20948::Interface I> float Icm20948<I>::read_temperature(std::
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::enable_dmp(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -700,6 +737,7 @@ bool Icm20948<I>::enable_dmp(bool enable, std::error_code &ec) {
 }
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::reset_dmp(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -715,6 +753,7 @@ template <espp::icm20948::Interface I> bool Icm20948<I>::reset_dmp(std::error_co
 /////////////////////////////////
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::update(float dt, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // update accel
   Value accel = read_accelerometer(ec);
   if (ec) {
@@ -768,6 +807,7 @@ template <espp::icm20948::Interface I> float Icm20948<I>::get_yaw() { return ori
 /////////////////////////////////
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::enable_fifo(bool enable, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -780,6 +820,7 @@ bool Icm20948<I>::enable_fifo(bool enable, std::error_code &ec) {
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::set_fifo_mode(const FifoMode &mode, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -791,14 +832,19 @@ bool Icm20948<I>::set_fifo_mode(const FifoMode &mode, std::error_code &ec) {
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::start_fifo(const FifoType &fifo_type, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+  // TODO: implement this
   return !ec;
 }
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::stop_fifo(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+  // TODO: implement this
   return !ec;
 }
 
 template <espp::icm20948::Interface I> bool Icm20948<I>::reset_fifo(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return false;
@@ -812,6 +858,7 @@ template <espp::icm20948::Interface I> bool Icm20948<I>::reset_fifo(std::error_c
 }
 
 template <espp::icm20948::Interface I> uint16_t Icm20948<I>::get_fifo_count(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return 0;
@@ -863,6 +910,7 @@ float Icm20948<I>::gyroscope_range_to_sensitivty(const Icm20948<I>::GyroscopeRan
 template <espp::icm20948::Interface I>
 uint8_t Icm20948<I>::read_from_magnetometer(const Icm20948<I>::Ak09916Register &reg,
                                             std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 3
   if (!select_bank(Bank::_3, ec)) {
     return false;
@@ -895,6 +943,7 @@ uint8_t Icm20948<I>::read_from_magnetometer(const Icm20948<I>::Ak09916Register &
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::write_to_magnetometer(const Icm20948<I>::Ak09916Register &reg, uint8_t val,
                                         std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 3
   if (!select_bank(Bank::_3, ec)) {
     return false;
@@ -929,6 +978,7 @@ bool Icm20948<I>::write_to_magnetometer(const Icm20948<I>::Ak09916Register &reg,
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::enable_magnetometer_data_read(uint8_t reg_addr, uint8_t num_bytes,
                                                 std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 3
   if (!select_bank(Bank::_3, ec)) {
     return false;
@@ -951,6 +1001,7 @@ bool Icm20948<I>::enable_magnetometer_data_read(uint8_t reg_addr, uint8_t num_by
 
 template <espp::icm20948::Interface I>
 uint16_t Icm20948<I>::get_temperature_raw(std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return 0;
@@ -975,6 +1026,7 @@ Icm20948<I>::RawValue Icm20948<I>::get_magnetometer_raw(std::error_code &ec) {
 
 template <espp::icm20948::Interface I>
 Icm20948<I>::RawValue Icm20948<I>::get_raw(Icm20948<I>::RegisterBank0 reg, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // select bank 0
   if (!select_bank(Bank::_0, ec)) {
     return {0, 0, 0};
@@ -993,6 +1045,7 @@ Icm20948<I>::RawValue Icm20948<I>::get_raw(Icm20948<I>::RegisterBank0 reg, std::
 
 template <espp::icm20948::Interface I>
 bool Icm20948<I>::select_bank(const Icm20948<I>::Bank &bank, std::error_code &ec) {
+  std::lock_guard<std::recursive_mutex> lock(base_mutex_);
   // if the bank is already selected, then return
   if (current_bank_ == bank) {
     return true;

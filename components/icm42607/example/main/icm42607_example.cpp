@@ -33,9 +33,6 @@ extern "C" void app_main(void) {
   static espp::KalmanFilter<2> kf;
   kf.set_process_noise(rate_noise);
   kf.set_measurement_noise(angle_noise);
-  static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
-  static espp::MadgwickFilter f(beta);
-
   auto kalman_filter_fn = [](float dt, const Imu::Value &accel,
                              const Imu::Value &gyro) -> Imu::Value {
     // Apply Kalman filter
@@ -53,13 +50,15 @@ extern "C" void app_main(void) {
     return orientation;
   };
 
+  static constexpr float beta = 0.1f;
+  static espp::MadgwickFilter madgwick(beta);
   auto madgwick_filter_fn = [](float dt, const Imu::Value &accel,
                                const Imu::Value &gyro) -> Imu::Value {
     // Apply Madgwick filter
-    f.update(dt, accel.x, accel.y, accel.z, espp::deg_to_rad(gyro.x), espp::deg_to_rad(gyro.y),
-             espp::deg_to_rad(gyro.z));
+    madgwick.update(dt, accel.x, accel.y, accel.z, espp::deg_to_rad(gyro.x),
+                    espp::deg_to_rad(gyro.y), espp::deg_to_rad(gyro.z));
     float roll, pitch, yaw;
-    f.get_euler(roll, pitch, yaw);
+    madgwick.get_euler(roll, pitch, yaw);
     // return the computed orientation
     Imu::Value orientation{};
     orientation.pitch = espp::deg_to_rad(pitch);
