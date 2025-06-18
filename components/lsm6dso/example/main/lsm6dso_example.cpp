@@ -185,7 +185,7 @@ extern "C" void app_main(void) {
              "Kalman Roll (rad), Kalman Pitch (rad), Kalman Yaw (rad), "
              "Kalman Gravity X, Kalman Gravity Y, Kalman Gravity Z, "
              // madgwick filter outputs
-             "Madgwick Roll (rad), Madgwick Pitch (rad), Magwick Yaw (rad), "
+             "Madgwick Roll (rad), Madgwick Pitch (rad), Madgwick Yaw (rad), "
              "Madgwick Gravity X, Madgwick Gravity Y, Madgwick Gravity Z\n");
 
   logger.info("Starting IMU task");
