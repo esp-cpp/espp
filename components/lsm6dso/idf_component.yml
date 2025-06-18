@@ -1,0 +1,21 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "LSM6DSO IMU component for the 6-axis inertial measurement unit (IMU) sensor."
+url: "https://github.com/esp-cpp/espp/tree/main/components/lsm6dso"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/imu/lsm6dso.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - LSM6DSO
+  - IMU
+  - Peripheral
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_peripheral: '>=1.0'
+  espp/math: '>=1.0'

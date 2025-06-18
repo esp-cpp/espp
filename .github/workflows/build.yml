@@ -117,6 +117,8 @@ jobs:
           target: esp32
         - path: 'components/logger/example'
           target: esp32
+        - path: 'components/lsm6dso/example'
+          target: esp32s3
         - path: 'components/math/example'
           target: esp32
         - path: 'components/matouch-rotary-display/example'
