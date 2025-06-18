@@ -5,6 +5,8 @@ ESP-IDF. The example is modeled after the ICM42607 example and shows how to
 configure the IMU, read accelerometer and gyroscope data, and use orientation
 filtering (e.g., Madgwick filter).
 
+![CleanShot 2025-06-18 at 14 16 01](https://github.com/user-attachments/assets/10b15539-688b-4711-b1ce-e7bb33f7e343)
+
 ## Features
 - I2C communication with the LSM6DSO
 - Configurable accelerometer and gyroscope range and output data rate
@@ -32,6 +34,9 @@ idf.py -p PORT flash monitor
 See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
 
 ## Example Output
+
+![CleanShot 2025-06-18 at 14 15 13](https://github.com/user-attachments/assets/26b07fa0-4e4a-4025-a5a7-135322da8d3b)
+![CleanShot 2025-06-18 at 14 16 01](https://github.com/user-attachments/assets/10b15539-688b-4711-b1ce-e7bb33f7e343)
 
 ## Example Code
 See `main/lsm6dso_example.cpp` for the full example source code.
