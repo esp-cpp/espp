@@ -10,9 +10,8 @@ after the ICM42607 and MT6701 components.
 
 ## Features
 - Templated C++ driver supporting I2C and SPI
-- Configurable accelerometer and gyroscope range and output data rate
-- Orientation filtering (algorithmic and on-chip)
-- FIFO, interrupts, tap and event detection support
+- Configurable accelerometer and gyroscope range, output data rate, and on-chip filtering.
+- Orientation filtering (algorithmic)
 - Example application for ESP-IDF
 
 ## Example
