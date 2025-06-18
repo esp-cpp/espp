@@ -7,5 +7,6 @@ IMU APIs
     adxl345
     icm20948
     icm42607
+    lsm6dso
 
 Code examples for the IMU APIs are provided in the respective component folders.
