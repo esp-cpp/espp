@@ -43,6 +43,9 @@ public:
    */
   typedef std::function<void(ip_event_got_ip_t *ip_evt)> ip_callback;
 
+  /**
+   * @brief Configuration structure for the WiFi Station.
+   */
   struct Config {
     std::string ssid;     /**< SSID for the access point. */
     std::string password; /**< Password for the access point. If empty, the AP will be open / have
@@ -97,26 +100,40 @@ public:
     }
 
     err = esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiSta::event_handler,
-                                              this, event_handler_instance_any_id_);
+                                              this, &event_handler_instance_any_id_);
     if (err != ESP_OK) {
       logger_.error("Could not add wifi ANY event handler: {}", err);
     }
     err =
         esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &WifiSta::event_handler,
-                                            this, event_handler_instance_got_ip_);
+                                            this, &event_handler_instance_got_ip_);
     if (err != ESP_OK) {
       logger_.error("Could not add ip GOT_IP event handler: {}", err);
     }
 
     wifi_config_t wifi_config;
     memset(&wifi_config, 0, sizeof(wifi_config));
+
+    // if the ssid is empty, then load the saved configuration
+    if (config.ssid.empty()) {
+      logger_.debug("SSID is empty, trying to load saved WiFi configuration");
+      if (!get_saved_config(wifi_config)) {
+        logger_.error("Could not get saved WiFi configuration, SSID must be set");
+        return;
+      }
+      logger_.info("Loaded saved WiFi configuration: SSID = '{}'",
+                   std::string_view(reinterpret_cast<char *>(wifi_config.sta.ssid)));
+    } else {
+      logger_.debug("Setting WiFi SSID to '{}'", config.ssid);
+      memcpy(wifi_config.sta.ssid, config.ssid.data(), config.ssid.size());
+      memcpy(wifi_config.sta.password, config.password.data(), config.password.size());
+    }
+
     wifi_config.sta.channel = config.channel;
     wifi_config.sta.bssid_set = config.set_ap_mac;
     if (config.set_ap_mac) {
       memcpy(wifi_config.sta.bssid, config.ap_mac, 6);
     }
-    memcpy(wifi_config.sta.ssid, config.ssid.data(), config.ssid.size());
-    memcpy(wifi_config.sta.password, config.password.data(), config.password.size());
 
     err = esp_wifi_set_mode(WIFI_MODE_STA);
     if (err != ESP_OK) {
@@ -136,25 +153,33 @@ public:
    * @brief Stop the WiFi station and deinit the wifi subystem.
    */
   ~WifiSta() {
+    // remove any callbacks
+    logger_.debug("Destroying WiFiSta");
+    connected_ = false;
+    disconnecting_ = true;
+    attempts_ = 0;
+    connect_callback_ = nullptr;
+    disconnect_callback_ = nullptr;
+    ip_callback_ = nullptr;
+
+    // unregister our event handlers
+    logger_.debug("Unregistering event handlers");
     esp_err_t err;
-    if (event_handler_instance_any_id_) {
-      // unregister our event handler
-      logger_.debug("Unregistering any wifi event handler");
-      err = esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID,
-                                                  *event_handler_instance_any_id_);
-      if (err != ESP_OK) {
-        logger_.error("Could not unregister any wifi event handler: {}", err);
-      }
+    // unregister our any event handler
+    logger_.debug("Unregistering any wifi event handler");
+    err = esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                                                event_handler_instance_any_id_);
+    if (err != ESP_OK) {
+      logger_.error("Could not unregister any wifi event handler: {}", err);
     }
-    if (event_handler_instance_got_ip_) {
-      // unregister our event handler
-      logger_.debug("Unregistering got ip event handler");
-      err = esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP,
-                                                  *event_handler_instance_got_ip_);
-      if (err != ESP_OK) {
-        logger_.error("Could not unregister got ip event handler: {}", err);
-      }
+    // unregister our ip event handler
+    logger_.debug("Unregistering got ip event handler");
+    err = esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP,
+                                                event_handler_instance_got_ip_);
+    if (err != ESP_OK) {
+      logger_.error("Could not unregister got ip event handler: {}", err);
     }
+
     // NOTE: Deinit phase
     // stop the wifi
     logger_.debug("Stopping WiFi");
@@ -180,6 +205,240 @@ public:
    */
   bool is_connected() const { return connected_; }
 
+  /**
+   * @brief Get the MAC address of the station.
+   * @return MAC address of the station.
+   */
+  std::string get_mac() {
+    uint8_t mac[6];
+    esp_err_t err = esp_wifi_get_mac(WIFI_IF_STA, mac);
+    if (err != ESP_OK) {
+      logger_.error("Could not get MAC address: {}", err);
+      return "";
+    }
+    return fmt::format("{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", mac[0], mac[1], mac[2], mac[3],
+                       mac[4], mac[5]);
+  }
+
+  /**
+   * @brief Get the IP address of the station.
+   * @return IP address of the station.
+   */
+  std::string get_ip() {
+    esp_netif_ip_info_t ip_info;
+    esp_err_t err = esp_netif_get_ip_info(netif_, &ip_info);
+    if (err != ESP_OK) {
+      logger_.error("Could not get IP address: {}", err);
+      return "";
+    }
+    return fmt::format("{}.{}.{}.{}", IP2STR(&ip_info.ip));
+  }
+
+  /**
+   * @brief Get the SSID of the access point the station is connected to.
+   * @return SSID of the access point.
+   */
+  std::string get_ssid() {
+    wifi_ap_record_t ap_info;
+    esp_err_t err = esp_wifi_sta_get_ap_info(&ap_info);
+    if (err != ESP_OK) {
+      logger_.error("Could not get SSID: {}", err);
+      return "";
+    }
+    return std::string(reinterpret_cast<const char *>(ap_info.ssid),
+                       strlen((const char *)ap_info.ssid));
+  }
+
+  /**
+   * @brief Get the RSSI (Received Signal Strength Indicator) of the access point.
+   * @return RSSI of the access point.
+   */
+  int32_t get_rssi() {
+    wifi_ap_record_t ap_info;
+    esp_err_t err = esp_wifi_sta_get_ap_info(&ap_info);
+    if (err != ESP_OK) {
+      logger_.error("Could not get RSSI: {}", err);
+      return 0;
+    }
+    return ap_info.rssi;
+  }
+
+  /**
+   * @brief Get the channel of the access point the station is connected to.
+   * @return Channel of the access point.
+   */
+  uint8_t get_channel() {
+    wifi_ap_record_t ap_info;
+    esp_err_t err = esp_wifi_sta_get_ap_info(&ap_info);
+    if (err != ESP_OK) {
+      logger_.error("Could not get channel: {}", err);
+      return 0;
+    }
+    return ap_info.primary;
+  }
+
+  /**
+   * @brief Get the BSSID (MAC address) of the access point the station is connected to.
+   * @return BSSID of the access point.
+   */
+  std::string get_bssid() {
+    wifi_ap_record_t ap_info;
+    esp_err_t err = esp_wifi_sta_get_ap_info(&ap_info);
+    if (err != ESP_OK) {
+      logger_.error("Could not get BSSID: {}", err);
+      return "";
+    }
+    return fmt::format("{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", ap_info.bssid[0],
+                       ap_info.bssid[1], ap_info.bssid[2], ap_info.bssid[3], ap_info.bssid[4],
+                       ap_info.bssid[5]);
+  }
+
+  /**
+   * @brief Set the number of retries to connect to the access point.
+   * @param num_retries Number of retries to connect to the access point.
+   */
+  void set_num_retries(size_t num_retries) {
+    if (num_retries > 0) {
+      num_retries_ = num_retries;
+    } else {
+      logger_.warn("Number of retries must be greater than 0, not setting it");
+    }
+  }
+
+  /**
+   * @brief Set the callback to be called when the station connects to the access point.
+   * @param callback Callback to be called when the station connects to the access point.
+   */
+  void set_connect_callback(connect_callback callback) { connect_callback_ = callback; }
+
+  /**
+   * @brief Set the callback to be called when the station disconnects from the access point.
+   * @param callback Callback to be called when the station disconnects from the access point.
+   */
+  void set_disconnect_callback(disconnect_callback callback) { disconnect_callback_ = callback; }
+
+  /**
+   * @brief Set the callback to be called when the station gets an IP address.
+   * @param callback Callback to be called when the station gets an IP address.
+   */
+  void set_ip_callback(ip_callback callback) { ip_callback_ = callback; }
+
+  /**
+   * @brief Get the netif associated with this WiFi station.
+   * @return Pointer to the esp_netif_t associated with this WiFi station.
+   */
+  esp_netif_t *get_netif() const { return netif_; }
+
+  /**
+   * @brief Get the saved WiFi configuration.
+   * @param wifi_config Reference to a wifi_config_t structure to store the configuration.
+   * @return true if the configuration was retrieved successfully, false otherwise.
+   */
+  bool get_saved_config(wifi_config_t &wifi_config) {
+    esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &wifi_config);
+    if (err != ESP_OK) {
+      logger_.error("Could not get WiFi STA config: {}", err);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * @brief Connect to the access point with the saved SSID and password.
+   * @return true if the connection was initiated successfully, false otherwise.
+   */
+  bool connect() {
+    wifi_config_t wifi_config;
+    if (!get_saved_config(wifi_config)) {
+      logger_.error("Could not get saved WiFi configuration, SSID must be set");
+      return false;
+    }
+    std::string ssid(reinterpret_cast<const char *>(wifi_config.sta.ssid),
+                     strlen((const char *)wifi_config.sta.ssid));
+    std::string password(reinterpret_cast<const char *>(wifi_config.sta.password),
+                         strlen((const char *)wifi_config.sta.password));
+    return connect(ssid, password);
+  }
+
+  /**
+   * @brief Connect to the access point with the given SSID and password.
+   * @param ssid SSID of the access point.
+   * @param password Password of the access point. If empty, the AP will be open / have no security.
+   * @return true if the connection was initiated successfully, false otherwise.
+   */
+  bool connect(std::string_view ssid, std::string_view password) {
+    if (ssid.empty()) {
+      logger_.error("SSID cannot be empty");
+      return false;
+    }
+    wifi_config_t wifi_config;
+    memset(&wifi_config, 0, sizeof(wifi_config));
+    memcpy(wifi_config.sta.ssid, ssid.data(), ssid.size());
+    if (!password.empty()) {
+      memcpy(wifi_config.sta.password, password.data(), password.size());
+    }
+    // ensure retries are reset
+    attempts_ = 0;
+    esp_err_t err = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+    if (err != ESP_OK) {
+      logger_.error("Could not set WiFi config: {}", err);
+      return false;
+    }
+    attempts_ = 0;
+    connected_ = false;
+    return esp_wifi_connect() == ESP_OK;
+  }
+
+  /**
+   * @brief Disconnect from the access point.
+   * @return true if the disconnection was initiated successfully, false otherwise.
+   */
+  bool disconnect() {
+    connected_ = false;
+    attempts_ = 0;
+    disconnecting_ = true;
+    esp_err_t err = esp_wifi_disconnect();
+    if (err != ESP_OK) {
+      logger_.error("Could not disconnect from WiFi: {}", err);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * @brief Scan for available access points.
+   * @param ap_records Pointer to an array of wifi_ap_record_t to store the results.
+   * @param max_records Maximum number of access points to scan for.
+   * @return Number of access points found, or negative error code on failure.
+   * @note This is a blocking call that will wait for the scan to complete.
+   */
+  int scan(wifi_ap_record_t *ap_records, size_t max_records) {
+    if (ap_records == nullptr || max_records == 0) {
+      logger_.error("Invalid parameters for scan");
+      return -1;
+    }
+    uint16_t ap_count = 0;
+    static constexpr bool blocking = true; // blocking scan
+    esp_err_t err = esp_wifi_scan_start(nullptr, blocking);
+    if (err != ESP_OK) {
+      logger_.error("Could not start WiFi scan: {}", err);
+      return -1;
+    }
+    err = esp_wifi_scan_get_ap_num(&ap_count);
+    uint16_t number = max_records;
+    err = esp_wifi_scan_get_ap_records(&number, ap_records);
+    if (err != ESP_OK) {
+      logger_.error("Could not get WiFi scan results: {}", err);
+      return -1;
+    }
+    logger_.debug("Scanned {} APs, found {} access points", ap_count, number);
+    if (ap_count > max_records) {
+      logger_.warn("Found {} access points, but only {} can be stored", ap_count, max_records);
+      ap_count = max_records;
+    }
+    return number;
+  }
+
 protected:
   static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id,
                             void *event_data) {
@@ -195,16 +454,21 @@ protected:
       esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
       connected_ = false;
-      if (attempts_ < num_retries_) {
-        esp_wifi_connect();
-        attempts_++;
-        logger_.info("retry to connect to the AP");
+      if (disconnecting_) {
+        disconnecting_ = false;
       } else {
-        if (disconnect_callback_) {
-          disconnect_callback_();
+        if (attempts_ < num_retries_) {
+          esp_wifi_connect();
+          attempts_++;
+          logger_.info("Retrying to connect to the AP");
+          // return early, don't call disconnect callback
+          return;
         }
       }
-      logger_.info("connect to the AP fail");
+      logger_.info("Failed to connect to the AP after {} attempts", attempts_.load());
+      if (disconnect_callback_) {
+        disconnect_callback_();
+      }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
       ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
       logger_.info("got ip: {}.{}.{}.{}", IP2STR(&event->ip_info.ip));
@@ -219,14 +483,15 @@ protected:
     }
   }
 
-  size_t attempts_{0};
-  size_t num_retries_{0};
+  std::atomic<size_t> attempts_{0};
+  std::atomic<size_t> num_retries_{0};
   esp_netif_t *netif_{nullptr};
   connect_callback connect_callback_{nullptr};
   disconnect_callback disconnect_callback_{nullptr};
   ip_callback ip_callback_{nullptr};
   std::atomic<bool> connected_{false};
-  esp_event_handler_instance_t *event_handler_instance_any_id_{nullptr};
-  esp_event_handler_instance_t *event_handler_instance_got_ip_{nullptr};
+  std::atomic<bool> disconnecting_{false};
+  esp_event_handler_instance_t event_handler_instance_any_id_;
+  esp_event_handler_instance_t event_handler_instance_got_ip_;
 };
 } // namespace espp

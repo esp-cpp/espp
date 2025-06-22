@@ -250,7 +250,9 @@ INPUT += $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp
 INPUT += $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp
 INPUT += $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp
+INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap_menu.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp
+INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta_menu.hpp
 INPUT += $(PROJECT_PATH)/components/wrover-kit/include/wrover-kit.hpp
 
 USE_MDFILE_AS_MAINPAGE = $(PROJECT_PATH)/README.md
