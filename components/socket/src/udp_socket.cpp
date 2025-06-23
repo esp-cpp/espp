@@ -90,7 +90,7 @@ bool UdpSocket::receive(size_t max_num_bytes, std::vector<uint8_t> &data,
                                     (struct sockaddr *)remote_address, &socklen);
   // if we didn't receive anything return false and don't do anything else
   if (num_bytes_received < 0) {
-    logger_.error("Receive failed: {}", error_string());
+    logger_.info("Receive failed: {}", error_string());
     return false;
   }
   // we received data, so call the callback function if one was provided.
@@ -157,8 +157,10 @@ bool UdpSocket::server_task_function(size_t buffer_size, std::mutex &m, std::con
     // if we failed to receive, then likely we should delay a little bit
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, 1ms, [&task_notified] { return task_notified; });
-    task_notified = false;
+    auto stop_requested = cv.wait_for(lk, 1ms, [&task_notified] { return task_notified; });
+    if (stop_requested) {
+      return true;
+    }
     return false;
   }
   if (!server_receive_callback_) {

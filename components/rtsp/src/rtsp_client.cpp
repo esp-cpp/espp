@@ -244,6 +244,7 @@ void RtspClient::init_rtp(size_t rtp_port, std::error_code &ec) {
     return;
   }
   logger_.debug("Starting rtp socket");
+  rtp_socket_.set_receive_timeout(std::chrono::milliseconds(1000));
   auto rtp_task_config = espp::Task::BaseConfig{
       .name = "Rtp",
       .stack_size_bytes = 16 * 1024,
@@ -267,6 +268,7 @@ void RtspClient::init_rtcp(size_t rtcp_port, std::error_code &ec) {
     return;
   }
   logger_.debug("Starting rtcp socket");
+  rtcp_socket_.set_receive_timeout(std::chrono::milliseconds(1000));
   auto rtcp_task_config = espp::Task::BaseConfig{
       .name = "Rtcp",
       .stack_size_bytes = 6 * 1024,
