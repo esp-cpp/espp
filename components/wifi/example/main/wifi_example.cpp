@@ -38,7 +38,7 @@ extern "C" void app_main(void) {
 
 #if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
   {
-    //! [wifi sta cli example]
+    //! [wifi sta menu example]
     espp::WifiSta wifi_sta({.ssid = "",     // CONFIG_ESP_WIFI_SSID,
                             .password = "", // CONFIG_ESP_WIFI_PASSWORD,
                             .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
@@ -58,7 +58,7 @@ extern "C" void app_main(void) {
     espp::Cli input(cli);
     input.SetInputHistorySize(10);
     input.Start();
-    //! [wifi sta cli example]
+    //! [wifi sta menu example]
   }
 #endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
