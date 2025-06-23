@@ -142,7 +142,7 @@ protected:
   /// Initialize the RTP socket
   /// \note Starts the RTP socket task.
   /// \param rtp_port The RTP client port
-  /// param receive_timeout The timeout for receiving RTP packets
+  /// \param receive_timeout The timeout for receiving RTP packets
   /// \param ec The error code to set if an error occurs
   void init_rtp(size_t rtp_port, const std::chrono::duration<float> &receive_timeout,
                 std::error_code &ec);
