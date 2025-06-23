@@ -417,6 +417,7 @@ public:
       logger_.error("Invalid parameters for scan");
       return -1;
     }
+    uint16_t number = max_records;
     uint16_t ap_count = 0;
     static constexpr bool blocking = true; // blocking scan
     esp_err_t err = esp_wifi_scan_start(nullptr, blocking);
@@ -425,7 +426,10 @@ public:
       return -1;
     }
     err = esp_wifi_scan_get_ap_num(&ap_count);
-    uint16_t number = max_records;
+    if (err != ESP_OK) {
+      logger_.error("Could not get WiFi scan AP num: {}", err);
+      return -1;
+    }
     err = esp_wifi_scan_get_ap_records(&number, ap_records);
     if (err != ESP_OK) {
       logger_.error("Could not get WiFi scan results: {}", err);
