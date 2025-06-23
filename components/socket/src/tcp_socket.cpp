@@ -185,7 +185,7 @@ std::unique_ptr<TcpSocket> TcpSocket::accept() {
   // accept connection
   auto accepted_socket = ::accept(socket_, (struct sockaddr *)sender_address, &socklen);
   if (accepted_socket < 0) {
-    logger_.error("Could not accept connection: {}", error_string());
+    logger_.info("Could not accept connection: {}", error_string());
     return nullptr;
   }
   connected_client_info.update();

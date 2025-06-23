@@ -34,6 +34,10 @@ bool RtspServer::start() {
 
   logger_.info("Starting RTSP server on port {}", port_);
 
+  // ensure the receive timeout is set so that the accept will not block
+  // indefinitely and the accept task can be stopped.
+  rtsp_socket_.set_receive_timeout(std::chrono::seconds(1));
+
   if (!rtsp_socket_.bind(port_)) {
     logger_.error("Failed to bind to port {}", port_);
     return false;
@@ -161,8 +165,8 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
   // accept a new connection
   auto control_socket = rtsp_socket_.accept();
   if (!control_socket) {
-    logger_.error("Failed to accept new connection");
-    return false;
+    logger_.info("Failed to accept new connection");
+    return task_notified; // stop if we were notified
   }
 
   logger_.info("Accepted new connection");
@@ -203,8 +207,10 @@ bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &c
   {
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, 10ms, [&task_notified] { return task_notified; });
-    task_notified = false;
+    auto stop_requested = cv.wait_for(lk, 10ms, [&task_notified] { return task_notified; });
+    if (stop_requested) {
+      return true;
+    }
   }
 
   // when this function returns, the vector of pointers will go out of scope
