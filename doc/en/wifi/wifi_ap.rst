@@ -10,3 +10,4 @@ API Reference
 -------------
 
 .. include-build-file:: inc/wifi_ap.inc
+.. include-build-file:: inc/wifi_ap_menu.inc
