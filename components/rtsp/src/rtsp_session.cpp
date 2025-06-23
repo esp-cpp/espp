@@ -13,6 +13,8 @@ RtspSession::RtspSession(std::unique_ptr<TcpSocket> control_socket, const Config
     , client_address_(control_socket_->get_remote_info().address) {
   // set the logger tag to include the session id
   logger_.set_tag("RtspSession " + std::to_string(session_id_));
+  // ensure there is a timeout on the control socket receive
+  control_socket_->set_receive_timeout(config.receive_timeout);
   // start the session task to handle RTSP commands
   using namespace std::placeholders;
   control_task_ = std::make_unique<Task>(Task::Config{
@@ -295,6 +297,16 @@ bool RtspSession::control_task_fn(std::mutex &m, std::condition_variable &cv, bo
     // handle the request
     if (!handle_rtsp_request(request)) {
       logger_.warn("Failed to handle RTSP request");
+    }
+  } else {
+    // if the receive failed, then let's wait a little / check the task_notified
+    // flag to know if we should stop or not.
+    using namespace std::chrono_literals;
+    std::unique_lock<std::mutex> lk(m);
+    auto stop_requested = cv.wait_for(lk, 1ms, [&task_notified] { return task_notified; });
+    task_notified = false;
+    if (stop_requested) {
+      return true;
     }
   }
   // the receive handles most of the blocking, so we don't need to sleep

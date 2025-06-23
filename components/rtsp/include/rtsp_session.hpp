@@ -30,6 +30,8 @@ public:
   struct Config {
     std::string server_address; ///< The address of the server
     std::string rtsp_path;      ///< The RTSP path of the session
+    std::chrono::duration<float> receive_timeout =
+        std::chrono::seconds(5); ///< The timeout for receiving data. Should be > 0.
     espp::Logger::Verbosity log_level =
         espp::Logger::Verbosity::WARN; ///< The log level of the session
   };

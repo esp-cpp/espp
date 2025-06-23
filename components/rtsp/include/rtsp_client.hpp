@@ -98,6 +98,7 @@ public:
   /// \note Starts the RTP and RTCP threads.
   /// Sends the SETUP request to the RTSP server and parses the response.
   /// \note The default ports are 5000 and 5001 for RTP and RTCP respectively.
+  /// \note The default receive timeout is 5 seconds.
   /// \param ec The error code to set if an error occurs
   void setup(std::error_code &ec);
 
@@ -106,8 +107,10 @@ public:
   /// \note Starts the RTP and RTCP threads.
   /// \param rtp_port The RTP client port
   /// \param rtcp_port The RTCP client port
+  /// \param receive_timeout The timeout for receiving RTP and RTCP packets
   /// \param ec The error code to set if an error occurs
-  void setup(size_t rtp_port, size_t rtcp_port, std::error_code &ec);
+  void setup(size_t rtp_port, size_t rtcp_port, const std::chrono::duration<float> &receive_timeout,
+             std::error_code &ec);
 
   /// Play the RTSP stream
   /// Sends the PLAY request to the RTSP server and parses the response.
@@ -139,14 +142,18 @@ protected:
   /// Initialize the RTP socket
   /// \note Starts the RTP socket task.
   /// \param rtp_port The RTP client port
+  /// \param receive_timeout The timeout for receiving RTP packets
   /// \param ec The error code to set if an error occurs
-  void init_rtp(size_t rtp_port, std::error_code &ec);
+  void init_rtp(size_t rtp_port, const std::chrono::duration<float> &receive_timeout,
+                std::error_code &ec);
 
   /// Initialize the RTCP socket
   /// \note Starts the RTCP socket task.
   /// \param rtcp_port The RTCP client port
+  /// \param receive_timeout The timeout for receiving RTCP packets
   /// \param ec The error code to set if an error occurs
-  void init_rtcp(size_t rtcp_port, std::error_code &ec);
+  void init_rtcp(size_t rtcp_port, const std::chrono::duration<float> &receive_timeout,
+                 std::error_code &ec);
 
   /// Handle an RTP packet
   /// \note Parses the RTP packet and appends it to the current JPEG frame.

@@ -26,13 +26,17 @@ void RtspServer::set_session_log_level(Logger::Verbosity log_level) {
   session_log_level_ = log_level;
 }
 
-bool RtspServer::start() {
+bool RtspServer::start(const std::chrono::duration<float> &accept_timeout) {
   if (accept_task_ && accept_task_->is_started()) {
     logger_.error("Server is already running");
     return false;
   }
 
   logger_.info("Starting RTSP server on port {}", port_);
+
+  // ensure the receive timeout is set so that the accept will not block
+  // indefinitely and the accept task can be stopped.
+  rtsp_socket_.set_receive_timeout(accept_timeout);
 
   if (!rtsp_socket_.bind(port_)) {
     logger_.error("Failed to bind to port {}", port_);
@@ -161,7 +165,13 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
   // accept a new connection
   auto control_socket = rtsp_socket_.accept();
   if (!control_socket) {
-    logger_.error("Failed to accept new connection");
+    logger_.info("Failed to accept new connection");
+    // if we were notified, then we should stop the task
+    if (task_notified) {
+      task_notified = false;
+      return true;
+    }
+    // do not stop the task, just try to accept another connection
     return false;
   }
 
@@ -194,7 +204,7 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
     session_task_->start();
   }
   // we do not want to stop the task
-  return false;
+  return task_notified;
 }
 
 bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &cv,
@@ -203,8 +213,11 @@ bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &c
   {
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, 10ms, [&task_notified] { return task_notified; });
+    auto stop_requested = cv.wait_for(lk, 10ms, [&task_notified] { return task_notified; });
     task_notified = false;
+    if (stop_requested) {
+      return true;
+    }
   }
 
   // when this function returns, the vector of pointers will go out of scope
