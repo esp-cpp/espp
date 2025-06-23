@@ -158,6 +158,7 @@ bool UdpSocket::server_task_function(size_t buffer_size, std::mutex &m, std::con
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
     auto stop_requested = cv.wait_for(lk, 1ms, [&task_notified] { return task_notified; });
+    task_notified = false;
     if (stop_requested) {
       return true;
     }

@@ -26,7 +26,7 @@ void RtspServer::set_session_log_level(Logger::Verbosity log_level) {
   session_log_level_ = log_level;
 }
 
-bool RtspServer::start() {
+bool RtspServer::start(const std::chrono::duration<float> &accept_timeout) {
   if (accept_task_ && accept_task_->is_started()) {
     logger_.error("Server is already running");
     return false;
@@ -36,7 +36,7 @@ bool RtspServer::start() {
 
   // ensure the receive timeout is set so that the accept will not block
   // indefinitely and the accept task can be stopped.
-  rtsp_socket_.set_receive_timeout(std::chrono::seconds(1));
+  rtsp_socket_.set_receive_timeout(accept_timeout);
 
   if (!rtsp_socket_.bind(port_)) {
     logger_.error("Failed to bind to port {}", port_);
@@ -166,7 +166,13 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
   auto control_socket = rtsp_socket_.accept();
   if (!control_socket) {
     logger_.info("Failed to accept new connection");
-    return task_notified; // stop if we were notified
+    // if we were notified, then we should stop the task
+    if (task_notified) {
+      task_notified = false;
+      return true;
+    }
+    // do not stop the task, just try to accept another connection
+    return false;
   }
 
   logger_.info("Accepted new connection");
@@ -198,7 +204,7 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
     session_task_->start();
   }
   // we do not want to stop the task
-  return false;
+  return task_notified;
 }
 
 bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &cv,
@@ -208,6 +214,7 @@ bool RtspServer::session_task_function(std::mutex &m, std::condition_variable &c
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
     auto stop_requested = cv.wait_for(lk, 10ms, [&task_notified] { return task_notified; });
+    task_notified = false;
     if (stop_requested) {
       return true;
     }

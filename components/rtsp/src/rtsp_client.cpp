@@ -150,10 +150,15 @@ void RtspClient::describe(std::error_code &ec) {
 
 void RtspClient::setup(std::error_code &ec) {
   // default to rtp and rtcp client ports 5000 and 5001
-  setup(5000, 50001, ec);
+  using namespace std::chrono_literals;
+  static constexpr size_t rtp_port = 5000;
+  static constexpr size_t rtcp_port = 5001;
+  static constexpr auto receive_timeout = 5s;
+  setup(rtp_port, rtcp_port, receive_timeout, ec);
 }
 
-void RtspClient::setup(size_t rtp_port, size_t rtcp_port, std::error_code &ec) {
+void RtspClient::setup(size_t rtp_port, size_t rtcp_port,
+                       const std::chrono::duration<float> &receive_timeout, std::error_code &ec) {
   // exit early if the error code is set
   if (ec) {
     return;
@@ -169,8 +174,8 @@ void RtspClient::setup(size_t rtp_port, size_t rtcp_port, std::error_code &ec) {
     return;
   }
 
-  init_rtp(rtp_port, ec);
-  init_rtcp(rtcp_port, ec);
+  init_rtp(rtp_port, receive_timeout, ec);
+  init_rtcp(rtcp_port, receive_timeout, ec);
 }
 
 void RtspClient::play(std::error_code &ec) {
@@ -238,13 +243,14 @@ bool RtspClient::parse_response(const std::string &response_data, std::error_cod
   return true;
 }
 
-void RtspClient::init_rtp(size_t rtp_port, std::error_code &ec) {
+void RtspClient::init_rtp(size_t rtp_port, const std::chrono::duration<float> &receive_timeout,
+                          std::error_code &ec) {
   // exit early if the error code is set
   if (ec) {
     return;
   }
   logger_.debug("Starting rtp socket");
-  rtp_socket_.set_receive_timeout(std::chrono::milliseconds(1000));
+  rtp_socket_.set_receive_timeout(receive_timeout);
   auto rtp_task_config = espp::Task::BaseConfig{
       .name = "Rtp",
       .stack_size_bytes = 16 * 1024,
@@ -262,13 +268,14 @@ void RtspClient::init_rtp(size_t rtp_port, std::error_code &ec) {
   }
 }
 
-void RtspClient::init_rtcp(size_t rtcp_port, std::error_code &ec) {
+void RtspClient::init_rtcp(size_t rtcp_port, const std::chrono::duration<float> &receive_timeout,
+                           std::error_code &ec) {
   // exit early if the error code is set
   if (ec) {
     return;
   }
   logger_.debug("Starting rtcp socket");
-  rtcp_socket_.set_receive_timeout(std::chrono::milliseconds(1000));
+  rtcp_socket_.set_receive_timeout(receive_timeout);
   auto rtcp_task_config = espp::Task::BaseConfig{
       .name = "Rtcp",
       .stack_size_bytes = 6 * 1024,

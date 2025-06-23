@@ -66,8 +66,9 @@ public:
 
   /// @brief Start the RTSP server
   /// Starts the accept task, session task, and binds the RTSP socket
+  /// @param accept_timeout The timeout for accepting new connections
   /// @return True if the server was started successfully, false otherwise
-  bool start();
+  bool start(const std::chrono::duration<float> &accept_timeout = std::chrono::seconds(5));
 
   /// @brief Stop the FTP server
   /// Stops the accept task, session task, and closes the RTSP socket
