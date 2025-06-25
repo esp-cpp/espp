@@ -57,7 +57,7 @@ public:
             out << "Failed to connect to saved WiFi network.\n";
           }
         },
-        "Connect to a WiFi network with the given SSID and password.");
+        "Connect to a WiFi network using the saved configuration (if any).");
     menu->Insert(
         "connect", {"ssid", "password"},
         [this](std::ostream &out, const std::string &ssid, const std::string &password) -> void {
