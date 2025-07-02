@@ -19,3 +19,4 @@ dependencies:
   idf:
     version: '>=5.0'
   espp/base_peripheral: '>=1.0'
+  espp/cli: '>=1.0'

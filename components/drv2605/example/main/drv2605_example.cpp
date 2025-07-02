@@ -7,6 +7,11 @@
 #include "logger.hpp"
 #include "task.hpp"
 
+#if CONFIG_COMPILER_CXX_EXCEPTIONS
+#include "cli.hpp"
+#include "drv2605_menu.hpp"
+#endif
+
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
@@ -43,6 +48,27 @@ extern "C" void app_main(void) {
     if (ec) {
       logger.error("select library failed: {}", ec.message());
     }
+
+#if CONFIG_COMPILER_CXX_EXCEPTIONS
+    //! [drv2605 menu example]
+    using DriverPtr = std::shared_ptr<Driver>;
+    // since we're wrapping a stack-allocated object, we need to ensure that the
+    // shared pointer does not take ownership of the object and won't delete it
+    // when it goes out of scope. There are a couple of ways of doing this, but
+    // this method doesn't allocate a control block and is noexcept.
+    auto drv2605_ptr = DriverPtr(DriverPtr{}, &drv2605); // no ownership, won't delete
+    espp::Drv2605Menu drv2605_menu({drv2605_ptr});
+    cli::Cli cli(drv2605_menu.get());
+    cli::SetColor();
+    cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
+    espp::Cli input(cli);
+    input.SetInputHistorySize(10);
+    // As this is in the primary thread, we hold here until cli
+    // is complete. This is a blocking call and will not return until
+    // the user enters the `exit` command.
+    input.Start();
+    //! [drv2605 menu example]
+#endif
 
     // do the calibration for the LRA motor
     Driver::LraCalibrationSettings lra_calibration_settings{};
