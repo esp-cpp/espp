@@ -116,7 +116,10 @@ public:
           std::vector<uint8_t> waveform_ids;
           for (const auto &id_str : waveforms) {
             try {
-              uint8_t id = std::stoi(id_str);
+              int id = std::stoi(id_str);
+              if (id < 1 || id > 123) {
+                throw std::out_of_range("ID out of range");
+              }
               waveform_ids.push_back(id);
             } catch (const std::invalid_argument &) {
               out << "Invalid waveform ID: " << id_str
@@ -126,12 +129,6 @@ public:
               out << "Waveform ID out of range: " << id_str << ". Must be between 1 and 123.\n";
               return;
             }
-          }
-          // check if all IDs are valid
-          if (std::any_of(waveform_ids.begin(), waveform_ids.end(),
-                          [](uint8_t id) { return id < 1 || id > 123; })) {
-            out << "Invalid waveform IDs provided. Must be between 1 and 123.\n";
-            return;
           }
           set_waveforms(out, waveform_ids);
         },
@@ -183,8 +180,8 @@ public:
       // stop any playing waveforms
       driver->stop(ec);
       // set the waveform to play
-      driver->set_waveform(0, (espp::Drv2605::Waveform)waveform_id, ec);
-      driver->set_waveform(1, espp::Drv2605::Waveform::END, ec);
+      driver->set_waveform(0, static_cast<Driver::Waveform>(waveform_id), ec);
+      driver->set_waveform(1, Driver::Waveform::END, ec);
       // play the waveform on each driver
       driver->start(ec);
       if (ec) {
@@ -208,10 +205,10 @@ public:
       driver->stop(ec);
       // set the waveforms to play
       for (size_t i = 0; i < waveforms.size(); ++i) {
-        driver->set_waveform(i, static_cast<espp::Drv2605::Waveform>(waveforms[i]), ec);
+        driver->set_waveform(i, static_cast<Driver::Waveform>(waveforms[i]), ec);
       }
       // end the waveform list
-      driver->set_waveform(waveforms.size(), espp::Drv2605::Waveform::END, ec);
+      driver->set_waveform(waveforms.size(), Driver::Waveform::END, ec);
       if (ec) {
         out << "Error setting waveforms: " << ec.message() << "\n";
       } else {
