@@ -146,6 +146,7 @@ INPUT += $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp
 INPUT += $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp
 INPUT += $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp
 INPUT += $(PROJECT_PATH)/components/drv2605/include/drv2605.hpp
+INPUT += $(PROJECT_PATH)/components/drv2605/include/drv2605_menu.hpp
 INPUT += $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp
 INPUT += $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp
 INPUT += $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp

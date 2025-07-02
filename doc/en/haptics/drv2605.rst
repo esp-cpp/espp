@@ -21,3 +21,4 @@ API Reference
 -------------
 
 .. include-build-file:: inc/drv2605.inc
+.. include-build-file:: inc/drv2605_menu.inc
