@@ -2,6 +2,9 @@
 
 static espp::Logger logger({.tag = "GFPS BLE", .level = espp::gfps::LOG_LEVEL});
 
+#if CONFIG_NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
+#include "app.hpp"
+#endif // CONFIG_NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
 #include "host/ble_hs.h"
 
 static std::vector<uint8_t> REMOTE_PUBLIC_KEY(64, 0);
@@ -257,6 +260,20 @@ uint32_t nearby_platfrom_GetPairingPassKey() {
 void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   logger.info("SetRemotePasskey: {}", passkey);
 #if CONFIG_BT_NIMBLE_ENABLED
+#if CONFIG_NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
+  // In the subsequent pair, the pass key transmission destination has been 
+  // corrected to the request source that was the previously connected device.
+  auto conn_info_opt = bb::App::ble_manager_->get_pending_conn_info();
+  if (conn_info_opt) {
+    NimBLEAddress peer_addr = conn_info_opt->getIdAddress();
+	bool accept = passkey == NimBLEDevice::getSecurityPasskey();
+	logger.info("{} pairing request, passkey {}", accept ? "Accepting" : "Declining", passkey);
+	NimBLEDevice::injectConfirmPasskey(conn_info_opt.value(), accept);
+	logger.info("Injected pairing response to {}", peer_addr.toString());
+  } else {
+    logger.error("No active connection found to respond with passkey {}", passkey);
+  }
+#else
   bool accept = passkey == NimBLEDevice::getSecurityPasskey();
   if (accept) {
     logger.info("Accepting pairing request, passkey matches");
@@ -268,6 +285,7 @@ void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   auto conn_info = NimBLEDevice::getServer()->getPeerInfo(0);
   // Now actually respond to the pairing request
   NimBLEDevice::injectConfirmPasskey(conn_info, accept);
+#endif // CONFIG_NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
 #endif // CONFIG_BT_NIMBLE_ENABLED
 }
 
