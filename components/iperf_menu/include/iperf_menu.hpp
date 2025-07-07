@@ -115,6 +115,11 @@ public:
     menu->Insert(
         "udp", {"udp"}, [this](std::ostream &out, bool udp) { set_udp(out, udp); },
         "Set the UDP mode for iperf tests.");
+    menu->Insert(
+        "tcp", [this](std::ostream &out) { get_udp(out); }, "Get the current TCP mode setting. ");
+    menu->Insert(
+        "tcp", {"tcp"}, [this](std::ostream &out, bool tcp) { set_udp(out, !tcp); },
+        "Set the TCP mode for iperf tests. This will disable UDP mode.");
 #if IPERF_IPV6_ENABLED || defined(_DOXYGEN_)
     menu->Insert(
         "ipv6", [this](std::ostream &out) { get_ipv6(out); }, "Get the current IPv6 setting.");
