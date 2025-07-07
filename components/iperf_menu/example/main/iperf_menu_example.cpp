@@ -51,7 +51,7 @@ extern "C" void app_main(void) {
 
     auto iperf_menu = espp::IperfMenu();
 
-    // Now manke the cli and start it
+    // Now make the cli and start it
     auto root_menu = std::make_unique<cli::Menu>("example");
     root_menu->Insert(sta_menu.get());
     root_menu->Insert(iperf_menu.get());
