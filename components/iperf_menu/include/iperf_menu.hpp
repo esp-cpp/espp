@@ -180,7 +180,7 @@ public:
     //// Server
     //////////////////
     menu->Insert(
-        "server", [this](std::ostream &out, int port) { iperf_server(out); },
+        "server", [this](std::ostream &out) { iperf_server(out); },
         "Run an iperf server, listening on the default port.");
     menu->Insert(
         "server", {"port"}, [this](std::ostream &out, int port) { iperf_server(out, port); },
