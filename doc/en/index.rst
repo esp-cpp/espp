@@ -38,6 +38,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    interrupt
    input/index
    io_expander/index
+   iperf_menu
    joystick
    led
    led_strip

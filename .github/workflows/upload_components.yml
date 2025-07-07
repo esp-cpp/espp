@@ -71,6 +71,7 @@ jobs:
             components/icm42607
             components/input_drivers
             components/interrupt
+            components/iperf_menu
             components/joystick
             components/kts1622
             components/led
