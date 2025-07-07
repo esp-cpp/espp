@@ -12,26 +12,31 @@ template <> struct fmt::formatter<iperf_cfg_t> : fmt::formatter<std::string> {
     if (cfg.flag & IPERF_FLAG_CLIENT) {
       return fmt::format_to(ctx.out(),
                             "iperf_cfg_t client {{"
-                            "  host: {},"
-                            "  dest port: {},"
-                            "  source port: {},"
-                            "  protocol: {},"
-                            "  duration: {},"
-                            "  bandwidth: {},"
-                            "  buffer_size: {}"
+                            " host: {},"
+                            " dest port: {},"
+                            " source port: {},"
+                            " protocol: {},"
+                            " duration: {},"
+                            " bandwidth: {},"
+                            " buffer_size: {}"
                             " }}",
-                            cfg.destination_ip4, cfg.dport, cfg.sport,
-                            cfg.flag & IPERF_FLAG_UDP ? "UDP" : "TCP", cfg.time, cfg.bw_lim,
-                            cfg.len_send_buf);
+#if IPERF_IPV6_ENABLED
+                            cfg.type == IPERF_IP_TYPE_IPV6 ? cfg.destination_ip6
+                                                           : inet_ntoa(cfg.destination_ip4),
+#else
+                            inet_ntoa(cfg.destination_ip4),
+#endif
+                            cfg.dport, cfg.sport, cfg.flag & IPERF_FLAG_UDP ? "UDP" : "TCP",
+                            cfg.time, cfg.bw_lim, cfg.len_send_buf);
     } else {
       return fmt::format_to(ctx.out(),
                             "iperf_cfg_t server {{"
-                            "  dest port: {},"
-                            "  source port: {},"
-                            "  protocol: {},"
-                            "  duration: {},"
-                            "  bandwidth: {},"
-                            "  buffer_size: {}"
+                            " dest port: {},"
+                            " source port: {},"
+                            " protocol: {},"
+                            " duration: {},"
+                            " bandwidth: {},"
+                            " buffer_size: {}"
                             " }}",
                             cfg.dport, cfg.sport, cfg.flag & IPERF_FLAG_UDP ? "UDP" : "TCP",
                             cfg.time, cfg.bw_lim, cfg.len_send_buf);
