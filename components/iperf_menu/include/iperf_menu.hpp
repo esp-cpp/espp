@@ -356,7 +356,7 @@ public:
     // set client flag
     cfg.flag |= IPERF_FLAG_CLIENT;
 
-    // set the desitination host
+    // set the destination host
 #if IPERF_IPV6_ENABLED
     if (ipv6) {
       cfg.destination_ip6 = (char *)host.c_str(); // Set the IPv6 host
