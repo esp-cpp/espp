@@ -200,7 +200,7 @@ public:
   /// @brief Get the current IPv6 setting.
   /// @param out The output stream to write the result to.
   /// @note This function is only available if IPERF_IPV6_ENABLED is defined.
-  void get_ipv6(std::ostream &out) {
+  void get_ipv6(std::ostream &out) const {
     out << (use_ipv6_ ? "Using IPv6 for iperf tests.\n" : "Using IPv4 for iperf tests.\n");
   }
 
@@ -218,7 +218,7 @@ public:
 
   /// @brief Get the current UDP mode setting.
   /// @param out The output stream to write the result to.
-  void get_udp(std::ostream &out) {
+  void get_udp(std::ostream &out) const {
     out << (use_udp_ ? "Using UDP mode for iperf tests.\n" : "Using TCP mode for iperf tests.\n");
   }
 
@@ -240,7 +240,7 @@ public:
 
   /// @brief Get the current reporting interval setting.
   /// @param out The output stream to write the result to.
-  void get_interval(std::ostream &out) {
+  void get_interval(std::ostream &out) const {
     out << "Current interval for iperf tests: " << interval_ << " seconds.\n";
   }
 
@@ -260,7 +260,7 @@ public:
 
   /// @brief Get the current time (duration) setting.
   /// @param out The output stream to write the result to.
-  void get_time(std::ostream &out) {
+  void get_time(std::ostream &out) const {
     out << "Current time for iperf tests: " << time_ << " seconds.\n";
   }
 
@@ -280,7 +280,7 @@ public:
 
   /// @brief Get the current formatting setting (kibits/sec or mbits/sec)
   /// @param out The output stream to write the result to.
-  void get_format(std::ostream &out) {
+  void get_format(std::ostream &out) const {
     out << "Current output format for iperf tests: " << format_ << ".\n";
   }
 
@@ -308,7 +308,7 @@ public:
 
   /// @brief Get the current buffer length setting.
   /// @param out The output stream to write the result to.
-  void get_length(std::ostream &out) {
+  void get_length(std::ostream &out) const {
     out << "Current buffer length for iperf tests: " << length_ << " bytes.\n";
   }
 
