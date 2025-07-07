@@ -58,7 +58,7 @@ class IperfMenu {
 public:
   /// @brief Construct a new IperfMenu object.
   explicit IperfMenu() {
-    // set the defalt configs
+    // set the default configs
     cfg_.type = IPERF_IP_TYPE_IPV4;  // Default to IPv4
     cfg_.flag = IPERF_FLAG_TCP;      // Default to TCP
     cfg_.sport = IPERF_DEFAULT_PORT; // Default source port
