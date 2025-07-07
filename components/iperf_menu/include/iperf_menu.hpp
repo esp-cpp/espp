@@ -235,20 +235,12 @@ public:
         "Run an iperf server in UDP mode, listening on the specified port with a specific length, "
         "interval, and time.");
     menu->Insert(
-        "server_udp", {"port", "length", "interval", "time", "bandwidth"},
-        [this](std::ostream &out, int port, int length, int interval, int time, int bandwidth) {
-          iperf_server(out, true, false, port, length, interval, time, bandwidth);
-        },
-        "Run an iperf server in UDP mode, listening on the specified port with a specific length, "
-        "interval, time, and bandwidth.");
-    menu->Insert(
-        "server_udp", {"port", "length", "interval", "time", "bandwidth", "format"},
-        [this](std::ostream &out, int port, int length, int interval, int time, int bandwidth,
-               char format) {
+        "server_udp", {"port", "length", "interval", "time", "format"},
+        [this](std::ostream &out, int port, int length, int interval, int time, char format) {
           iperf_server(out, true, false, port, length, interval, time, format);
         },
         "Run an iperf server in UDP mode, listening on the specified port with a specific length, "
-        "interval, time, bandwidth, and output format.");
+        "interval, time, and output format.");
 
     //////////////////
     //// Server TCP
@@ -278,20 +270,12 @@ public:
         "Run an iperf server in TCP mode, listening on the specified port with a specific length, "
         "interval, and time.");
     menu->Insert(
-        "server_tcp", {"port", "length", "interval", "time", "bandwidth"},
-        [this](std::ostream &out, int port, int length, int interval, int time, int bandwidth) {
-          iperf_server(out, false, false, port, length, interval, time);
-        },
-        "Run an iperf server in TCP mode, listening on the specified port with a specific length, "
-        "interval, time, and bandwidth.");
-    menu->Insert(
-        "server_tcp", {"port", "length", "interval", "time", "bandwidth", "format"},
-        [this](std::ostream &out, int port, int length, int interval, int time, int bandwidth,
-               char format) {
+        "server_tcp", {"port", "length", "interval", "time", "format"},
+        [this](std::ostream &out, int port, int length, int interval, int time, char format) {
           iperf_server(out, false, false, port, length, interval, time, format);
         },
         "Run an iperf server in TCP mode, listening on the specified port with a specific length, "
-        "interval, time, bandwidth, and output format.");
+        "interval, time, and output format.");
 
 //////////////////
 //// IPV6
@@ -314,17 +298,15 @@ public:
         "Run an iperf client in TCP mode using IPv6, connecting to the specified host and port "
         "with a specific length, interval, time, bandwidth, and output format.");
     menu->Insert(
-        "server_udp_ipv6", {"port", "length", "interval", "time", "bandwidth", "format"},
-        [this](std::ostream &out, int port, int length, int interval, int time, int bandwidth,
-               char format) {
+        "server_udp_ipv6", {"port", "length", "interval", "time", "format"},
+        [this](std::ostream &out, int port, int length, int interval, int time, char format) {
           iperf_server(out, true, true, port, length, interval, time, format);
         },
         "Run an iperf server in UDP mode using IPv6, listening on the specified port with a "
         "specific length, interval, time, bandwidth, and output format.");
     menu->Insert(
-        "server_tcp_ipv6", {"port", "length", "interval", "time", "bandwidth", "format"},
-        [this](std::ostream &out, int port, int length, int interval, int time, int bandwidth,
-               char format) {
+        "server_tcp_ipv6", {"port", "length", "interval", "time", "format"},
+        [this](std::ostream &out, int port, int length, int interval, int time, char format) {
           iperf_server(out, false, true, port, length, interval, time, format);
         },
         "Run an iperf server in TCP mode using IPv6, listening on the specified port with a "
