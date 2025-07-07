@@ -108,7 +108,7 @@ public:
     // and the abort will just stop the current test if running.
 
     //////////////////
-    //// Confiuration
+    //// Configuration
     //////////////////
     menu->Insert(
         "udp", [this](std::ostream &out) { get_udp(out); }, "Get the current UDP mode setting.");
