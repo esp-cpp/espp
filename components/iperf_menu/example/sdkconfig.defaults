@@ -1,3 +1,6 @@
+# NOTE: because this uses iperf, we have to use a larger min flash size
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+
 # CONFIG_ESP32_WIFI_NVS_ENABLED=n
 
 CONFIG_PARTITION_TABLE_CUSTOM=y

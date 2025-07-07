@@ -57,7 +57,18 @@ namespace espp {
 class IperfMenu {
 public:
   /// @brief Construct a new IperfMenu object.
-  explicit IperfMenu() {}
+  explicit IperfMenu() {
+    // set the defalt configs
+    cfg_.type = IPERF_IP_TYPE_IPV4;  // Default to IPv4
+    cfg_.flag = IPERF_FLAG_TCP;      // Default to TCP
+    cfg_.sport = IPERF_DEFAULT_PORT; // Default source port
+    cfg_.dport = IPERF_DEFAULT_PORT; // Default destination port
+    cfg_.len_send_buf = 0;
+    cfg_.interval = IPERF_DEFAULT_INTERVAL;  // Default interval
+    cfg_.time = IPERF_DEFAULT_TIME;          // Default time
+    cfg_.bw_lim = IPERF_DEFAULT_NO_BW_LIMIT; // No bandwidth limit by default
+    cfg_.format = KBITS_PER_SEC;             // Default output format is kibits/sec
+  }
 
   /// @brief Get the CLI menu for the Iperf functionality.
   /// @param name The name of the menu.
@@ -72,7 +83,7 @@ public:
     // - "client": Run as a client, connecting to a <host>
     // - "server": Run as a server
     // - "udp": Run in UDP mode, default is TCP
-    // - "port": Set the port to use, default is 5201 (IPERF_DEFAULT_PORT)
+    // - "port": Set the port to use, default is 5000
     // - "length": Set the length of the buffer to use, default is IPERF_DEFAULT_TCP_TX_LEN for TCP,
     // or IPERF_DEFAULT_IPV4_UDP_TX_LEN / IPERF_DEFAULT_IPV6_UDP_TX_LEN for UDP
     // - "interval": Set the interval for reporting results, default is 1 second
@@ -97,6 +108,47 @@ public:
     // and the abort will just stop the current test if running.
 
     //////////////////
+    //// Confiuration
+    //////////////////
+    menu->Insert(
+        "udp", [this](std::ostream &out) { get_udp(out); }, "Get the current UDP mode setting.");
+    menu->Insert(
+        "udp", {"udp"}, [this](std::ostream &out, bool udp) { set_udp(out, udp); },
+        "Set the UDP mode for iperf tests.");
+#if IPERF_IPV6_ENABLED || defined(_DOXYGEN_)
+    menu->Insert(
+        "ipv6", [this](std::ostream &out) { get_ipv6(out); }, "Get the current IPv6 setting.");
+    menu->Insert(
+        "ipv6", {"ipv6"}, [this](std::ostream &out, bool ipv6) { set_ipv6(out, ipv6); },
+        "Set the IPv6 mode for iperf tests.");
+#endif // IPERF_IPV6_ENABLED
+    menu->Insert(
+        "interval", [this](std::ostream &out) { get_interval(out); },
+        "Get the current reporting interval setting.");
+    menu->Insert(
+        "interval", {"interval"},
+        [this](std::ostream &out, int interval) { set_interval(out, interval); },
+        "Set the reporting interval for iperf tests.");
+    menu->Insert(
+        "time", [this](std::ostream &out) { get_time(out); },
+        "Get the current time (duration) setting.");
+    menu->Insert(
+        "time", {"time"}, [this](std::ostream &out, int time) { set_time(out, time); },
+        "Set the time for iperf tests.");
+    menu->Insert(
+        "format", [this](std::ostream &out) { get_format(out); },
+        "Get the current formatting setting (kibits/sec or mbits/sec).");
+    menu->Insert(
+        "format", {"format"}, [this](std::ostream &out, char format) { set_format(out, format); },
+        "Set the output format for iperf tests.");
+    menu->Insert(
+        "length", [this](std::ostream &out) { get_length(out); },
+        "Get the current buffer length setting.");
+    menu->Insert(
+        "length", {"length"}, [this](std::ostream &out, int length) { set_length(out, length); },
+        "Set the buffer length for iperf tests.");
+
+    //////////////////
     //// Abort
     //////////////////
     menu->Insert(
@@ -104,371 +156,244 @@ public:
         "Abort the current iperf test if running. This will stop the test and print a message.");
 
     //////////////////
-    //// Client UDP
+    //// Client
     //////////////////
     menu->Insert(
-        "client_udp", {"host"},
-        [this](std::ostream &out, const std::string &host) {
-          iperf_client(out, host, true, false);
-        },
-        "Run an iperf client in UDP mode, connecting to the specified host.");
+        "client", {"host"},
+        [this](std::ostream &out, const std::string &host) { iperf_client(out, host); },
+        "Run an iperf client, connecting to the specified host, using the default port.");
     menu->Insert(
-        "client_udp", {"host", "port"},
+        "client", {"host", "port"},
         [this](std::ostream &out, const std::string &host, int port) {
-          iperf_client(out, host, true, false, port);
+          iperf_client(out, host, port);
         },
-        "Run an iperf client in UDP mode, connecting to the specified host and port.");
+        "Run an iperf client, connecting to the specified host and port.");
     menu->Insert(
-        "client_udp", {"host", "port", "length"},
+        "client", {"host", "port", "bandwidth"},
         [this](std::ostream &out, const std::string &host, int port, int length) {
-          iperf_client(out, host, true, false, port, length);
+          iperf_client(out, host, port, length);
         },
-        "Run an iperf client in UDP mode, connecting to the specified host and port with a "
-        "specific length.");
-    menu->Insert(
-        "client_udp", {"host", "port", "length", "interval"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval) {
-          iperf_client(out, host, true, false, port, length, interval);
-        },
-        "Run an iperf client in UDP mode, connecting to the specified host and port with a "
-        "specific length and interval.");
-    menu->Insert(
-        "client_udp", {"host", "port", "length", "interval", "time"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval,
-               int time) { iperf_client(out, host, true, false, port, length, interval, time); },
-        "Run an iperf client in UDP mode, connecting to the specified host and port with a "
-        "specific length, interval, and time.");
-    menu->Insert(
-        "client_udp", {"host", "port", "length", "interval", "time", "bandwidth"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval,
-               int time, int bandwidth) {
-          iperf_client(out, host, true, false, port, length, interval, time, bandwidth);
-        },
-        "Run an iperf client in UDP mode, connecting to the specified host and port with a "
-        "specific length, interval, time, and bandwidth.");
-    menu->Insert(
-        "client_udp", {"host", "port", "length", "interval", "time", "bandwidth", "format"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval,
-               int time, int bandwidth, char format) {
-          iperf_client(out, host, true, false, port, length, interval, time, bandwidth, format);
-        },
-        "Run an iperf client in UDP mode, connecting to the specified host and port with a "
-        "specific length, interval, time, bandwidth, and output format.");
+        "Run an iperf client, connecting to the specified host and port. Uses the "
+        "passed length as the buffer length for data transmission.");
 
     //////////////////
-    //// Client TCP
+    //// Server
     //////////////////
     menu->Insert(
-        "client_tcp", {"host"},
-        [this](std::ostream &out, const std::string &host) {
-          iperf_client(out, host, false, false);
-        },
-        "Run an iperf client in TCP mode, connecting to the specified host.");
+        "server", [this](std::ostream &out, int port) { iperf_server(out); },
+        "Run an iperf server, listening on the default port.");
     menu->Insert(
-        "client_tcp", {"host", "port"},
-        [this](std::ostream &out, const std::string &host, int port) {
-          iperf_client(out, host, false, false, port);
-        },
-        "Run an iperf client in TCP mode, connecting to the specified host and port.");
-    menu->Insert(
-        "client_tcp", {"host", "port", "length"},
-        [this](std::ostream &out, const std::string &host, int port, int length) {
-          iperf_client(out, host, false, false, port, length);
-        },
-        "Run an iperf client in TCP mode, connecting to the specified host and port with a "
-        "specific length.");
-    menu->Insert(
-        "client_tcp", {"host", "port", "length", "interval"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval) {
-          iperf_client(out, host, false, false, port, length, interval);
-        },
-        "Run an iperf client in TCP mode, connecting to the specified host and port with a "
-        "specific length and interval.");
-    menu->Insert(
-        "client_tcp", {"host", "port", "length", "interval", "time"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval,
-               int time) { iperf_client(out, host, false, false, port, length, interval, time); },
-        "Run an iperf client in TCP mode, connecting to the specified host and port with a "
-        "specific length, interval, and time.");
-    menu->Insert(
-        "client_tcp", {"host", "port", "length", "interval", "time", "bandwidth"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval,
-               int time, int bandwidth) {
-          iperf_client(out, host, false, false, port, length, interval, time, bandwidth);
-        },
-        "Run an iperf client in TCP mode, connecting to the specified host and port with a "
-        "specific length, interval, time, and bandwidth.");
-    menu->Insert(
-        "client_tcp", {"host", "port", "length", "interval", "time", "bandwidth", "format"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval,
-               int time, int bandwidth, char format) {
-          iperf_client(out, host, false, false, port, length, interval, time, bandwidth, format);
-        },
-        "Run an iperf client in TCP mode, connecting to the specified host and port with a "
-        "specific length, interval, time, bandwidth, and output format.");
-
-    //////////////////
-    //// Server UDP
-    //////////////////
-    menu->Insert(
-        "server_udp", {"port"},
-        [this](std::ostream &out, int port) { iperf_server(out, true, false, port); },
-        "Run an iperf server in UDP mode, listening on the specified port.");
-    menu->Insert(
-        "server_udp", {"port", "length"},
-        [this](std::ostream &out, int port, int length) {
-          iperf_server(out, true, false, port, length);
-        },
-        "Run an iperf server in UDP mode, listening on the specified port with a specific length.");
-    menu->Insert(
-        "server_udp", {"port", "length", "interval"},
-        [this](std::ostream &out, int port, int length, int interval) {
-          iperf_server(out, true, false, port, length, interval);
-        },
-        "Run an iperf server in UDP mode, listening on the specified port with a specific length "
-        "and interval.");
-    menu->Insert(
-        "server_udp", {"port", "length", "interval", "time"},
-        [this](std::ostream &out, int port, int length, int interval, int time) {
-          iperf_server(out, true, false, port, length, interval, time);
-        },
-        "Run an iperf server in UDP mode, listening on the specified port with a specific length, "
-        "interval, and time.");
-    menu->Insert(
-        "server_udp", {"port", "length", "interval", "time", "format"},
-        [this](std::ostream &out, int port, int length, int interval, int time, char format) {
-          iperf_server(out, true, false, port, length, interval, time, format);
-        },
-        "Run an iperf server in UDP mode, listening on the specified port with a specific length, "
-        "interval, time, and output format.");
-
-    //////////////////
-    //// Server TCP
-    //////////////////
-    menu->Insert(
-        "server_tcp", {"port"},
-        [this](std::ostream &out, int port) { iperf_server(out, false, false, port); },
-        "Run an iperf server in TCP mode, listening on the specified port.");
-    menu->Insert(
-        "server_tcp", {"port", "length"},
-        [this](std::ostream &out, int port, int length) {
-          iperf_server(out, false, false, port, length);
-        },
-        "Run an iperf server in TCP mode, listening on the specified port with a specific length.");
-    menu->Insert(
-        "server_tcp", {"port", "length", "interval"},
-        [this](std::ostream &out, int port, int length, int interval) {
-          iperf_server(out, false, false, port, length, interval);
-        },
-        "Run an iperf server in TCP mode, listening on the specified port with a specific length "
-        "and interval.");
-    menu->Insert(
-        "server_tcp", {"port", "length", "interval", "time"},
-        [this](std::ostream &out, int port, int length, int interval, int time) {
-          iperf_server(out, false, false, port, length, interval, time);
-        },
-        "Run an iperf server in TCP mode, listening on the specified port with a specific length, "
-        "interval, and time.");
-    menu->Insert(
-        "server_tcp", {"port", "length", "interval", "time", "format"},
-        [this](std::ostream &out, int port, int length, int interval, int time, char format) {
-          iperf_server(out, false, false, port, length, interval, time, format);
-        },
-        "Run an iperf server in TCP mode, listening on the specified port with a specific length, "
-        "interval, time, and output format.");
-
-//////////////////
-//// IPV6
-//////////////////
-#if IPERF_IPV6_ENABLED
-    menu->Insert(
-        "client_udp_ipv6", {"host", "port", "length", "interval", "time", "bandwidth", "format"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval,
-               int time, int bandwidth, char format) {
-          iperf_client(out, host, true, true, port, length, interval, time, bandwidth, format);
-        },
-        "Run an iperf client in UDP mode using IPv6, connecting to the specified host and port "
-        "with a specific length, interval, time, bandwidth, and output format.");
-    menu->Insert(
-        "client_tcp_ipv6", {"host", "port", "length", "interval", "time", "bandwidth", "format"},
-        [this](std::ostream &out, const std::string &host, int port, int length, int interval,
-               int time, int bandwidth, char format) {
-          iperf_client(out, host, false, true, port, length, interval, time, bandwidth, format);
-        },
-        "Run an iperf client in TCP mode using IPv6, connecting to the specified host and port "
-        "with a specific length, interval, time, bandwidth, and output format.");
-    menu->Insert(
-        "server_udp_ipv6", {"port", "length", "interval", "time", "format"},
-        [this](std::ostream &out, int port, int length, int interval, int time, char format) {
-          iperf_server(out, true, true, port, length, interval, time, format);
-        },
-        "Run an iperf server in UDP mode using IPv6, listening on the specified port with a "
-        "specific length, interval, time, bandwidth, and output format.");
-    menu->Insert(
-        "server_tcp_ipv6", {"port", "length", "interval", "time", "format"},
-        [this](std::ostream &out, int port, int length, int interval, int time, char format) {
-          iperf_server(out, false, true, port, length, interval, time, format);
-        },
-        "Run an iperf server in TCP mode using IPv6, listening on the specified port with a "
-        "specific length, interval, time, bandwidth, and output format.");
-#endif // IPERF_IPV6_ENABLED
+        "server", {"port"}, [this](std::ostream &out, int port) { iperf_server(out, port); },
+        "Run an iperf server, listening on the specified port.");
 
     return menu;
   }
 
+  /// @brief Abort the current iperf test if running.
+  /// @param out The output stream to write the result to.
   void abort(std::ostream &out) {
     iperf_stop();
     out << "Iperf test aborted.\n";
   }
 
-  void iperf_client(std::ostream &out, const std::string &host, bool udp = false, bool ipv6 = false,
-                    int port = 0, int length = 0, // 0 means use default length
-                    int interval = IPERF_DEFAULT_INTERVAL, int time = IPERF_DEFAULT_TIME,
-                    int bandwidth = IPERF_DEFAULT_NO_BW_LIMIT, char format = 'k') {
-    iperf_cfg_t cfg{};
-
-    // set ip type
-    cfg.type = IPERF_IP_TYPE_IPV4; // Default to IPv4
-#if IPERF_IPV6_ENABLED
-    if (ipv6) {
-      cfg.type = IPERF_IP_TYPE_IPV6; // Use IPv6 if specified
-    }
-#endif
-
-    // set client flag
-    cfg.flag |= IPERF_FLAG_CLIENT;
-
-    // set the destination host
-#if IPERF_IPV6_ENABLED
-    if (ipv6) {
-      cfg.destination_ip6 = (char *)host.c_str(); // Set the IPv6 host
-    } else {
-      cfg.destination_ip4 = esp_ip4addr_aton(host.c_str()); // Set the IPv4 host
-    }
-#endif
-#if IPERF_IPV4_ENABLED
-    if (!ipv6) {
-      cfg.destination_ip4 = esp_ip4addr_aton(host.c_str());
-    }
-#endif
-
-    // set the tcp/udp flag
-    if (udp) {
-      cfg.flag |= IPERF_FLAG_UDP; // Use UDP if specified
-    } else {
-      cfg.flag |= IPERF_FLAG_TCP; // Use TCP by default
-    }
-
-    // set the length
-    cfg.len_send_buf = length;
-
-    // set the port
-    if (port == 0) {
-      cfg.sport = IPERF_DEFAULT_PORT; // Default port
-      cfg.dport = IPERF_DEFAULT_PORT; // Default port
-    } else {
-      // NOTE: This is specifically for the client
-      cfg.sport = IPERF_DEFAULT_PORT; // Default source port
-      cfg.dport = port;               // Use specified destination port
-    }
-
-    // set the interval
-    cfg.interval = interval;
-
-    // set the time
-    cfg.time = time;
-
-    // set the bandwidth limit for UDP tests
-    cfg.bw_lim = bandwidth;
-
-    // set the output format
-    switch (format) {
-    case 'k':
-      cfg.format = KBITS_PER_SEC; // kibits/sec
-      break;
-    case 'm':
-      cfg.format = MBITS_PER_SEC; // mbits/sec
-      break;
-    default:
-      out << "Invalid format specified. Using kibits/sec by default.\n";
-      cfg.format = KBITS_PER_SEC; // Default to kibits/sec
-      break;
-    }
-
-    // print the configuration
-    out << fmt::format("Using iperf config: {}\n", cfg);
-
-    // now start the client
-    iperf_start(&cfg);
+#if IPERF_IPV6_ENABLED || defined(_DOXYGEN_)
+  /// @brief Get the current IPv6 setting.
+  /// @param out The output stream to write the result to.
+  /// @note This function is only available if IPERF_IPV6_ENABLED is defined.
+  void get_ipv6(std::ostream &out) {
+    out << (use_ipv6_ ? "Using IPv6 for iperf tests.\n" : "Using IPv4 for iperf tests.\n");
   }
 
-  void iperf_server(std::ostream &out, bool udp = false, bool ipv6 = false, int port = 0,
-                    int length = 0, int interval = IPERF_DEFAULT_INTERVAL,
-                    int time = IPERF_DEFAULT_TIME, char format = 'k') {
-    iperf_cfg_t cfg{};
+  /// @brief Set the IPv6 mode for iperf tests.
+  /// @param out The output stream to write the result to.
+  /// @param ipv6 True to use IPv6 mode, false for IPv4 mode.
+  /// @note This function is only available if IPERF_IPV6_ENABLED is defined.
+  void set_ipv6(std::ostream &out, bool ipv6) {
+    use_ipv6_ = ipv6;
+    cfg_.type = ipv6 ? IPERF_IP_TYPE_IPV6 : IPERF_IP_TYPE_IPV4;
+    out << (use_ipv6_ ? "Switched to IPv6 for iperf tests.\n"
+                      : "Switched to IPv4 for iperf tests.\n");
+  }
+#endif // IPERF_IPV6_ENABLED
 
-    // set the ip type
-    cfg.type = IPERF_IP_TYPE_IPV4; // Default to IPv4
-#if IPERF_IPV6_ENABLED
-    if (ipv6) {
-      cfg.type = IPERF_IP_TYPE_IPV6; // Use IPv6 if specified
-    }
-#endif
+  /// @brief Get the current UDP mode setting.
+  /// @param out The output stream to write the result to.
+  void get_udp(std::ostream &out) {
+    out << (use_udp_ ? "Using UDP mode for iperf tests.\n" : "Using TCP mode for iperf tests.\n");
+  }
 
-    // Set the server flag
-    cfg.flag |= IPERF_FLAG_SERVER;
-
-    // set the tcp/udp flag
-    if (udp) {
-      cfg.flag |= IPERF_FLAG_UDP; // Use UDP if specified
+  /// @brief Set the UDP mode for iperf tests.
+  /// @param out The output stream to write the result to.
+  /// @param udp True to use UDP mode, false for TCP mode.
+  void set_udp(std::ostream &out, bool udp) {
+    use_udp_ = udp;
+    if (use_udp_) {
+      cfg_.flag |= IPERF_FLAG_UDP;
+      cfg_.flag &= ~IPERF_FLAG_TCP; // Ensure TCP flag is cleared
     } else {
-      cfg.flag |= IPERF_FLAG_TCP; // Use TCP by default
+      cfg_.flag |= IPERF_FLAG_TCP;
+      cfg_.flag &= ~IPERF_FLAG_UDP; // Ensure UDP flag is cleared
     }
+    out << (use_udp_ ? "Switched to UDP mode for iperf tests.\n"
+                     : "Switched to TCP mode for iperf tests.\n");
+  }
 
-    // set the length
-    cfg.len_send_buf = length;
+  /// @brief Get the current reporting interval setting.
+  /// @param out The output stream to write the result to.
+  void get_interval(std::ostream &out) {
+    out << "Current interval for iperf tests: " << interval_ << " seconds.\n";
+  }
 
-    // set the port
-    if (port == 0) {
-      cfg.sport = IPERF_DEFAULT_PORT; // Default port
-      cfg.dport = IPERF_DEFAULT_PORT; // Default port
-    } else {
-      // NOTE: This is specifically for the server
-      cfg.sport = port;               // Use specified destination port
-      cfg.dport = IPERF_DEFAULT_PORT; // Default source port
+  /// @brief Set the reporting interval for iperf tests.
+  /// @param out The output stream to write the result to.
+  /// @param interval The interval in seconds to set.
+  void set_interval(std::ostream &out, int interval) {
+    if (interval <= 0) {
+      out << "Invalid interval specified. Using default interval of " << IPERF_DEFAULT_INTERVAL
+          << " seconds.\n";
+      interval = IPERF_DEFAULT_INTERVAL;
     }
+    interval_ = interval;
+    cfg_.interval = interval;
+    out << "Set the interval for iperf tests to " << interval_ << " seconds.\n";
+  }
 
-    //  set the interval
-    cfg.interval = interval;
+  /// @brief Get the current time (duration) setting.
+  /// @param out The output stream to write the result to.
+  void get_time(std::ostream &out) {
+    out << "Current time for iperf tests: " << time_ << " seconds.\n";
+  }
 
-    // set the time
-    cfg.time = time;
+  /// @brief Set the time for iperf tests.
+  /// @param out The output stream to write the result to.
+  /// @param time The time in seconds to set.
+  void set_time(std::ostream &out, int time) {
+    if (time <= 0) {
+      out << "Invalid time specified. Using default time of " << IPERF_DEFAULT_TIME
+          << " seconds.\n";
+      time = IPERF_DEFAULT_TIME;
+    }
+    time_ = time;
+    cfg_.time = time;
+    out << "Set the time for iperf tests to " << time_ << " seconds.\n";
+  }
 
-    // set the bandwidth limit for UDP tests
-    cfg.bw_lim = IPERF_DEFAULT_NO_BW_LIMIT; // No bandwidth limit by default
+  /// @brief Get the current formatting setting (kibits/sec or mbits/sec)
+  /// @param out The output stream to write the result to.
+  void get_format(std::ostream &out) {
+    out << "Current output format for iperf tests: " << format_ << ".\n";
+  }
 
-    // set the output format
+  /// @brief Set the output format for iperf tests.
+  /// @param out The output stream to write the result to.
+  /// @param format The format character to set ('k' for kibits/sec, 'm' for mbits/sec).
+  void set_format(std::ostream &out, char format) {
     switch (format) {
     case 'k':
-      cfg.format = KBITS_PER_SEC; // kibits/sec
+      format_ = 'k';
+      cfg_.format = KBITS_PER_SEC; // kibits/sec
       break;
     case 'm':
-      cfg.format = MBITS_PER_SEC; // mbits/sec
+      format_ = 'm';
+      cfg_.format = MBITS_PER_SEC; // mbits/sec
       break;
     default:
       out << "Invalid format specified. Using kibits/sec by default.\n";
-      cfg.format = KBITS_PER_SEC; // Default to kibits/sec
+      format_ = 'k';
+      cfg_.format = KBITS_PER_SEC; // Default to kibits/sec
       break;
+    }
+    out << "Set the output format for iperf tests to " << format_ << ".\n";
+  }
+
+  /// @brief Get the current buffer length setting.
+  /// @param out The output stream to write the result to.
+  void get_length(std::ostream &out) {
+    out << "Current buffer length for iperf tests: " << length_ << " bytes.\n";
+  }
+
+  /// @brief Set the buffer length for iperf tests.
+  /// @param out The output stream to write the result to.
+  /// @param length The length in bytes to set.
+  void set_length(std::ostream &out, int length) {
+    length_ = length;
+    cfg_.len_send_buf = length;
+    out << "Set the buffer length for iperf tests to " << length_ << " bytes.\n";
+  }
+
+  /// @brief Get the current bandwidth limit setting.
+  void iperf_client(std::ostream &out, const std::string &host, int port = 0,
+                    int bandwidth = IPERF_DEFAULT_NO_BW_LIMIT) {
+    // set client flag
+    cfg_.flag |= IPERF_FLAG_CLIENT;
+    // ensure server flag is cleared
+    cfg_.flag &= ~IPERF_FLAG_SERVER;
+
+    // set the destination host
+    host_ = host;
+#if IPERF_IPV6_ENABLED
+    if (use_ipv6_) {
+      cfg_.destination_ip6 = (char *)host_.c_str(); // Set the IPv6 host
+    } else {
+      cfg_.destination_ip4 = esp_ip4addr_aton(host_.c_str()); // Set the IPv4 host
+    }
+#else
+    cfg_.destination_ip4 = esp_ip4addr_aton(host_.c_str());
+#endif
+
+    // set the port
+    if (port == 0) {
+      cfg_.sport = IPERF_DEFAULT_PORT; // Default port
+      cfg_.dport = IPERF_DEFAULT_PORT; // Default port
+    } else {
+      // NOTE: This is specifically for the client
+      cfg_.sport = IPERF_DEFAULT_PORT; // Default source port
+      cfg_.dport = port;               // Use specified destination port
+    }
+
+    // set the bandwidth limit for UDP tests
+    cfg_.bw_lim = bandwidth;
+
+    // print the configuration
+    out << fmt::format("Using iperf config: {}\n", cfg_);
+
+    // now start the client
+    iperf_start(&cfg_);
+  }
+
+  void iperf_server(std::ostream &out, int port = 0) {
+    // Set the server flag
+    cfg_.flag |= IPERF_FLAG_SERVER;
+    // ensure the client flag is cleared
+    cfg_.flag &= IPERF_FLAG_CLIENT;
+
+    // set the port
+    if (port == 0) {
+      cfg_.sport = IPERF_DEFAULT_PORT; // Default port
+      cfg_.dport = IPERF_DEFAULT_PORT; // Default port
+    } else {
+      // NOTE: This is specifically for the server
+      cfg_.sport = port;               // Use specified destination port
+      cfg_.dport = IPERF_DEFAULT_PORT; // Default source port
     }
 
     // print the configuration
-    out << fmt::format("Using iperf config: {}\n", cfg);
+    out << fmt::format("Using iperf config: {}\n", cfg_);
 
     // now start the server
-    iperf_start(&cfg);
+    iperf_start(&cfg_);
   }
 
 protected:
+  iperf_cfg_t cfg_{};
+
+  std::string host_{""};
+  bool use_ipv6_{false};
+  bool use_udp_{false};
+  int interval_{IPERF_DEFAULT_INTERVAL};
+  int time_{IPERF_DEFAULT_TIME};
+  char format_{'k'};
+  int length_{0};
 };
 } // namespace espp
 
