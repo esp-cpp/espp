@@ -191,10 +191,17 @@ public:
     //////////////////
     menu->Insert(
         "server", [this](std::ostream &out) { iperf_server(out); },
-        "Run an iperf server, listening on the default port.");
+        "Run an iperf server listening with the default port.");
     menu->Insert(
-        "server", {"port"}, [this](std::ostream &out, int port) { iperf_server(out, port); },
-        "Run an iperf server, listening on the specified port.");
+        "server", {"source"},
+        [this](std::ostream &out, const std::string &source) { iperf_server(out, source); },
+        "Run an iperf server listening on the specified source IP address with the default port.");
+    menu->Insert(
+        "server", {"source", "port"},
+        [this](std::ostream &out, const std::string &source, int port) {
+          iperf_server(out, source, port);
+        },
+        "Run an iperf server listening on the specified source IP address and port.");
 
     return menu;
   }
@@ -331,7 +338,13 @@ public:
     out << "Set the buffer length for iperf tests to " << length_ << " bytes.\n";
   }
 
-  /// @brief Get the current bandwidth limit setting.
+  /// @brief Start an iperf client.
+  /// @param out The output stream to write the result to.
+
+  /// @param host The host to connect to. Can be an IP address in IPv4 or IPv6
+  ///             format, or a hostname that resolves to an IP address.
+  /// @param port The port to connect to. If 0, the default port (5000) is used.
+  /// @param bandwidth The bandwidth limit for UDP tests. If <= 0, no limit is set.
   void iperf_client(std::ostream &out, const std::string &host, int port = 0,
                     int bandwidth = IPERF_DEFAULT_NO_BW_LIMIT) {
     // set client flag
@@ -350,6 +363,12 @@ public:
 #else
     cfg_.destination_ip4 = esp_ip4addr_aton(host_.c_str());
 #endif
+
+    // make sure the source is cleared
+#if IPERF_IPV6_ENABLED
+    cfg_.source_ip6 = nullptr; // Clear the IPv6 source
+#endif
+    cfg_.source_ip4 = 0; // Clear the IPv4 source
 
     // set the port
     if (port == 0) {
@@ -371,11 +390,36 @@ public:
     iperf_start(&cfg_);
   }
 
-  void iperf_server(std::ostream &out, int port = 0) {
+  /// @brief Start an iperf server.
+  /// @param out The output stream to write the result to.
+  /// @param host The source IP to listen on. This helps select which interface
+  ///             to bind to, if provided.
+  /// @param port The port to listen on. If 0, the default port (5000) is used.
+  void iperf_server(std::ostream &out, const std::string &source = "", int port = 0) {
     // Set the server flag
     cfg_.flag |= IPERF_FLAG_SERVER;
     // ensure the client flag is cleared
-    cfg_.flag &= IPERF_FLAG_CLIENT;
+    cfg_.flag &= ~IPERF_FLAG_CLIENT;
+
+    // set the source
+    source_ = source;
+    if (!source.empty()) {
+#if IPERF_IPV6_ENABLED
+      if (use_ipv6_) {
+        cfg_.source_ip6 = (char *)source_.c_str(); // Set the IPv6 source
+      } else {
+        cfg_.source_ip4 = esp_ip4addr_aton(source_.c_str()); // Set the IPv4 source
+      }
+#else
+      cfg_.source_ip4 = esp_ip4addr_aton(source_.c_str());
+#endif
+    }
+
+    // make sure the destination is cleared
+#if IPERF_IPV6_ENABLED
+    cfg_.destination_ip6 = nullptr; // Clear the IPv6 destination
+#endif
+    cfg_.destination_ip4 = 0; // Clear the IPv4 destination
 
     // set the port
     if (port == 0) {
@@ -398,6 +442,7 @@ protected:
   iperf_cfg_t cfg_{};
 
   std::string host_{""};
+  std::string source_{""};
   bool use_ipv6_{false};
   bool use_udp_{false};
   int interval_{IPERF_DEFAULT_INTERVAL};

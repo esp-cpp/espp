@@ -30,6 +30,10 @@ Commands available:
 	Get the current UDP mode setting.
  - udp <udp>
 	Set the UDP mode for iperf tests.
+ - tcp
+	Get the current TCP mode setting.
+ - tcp <tcp>
+	Set the TCP mode for iperf tests.
  - ipv6
 	Get the current IPv6 setting.
  - ipv6 <ipv6>
