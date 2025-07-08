@@ -173,8 +173,8 @@ public:
    * @return Current hostname of the access point as a string.
    */
   std::string get_hostname() {
-    char hostname[64];
-    esp_err_t err = esp_netif_get_hostname(netif_, hostname, sizeof(hostname));
+    const char *hostname;
+    esp_err_t err = esp_netif_get_hostname(netif_, &hostname);
     if (err != ESP_OK) {
       logger_.error("Could not get hostname: {}", err);
       return "";
