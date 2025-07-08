@@ -19,12 +19,4 @@ menu "GFPS Configuration"
             Set the trace level for GFPS. 1 is VERBOSE, 2 is DEBUG, 3 is INFO, 4
             is WARNING, 5 is ERROR, 6 is OFF.
 
-    config NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
-        bool "Enable app-level control of GFPS Subsequent Pairing flow"
-        default n
-        help
-            If enabled, the application takes control of the Subsequent Pairing flow.
-            The GFPS library will no longer automatically start NDA advertisement or 
-            handle SubPairing connection behavior, allowing full application control.
-
 endmenu

@@ -157,6 +157,32 @@ public:
     NimBLEDevice::setCustomGapHandler(gfps::ble_gap_event_handler);
   }
 
+  /// Initialize the service with custom GFPS configuration.
+  /// \param server The BLE server to attach the service to
+  /// \param app_config Application-provided callbacks (e.g., passkey handling, Account Key, NDA advertisement)
+  /// \note Use this overload to inject application-specific behavior into GFPS logic  
+  void init(NimBLEServer *server, const espp::gfps::Config &app_config) {
+    // make the service
+    make_service(server);
+
+    espp::gfps::Config full_config;
+    full_config.notify =
+        [this](nearby_fp_Characteristic characteristic, const uint8_t *value, size_t length) {
+          // notify the characteristic
+          return notify(characteristic, value, length);
+        };
+    full_config.set_passkey_callback = app_config.set_passkey_callback;
+    full_config.on_account_key_write_callback = app_config.on_account_key_write_callback;
+    full_config.on_non_discoverable_advertisement_ready_callback =
+        app_config.on_non_discoverable_advertisement_ready_callback;
+
+    // initialize gfps
+    espp::gfps::init(full_config);
+
+    // register the gap event handler
+    NimBLEDevice::setCustomGapHandler(gfps::ble_gap_event_handler);
+  }
+
   /// Deinitialize the service
   /// \note This function will deinitialize the service
   /// \note This function will also deinitialize the nearby framework

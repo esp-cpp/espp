@@ -2,9 +2,6 @@
 
 static espp::Logger logger({.tag = "GFPS BLE", .level = espp::gfps::LOG_LEVEL});
 
-#if CONFIG_NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
-#include "app.hpp"
-#endif // CONFIG_NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
 #include "host/ble_hs.h"
 
 static std::vector<uint8_t> REMOTE_PUBLIC_KEY(64, 0);
@@ -13,12 +10,18 @@ static const nearby_platform_BleInterface *g_ble_interface = nullptr;
 static const nearby_platform_BtInterface *g_bt_interface = nullptr;
 
 static espp::gfps::notify_callback_t g_gfps_notify_cb = nullptr;
+static std::function<void(uint32_t)> g_set_passkey_cb = nullptr;
+static std::function<void(uint64_t peer_addr, const uint8_t *key)> g_account_key_write_cb = nullptr;
+static std::function<void(const uint8_t *adv_data, size_t len)> g_non_discoverable_advertisement_cb = nullptr;
 
 // external API
 
 void espp::gfps::init(const espp::gfps::Config &config) {
   // store anything we need from the config
   g_gfps_notify_cb = config.notify;
+  g_set_passkey_cb = config.set_passkey_callback;
+  g_account_key_write_cb = config.on_account_key_write_callback;
+  g_non_discoverable_advertisement_cb = config.on_non_discoverable_advertisement_ready_callback;
 
   // Calls into google/nearby/embedded to initialize the nearby framework, using
   // the platform specific implementation of the nearby API which is in the
@@ -36,6 +39,27 @@ void espp::gfps::deinit() {
 const nearby_platform_BleInterface *espp::gfps::get_ble_interface() { return g_ble_interface; }
 
 const nearby_platform_BtInterface *espp::gfps::get_bt_interface() { return g_bt_interface; }
+
+// -----------------------------------------------------------------------------
+// Application-facing callbacks implemented in this translation unit
+// -----------------------------------------------------------------------------
+// These are invoked by the Google Nearby library (C linkage)
+
+extern "C" {
+// Notifies the application when a peer writes an Account Key.
+void gfps_on_account_key_write(uint64_t peer_addr, const uint8_t *key) {
+  if (g_account_key_write_cb) {
+    g_account_key_write_cb(peer_addr, key);
+  }
+}
+// Notifies the application when NDA advertisement data is ready.
+void gfps_on_non_discoverable_advertisement_ready(const uint8_t *adv_data, size_t len) {
+  if (g_non_discoverable_advertisement_cb) {
+    g_non_discoverable_advertisement_cb(adv_data, len);
+  }
+}
+
+}  // extern "C"
 
 uint32_t espp::gfps::get_model_id() { return CONFIG_GFPS_MODEL_ID; }
 
@@ -260,20 +284,11 @@ uint32_t nearby_platfrom_GetPairingPassKey() {
 void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   logger.info("SetRemotePasskey: {}", passkey);
 #if CONFIG_BT_NIMBLE_ENABLED
-#if CONFIG_NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
-  // In the subsequent pair, the pass key transmission destination has been 
-  // corrected to the request source that was the previously connected device.
-  auto conn_info_opt = bb::App::ble_manager_->get_pending_conn_info();
-  if (conn_info_opt) {
-    NimBLEAddress peer_addr = conn_info_opt->getIdAddress();
-	bool accept = passkey == NimBLEDevice::getSecurityPasskey();
-	logger.info("{} pairing request, passkey {}", accept ? "Accepting" : "Declining", passkey);
-	NimBLEDevice::injectConfirmPasskey(conn_info_opt.value(), accept);
-	logger.info("Injected pairing response to {}", peer_addr.toString());
-  } else {
-    logger.error("No active connection found to respond with passkey {}", passkey);
+  if (g_set_passkey_cb) {
+    g_set_passkey_cb(passkey);
+    return;
   }
-#else
+
   bool accept = passkey == NimBLEDevice::getSecurityPasskey();
   if (accept) {
     logger.info("Accepting pairing request, passkey matches");
@@ -285,7 +300,6 @@ void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   auto conn_info = NimBLEDevice::getServer()->getPeerInfo(0);
   // Now actually respond to the pairing request
   NimBLEDevice::injectConfirmPasskey(conn_info, accept);
-#endif // CONFIG_NEARBY_FP_APP_CONTROL_SUB_PAIR_FLOW
 #endif // CONFIG_BT_NIMBLE_ENABLED
 }
 

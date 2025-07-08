@@ -46,6 +46,17 @@ typedef std::function<bool(nearby_fp_Characteristic, const uint8_t *, size_t)> n
 /// Configuration for the Google Fast Pair Service
 struct Config {
   notify_callback_t notify; ///< Callback to enable gfps to notify the remote device of changes
+
+  /// Optional callback to handle passkey confirmation during pairing.
+  /// If not provided, GFPS will default to using the first connected peer.
+  /// The callback should call NimBLEDevice::injectConfirmPasskey with the correct peer if available.
+  std::function<void(uint32_t passkey)> set_passkey_callback = nullptr;
+
+  /// Optional callback for when an Account Key is written by the remote device.
+  std::function<void(uint64_t peer_addr, const uint8_t *key)> on_account_key_write_callback = nullptr;
+
+  /// Optional callback triggered when the GFPS layer requests to initiate Non-Discoverable Advertising (NDA).
+  std::function<void(const uint8_t *adv_data, size_t len)> on_non_discoverable_advertisement_ready_callback = nullptr;
 };
 
 /// Initialize the Google Fast Pair Service
