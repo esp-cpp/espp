@@ -49,6 +49,27 @@ public:
         "Set the log verbosity for the wifi ap.");
 
     menu->Insert(
+        "hostname" [this](std::ostream &out) -> void {
+          auto hostname = wifi_ap_.get().get_hostname();
+          if (!hostname.empty()) {
+            out << fmt::format("Current hostname: {}\n", hostname);
+          } else {
+            out << "No hostname is currently set.\n";
+          }
+        },
+        "Get the current hostname of the WiFi access point.");
+    menu->Insert(
+        "hostname", {"hostname"},
+        [this](std::ostream &out, const std::string &hostname) -> void {
+          if (wifi_ap_.get().set_hostname(hostname)) {
+            out << fmt::format("Hostname set to: {}\n", hostname);
+          } else {
+            out << "Failed to set hostname.\n";
+          }
+        },
+        "Set the hostname for the WiFi access point.");
+
+    menu->Insert(
         "ip",
         [this](std::ostream &out) -> void {
           auto ip = wifi_ap_.get().get_ip_address();
