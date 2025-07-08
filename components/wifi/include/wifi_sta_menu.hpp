@@ -63,9 +63,7 @@ public:
         "hostname", {"hostname"},
         [this](std::ostream &out, const std::string &hostname) -> void {
           if (wifi_sta_.get().set_hostname(hostname)) {
-            out << fmt::format("Hostname set to '{}'. Make sure to disconnect and reconnect for it "
-                               "to take effect.\n",
-                               hostname);
+            out << fmt::format("Hostname set to '{}'\n", hostname);
           } else {
             out << "Failed to set hostname.\n";
           }
@@ -102,6 +100,17 @@ public:
           }
         },
         "Disconnect from the current WiFi network.");
+
+    menu->Insert(
+        "restart_dhcp_client",
+        [this](std::ostream &out) -> void {
+          if (wifi_sta_.get().restart_dhcp_client()) {
+            out << "DHCP client restarted successfully.\n";
+          } else {
+            out << "Failed to restart DHCP client.\n";
+          }
+        },
+        "Restart the DHCP client to renew the IP address from the DHCP server.");
 
     menu->Insert(
         "ssid",
