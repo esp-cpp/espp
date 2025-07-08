@@ -206,6 +206,37 @@ public:
   bool is_connected() const { return connected_; }
 
   /**
+   * @brief Get the current hostname of the WiFi Station (STA).
+   * @return Current hostname of the station as a string.
+   */
+  std::string get_hostname() {
+    const char *hostname;
+    esp_err_t err = esp_netif_get_hostname(netif_, &hostname);
+    if (err != ESP_OK) {
+      logger_.error("Could not get hostname: {}", err);
+      return "";
+    }
+    return std::string(hostname);
+  }
+
+  /**
+   * @brief Set the hostname for the WiFi Station (STA).
+   * @param hostname New hostname for the station.
+   * @return True if the operation was successful, false otherwise.
+   */
+  bool set_hostname(const std::string &hostname) {
+    esp_err_t err = esp_netif_set_hostname(netif_, hostname.c_str());
+    if (err != ESP_OK) {
+      logger_.error("Could not set hostname: {}", err);
+      return false;
+    }
+    logger_.info(
+        "Hostname set to '{}'. You will need to disconnect and reconnect for it to take effect.",
+        hostname);
+    return true;
+  }
+
+  /**
    * @brief Get the MAC address of the station.
    * @return MAC address of the station.
    */
