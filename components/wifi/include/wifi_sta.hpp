@@ -222,17 +222,51 @@ public:
   /**
    * @brief Set the hostname for the WiFi Station (STA).
    * @param hostname New hostname for the station.
+   * @param restart_dhcp Whether to restart the DHCP client to apply the new hostname.
    * @return True if the operation was successful, false otherwise.
+   * @note The hostname is set for the station interface and will take effect
+   *       after the DHCP client is stopped and restarted.
    */
-  bool set_hostname(const std::string &hostname) {
+  bool set_hostname(const std::string &hostname, bool restart_dhcp = true) {
     esp_err_t err = esp_netif_set_hostname(netif_, hostname.c_str());
     if (err != ESP_OK) {
       logger_.error("Could not set hostname: {}", err);
       return false;
     }
-    logger_.info(
-        "Hostname set to '{}'. You will need to disconnect and reconnect for it to take effect.",
-        hostname);
+    logger_.info("Hostname set to '{}'", hostname);
+    // return early if not restarting DHCP client
+    if (!restart_dhcp) {
+      logger_.info("Not restarting DHCP client. Make sure to restart it later (or reconnect to AP) "
+                   "to apply the new hostname.");
+      return true;
+    }
+    // restart DHCP client to apply the new hostname
+    logger_.info("Restarting the DHCP client for the new hostname to take effect.");
+    if (!restart_dhcp_client()) {
+      logger_.error("Failed to restart DHCP client after setting hostname");
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * @brief Restart the DHCP client for the WiFi Station (STA).
+   * @return True if the DHCP client was restarted successfully, false otherwise.
+   * @note This is useful if you want to refresh the IP address, hostname, or
+   *       apply new settings.
+   */
+  bool restart_dhcp_client() {
+    esp_err_t err = esp_netif_dhcpc_stop(netif_);
+    if (err != ESP_OK) {
+      logger_.error("Could not stop DHCP client: {}", err);
+      return false;
+    }
+    err = esp_netif_dhcpc_start(netif_);
+    if (err != ESP_OK) {
+      logger_.error("Could not start DHCP client: {}", err);
+      return false;
+    }
+    logger_.info("DHCP client restarted successfully");
     return true;
   }
 
