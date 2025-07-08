@@ -63,7 +63,9 @@ public:
         "hostname", {"hostname"},
         [this](std::ostream &out, const std::string &hostname) -> void {
           if (wifi_sta_.get().set_hostname(hostname)) {
-            out << fmt::format("Hostname set to '{}'.\n", hostname);
+            out << fmt::format("Hostname set to '{}'. Make sure to disconnect and reconnect for it "
+                               "to take effect.\n",
+                               hostname);
           } else {
             out << "Failed to set hostname.\n";
           }
