@@ -107,6 +107,11 @@ jobs:
           target: esp32s3
         - path: 'components/interrupt/example'
           target: esp32s3
+        - path: 'components/iperf_menu/example'
+          target: esp32s3
+          # NOTE: we must use custom command here because this component depends
+          # on espressif/iperf, so we can't disable the component manager
+          command: idf.py build
         - path: 'components/joystick/example'
           target: esp32
         - path: 'components/kts1622/example'

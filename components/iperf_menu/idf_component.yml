@@ -1,0 +1,25 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "IPERF CLI menu component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/iperf_menu"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/iperf_menu.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - WiFi
+  - Station
+  - Access-Point
+  - iperf
+  - performance
+  - CLI
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/cli: '>=1.0'
+  espressif/iperf: '^0.1.3'
