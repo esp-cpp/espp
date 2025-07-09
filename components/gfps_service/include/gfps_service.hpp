@@ -138,23 +138,17 @@ public:
     return false;
   }
 
-  /// Initialize the service
+  /// Initialize the service with default GFPS configuration.
   /// \param server The BLE server to attach the service to
   /// \note This function will initialize the service with the given server
   /// \note This function will also initialize the nearby framework
   void init(NimBLEServer *server) {
-    // make the service
-    make_service(server);
-    // initialize gfps
-    gfps::init({
-        .notify =
-            [this](nearby_fp_Characteristic characteristic, const uint8_t *value, size_t length) {
-              // notify the characteristic
-              return notify(characteristic, value, length);
-            },
-    });
-    // register the gap event handler
-    NimBLEDevice::setCustomGapHandler(gfps::ble_gap_event_handler);
+    espp::gfps::Config config;
+    config.notify = [this](nearby_fp_Characteristic characteristic, const uint8_t *value, size_t length) {
+      // notify the characteristic
+      return notify(characteristic, value, length);
+    };
+    init(server, config);
   }
 
   /// Initialize the service with custom GFPS configuration.
@@ -165,16 +159,11 @@ public:
     // make the service
     make_service(server);
 
-    espp::gfps::Config full_config;
-    full_config.notify =
-        [this](nearby_fp_Characteristic characteristic, const uint8_t *value, size_t length) {
-          // notify the characteristic
-          return notify(characteristic, value, length);
-        };
-    full_config.set_passkey_callback = app_config.set_passkey_callback;
-    full_config.on_account_key_write_callback = app_config.on_account_key_write_callback;
-    full_config.on_non_discoverable_advertisement_ready_callback =
-        app_config.on_non_discoverable_advertisement_ready_callback;
+    espp::gfps::Config full_config = app_config;
+    full_config.notify = [this](nearby_fp_Characteristic characteristic, const uint8_t *value, size_t length) {
+      // notify the characteristic
+      return notify(characteristic, value, length);
+    };
 
     // initialize gfps
     espp::gfps::init(full_config);

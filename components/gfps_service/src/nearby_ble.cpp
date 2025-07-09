@@ -14,6 +14,29 @@ static std::function<void(uint32_t)> g_set_passkey_cb = nullptr;
 static std::function<void(uint64_t peer_addr, const uint8_t *key)> g_account_key_write_cb = nullptr;
 static std::function<void(const uint8_t *adv_data, size_t len)> g_non_discoverable_advertisement_cb = nullptr;
 
+// -----------------------------------------------------------------------------
+// Event dispatch logic (invoked by Fast Pair embedded callback)
+// -----------------------------------------------------------------------------
+static void handle_event(const nearby_event_Event* evt) {
+  switch (evt->event_type) {
+    case kNearbyEventAccountKeyWritten: {
+      auto* payload = reinterpret_cast<const nearby_event_AccountKeyWritten*>(evt->payload);
+      if (g_account_key_write_cb)
+        g_account_key_write_cb(payload->peer_address, payload->key_data);
+      break;
+    }
+    case kNearbyEventNdaPayloadReady: {
+      auto* payload = reinterpret_cast<const nearby_event_NdaPayloadReady*>(evt->payload);
+      if (g_non_discoverable_advertisement_cb)
+        g_non_discoverable_advertisement_cb(payload->adv_data, payload->length);
+      break;
+    }
+    default:
+      logger.warn("Unhandled Fast Pair event type: {}", static_cast<int>(evt->event_type));
+      break;
+  }
+}
+
 // external API
 
 void espp::gfps::init(const espp::gfps::Config &config) {
@@ -23,43 +46,35 @@ void espp::gfps::init(const espp::gfps::Config &config) {
   g_account_key_write_cb = config.on_account_key_write_callback;
   g_non_discoverable_advertisement_cb = config.on_non_discoverable_advertisement_ready_callback;
 
+  // Note: Must remain statically allocated — Fast Pair SDK holds a pointer
+  static nearby_fp_client_Callbacks callbacks = {
+    .on_event = [](nearby_event_Event* evt) {
+      handle_event(evt);
+    }
+  };
+
   // Calls into google/nearby/embedded to initialize the nearby framework, using
   // the platform specific implementation of the nearby API which is in the
   // embedded component.
-  nearby_fp_client_Init(nullptr);
+  nearby_fp_client_Init(&callbacks);
   int advertisement_mode =
       NEARBY_FP_ADVERTISEMENT_DISCOVERABLE | NEARBY_FP_ADVERTISEMENT_PAIRING_UI_INDICATOR;
   nearby_fp_client_SetAdvertisement(advertisement_mode);
 }
 
 void espp::gfps::deinit() {
-  // nearby_fp_client_Deinit();
+  // nearby_fp_client_Deinit(); 
+  // Note: nearby_fp_client_Deinit is not currently implemented by the embedded library.
+  // If it becomes available in the future, it should be called here to release internal resources.
+  g_gfps_notify_cb = nullptr;
+  g_set_passkey_cb = nullptr;
+  g_account_key_write_cb = nullptr;
+  g_non_discoverable_advertisement_cb = nullptr;
 }
 
 const nearby_platform_BleInterface *espp::gfps::get_ble_interface() { return g_ble_interface; }
 
 const nearby_platform_BtInterface *espp::gfps::get_bt_interface() { return g_bt_interface; }
-
-// -----------------------------------------------------------------------------
-// Application-facing callbacks implemented in this translation unit
-// -----------------------------------------------------------------------------
-// These are invoked by the Google Nearby library (C linkage)
-
-extern "C" {
-// Notifies the application when a peer writes an Account Key.
-void gfps_on_account_key_write(uint64_t peer_addr, const uint8_t *key) {
-  if (g_account_key_write_cb) {
-    g_account_key_write_cb(peer_addr, key);
-  }
-}
-// Notifies the application when NDA advertisement data is ready.
-void gfps_on_non_discoverable_advertisement_ready(const uint8_t *adv_data, size_t len) {
-  if (g_non_discoverable_advertisement_cb) {
-    g_non_discoverable_advertisement_cb(adv_data, len);
-  }
-}
-
-}  // extern "C"
 
 uint32_t espp::gfps::get_model_id() { return CONFIG_GFPS_MODEL_ID; }
 
