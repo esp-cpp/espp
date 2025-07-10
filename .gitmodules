@@ -31,9 +31,9 @@
 [submodule "components/hid-rp/detail/hid-rp"]
 	path = components/hid-rp/detail/hid-rp
 	url = https://github.com/intergatedcircuits/hid-rp
-[submodule "components/gfps_service/detail/nearby"]
-	path = components/gfps_service/detail/nearby
-	url = https://github.com/google/nearby
 [submodule "components/binary-log/detail"]
 	path = components/binary-log/detail
 	url = https://github.com/finger563/binary_log
+[submodule "components/gfps_service/detail/nearby"]
+	path = components/gfps_service/detail/nearby
+	url = https://github.com/esp-cpp/nearby
