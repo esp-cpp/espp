@@ -6,34 +6,27 @@ static espp::Logger logger({.tag = "GFPS BLE", .level = espp::gfps::LOG_LEVEL});
 
 static std::vector<uint8_t> REMOTE_PUBLIC_KEY(64, 0);
 
+// Platform-specific handles and application config
 static const nearby_platform_BleInterface *g_ble_interface = nullptr;
 static const nearby_platform_BtInterface *g_bt_interface = nullptr;
 
+// Application-provided callback functions
 static espp::gfps::notify_callback_t g_gfps_notify_cb = nullptr;
-static std::function<void(uint32_t)> g_set_passkey_cb = nullptr;
-static std::function<void(uint64_t peer_addr, const uint8_t *key)> g_account_key_write_cb = nullptr;
-static std::function<void(const uint8_t *adv_data, size_t len)> g_non_discoverable_advertisement_cb = nullptr;
+static espp::gfps::set_passkey_callback_t g_set_passkey_cb = nullptr;
+static espp::gfps::Config internal_config = {}; // Store app-provided callbacks for internal use
 
-// -----------------------------------------------------------------------------
-// Event dispatch logic (invoked by Fast Pair embedded callback)
-// -----------------------------------------------------------------------------
-static void handle_event(const nearby_event_Event* evt) {
-  switch (evt->event_type) {
-    case kNearbyEventAccountKeyWritten: {
-      auto* payload = reinterpret_cast<const nearby_event_AccountKeyWritten*>(evt->payload);
-      if (g_account_key_write_cb)
-        g_account_key_write_cb(payload->peer_address, payload->key_data);
-      break;
-    }
-    case kNearbyEventNdaPayloadReady: {
-      auto* payload = reinterpret_cast<const nearby_event_NdaPayloadReady*>(evt->payload);
-      if (g_non_discoverable_advertisement_cb)
-        g_non_discoverable_advertisement_cb(payload->adv_data, payload->length);
-      break;
-    }
-    default:
-      logger.warn("Unhandled Fast Pair event type: {}", static_cast<int>(evt->event_type));
-      break;
+// C-compatible callback handlers
+static void handle_account_key_written(uint64_t peer_addr, const uint8_t key[16]) {
+  if (internal_config.on_account_key_write_callback) {
+    std::span<uint8_t, 16> key_span(const_cast<uint8_t*>(key), 16);
+    internal_config.on_account_key_write_callback(peer_addr, key_span);
+  }
+}
+
+static void handle_nda_ready(const uint8_t* adv_data, size_t len) {
+  if (internal_config.on_non_discoverable_advertisement_ready_callback) {
+    std::span<const uint8_t> payload(adv_data, len);
+    internal_config.on_non_discoverable_advertisement_ready_callback(payload);
   }
 }
 
@@ -43,14 +36,15 @@ void espp::gfps::init(const espp::gfps::Config &config) {
   // store anything we need from the config
   g_gfps_notify_cb = config.notify;
   g_set_passkey_cb = config.set_passkey_callback;
-  g_account_key_write_cb = config.on_account_key_write_callback;
-  g_non_discoverable_advertisement_cb = config.on_non_discoverable_advertisement_ready_callback;
+  internal_config = config;  // Used by internal handlers
 
-  // Note: Must remain statically allocated — Fast Pair SDK holds a pointer
+  // Define Fast Pair client callbacks for event-specific handling.
+  // These callbacks are invoked by the embedded GFPS runtime when relevant events occur.
+  // Each callback delegates responsibility to the application layer via the provided config.
   static nearby_fp_client_Callbacks callbacks = {
-    .on_event = [](nearby_event_Event* evt) {
-      handle_event(evt);
-    }
+    .on_event = nullptr,
+    .on_account_key_written = handle_account_key_written,
+    .on_nondiscoverable_advertisement_ready = handle_nda_ready
   };
 
   // Calls into google/nearby/embedded to initialize the nearby framework, using
@@ -63,13 +57,13 @@ void espp::gfps::init(const espp::gfps::Config &config) {
 }
 
 void espp::gfps::deinit() {
-  // nearby_fp_client_Deinit(); 
-  // Note: nearby_fp_client_Deinit is not currently implemented by the embedded library.
-  // If it becomes available in the future, it should be called here to release internal resources.
+  // The embedded Fast Pair library does not yet implement nearby_fp_client_Deinit.
+  // Once available, it should be invoked here to release internal resources.
+  
+  // Clear callback bindings (temporary substitute until proper teardown is implemented)
+  internal_config = {}; // nearby_fp_client_Deinit()
   g_gfps_notify_cb = nullptr;
   g_set_passkey_cb = nullptr;
-  g_account_key_write_cb = nullptr;
-  g_non_discoverable_advertisement_cb = nullptr;
 }
 
 const nearby_platform_BleInterface *espp::gfps::get_ble_interface() { return g_ble_interface; }

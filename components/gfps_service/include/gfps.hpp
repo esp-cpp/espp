@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <vector>
+#include <span>
 
 #include <sdkconfig.h>
 
@@ -50,12 +51,12 @@ typedef std::function<void(uint32_t)> set_passkey_callback_t;
 /// Callback invoked when an Account Key is written by a remote device
 /// @param peer_addr BLE address of the remote device
 /// @param key Pointer to the 16-byte Account Key data
-typedef std::function<void(uint64_t, const uint8_t *key)> account_key_write_callback_t;
+typedef std::function<void(uint64_t, const std::span<uint8_t, 16>&)> account_key_write_callback_t;
 
 /// Callback triggered when the GFPS layer finishes constructing a Non-Discoverable Advertisement payload
 /// @param adv_data Pointer to raw advertisement payload bytes
 /// @param len Length of the advertisement data
-typedef std::function<void(const uint8_t *adv_data, size_t len)> nda_ready_callback_t;
+typedef std::function<void(const std::span<const uint8_t>&)> nda_ready_callback_t;
 
 /// Configuration for the Google Fast Pair Service
 struct Config {
