@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <vector>
+#include <span>
 
 #include <sdkconfig.h>
 
@@ -43,9 +44,34 @@ namespace gfps {
 /// @param length The length of the data
 typedef std::function<bool(nearby_fp_Characteristic, const uint8_t *, size_t)> notify_callback_t;
 
+/// Callback for assigning a passkey to the pairing peer
+/// @param passkey The passkey value to be injected
+typedef std::function<void(uint32_t)> set_passkey_callback_t;
+
+/// Callback invoked when an Account Key is written by a remote device
+/// @param peer_addr BLE address of the remote device
+/// @param key Pointer to the 16-byte Account Key data
+typedef std::function<void(uint64_t, const std::span<const uint8_t, 16>&)> account_key_write_callback_t;
+
+/// Callback triggered when the GFPS layer finishes constructing a Non-Discoverable Advertisement payload
+/// @param adv_data Pointer to raw advertisement payload bytes
+/// @param len Length of the advertisement data
+typedef std::function<void(const std::span<const uint8_t>&)> nda_ready_callback_t;
+
 /// Configuration for the Google Fast Pair Service
 struct Config {
   notify_callback_t notify; ///< Callback to enable gfps to notify the remote device of changes
+
+  /// Optional callback to handle passkey confirmation during pairing.
+  /// If not provided, GFPS will default to using the first connected peer.
+  /// The callback should call NimBLEDevice::injectConfirmPasskey with the correct peer if available.
+  set_passkey_callback_t set_passkey_callback = nullptr;
+
+  /// Optional callback for when an Account Key is written by the remote device.
+  account_key_write_callback_t on_account_key_write_callback = nullptr;
+
+  /// Optional callback triggered when the GFPS layer requests to initiate Non-Discoverable Advertising (NDA).
+  nda_ready_callback_t on_non_discoverable_advertisement_ready_callback = nullptr;
 };
 
 /// Initialize the Google Fast Pair Service

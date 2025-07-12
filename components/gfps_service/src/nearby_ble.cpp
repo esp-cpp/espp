@@ -6,28 +6,61 @@ static espp::Logger logger({.tag = "GFPS BLE", .level = espp::gfps::LOG_LEVEL});
 
 static std::vector<uint8_t> REMOTE_PUBLIC_KEY(64, 0);
 
+// Platform-specific handles and application config
 static const nearby_platform_BleInterface *g_ble_interface = nullptr;
 static const nearby_platform_BtInterface *g_bt_interface = nullptr;
 
+// Application-provided callback functions
 static espp::gfps::notify_callback_t g_gfps_notify_cb = nullptr;
+static espp::gfps::Config internal_config = {}; // Store app-provided callbacks for internal use
+
+// C-compatible callback handlers
+static void handle_account_key_written(uint64_t peer_addr, const uint8_t key[16]) {
+  if (internal_config.on_account_key_write_callback) {
+    std::span<const uint8_t, 16> key_span(key, 16);
+    internal_config.on_account_key_write_callback(peer_addr, key_span);
+  }
+}
+
+static void handle_nda_ready(const uint8_t* adv_data, size_t len) {
+  if (internal_config.on_non_discoverable_advertisement_ready_callback) {
+    std::span<const uint8_t> payload(adv_data, len);
+    internal_config.on_non_discoverable_advertisement_ready_callback(payload);
+  }
+}
 
 // external API
 
 void espp::gfps::init(const espp::gfps::Config &config) {
   // store anything we need from the config
   g_gfps_notify_cb = config.notify;
+  internal_config = config;  // Used by internal handlers
+
+  // Define Fast Pair client callbacks for event-specific handling.
+  // These callbacks are invoked by the embedded GFPS runtime when relevant events occur.
+  // Each callback delegates responsibility to the application layer via the provided config.
+  static nearby_fp_client_Callbacks callbacks = {
+    .on_event = nullptr,
+    .on_account_key_written = handle_account_key_written,
+    .on_nondiscoverable_advertisement_ready = handle_nda_ready
+  };
 
   // Calls into google/nearby/embedded to initialize the nearby framework, using
   // the platform specific implementation of the nearby API which is in the
   // embedded component.
-  nearby_fp_client_Init(nullptr);
+  nearby_fp_client_Init(&callbacks);
   int advertisement_mode =
       NEARBY_FP_ADVERTISEMENT_DISCOVERABLE | NEARBY_FP_ADVERTISEMENT_PAIRING_UI_INDICATOR;
   nearby_fp_client_SetAdvertisement(advertisement_mode);
 }
 
 void espp::gfps::deinit() {
-  // nearby_fp_client_Deinit();
+  // The embedded Fast Pair library does not yet implement nearby_fp_client_Deinit.
+  // Once available, it should be invoked here to release internal resources.
+  
+  // Clear callback bindings (temporary substitute until proper teardown is implemented)
+  internal_config = {}; // nearby_fp_client_Deinit()
+  g_gfps_notify_cb = nullptr;
 }
 
 const nearby_platform_BleInterface *espp::gfps::get_ble_interface() { return g_ble_interface; }
@@ -257,6 +290,11 @@ uint32_t nearby_platfrom_GetPairingPassKey() {
 void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   logger.info("SetRemotePasskey: {}", passkey);
 #if CONFIG_BT_NIMBLE_ENABLED
+  if (internal_config.set_passkey_callback) {
+    internal_config.set_passkey_callback(passkey);
+    return;
+  }
+
   bool accept = passkey == NimBLEDevice::getSecurityPasskey();
   if (accept) {
     logger.info("Accepting pairing request, passkey matches");
