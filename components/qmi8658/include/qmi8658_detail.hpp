@@ -50,13 +50,6 @@ enum class GyroscopeRange : uint8_t {
   RANGE_4096_DPS = 0b111, ///< ±4096°/s
 };
 
-/// Sensor LPF bandwidth for both accelerometer and gyroscope
-enum class SensorFilterBandwidth : uint8_t {
-  // LPF is based on ODR, so we specify a divisor
-  ODR_DIVIDE_2 = 0,
-  ODR_DIVIDE_4 = 1, // etc.
-};
-
 /// IMU Configuration
 struct ImuConfig {
   AccelerometerRange accelerometer_range = AccelerometerRange::RANGE_16G; ///< Accelerometer range

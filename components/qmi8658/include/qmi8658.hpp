@@ -58,18 +58,17 @@ public:
   static constexpr uint8_t DEFAULT_ADDRESS_AD0_LOW =
       0x6A; ///< Default I2C address of the QMI8658 with AD0 low
 
-  using FifoMode = qmi8658::FifoMode;                           ///< FIFO mode
-  using AccelerometerRange = qmi8658::AccelerometerRange;       ///< Accelerometer range
-  using ODR = qmi8658::ODR;                                     ///< Output data rate
-  using GyroscopeRange = qmi8658::GyroscopeRange;               ///< Gyroscope range
-  using SensorFilterBandwidth = qmi8658::SensorFilterBandwidth; ///< Sensor filter bandwidth
-  using ImuConfig = qmi8658::ImuConfig;                         ///< IMU configuration
-  using RawValue = qmi8658::RawValue;                           ///< Raw IMU data
-  using Value = qmi8658::Value;                                 ///< IMU data
-  using InterruptDriveMode = qmi8658::InterruptDriveMode;       ///< Interrupt drive mode
-  using InterruptPolarity = qmi8658::InterruptPolarity;         ///< Interrupt polarity
-  using InterruptMode = qmi8658::InterruptMode;                 ///< Interrupt mode
-  using InterruptConfig = qmi8658::InterruptConfig;             ///< Interrupt configuration
+  using FifoMode = qmi8658::FifoMode;                     ///< FIFO mode
+  using AccelerometerRange = qmi8658::AccelerometerRange; ///< Accelerometer range
+  using ODR = qmi8658::ODR;                               ///< Output data rate
+  using GyroscopeRange = qmi8658::GyroscopeRange;         ///< Gyroscope range
+  using ImuConfig = qmi8658::ImuConfig;                   ///< IMU configuration
+  using RawValue = qmi8658::RawValue;                     ///< Raw IMU data
+  using Value = qmi8658::Value;                           ///< IMU data
+  using InterruptDriveMode = qmi8658::InterruptDriveMode; ///< Interrupt drive mode
+  using InterruptPolarity = qmi8658::InterruptPolarity;   ///< Interrupt polarity
+  using InterruptMode = qmi8658::InterruptMode;           ///< Interrupt mode
+  using InterruptConfig = qmi8658::InterruptConfig;       ///< Interrupt configuration
 
   /// Filter function for filtering 6-axis data into 3-axis orientation data
   /// @param dt The time step in seconds
