@@ -246,6 +246,12 @@ extern "C" void app_main(void) {
          auto orientation = imu->get_orientation();
          auto gravity_vector = imu->get_gravity_vector();
 
+         auto box_type = box.box_type();
+         if (box_type == espp::EspBox::BoxType::BOX) {
+           std::swap(gravity_vector.x, gravity_vector.y);
+           gravity_vector.y = -gravity_vector.y; // flip y axis
+         }
+
          std::string text = fmt::format("{}\n\n\n\n\n", label_text);
          text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
          text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", espp::deg_to_rad(gyro.x),
@@ -274,6 +280,12 @@ extern "C" void app_main(void) {
          float vx = sin(pitch);
          float vy = -cos(pitch) * sin(roll);
          [[maybe_unused]] float vz = -cos(pitch) * cos(roll);
+
+         if (box_type == espp::EspBox::BoxType::BOX) {
+           std::swap(vx, vy);
+           vy = -vy; // flip y axis
+         }
+
          x1 = x0 + 50 * vx;
          y1 = y0 + 50 * vy;
 
