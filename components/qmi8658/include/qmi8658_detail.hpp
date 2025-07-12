@@ -135,6 +135,12 @@ template <> struct fmt::formatter<espp::qmi8658::ODR> {
   constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
   template <typename FormatContext> auto format(espp::qmi8658::ODR odr, FormatContext &ctx) const {
     switch (odr) {
+    case espp::qmi8658::ODR::ODR_8000_HZ:
+      return format_to(ctx.out(), "8000 Hz");
+    case espp::qmi8658::ODR::ODR_4000_HZ:
+      return format_to(ctx.out(), "4000 Hz");
+    case espp::qmi8658::ODR::ODR_2000_HZ:
+      return format_to(ctx.out(), "2000 Hz");
     case espp::qmi8658::ODR::ODR_1000_HZ:
       return format_to(ctx.out(), "1000 Hz");
     case espp::qmi8658::ODR::ODR_500_HZ:
