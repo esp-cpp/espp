@@ -118,36 +118,117 @@ std::optional<float> Led::get_duty(ledc_channel_t channel) const {
   return (float)raw_duty / (float)max_raw_duty_ * 100.0f;
 }
 
-void Led::set_duty(ledc_channel_t channel, float duty_percent) {
+bool Led::set_duty(ledc_channel_t channel, float duty_percent) {
   int index = get_channel_index(channel);
   if (index == -1) {
-    return;
+    return false;
   }
   auto conf = channels_[index];
   auto &sem = fade_semaphores_[index];
   // ensure that it's not fading if it is
   xSemaphoreTake(sem, portMAX_DELAY);
   uint32_t actual_duty = std::clamp(duty_percent, 0.0f, 100.0f) * max_raw_duty_ / 100.0f;
-  ledc_set_duty(conf.speed_mode, conf.channel, actual_duty);
-  ledc_update_duty(conf.speed_mode, conf.channel);
+  esp_err_t err = ledc_set_duty(conf.speed_mode, conf.channel, actual_duty);
+  if (err != ESP_OK) {
+    logger_.error("Failed to set duty for channel {}: {}", conf.channel, esp_err_to_name(err));
+    xSemaphoreGive(sem);
+    return false;
+  }
+  err = ledc_update_duty(conf.speed_mode, conf.channel);
   // make sure others can set this channel now as well
   xSemaphoreGive(sem);
+  if (err != ESP_OK) {
+    logger_.error("Failed to update duty for channel {}: {}", conf.channel, esp_err_to_name(err));
+    return false;
+  }
+  return true;
 }
 
-void Led::set_fade_with_time(ledc_channel_t channel, float duty_percent, uint32_t fade_time_ms) {
+std::optional<size_t> Led::get_frequency(ledc_channel_t channel) const {
   int index = get_channel_index(channel);
   if (index == -1) {
-    return;
+    return {};
+  }
+  const auto &conf = channels_[index];
+  return ledc_get_freq(conf.speed_mode, conf.timer);
+}
+
+bool Led::set_frequency(ledc_channel_t channel, size_t frequency_hz) {
+  int index = get_channel_index(channel);
+  if (index == -1) {
+    return false;
+  }
+  auto conf = channels_[index];
+  auto &sem = fade_semaphores_[index];
+  // ensure that it's not fading if it is
+  xSemaphoreTake(sem, portMAX_DELAY);
+  auto err = ledc_set_freq(conf.speed_mode, conf.timer, frequency_hz);
+  // make sure others can set this channel now as well
+  xSemaphoreGive(sem);
+  if (err != ESP_OK) {
+    logger_.error("Failed to set frequency for channel {}: {}", conf.channel, esp_err_to_name(err));
+    return false;
+  }
+  return true;
+}
+
+bool Led::set_pwm(ledc_channel_t channel, size_t frequency_hz, float duty_percent) {
+  int index = get_channel_index(channel);
+  if (index == -1) {
+    return false;
+  }
+  auto conf = channels_[index];
+  auto &sem = fade_semaphores_[index];
+  // ensure that it's not fading if it is
+  xSemaphoreTake(sem, portMAX_DELAY);
+  auto err = ledc_set_freq(conf.speed_mode, conf.timer, frequency_hz);
+  if (err != ESP_OK) {
+    logger_.error("Failed to set frequency for channel {}: {}", conf.channel, esp_err_to_name(err));
+    xSemaphoreGive(sem);
+    return false;
+  }
+  uint32_t actual_duty = std::clamp(duty_percent, 0.0f, 100.0f) * max_raw_duty_ / 100.0f;
+  err = ledc_set_duty(conf.speed_mode, conf.channel, actual_duty);
+  if (err != ESP_OK) {
+    logger_.error("Failed to set duty for channel {}: {}", conf.channel, esp_err_to_name(err));
+    xSemaphoreGive(sem);
+    return false;
+  }
+  err = ledc_update_duty(conf.speed_mode, conf.channel);
+  // make sure others can set this channel now as well
+  xSemaphoreGive(sem);
+  if (err != ESP_OK) {
+    logger_.error("Failed to update duty for channel {}: {}", conf.channel, esp_err_to_name(err));
+    return false;
+  }
+  return true;
+}
+
+bool Led::set_fade_with_time(ledc_channel_t channel, float duty_percent, uint32_t fade_time_ms) {
+  int index = get_channel_index(channel);
+  if (index == -1) {
+    return false;
   }
   auto conf = channels_[index];
   auto &sem = fade_semaphores_[index];
   // ensure that it's not fading if it is
   xSemaphoreTake(sem, portMAX_DELAY);
   uint32_t actual_duty = std::clamp(duty_percent, 0.0f, 100.0f) * max_raw_duty_ / 100.0f;
-  ledc_set_fade_with_time(conf.speed_mode, conf.channel, actual_duty, fade_time_ms);
-  ledc_fade_start(conf.speed_mode, conf.channel, LEDC_FADE_NO_WAIT);
+  esp_err_t err = ledc_set_fade_with_time(conf.speed_mode, conf.channel, actual_duty, fade_time_ms);
+  if (err != ESP_OK) {
+    logger_.error("Failed to set fade for channel {}: {}", conf.channel, esp_err_to_name(err));
+    xSemaphoreGive(sem);
+    return false;
+  }
+  err = ledc_fade_start(conf.speed_mode, conf.channel, LEDC_FADE_NO_WAIT);
+  if (err != ESP_OK) {
+    logger_.error("Failed to start fade for channel {}: {}", conf.channel, esp_err_to_name(err));
+    xSemaphoreGive(sem);
+    return false;
+  }
   // NOTE: we don't give the semaphore back here because that is the job of
   // the ISR
+  return true;
 }
 
 int Led::get_channel_index(ledc_channel_t channel) const {
