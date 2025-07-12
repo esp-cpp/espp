@@ -115,8 +115,38 @@ public:
    *        completes (if there is one).
    * @param channel The channel to set the duty cycle for.
    * @param duty_percent The new duty percentage, [0.0, 100.0].
+   * @return True if the duty cycle was set successfully, false otherwise.
    */
-  void set_duty(ledc_channel_t channel, float duty_percent);
+  bool set_duty(ledc_channel_t channel, float duty_percent);
+
+  /**
+   * @brief Get the frequency of the LEDC channel.
+   * @param channel The channel in question
+   * @return The frequency in Hz if the channel is managed, std::nullopt
+   *         otherwise
+   */
+  std::optional<size_t> get_frequency(ledc_channel_t channel) const;
+
+  /**
+   * @brief Set the frequency of the LEDC channel.
+   * @note This function will block until until a current fade process
+   *        completes (if there is one).
+   * @param channel The channel to set the frequency for.
+   * @param frequency_hz The new frequency in Hz.
+   * @return True if the frequency was set successfully, false otherwise.
+   */
+  bool set_frequency(ledc_channel_t channel, size_t frequency_hz);
+
+  /**
+   * @brief Set the PWM frequency and duty cycle for this channel.
+   * @note This function will block until until a current fade process
+   *        completes (if there is one).
+   * @param channel The channel to set the frequency and duty cycle for.
+   * @param frequency_hz The new frequency in Hz.
+   * @param duty_percent The new duty percentage, [0.0, 100.0].
+   * @return True if the frequency and duty cycle were set successfully, false otherwise.
+   */
+  bool set_pwm(ledc_channel_t channel, size_t frequency_hz, float duty_percent);
 
   /**
    * @brief Set the duty cycle for this channel, fading from the current duty
@@ -126,8 +156,9 @@ public:
    * @param channel The channel to fade.
    * @param duty_percent The new duty percentage to fade to, [0.0, 100.0].
    * @param fade_time_ms The number of milliseconds for which to fade.
+   * @return True if the fade was set successfully, false otherwise.
    */
-  void set_fade_with_time(ledc_channel_t channel, float duty_percent, uint32_t fade_time_ms);
+  bool set_fade_with_time(ledc_channel_t channel, float duty_percent, uint32_t fade_time_ms);
 
 protected:
   static std::mutex fade_service_mutex;
@@ -156,3 +187,24 @@ protected:
   std::vector<ChannelConfig> channels_;
 };
 } // namespace espp
+
+// for libfmt printing of ledc_channel_t
+template <> struct fmt::formatter<ledc_channel_t> : fmt::formatter<std::string> {
+  template <typename FormatContext> auto format(ledc_channel_t channel, FormatContext &ctx) const {
+    return fmt::formatter<std::string>::format(
+        "LEDC Channel " + std::to_string(static_cast<int>(channel)), ctx);
+  }
+};
+
+template <> struct fmt::formatter<espp::Led::ChannelConfig> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const espp::Led::ChannelConfig &config, FormatContext &ctx) const {
+    return fmt::formatter<std::string>::format(
+        "LEDC Channel Config: GPIO " + std::to_string(config.gpio) + ", Channel " +
+            std::to_string(static_cast<int>(config.channel)) + ", Timer " +
+            std::to_string(static_cast<int>(config.timer)) + ", Duty " +
+            std::to_string(config.duty) + "%, Speed Mode " +
+            std::to_string(static_cast<int>(config.speed_mode)),
+        ctx);
+  }
+};
