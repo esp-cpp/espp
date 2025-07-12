@@ -1,0 +1,21 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "QMI8658 6-Axis IMU component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/qmi8658"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/imu/qmi8658.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - QMI8658
+  - IMU
+  - Peripheral
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_peripheral: '>=1.0'
+  espp/math: '>=1.0'
