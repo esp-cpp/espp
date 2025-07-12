@@ -12,13 +12,12 @@ static const nearby_platform_BtInterface *g_bt_interface = nullptr;
 
 // Application-provided callback functions
 static espp::gfps::notify_callback_t g_gfps_notify_cb = nullptr;
-static espp::gfps::set_passkey_callback_t g_set_passkey_cb = nullptr;
 static espp::gfps::Config internal_config = {}; // Store app-provided callbacks for internal use
 
 // C-compatible callback handlers
 static void handle_account_key_written(uint64_t peer_addr, const uint8_t key[16]) {
   if (internal_config.on_account_key_write_callback) {
-    std::span<uint8_t, 16> key_span(const_cast<uint8_t*>(key), 16);
+    std::span<const uint8_t, 16> key_span(key, 16);
     internal_config.on_account_key_write_callback(peer_addr, key_span);
   }
 }
@@ -35,7 +34,6 @@ static void handle_nda_ready(const uint8_t* adv_data, size_t len) {
 void espp::gfps::init(const espp::gfps::Config &config) {
   // store anything we need from the config
   g_gfps_notify_cb = config.notify;
-  g_set_passkey_cb = config.set_passkey_callback;
   internal_config = config;  // Used by internal handlers
 
   // Define Fast Pair client callbacks for event-specific handling.
@@ -63,7 +61,6 @@ void espp::gfps::deinit() {
   // Clear callback bindings (temporary substitute until proper teardown is implemented)
   internal_config = {}; // nearby_fp_client_Deinit()
   g_gfps_notify_cb = nullptr;
-  g_set_passkey_cb = nullptr;
 }
 
 const nearby_platform_BleInterface *espp::gfps::get_ble_interface() { return g_ble_interface; }
@@ -293,8 +290,8 @@ uint32_t nearby_platfrom_GetPairingPassKey() {
 void nearby_platform_SetRemotePasskey(uint32_t passkey) {
   logger.info("SetRemotePasskey: {}", passkey);
 #if CONFIG_BT_NIMBLE_ENABLED
-  if (g_set_passkey_cb) {
-    g_set_passkey_cb(passkey);
+  if (internal_config.set_passkey_callback) {
+    internal_config.set_passkey_callback(passkey);
     return;
   }
 

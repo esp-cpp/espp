@@ -51,7 +51,7 @@ typedef std::function<void(uint32_t)> set_passkey_callback_t;
 /// Callback invoked when an Account Key is written by a remote device
 /// @param peer_addr BLE address of the remote device
 /// @param key Pointer to the 16-byte Account Key data
-typedef std::function<void(uint64_t, const std::span<uint8_t, 16>&)> account_key_write_callback_t;
+typedef std::function<void(uint64_t, const std::span<const uint8_t, 16>&)> account_key_write_callback_t;
 
 /// Callback triggered when the GFPS layer finishes constructing a Non-Discoverable Advertisement payload
 /// @param adv_data Pointer to raw advertisement payload bytes
