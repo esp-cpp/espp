@@ -314,7 +314,8 @@ protected:
 
   // LCD
   static constexpr size_t lcd_width_ = 240;
-  static constexpr size_t lcd_height_ = 320;
+  static constexpr size_t lcd_height_ =
+      280; // NOTE: the display is actually 320x240, but only 280px are visible
   static constexpr size_t lcd_bytes_per_pixel = 2;
   static constexpr int lcd_clock_speed = 60 * 1000 * 1000;
   static constexpr auto lcd_spi_num = SPI2_HOST;
@@ -331,7 +332,9 @@ protected:
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = false;
   static constexpr bool swap_xy = false;
-  static constexpr bool swap_color_order = true;
+  static constexpr bool swap_color_order = false;
+  static constexpr size_t offset_x = 0;
+  static constexpr size_t offset_y = (320 - lcd_height_) / 2; // center the display vertically
 
   // sound
   static constexpr size_t buzzer_default_frequency_hz = 5000;

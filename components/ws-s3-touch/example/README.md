@@ -7,6 +7,9 @@ display. It also plays a sound when you touch the screen using the buzzer on the
 system, and it changes the frequency of the sound based on the position of the
 touch.
 
+<img width="1260" height="949" alt="image" src="https://github.com/user-attachments/assets/06403f4d-ffe4-4ed8-8eca-f6d1d85a878c" />
+
+Older images from when the color / size was incorrectly set:
 <img width="1260" height="949" alt="image" src="https://github.com/user-attachments/assets/17e8def4-0d64-4e9e-8cee-dc2753a657a6" />
 <img width="1260" height="949" alt="image" src="https://github.com/user-attachments/assets/512ca611-1ab0-4941-b4a3-4ef22d65e567" />
 
@@ -37,6 +40,9 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 <img width="777" height="604" alt="CleanShot 2025-07-13 at 22 01 56" src="https://github.com/user-attachments/assets/02ea3513-7af9-43bb-96e4-10706f31f831" />
 
+<img width="1260" height="949" alt="image" src="https://github.com/user-attachments/assets/06403f4d-ffe4-4ed8-8eca-f6d1d85a878c" />
+
+Older images from when the color / size was incorrectly set:
 <img width="1260" height="949" alt="image" src="https://github.com/user-attachments/assets/17e8def4-0d64-4e9e-8cee-dc2753a657a6" />
 <img width="1260" height="949" alt="image" src="https://github.com/user-attachments/assets/512ca611-1ab0-4941-b4a3-4ef22d65e567" />
 
