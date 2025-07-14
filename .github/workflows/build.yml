@@ -192,6 +192,8 @@ jobs:
           target: esp32
         - path: 'components/wrover-kit/example'
           target: esp32
+        - path: 'components/ws-s3-touch/example'
+          target: esp32s3
 
     steps:
     - name: Checkout repo

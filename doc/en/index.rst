@@ -69,3 +69,4 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    timer
    wifi/index
    wrover_kit
+   ws_s3_touch

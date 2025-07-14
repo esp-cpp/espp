@@ -113,6 +113,7 @@ jobs:
             components/vl53l
             components/wifi
             components/wrover-kit
+            components/ws-s3-touch
           namespace: "espp"
           # use old version if this isn't a release for testing
           version: ${{ github.event.release && github.event.release.tag_name || 'v0.20.2' }}
