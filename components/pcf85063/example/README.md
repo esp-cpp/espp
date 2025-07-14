@@ -27,4 +27,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-
+<img width="453" height="330" alt="CleanShot 2025-07-13 at 22 14 08" src="https://github.com/user-attachments/assets/3b51ac17-db40-4d2f-90d2-476c90e085ba" />
