@@ -221,11 +221,11 @@ public:
   /// Initialize the boot button (middle button)
   /// \param callback The callback function to call when the button is pressed
   /// \return true if the button was successfully initialized, false otherwise
-  bool initialize_boot_button(const button_callback_t &callback = nullptr);
+  bool initialize_button(const button_callback_t &callback = nullptr);
 
   /// Get the boot button state
   /// \return The button state (true = button pressed, false = button released)
-  bool boot_button_state() const;
+  bool button_state() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // Audio (buzzer)

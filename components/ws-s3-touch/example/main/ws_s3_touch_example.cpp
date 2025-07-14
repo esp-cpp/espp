@@ -66,6 +66,26 @@ extern "C" void app_main(void) {
     }
   };
 
+  // initialize the button, clear the circles on the screen
+  logger.info("Initializing the button");
+  auto on_button_pressed = [&](const auto &event) {
+    if (event.active) {
+      logger.info("Button pressed");
+      std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+      clear_circles();
+      // play a click sound
+      bsp.buzzer(50.0f, 1000.0f); // 50% duty cycle, 1 kHz frequency
+    } else {
+      logger.info("Button released");
+      // stop the buzzer
+      bsp.buzzer(0.0f); // stop the buzzer
+    }
+  };
+  if (!bsp.initialize_button(on_button_pressed)) {
+    logger.error("Failed to initialize button!");
+    return;
+  }
+
   // initialize the buzzer
   if (!bsp.initialize_buzzer()) {
     logger.error("Failed to initialize buzzer!");
