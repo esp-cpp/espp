@@ -1,0 +1,28 @@
+menu "Waveshare ESP32-S3 TouchLCD Configuration"
+  choice WS_S3_TOUCH_VERSION
+  prompt "TouchLCD Version"
+  default WS_S3_TOUCH_VERSION_NEW
+  help
+    Select the version of the Waveshare ESP32-S3 TouchLCD you are using.
+    This will determine which pins the driver configures.
+
+  config WS_S3_TOUCH_VERSION_NEW
+  bool "New Version"
+  help
+    The new version of the Waveshare ESP32-S3 TouchLCD uses different pins
+    for the touch controller.
+
+  config WS_S3_TOUCH_VERSION_OLD
+  bool "Old Version"
+  help
+    The old version of the Waveshare ESP32-S3 TouchLCD uses different pins
+    for the touch controller.
+  endchoice
+
+  config WS_S3_TOUCH_INTERRUPT_STACK_SIZE
+  int "Interrupt stack size"
+  default 4096
+  help
+    Size of the stack used for the interrupt handler. Used by the touch
+    callback.
+endmenu
