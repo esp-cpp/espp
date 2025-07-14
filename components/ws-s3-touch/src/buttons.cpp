@@ -6,7 +6,7 @@ using namespace espp;
 // Button Functions   //
 ////////////////////////
 
-bool WsS3Touch::initialize_boot_button(const WsS3Touch::button_callback_t &callback) {
+bool WsS3Touch::initialize_button(const WsS3Touch::button_callback_t &callback) {
   logger_.info("Initializing boot button");
 
   // save the callback
@@ -20,7 +20,7 @@ bool WsS3Touch::initialize_boot_button(const WsS3Touch::button_callback_t &callb
   return true;
 }
 
-bool WsS3Touch::boot_button_state() const {
+bool WsS3Touch::button_state() const {
   if (!boot_button_initialized_) {
     return false;
   }
