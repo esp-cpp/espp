@@ -313,6 +313,20 @@ extern "C" void app_main(void) {
          std::swap(gravity_vector.x, gravity_vector.y);
          gravity_vector.y = -gravity_vector.y;
 
+         // now update the gravity vector line to show the direction of "down"
+         // taking into account the configured rotation of the display
+         auto rotation = lv_display_get_rotation(lv_display_get_default());
+         if (rotation == LV_DISPLAY_ROTATION_90) {
+           std::swap(gravity_vector.x, gravity_vector.y);
+           gravity_vector.x = -gravity_vector.x;
+         } else if (rotation == LV_DISPLAY_ROTATION_180) {
+           gravity_vector.x = -gravity_vector.x;
+           gravity_vector.y = -gravity_vector.y;
+         } else if (rotation == LV_DISPLAY_ROTATION_270) {
+           std::swap(gravity_vector.x, gravity_vector.y);
+           gravity_vector.y = -gravity_vector.y;
+         }
+
          std::string text = fmt::format("{}\n\n\n\n\n", label_text);
          text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
          text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", espp::deg_to_rad(gyro.x),
@@ -346,6 +360,19 @@ extern "C" void app_main(void) {
          // screen we have to rotate the axes.
          std::swap(vx, vy);
          vy = -vy;
+
+         // now update the line to show the direction of "down" based on the
+         // configured rotation of the display
+         if (rotation == LV_DISPLAY_ROTATION_90) {
+           std::swap(vx, vy);
+           vx = -vx;
+         } else if (rotation == LV_DISPLAY_ROTATION_180) {
+           vx = -vx;
+           vy = -vy;
+         } else if (rotation == LV_DISPLAY_ROTATION_270) {
+           std::swap(vx, vy);
+           vy = -vy;
+         }
 
          x1 = x0 + 50 * vx;
          y1 = y0 + 50 * vy;
