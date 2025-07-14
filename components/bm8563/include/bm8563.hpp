@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "base_peripheral.hpp"
+#include "espp_chrono.hpp"
 
 namespace espp {
 /// @brief The BM8563 RTC driver.
@@ -75,8 +76,8 @@ public:
 
   /// @brief The configuration structure.
   struct Config {
-    BasePeripheral::write_fn write;                     ///< The I2C write function.
-    BasePeripheral::write_then_read_fn write_then_read; ///< The I2C write then read function.
+    BasePeripheral<>::write_fn write;                     ///< The I2C write function.
+    BasePeripheral<>::write_then_read_fn write_then_read; ///< The I2C write then read function.
     espp::Logger::Verbosity log_level{
         espp::Logger::Verbosity::WARN}; ///< Log verbosity for the input driver.
   };
@@ -94,16 +95,6 @@ public:
       logger_.error("failed to initialize");
     }
   }
-
-  /// @brief Convert a BCD value to a byte.
-  /// @param value The BCD value.
-  /// @return The byte value.
-  static uint8_t bcd2byte(uint8_t value) { return (value >> 4) * 10 + (value & 0x0f); }
-
-  /// @brief Convert a byte value to BCD.
-  /// @param value The byte value.
-  /// @return The BCD value.
-  static uint8_t byte2bcd(uint8_t value) { return ((value / 10) << 4) + value % 10; }
 
   /// @brief Get the date and time.
   /// @param ec The error code.
@@ -143,10 +134,10 @@ public:
     }
     Date d;
     int base_year = (data[2] & CENTURY_BIT) ? 1900 : 2000;
-    d.year = base_year + bcd2byte(data[3] & 0xff);
-    d.month = bcd2byte(data[2] & 0x1f);
-    d.weekday = bcd2byte(data[1] & 0x07);
-    d.day = bcd2byte(data[0] & 0x3f);
+    d.year = base_year + bcd_to_decimal(data[3] & 0xff);
+    d.month = bcd_to_decimal(data[2] & 0x1f);
+    d.weekday = bcd_to_decimal(data[1] & 0x07);
+    d.day = bcd_to_decimal(data[0] & 0x3f);
     return d;
   }
 
@@ -155,9 +146,9 @@ public:
   /// @param ec The error code.
   void set_date(const Date &d, std::error_code &ec) {
     logger_.info("setting date");
-    const uint8_t data[] = {byte2bcd(d.day), byte2bcd(d.weekday),
-                            (uint8_t)(byte2bcd(d.month) | ((d.year < 2000) ? 0x80 : 0x00)),
-                            byte2bcd(d.year % 100)};
+    const uint8_t data[] = {decimal_to_bcd(d.day), decimal_to_bcd(d.weekday),
+                            (uint8_t)(decimal_to_bcd(d.month) | ((d.year < 2000) ? 0x80 : 0x00)),
+                            decimal_to_bcd(d.year % 100)};
     write_many_to_register((uint8_t)Registers::DATE, data, 4, ec);
   }
 
@@ -172,9 +163,9 @@ public:
       return {};
     }
     Time t;
-    t.hour = bcd2byte(data[2] & 0x3f);
-    t.minute = bcd2byte(data[1] & 0x7f);
-    t.second = bcd2byte(data[0] & 0x7f);
+    t.hour = bcd_to_decimal(data[2] & 0x3f);
+    t.minute = bcd_to_decimal(data[1] & 0x7f);
+    t.second = bcd_to_decimal(data[0] & 0x7f);
     return t;
   }
 
@@ -183,7 +174,8 @@ public:
   /// @param ec The error code.
   void set_time(const Time &t, std::error_code &ec) {
     logger_.info("Setting time");
-    const uint8_t data[] = {byte2bcd(t.second), byte2bcd(t.minute), byte2bcd(t.hour)};
+    const uint8_t data[] = {decimal_to_bcd(t.second), decimal_to_bcd(t.minute),
+                            decimal_to_bcd(t.hour)};
     write_many_to_register((uint8_t)Registers::TIME, data, 3, ec);
   }
 

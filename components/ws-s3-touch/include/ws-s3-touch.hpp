@@ -13,6 +13,7 @@
 #include "i2c.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
+#include "pcf85063.hpp"
 #include "qmi8658.hpp"
 #include "st7789.hpp"
 #include "touchpad_input.hpp"
@@ -54,6 +55,9 @@ public:
 
   /// Alias the IMU
   using Imu = espp::Qmi8658<qmi8658::Interface::I2C>;
+
+  /// Alias the RTC
+  using Rtc = espp::Pcf85063;
 
   /// Alias for the touch callback when touch events are received
   using touch_callback_t = std::function<void(const TouchpadData &)>;
@@ -248,12 +252,25 @@ public:
                       const Imu::ImuConfig &imu_config = {
                           .accelerometer_range = Imu::AccelerometerRange::RANGE_8G,
                           .accelerometer_odr = Imu::ODR::ODR_250_HZ,
-                          .gyroscope_range = Imu::GyroscopeRange::RANGE_512_DPS,
-                          .gyroscope_odr = Imu::ODR::ODR_250_HZ});
+                          .gyroscope_range = Imu::GyroscopeRange::RANGE_2048_DPS,
+                          .gyroscope_odr = Imu::ODR::ODR_250_HZ,
+                      });
 
   /// Get the IMU
   /// \return A shared pointer to the IMU
   std::shared_ptr<Imu> imu() const;
+
+  /////////////////////////////////////////////////////////////////////////////
+  // RTC
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Initialize the RTC
+  /// \return true if the RTC was successfully initialized, false otherwise
+  bool initialize_rtc();
+
+  /// Get the RTC
+  /// \return A shared pointer to the RTC
+  std::shared_ptr<Rtc> rtc() const;
 
 protected:
   WsS3Touch();
@@ -404,5 +421,6 @@ protected:
 
   // IMU
   std::shared_ptr<Imu> imu_;
+  std::shared_ptr<Rtc> rtc_;
 }; // class WsS3Touch
 } // namespace espp

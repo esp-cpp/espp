@@ -142,6 +142,8 @@ jobs:
           target: esp32s3
         - path: 'components/nvs/example'
           target: esp32s3
+        - path: 'components/pcf85063/example'
+          target: esp32s3
         - path: 'components/pid/example'
           target: esp32
         - path: 'components/qmi8658/example'

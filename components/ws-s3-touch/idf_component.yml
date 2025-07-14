@@ -27,3 +27,4 @@ dependencies:
   espp/cst816: '>=1.0'
   espp/task: '>=1.0'
   espp/qmi8658: '>=1.0'
+  espp/pcf85063: '>=1.0'

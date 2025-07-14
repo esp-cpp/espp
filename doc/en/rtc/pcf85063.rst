@@ -1,0 +1,17 @@
+PCF85063
+********
+
+The `Pcf85063` component provides a driver for the Pcf85063 RTC chip.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   pcf85063_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/pcf85063.inc 
