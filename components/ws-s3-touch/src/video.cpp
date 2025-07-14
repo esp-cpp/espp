@@ -86,6 +86,8 @@ bool WsS3Touch::initialize_lcd() {
       .reset_value = reset_value,
       .invert_colors = invert_colors,
       .swap_color_order = swap_color_order,
+      .offset_x = offset_x,
+      .offset_y = offset_y,
       .swap_xy = swap_xy,
       .mirror_x = mirror_x,
       .mirror_y = mirror_y});
