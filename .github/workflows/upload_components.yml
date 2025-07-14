@@ -89,6 +89,7 @@ jobs:
             components/neopixel
             components/nvs
             components/pid
+            components/pcf85063
             components/qmi8658
             components/qtpy
             components/qwiicnes

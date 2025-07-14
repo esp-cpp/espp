@@ -89,6 +89,27 @@ extern "C" void app_main(void) {
     return;
   }
 
+  // initialize the RTC
+  if (!bsp.initialize_rtc()) {
+    logger.error("Failed to initialize RTC!");
+    return;
+  }
+  // now set the time on the RTC
+  std::tm timeinfo{
+      .tm_sec = 0,
+      .tm_min = 42,
+      .tm_hour = 13,
+      .tm_mday = 24,
+      .tm_mon = 10,  // 0-11, so 10 is November
+      .tm_year = 123 // years since 1900, so 100 is 2000
+  };
+  std::error_code ec;
+  bsp.rtc()->set_time(timeinfo, ec);
+  if (ec) {
+    logger.error("Failed to set RTC time: {}", ec.message());
+    return;
+  }
+
   // make the filter we'll use for the IMU to compute the orientation
   static constexpr float angle_noise = 0.001f;
   static constexpr float rate_noise = 0.1f;
@@ -178,6 +199,12 @@ extern "C" void app_main(void) {
   lv_line_set_points(line1, line_points1, 2);
   lv_obj_add_style(line1, &style_line1, 0);
 
+  // make a label centered at the very top for the RTC time
+  lv_obj_t *rtc_label = lv_label_create(lv_screen_active());
+  lv_label_set_text(rtc_label, "");
+  lv_obj_align(rtc_label, LV_ALIGN_TOP_MID, 0, 20); // add an offset so that it's always visible
+  lv_obj_set_style_text_align(rtc_label, LV_TEXT_ALIGN_LEFT, 0);
+
   // add a button in the top left which (when pressed) will rotate the display
   // through 0, 90, 180, 270 degrees
   lv_obj_t *btn = lv_btn_create(lv_screen_active());
@@ -224,6 +251,33 @@ extern "C" void app_main(void) {
 
   // set the display brightness to be 75%
   bsp.brightness(75.0f);
+
+  // make a task to read the rtc and print it to console
+  espp::Task rtc_task({.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
+                         auto start = std::chrono::steady_clock::now();
+                         static auto &bsp = Bsp::get();
+                         static auto rtc = bsp.rtc();
+                         std::error_code ec;
+                         std::tm timeinfo = rtc->get_time(ec);
+                         if (ec) {
+                           logger.error("Failed to get RTC time: {}", ec.message());
+                         } else {
+                           // update the label with the current time
+                           std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+                           lv_label_set_text_fmt(rtc_label, "%02d:%02d:%02d - %02d/%02d/%04d",
+                                                 timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
+                                                 timeinfo.tm_mday, timeinfo.tm_mon + 1,
+                                                 timeinfo.tm_year + 1900);
+                         }
+                         std::unique_lock<std::mutex> lock(m);
+                         cv.wait_until(lock, start + 1s);
+                         return false;
+                       },
+                       .task_config = {
+                           .name = "rtc_task",
+                           .stack_size_bytes = 4 * 1024,
+                       }});
+  rtc_task.start();
 
   // make a task to read out the IMU data and print it to console
   espp::Task imu_task(

@@ -1,20 +1,21 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
-description: "BM8563 Real-Time Clock (RTC) component for ESP-IDF"
-url: "https://github.com/esp-cpp/espp/tree/main/components/bm8563"
+description: "PCF85063 Real-Time Clock (RTC) component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/pcf85063"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/rtc/bm8563.html"
+documentation: "https://esp-cpp.github.io/espp/rtc/pcf85063.html"
 examples:
   - path: example
 tags:
   - cpp
   - Component
+  - PCF85063
   - RTC
-  - I2C
+  - Peripheral
 dependencies:
   idf:
     version: '>=5.0'
   espp/base_peripheral: '>=1.0'
-  espp/utils: '>=1.0'
+  espp/utils: '>=1.0' 
