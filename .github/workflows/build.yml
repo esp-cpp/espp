@@ -196,7 +196,7 @@ jobs:
           target: esp32
         - path: 'components/ws-s3-geek/example'
           target: esp32s3
-        - path: 'components/ws-s3-lcd-1.47/example'
+        - path: 'components/ws-s3-lcd-1-47/example'
           target: esp32s3
         - path: 'components/ws-s3-touch/example'
           target: esp32s3
