@@ -5,6 +5,8 @@ component initialize the components on the Waveshare ESP32-S3-GEEK.
 
 It initializes the display, and button subsystems.
 
+<img width="1260" height="949" alt="image" src="https://github.com/user-attachments/assets/0f0b051a-701d-47ea-8674-1c8847f8e921" />
+
 ## How to use example
 
 ### Hardware Required
@@ -56,7 +58,6 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-
 ```console
 [WsS3Geek Example/I][0.026]: Starting example!
 [WsS3Geek/I][0.032]: Initializing LCD...
@@ -79,3 +80,5 @@ SSR: bus_width=1
 [WsS3Geek/I][0.589]: Initializing button
 I (915) gpio: GPIO[0]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3
 ```
+
+<img width="709" height="379" alt="CleanShot 2025-07-15 at 11 47 26" src="https://github.com/user-attachments/assets/f22711b3-ce37-4084-99b1-0afc8dbbbd12" />
