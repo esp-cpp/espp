@@ -31,8 +31,8 @@ namespace espp {
 ///
 /// The class is a singleton and can be accessed using the get() method.
 ///
-/// \section ws_s3_lcd_1.47_example Example
-/// \snippet ws_s3_lcd_1.47_example.cpp ws-s3-lcd-1.47 example
+/// \section ws_s3_lcd_1_47_example Example
+/// \snippet ws_s3_lcd_1_47_example.cpp ws-s3-lcd-1-47 example
 class WsS3Lcd147 : public BaseComponent {
 public:
   /// Alias for the button callback function

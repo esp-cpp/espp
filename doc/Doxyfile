@@ -99,7 +99,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-geek/example/main/ws_s3_geek_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-lcd-1.47/example/main/ws_s3_lcd_1.47_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-lcd-1-47/example/main/ws_s3_lcd_1_47_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
@@ -266,7 +266,7 @@ INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp
 INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta_menu.hpp
 INPUT += $(PROJECT_PATH)/components/wrover-kit/include/wrover-kit.hpp
 INPUT += $(PROJECT_PATH)/components/ws-s3-geek/include/ws-s3-geek.hpp
-INPUT += $(PROJECT_PATH)/components/ws-s3-lcd-1.47/include/ws-s3-lcd-1.47.hpp
+INPUT += $(PROJECT_PATH)/components/ws-s3-lcd-1-47/include/ws-s3-lcd-1-47.hpp
 INPUT += $(PROJECT_PATH)/components/ws-s3-touch/include/ws-s3-touch.hpp
 
 USE_MDFILE_AS_MAINPAGE = $(PROJECT_PATH)/README.md

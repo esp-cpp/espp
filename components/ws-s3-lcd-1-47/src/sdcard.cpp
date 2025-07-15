@@ -1,4 +1,4 @@
-#include "ws-s3-lcd-1.47.hpp"
+#include "ws-s3-lcd-1-47.hpp"
 
 using namespace espp;
 

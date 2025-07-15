@@ -1,7 +1,7 @@
 #include <chrono>
 #include <vector>
 
-#include "ws-s3-lcd-1.47.hpp"
+#include "ws-s3-lcd-1-47.hpp"
 
 using namespace std::chrono_literals;
 
@@ -15,7 +15,7 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "WsS3Lcd147 Example", .level = espp::Logger::Verbosity::INFO});
   logger.info("Starting example!");
 
-  //! [ws-s3-lcd-1.47 example]
+  //! [ws-s3-lcd-1-47 example]
   using Bsp = espp::WsS3Lcd147;
   Bsp &board = Bsp::get();
   board.set_log_level(espp::Logger::Verbosity::INFO);
@@ -148,7 +148,7 @@ extern "C" void app_main(void) {
     auto elapsed = end - start;
     std::this_thread::sleep_for(100ms - std::chrono::microseconds(elapsed));
   }
-  //! [ws-s3-lcd-1.47 example]
+  //! [ws-s3-lcd-1-47 example]
 }
 
 static void draw_circle(int x0, int y0, int radius) {

@@ -23,4 +23,4 @@ TF card slot for reading and writing files.
 API Reference
 -------------
 
-.. include-build-file:: inc/ws-s3-lcd-1.47.inc
+.. include-build-file:: inc/ws-s3-lcd-1-47.inc

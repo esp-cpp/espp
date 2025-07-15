@@ -1,11 +1,11 @@
 ## IDF Component Manager Manifest File
 license: "MIT"
 description: "Waveshare ESP32-S3-LCD-1.47 component for ESP-IDF"
-url: "https://github.com/esp-cpp/espp/tree/main/components/ws-s3-lcd-1.47"
+url: "https://github.com/esp-cpp/espp/tree/main/components/ws-s3-lcd-1-47"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/ws_s3_lcd_1.47.html"
+documentation: "https://esp-cpp.github.io/espp/ws_s3_lcd_1_47.html"
 examples:
   - path: example
 tags:

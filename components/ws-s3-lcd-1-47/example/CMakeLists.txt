@@ -11,11 +11,11 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py ws-s3-lcd-1.47"
+  "main esptool_py ws-s3-lcd-1-47"
   CACHE STRING
   "List of components to include"
   )
 
-project(ws_s3_lcd_1.47_example)
+project(ws_s3_lcd_1_47_example)
 
 set(CMAKE_CXX_STANDARD 20)
