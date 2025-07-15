@@ -5,6 +5,8 @@ component initialize the components on the Waveshare ESP32-S3-LCD-1.47.
 
 It initializes the display, button, and RGB LED subsystems.
 
+<img width="1260" height="949" alt="image" src="https://github.com/user-attachments/assets/f90e2100-613f-4d09-84fb-19184df8d7a6" />
+
 ## How to use example
 
 ### Hardware Required
@@ -93,3 +95,6 @@ Setting rotation to 2
 Setting rotation to 3
 Setting rotation to 0
 ```
+
+
+<img width="677" height="532" alt="CleanShot 2025-07-15 at 13 54 14" src="https://github.com/user-attachments/assets/f9b2556f-718a-4152-adc9-7f059734b83b" />
