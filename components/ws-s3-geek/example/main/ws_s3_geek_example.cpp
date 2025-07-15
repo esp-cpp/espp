@@ -114,8 +114,6 @@ extern "C" void app_main(void) {
       case LV_DISPLAY_ROTATION_270:
         std::swap(x, y);
         break;
-        std::swap(x, y);
-        break;
       }
 
       // lock the lvgl mutex
