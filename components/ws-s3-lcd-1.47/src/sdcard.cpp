@@ -53,12 +53,10 @@ bool WsS3Lcd147::initialize_sdcard(const WsS3Lcd147::SdCardConfig &config) {
   if (ret != ESP_OK) {
     if (ret == ESP_FAIL) {
       logger_.error("Failed to mount filesystem. ");
-      return false;
     } else {
       logger_.error("Failed to initialize the card ({}). "
                     "Make sure SD card lines have pull-up resistors in place.",
                     esp_err_to_name(ret));
-      return false;
     }
     return false;
   }
