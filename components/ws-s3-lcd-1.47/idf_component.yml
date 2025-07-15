@@ -1,0 +1,26 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "Waveshare ESP32-S3-LCD-1.47 component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/ws-s3-lcd-1.47"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/ws_s3_lcd_1.47.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Waveshare
+  - ESP32-S3
+  - LCD
+  - BSP
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'
+  espp/display: '>=1.0'
+  espp/display_drivers: '>=1.0'
+  espp/i2c: '>=1.0'
+  espp/interrupt: '>=1.0'
+  espp/task: '>=1.0'

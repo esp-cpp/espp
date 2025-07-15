@@ -115,6 +115,7 @@ jobs:
             components/wifi
             components/wrover-kit
             components/ws-s3-geek
+            components/ws-s3-lcd-1.47
             components/ws-s3-touch
           namespace: "espp"
           # use old version if this isn't a release for testing
