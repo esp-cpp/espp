@@ -1,0 +1,8 @@
+menu "Waveshare S3 LCD 1.47 Configuration"
+    config WS_S3_LCD_1_47_INTERRUPT_STACK_SIZE
+        int "Interrupt stack size"
+        default 4096
+        help
+            Size of the stack used for the interrupt handler. Used by the
+            button callback.
+endmenu
