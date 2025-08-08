@@ -11,6 +11,7 @@ RTSP stream for transmitting MJPEG video data.
 - [RTSP (Real-Time Streaming Protocol) Component](#rtsp-real-time-streaming-protocol-component)
   - [RTSP Client](#rtsp-client)
   - [RTSP Server](#rtsp-server)
+  - [Testing and Utilities](#testing-and-utilities)
   - [Example](#example)
 
 <!-- markdown-toc end -->
@@ -44,6 +45,17 @@ a hardware encoder for H.264 or H.265.
 
 Additionally, the server currently only supports UDP transport for RTP and RTCP
 packets. TCP transport is not supported.
+
+## Testing and Utilities
+
+To facilitate testing and debugging of the RTSP code, there are some
+[python](./python) scripts which provide various mechanisms for connecting to
+and displaying the RTSP stream from an RTSP server, using both mDNS and directly
+by IP address. These scripts can be used to test the RTSP server and client
+implementations.
+
+See [python/README.md](./python/README.md) for more information on how to use
+these scripts.
 
 ## Example
 
