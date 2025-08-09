@@ -1,0 +1,36 @@
+menu "BMI270 Example Configuration"
+
+choice EXAMPLE_HARDWARE
+  prompt "Hardware"
+  default EXAMPLE_HARDWARE_CUSTOM
+  help
+    Select the hardware to run this example on.
+
+config EXAMPLE_HARDWARE_CUSTOM
+  bool "Custom"
+endchoice
+
+config EXAMPLE_I2C_SCL_GPIO
+  int "SCL GPIO Num"
+  range 0 50
+  default 22
+  default 32 if IDF_TARGET_ESP32P4
+  help
+    GPIO number for I2C Master clock line.
+
+config EXAMPLE_I2C_SDA_GPIO
+  int "SDA GPIO Num"
+  range 0 50
+  default 21
+  default 31 if IDF_TARGET_ESP32P4
+  help
+    GPIO number for I2C Master data line.
+
+config EXAMPLE_I2C_CLOCK_SPEED_HZ
+  int "I2C Clock Speed"
+  range 100 1000000
+  default 1000000
+  help
+    I2C clock speed in Hz.
+
+endmenu

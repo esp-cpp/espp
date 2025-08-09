@@ -1,0 +1,20 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "BMI270 6-Axis IMU Driver component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/bmi270"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/imu/bmi270.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - BMI270
+  - IMU
+  - Peripheral
+dependencies:
+  idf: ">=5.0"
+  espp/base_peripheral: ">=1.0"
+  espp/math: ">=1.0"

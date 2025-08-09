@@ -41,6 +41,7 @@ jobs:
             components/bldc_motor
             components/ble_gatt_server
             components/bm8563
+            components/bmi270
             components/button
             components/byte90
             components/chsc6x
