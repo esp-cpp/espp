@@ -440,17 +440,6 @@ public:
     return !ec;
   }
 
-  /// Enable/disable advanced features
-  /// @param enable True to enable advanced features, false to disable
-  /// @param ec The error code to set if an error occurs
-  /// @return True if successful, false otherwise
-  bool enable_advanced_features(bool enable, std::error_code &ec) {
-    // This would involve configuring the advanced features like step counter,
-    // activity recognition, etc. Implementation depends on specific requirements
-    logger_.warn("Advanced features not yet implemented");
-    return true;
-  }
-
 protected:
   // BMI270 specific constants
   static constexpr uint8_t BMI270_CHIP_ID = 0x24; ///< BMI270 chip ID
