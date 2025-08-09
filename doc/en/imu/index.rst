@@ -5,6 +5,7 @@ IMU APIs
     :maxdepth: 1
 
     adxl345
+    bmi270
     icm20948
     icm42607
     lsm6dso
