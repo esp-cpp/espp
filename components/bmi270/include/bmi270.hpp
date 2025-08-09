@@ -248,11 +248,11 @@ public:
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     imu_config_ = imu_config;
 
-    static constexpr uint8_t filter_perfomance_optimized =
+    static constexpr uint8_t filter_performance_optimized =
         0x80; ///< Performance optimized filter (instead of power)
 
     // Configure accelerometer
-    uint8_t acc_conf = filter_perfomance_optimized | // Enable performance optimized filter
+    uint8_t acc_conf = filter_performance_optimized | // Enable performance optimized filter
                        (static_cast<uint8_t>(imu_config.accelerometer_bandwidth) << 4) |
                        static_cast<uint8_t>(imu_config.accelerometer_odr);
     write_u8_to_register(static_cast<uint8_t>(Register::ACC_CONF), acc_conf, ec);
@@ -267,7 +267,7 @@ public:
     // Configure gyroscope
     static constexpr uint8_t gyr_noise_performance_optimized =
         0x40; ///< noise is optimized for performance (not power)
-    uint8_t gyr_conf = filter_perfomance_optimized |     // Enable performance optimized filter
+    uint8_t gyr_conf = filter_performance_optimized |    // Enable performance optimized filter
                        gyr_noise_performance_optimized | // Optimize noise for performance
                        (static_cast<uint8_t>(imu_config.gyroscope_bandwidth) << 4) |
                        static_cast<uint8_t>(imu_config.gyroscope_odr);
