@@ -48,7 +48,6 @@ public:
   static constexpr uint8_t DEFAULT_ADDRESS_SDO_HIGH = 0x69; ///< I2C address with SDO high
 
   // Type aliases for easier access
-  using PowerMode = bmi270::PowerMode;
   using AccelerometerRange = bmi270::AccelerometerRange;
   using AccelerometerODR = bmi270::AccelerometerODR;
   using AccelerometerBandwidth = bmi270::AccelerometerBandwidth;
