@@ -2,6 +2,30 @@
 
 This example shows how to use the `espp::Bmi270` component to initialize and communicate with a BMI270 6-axis IMU.
 
+<img width="822" height="930" alt="CleanShot 2025-08-09 at 17 22 30" src="https://github.com/user-attachments/assets/5ea18011-592d-4fa6-bdde-3a7afb84396b" />
+
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
+
+- [BMI270 Example](#bmi270-example)
+  - [Features Demonstrated](#features-demonstrated)
+  - [How to use example](#how-to-use-example)
+    - [Hardware Required](#hardware-required)
+    - [Configuration](#configuration)
+    - [Build and Flash](#build-and-flash)
+  - [Example Output](#example-output)
+    - [Sample Output](#sample-output)
+    - [Data Analysis](#data-analysis)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debug Tips](#debug-tips)
+  - [Performance Notes](#performance-notes)
+  - [Advanced Features](#advanced-features)
+  - [References](#references)
+
+<!-- markdown-toc end -->
+
+
 ## Features Demonstrated
 
 - **Basic IMU Reading**: Accelerometer, gyroscope, and temperature data
@@ -122,6 +146,10 @@ I (298) main_task: Calling app_main()
 0.666,-0.004,-0.051,1.001,0.000,-0.152,-0.244,27.4,-0.051,0.004,0.000,0.004,0.051,-0.999,-0.049,0.004,-0.002,0.004,0.049,-0.999
 0.678,-0.006,-0.051,1.000,0.152,-0.183,-0.274,27.4,-0.051,0.006,0.000,0.006,0.051,-0.999,-0.051,0.006,-0.002,0.006,0.051,-0.999
 ```
+
+<img width="1905" height="902" alt="CleanShot 2025-08-09 at 17 06 50" src="https://github.com/user-attachments/assets/7784a5ee-41e3-466e-8b62-882f5be4ab5d" />
+<img width="822" height="930" alt="CleanShot 2025-08-09 at 17 22 30" src="https://github.com/user-attachments/assets/5ea18011-592d-4fa6-bdde-3a7afb84396b" />
+<img width="822" height="930" alt="CleanShot 2025-08-09 at 17 22 47" src="https://github.com/user-attachments/assets/358c05da-4dea-465c-8dc6-6ec3b9ca7cae" />
 
 ### Data Analysis
 
