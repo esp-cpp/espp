@@ -1,0 +1,39 @@
+menu "INA226 Example Configuration"
+
+config EXAMPLE_I2C_SDA_GPIO
+  int "I2C SDA GPIO"
+  range 0 50
+  default 21
+  default 31 if IDF_TARGET_ESP32P4
+
+config EXAMPLE_I2C_SCL_GPIO
+  int "I2C SCL GPIO"
+  range 0 50
+  default 22
+  default 32 if IDF_TARGET_ESP32P4
+
+config EXAMPLE_I2C_CLOCK_SPEED_HZ
+  int "I2C Clock Speed"
+  range 100 1000000
+  default 1000000
+  help
+    I2C clock speed in Hz.
+
+config EXAMPLE_USE_STATIC_ADDRESS
+  bool "Use Static I2C Address"
+  default n
+  help
+    If enabled, the example will use a static I2C address defined below.
+    Otherwise, it will scan for the INA226 device on the I2C bus.
+
+config EXAMPLE_I2C_ADDRESS
+  hex "Static I2C Address"
+  range 0x40 0x4F
+  default 0x40
+  depends on EXAMPLE_USE_STATIC_ADDRESS
+  help
+    Static I2C address of the INA226 device. Valid range is 0x40 to 0x4F.
+
+endmenu
+
+
