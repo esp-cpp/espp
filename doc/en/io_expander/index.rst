@@ -5,6 +5,7 @@ IO Expander APIs
     :maxdepth: 1
 
     aw9523
+    pi4ioe5v
     kts1622
     mcp23x17
 
