@@ -66,9 +66,7 @@ extern "C" void app_main(void) {
   }
 
   auto task_fn = [&](std::mutex &m, std::condition_variable &cv) {
-    static auto start = std::chrono::high_resolution_clock::now();
     auto now = std::chrono::high_resolution_clock::now();
-    auto seconds = std::chrono::duration<float>(now - start).count();
 
     float vbus = ina.bus_voltage_volts(ec);
     float vshunt = ina.shunt_voltage_volts(ec);
@@ -78,8 +76,7 @@ extern "C" void app_main(void) {
       logger.info("INA226 read failed: {}", ec.message());
       return true; // stop
     }
-    logger.info("Vbus={:.3f}V, Vshunt={:.6f}V, I={:.3f}A, P={:.3f}W", seconds, vbus, vshunt,
-                current, power);
+    logger.info("Vbus={:.3f}V, Vshunt={:.6f}V, I={:.3f}A, P={:.3f}W", vbus, vshunt, current, power);
 
     {
       std::unique_lock<std::mutex> lk(m);
