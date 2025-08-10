@@ -1,0 +1,23 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "PI4IOE5V I2C GPIO Expander component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/pi4ioe5v"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/io_expander/pi4ioe5v.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Expander
+  - I2C
+  - Peripheral
+  - pi4ioe5v
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_peripheral: '>=1.0'
+
+

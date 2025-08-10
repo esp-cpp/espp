@@ -1,0 +1,15 @@
+menu "PI4IOE5V Example Configuration"
+
+config EXAMPLE_I2C_SDA_GPIO
+  int "I2C SDA GPIO"
+  range 0 50
+  default 21
+
+config EXAMPLE_I2C_SCL_GPIO
+  int "I2C SCL GPIO"
+  range 0 50
+  default 22
+
+endmenu
+
+
