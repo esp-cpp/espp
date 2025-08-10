@@ -70,6 +70,7 @@ jobs:
             components/i2c
             components/icm20948
             components/icm42607
+            components/ina226
             components/input_drivers
             components/interrupt
             components/iperf_menu

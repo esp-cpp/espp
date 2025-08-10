@@ -1,0 +1,22 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "INA226 I2C Current/Power monitor component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/ina226"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/power/ina226.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Power
+  - I2C
+  - Peripheral
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_peripheral: '>=1.0'
+
+
