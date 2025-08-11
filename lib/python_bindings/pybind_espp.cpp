@@ -1981,7 +1981,10 @@ void py_init_module_espp(py::module &m) {
                            "*< Log verbosity for the task.");
   } // end of inner classes & enums of Task
 
-  pyClassTask.def(py::init<const espp::Task::Config &>())
+  pyClassTask
+      .def(py::init<const espp::Task::callback_no_params_fn &, const ::espp::Task::BaseConfig &>())
+      .def(py::init<const espp::Task::callback_no_params_fn &, const ::espp::Task::BaseConfig &,
+                    espp::Logger::Verbosity>())
       .def_static("make_unique", &espp::Task::make_unique, py::arg("config"),
                   "*\n   * @brief Get a unique pointer to a new task created with \\p config.\n   "
                   "*        Useful to not have to use templated std::make_unique (less typing).\n  "

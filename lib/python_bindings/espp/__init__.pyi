@@ -2705,16 +2705,8 @@ class Task:
             pass
 
 
-    @staticmethod
-    def make_unique(config: Task.Config) -> Task:
-        """*
-           * @brief Get a unique pointer to a new task created with \p config.
-           *        Useful to not have to use templated std::make_unique (less typing).
-           * @param config Config struct to initialize the Task with.
-           * @return std::unique_ptr<Task> pointer to the newly created task.
 
-        """
-        pass
+
 
 
     def start(self) -> bool:

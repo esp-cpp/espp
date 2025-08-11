@@ -145,8 +145,7 @@ public:
    *      This is primarily used to enable simpler API upgrades in the future
    *      and maximize backwards compatibility.
    */
-  typedef std::variant<std::monostate, callback_m_cv_notified_fn, callback_m_cv_fn,
-                       callback_no_params_fn>
+  typedef std::variant<callback_m_cv_notified_fn, callback_m_cv_fn, callback_no_params_fn>
       callback_variant;
 
   /**
@@ -178,6 +177,54 @@ public:
    * @param config Config struct to initialize the Task with.
    */
   explicit Task(const espp::Task::Config &config);
+
+  /**
+   * @brief Construct a new Task object using the callback function and
+   *        BaseConfig struct.
+   * @details This is a convenience constructor that allows you to create a Task
+   *          with a callback function and a BaseConfig struct, without having
+   *          to create a Config struct.
+   *
+   * @param callback Callback function for the task.
+   * @param config BaseConfig struct to initialize the Task with.
+   * @param log_level Log verbosity for the task.
+   */
+  explicit Task(const espp::Task::callback_no_params_fn &callback,
+                const espp::Task::BaseConfig &config,
+                espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN)
+      : Task(Config{callback, config, log_level}) {}
+
+  /**
+   * @brief Construct a new Task object using the callback function and
+   *        BaseConfig struct.
+   * @details This is a convenience constructor that allows you to create a Task
+   *          with a callback function that takes a mutex and condition variable,
+   *          and a BaseConfig struct, without having to create a Config struct.
+   *
+   * @param callback Callback function for the task.
+   * @param config BaseConfig struct to initialize the Task with.
+   * @param log_level Log verbosity for the task.
+   */
+  explicit Task(const espp::Task::callback_m_cv_fn &callback, const espp::Task::BaseConfig &config,
+                espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN)
+      : Task(Config{callback, config, log_level}) {}
+
+  /**
+   * @brief Construct a new Task object using the callback function and
+   *        BaseConfig struct.
+   * @details This is a convenience constructor that allows you to create a Task
+   *          with a callback function that takes a mutex, condition variable,
+   *          and a bool reference to the notified flag, and a BaseConfig struct,
+   *          without having to create a Config struct.
+   *
+   * @param callback Callback function for the task.
+   * @param config BaseConfig struct to initialize the Task with.
+   * @param log_level Log verbosity for the task.
+   */
+  explicit Task(const espp::Task::callback_m_cv_notified_fn &callback,
+                const espp::Task::BaseConfig &config,
+                espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN)
+      : Task(Config{callback, config, log_level}) {}
 
   /**
    * @brief Get a unique pointer to a new task created with \p config.
