@@ -278,12 +278,12 @@ void py_init_module_espp(py::module &m) {
                      [](std::string_view tag = std::string_view(), bool include_time = {true},
                         std::chrono::duration<float> rate_limit = std::chrono::duration<float>(0),
                         espp::Logger::Verbosity level = espp::Logger::Verbosity::WARN) {
-                       auto r = std::make_unique<espp::Logger::Config>();
-                       r->tag = tag;
-                       r->include_time = include_time;
-                       r->rate_limit = rate_limit;
-                       r->level = level;
-                       return r;
+                       auto r_ctor_ = std::make_unique<espp::Logger::Config>();
+                       r_ctor_->tag = tag;
+                       r_ctor_->include_time = include_time;
+                       r_ctor_->rate_limit = rate_limit;
+                       r_ctor_->level = level;
+                       return r_ctor_;
                      }),
                  py::arg("tag") = std::string_view(), py::arg("include_time") = bool{true},
                  py::arg("rate_limit") = std::chrono::duration<float>(0),
@@ -468,11 +468,11 @@ void py_init_module_espp(py::module &m) {
             pyClassGaussian, "Config", py::dynamic_attr(),
             "*\n   * @brief Configuration structure for initializing the gaussian.\n")
             .def(py::init<>([](float gamma = float(), float alpha = {1.0f}, float beta = {0.5f}) {
-                   auto r = std::make_unique<espp::Gaussian::Config>();
-                   r->gamma = gamma;
-                   r->alpha = alpha;
-                   r->beta = beta;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::Gaussian::Config>();
+                   r_ctor_->gamma = gamma;
+                   r_ctor_->alpha = alpha;
+                   r_ctor_->beta = beta;
+                   return r_ctor_;
                  }),
                  py::arg("gamma") = float(), py::arg("alpha") = float{1.0f},
                  py::arg("beta") = float{0.5f})
@@ -1280,13 +1280,13 @@ void py_init_module_espp(py::module &m) {
                                espp::Ndef::WifiEncryptionType encryption =
                                    espp::Ndef::WifiEncryptionType::AES,
                                uint64_t mac_address = 0xFFFFFFFFFFFF) {
-                   auto r = std::make_unique<espp::Ndef::WifiConfig>();
-                   r->ssid = ssid;
-                   r->key = key;
-                   r->authentication = authentication;
-                   r->encryption = encryption;
-                   r->mac_address = mac_address;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::Ndef::WifiConfig>();
+                   r_ctor_->ssid = ssid;
+                   r_ctor_->key = key;
+                   r_ctor_->authentication = authentication;
+                   r_ctor_->encryption = encryption;
+                   r_ctor_->mac_address = mac_address;
+                   return r_ctor_;
                  }),
                  py::arg("ssid") = std::string_view(), py::arg("key") = std::string_view(),
                  py::arg("authentication") = espp::Ndef::WifiAuthenticationType::WPA2_PERSONAL,
@@ -1420,16 +1420,16 @@ void py_init_module_espp(py::module &m) {
                               float integrator_min = float(), float integrator_max = float(),
                               float output_min = float(), float output_max = float(),
                               espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                  auto r = std::make_unique<espp::Pid::Config>();
-                  r->kp = kp;
-                  r->ki = ki;
-                  r->kd = kd;
-                  r->integrator_min = integrator_min;
-                  r->integrator_max = integrator_max;
-                  r->output_min = output_min;
-                  r->output_max = output_max;
-                  r->log_level = log_level;
-                  return r;
+                  auto r_ctor_ = std::make_unique<espp::Pid::Config>();
+                  r_ctor_->kp = kp;
+                  r_ctor_->ki = ki;
+                  r_ctor_->kd = kd;
+                  r_ctor_->integrator_min = integrator_min;
+                  r_ctor_->integrator_max = integrator_max;
+                  r_ctor_->output_min = output_min;
+                  r_ctor_->output_max = output_max;
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
                 }),
                 py::arg("kp") = float(), py::arg("ki") = float(), py::arg("kd") = float(),
                 py::arg("integrator_min") = float(), py::arg("integrator_max") = float(),
@@ -1509,10 +1509,10 @@ void py_init_module_espp(py::module &m) {
             "*\n   *  @brief Storage for socket information (address, port) with convenience\n   * "
             "        functions to convert to/from POSIX structures.\n")
             .def(py::init<>([](std::string address = std::string(), size_t port = size_t()) {
-                   auto r = std::make_unique<espp::Socket::Info>();
-                   r->address = address;
-                   r->port = port;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::Socket::Info>();
+                   r_ctor_->address = address;
+                   r_ctor_->port = port;
+                   return r_ctor_;
                  }),
                  py::arg("address") = std::string(), py::arg("port") = size_t())
             .def_readwrite("address", &espp::Socket::Info::address,
@@ -1607,9 +1607,9 @@ void py_init_module_espp(py::module &m) {
                                             "*\n   * @brief Config struct for the TCP socket.\n")
             .def(
                 py::init<>([](espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                  auto r = std::make_unique<espp::TcpSocket::Config>();
-                  r->log_level = log_level;
-                  return r;
+                  auto r_ctor_ = std::make_unique<espp::TcpSocket::Config>();
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
                 }),
                 py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
             .def_readwrite("log_level", &espp::TcpSocket::Config::log_level,
@@ -1619,10 +1619,10 @@ void py_init_module_espp(py::module &m) {
             pyClassTcpSocket, "ConnectConfig", py::dynamic_attr(),
             "*\n   * @brief Config struct for connecting to a remote TCP server.\n")
             .def(py::init<>([](std::string ip_address = std::string(), size_t port = size_t()) {
-                   auto r = std::make_unique<espp::TcpSocket::ConnectConfig>();
-                   r->ip_address = ip_address;
-                   r->port = port;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::TcpSocket::ConnectConfig>();
+                   r_ctor_->ip_address = ip_address;
+                   r_ctor_->port = port;
+                   return r_ctor_;
                  }),
                  py::arg("ip_address") = std::string(), py::arg("port") = size_t())
             .def_readwrite("ip_address", &espp::TcpSocket::ConnectConfig::ip_address,
@@ -1638,12 +1638,12 @@ void py_init_module_espp(py::module &m) {
                                espp::Socket::response_callback_fn on_response_callback = nullptr,
                                std::chrono::duration<float> response_timeout =
                                    std::chrono::duration<float>(0.5f)) {
-                   auto r = std::make_unique<espp::TcpSocket::TransmitConfig>();
-                   r->wait_for_response = wait_for_response;
-                   r->response_size = response_size;
-                   r->on_response_callback = on_response_callback;
-                   r->response_timeout = response_timeout;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::TcpSocket::TransmitConfig>();
+                   r_ctor_->wait_for_response = wait_for_response;
+                   r_ctor_->response_size = response_size;
+                   r_ctor_->on_response_callback = on_response_callback;
+                   r_ctor_->response_timeout = response_timeout;
+                   return r_ctor_;
                  }),
                  py::arg("wait_for_response") = false, py::arg("response_size") = 0,
                  py::arg("on_response_callback") = py::none(),
@@ -1709,6 +1709,17 @@ void py_init_module_espp(py::module &m) {
            "* @param data string view of bytes to send to the remote endpoint.\n   * @param "
            "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
            "response.\n   * @return True if the data was sent, False otherwise.\n")
+      .def("transmit",
+           py::overload_cast<std::span<const uint8_t>, const espp::TcpSocket::TransmitConfig &>(
+               &espp::TcpSocket::transmit),
+           py::arg("data"), py::arg("transmit_config") = espp::TcpSocket::TransmitConfig::Default(),
+           "*\n   * @brief Send data to the endpoint already connected to by TcpSocket::connect.\n "
+           "  *        Can be configured to block waiting for a response from the remote.\n   *\n  "
+           " *        If response is requested, a callback can be provided in\n   *        "
+           "send_config which will be provided the response data for\n   *        processing.\n   "
+           "* @param data span of bytes to send to the remote endpoint.\n   * @param "
+           "transmit_config TransmitConfig struct indicating whether to wait for a\n   *        "
+           "response.\n   * @return True if the data was sent, False otherwise.\n")
       .def("receive", py::overload_cast<std::vector<uint8_t> &, size_t>(&espp::TcpSocket::receive),
            py::arg("data"), py::arg("max_num_bytes"),
            "*\n   * @brief Call read on the socket, assuming it has already been configured\n   *  "
@@ -1762,13 +1773,13 @@ void py_init_module_espp(py::module &m) {
                                bool is_multicast_endpoint = {false},
                                std::string multicast_group = {""},
                                espp::Socket::receive_callback_fn on_receive_callback = {nullptr}) {
-                   auto r = std::make_unique<espp::UdpSocket::ReceiveConfig>();
-                   r->port = port;
-                   r->buffer_size = buffer_size;
-                   r->is_multicast_endpoint = is_multicast_endpoint;
-                   r->multicast_group = multicast_group;
-                   r->on_receive_callback = on_receive_callback;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::UdpSocket::ReceiveConfig>();
+                   r_ctor_->port = port;
+                   r_ctor_->buffer_size = buffer_size;
+                   r_ctor_->is_multicast_endpoint = is_multicast_endpoint;
+                   r_ctor_->multicast_group = multicast_group;
+                   r_ctor_->on_receive_callback = on_receive_callback;
+                   return r_ctor_;
                  }),
                  py::arg("port") = size_t(), py::arg("buffer_size") = size_t(),
                  py::arg("is_multicast_endpoint") = bool{false},
@@ -1795,15 +1806,15 @@ void py_init_module_espp(py::module &m) {
                                espp::Socket::response_callback_fn on_response_callback = {nullptr},
                                std::chrono::duration<float> response_timeout =
                                    std::chrono::duration<float>(0.5f)) {
-                   auto r = std::make_unique<espp::UdpSocket::SendConfig>();
-                   r->ip_address = ip_address;
-                   r->port = port;
-                   r->is_multicast_endpoint = is_multicast_endpoint;
-                   r->wait_for_response = wait_for_response;
-                   r->response_size = response_size;
-                   r->on_response_callback = on_response_callback;
-                   r->response_timeout = response_timeout;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::UdpSocket::SendConfig>();
+                   r_ctor_->ip_address = ip_address;
+                   r_ctor_->port = port;
+                   r_ctor_->is_multicast_endpoint = is_multicast_endpoint;
+                   r_ctor_->wait_for_response = wait_for_response;
+                   r_ctor_->response_size = response_size;
+                   r_ctor_->on_response_callback = on_response_callback;
+                   r_ctor_->response_timeout = response_timeout;
+                   return r_ctor_;
                  }),
                  py::arg("ip_address") = std::string(), py::arg("port") = size_t(),
                  py::arg("is_multicast_endpoint") = bool{false},
@@ -1868,6 +1879,19 @@ void py_init_module_espp(py::module &m) {
            "* @param data String view of bytes to send to the remote endpoint.\n   * @param "
            "send_config SendConfig struct indicating where to send and whether\n   *        to "
            "wait for a response.\n   * @return True if the data was sent, False otherwise.\n")
+      .def("send",
+           py::overload_cast<std::span<const uint8_t>, const espp::UdpSocket::SendConfig &>(
+               &espp::UdpSocket::send),
+           py::arg("data"), py::arg("send_config"),
+           "*\n   * @brief Send data to the endpoint specified by the send_config.\n   *        "
+           "Can be configured to multicast (within send_config) and can be\n   *        configured "
+           "to block waiting for a response from the remote.\n   *\n   *        @note in the case "
+           "of multicast, it will block only until the first\n   *              response.\n   *\n  "
+           " *        If response is requested, a callback can be provided in\n   *        "
+           "send_config which will be provided the response data for\n   *        processing.\n   "
+           "* @param data std::span of bytes to send to the remote endpoint.\n   * @param "
+           "send_config SendConfig struct indicating where to send and whether\n   *        to "
+           "wait for a response.\n   * @return True if the data was sent, False otherwise.\n")
       .def("receive", &espp::UdpSocket::receive, py::arg("max_num_bytes"), py::arg("data"),
            py::arg("remote_info"),
            "*\n   * @brief Call recvfrom on the socket, assuming it has already been\n   *        "
@@ -1916,12 +1940,12 @@ void py_init_module_espp(py::module &m) {
             "Task as a member.\n")
             .def(py::init<>([](std::string name = std::string(), size_t stack_size_bytes = {4096},
                                size_t priority = {0}, int core_id = {-1}) {
-                   auto r = std::make_unique<espp::Task::BaseConfig>();
-                   r->name = name;
-                   r->stack_size_bytes = stack_size_bytes;
-                   r->priority = priority;
-                   r->core_id = core_id;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::Task::BaseConfig>();
+                   r_ctor_->name = name;
+                   r_ctor_->stack_size_bytes = stack_size_bytes;
+                   r_ctor_->priority = priority;
+                   r_ctor_->core_id = core_id;
+                   return r_ctor_;
                  }),
                  py::arg("name") = std::string(), py::arg("stack_size_bytes") = size_t{4096},
                  py::arg("priority") = size_t{0}, py::arg("core_id") = int{-1})
@@ -1937,20 +1961,19 @@ void py_init_module_espp(py::module &m) {
             pyClassTask, "Config", py::dynamic_attr(),
             "*\n   * @brief Configuration struct for the Task.\n   *        Can be initialized "
             "with any of the supported callback function\n   *        signatures.\n")
-            .def(
-                py::init<>([](espp::Task::callback_no_params_fn callback =
-                                  espp::Task::callback_no_params_fn(),
-                              espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
-                              espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                  auto r = std::make_unique<espp::Task::Config>();
-                  r->callback = callback;
-                  r->task_config = task_config;
-                  r->log_level = log_level;
-                  return r;
-                }),
-                py::arg("callback") = espp::Task::callback_no_params_fn(),
-                py::arg("task_config") = espp::Task::BaseConfig(),
-                py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
+            .def(py::init<>(
+                     [](espp::Task::callback_variant callback = espp::Task::callback_variant(),
+                        espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
+                        espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
+                       auto r_ctor_ = std::make_unique<espp::Task::Config>();
+                       r_ctor_->callback = callback;
+                       r_ctor_->task_config = task_config;
+                       r_ctor_->log_level = log_level;
+                       return r_ctor_;
+                     }),
+                 py::arg("callback") = espp::Task::callback_variant(),
+                 py::arg("task_config") = espp::Task::BaseConfig(),
+                 py::arg("log_level") = espp::Logger::Verbosity{espp::Logger::Verbosity::WARN})
             .def_readwrite("callback", &espp::Task::Config::callback, "*< Callback function")
             .def_readwrite("task_config", &espp::Task::Config::task_config,
                            "*< Base configuration for the task.")
@@ -2029,17 +2052,17 @@ void py_init_module_espp(py::module &m) {
                                bool auto_start = {true}, size_t stack_size_bytes = {4096},
                                size_t priority = {0}, int core_id = {-1},
                                espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
-                   auto r = std::make_unique<espp::Timer::Config>();
-                   r->name = name;
-                   r->period = period;
-                   r->delay = delay;
-                   r->callback = callback;
-                   r->auto_start = auto_start;
-                   r->stack_size_bytes = stack_size_bytes;
-                   r->priority = priority;
-                   r->core_id = core_id;
-                   r->log_level = log_level;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::Timer::Config>();
+                   r_ctor_->name = name;
+                   r_ctor_->period = period;
+                   r_ctor_->delay = delay;
+                   r_ctor_->callback = callback;
+                   r_ctor_->auto_start = auto_start;
+                   r_ctor_->stack_size_bytes = stack_size_bytes;
+                   r_ctor_->priority = priority;
+                   r_ctor_->core_id = core_id;
+                   r_ctor_->log_level = log_level;
+                   return r_ctor_;
                  }),
                  py::arg("name") = std::string_view(),
                  py::arg("period") = std::chrono::duration<float>(),
@@ -2076,14 +2099,14 @@ void py_init_module_espp(py::module &m) {
                                bool auto_start = {true},
                                espp::Task::BaseConfig task_config = espp::Task::BaseConfig(),
                                espp::Logger::Verbosity log_level = espp::Logger::Verbosity::WARN) {
-                   auto r = std::make_unique<espp::Timer::AdvancedConfig>();
-                   r->period = period;
-                   r->delay = delay;
-                   r->callback = callback;
-                   r->auto_start = auto_start;
-                   r->task_config = task_config;
-                   r->log_level = log_level;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::Timer::AdvancedConfig>();
+                   r_ctor_->period = period;
+                   r_ctor_->delay = delay;
+                   r_ctor_->callback = callback;
+                   r_ctor_->auto_start = auto_start;
+                   r_ctor_->task_config = task_config;
+                   r_ctor_->log_level = log_level;
+                   return r_ctor_;
                  }),
                  py::arg("period") = std::chrono::duration<float>(),
                  py::arg("delay") = std::chrono::duration<float>(0),
@@ -2169,15 +2192,15 @@ void py_init_module_espp(py::module &m) {
                               float center_deadzone_radius = {0}, float range_deadzone = {0},
                               espp::Joystick::get_values_fn get_values = {nullptr},
                               espp::Logger::Verbosity log_level = {espp::Logger::Verbosity::WARN}) {
-                  auto r = std::make_unique<espp::Joystick::Config>();
-                  r->x_calibration = x_calibration;
-                  r->y_calibration = y_calibration;
-                  r->type = type;
-                  r->center_deadzone_radius = center_deadzone_radius;
-                  r->range_deadzone = range_deadzone;
-                  r->get_values = get_values;
-                  r->log_level = log_level;
-                  return r;
+                  auto r_ctor_ = std::make_unique<espp::Joystick::Config>();
+                  r_ctor_->x_calibration = x_calibration;
+                  r_ctor_->y_calibration = y_calibration;
+                  r_ctor_->type = type;
+                  r_ctor_->center_deadzone_radius = center_deadzone_radius;
+                  r_ctor_->range_deadzone = range_deadzone;
+                  r_ctor_->get_values = get_values;
+                  r_ctor_->log_level = log_level;
+                  return r_ctor_;
                 }),
                 py::arg("x_calibration") = espp::FloatRangeMapper::Config(),
                 py::arg("y_calibration") = espp::FloatRangeMapper::Config(),
@@ -2375,6 +2398,8 @@ void py_init_module_espp(py::module &m) {
 
   ////////////////////    <generated_from:jpeg_frame.hpp>    ////////////////////
   auto pyClassJpegFrame =
+      // NOTE: you must keep the `std::shared_ptr` argument here since we return
+      //       these and pass them via callback functions
       py::class_<espp::JpegFrame, std::shared_ptr<espp::JpegFrame>>(
           m, "JpegFrame", py::dynamic_attr(),
           "/ A class that represents a complete JPEG frame.\n/\n/ This class is used to collect "
@@ -2385,11 +2410,13 @@ void py_init_module_espp(py::module &m) {
                "the header of the packet and add the JPEG\n/ data to the frame.\n/\n/ @param "
                "packet The packet to parse.")
           .def(py::init<const std::vector<uint8_t> &>(), py::arg("data"),
-               "/ Construct a JpegFrame from buffer of jpeg data\n/ @param data The buffer "
-               "containing the jpeg data.\n/ @param size The size of the buffer.")
+               "/ Construct a JpegFrame from a vector of jpeg data.\n/ @param data The vector "
+               "containing the jpeg data.\n/ @note The vector must contain the complete JPEG data, "
+               "including the JPEG\n/       header and EOI marker.")
           .def(py::init<std::span<const uint8_t>>(), py::arg("data"),
-               "/ Construct a JpegFrame from buffer of jpeg data\n/ @param data The buffer "
-               "containing the jpeg data.\n/ @param size The size of the buffer.")
+               "/ Construct a JpegFrame from a span of jpeg data.\n/ @param data The span "
+               "containing the jpeg data.\n/ @note The span must contain the complete JPEG data, "
+               "including the JPEG\n/       header and EOI marker.")
           .def(py::init<const uint8_t *, size_t>(), py::arg("data"), py::arg("size"),
                "/ Construct a JpegFrame from buffer of jpeg data\n/ @param data The buffer "
                "containing the jpeg data.\n/ @param size The size of the buffer.")
@@ -2438,6 +2465,10 @@ void py_init_module_espp(py::module &m) {
                "/ Get the image width.\n/ @return The image width in pixels.")
           .def("get_height", &espp::JpegHeader::get_height,
                "/ Get the image height.\n/ @return The image height in pixels.")
+          .def("size", &espp::JpegHeader::size,
+               "/ Get the size of the JPEG header data.\n/ @return The size of the JPEG header "
+               "data in bytes.\n/ @note This is the size of the serialized JPEG header, not the "
+               "image size.")
           .def("get_data", &espp::JpegHeader::get_data,
                "/ Get the JPEG header data.\n/ @return The JPEG header data.")
           .def("get_quantization_table", &espp::JpegHeader::get_quantization_table,
@@ -2471,8 +2502,8 @@ void py_init_module_espp(py::module &m) {
                "/ Construct an RtpPacket with a payload of size payload_size.\n/ The packet_ "
                "vector is resized to RTP_HEADER_SIZE + payload_size.")
           .def(py::init<std::span<const uint8_t>>(), py::arg("data"),
-               "/ Construct an RtpPacket from a string_view.\n/ Store the string_view in the "
-               "packet_ vector and parses the header.\n/ @param data The string_view to parse.")
+               "/ Construct an RtpPacket from a span of bytes.\n/ Stores the bytes in the packet_ "
+               "vector and parses the header.\n/ @param data The span of bytes to parse.")
           .def("get_version", &espp::RtpPacket::get_version,
                "/ Get the RTP version.\n/ @return The RTP version.")
           .def("get_padding", &espp::RtpPacket::get_padding,
@@ -2515,19 +2546,20 @@ void py_init_module_espp(py::module &m) {
                "the payload, use\n/       set_payload().\n/       To get the payload, use "
                "get_payload().")
           .def("get_data", &espp::RtpPacket::get_data,
-               "/ Get a string_view of the whole packet.\n/ @note The string_view is valid as long "
-               "as the packet_ vector is not modified.\n/ @note If you manually build the packet_ "
-               "vector, you should make sure that you\n/       call serialize() before calling "
-               "this method.\n/ @return A string_view of the whole packet.")
+               "/ Get a span view of the whole packet.\n/ @note The span is valid as long as the "
+               "packet_ vector is not modified.\n/ @note If you manually build the packet_ vector, "
+               "you should make sure that you\n/       call serialize() before calling this "
+               "method.\n/ @return A span of the whole packet.")
           .def("get_rtp_header_size", &espp::RtpPacket::get_rtp_header_size,
                "/ Get the size of the RTP header.\n/ @return The size of the RTP header.")
           .def("get_rtp_header", &espp::RtpPacket::get_rtp_header,
-               "/ Get a string_view of the RTP header.\n/ @return A string_view of the RTP header.")
+               "/ Get a span of bytes of the RTP header.\n/ @return A span of bytes of the RTP "
+               "header.")
           .def("get_packet", &espp::RtpPacket::get_packet,
                "/ Get a reference to the packet_ vector.\n/ @return A reference to the packet_ "
                "vector.")
           .def("get_payload", &espp::RtpPacket::get_payload,
-               "/ Get a string_view of the payload.\n/ @return A string_view of the payload.")
+               "/ Get a span of bytes of the payload.\n/ @return A span of bytes of the payload.")
           .def("set_payload", &espp::RtpPacket::set_payload, py::arg("payload"),
                "/ Set the payload.\n/ @param payload The payload to set.");
   ////////////////////    </generated_from:rtp_packet.hpp>    ////////////////////
@@ -2766,10 +2798,10 @@ void py_init_module_espp(py::module &m) {
             "*\n   *  @brief Configuration for the lowpass filter.\n")
             .def(py::init<>(
                      [](float normalized_cutoff_frequency = float(), float q_factor = float()) {
-                       auto r = std::make_unique<espp::LowpassFilter::Config>();
-                       r->normalized_cutoff_frequency = normalized_cutoff_frequency;
-                       r->q_factor = q_factor;
-                       return r;
+                       auto r_ctor_ = std::make_unique<espp::LowpassFilter::Config>();
+                       r_ctor_->normalized_cutoff_frequency = normalized_cutoff_frequency;
+                       r_ctor_->q_factor = q_factor;
+                       return r_ctor_;
                      }),
                  py::arg("normalized_cutoff_frequency") = float(), py::arg("q_factor") = float())
             .def_readwrite(
@@ -2820,9 +2852,9 @@ void py_init_module_espp(py::module &m) {
             pyClassSimpleLowpassFilter, "Config", py::dynamic_attr(),
             "*\n   *  @brief Configuration for the lowpass filter.\n")
             .def(py::init<>([](float time_constant = 0.0f) {
-                   auto r = std::make_unique<espp::SimpleLowpassFilter::Config>();
-                   r->time_constant = time_constant;
-                   return r;
+                   auto r_ctor_ = std::make_unique<espp::SimpleLowpassFilter::Config>();
+                   r_ctor_->time_constant = time_constant;
+                   return r_ctor_;
                  }),
                  py::arg("time_constant") = 0.0f)
             .def_readwrite("time_constant", &espp::SimpleLowpassFilter::Config::time_constant,

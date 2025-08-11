@@ -145,7 +145,8 @@ public:
    *      This is primarily used to enable simpler API upgrades in the future
    *      and maximize backwards compatibility.
    */
-  typedef std::variant<callback_m_cv_notified_fn, callback_m_cv_fn, callback_no_params_fn>
+  typedef std::variant<std::monostate, callback_m_cv_notified_fn, callback_m_cv_fn,
+                       callback_no_params_fn>
       callback_variant;
 
   /**

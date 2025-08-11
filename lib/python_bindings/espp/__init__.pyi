@@ -2340,6 +2340,27 @@ class TcpSocket:
         pass
 
     @overload
+    def transmit(
+        self,
+        data: std.span[ int],
+        transmit_config: TcpSocket.TransmitConfig = TcpSocket.TransmitConfig.Default()
+        ) -> bool:
+        """*
+           * @brief Send data to the endpoint already connected to by TcpSocket::connect.
+           *        Can be configured to block waiting for a response from the remote.
+           *
+           *        If response is requested, a callback can be provided in
+           *        send_config which will be provided the response data for
+           *        processing.
+           * @param data span of bytes to send to the remote endpoint.
+           * @param transmit_config TransmitConfig struct indicating whether to wait for a
+           *        response.
+           * @return True if the data was sent, False otherwise.
+
+        """
+        pass
+
+    @overload
     def receive(self, data: List[int], max_num_bytes: int) -> bool:
         """*
            * @brief Call read on the socket, assuming it has already been configured
@@ -2528,6 +2549,27 @@ class UdpSocket:
            *        send_config which will be provided the response data for
            *        processing.
            * @param data String view of bytes to send to the remote endpoint.
+           * @param send_config SendConfig struct indicating where to send and whether
+           *        to wait for a response.
+           * @return True if the data was sent, False otherwise.
+
+        """
+        pass
+
+    @overload
+    def send(self, data: std.span[ int], send_config: UdpSocket.SendConfig) -> bool:
+        """*
+           * @brief Send data to the endpoint specified by the send_config.
+           *        Can be configured to multicast (within send_config) and can be
+           *        configured to block waiting for a response from the remote.
+           *
+           *        @note in the case of multicast, it will block only until the first
+           *              response.
+           *
+           *        If response is requested, a callback can be provided in
+           *        send_config which will be provided the response data for
+           *        processing.
+           * @param data std::span of bytes to send to the remote endpoint.
            * @param send_config SendConfig struct indicating where to send and whether
            *        to wait for a response.
            * @return True if the data was sent, False otherwise.
@@ -3159,12 +3201,13 @@ class Joystick:
 ####################    <generated_from:rtp_jpeg_packet.hpp>    ####################
 
 
+
 class RtpJpegPacket:
     """/ RTP packet for JPEG video.
     / The RTP payload for JPEG is defined in RFC 2435.
     """
     @overload
-    def __init__(self, data: std.string_view) -> None:
+    def __init__(self, data: std.span[ int]) -> None:
         """/ Construct an RTP packet from a buffer.
         / @param data The buffer containing the RTP packet.
         """
@@ -3178,9 +3221,9 @@ class RtpJpegPacket:
         q: int,
         width: int,
         height: int,
-        q0: std.string_view,
-        q1: std.string_view,
-        scan_data: std.string_view
+        q0: std.span[ int],
+        q1: std.span[ int],
+        scan_data: std.span[ int]
         ) -> None:
         """/ Construct an RTP packet from fields
         / @details This will construct a packet with quantization tables, so it
@@ -3205,7 +3248,7 @@ class RtpJpegPacket:
         q: int,
         width: int,
         height: int,
-        scan_data: std.string_view
+        scan_data: std.span[ int]
         ) -> None:
         """/ Construct an RTP packet from fields
         / @details This will construct a packet without quantization tables, so it
@@ -3251,7 +3294,7 @@ class RtpJpegPacket:
         """
         pass
 
-    def get_mjpeg_header(self) -> std.string_view:
+    def get_mjpeg_header(self) -> std.span[ int]:
         """/ Get the mjepg header.
         / @return The mjepg header.
         """
@@ -3276,14 +3319,14 @@ class RtpJpegPacket:
         """
         pass
 
-    def get_q_table(self, index: int) -> std.string_view:
+    def get_q_table(self, index: int) -> std.span[ int]:
         """/ Get the quantization table at the specified index.
         / @param index The index of the quantization table.
         / @return The quantization table at the specified index.
         """
         pass
 
-    def set_q_table(self, index: int, q_table: std.string_view) -> None:
+    def set_q_table(self, index: int, q_table: std.span[ int]) -> None:
         """/ Set the quantization table at the specified index.
         / @param index The index of the quantization table.
         / @param q_table The quantization table to set.
@@ -3292,7 +3335,7 @@ class RtpJpegPacket:
         """
         pass
 
-    def get_jpeg_data(self) -> std.string_view:
+    def get_jpeg_data(self) -> std.span[ int]:
         """/ Get the JPEG data.
         / The jpeg data is the payload minus the mjpeg header and quantization
         / tables.
@@ -3305,6 +3348,7 @@ class RtpJpegPacket:
 
 
 ####################    <generated_from:jpeg_frame.hpp>    ####################
+
 
 
 class JpegFrame:
@@ -3325,7 +3369,25 @@ class JpegFrame:
         pass
 
     @overload
-    def __init__(self, data: str, size: int) -> None:
+    def __init__(self, data: List[int]) -> None:
+        """/ Construct a JpegFrame from a vector of jpeg data.
+        / @param data The vector containing the jpeg data.
+        / @note The vector must contain the complete JPEG data, including the JPEG
+        /       header and EOI marker.
+        """
+        pass
+
+    @overload
+    def __init__(self, data: std.span[ int]) -> None:
+        """/ Construct a JpegFrame from a span of jpeg data.
+        / @param data The span containing the jpeg data.
+        / @note The span must contain the complete JPEG data, including the JPEG
+        /       header and EOI marker.
+        """
+        pass
+
+    @overload
+    def __init__(self, data: int, size: int) -> None:
         """/ Construct a JpegFrame from buffer of jpeg data
         / @param data The buffer containing the jpeg data.
         / @param size The size of the buffer.
@@ -3373,14 +3435,14 @@ class JpegFrame:
         """
         pass
 
-    def get_data(self) -> std.string_view:
+    def get_data(self) -> std.span[ int]:
         """/ Get the serialized data.
         / This will return the serialized data.
         / @return The serialized data.
         """
         pass
 
-    def get_scan_data(self) -> std.string_view:
+    def get_scan_data(self) -> std.span[ int]:
         """/ Get the scan data.
         / This will return the scan data.
         / @return The scan data.
@@ -3405,8 +3467,8 @@ class JpegHeader:
         self,
         width: int,
         height: int,
-        q0_table: std.string_view,
-        q1_table: std.string_view
+        q0_table: std.span[ int],
+        q1_table: std.span[ int]
         ) -> None:
         """/ Create a JPEG header for a given image size and quantization tables.
         / @param width The image width in pixels.
@@ -3417,7 +3479,7 @@ class JpegHeader:
         pass
 
     @overload
-    def __init__(self, data: std.string_view) -> None:
+    def __init__(self, data: std.span[ int]) -> None:
         """/ Create a JPEG header from a given JPEG header data."""
         pass
 
@@ -3434,13 +3496,20 @@ class JpegHeader:
         """
         pass
 
-    def get_data(self) -> std.string_view:
+    def size(self) -> int:
+        """/ Get the size of the JPEG header data.
+        / @return The size of the JPEG header data in bytes.
+        / @note This is the size of the serialized JPEG header, not the image size.
+        """
+        pass
+
+    def get_data(self) -> std.span[ int]:
         """/ Get the JPEG header data.
         / @return The JPEG header data.
         """
         pass
 
-    def get_quantization_table(self, index: int) -> std.string_view:
+    def get_quantization_table(self, index: int) -> std.span[ int]:
         """/ Get the Quantization table at the index.
         / @param index The index of the quantization table.
         / @return The quantization table.
@@ -3499,10 +3568,10 @@ class RtpPacket:
         pass
 
     @overload
-    def __init__(self, data: std.string_view) -> None:
-        """/ Construct an RtpPacket from a string_view.
-        / Store the string_view in the packet_ vector and parses the header.
-        / @param data The string_view to parse.
+    def __init__(self, data: std.span[ int]) -> None:
+        """/ Construct an RtpPacket from a span of bytes.
+        / Stores the bytes in the packet_ vector and parses the header.
+        / @param data The span of bytes to parse.
         """
         pass
 
@@ -3636,12 +3705,12 @@ class RtpPacket:
         """
         pass
 
-    def get_data(self) -> std.string_view:
-        """/ Get a string_view of the whole packet.
-        / @note The string_view is valid as long as the packet_ vector is not modified.
+    def get_data(self) -> std.span[ int]:
+        """/ Get a span view of the whole packet.
+        / @note The span is valid as long as the packet_ vector is not modified.
         / @note If you manually build the packet_ vector, you should make sure that you
         /       call serialize() before calling this method.
-        / @return A string_view of the whole packet.
+        / @return A span of the whole packet.
         """
         pass
 
@@ -3651,9 +3720,9 @@ class RtpPacket:
         """
         pass
 
-    def get_rpt_header(self) -> std.string_view:
-        """/ Get a string_view of the RTP header.
-        / @return A string_view of the RTP header.
+    def get_rtp_header(self) -> std.span[ int]:
+        """/ Get a span of bytes of the RTP header.
+        / @return A span of bytes of the RTP header.
         """
         pass
 
@@ -3663,13 +3732,13 @@ class RtpPacket:
         """
         pass
 
-    def get_payload(self) -> std.string_view:
-        """/ Get a string_view of the payload.
-        / @return A string_view of the payload.
+    def get_payload(self) -> std.span[ int]:
+        """/ Get a span of bytes of the payload.
+        / @return A span of bytes of the payload.
         """
         pass
 
-    def set_payload(self, payload: std.string_view) -> None:
+    def set_payload(self, payload: std.span[ int]) -> None:
         """/ Set the payload.
         / @param payload The payload to set.
         """
