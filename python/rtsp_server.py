@@ -67,31 +67,21 @@ info = ServiceInfo(
 zeroconf.register_service(info)
 print(f"Registered RTSP service: {info}")
 
-time.sleep(1)  # wait for the server to start
-
-# we need to know what platform we are running on to set up the video capture
-# correctly
-import platform
-
 # initialize the video capture
 if use_display:
     cap = mss.mss()  # use mss to capture the display
-    temp_img = cap.grab(cap.monitors[1])  # capture the primary monitor
 else:
     # capture a frame from the default camera
     cap = cv2.VideoCapture(camera_index)
 
-# make a task to grab a video or the display, resize it, and call
-# `rtsp_server.send_frame(frame)` periodically
-def task_func():
-    global rtsp_server
+def get_frame(image_size=(320, 240), jpeg_quality=10):
     global cap
     global use_display
     if use_display:
         frame = np.array(cap.grab(cap.monitors[1]))  # capture the primary monitor
         if frame is None:
             print("Failed to capture frame from display")
-            return True
+            return None
         # convert from rgba to bgr
         frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2RGB)
     else:
@@ -100,28 +90,25 @@ def task_func():
         ret, frame = cap.read()
         if not ret:
             print("Failed to capture frame")
-            return True # stop the task
+            return None
     # resize the frame to a smaller size (320x240)
-    image_size = (320, 240)
     resized_frame = cv2.resize(frame, image_size)
-    jpeg_quality = 10
-
-    # # use opencv to convert to jpeg
-    # ret, image_bytes = cv2.imencode('.jpg', resized_frame, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
-    # image_bytes = image_bytes.tobytes()
-    # if not ret:
-    #     print("Failed to encode frame as JPEG")
-    #     return False
 
     # encode the frame as JPEG
     image_bytes = encode_jpeg(resized_frame, quality=jpeg_quality, colorspace='BGR')
 
+    return image_bytes
+
+# make a task to grab a video or the display, resize it, and call
+# `rtsp_server.send_frame(frame)` periodically
+def task_func():
+    global rtsp_server
+    image_bytes = get_frame()
+    if image_bytes is None:
+        return True # stop the task if we failed to get a frame
     # create a JpegFrame object with the image data and bytes
     frame = espp.JpegFrame(image_bytes)
-    # print(f"Captured frame {frame.get_width()} x {frame.get_height()} pixels")
-
     # send the frame to the RTSP server
-    # print(f"Sending frame of size {len(image_bytes)} bytes to RTSP clients...")
     rtsp_server.send_frame(frame)
     time.sleep(.1)
     return False # we don't want to stop the task
