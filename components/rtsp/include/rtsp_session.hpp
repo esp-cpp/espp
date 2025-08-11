@@ -39,7 +39,8 @@ public:
   /// @brief Construct a new RtspSession object
   /// @param control_socket The control socket of the session
   /// @param config The configuration of the session
-  explicit RtspSession(std::unique_ptr<espp::TcpSocket> control_socket, const Config &config);
+  explicit RtspSession(std::shared_ptr<espp::TcpSocket> control_socket,
+                       const espp::RtspSession::Config &config);
 
   /// @brief Destroy the RtspSession object
   /// Stop the session task
@@ -179,7 +180,7 @@ protected:
   bool parse_rtsp_setup_request(std::string_view request, std::string_view &rtsp_path,
                                 int &client_rtp_port, int &client_rtcp_port);
 
-  std::unique_ptr<espp::TcpSocket> control_socket_;
+  std::shared_ptr<espp::TcpSocket> control_socket_;
   espp::UdpSocket rtp_socket_;
   espp::UdpSocket rtcp_socket_;
 

@@ -13,7 +13,7 @@ RtpPacket::RtpPacket(size_t payload_size)
   packet_.resize(RTP_HEADER_SIZE + payload_size);
 }
 
-RtpPacket::RtpPacket(std::string_view data) {
+RtpPacket::RtpPacket(std::span<const uint8_t> data) {
   packet_.assign(data.begin(), data.end());
   payload_size_ = packet_.size() - RTP_HEADER_SIZE;
   if (packet_.size() >= RTP_HEADER_SIZE)
@@ -46,23 +46,23 @@ void RtpPacket::set_ssrc(int ssrc) { ssrc_ = ssrc; }
 
 void RtpPacket::serialize() { serialize_rtp_header(); }
 
-std::string_view RtpPacket::get_data() const {
-  return std::string_view((char *)packet_.data(), packet_.size());
+std::span<const uint8_t> RtpPacket::get_data() const {
+  return std::span<const uint8_t>(packet_.data(), packet_.size());
 }
 
 size_t RtpPacket::get_rtp_header_size() const { return RTP_HEADER_SIZE; }
 
-std::string_view RtpPacket::get_rpt_header() const {
-  return std::string_view((char *)packet_.data(), RTP_HEADER_SIZE);
+std::span<const uint8_t> RtpPacket::get_rtp_header() const {
+  return std::span<const uint8_t>(packet_.data(), RTP_HEADER_SIZE);
 }
 
 std::vector<uint8_t> &RtpPacket::get_packet() { return packet_; }
 
-std::string_view RtpPacket::get_payload() const {
-  return std::string_view((char *)packet_.data() + RTP_HEADER_SIZE, payload_size_);
+std::span<const uint8_t> RtpPacket::get_payload() const {
+  return std::span<const uint8_t>(packet_.data() + RTP_HEADER_SIZE, payload_size_);
 }
 
-void RtpPacket::set_payload(std::string_view payload) {
+void RtpPacket::set_payload(std::span<const uint8_t> payload) {
   packet_.resize(RTP_HEADER_SIZE + payload.size());
   std::copy(payload.begin(), payload.end(), packet_.begin() + RTP_HEADER_SIZE);
   payload_size_ = payload.size();

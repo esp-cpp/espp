@@ -10,7 +10,7 @@ def task_func():
     time.sleep(.5)
     return False # we don't want to stop the task
 
-task = espp.Task(espp.Task.SimpleConfig(
+task = espp.Task(espp.Task.Config(
     task_func, #function
     # config
     espp.Task.BaseConfig("test task")

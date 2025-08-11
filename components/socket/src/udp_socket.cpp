@@ -12,10 +12,15 @@ UdpSocket::~UdpSocket() {
 }
 
 bool UdpSocket::send(const std::vector<uint8_t> &data, const UdpSocket::SendConfig &send_config) {
-  return send(std::string_view{(const char *)data.data(), data.size()}, send_config);
+  return send(std::span<const uint8_t>{data.data(), data.size()}, send_config);
 }
 
 bool UdpSocket::send(std::string_view data, const UdpSocket::SendConfig &send_config) {
+  return send(std::span<const uint8_t>{reinterpret_cast<const uint8_t *>(data.data()), data.size()},
+              send_config);
+}
+
+bool UdpSocket::send(std::span<const uint8_t> data, const UdpSocket::SendConfig &send_config) {
   if (!is_valid()) {
     logger_.error("Socket invalid, cannot send");
     return false;

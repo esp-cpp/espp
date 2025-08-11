@@ -2,7 +2,7 @@
 
 using namespace espp;
 
-RtspSession::RtspSession(std::unique_ptr<TcpSocket> control_socket, const Config &config)
+RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config &config)
     : BaseComponent("RtspSession", config.log_level)
     , control_socket_(std::move(control_socket))
     , rtp_socket_({.log_level = Logger::Verbosity::WARN})

@@ -52,7 +52,7 @@ public:
 
   /// @brief Construct an RTSP server
   /// @param config The configuration for the RTSP server
-  explicit RtspServer(const Config &config);
+  explicit RtspServer(const espp::RtspServer::Config &config);
 
   /// @brief Destroy the RTSP server
   ~RtspServer();

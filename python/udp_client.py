@@ -5,7 +5,7 @@ from support_loader import espp
 udp_client = espp.UdpSocket(espp.UdpSocket.Config(espp.Logger.Verbosity.debug))
 
 start = time.time()
-def task_func():
+def task_func() -> bool:
     global start
     global udp_client
     port = 5555
@@ -19,7 +19,7 @@ def task_func():
     time.sleep(.5)
     return False # we don't want to stop the task
 
-task = espp.Task(espp.Task.SimpleConfig(
+task = espp.Task(espp.Task.Config(
     task_func, #function
     # config
     espp.Task.BaseConfig("test task")
