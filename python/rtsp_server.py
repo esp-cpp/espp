@@ -26,6 +26,9 @@ parser = argparse.ArgumentParser(description='RTSP Server for MJPEG streaming')
 parser.add_argument('--port', type=int, default=8554, help='Port number for RTSP server (default: 8554)')
 parser.add_argument('--use-display', action='store_true', help='Use display as video source instead of webcam')
 parser.add_argument('--camera', type=int, default=0, help='Camera index to use (default: 0)')
+parser.add_argument('--jpeg-quality', type=int, default=10, help='JPEG quality (1-100, default: 10)')
+parser.add_argument('--image-width', type=int, default=320, help='Width of the image (default: 320)')
+parser.add_argument('--image-height', type=int, default=240, help='Height of the image (default: 240)')
 args = parser.parse_args()
 
 # if use_display is set, we will use the display as the video source
@@ -35,6 +38,8 @@ if use_display:
     print("Using display as video source")
 else:
     print(f"Using camera index {camera_index} as video source")
+jpeg_quality = args.jpeg_quality
+image_size = (args.image_width, args.image_height)
 
 # initialize the RTSP server
 
@@ -74,6 +79,7 @@ else:
     # capture a frame from the default camera
     cap = cv2.VideoCapture(camera_index)
 
+# function to capture a frame, resize it, and encode it as JPEG
 def get_frame(image_size=(320, 240), jpeg_quality=10):
     global cap
     global use_display
@@ -102,15 +108,15 @@ def get_frame(image_size=(320, 240), jpeg_quality=10):
 # make a task to grab a video or the display, resize it, and call
 # `rtsp_server.send_frame(frame)` periodically
 def task_func():
-    global rtsp_server
-    image_bytes = get_frame()
+    global rtsp_server, jpeg_quality, image_size
+    image_bytes = get_frame(image_size=image_size, jpeg_quality=jpeg_quality)
     if image_bytes is None:
         return True # stop the task if we failed to get a frame
     # create a JpegFrame object with the image data and bytes
     frame = espp.JpegFrame(image_bytes)
     # send the frame to the RTSP server
     rtsp_server.send_frame(frame)
-    time.sleep(.1)
+    time.sleep(.01)
     return False # we don't want to stop the task
 
 task = espp.Task(
