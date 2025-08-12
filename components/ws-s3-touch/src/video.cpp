@@ -285,13 +285,17 @@ WsS3Touch::Pixel *WsS3Touch::vram1() const {
 
 void WsS3Touch::brightness(float brightness) {
   brightness = std::clamp(brightness, 0.0f, 100.0f);
-  // PWM-driven backlight using LEDC is internal to Display; we use callbacks here.
-  if (display_)
-    display_->set_brightness(brightness / 100.0f);
+  if (backlight_) {
+    backlight_->set_duty(backlight_channel_configs_[0].channel, brightness);
+  }
 }
 
 float WsS3Touch::brightness() const {
-  if (display_)
-    return display_->get_brightness() * 100.0f;
-  return 0.0f;
+  if (backlight_) {
+    auto maybe_duty = backlight_->get_duty(backlight_channel_configs_[0].channel);
+    if (maybe_duty.has_value()) {
+      return maybe_duty.value();
+    }
+  }
+  return 0.0f; // if no backlight, return 0
 }
