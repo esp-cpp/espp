@@ -260,6 +260,7 @@ protected:
   static constexpr bool mirror_x = false;
   static constexpr bool mirror_y = true;
   static constexpr bool mirror_portrait = false;
+  static constexpr bool swap_color_order = true;
   static constexpr bool swap_xy = false;
 
   // TODO: allow core id configuration
