@@ -10,6 +10,7 @@
 
 #include "base_component.hpp"
 #include "ili9341.hpp"
+#include "led.hpp"
 
 namespace espp {
 /// The WroverKit class provides an interface to the ESP32-WROVER-KIT ESP32
@@ -84,10 +85,12 @@ public:
 
   /// Set the brightness of the backlight
   /// \param brightness The brightness of the backlight as a percentage (0 - 100)
+  /// \note This function will only work after initialize_lcd() has been called
   void brightness(float brightness);
 
   /// Get the brightness of the backlight
   /// \return The brightness of the backlight as a percentage (0 - 100)
+  /// \note This function will only work after initialize_lcd() has been called
   float brightness() const;
 
   /// Get the VRAM 0 pointer (DMA memory used by LVGL)
@@ -176,6 +179,8 @@ protected:
 
   // display
   std::shared_ptr<Display<Pixel>> display_;
+  std::vector<Led::ChannelConfig> backlight_channel_configs_{};
+  std::shared_ptr<Led> backlight_{};
   /// SPI bus for communication with the LCD
   spi_bus_config_t lcd_spi_bus_config_;
   spi_device_interface_config_t lcd_config_;
