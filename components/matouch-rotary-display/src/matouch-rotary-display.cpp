@@ -236,7 +236,7 @@ static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t) {
 }
 
 bool MatouchRotaryDisplay::initialize_lcd() {
-  if (lcd_handle_) {
+  if (lcd_handle_ || backlight_) {
     logger_.warn("LCD already initialized, not initializing again!");
     return false;
   }
@@ -280,6 +280,17 @@ bool MatouchRotaryDisplay::initialize_lcd() {
       .swap_color_order = swap_color_order,
       .mirror_x = mirror_x,
       .mirror_y = mirror_y});
+  // Initialize backlight PWM (moved out of Display)
+  backlight_channel_configs_.push_back({.gpio = static_cast<size_t>(backlight_io),
+                                        .channel = LEDC_CHANNEL_0,
+                                        .timer = LEDC_TIMER_0,
+                                        .output_invert = !backlight_value});
+  backlight_ =
+      std::make_shared<espp::Led>((espp::Led::Config{.timer = LEDC_TIMER_0,
+                                                     .frequency_hz = 5000,
+                                                     .channels = backlight_channel_configs_,
+                                                     .duty_resolution = LEDC_TIMER_10_BIT}));
+  brightness(100.0f);
   return true;
 }
 
@@ -301,8 +312,9 @@ bool MatouchRotaryDisplay::initialize_display(size_t pixel_buffer_size) {
                                  .flush_callback = DisplayDriver::flush,
                                  .rotation_callback = DisplayDriver::rotate,
                                  .rotation = rotation},
-      Display<Pixel>::LcdConfig{.backlight_pin = backlight_io,
-                                .backlight_on_value = backlight_value},
+      Display<Pixel>::OledConfig{
+          .set_brightness_callback = [this](float brightness) { this->brightness(brightness); },
+          .get_brightness_callback = [this]() { return this->brightness(); }},
       Display<Pixel>::DynamicMemoryConfig{
           .pixel_buffer_size = pixel_buffer_size,
           .double_buffered = true,
@@ -469,12 +481,18 @@ uint8_t *MatouchRotaryDisplay::frame_buffer0() const { return frame_buffer0_; }
 uint8_t *MatouchRotaryDisplay::frame_buffer1() const { return frame_buffer1_; }
 
 void MatouchRotaryDisplay::brightness(float brightness) {
-  brightness = std::clamp(brightness, 0.0f, 100.0f) / 100.0f;
-  // display expects a value between 0 and 1
-  display_->set_brightness(brightness);
+  brightness = std::clamp(brightness, 0.0f, 100.0f);
+  if (backlight_) {
+    backlight_->set_duty(backlight_channel_configs_[0].channel, brightness);
+  }
 }
 
 float MatouchRotaryDisplay::brightness() const {
-  // display returns a value between 0 and 1
-  return display_->get_brightness() * 100.0f;
+  if (backlight_) {
+    auto maybe_duty = backlight_->get_duty(backlight_channel_configs_[0].channel);
+    if (maybe_duty.has_value()) {
+      return maybe_duty.value();
+    }
+  }
+  return 0.0f; // if no backlight, return 0
 }
