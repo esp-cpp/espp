@@ -1,3 +1,4 @@
+import sys
 import time
 
 import argparse
@@ -142,4 +143,4 @@ zeroconf.unregister_service(info)
 print("Closing zeroconf...")
 zeroconf.close()
 
-exit()
+sys.exit(0)

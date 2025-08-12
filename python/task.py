@@ -1,3 +1,4 @@
+import sys
 import time
 
 from support_loader import espp
@@ -18,4 +19,4 @@ task.start()
 
 time.sleep(5)
 
-exit()
+sys.exit(0)

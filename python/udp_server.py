@@ -1,3 +1,4 @@
+import sys
 import time
 
 from support_loader import espp
@@ -32,4 +33,4 @@ udp_client.start_receiving(espp.Task.BaseConfig("udp_task"), receive_config)
 
 time.sleep(10)
 
-exit()
+sys.exit(0)

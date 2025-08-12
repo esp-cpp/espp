@@ -1,3 +1,4 @@
+import sys
 import time
 
 import socket
@@ -73,25 +74,25 @@ print("Connecting to RTSP server...")
 rtsp_client.connect(ec)
 if ec:
     print(f"Error connecting to RTSP server: {ec}")
-    exit(1)
+    sys.exit(1)
 
 print("Describing RTSP client...")
 rtsp_client.describe(ec)
 if ec:
     print(f"Error describing RTSP client: {ec}")
-    exit(1)
+    sys.exit(1)
 
 print("Setting up RTSP client...")
 rtsp_client.setup(ec)
 if ec:
     print(f"Error setting up RTSP client: {ec}")
-    exit(1)
+    sys.exit(1)
 
 print("Playing RTSP client...")
 rtsp_client.play(ec)
 if ec:
     print(f"Error playing RTSP client: {ec}")
-    exit(1)
+    sys.exit(1)
 
 # right now our client should be connected and receiving frames, calling the
 # callback.
@@ -135,4 +136,4 @@ if ec:
     print(f"Error tearing down RTSP client: {ec}")
 zeroconf.close()
 
-exit()
+sys.exit(0)

@@ -1,3 +1,4 @@
+import sys
 import time
 
 from support_loader import espp
@@ -23,4 +24,4 @@ timer = espp.Timer(espp.Timer.Config(
 
 time.sleep(5)
 
-exit()
+sys.exit(0)
