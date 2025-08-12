@@ -219,13 +219,12 @@ protected:
     packet[offset++] = 0;
     packet[offset++] = NUM_Q_TABLES * Q_TABLE_SIZE;
 
-    memcpy(packet.data() + offset, q0.data(), Q_TABLE_SIZE);
-    q_tables_[0] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
-    offset += Q_TABLE_SIZE;
-
-    memcpy(packet.data() + offset, q1.data(), Q_TABLE_SIZE);
-    q_tables_[1] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
-    offset += Q_TABLE_SIZE;
+    const uint8_t *datas[] = {q0.data(), q1.data()};
+    for (int i = 0; i < NUM_Q_TABLES; i++) {
+      memcpy(packet.data() + offset, datas[i], Q_TABLE_SIZE);
+      q_tables_[i] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
+      offset += Q_TABLE_SIZE;
+    }
   }
 
   uint8_t type_specific_{0};
