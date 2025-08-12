@@ -46,7 +46,7 @@ bool UdpSocket::send(std::span<const uint8_t> data, const UdpSocket::SendConfig 
   auto server_address = server_info.ipv4_ptr();
   logger_.info("Client sending {} bytes to {}:{}", data.size(), send_config.ip_address,
                send_config.port);
-  int num_bytes_sent = sendto(socket_, data.data(), data.size(), 0,
+  int num_bytes_sent = sendto(socket_, reinterpret_cast<const char *>(data.data()), data.size(), 0,
                               (struct sockaddr *)server_address, sizeof(*server_address));
   if (num_bytes_sent < 0) {
     logger_.error("Error occurred during sending: {}", error_string());
