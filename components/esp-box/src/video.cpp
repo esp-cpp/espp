@@ -49,10 +49,13 @@ bool EspBox::initialize_lcd() {
                                         .timer = LEDC_TIMER_0,
                                         .output_invert = !backlight_value});
 
-  backlight_ = std::make_unique<Led>((Led::Config{.timer = LEDC_TIMER_0,
+  backlight_ = std::make_shared<Led>((Led::Config{.timer = LEDC_TIMER_0,
                                                   .frequency_hz = 5000,
                                                   .channels = backlight_channel_configs_,
                                                   .duty_resolution = LEDC_TIMER_10_BIT}));
+
+  // set the brightness to 100%
+  brightness(100.0f);
 
   esp_err_t ret;
 
