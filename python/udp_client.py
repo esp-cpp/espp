@@ -4,6 +4,7 @@ from support_loader import espp
 
 udp_client = espp.UdpSocket(espp.UdpSocket.Config(espp.Logger.Verbosity.debug))
 
+# defined out here so that it's only initialized once, not on each callback
 start = time.time()
 def task_func() -> bool:
     global start

@@ -48,11 +48,38 @@ packets. TCP transport is not supported.
 
 ## Testing and Utilities
 
+We have a few ways for testing the RTSP code:
+- **ESPP Python Library**:
+  [`espp/lib`](https://github.com/esp-cpp/espp/tree/main/lib) contains the code
+  and scripts needed to build the ESPP Python library, which can be used to test
+  the RTSP server and client using Python scripts. There are existing RTSP
+  python tests within
+  [`espp/python`](https://github.com/esp-cpp/espp/tree/main/python) which use
+  this lib and provide various RTSP client / server functionality.
+- **Pure Python**: The [`rtsp/python`](./python) folder contains pure Python
+  scripts that can be used to connect to and display the RTSP stream from an
+  RTSP server, using both mDNS and directly by IP address.
+
+### ESPP Python Library
+
+The [`espp/lib`](https://github.com/esp-cpp/espp/tree/main/lib) folder contains
+the code and scripts needed to build the ESPP Python library, which can be used
+to test the RTSP server and client functionality. This library provides a Python
+interface to the RTSP server and client classes, allowing you to easily send and
+receive RTSP requests and responses, as well as send and receive JPEG frames
+over RTP/UDP.
+
+The [`espp/python`](https://github.com/esp-cpp/espp/tree/main/python) folder
+contains the actual python scripts which run espp c++ code (via `pybind11`). See
+the `README` in that directory for more information on how to use those scripts.
+
+### Pure Python
+
 To facilitate testing and debugging of the RTSP code, there are some
-[python](./python) scripts which provide various mechanisms for connecting to
-and displaying the RTSP stream from an RTSP server, using both mDNS and directly
-by IP address. These scripts can be used to test the RTSP server and client
-implementations.
+[python](./python) scripts in this folder which provide various mechanisms for
+connecting to and displaying the RTSP stream from an RTSP server, using both
+mDNS and directly by IP address. These scripts can be used to test the RTSP
+server and client implementations.
 
 See [python/README.md](./python/README.md) for more information on how to use
 these scripts.
