@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace espp {
@@ -20,10 +20,10 @@ public:
   /// The packet_ vector is resized to RTP_HEADER_SIZE + payload_size.
   explicit RtpPacket(size_t payload_size);
 
-  /// Construct an RtpPacket from a string_view.
-  /// Store the string_view in the packet_ vector and parses the header.
-  /// @param data The string_view to parse.
-  explicit RtpPacket(std::string_view data);
+  /// Construct an RtpPacket from a span of bytes.
+  /// Stores the bytes in the packet_ vector and parses the header.
+  /// @param data The span of bytes to parse.
+  explicit RtpPacket(std::span<const uint8_t> data);
 
   /// Destructor.
   ~RtpPacket();
@@ -119,32 +119,32 @@ public:
   ///       To get the payload, use get_payload().
   void serialize();
 
-  /// Get a string_view of the whole packet.
-  /// @note The string_view is valid as long as the packet_ vector is not modified.
+  /// Get a span view of the whole packet.
+  /// @note The span is valid as long as the packet_ vector is not modified.
   /// @note If you manually build the packet_ vector, you should make sure that you
   ///       call serialize() before calling this method.
-  /// @return A string_view of the whole packet.
-  std::string_view get_data() const;
+  /// @return A span of the whole packet.
+  std::span<const uint8_t> get_data() const;
 
   /// Get the size of the RTP header.
   /// @return The size of the RTP header.
   size_t get_rtp_header_size() const;
 
-  /// Get a string_view of the RTP header.
-  /// @return A string_view of the RTP header.
-  std::string_view get_rpt_header() const;
+  /// Get a span of bytes of the RTP header.
+  /// @return A span of bytes of the RTP header.
+  std::span<const uint8_t> get_rtp_header() const;
 
   /// Get a reference to the packet_ vector.
   /// @return A reference to the packet_ vector.
   std::vector<uint8_t> &get_packet();
 
-  /// Get a string_view of the payload.
-  /// @return A string_view of the payload.
-  std::string_view get_payload() const;
+  /// Get a span of bytes of the payload.
+  /// @return A span of bytes of the payload.
+  std::span<const uint8_t> get_payload() const;
 
   /// Set the payload.
   /// @param payload The payload to set.
-  void set_payload(std::string_view payload);
+  void set_payload(std::span<const uint8_t> payload);
 
 protected:
   static constexpr int RTP_HEADER_SIZE = 12;

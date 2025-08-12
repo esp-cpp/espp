@@ -31,7 +31,7 @@ namespace espp {
 class RtspClient : public BaseComponent {
 public:
   /// Function type for the callback to call when a JPEG frame is received
-  using jpeg_frame_callback_t = std::function<void(std::unique_ptr<JpegFrame> jpeg_frame)>;
+  typedef std::function<void(std::shared_ptr<espp::JpegFrame> jpeg_frame)> jpeg_frame_callback_t;
 
   /// Configuration for the RTSP client
   struct Config {
@@ -48,7 +48,7 @@ public:
 
   /// Constructor
   /// \param config The configuration for the RTSP client
-  explicit RtspClient(const Config &config);
+  explicit RtspClient(const espp::RtspClient::Config &config);
 
   /// Destructor
   /// Disconnects from the RTSP server

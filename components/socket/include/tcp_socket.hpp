@@ -7,6 +7,7 @@
 #endif // _MSC_VER
 
 #include <optional>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -152,6 +153,22 @@ public:
    */
   bool transmit(std::string_view data, const espp::TcpSocket::TransmitConfig &transmit_config =
                                            espp::TcpSocket::TransmitConfig::Default());
+
+  /**
+   * @brief Send data to the endpoint already connected to by TcpSocket::connect.
+   *        Can be configured to block waiting for a response from the remote.
+   *
+   *        If response is requested, a callback can be provided in
+   *        send_config which will be provided the response data for
+   *        processing.
+   * @param data span of bytes to send to the remote endpoint.
+   * @param transmit_config TransmitConfig struct indicating whether to wait for a
+   *        response.
+   * @return true if the data was sent, false otherwise.
+   */
+  bool transmit(std::span<const uint8_t> data,
+                const espp::TcpSocket::TransmitConfig &transmit_config =
+                    espp::TcpSocket::TransmitConfig::Default());
 
   /**
    * @brief Call read on the socket, assuming it has already been configured

@@ -1,15 +1,17 @@
 #pragma once
 
+#include <span>
+
 #include "rtp_packet.hpp"
 
 namespace espp {
 /// RTP packet for JPEG video.
 /// The RTP payload for JPEG is defined in RFC 2435.
-class RtpJpegPacket : public RtpPacket {
+class RtpJpegPacket : public espp::RtpPacket {
 public:
   /// Construct an RTP packet from a buffer.
   /// @param data The buffer containing the RTP packet.
-  explicit RtpJpegPacket(std::string_view data)
+  explicit RtpJpegPacket(std::span<const uint8_t> data)
       : RtpPacket(data) {
     parse_mjpeg_header();
   }
@@ -26,8 +28,8 @@ public:
   /// @param q1 The second quantization table.
   /// @param scan_data The scan data.
   explicit RtpJpegPacket(const int type_specific, const int frag_type, const int q, const int width,
-                         const int height, std::string_view q0, std::string_view q1,
-                         std::string_view scan_data)
+                         const int height, std::span<const uint8_t> q0, std::span<const uint8_t> q1,
+                         std::span<const uint8_t> scan_data)
       : RtpPacket(PAYLOAD_OFFSET_WITH_QUANT + scan_data.size())
       , type_specific_(type_specific)
       , offset_(0)
@@ -58,7 +60,8 @@ public:
   /// @param height The height field.
   /// @param scan_data The scan data.
   explicit RtpJpegPacket(const int type_specific, const int offset, const int frag_type,
-                         const int q, const int width, const int height, std::string_view scan_data)
+                         const int q, const int width, const int height,
+                         std::span<const uint8_t> scan_data)
       : RtpPacket(PAYLOAD_OFFSET_NO_QUANT + scan_data.size())
       , type_specific_(type_specific)
       , offset_(offset)
@@ -100,8 +103,8 @@ public:
 
   /// Get the mjepg header.
   /// @return The mjepg header.
-  std::string_view get_mjpeg_header() const {
-    return std::string_view((char *)get_payload().data(), MJPEG_HEADER_SIZE);
+  std::span<const uint8_t> get_mjpeg_header() const {
+    return std::span<const uint8_t>(get_payload().data(), MJPEG_HEADER_SIZE);
   }
 
   /// Get whether the packet contains quantization tables.
@@ -122,16 +125,23 @@ public:
   /// Get the quantization table at the specified index.
   /// @param index The index of the quantization table.
   /// @return The quantization table at the specified index.
-  std::string_view get_q_table(int index) const {
+  std::span<const uint8_t> get_q_table(int index) const {
     if (index < get_num_q_tables()) {
-      return q_tables_[index];
+      return std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(q_tables_[index].data()),
+                                      q_tables_[index].size());
     }
     return {};
   }
 
-  void set_q_table(int index, std::string_view q_table) {
+  /// Set the quantization table at the specified index.
+  /// @param index The index of the quantization table.
+  /// @param q_table The quantization table to set.
+  /// @note This will not change the size of the packet. If the index is out of
+  ///       bounds, the quantization table will not be set.
+  void set_q_table(int index, std::span<const uint8_t> q_table) {
     if (index < get_num_q_tables()) {
-      q_tables_[index] = q_table;
+      q_tables_[index] =
+          std::string_view(reinterpret_cast<const char *>(q_table.data()), q_table.size());
     }
   }
 
@@ -139,9 +149,10 @@ public:
   /// The jpeg data is the payload minus the mjpeg header and quantization
   /// tables.
   /// @return The JPEG data.
-  std::string_view get_jpeg_data() const {
+  std::span<const uint8_t> get_jpeg_data() const {
     auto payload = get_payload();
-    return std::string_view((char *)payload.data() + jpeg_data_start_, jpeg_data_size_);
+    return std::span<const uint8_t>(
+        reinterpret_cast<const uint8_t *>(payload.data()) + jpeg_data_start_, jpeg_data_size_);
   }
 
 protected:
@@ -175,6 +186,9 @@ protected:
           q_tables_[i] = std::string_view((char *)payload.data() + offset, Q_TABLE_SIZE);
           offset += Q_TABLE_SIZE;
         }
+      } else {
+        fmt::print("RtpJpegPacket: Invalid number of quantization bytes: {} (expected {})\n",
+                   num_quant_bytes, expected_num_quant_bytes);
       }
     }
 
@@ -196,7 +210,7 @@ protected:
     packet[offset++] = height_ / 8;
   }
 
-  void serialize_q_tables(std::string_view q0, std::string_view q1) {
+  void serialize_q_tables(std::span<const uint8_t> q0, std::span<const uint8_t> q1) {
     q_tables_.resize(NUM_Q_TABLES);
     auto &packet = get_packet();
     int offset = get_rtp_header_size() + MJPEG_HEADER_SIZE;
@@ -205,13 +219,12 @@ protected:
     packet[offset++] = 0;
     packet[offset++] = NUM_Q_TABLES * Q_TABLE_SIZE;
 
-    memcpy(packet.data() + offset, q0.data(), Q_TABLE_SIZE);
-    q_tables_[0] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
-    offset += Q_TABLE_SIZE;
-
-    memcpy(packet.data() + offset, q1.data(), Q_TABLE_SIZE);
-    q_tables_[1] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
-    // offset += Q_TABLE_SIZE;
+    const uint8_t *datas[] = {q0.data(), q1.data()};
+    for (int i = 0; i < NUM_Q_TABLES; i++) {
+      memcpy(packet.data() + offset, datas[i], Q_TABLE_SIZE);
+      q_tables_[i] = std::string_view((char *)packet.data() + offset, Q_TABLE_SIZE);
+      offset += Q_TABLE_SIZE;
+    }
   }
 
   uint8_t type_specific_{0};

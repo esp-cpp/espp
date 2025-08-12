@@ -118,10 +118,6 @@ def autogenerate() -> None:
                     include_dir + "math/include/vector2d.hpp", # have to set class template options
                     include_dir + "ndef/include/ndef.hpp",
                     include_dir + "pid/include/pid.hpp",
-                    # include_dir + "rtsp/include/jpeg_frame.hpp",
-                    # include_dir + "rtsp/include/jpeg_header.hpp",
-                    # include_dir + "rtsp/include/rtsp_client.hpp",
-                    # include_dir + "rtsp/include/rtsp_server.hpp",
                     include_dir + "socket/include/socket.hpp",
                     include_dir + "socket/include/tcp_socket.hpp",
                     include_dir + "socket/include/udp_socket.hpp",
@@ -130,6 +126,16 @@ def autogenerate() -> None:
 
                     # NOTE: this must come after vector2d.hpp and range_mapper.hpp since it depends on them!
                     include_dir + "joystick/include/joystick.hpp",
+
+                    # NOTE: this must come after socket since it depends on it!
+                    include_dir + "rtsp/include/rtp_jpeg_packet.hpp",
+                    include_dir + "rtsp/include/jpeg_frame.hpp",
+                    include_dir + "rtsp/include/jpeg_header.hpp",
+                    include_dir + "rtsp/include/rtcp_packet.hpp",
+                    include_dir + "rtsp/include/rtp_packet.hpp",
+                    include_dir + "rtsp/include/rtsp_client.hpp",
+                    include_dir + "rtsp/include/rtsp_server.hpp",
+                    include_dir + "rtsp/include/rtsp_session.hpp",
 
                     # filters:
                     include_dir + "filters/include/lowpass_filter.hpp",

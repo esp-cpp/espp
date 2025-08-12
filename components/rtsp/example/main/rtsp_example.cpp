@@ -67,7 +67,9 @@ extern "C" void app_main(void) {
   });
   rtsp_server.start();
 
-  espp::JpegFrame jpeg_frame(jpeg_data, sizeof(jpeg_data));
+  std::span<const uint8_t> frame_data(reinterpret_cast<const uint8_t *>(jpeg_data),
+                                      sizeof(jpeg_data));
+  espp::JpegFrame jpeg_frame(frame_data);
 
   logger.info("Parsed JPEG image, num bytes: {}", jpeg_frame.get_data().size());
   logger.info("Created frame of size {}x{}", jpeg_frame.get_width(), jpeg_frame.get_height());
@@ -80,7 +82,7 @@ extern "C" void app_main(void) {
       .rtsp_port = CONFIG_RTSP_SERVER_PORT,
       .path = "/mjpeg/1",
       .on_jpeg_frame =
-          [](std::unique_ptr<espp::JpegFrame> jpeg_frame) {
+          [](std::shared_ptr<espp::JpegFrame> jpeg_frame) {
             fmt::print("Got JPEG frame of size {}x{}\n", jpeg_frame->get_width(),
                        jpeg_frame->get_height());
           },

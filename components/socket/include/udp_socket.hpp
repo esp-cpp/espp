@@ -3,6 +3,7 @@
 #include "socket_msvc.hpp"
 
 #include <optional>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -115,6 +116,24 @@ public:
    * @return true if the data was sent, false otherwise.
    */
   bool send(std::string_view data, const SendConfig &send_config);
+
+  /**
+   * @brief Send data to the endpoint specified by the send_config.
+   *        Can be configured to multicast (within send_config) and can be
+   *        configured to block waiting for a response from the remote.
+   *
+   *        @note in the case of multicast, it will block only until the first
+   *              response.
+   *
+   *        If response is requested, a callback can be provided in
+   *        send_config which will be provided the response data for
+   *        processing.
+   * @param data std::span of bytes to send to the remote endpoint.
+   * @param send_config SendConfig struct indicating where to send and whether
+   *        to wait for a response.
+   * @return true if the data was sent, false otherwise.
+   */
+  bool send(std::span<const uint8_t> data, const SendConfig &send_config);
 
   /**
    * @brief Call recvfrom on the socket, assuming it has already been

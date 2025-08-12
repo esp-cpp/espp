@@ -47,14 +47,22 @@ bool TcpSocket::connect(const TcpSocket::ConnectConfig &connect_config) {
 const Socket::Info &TcpSocket::get_remote_info() const { return remote_info_; }
 
 bool TcpSocket::transmit(const std::vector<uint8_t> &data, const TransmitConfig &transmit_config) {
-  return transmit(std::string_view{(const char *)data.data(), data.size()}, transmit_config);
+  return transmit(std::span<const uint8_t>(data.data(), data.size()), transmit_config);
 }
 
 bool TcpSocket::transmit(const std::vector<char> &data, const TransmitConfig &transmit_config) {
-  return transmit(std::string_view{(const char *)data.data(), data.size()}, transmit_config);
+  return transmit(
+      std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(data.data()), data.size()),
+      transmit_config);
 }
 
 bool TcpSocket::transmit(std::string_view data, const TransmitConfig &transmit_config) {
+  return transmit(
+      std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(data.data()), data.size()),
+      transmit_config);
+}
+
+bool TcpSocket::transmit(std::span<const uint8_t> data, const TransmitConfig &transmit_config) {
   if (!is_valid()) {
     logger_.error("Socket invalid, cannot send");
     return false;

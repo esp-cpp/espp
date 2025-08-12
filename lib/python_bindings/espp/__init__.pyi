@@ -260,7 +260,6 @@ def color_code(hsv: Hsv) -> Any:
     pass
 
 
-# namespace espp
 
 ####################    </generated_from:color.hpp>    ####################
 
@@ -477,7 +476,7 @@ class Logger:
      * \snippet logger_example.cpp Cursor Commands example
 
     """
-    class Verbosity(enum.Enum):
+    class Verbosity(enum.IntEnum):
         """*
            *   Verbosity levels for the logger, in order of increasing priority.
 
@@ -583,6 +582,7 @@ class Logger:
         """Auto-generated default constructor"""
         pass
 
+
 ####################    </generated_from:logger.hpp>    ####################
 
 
@@ -662,6 +662,24 @@ class Bezier_espp_Vector2f:  # Python specialization for Bezier<espp::Vector2f>
 ####################    <generated_from:fast_math.hpp>    ####################
 
 
+def deg_to_rad(degrees: float) -> float:
+    """*
+     * @brief Convert degrees to radians
+     * @param degrees Angle in degrees
+     * @return Angle in radians
+
+    """
+    pass
+
+def rad_to_deg(radians: float) -> float:
+    """*
+     * @brief Convert radians to degrees
+     * @param radians Angle in radians
+     * @return Angle in degrees
+
+    """
+    pass
+
 def square(f: float) -> float:
     """*
      * @brief Simple square of the input.
@@ -680,13 +698,13 @@ def cube(f: float) -> float:
     """
     pass
 
-def fast_sqrt(value: float) -> float:
+def fast_inv_sqrt(value: float) -> float:
     """*
-     * @brief Fast square root approximation.
+     * @brief Fast inverse square root approximation.
      * @note Using https://reprap.org/forum/read.php?147,219210 and
      *       https://en.wikipedia.org/wiki/Fast_inverse_square_root
-     * @param value Value to take the square root of.
-     * @return Approximation of the square root of value.
+     * @param value Value to take the inverse square root of.
+     * @return Approximation of the inverse square root of value.
 
     """
     pass
@@ -1326,7 +1344,6 @@ class RangeMapper_float:  # Python specialization for RangeMapper<float>
 
 
 
-# namespace espp
 
 ####################    </generated_from:range_mapper.hpp>    ####################
 
@@ -1334,562 +1351,32 @@ class RangeMapper_float:  # Python specialization for RangeMapper<float>
 ####################    <generated_from:vector2d.hpp>    ####################
 
 
-#  ------------------------------------------------------------------------
-#      <template specializations for class Vector2d>
-class Vector2d_int:  # Python specialization for Vector2d<int>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def dot(other: Vector2d) -> T:
     """*
-     * @brief Container representing a 2 dimensional vector.
-     *
-     * Provides getters/setters, index operator, and vector / scalar math
-     * utilities.
-     *
-     * \section vector_ex1 Example
-     * \snippet math_example.cpp vector2 example
+       * @brief Dot product of this vector with another vector.
+       * @param other The second vector
+       * @return The dot product (x1*x2 + y1*y2)
 
     """
-    @overload
-    def __init__(self, x: int = 0, y: int = 0) -> None:
-        """*
-           * @brief Constructor for the vector, defaults to 0,0.
-           * @param x The starting X value.
-           * @param y The starting Y value.
+    pass
 
-        """
-        pass
 
-    @overload
-    def __init__(self, other: Vector2d) -> None:
-        """*
-           * @brief Vector copy constructor.
-           * @param other Vector to copy.
-
-        """
-        pass
-
-
-    def magnitude(self) -> int:
-        """*
-           * @brief Returns vector magnitude: ||v||.
-           * @return The magnitude.
-
-        """
-        pass
-
-    def magnitude_squared(self) -> int:
-        """*
-           * @brief Returns vector magnitude squared: ||v||^2.
-           * @return The magnitude squared.
-
-        """
-        pass
-
-    @overload
-    def x(self) -> int:
-        """*
-           * @brief Getter for the x value.
-           * @return The current x value.
-
-        """
-        pass
-
-    @overload
-    def x(self, v: int) -> None:
-        """*
-           * @brief Setter for the x value.
-           * @param v New value for \c x.
-
-        """
-        pass
-
-    @overload
-    def y(self) -> int:
-        """*
-           * @brief Getter for the y value.
-           * @return The current y value.
-
-        """
-        pass
-
-    @overload
-    def y(self, v: int) -> None:
-        """*
-           * @brief Setter for the y value.
-           * @param v New value for \c y.
-
-        """
-        pass
-
-    def __lt__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-    def __le__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-    def __eq__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-    def __ge__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-    def __gt__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-
-    def __eq__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Equality operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return True if the vectors are equal, False otherwise.
-
-        """
-        pass
-
-    def __getitem__(self, index: int) -> int:
-        """*
-           * @brief Index operator for vector elements.
-           * @note Returns a mutable reference to the element.
-           * @param index The index to return.
-           * @return Mutable reference to the element at \p index.
-
-        """
-        pass
-
-    @overload
-    def __neg__(self) -> Vector2d:
-        """*
-           * @brief Negate the vector.
-           * @return The new vector which is the negative.
-
-        """
-        pass
-
-    @overload
-    def __sub__(self, rhs: Vector2d) -> Vector2d:
-        """*
-           * @brief Return a new vector which is the provided vector subtracted from
-           *        this vector.
-           * @param rhs The vector to subtract from this vector.
-           * @return Resultant vector subtraction.
-
-        """
-        pass
-
-    def __isub__(self, rhs: Vector2d) -> Vector2d:
-        """*
-           * @brief Return the provided vector subtracted from this vector.
-           * @param rhs The vector to subtract from this vector.
-           * @return Resultant vector subtraction.
-
-        """
-        pass
-
-    def __add__(self, rhs: Vector2d) -> Vector2d:
-        """*
-           * @brief Return a new vector, which is the addition of this vector and the
-           *        provided vector.
-           * @param rhs The vector to add to this vector.
-           * @return Resultant vector addition.
-
-        """
-        pass
-
-    def __iadd__(self, rhs: Vector2d) -> Vector2d:
-        """*
-           * @brief Return the vector added with the provided vector.
-           * @param rhs The vector to add to this vector.
-           * @return Resultant vector addition.
-
-        """
-        pass
-
-    def __mul__(self, v: int) -> Vector2d:
-        """*
-           * @brief Return a scaled version of the vector, multiplied by the provided
-           *        value.
-           * @param v Value the vector should be multiplied by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    def __imul__(self, v: int) -> Vector2d:
-        """*
-           * @brief Return the vector multiplied by the provided value.
-           * @param v Value the vector should be scaled by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    @overload
-    def __truediv__(self, v: int) -> Vector2d:
-        """*
-           * @brief Return a scaled version of the vector, divided by the provided
-           *        value.
-           * @param v Value the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    @overload
-    def __itruediv__(self, v: int) -> Vector2d:
-        """*
-           * @brief Return the vector divided by the provided value.
-           * @param v Value the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    @overload
-    def __truediv__(self, v: Vector2d) -> Vector2d:
-        """*
-           * @brief Return a scaled version of the vector, divided by the provided
-           *        vector value. Scales x and y independently.
-           * @param v Vector values the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    @overload
-    def __itruediv__(self, v: Vector2d) -> Vector2d:
-        """*
-           * @brief Return the vector divided by the provided vector values.
-           * @param v Vector of values the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    def dot(self, other: Vector2d) -> T:
-        """*
-           * @brief Dot product of this vector with another vector.
-           * @param other The second vector
-           * @return The dot product (x1*x2 + y1*y2)
-
-        """
-        pass
-
-    def normalized(self) -> Vector2d:
-        """*
-           * @brief Return normalized (unit length) version of the vector.
-           * @return The normalized vector.
-
-        """
-        pass
-
-
-
-
-class Vector2d_float:  # Python specialization for Vector2d<float>
-    """*
-     * @brief Container representing a 2 dimensional vector.
-     *
-     * Provides getters/setters, index operator, and vector / scalar math
-     * utilities.
-     *
-     * \section vector_ex1 Example
-     * \snippet math_example.cpp vector2 example
-
-    """
-    @overload
-    def __init__(self, x: float = 0, y: float = 0) -> None:
-        """*
-           * @brief Constructor for the vector, defaults to 0,0.
-           * @param x The starting X value.
-           * @param y The starting Y value.
-
-        """
-        pass
-
-    @overload
-    def __init__(self, other: Vector2d) -> None:
-        """*
-           * @brief Vector copy constructor.
-           * @param other Vector to copy.
-
-        """
-        pass
-
-
-    def magnitude(self) -> float:
-        """*
-           * @brief Returns vector magnitude: ||v||.
-           * @return The magnitude.
-
-        """
-        pass
-
-    def magnitude_squared(self) -> float:
-        """*
-           * @brief Returns vector magnitude squared: ||v||^2.
-           * @return The magnitude squared.
-
-        """
-        pass
-
-    @overload
-    def x(self) -> float:
-        """*
-           * @brief Getter for the x value.
-           * @return The current x value.
-
-        """
-        pass
-
-    @overload
-    def x(self, v: float) -> None:
-        """*
-           * @brief Setter for the x value.
-           * @param v New value for \c x.
-
-        """
-        pass
-
-    @overload
-    def y(self) -> float:
-        """*
-           * @brief Getter for the y value.
-           * @return The current y value.
-
-        """
-        pass
-
-    @overload
-    def y(self, v: float) -> None:
-        """*
-           * @brief Setter for the y value.
-           * @param v New value for \c y.
-
-        """
-        pass
-
-    def __lt__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-    def __le__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-    def __eq__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-    def __ge__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-    def __gt__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Spaceship operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return -1 if this vector is less than \p other, 0 if they are equal, 1 if
-           *         this vector is greater than \p other.
-
-        """
-        pass
-
-    def __eq__(self, other: Vector2d) -> bool:
-        """*
-           * @brief Equality operator for comparing two vectors.
-           * @param other The vector to compare against.
-           * @return True if the vectors are equal, False otherwise.
-
-        """
-        pass
-
-    def __getitem__(self, index: int) -> float:
-        """*
-           * @brief Index operator for vector elements.
-           * @note Returns a mutable reference to the element.
-           * @param index The index to return.
-           * @return Mutable reference to the element at \p index.
-
-        """
-        pass
-
-    @overload
-    def __neg__(self) -> Vector2d:
-        """*
-           * @brief Negate the vector.
-           * @return The new vector which is the negative.
-
-        """
-        pass
-
-    @overload
-    def __sub__(self, rhs: Vector2d) -> Vector2d:
-        """*
-           * @brief Return a new vector which is the provided vector subtracted from
-           *        this vector.
-           * @param rhs The vector to subtract from this vector.
-           * @return Resultant vector subtraction.
-
-        """
-        pass
-
-    def __isub__(self, rhs: Vector2d) -> Vector2d:
-        """*
-           * @brief Return the provided vector subtracted from this vector.
-           * @param rhs The vector to subtract from this vector.
-           * @return Resultant vector subtraction.
-
-        """
-        pass
-
-    def __add__(self, rhs: Vector2d) -> Vector2d:
-        """*
-           * @brief Return a new vector, which is the addition of this vector and the
-           *        provided vector.
-           * @param rhs The vector to add to this vector.
-           * @return Resultant vector addition.
-
-        """
-        pass
-
-    def __iadd__(self, rhs: Vector2d) -> Vector2d:
-        """*
-           * @brief Return the vector added with the provided vector.
-           * @param rhs The vector to add to this vector.
-           * @return Resultant vector addition.
-
-        """
-        pass
-
-    def __mul__(self, v: float) -> Vector2d:
-        """*
-           * @brief Return a scaled version of the vector, multiplied by the provided
-           *        value.
-           * @param v Value the vector should be multiplied by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    def __imul__(self, v: float) -> Vector2d:
-        """*
-           * @brief Return the vector multiplied by the provided value.
-           * @param v Value the vector should be scaled by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    @overload
-    def __truediv__(self, v: float) -> Vector2d:
-        """*
-           * @brief Return a scaled version of the vector, divided by the provided
-           *        value.
-           * @param v Value the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    @overload
-    def __itruediv__(self, v: float) -> Vector2d:
-        """*
-           * @brief Return the vector divided by the provided value.
-           * @param v Value the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    @overload
-    def __truediv__(self, v: Vector2d) -> Vector2d:
-        """*
-           * @brief Return a scaled version of the vector, divided by the provided
-           *        vector value. Scales x and y independently.
-           * @param v Vector values the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    @overload
-    def __itruediv__(self, v: Vector2d) -> Vector2d:
-        """*
-           * @brief Return the vector divided by the provided vector values.
-           * @param v Vector of values the vector should be divided by.
-           * @return Resultant scaled vector.
-
-        """
-        pass
-
-    def dot(self, other: Vector2d) -> T:
-        """*
-           * @brief Dot product of this vector with another vector.
-           * @param other The second vector
-           * @return The dot product (x1*x2 + y1*y2)
-
-        """
-        pass
-
-    def normalized(self) -> Vector2d:
-        """*
-           * @brief Return normalized (unit length) version of the vector.
-           * @return The normalized vector.
-
-        """
-        pass
-
-
-#      </template specializations for class Vector2d>
-#  ------------------------------------------------------------------------
 
 
 
@@ -1944,7 +1431,7 @@ class Ndef:
      *
 
     """
-    class TNF(enum.Enum):
+    class TNF(enum.IntEnum):
         """*
            * @brief Type Name Format (TNF) field is a 3-bit value that describes the
            *        record type.
@@ -1969,7 +1456,7 @@ class Ndef:
         #/< record, type length must be 0.
         reserved = enum.auto()                                                                   # (= 0x07)  #/< Reserved by the NFC forum for future use
 
-    class Uic(enum.Enum):
+    class Uic(enum.IntEnum):
         """*
            * URI Identifier Codes (UIC), See Table A-3 at
            * https://www.oreilly.com/library/view/beginning-nfc/9781449324094/apa.html
@@ -2013,7 +1500,7 @@ class Ndef:
         urn_epc = enum.auto()                                                                    # (= 0x22)  #/< urn:epc:
         urn_nfc = enum.auto()                                                                    # (= 0x23)  #/< urn:nfc:
 
-    class BtType(enum.Enum):
+    class BtType(enum.IntEnum):
         """*
            * @brief Type of Bluetooth radios.
 
@@ -2021,7 +1508,7 @@ class Ndef:
         bredr = enum.auto()                                                                      # (= 0x00)  #/< BT Classic
         ble = enum.auto()                                                                        # (= 0x01)  #/< BT Low Energy
 
-    class BtAppearance(enum.Enum):
+    class BtAppearance(enum.IntEnum):
         """*
            * @brief Some appearance codes for BLE radios.
 
@@ -2049,7 +1536,7 @@ class Ndef:
         # Generic Gaming (b15-b6 = 0x02A << 6 = 0x0A80)
         gaming = enum.auto()                                                                     # (= 0x0A80)  #/< Generic Gaming group
 
-    class CarrierPowerState(enum.Enum):
+    class CarrierPowerState(enum.IntEnum):
         """*
            * @brief Power state of a BLE radio.
            * @details Representation of the carrier power state in a Handover Select
@@ -2061,7 +1548,7 @@ class Ndef:
         activating = enum.auto()                                                                 # (= 0x02)  #/< Carrier power is turning on
         unknown = enum.auto()                                                                    # (= 0x03)  #/< Carrier power state is unknown
 
-    class BtEir(enum.Enum):
+    class BtEir(enum.IntEnum):
         """*
            * @brief Extended Inquiry Response (EIR) codes for data types in BT and BLE
            *        out of band (OOB) pairing NDEF records.
@@ -2094,7 +1581,7 @@ class Ndef:
         le_sc_confirmation = enum.auto()                                                         # (= 0x22)  #/< LE Secure Connections Confirmation Value
         le_sc_random = enum.auto()                                                               # (= 0x23)  #/< LE Secure Connections Random Value
 
-    class BleRole(enum.Enum):
+    class BleRole(enum.IntEnum):
         """*
            * @brief Possible roles for BLE records to indicate support for.
 
@@ -2104,7 +1591,7 @@ class Ndef:
         peripheral_central = enum.auto()                                                         # (= 0x02)  #/< Radio can act as both a peripheral and a central, but prefers peripheral
         central_peripheral = enum.auto()                                                         # (= 0x03)  #/< Radio can act as both a peripheral and a central, but prefers central
 
-    class WifiEncryptionType(enum.Enum):
+    class WifiEncryptionType(enum.IntEnum):
         """*
            * @brief Types of configurable encryption for WiFi networks
 
@@ -2114,7 +1601,7 @@ class Ndef:
         tkip = enum.auto()                                                                       # (= 0x04)  #/< TKIP
         aes = enum.auto()                                                                        # (= 0x08)  #/< AES
 
-    class WifiAuthenticationType(enum.Enum):
+    class WifiAuthenticationType(enum.IntEnum):
         """*
            * @brief WiFi network authentication
 
@@ -2480,7 +1967,6 @@ class Pid:
         """Auto-generated default constructor"""
         pass
 
-# namespace espp
 
 ####################    </generated_from:pid.hpp>    ####################
 
@@ -2498,7 +1984,7 @@ class Socket:
      *          configuring the socket.
 
     """
-    class Type(enum.Enum):
+    class Type(enum.IntEnum):
         raw = enum.auto()    # (= SOCK_RAW)  #*< Only IP headers, no TCP or UDP headers as well.
         dgram = enum.auto()  # (= SOCK_DGRAM)  #*< UDP/IP socket - datagram.
         stream = enum.auto() # (= SOCK_STREAM)  #*< TCP/IP socket - stream.
@@ -2670,7 +2156,6 @@ class Socket:
         """Auto-generated default constructor"""
         pass
 
-# namespace espp
 
 ####################    </generated_from:socket.hpp>    ####################
 
@@ -2847,6 +2332,27 @@ class TcpSocket:
            *        send_config which will be provided the response data for
            *        processing.
            * @param data string view of bytes to send to the remote endpoint.
+           * @param transmit_config TransmitConfig struct indicating whether to wait for a
+           *        response.
+           * @return True if the data was sent, False otherwise.
+
+        """
+        pass
+
+    @overload
+    def transmit(
+        self,
+        data: std.span[ int],
+        transmit_config: TcpSocket.TransmitConfig = TcpSocket.TransmitConfig.Default()
+        ) -> bool:
+        """*
+           * @brief Send data to the endpoint already connected to by TcpSocket::connect.
+           *        Can be configured to block waiting for a response from the remote.
+           *
+           *        If response is requested, a callback can be provided in
+           *        send_config which will be provided the response data for
+           *        processing.
+           * @param data span of bytes to send to the remote endpoint.
            * @param transmit_config TransmitConfig struct indicating whether to wait for a
            *        response.
            * @return True if the data was sent, False otherwise.
@@ -3050,6 +2556,27 @@ class UdpSocket:
         """
         pass
 
+    @overload
+    def send(self, data: std.span[ int], send_config: UdpSocket.SendConfig) -> bool:
+        """*
+           * @brief Send data to the endpoint specified by the send_config.
+           *        Can be configured to multicast (within send_config) and can be
+           *        configured to block waiting for a response from the remote.
+           *
+           *        @note in the case of multicast, it will block only until the first
+           *              response.
+           *
+           *        If response is requested, a callback can be provided in
+           *        send_config which will be provided the response data for
+           *        processing.
+           * @param data std::span of bytes to send to the remote endpoint.
+           * @param send_config SendConfig struct indicating where to send and whether
+           *        to wait for a response.
+           * @return True if the data was sent, False otherwise.
+
+        """
+        pass
+
     def receive(
         self,
         max_num_bytes: int,
@@ -3078,7 +2605,7 @@ class UdpSocket:
            * @brief Configure a server socket and start a thread to continuously
            *        receive and handle data coming in on that socket.
            *
-           * @param task_config Task::Config struct for configuring the receive task.
+           * @param task_config Task::BaseConfig struct for configuring the receive task.
            * @param receive_config ReceiveConfig struct with socket and callback info.
            * @return True if the socket was created and task was started, False otherwise.
 
@@ -3178,16 +2705,8 @@ class Task:
             pass
 
 
-    @staticmethod
-    def make_unique(config: Task.Config) -> Task:
-        """*
-           * @brief Get a unique pointer to a new task created with \p config.
-           *        Useful to not have to use templated std::make_unique (less typing).
-           * @param config Config struct to initialize the Task with.
-           * @return std::unique_ptr<Task> pointer to the newly created task.
 
-        """
-        pass
+
 
 
     def start(self) -> bool:
@@ -3251,7 +2770,6 @@ class Task:
         """Auto-generated default constructor"""
         pass
 
-# namespace espp
 
 ####################    </generated_from:task.hpp>    ####################
 
@@ -3430,7 +2948,7 @@ class Joystick:
      * \snippet joystick_example.cpp adc joystick example
 
     """
-    class Type(enum.Enum):
+    class Type(enum.IntEnum):
         """*
            * @brief Type of the joystick.
            * @note When using a Type::CIRCULAR joystick, it's recommended to set the
@@ -3645,6 +3163,7 @@ class Joystick:
         """*
            * @brief Get the most recently updated calibrated position.
            * @return The most recent position (from when update() was last called).
+           * @note The returned reference is valid as long as the Joystick object is alive.
 
         """
         pass
@@ -3657,6 +3176,7 @@ class Joystick:
            *        structures.
            * @return The most recent raw measurements (from when update() was last
            *         called).
+           * @note The returned reference is valid as long as the Joystick object is alive.
 
         """
         pass
@@ -3666,9 +3186,891 @@ class Joystick:
         """Auto-generated default constructor"""
         pass
 
-# namespace espp
 
 ####################    </generated_from:joystick.hpp>    ####################
+
+
+####################    <generated_from:rtp_jpeg_packet.hpp>    ####################
+
+
+
+class RtpJpegPacket:
+    """/ RTP packet for JPEG video.
+    / The RTP payload for JPEG is defined in RFC 2435.
+    """
+    @overload
+    def __init__(self, data: std.span[ int]) -> None:
+        """/ Construct an RTP packet from a buffer.
+        / @param data The buffer containing the RTP packet.
+        """
+        pass
+
+    @overload
+    def __init__(
+        self,
+        type_specific: int,
+        frag_type: int,
+        q: int,
+        width: int,
+        height: int,
+        q0: std.span[ int],
+        q1: std.span[ int],
+        scan_data: std.span[ int]
+        ) -> None:
+        """/ Construct an RTP packet from fields
+        / @details This will construct a packet with quantization tables, so it
+        /          can only be used for the first packet in a frame.
+        / @param type_specific The type-specific field.
+        / @param frag_type The fragment type field.
+        / @param q The q field.
+        / @param width The width field.
+        / @param height The height field.
+        / @param q0 The first quantization table.
+        / @param q1 The second quantization table.
+        / @param scan_data The scan data.
+        """
+        pass
+
+    @overload
+    def __init__(
+        self,
+        type_specific: int,
+        offset: int,
+        frag_type: int,
+        q: int,
+        width: int,
+        height: int,
+        scan_data: std.span[ int]
+        ) -> None:
+        """/ Construct an RTP packet from fields
+        / @details This will construct a packet without quantization tables, so it
+        /          cannot be used for the first packet in a frame.
+        / @param type_specific The type-specific field.
+        / @param offset The offset field.
+        / @param frag_type The fragment type field.
+        / @param q The q field.
+        / @param width The width field.
+        / @param height The height field.
+        / @param scan_data The scan data.
+        """
+        pass
+
+
+    def get_type_specific(self) -> int:
+        """/ Get the type-specific field.
+        / @return The type-specific field.
+        """
+        pass
+
+    def get_offset(self) -> int:
+        """/ Get the offset field.
+        / @return The offset field.
+        """
+        pass
+
+    def get_q(self) -> int:
+        """/ Get the fragment type field.
+        / @return The fragment type field.
+        """
+        pass
+
+    def get_width(self) -> int:
+        """/ Get the fragment type field.
+        / @return The fragment type field.
+        """
+        pass
+
+    def get_height(self) -> int:
+        """/ Get the fragment type field.
+        / @return The fragment type field.
+        """
+        pass
+
+    def get_mjpeg_header(self) -> std.span[ int]:
+        """/ Get the mjepg header.
+        / @return The mjepg header.
+        """
+        pass
+
+    def has_q_tables(self) -> bool:
+        """/ Get whether the packet contains quantization tables.
+        / @note The quantization tables are optional. If they are present, the
+        / number of quantization tables is always 2.
+        / @note This check is based on the value of the q field. If the q field
+        /       is 128-256, the packet contains quantization tables.
+        / @return Whether the packet contains quantization tables.
+        """
+        pass
+
+    def get_num_q_tables(self) -> int:
+        """/ Get the number of quantization tables.
+        / @note The quantization tables are optional. If they are present, the
+        / number of quantization tables is always 2.
+        / @note Only the first packet in a frame contains quantization tables.
+        / @return The number of quantization tables.
+        """
+        pass
+
+    def get_q_table(self, index: int) -> std.span[ int]:
+        """/ Get the quantization table at the specified index.
+        / @param index The index of the quantization table.
+        / @return The quantization table at the specified index.
+        """
+        pass
+
+    def set_q_table(self, index: int, q_table: std.span[ int]) -> None:
+        """/ Set the quantization table at the specified index.
+        / @param index The index of the quantization table.
+        / @param q_table The quantization table to set.
+        / @note This will not change the size of the packet. If the index is out of
+        /       bounds, the quantization table will not be set.
+        """
+        pass
+
+    def get_jpeg_data(self) -> std.span[ int]:
+        """/ Get the JPEG data.
+        / The jpeg data is the payload minus the mjpeg header and quantization
+        / tables.
+        / @return The JPEG data.
+        """
+        pass
+
+
+####################    </generated_from:rtp_jpeg_packet.hpp>    ####################
+
+
+####################    <generated_from:jpeg_frame.hpp>    ####################
+
+
+
+class JpegFrame:
+    """/ A class that represents a complete JPEG frame.
+    /
+    / This class is used to collect the JPEG scans that are received in RTP
+    / packets and to serialize them into a complete JPEG frame.
+    """
+    @overload
+    def __init__(self, packet: RtpJpegPacket) -> None:
+        """/ Construct a JpegFrame from a RtpJpegPacket.
+        /
+        / This constructor will parse the header of the packet and add the JPEG
+        / data to the frame.
+        /
+        / @param packet The packet to parse.
+        """
+        pass
+
+    @overload
+    def __init__(self, data: List[int]) -> None:
+        """/ Construct a JpegFrame from a vector of jpeg data.
+        / @param data The vector containing the jpeg data.
+        / @note The vector must contain the complete JPEG data, including the JPEG
+        /       header and EOI marker.
+        """
+        pass
+
+    @overload
+    def __init__(self, data: std.span[ int]) -> None:
+        """/ Construct a JpegFrame from a span of jpeg data.
+        / @param data The span containing the jpeg data.
+        / @note The span must contain the complete JPEG data, including the JPEG
+        /       header and EOI marker.
+        """
+        pass
+
+    @overload
+    def __init__(self, data: int, size: int) -> None:
+        """/ Construct a JpegFrame from buffer of jpeg data
+        / @param data The buffer containing the jpeg data.
+        / @param size The size of the buffer.
+        """
+        pass
+
+    def get_header(self) -> JpegHeader:
+        """/ Get a reference to the header.
+        / @return A reference to the header.
+        """
+        pass
+
+    def get_width(self) -> int:
+        """/ Get the width of the frame.
+        / @return The width of the frame.
+        """
+        pass
+
+    def get_height(self) -> int:
+        """/ Get the height of the frame.
+        / @return The height of the frame.
+        """
+        pass
+
+    def is_complete(self) -> bool:
+        """/ Check if the frame is complete.
+        / @return True if the frame is complete, False otherwise.
+        """
+        pass
+
+    def append(self, packet: RtpJpegPacket) -> None:
+        """/ Append a RtpJpegPacket to the frame.
+        / This will add the JPEG data to the frame.
+        / @param packet The packet containing the scan to append.
+        """
+        pass
+
+    @overload
+    def add_scan(self, packet: RtpJpegPacket) -> None:
+        """/ Append a JPEG scan to the frame.
+        / This will add the JPEG data to the frame.
+        / @note If the packet contains the EOI marker, the frame will be
+        /       finalized, and no further scans can be added.
+        / @param packet The packet containing the scan to append.
+        """
+        pass
+
+    def get_data(self) -> std.span[ int]:
+        """/ Get the serialized data.
+        / This will return the serialized data.
+        / @return The serialized data.
+        """
+        pass
+
+    def get_scan_data(self) -> std.span[ int]:
+        """/ Get the scan data.
+        / This will return the scan data.
+        / @return The scan data.
+        """
+        pass
+
+
+####################    </generated_from:jpeg_frame.hpp>    ####################
+
+
+####################    <generated_from:jpeg_header.hpp>    ####################
+
+
+class JpegHeader:
+    """/ A class to generate a JPEG header for a given image size and quantization tables.
+    / The header is generated once and then cached for future use.
+    / The header is generated according to the JPEG standard and is compatible with
+    / the ESP32 camera driver.
+    """
+    @overload
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        q0_table: std.span[ int],
+        q1_table: std.span[ int]
+        ) -> None:
+        """/ Create a JPEG header for a given image size and quantization tables.
+        / @param width The image width in pixels.
+        / @param height The image height in pixels.
+        / @param q0_table The quantization table for the Y channel.
+        / @param q1_table The quantization table for the Cb and Cr channels.
+        """
+        pass
+
+    @overload
+    def __init__(self, data: std.span[ int]) -> None:
+        """/ Create a JPEG header from a given JPEG header data."""
+        pass
+
+
+    def get_width(self) -> int:
+        """/ Get the image width.
+        / @return The image width in pixels.
+        """
+        pass
+
+    def get_height(self) -> int:
+        """/ Get the image height.
+        / @return The image height in pixels.
+        """
+        pass
+
+    def size(self) -> int:
+        """/ Get the size of the JPEG header data.
+        / @return The size of the JPEG header data in bytes.
+        / @note This is the size of the serialized JPEG header, not the image size.
+        """
+        pass
+
+    def get_data(self) -> std.span[ int]:
+        """/ Get the JPEG header data.
+        / @return The JPEG header data.
+        """
+        pass
+
+    def get_quantization_table(self, index: int) -> std.span[ int]:
+        """/ Get the Quantization table at the index.
+        / @param index The index of the quantization table.
+        / @return The quantization table.
+        """
+        pass
+
+
+####################    </generated_from:jpeg_header.hpp>    ####################
+
+
+####################    <generated_from:rtcp_packet.hpp>    ####################
+
+
+class RtcpPacket:
+    """/ @brief A class to represent a RTCP packet
+    / @details This class is used to represent a RTCP packet.
+    /          It is used as a base class for all RTCP packet types.
+    / @note At the moment, this class is not used.
+    """
+    def __init__(self) -> None:
+        """/ @brief Constructor, default"""
+        pass
+
+
+    def get_data(self) -> std.string_view:
+        """/ @brief Get the buffer of the packet
+        / @return The buffer of the packet
+        """
+        pass
+
+
+####################    </generated_from:rtcp_packet.hpp>    ####################
+
+
+####################    <generated_from:rtp_packet.hpp>    ####################
+
+
+class RtpPacket:
+    """/ RtpPacket is a class to parse RTP packet.
+    / It can be used to parse and serialize RTP packets.
+    / The RTP header fields are stored in the class and can be modified.
+    / The payload is stored in the packet_ vector and can be modified.
+    """
+    @overload
+    def __init__(self) -> None:
+        """/ Construct an empty RtpPacket.
+        / The packet_ vector is empty and the header fields are set to 0.
+        """
+        pass
+
+    @overload
+    def __init__(self, payload_size: int) -> None:
+        """/ Construct an RtpPacket with a payload of size payload_size.
+        / The packet_ vector is resized to RTP_HEADER_SIZE + payload_size.
+        """
+        pass
+
+    @overload
+    def __init__(self, data: std.span[ int]) -> None:
+        """/ Construct an RtpPacket from a span of bytes.
+        / Stores the bytes in the packet_ vector and parses the header.
+        / @param data The span of bytes to parse.
+        """
+        pass
+
+
+    # -----------------------------------------------------------------
+    # Getters for the RTP header fields.
+    # -----------------------------------------------------------------
+
+    def get_version(self) -> int:
+        """/ Get the RTP version.
+        / @return The RTP version.
+        """
+        pass
+
+    def get_padding(self) -> bool:
+        """/ Get the padding flag.
+        / @return The padding flag.
+        """
+        pass
+
+    def get_extension(self) -> bool:
+        """/ Get the extension flag.
+        / @return The extension flag.
+        """
+        pass
+
+    def get_csrc_count(self) -> int:
+        """/ Get the CSRC count.
+        / @return The CSRC count.
+        """
+        pass
+
+    def get_marker(self) -> bool:
+        """/ Get the marker flag.
+        / @return The marker flag.
+        """
+        pass
+
+    def get_payload_type(self) -> int:
+        """/ Get the payload type.
+        / @return The payload type.
+        """
+        pass
+
+    def get_sequence_number(self) -> int:
+        """/ Get the sequence number.
+        / @return The sequence number.
+        """
+        pass
+
+    def get_timestamp(self) -> int:
+        """/ Get the timestamp.
+        / @return The timestamp.
+        """
+        pass
+
+    def get_ssrc(self) -> int:
+        """/ Get the SSRC.
+        / @return The SSRC.
+        """
+        pass
+
+    # -----------------------------------------------------------------
+    # Setters for the RTP header fields.
+    # -----------------------------------------------------------------
+
+    def set_version(self, version: int) -> None:
+        """/ Set the RTP version.
+        / @param version The RTP version to set.
+        """
+        pass
+
+    def set_padding(self, padding: bool) -> None:
+        """/ Set the padding flag.
+        / @param padding The padding flag to set.
+        """
+        pass
+
+    def set_extension(self, extension: bool) -> None:
+        """/ Set the extension flag.
+        / @param extension The extension flag to set.
+        """
+        pass
+
+    def set_csrc_count(self, csrc_count: int) -> None:
+        """/ Set the CSRC count.
+        / @param csrc_count The CSRC count to set.
+        """
+        pass
+
+    def set_marker(self, marker: bool) -> None:
+        """/ Set the marker flag.
+        / @param marker The marker flag to set.
+        """
+        pass
+
+    def set_payload_type(self, payload_type: int) -> None:
+        """/ Set the payload type.
+        / @param payload_type The payload type to set.
+        """
+        pass
+
+    def set_sequence_number(self, sequence_number: int) -> None:
+        """/ Set the sequence number.
+        / @param sequence_number The sequence number to set.
+        """
+        pass
+
+    def set_timestamp(self, timestamp: int) -> None:
+        """/ Set the timestamp.
+        / @param timestamp The timestamp to set.
+        """
+        pass
+
+    def set_ssrc(self, ssrc: int) -> None:
+        """/ Set the SSRC.
+        / @param ssrc The SSRC to set.
+        """
+        pass
+
+    # -----------------------------------------------------------------
+    # Utility methods.
+    # -----------------------------------------------------------------
+
+    def serialize(self) -> None:
+        """/ Serialize the RTP header.
+        / @note This method should be called after modifying the RTP header fields.
+        / @note This method does not serialize the payload. To set the payload, use
+        /       set_payload().
+        /       To get the payload, use get_payload().
+        """
+        pass
+
+    def get_data(self) -> std.span[ int]:
+        """/ Get a span view of the whole packet.
+        / @note The span is valid as long as the packet_ vector is not modified.
+        / @note If you manually build the packet_ vector, you should make sure that you
+        /       call serialize() before calling this method.
+        / @return A span of the whole packet.
+        """
+        pass
+
+    def get_rtp_header_size(self) -> int:
+        """/ Get the size of the RTP header.
+        / @return The size of the RTP header.
+        """
+        pass
+
+    def get_rtp_header(self) -> std.span[ int]:
+        """/ Get a span of bytes of the RTP header.
+        / @return A span of bytes of the RTP header.
+        """
+        pass
+
+    def get_packet(self) -> List[int]:
+        """/ Get a reference to the packet_ vector.
+        / @return A reference to the packet_ vector.
+        """
+        pass
+
+    def get_payload(self) -> std.span[ int]:
+        """/ Get a span of bytes of the payload.
+        / @return A span of bytes of the payload.
+        """
+        pass
+
+    def set_payload(self, payload: std.span[ int]) -> None:
+        """/ Set the payload.
+        / @param payload The payload to set.
+        """
+        pass
+
+
+####################    </generated_from:rtp_packet.hpp>    ####################
+
+
+####################    <generated_from:rtsp_client.hpp>    ####################
+
+
+
+
+
+
+class RtspClient:
+    """/ A class for interacting with an RTSP server using RTP and RTCP over UDP
+    /
+    / This class is used to connect to an RTSP server and receive JPEG frames
+    / over RTP. It uses the TCP socket to send RTSP requests and receive RTSP
+    / responses. It uses the UDP socket to receive RTP and RTCP packets.
+    /
+    / The RTSP client is designed to be used with the RTSP server in the
+    / [camera-streamer]https://github.com/esp-cpp/camera-streamer) project, but it
+    / should work with any RTSP server that sends JPEG frames over RTP.
+    /
+    / \section rtsp_client_ex1 RtspClient Example
+    / \snippet rtsp_example.cpp rtsp_client_example
+    """
+
+    class Config:
+        """/ Configuration for the RTSP client"""
+        server_address: str                                  #/< The server IP Address to connect to
+        rtsp_port: int = int(8554)                           #/< The port of the RTSP server
+        path: str = str("/mjpeg/1")                          #/< The path to the RTSP stream on the server. Will be appended
+        #/< to the server address and port to form the full path of the
+        #/< form "rtsp://<server_address>:<rtsp_port><path>"
+        on_jpeg_frame: RtspClient.jpeg_frame_callback_t      #/< The callback to call when a JPEG frame is received
+        log_level: Logger.Verbosity = Logger.Verbosity.info  #/< The verbosity of the logger
+        def __init__(
+            self,
+            server_address: str = "",
+            rtsp_port: int = int(8554),
+            path: str = str("/mjpeg/1"),
+            on_jpeg_frame: RtspClient.jpeg_frame_callback_t = RtspClient.jpeg_frame_callback_t(),
+            log_level: Logger.Verbosity = Logger.Verbosity.info
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def send_request(
+        self,
+        method: str,
+        path: str,
+        extra_headers: std.unordered_map[str, str],
+        ec: std.error_code
+        ) -> str:
+        """/ Send an RTSP request to the server
+        / \note This is a blocking call
+        / \note This will parse the response and set the session ID if it is
+        /      present in the response. If the response is not a 200 OK, then
+        /      an error code will be set and the response will be returned.
+        /      If the response is a 200 OK, then the response will be returned
+        /      and the error code will be set to success.
+        / \param method The method to use for connecting.
+        /       Options are "OPTIONS", "DESCRIBE", "SETUP", "PLAY", and "TEARDOWN"
+        / \param path The path to the RTSP stream on the server.
+        / \param extra_headers Any extra headers to send with the request. These
+        /      will be added to the request after the CSeq and Session headers. The
+        /      key is the header name and the value is the header value. For example,
+        /      {"Accept": "application/sdp"} will add "Accept: application/sdp" to the
+        /      request. The "User-Agent" header will be added automatically. The
+        /      "CSeq" and "Session" headers will be added automatically.
+        /      The "Accept" header will be added automatically. The "Transport"
+        /      header will be added automatically for the "SETUP" method. Defaults to
+        /      an empty map.
+        / \param ec The error code to set if an error occurs
+        / \return The response from the server
+        """
+        pass
+
+    def connect(self, ec: std.error_code) -> None:
+        """/ Connect to the RTSP server
+        / Connects to the RTSP server and sends the OPTIONS request.
+        / \param ec The error code to set if an error occurs
+        """
+        pass
+
+    def disconnect(self, ec: std.error_code) -> None:
+        """/ Disconnect from the RTSP server
+        / Disconnects from the RTSP server and sends the TEARDOWN request.
+        / \param ec The error code to set if an error occurs
+        """
+        pass
+
+    def describe(self, ec: std.error_code) -> None:
+        """/ Describe the RTSP stream
+        / Sends the DESCRIBE request to the RTSP server and parses the response.
+        / \param ec The error code to set if an error occurs
+        """
+        pass
+
+    @overload
+    def setup(self, ec: std.error_code) -> None:
+        """/ Setup the RTSP stream
+        / \note Starts the RTP and RTCP threads.
+        / Sends the SETUP request to the RTSP server and parses the response.
+        / \note The default ports are 5000 and 5001 for RTP and RTCP respectively.
+        / \note The default receive timeout is 5 seconds.
+        / \param ec The error code to set if an error occurs
+        """
+        pass
+
+    @overload
+    def setup(
+        self,
+        rtp_port: int,
+        rtcp_port: int,
+        receive_timeout: std.chrono.duration[float],
+        ec: std.error_code
+        ) -> None:
+        """/ Setup the RTSP stream
+        / Sends the SETUP request to the RTSP server and parses the response.
+        / \note Starts the RTP and RTCP threads.
+        / \param rtp_port The RTP client port
+        / \param rtcp_port The RTCP client port
+        / \param receive_timeout The timeout for receiving RTP and RTCP packets
+        / \param ec The error code to set if an error occurs
+        """
+        pass
+
+    def play(self, ec: std.error_code) -> None:
+        """/ Play the RTSP stream
+        / Sends the PLAY request to the RTSP server and parses the response.
+        / \param ec The error code to set if an error occurs
+        """
+        pass
+
+    def pause(self, ec: std.error_code) -> None:
+        """/ Pause the RTSP stream
+        / Sends the PAUSE request to the RTSP server and parses the response.
+        / \param ec The error code to set if an error occurs
+        """
+        pass
+
+    def teardown(self, ec: std.error_code) -> None:
+        """/ Teardown the RTSP stream
+        / Sends the TEARDOWN request to the RTSP server and parses the response.
+        / \param ec The error code to set if an error occurs
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+
+####################    </generated_from:rtsp_client.hpp>    ####################
+
+
+####################    <generated_from:rtsp_server.hpp>    ####################
+
+
+
+
+
+
+
+class RtspServer:
+    """/ Class for streaming MJPEG data from a camera using RTSP + RTP
+    / Starts a TCP socket to listen for RTSP connections, and then spawns off a
+    / new RTSP session for each connection.
+    / @see RtspSession
+    / @note This class does not currently send RTCP packets
+    /
+    / \section rtsp_server_ex1 RtspServer example
+    / \snippet rtsp_example.cpp rtsp_server_example
+    """
+    class Config:
+        """/ @brief Configuration for the RTSP server"""
+        server_address: str                                  #/< The ip address of the server
+        port: int                                            #/< The port to listen on
+        path: str                                            #/< The path to the RTSP stream
+        max_data_size: int = 1000                            #/< The maximum size of RTP packet data for the MJPEG stream. Frames will be broken
+        #/< up into multiple packets if they are larger than this. It seems that 1500 works
+        #/< well for sending, but is too large for the esp32 (camera-display) to receive
+        #/< properly.
+        log_level: Logger.Verbosity = Logger.Verbosity.warn  #/< The log level for the RTSP server
+        def __init__(
+            self,
+            server_address: str = "",
+            port: int = int(),
+            path: str = "",
+            max_data_size: int = 1000,
+            log_level: Logger.Verbosity = Logger.Verbosity.warn
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def set_session_log_level(self, log_level: Logger.Verbosity) -> None:
+        """/ @brief Sets the log level for the RTSP sessions created by this server
+        / @note This does not affect the log level of the RTSP server itself
+        / @note This does not change the log level of any sessions that have
+        /       already been created
+        / @param log_level The log level to set
+        """
+        pass
+
+    def start(
+        self,
+        accept_timeout: std.chrono.duration[float] = std.chrono.seconds(5)
+        ) -> bool:
+        """/ @brief Start the RTSP server
+        / Starts the accept task, session task, and binds the RTSP socket
+        / @param accept_timeout The timeout for accepting new connections
+        / @return True if the server was started successfully, False otherwise
+        """
+        pass
+
+    def stop(self) -> None:
+        """/ @brief Stop the FTP server
+        / Stops the accept task, session task, and closes the RTSP socket
+        """
+        pass
+
+    def send_frame(self, frame: JpegFrame) -> None:
+        """/ @brief Send a frame over the RTSP connection
+        / Converts the full JPEG frame into a series of simplified RTP/JPEG
+        / packets and stores it to be sent over the RTP socket, but does not
+        / actually send it
+        / @note Overwrites any existing frame that has not been sent
+        / @param frame The frame to send
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+####################    </generated_from:rtsp_server.hpp>    ####################
+
+
+####################    <generated_from:rtsp_session.hpp>    ####################
+
+
+
+
+
+
+class RtspSession:
+    """/ Class that reepresents an RTSP session, which is uniquely identified by a
+    / session id and sends frame data over RTP and RTCP to the client
+    """
+    class Config:
+        """/ Configuration for the RTSP session"""
+        server_address: str                                                  #/< The address of the server
+        rtsp_path: str                                                       #/< The RTSP path of the session
+        receive_timeout: std.chrono.duration[float] = std.chrono.seconds(5)  #/< The timeout for receiving data. Should be > 0.
+        log_level: Logger.Verbosity = Logger.Verbosity.warn                  #/< The log level of the session
+        def __init__(
+            self,
+            server_address: str = "",
+            rtsp_path: str = "",
+            receive_timeout: std.chrono.duration[float] = std.chrono.seconds(5),
+            log_level: Logger.Verbosity = Logger.Verbosity.warn
+            ) -> None:
+            """Auto-generated default constructor with named params"""
+            pass
+
+
+
+    def get_session_id(self) -> int:
+        """/ @brief Get the session id
+        / @return The session id
+        """
+        pass
+
+    def is_closed(self) -> bool:
+        """/ @brief Check if the session is closed
+        / @return True if the session is closed, False otherwise
+        """
+        pass
+
+    def is_connected(self) -> bool:
+        """/ Get whether the session is connected
+        / @return True if the session is connected, False otherwise
+        """
+        pass
+
+    def is_active(self) -> bool:
+        """/ Get whether the session is active
+        / @return True if the session is active, False otherwise
+        """
+        pass
+
+    def play(self) -> None:
+        """/ Mark the session as active
+        / This will cause the server to start sending frames to the client
+        """
+        pass
+
+    def pause(self) -> None:
+        """/ Pause the session
+        / This will cause the server to stop sending frames to the client
+        / @note This does not stop the session, it just pauses it
+        / @note This is useful for when the client is buffering
+        """
+        pass
+
+    def teardown(self) -> None:
+        """/ Teardown the session
+        / This will cause the server to stop sending frames to the client
+        / and close the connection
+        """
+        pass
+
+    def send_rtp_packet(self, packet: RtpPacket) -> bool:
+        """/ Send an RTP packet to the client
+        / @param packet The RTP packet to send
+        / @return True if the packet was sent successfully, False otherwise
+        """
+        pass
+
+    def send_rtcp_packet(self, packet: RtcpPacket) -> bool:
+        """/ Send an RTCP packet to the client
+        / @param packet The RTCP packet to send
+        / @return True if the packet was sent successfully, False otherwise
+        """
+        pass
+
+    def __init__(self) -> None:
+        """Auto-generated default constructor"""
+        pass
+
+####################    </generated_from:rtsp_session.hpp>    ####################
 
 
 ####################    <generated_from:lowpass_filter.hpp>    ####################
@@ -3755,7 +4157,6 @@ class LowpassFilter:
 
 
 
-# namespace espp
 
 ####################    </generated_from:lowpass_filter.hpp>    ####################
 
@@ -3829,7 +4230,6 @@ class SimpleLowpassFilter:
 
 
 
-# namespace espp
 
 ####################    </generated_from:simple_lowpass_filter.hpp>    ####################
 

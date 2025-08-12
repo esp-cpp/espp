@@ -296,11 +296,11 @@ void RtspClient::init_rtcp(size_t rtcp_port, const std::chrono::duration<float> 
 std::optional<std::vector<uint8_t>>
 RtspClient::handle_rtp_packet(std::vector<uint8_t> &data, const espp::Socket::Info &sender_info) {
   // jpeg frame that we are building
-  static std::unique_ptr<JpegFrame> jpeg_frame;
+  static std::shared_ptr<JpegFrame> jpeg_frame;
 
   logger_.debug("Got RTP packet of size: {}", data.size());
 
-  std::string_view packet(reinterpret_cast<char *>(data.data()), data.size());
+  std::span<const uint8_t> packet(data.data(), data.size());
   // parse the rtp packet
   RtpJpegPacket rtp_jpeg_packet(packet);
   auto frag_offset = rtp_jpeg_packet.get_offset();
@@ -313,7 +313,11 @@ RtspClient::handle_rtp_packet(std::vector<uint8_t> &data, const espp::Socket::In
       logger_.warn("Received first fragment but already have a frame");
       jpeg_frame.reset();
     }
-    jpeg_frame = std::make_unique<JpegFrame>(rtp_jpeg_packet);
+    logger_.debug("Creating new jpeg frame from rtpjpegpacket of size {} x {} pixels",
+                  rtp_jpeg_packet.get_width(), rtp_jpeg_packet.get_height());
+    jpeg_frame = std::make_shared<JpegFrame>(rtp_jpeg_packet);
+    logger_.debug("Created new jpeg frame, size: {} x {} pixels", jpeg_frame->get_width(),
+                  jpeg_frame->get_height());
   } else if (jpeg_frame) {
     logger_.debug("Received middle fragment, size: {}, sequence number: {}",
                   rtp_jpeg_packet.get_data().size(), rtp_jpeg_packet.get_sequence_number());
@@ -334,8 +338,10 @@ RtspClient::handle_rtp_packet(std::vector<uint8_t> &data, const espp::Socket::In
     logger_.debug("Received jpeg frame of size: {} B", jpeg_data.size());
     // call the on_jpeg_frame callback
     if (on_jpeg_frame_) {
-      on_jpeg_frame_(std::move(jpeg_frame));
+      on_jpeg_frame_(jpeg_frame);
     }
+    // reset the jpeg frame
+    jpeg_frame.reset();
     logger_.debug("Sent jpeg frame to callback, now jpeg_frame is nullptr? {}",
                   jpeg_frame == nullptr);
   }

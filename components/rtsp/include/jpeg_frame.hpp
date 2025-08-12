@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+
 #include "jpeg_header.hpp"
 #include "rtp_jpeg_packet.hpp"
 
@@ -16,25 +18,36 @@ public:
   /// data to the frame.
   ///
   /// @param packet The packet to parse.
-  explicit JpegFrame(const RtpJpegPacket &packet)
-      : header_(packet.get_width(), packet.get_height(), packet.get_q_table(0),
-                packet.get_q_table(1)) {
-    // add the jpeg header
-    serialize_header();
-    // add the jpeg data
-    add_scan(packet);
-  }
+  explicit JpegFrame(const espp::RtpJpegPacket &packet)
+      : data_(std::begin(packet.get_jpeg_data()), std::end(packet.get_jpeg_data()))
+      , header_(packet.get_jpeg_data()) {}
+
+  /// Construct a JpegFrame from a vector of jpeg data.
+  /// @param data The vector containing the jpeg data.
+  /// @note The vector must contain the complete JPEG data, including the JPEG
+  ///       header and EOI marker.
+  explicit JpegFrame(const std::vector<uint8_t> &data)
+      : data_(data)
+      , header_(std::span<const uint8_t>(data.data(), data.size())) {}
+
+  /// Construct a JpegFrame from a span of jpeg data.
+  /// @param data The span containing the jpeg data.
+  /// @note The span must contain the complete JPEG data, including the JPEG
+  ///       header and EOI marker.
+  explicit JpegFrame(std::span<const uint8_t> data)
+      : data_(data.begin(), data.end())
+      , header_(data) {}
 
   /// Construct a JpegFrame from buffer of jpeg data
   /// @param data The buffer containing the jpeg data.
   /// @param size The size of the buffer.
-  explicit JpegFrame(const char *data, size_t size)
+  explicit JpegFrame(const uint8_t *data, size_t size)
       : data_(data, data + size)
-      , header_(std::string_view((const char *)data_.data(), size)) {}
+      , header_(std::span<const uint8_t>(data, size)) {}
 
   /// Get a reference to the header.
   /// @return A reference to the header.
-  const JpegHeader &get_header() const { return header_; }
+  const espp::JpegHeader &get_header() const { return header_; }
 
   /// Get the width of the frame.
   /// @return The width of the frame.
@@ -51,14 +64,14 @@ public:
   /// Append a RtpJpegPacket to the frame.
   /// This will add the JPEG data to the frame.
   /// @param packet The packet containing the scan to append.
-  void append(const RtpJpegPacket &packet) { add_scan(packet); }
+  void append(const espp::RtpJpegPacket &packet) { add_scan(packet); }
 
   /// Append a JPEG scan to the frame.
   /// This will add the JPEG data to the frame.
   /// @note If the packet contains the EOI marker, the frame will be
   ///       finalized, and no further scans can be added.
   /// @param packet The packet containing the scan to append.
-  void add_scan(const RtpJpegPacket &packet) {
+  void add_scan(const espp::RtpJpegPacket &packet) {
     add_scan(packet.get_jpeg_data());
     if (packet.get_marker()) {
       finalize();
@@ -68,31 +81,24 @@ public:
   /// Get the serialized data.
   /// This will return the serialized data.
   /// @return The serialized data.
-  std::string_view get_data() const {
-    return std::string_view((const char *)data_.data(), data_.size());
+  std::span<const uint8_t> get_data() const {
+    return std::span<const uint8_t>(data_.data(), data_.size());
   }
 
   /// Get the scan data.
   /// This will return the scan data.
   /// @return The scan data.
-  std::string_view get_scan_data() const {
+  std::span<const uint8_t> get_scan_data() const {
     auto header_data = header_.get_data();
     size_t header_size = header_data.size();
-    return std::string_view((const char *)data_.data() + header_size, data_.size() - header_size);
+    return std::span<const uint8_t>(data_.data() + header_size, data_.size() - header_size);
   }
 
 protected:
-  /// Serialize the header.
-  void serialize_header() {
-    auto header_data = header_.get_data();
-    data_.resize(header_data.size());
-    memcpy(data_.data(), header_data.data(), header_data.size());
-  }
-
   /// Append a JPEG scan to the frame.
   /// This will add the JPEG data to the frame.
   /// @param scan The jpeg scan to append.
-  void add_scan(std::string_view scan) {
+  void add_scan(std::span<const uint8_t> scan) {
     if (finalized_) {
       // TODO: handle this error
       return;
@@ -107,17 +113,10 @@ protected:
   void finalize() {
     if (!finalized_) {
       finalized_ = true;
-      // add_eoi();
     } else {
       // TODO: handle this error
       // already finalized
     }
-  }
-
-  /// Add the EOI marker to the frame.
-  void add_eoi() {
-    data_.push_back(0xFF);
-    data_.push_back(0xD9);
   }
 
   std::vector<uint8_t> data_;

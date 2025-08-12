@@ -1,11 +1,13 @@
+import sys
 import time
 
 from support_loader import espp
 
 udp_client = espp.UdpSocket(espp.UdpSocket.Config(espp.Logger.Verbosity.debug))
 
+# defined out here so that it's only initialized once, not on each callback
 start = time.time()
-def task_func():
+def task_func() -> bool:
     global start
     global udp_client
     port = 5555
@@ -19,13 +21,12 @@ def task_func():
     time.sleep(.5)
     return False # we don't want to stop the task
 
-task = espp.Task(espp.Task.SimpleConfig(
-    task_func, #function
-    # config
+task = espp.Task(
+    task_func,
     espp.Task.BaseConfig("test task")
-))
+)
 task.start()
 
 time.sleep(5)
 
-exit()
+sys.exit(0)

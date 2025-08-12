@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -16,20 +17,24 @@ public:
   /// @param height The image height in pixels.
   /// @param q0_table The quantization table for the Y channel.
   /// @param q1_table The quantization table for the Cb and Cr channels.
-  explicit JpegHeader(int width, int height, std::string_view q0_table, std::string_view q1_table)
+  explicit JpegHeader(int width, int height, std::span<const uint8_t> q0_table,
+                      std::span<const uint8_t> q1_table)
       : width_(width)
       , height_(height)
-      , q0_table_(q0_table)
-      , q1_table_(q1_table) {
+      , q0_table_(
+            std::string_view(reinterpret_cast<const char *>(q0_table.data()), q0_table.size()))
+      , q1_table_(
+            std::string_view(reinterpret_cast<const char *>(q1_table.data()), q1_table.size())) {
     serialize();
   }
 
   /// Create a JPEG header from a given JPEG header data.
-  explicit JpegHeader(std::string_view data)
+  explicit JpegHeader(std::span<const uint8_t> data)
       : data_(data.data(), data.data() + data.size()) {
     parse();
   }
 
+  /// Destructor.
   ~JpegHeader() {}
 
   /// Get the image width.
@@ -40,17 +45,26 @@ public:
   /// @return The image height in pixels.
   int get_height() const { return height_; }
 
+  /// Get the size of the JPEG header data.
+  /// @return The size of the JPEG header data in bytes.
+  /// @note This is the size of the serialized JPEG header, not the image size.
+  size_t size() const { return data_.size(); }
+
   /// Get the JPEG header data.
   /// @return The JPEG header data.
-  std::string_view get_data() const {
-    return std::string_view((const char *)data_.data(), data_.size());
+  std::span<const uint8_t> get_data() const {
+    return std::span<const uint8_t>(data_.data(), data_.size());
   }
 
   /// Get the Quantization table at the index.
   /// @param index The index of the quantization table.
   /// @return The quantization table.
-  std::string_view get_quantization_table(int index) const {
-    return index == 0 ? q0_table_ : q1_table_;
+  std::span<const uint8_t> get_quantization_table(int index) const {
+    return index == 0
+               ? std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(q0_table_.data()),
+                                          q0_table_.size())
+               : std::span<const uint8_t>(reinterpret_cast<const uint8_t *>(q1_table_.data()),
+                                          q1_table_.size());
   }
 
 protected:
@@ -63,11 +77,18 @@ protected:
       0x00, 0x10,                   // Length of APP0 data (16 bytes)
       0x4A, 0x46, 0x49, 0x46, 0x00, // Identifier: ASCII "JFIF\0"
       0x01, 0x01,                   // Version number (1.1)
-      0x01,                         // Units: 1 = dots per inch
-      0x00, 0x00,                   // X density
-      0x00, 0x00,                   // Y density
-      0x00, 0x00                    // No thumbnail
+
+      // NOTE: when comparing, we only care about the above bytes, not the
+      //       following bytes
+
+      0x01,       // Units: 1 = dots per inch
+      0x00, 0x00, // X density
+      0x00, 0x00, // Y density
+      0x00, 0x00  // No thumbnail
   };
+
+  static constexpr size_t JFIF_APP0_SIZE = sizeof(JFIF_APP0_DATA);
+  static constexpr size_t JFIF_APP0_CMP_LEN = 11; // Length of the JFIF identifier and version
 
   static constexpr uint8_t HUFFMAN_TABLES[] = {
       // Huffman table DC (luminance)
@@ -597,170 +618,99 @@ protected:
     // offset += sizeof(SOS);
   }
 
+  uint16_t get_marker(size_t offset) const { return (data_[offset] << 8) | data_[offset + 1]; }
+
+  static constexpr uint16_t SOI_MARKER = 0xFFD8;
+  static constexpr uint16_t APP0_MARKER = 0xFFE0;
+  static constexpr uint16_t DQT_MARKER = 0xFFDB;
+  static constexpr uint16_t SOF0_MARKER = 0xFFC0;
+  static constexpr uint16_t DHT_MARKER = 0xFFC4;
+  static constexpr uint16_t SOS_MARKER = 0xFFDA;
+  static constexpr uint16_t EOI_MARKER = 0xFFD9;
+
   void parse() {
+    constexpr size_t debug_data_size = 50;
     // parse the jpeg header from the data_ vector
     int offset = 0;
     // check the SOI marker
-    if (data_[offset++] != 0xFF || data_[offset++] != 0xD8) {
-      fmt::print("Invalid SOI marker\n");
+    if (get_marker(offset) != SOI_MARKER) {
+      std::span<const uint8_t> debug_data(data_.data() + offset,
+                                          std::min<size_t>(data_.size(), debug_data_size));
+      fmt::print("Invalid SOI marker: {::02x}\n", debug_data);
       return;
     }
+    offset += 2;
+
     // check the JFIF APP0 marker
-    if (memcmp(data_.data() + offset, JFIF_APP0_DATA, sizeof(JFIF_APP0_DATA)) != 0) {
-      fmt::print("Invalid JFIF APP0 marker\n");
+    if (get_marker(offset) == APP0_MARKER) {
+      if (memcmp(data_.data() + offset, JFIF_APP0_DATA, JFIF_APP0_CMP_LEN) != 0) {
+        std::span<const uint8_t> debug_data(data_.data() + offset,
+                                            std::min<size_t>(data_.size(), debug_data_size));
+        fmt::print("Invalid JFIF APP0 marker: {::02x}\n", debug_data);
+        return;
+      }
+      offset += sizeof(JFIF_APP0_DATA);
+    }
+
+    size_t num_huffman_tables = 0;
+    size_t num_dqt_tables = 0;
+    bool found_sos = false;
+    while (!found_sos && offset < data_.size()) {
+      uint16_t marker = (data_[offset] << 8) | data_[offset + 1];
+      offset += 2;
+      if (marker == DQT_MARKER) {
+        // next two bytes are length, so read them out and then skip ahead
+        size_t dqt_length = (data_[offset] << 8) | data_[offset + 1];
+        size_t dqt_table_id = data_[offset + 2];
+        size_t dqt_table_length = dqt_length - 3; // length includes the marker and table ID
+        const char *table_ptr = (const char *)data_.data() + offset + 3;
+        auto dqt_table = std::string_view(table_ptr, dqt_table_length);
+        switch (dqt_table_id) {
+        case 0:
+          q0_table_ = dqt_table;
+          break;
+        case 1:
+          q1_table_ = dqt_table;
+          break;
+        default:
+          fmt::print("Unknown DQT table ID: {}\n", dqt_table_id);
+          break;
+        }
+        offset += dqt_length;
+        num_dqt_tables++;
+      } else if (marker == DHT_MARKER) {
+        size_t huffman_tables_length = (data_[offset] << 8) | data_[offset + 1];
+        offset += huffman_tables_length; // skip the length and the table
+        num_huffman_tables++;
+      } else if (marker == SOF0_MARKER) {
+        size_t sof0_length = (data_[offset] << 8) | data_[offset + 1];
+        [[maybe_unused]] uint8_t precision = data_[offset + 2];
+        height_ = (data_[offset + 3] << 8) | data_[offset + 4];
+        width_ = (data_[offset + 5] << 8) | data_[offset + 6];
+        offset += sof0_length;
+      } else if (marker == SOS_MARKER) {
+        size_t sos_length = (data_[offset] << 8) | data_[offset + 1];
+        offset += sos_length;
+        found_sos = true;
+      } else {
+        fmt::print("Unknown marker: {:04x}\n", marker);
+      }
+    }
+
+    // fmt::print("Found {} DQT tables\n", num_dqt_tables);
+    // fmt::print("Found {} Huffman tables\n", num_huffman_tables);
+    // fmt::print("Image size: {}x{} pixels\n", width_, height_);
+
+    if (!found_sos) {
+      fmt::print("Did not find SOS marker\n");
       return;
     }
-    offset += sizeof(JFIF_APP0_DATA);
-    // check the DQT marker for luminance
-    if (data_[offset++] != 0xFF || data_[offset++] != 0xDB) {
-      fmt::print("Invalid DQT marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00 || data_[offset++] != 0x43) {
-      fmt::print("Invalid DQT marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00) {
-      fmt::print("Invalid DQT marker\n");
-      return;
-    }
-    q0_table_ = std::string_view((const char *)data_.data() + offset, 64);
-    offset += 64;
-    // check the DQT marker for chrominance
-    if (data_[offset++] != 0xFF || data_[offset++] != 0xDB) {
-      fmt::print("Invalid DQT marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00 || data_[offset++] != 0x43) {
-      fmt::print("Invalid DQT marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x01) {
-      fmt::print("Invalid DQT marker\n");
-      return;
-    }
-    q1_table_ = std::string_view((const char *)data_.data() + offset, 64);
-    offset += 64;
-    // check huffman tables
-    if (data_[offset++] != 0xFF || data_[offset++] != 0xC4) {
-      fmt::print("Invalid huffman tables marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00 || data_[offset++] != 0x1f || data_[offset++] != 0x00) {
-      fmt::print("Invalid huffman tables marker\n");
-      return;
-    }
-    offset += sizeof(HUFFMAN_TABLES) - 5;
-    // check the SOF0 marker
-    if (data_[offset++] != 0xFF || data_[offset++] != 0xC0) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00 || data_[offset++] != 0x11) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    // skip the precision
-    offset++;
-    // get the height and width
-    height_ = (data_[offset] << 8) | data_[offset + 1];
-    offset += 2;
-    width_ = (data_[offset] << 8) | data_[offset + 1];
-    offset += 2;
-    if (data_[offset++] != 0x03) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x01) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x21) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x02) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x11) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x01) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x03) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x11) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x01) {
-      fmt::print("Invalid SOF0 marker\n");
-      return;
-    }
-    // check the SOS marker
-    if (data_[offset++] != 0xFF || data_[offset++] != 0xDA) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00 || data_[offset++] != 0x0C) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x03) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x01) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x02) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x11) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x03) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x11) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x3F) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
-    if (data_[offset++] != 0x00) {
-      fmt::print("Invalid SOS marker\n");
-      return;
-    }
+
     data_.resize(offset);
   }
 
-  int width_;
-  int height_;
+  int width_{0};
+  int height_{0};
   std::string_view q0_table_;
   std::string_view q1_table_;
 

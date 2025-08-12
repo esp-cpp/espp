@@ -1,7 +1,9 @@
+import sys
 import time
 
 from support_loader import espp
 
+# defined out here so that it's only initialized once, not on each callback
 start = time.time()
 def on_receive_data(data, sender_info):
     global start
@@ -31,4 +33,4 @@ udp_client.start_receiving(espp.Task.BaseConfig("udp_task"), receive_config)
 
 time.sleep(10)
 
-exit()
+sys.exit(0)

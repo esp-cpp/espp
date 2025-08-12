@@ -82,7 +82,7 @@ void RtspServer::stop() {
 void RtspServer::send_frame(const espp::JpegFrame &frame) {
   // get the frame scan data
   auto frame_header = frame.get_header();
-  auto frame_data = frame.get_scan_data();
+  auto frame_data = frame.get_data();
 
   auto width = frame_header.get_width();
   auto height = frame_header.get_height();
@@ -114,13 +114,13 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
       // use the original q value and include the quantization tables
       packet = std::make_unique<espp::RtpJpegPacket>(
           type_specific, fragment_type, 128, width, height, q0, q1,
-          frame_data.substr(start_index, end_index - start_index));
+          frame_data.subspan(start_index, end_index - start_index));
     } else {
       // use a different q value (less than 128) and don't include the
       // quantization tables
       packet = std::make_unique<espp::RtpJpegPacket>(
           type_specific, offset, fragment_type, 96, width, height,
-          frame_data.substr(start_index, end_index - start_index));
+          frame_data.subspan(start_index, end_index - start_index));
     }
 
     // set the payload type to 26 (JPEG)
