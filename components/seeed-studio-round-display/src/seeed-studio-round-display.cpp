@@ -441,12 +441,17 @@ uint8_t *SsRoundDisplay::frame_buffer1() const { return frame_buffer1_; }
 
 void SsRoundDisplay::brightness(float brightness) {
   brightness = std::clamp(brightness, 0.0f, 100.0f);
-  if (display_)
-    display_->set_brightness(brightness / 100.0f);
+  if (backlight_) {
+    backlight_->set_duty(backlight_channel_configs_[0].channel, brightness);
+  }
 }
 
 float SsRoundDisplay::brightness() const {
-  if (display_)
-    return display_->get_brightness() * 100.0f;
-  return 0.0f;
+  if (backlight_) {
+    auto maybe_duty = backlight_->get_duty(backlight_channel_configs_[0].channel);
+    if (maybe_duty.has_value()) {
+      return maybe_duty.value();
+    }
+  }
+  return 0.0f; // if no backlight, return 0
 }
