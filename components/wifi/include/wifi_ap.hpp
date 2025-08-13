@@ -9,6 +9,7 @@
 #include "nvs_flash.h"
 
 #include "base_component.hpp"
+#include "wifi_format_helpers.hpp"
 
 namespace espp {
 /**
@@ -33,7 +34,10 @@ public:
     std::string ssid;     /**< SSID for the access point. */
     std::string password; /**< Password for the access point. If empty, the AP will be open / have
                              no security. */
-    uint8_t channel{1};   /**< WiFi channel, range [1,13]. */
+    wifi_phy_rate_t phy_rate{
+        WIFI_PHY_RATE_MCS0_LGI}; /**< PHY rate to use for the access point. Default is MCS0_LGI (6.5
+                                    - 13.5 Mbps Long Guard Interval). */
+    uint8_t channel{1};          /**< WiFi channel, range [1,13]. */
     uint8_t max_number_of_stations{4}; /**< Max number of connected stations to this AP. */
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; /**< Verbosity of WifiAp logger. */
   };
@@ -110,6 +114,12 @@ public:
     err = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
     if (err != ESP_OK) {
       logger_.error("Could not create default event loop: {}", err);
+    }
+
+    logger_.debug("Setting WiFi phy rate to {}", config.phy_rate);
+    err = esp_wifi_config_80211_tx_rate(WIFI_IF_AP, config.phy_rate);
+    if (err != ESP_OK) {
+      logger_.error("Could not set WiFi PHY rate: {}", err);
     }
 
     // NOTE: Start phase
