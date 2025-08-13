@@ -105,7 +105,9 @@ extern "C" void app_main(void) {
   {
     logger.info("Starting WiFi AP example...");
     //! [wifi ap example]
-    espp::WifiAp wifi_ap({.ssid = CONFIG_ESP_WIFI_SSID, .password = CONFIG_ESP_WIFI_PASSWORD});
+    espp::WifiAp wifi_ap({.ssid = CONFIG_ESP_WIFI_SSID,
+                          .password = CONFIG_ESP_WIFI_PASSWORD,
+                          .log_level = espp::Logger::Verbosity::DEBUG});
     //! [wifi ap example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);

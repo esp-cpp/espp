@@ -10,6 +10,7 @@
 #include "nvs_flash.h"
 
 #include "base_component.hpp"
+#include "wifi_format_helpers.hpp"
 
 namespace espp {
 /**
@@ -50,6 +51,9 @@ public:
     std::string ssid;     /**< SSID for the access point. */
     std::string password; /**< Password for the access point. If empty, the AP will be open / have
                              no security. */
+    wifi_phy_rate_t phy_rate{
+        WIFI_PHY_RATE_MCS0_LGI}; /**< PHY rate to use for the station. Default is MCS0_LGI (6.5
+                                    - 13.5 Mbps Long Guard Interval). */
     size_t num_connect_retries{
         0}; /**< Number of times to retry connecting to the AP before stopping. After this many
                retries, on_disconnected will be called. */
@@ -77,33 +81,40 @@ public:
     // Code below is modified from:
     // https://github.com/espressif/esp-idf/blob/1c84cfde14dcffdc77d086a5204ce8a548dce935/examples/wifi/getting_started/station/main/station_example_main.c
     esp_err_t err;
+    logger_.debug("Initializing WiFiSta");
     err = esp_netif_init();
     if (err != ESP_OK) {
       logger_.error("Could not initialize netif: {}", err);
     }
 
+    logger_.debug("Creating default event loop");
     err = esp_event_loop_create_default();
     if (err != ESP_OK) {
       logger_.error("Could not create default event loop: {}", err);
     }
 
     // Create default WiFi STA
+    logger_.debug("Creating default WiFi STA netif");
     netif_ = esp_netif_create_default_wifi_sta();
     if (netif_ == nullptr) {
       logger_.error("Could not create default WiFi STA");
     }
 
+    logger_.debug("Wifi init...");
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     err = esp_wifi_init(&cfg);
     if (err != ESP_OK) {
       logger_.error("Could not init wifi subsystem: {}", err);
     }
 
+    // register our event handlers
+    logger_.debug("Adding event handler for WIFI_EVENT(s)");
     err = esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiSta::event_handler,
                                               this, &event_handler_instance_any_id_);
     if (err != ESP_OK) {
       logger_.error("Could not add wifi ANY event handler: {}", err);
     }
+    logger_.debug("Adding IP event handler for IP_EVENT_STA_GOT_IP");
     err =
         esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &WifiSta::event_handler,
                                             this, &event_handler_instance_got_ip_);
@@ -135,14 +146,25 @@ public:
       memcpy(wifi_config.sta.bssid, config.ap_mac, 6);
     }
 
+    logger_.debug("Setting WiFi mode to STA");
     err = esp_wifi_set_mode(WIFI_MODE_STA);
     if (err != ESP_OK) {
       logger_.error("Could not set WiFi mode STA: {}", err);
     }
+
+    logger_.debug("Setting Wifi config");
     err = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     if (err != ESP_OK) {
       logger_.error("Could not set WiFi config: {}", err);
     }
+
+    logger_.debug("Setting WiFi PHY rate to {}", config.phy_rate);
+    err = esp_wifi_config_80211_tx_rate(WIFI_IF_STA, config.phy_rate);
+    if (err != ESP_OK) {
+      logger_.error("Could not set WiFi PHY rate: {}", err);
+    }
+
+    logger_.debug("Starting WiFi");
     err = esp_wifi_start();
     if (err != ESP_OK) {
       logger_.error("Could not start WiFi: {}", err);
