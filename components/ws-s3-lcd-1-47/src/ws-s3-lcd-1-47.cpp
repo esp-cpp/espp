@@ -153,8 +153,9 @@ bool WsS3Lcd147::initialize_display(size_t pixel_buffer_size) {
                                  .rotation_callback = DisplayDriver::rotate,
                                  .rotation = rotation},
       Display<Pixel>::OledConfig{
-          .set_brightness_callback = [this](float brightness) { this->brightness(brightness); },
-          .get_brightness_callback = [this]() { return this->brightness(); }},
+          .set_brightness_callback =
+              [this](float brightness) { this->brightness(brightness / 100.0f); },
+          .get_brightness_callback = [this]() { return this->brightness() / 100.0f; }},
       Display<Pixel>::DynamicMemoryConfig{
           .pixel_buffer_size = pixel_buffer_size,
           .double_buffered = true,
