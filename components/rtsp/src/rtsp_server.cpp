@@ -106,7 +106,7 @@ void RtspServer::send_frame(const espp::JpegFrame &frame) {
 
     static const int type_specific = 0;
     static const int fragment_type = 0;
-    int offset = i * max_data_size_;
+    int offset = start_index;
 
     std::unique_ptr<RtpJpegPacket> packet;
     // if this is the first packet, it has the quantization tables

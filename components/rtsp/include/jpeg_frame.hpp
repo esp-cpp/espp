@@ -72,9 +72,19 @@ public:
   ///       finalized, and no further scans can be added.
   /// @param packet The packet containing the scan to append.
   void add_scan(const espp::RtpJpegPacket &packet) {
-    add_scan(packet.get_jpeg_data());
+    add_scan(packet.get_jpeg_data(), packet.get_offset());
+    auto sequence_number = packet.get_sequence_number();
+    received_sequence_numbers_.push_back(sequence_number);
     if (packet.get_marker()) {
-      finalize();
+      // check to ensure we got all the packets (sequence numbers) we expected
+      // based on start and this packet. What this means is that there should be
+      // no gaps in the received sequence numbers.
+      if (!has_missing_sequence_numbers()) {
+        finalize();
+      } else {
+        // fmt::print("JpegFrame: Missing sequence numbers in received packets {}\n",
+        //            received_sequence_numbers_);
+      }
     }
   }
 
@@ -106,6 +116,51 @@ protected:
     data_.insert(std::end(data_), std::begin(scan), std::end(scan));
   }
 
+  /// Append a JPEG scan to the frame at a specific offset.
+  /// This will add the JPEG data to the frame at the specified offset.
+  /// @param scan The jpeg scan to append.
+  /// @param frag_offset The offset at which to append the scan.
+  /// @note If the offset is greater than the current data size, the data will
+  ///       be resized to accommodate the new data.
+  void add_scan(std::span<const uint8_t> scan, size_t frag_offset) {
+    if (finalized_) {
+      // TODO: handle this error
+      return;
+    }
+    // if the required span position is greater than the current data size, we
+    // need to pad the data with zeros.
+    size_t required_size = frag_offset + scan.size();
+    if (required_size >= data_.size()) {
+      data_.resize(required_size, 0);
+    }
+    std::copy(scan.begin(), scan.end(), data_.begin() + frag_offset);
+  }
+
+  /// Check if there are any missing sequence numbers.
+  /// This will check if there are any missing sequence numbers in the received
+  /// sequence numbers.
+  /// @return True if there are any missing sequence numbers, false otherwise.
+  bool has_missing_sequence_numbers() {
+    if (received_sequence_numbers_.empty() || received_sequence_numbers_.size() == 1) {
+      return false;
+    }
+    // first let's sort the sequence numbers
+    std::sort(received_sequence_numbers_.begin(), received_sequence_numbers_.end());
+    // check for gaps in the sequence numbers. Since we've sorted the list, we
+    // can simply iterate and ensure that the difference between consecutive
+    // sequence numbers is 1.
+    int prev_seq = received_sequence_numbers_[0];
+    for (size_t i = 1; i < received_sequence_numbers_.size(); ++i) {
+      int curr_seq = received_sequence_numbers_[i];
+      if (curr_seq != (prev_seq + 1) % 65536) {
+        return true; // found a gap
+      }
+      prev_seq = curr_seq;
+    }
+    // if we made it here, there are no gaps
+    return false;
+  }
+
   /// Add the EOI marker to the frame.
   /// This will add the EOI marker to the frame. This must be called before
   /// calling get_data().
@@ -119,6 +174,7 @@ protected:
     }
   }
 
+  std::vector<int> received_sequence_numbers_;
   std::vector<uint8_t> data_;
   JpegHeader header_;
   bool finalized_ = false;
