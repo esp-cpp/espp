@@ -25,9 +25,16 @@
 #ifndef __ES8388_H__
 #define __ES8388_H__
 
+#include <cstdint>
+#include <functional>
+
+typedef std::function<bool(uint8_t, uint8_t *, size_t)> write_fn;
+typedef std::function<bool(uint8_t, uint8_t, uint8_t *, size_t)> read_register_fn;
+
+void set_es8388_write(write_fn fn);
+void set_es8388_read(read_register_fn fn);
+
 #include "audio_hal.h"
-#include "driver/i2c.h"
-#include "esp_err.h"
 #include "esp_types.h"
 #include "esxxx_common.h"
 

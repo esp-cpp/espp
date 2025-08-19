@@ -22,15 +22,19 @@
  *
  */
 
-#include "es8388.h"
-#include "driver/i2c.h"
+#include "es8388.hpp"
 #include "esp_log.h"
 #include <string.h>
 
-static const char *ES_TAG = "ES8388_DRIVER";
+static write_fn i2c_write_ = nullptr;
+static read_register_fn i2c_read_register_ = nullptr;
 
-#define I2C_MASTER_NUM (I2C_NUM_0)
-#define I2C_MASTER_TIMEOUT_MS (10)
+void set_es8388_write(write_fn fn) { i2c_write_ = fn; }
+void set_es8388_read(read_register_fn fn) { i2c_read_register_ = fn; }
+
+static inline int BIT(int n) { return 1 << n; }
+
+static const char *ES_TAG = "ES8388_DRIVER";
 
 #define ES_ASSERT(a, format, b, ...)                                                               \
   if ((a) != 0) {                                                                                  \
@@ -41,17 +45,13 @@ static const char *ES_TAG = "ES8388_DRIVER";
 static esp_err_t es_write_reg(uint8_t slave_addr, uint8_t reg_add, uint8_t data) {
   // return i2c_bus_write_byte(i2c_handle, reg_add, data);
   uint8_t write_buf[2] = {reg_add, data};
-  return i2c_master_write_to_device(I2C_MASTER_NUM, slave_addr, write_buf, sizeof(write_buf),
-                                    I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+  bool success = i2c_write_(slave_addr, write_buf, sizeof(write_buf));
+  return success ? ESP_OK : ESP_FAIL;
 }
 
 static esp_err_t es_read_reg(uint8_t reg_add, uint8_t *p_data) {
-  // return i2c_bus_read_byte(i2c_handle, reg_add, p_data);
-  return i2c_master_write_read_device(I2C_MASTER_NUM, ES8388_ADDR, &reg_add,
-                                      1, // size of addr
-                                      p_data,
-                                      1, // amount of data to read
-                                      I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+  bool success = i2c_read_register_(ES8388_ADDR, reg_add, p_data, 1);
+  return success ? ESP_OK : ESP_FAIL;
 }
 
 void es8388_read_all() {
@@ -486,9 +486,9 @@ int es8388_ctrl_state(audio_hal_codec_mode_t mode, audio_hal_ctrl_t ctrl_state) 
     break;
   }
   if (AUDIO_HAL_CTRL_STOP == ctrl_state) {
-    res = es8388_stop(es_mode_t);
+    res = es8388_stop((es_module_t)es_mode_t);
   } else {
-    res = es8388_start(es_mode_t);
+    res = es8388_start((es_module_t)es_mode_t);
     ESP_LOGD(ES_TAG, "start default is decode mode:%d", es_mode_t);
   }
   return res;
@@ -497,7 +497,7 @@ int es8388_ctrl_state(audio_hal_codec_mode_t mode, audio_hal_ctrl_t ctrl_state) 
 esp_err_t es8388_config_i2s(audio_hal_codec_mode_t mode, audio_hal_codec_i2s_iface_t *iface) {
   esp_err_t res = ESP_OK;
   int tmp = 0;
-  res |= es8388_config_fmt(ES_MODULE_ADC_DAC, iface->fmt);
+  res |= es8388_config_fmt(ES_MODULE_ADC_DAC, (es_i2s_fmt_t)iface->fmt);
   if (iface->bits == AUDIO_HAL_BIT_LENGTH_16BITS) {
     tmp = BIT_LENGTH_16BITS;
   } else if (iface->bits == AUDIO_HAL_BIT_LENGTH_24BITS) {
@@ -505,6 +505,6 @@ esp_err_t es8388_config_i2s(audio_hal_codec_mode_t mode, audio_hal_codec_i2s_ifa
   } else {
     tmp = BIT_LENGTH_32BITS;
   }
-  res |= es8388_set_bits_per_sample(ES_MODULE_ADC_DAC, tmp);
+  res |= es8388_set_bits_per_sample(ES_MODULE_ADC_DAC, (es_bits_length_t)tmp);
   return res;
 }
