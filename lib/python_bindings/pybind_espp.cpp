@@ -25,7 +25,9 @@ void py_init_module_espp(py::module &m) {
   // using namespace espp;  // NON!
 
   // create an Error class which is really just std::error_code
-  py::class_<std::error_code>(m, "Error")
+  py::class_<std::error_code>(
+      m, "Error", py::module_local()) // should be module_local so other modules can have
+                                      // std::error_code if they need to
       .def(py::init<>())
       .def("__repr__",
            [](const std::error_code &self) { return fmt::format("Error({})", self.message()); })
