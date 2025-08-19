@@ -108,6 +108,14 @@ public:
     return read_u8_from_register((uint8_t)Reg::INPUT, ec);
   }
 
+  /// Read current output latch for the 8-bit port
+  /// @param ec Error code set on failure
+  /// @return Bit mask of outputs (bits 0..7)
+  uint8_t read_outputs(std::error_code &ec) {
+    std::scoped_lock lock{base_mutex_};
+    return read_u8_from_register((uint8_t)Reg::OUTPUT, ec);
+  }
+
   /// Configure input polarity inversion (1=invert)
   /// @param mask Bit mask to invert (bits 0..7)
   /// @param ec Error code set on failure
