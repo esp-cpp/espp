@@ -12,11 +12,13 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py filters monitor motorgo-mini task timer"
+  "main esptool_py m5stack-tab5 filters display lvgl"
   CACHE STRING
   "List of components to include"
   )
+# "Trim" the build. Include the minimal set of components, main, and anything it depends on.
+idf_build_set_property(MINIMAL_BUILD ON)
 
-project(motorgo_mini_example)
+project(m5stack_tab5_example)
 
 set(CMAKE_CXX_STANDARD 20)

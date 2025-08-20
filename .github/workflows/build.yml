@@ -92,16 +92,16 @@ jobs:
         # ensure they're all built and tested
         - path: 'components/i2c/example'
           target: esp32
-          command: IDF_COMPONENT_MANAGER=0 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api" build
+          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api" build
         - path: 'components/i2c/example'
           target: esp32
-          command: IDF_COMPONENT_MANAGER=0 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api;sdkconfig.defaults.cli" build
+          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api;sdkconfig.defaults.cli" build
         - path: 'components/i2c/example'
           target: esp32
-          command: IDF_COMPONENT_MANAGER=0 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api" build
+          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api" build
         - path: 'components/i2c/example'
           target: esp32
-          command: IDF_COMPONENT_MANAGER=0 idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api;sdkconfig.defaults.cli;" build
+          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api;sdkconfig.defaults.cli;" build
 
         - path: 'components/icm20948/example'
           target: esp32s3
@@ -113,9 +113,6 @@ jobs:
           target: esp32s3
         - path: 'components/iperf_menu/example'
           target: esp32s3
-          # NOTE: we must use custom command here because this component depends
-          # on espressif/iperf, so we can't disable the component manager
-          command: idf.py build
         - path: 'components/joystick/example'
           target: esp32
         - path: 'components/kts1622/example'
@@ -219,4 +216,4 @@ jobs:
         esp_idf_version: release-v5.4
         target: ${{ matrix.test.target }}
         path: ${{ matrix.test.path }}
-        command: ${{ matrix.test.command || 'IDF_COMPONENT_MANAGER=0 idf.py build' }}
+        command: ${{ matrix.test.command || 'idf.py build' }}
