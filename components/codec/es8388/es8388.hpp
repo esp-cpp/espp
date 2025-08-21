@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 /* ES8388 address */
-#define ES8388_ADDR 0x20 /*!< 0x22:CE=1;0x20:CE=0*/
+#define ES8388_ADDR 0x10 /*!< 0x22:CE=1;0x20:CE=0*/
 
 /* ES8388 register */
 #define ES8388_CONTROL1 0x00
