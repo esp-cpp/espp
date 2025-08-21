@@ -18,7 +18,10 @@
 #if CONFIG_ESPP_I2C_LEGACY_API_DISABLE_DEPRECATION_WARNINGS
 #define ESPP_I2C_LEGACY_API_DEPRECATED_ATTR
 #else
-#define ESPP_I2C_LEGACY_API_DEPRECATED_ATTR [[deprecated("Use the new I2C API instead")]]
+#define ESPP_I2C_LEGACY_API_DEPRECATED_ATTR                                                        \
+  [[deprecated(                                                                                    \
+      "Use the new I2C API instead or set kconfig "                                                \
+      "CONFIG_ESPP_I2C_LEGACY_API_DISABLE_DEPRECATION_WARNINGS to disable this warning")]]
 #endif
 
 namespace espp {
