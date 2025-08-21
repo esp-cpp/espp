@@ -199,6 +199,10 @@ bool FileSystem::remove(const std::filesystem::path &path, std::error_code &ec) 
   logger_.debug("Removing path: {}", path.string());
   namespace fs = std::filesystem;
   auto file_status = fs::status(path, ec);
+  if (ec) {
+    logger_.info("Failed to get status for file: {}", path.string());
+    return false;
+  }
   if (std::filesystem::is_directory(file_status)) {
     if (!remove_contents(path, ec)) {
       logger_.error("Failed to remove contents of directory: {}", path.string());

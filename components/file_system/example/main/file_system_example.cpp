@@ -294,6 +294,16 @@ extern "C" void app_main(void) {
       logger.info("\t{}", f);
     }
 
+    // attempt to delete an etry that doesn't exist
+    fs::path nonexistent = sandbox / "does_not_exist.txt";
+    if (!espp_fs.remove(nonexistent, ec)) {
+      logger.info("Properly returned error when trying to remove nonexistent file {} - {}",
+                  nonexistent.string(), ec.message());
+      ec.clear();
+    } else {
+      logger.error("Removed nonexistent file {} - this should not happen!", nonexistent.string());
+    }
+
     // cleanup, use convenience functions
     // NOTE: cannot use fs::remove since it seems POSIX remove() doesn't work
     // We'll use espp::FileSystem::remove, which works for both files and
