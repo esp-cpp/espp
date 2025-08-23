@@ -1,0 +1,32 @@
+menu "M5Stack Tab5 Configuration"
+    config M5STACK_TAB5_INTERRUPT_STACK_SIZE
+        int "Interrupt stack size"
+        default 4096
+        help
+            Size of the stack used for the interrupt handler. Used by the touch
+            callback and other interrupt handlers.
+            
+    config M5STACK_TAB5_AUDIO_TASK_STACK_SIZE
+        int "Audio task stack size"
+        default 8192
+        help
+            Size of the stack used for the audio processing task.
+            
+    config M5STACK_TAB5_ENABLE_WIRELESS
+        bool "Enable ESP32-C6 wireless module support"
+        default true
+        help
+            Enable support for the ESP32-C6 wireless module (Wi-Fi 6, Thread, ZigBee).
+            
+    config M5STACK_TAB5_ENABLE_CAMERA
+        bool "Enable SC2356 camera support"
+        default true
+        help
+            Enable support for the SC2356 2MP camera via MIPI-CSI.
+            
+    config M5STACK_TAB5_ENABLE_BATTERY_MONITORING
+        bool "Enable battery monitoring"
+        default true
+        help
+            Enable INA226 battery monitoring and power management features.
+endmenu 

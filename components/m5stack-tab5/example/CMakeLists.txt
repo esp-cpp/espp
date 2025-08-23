@@ -16,8 +16,6 @@ set(
   CACHE STRING
   "List of components to include"
   )
-# "Trim" the build. Include the minimal set of components, main, and anything it depends on.
-idf_build_set_property(MINIMAL_BUILD ON)
 
 project(m5stack_tab5_example)
 

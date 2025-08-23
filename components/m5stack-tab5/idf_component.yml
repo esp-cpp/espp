@@ -1,0 +1,19 @@
+version: "1.0.0"
+description: "M5Stack Tab5 Board Support Package (BSP) component for ESP32-P4"
+url: "https://github.com/esp-cpp/espp"
+dependencies:
+  idf: ~5.4
+  espp/base_component: ">=1.0"
+  espp/codec: ">=1.0"
+  espp/display: ">=1.0"
+  espp/display_drivers: ">=1.0"
+  espp/i2c: ">=1.0"
+  espp/ina226: ">=1.0"
+  espp/pi4ioe5v: ">=1.0"
+  espp/input_drivers: ">=1.0"
+  espp/interrupt: ">=1.0"
+  espp/gt911: ">=1.0"
+  espp/task: ">=1.0"
+  espp/bmi270: ">=1.0"
+targets:
+  - esp32p4
