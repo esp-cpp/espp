@@ -178,7 +178,7 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
         typename Display<Pixel>::LvglConfig{.width = display_width_,
                                             .height = display_height_,
                                             .flush_callback =
-                                                M5StackTab5::flush, // DisplayDriver::flush,
+                                                DisplayDriver::flush, // M5StackTab5::flush,
                                             .rotation_callback = DisplayDriver::rotate,
                                             .rotation = rotation},
         typename Display<Pixel>::OledConfig{
@@ -250,6 +250,7 @@ void M5StackTab5::dsi_write_command(uint8_t cmd, std::span<const uint8_t> params
   esp_lcd_panel_io_handle_t io = lcd_handles_.io;
   const void *data_ptr = params.data();
   size_t data_size = params.size();
+  logger_.debug("DSI tx_param 0x{:02X} with {} bytes", cmd, data_size);
   esp_err_t err = esp_lcd_panel_io_tx_param(io, (int)cmd, data_ptr, data_size);
   if (err != ESP_OK) {
     logger_.error("DSI tx_param 0x{:02X} failed: {}", cmd, esp_err_to_name(err));
@@ -261,19 +262,28 @@ void M5StackTab5::dsi_write_lcd_lines(int sx, int sy, int ex, int ey, const uint
   if (!lcd_handles_.io)
     return;
   esp_lcd_panel_io_handle_t io = lcd_handles_.io;
-  // Ensure drawing area is set, then stream pixel data via RAMWR using panel IO color API
-  // lv_area_t area{.x1 = (lv_coord_t)sx, .y1 = (lv_coord_t)sy, .x2 = (lv_coord_t)ex, .y2 =
-  // (lv_coord_t)ey}; DisplayDriver::set_drawing_area(&area); Calculate total number of pixels in
+
+  // Calculate total number of pixels in
   // the area
   const int width = (ex - sx + 1);
   const int height = (ey - sy + 1);
   const size_t num_pixels = static_cast<size_t>(width) * static_cast<size_t>(height);
+
+  logger_.debug("DSI tx_color for area ({},{})->({},{}) size={} px", sx, sy, ex, ey,
+                width * height);
+
+  // Ensure drawing area is set, then stream pixel data via RAMWR using panel IO color API
+  lv_area_t area{
+      .x1 = (lv_coord_t)sx, .y1 = (lv_coord_t)sy, .x2 = (lv_coord_t)ex, .y2 = (lv_coord_t)ey};
+  DisplayDriver::set_drawing_area(&area);
+
   // RAMWR expects RGB565 little-endian words; DisplayDriver::fill already byte-swapped when needed
-  // esp_err_t err = esp_lcd_panel_io_tx_color(io, (int)espp::Ili9881::Command::ramwr, color_data,
-  // num_pixels); if (err != ESP_OK) {
-  //   logger_.error("DSI tx_color failed for area ({},{})->({},{}) size={} px: {}", sx, sy, ex, ey,
-  //   num_pixels, esp_err_to_name(err));
-  // }
+  esp_err_t err =
+      esp_lcd_panel_io_tx_color(io, (int)DisplayDriver::Command::ramwr, color_data, num_pixels);
+  if (err != ESP_OK) {
+    logger_.error("DSI tx_color failed for area ({},{})->({},{}) size={} px: {}", sx, sy, ex, ey,
+                  num_pixels, esp_err_to_name(err));
+  }
 }
 
 } // namespace espp

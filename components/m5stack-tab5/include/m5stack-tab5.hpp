@@ -589,16 +589,14 @@ protected:
     return sample_rate * NUM_CHANNELS * NUM_BYTES_PER_CHANNEL / UPDATE_FREQUENCY;
   }
 
-  static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
-  static bool notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
-                                      esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx);
-
   // Member variables
   I2c internal_i2c_{{.port = internal_i2c_port,
                      .sda_io_num = internal_i2c_sda,
                      .scl_io_num = internal_i2c_scl,
                      .sda_pullup_en = GPIO_PULLUP_ENABLE,
-                     .scl_pullup_en = GPIO_PULLUP_ENABLE}};
+                     .scl_pullup_en = GPIO_PULLUP_ENABLE,
+                     .timeout_ms = 200, // needs to be long enough for writing imu config file (8k)
+                     .clk_speed = 400'000}};
 
   // Interrupt configurations
   espp::Interrupt::PinConfig button_interrupt_pin_{
@@ -695,6 +693,10 @@ protected:
     esp_lcd_panel_io_handle_t io{nullptr};          // io handle
     esp_lcd_panel_handle_t panel{nullptr};          // color handle
   } lcd_handles_{};
+
+  static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+  static bool notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
+                                      esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx);
 
   // DSI write helpers
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);
