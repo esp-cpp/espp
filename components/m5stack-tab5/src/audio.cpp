@@ -122,7 +122,7 @@ void M5StackTab5::volume(float volume) {
   volume = std::max(0.0f, std::min(100.0f, volume));
   volume_ = volume;
   es8388_set_voice_volume(static_cast<int>(volume_));
-  logger_.debug("Volume set to %.1f%%", volume);
+  logger_.debug("Volume set to {:.1f} %", volume);
 }
 
 float M5StackTab5::volume() const { return volume_; }

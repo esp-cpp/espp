@@ -139,8 +139,8 @@ bool M5StackTab5::initialize_lcd() {
     }
   }
 
-  // ESP_ERROR_CHECK(esp_lcd_panel_reset(mipi_dpi_panel_));
-  // ESP_ERROR_CHECK(esp_lcd_panel_init(mipi_dpi_panel_));
+  // ESP_ERROR_CHECK(esp_lcd_panel_reset(lcd_handles_.panel));
+  ESP_ERROR_CHECK(esp_lcd_panel_init(lcd_handles_.panel));
 
   logger_.info("Register DPI panel event callback for LVGL flush ready notification");
   esp_lcd_dpi_panel_event_callbacks_t cbs = {
