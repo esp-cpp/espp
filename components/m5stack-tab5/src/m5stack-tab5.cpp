@@ -11,28 +11,7 @@
 namespace espp {
 
 M5StackTab5::M5StackTab5()
-    : BaseComponent("M5StackTab5") {
-  logger_.info("Initializing M5Stack Tab5 BSP");
-
-  // Initialize basic GPIO configurations
-  gpio_config_t io_conf = {};
-
-  // Configure backlight pin as output
-  io_conf.intr_type = GPIO_INTR_DISABLE;
-  io_conf.mode = GPIO_MODE_OUTPUT;
-  io_conf.pin_bit_mask = (1ULL << lcd_backlight_io);
-  io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-  io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-  gpio_config(&io_conf);
-
-  // Set initial backlight state (off)
-  gpio_set_level(lcd_backlight_io, 0);
-
-  // Configure audio enable pin (via GPIO expander, placeholder for now)
-  // This would typically be handled through the PI4IOE5V6408 I2C GPIO expander
-
-  logger_.info("M5Stack Tab5 BSP initialized");
-}
+    : BaseComponent("M5StackTab5") {}
 
 bool M5StackTab5::initialize_io_expanders() {
   logger_.info("Initializing IO expanders (0x43, 0x44)");
