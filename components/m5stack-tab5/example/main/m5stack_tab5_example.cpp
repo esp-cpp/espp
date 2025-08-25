@@ -36,7 +36,7 @@ extern "C" void app_main(void) {
 
   //! [m5stack tab5 example]
   espp::M5StackTab5 &tab5 = espp::M5StackTab5::get();
-  tab5.set_log_level(espp::Logger::Verbosity::INFO);
+  tab5.set_log_level(espp::Logger::Verbosity::DEBUG);
   logger.info("Running on M5Stack Tab5");
 
   // first let's get the internal i2c bus and probe for all devices on the bus
@@ -259,7 +259,7 @@ extern "C" void app_main(void) {
                           .name = "lv_task",
                           .stack_size_bytes = 10 * 1024,
                       }});
-  lv_task.start();
+  // lv_task.start();
 
   // load the audio and play it once as a test
   logger.info("Loading audio...");
