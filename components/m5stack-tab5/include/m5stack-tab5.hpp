@@ -15,6 +15,7 @@
 #include <hal/spi_types.h>
 
 #include <esp_lcd_mipi_dsi.h>
+#include <esp_lcd_panel_interface.h>
 #include <esp_lcd_panel_io.h>
 
 #include <freertos/FreeRTOS.h>
@@ -694,7 +695,11 @@ protected:
     esp_lcd_panel_handle_t panel{nullptr};          // color handle
   } lcd_handles_{};
 
-  static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+  // original function pointer for the panel del, init
+  esp_err_t (*original_panel_del_)(esp_lcd_panel_t *panel){nullptr};
+  esp_err_t (*original_panel_init_)(esp_lcd_panel_t *panel){nullptr};
+
+  void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
   static bool notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel,
                                       esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx);
 
@@ -702,6 +707,16 @@ protected:
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);
   void dsi_write_lcd_lines(int sx, int sy, int ex, int ey, const uint8_t *color_data,
                            uint32_t flags);
+
+  static esp_err_t lcd_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_start, int x_end,
+                                   int y_end, const void *color_data);
+  static esp_err_t lcd_reset(esp_lcd_panel_t *panel);
+  static esp_err_t lcd_disp_init(esp_lcd_panel_t *panel);
+  static esp_err_t lcd_disp_mirror(esp_lcd_panel_t *panel, bool mirror_x, bool mirror_y);
+  static esp_err_t lcd_disp_swap_xy(esp_lcd_panel_t *panel, bool swap_xy);
+  static esp_err_t lcd_disp_invert_color(esp_lcd_panel_t *panel, bool invert_color);
+  static esp_err_t lcd_disp_on_off(esp_lcd_panel_t *panel, bool on);
+  static esp_err_t lcd_disp_sleep(esp_lcd_panel_t *panel, bool sleep);
 
   // IO expander bit mapping (can be adjusted if hardware changes)
   static constexpr uint8_t IO43_BIT_SPK_EN = 1;   // P1
