@@ -325,6 +325,21 @@ public:
     }
   }
 
+  /**
+   * @brief Notify LVGL that the flush operation is complete.
+   */
+  void notify_flush_ready() {
+    if (display_ != nullptr) {
+      lv_disp_flush_ready(display_);
+    }
+  }
+
+  /**
+   * @brief Get pointer to the LVGL display object.
+   * @return lv_display_t* Pointer to the LVGL display object.
+   */
+  lv_display_t *get_lvgl_display() const { return display_; }
+
 protected:
   /**
    * @brief LVGL event handler.
