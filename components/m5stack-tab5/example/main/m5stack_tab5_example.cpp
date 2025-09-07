@@ -66,7 +66,7 @@ extern "C" void app_main(void) {
 
   // initialize the display with a pixel buffer (Tab5 is 1280x720 with 2 bytes per pixel)
   logger.info("Initializing display...");
-  auto pixel_buffer_size = tab5.display_width() * 10;
+  auto pixel_buffer_size = tab5.display_width() * 10; // tab5.display_height();
   if (!tab5.initialize_display(pixel_buffer_size)) {
     logger.error("Failed to initialize display!");
     return;
@@ -259,7 +259,7 @@ extern "C" void app_main(void) {
                           .name = "lv_task",
                           .stack_size_bytes = 10 * 1024,
                       }});
-  // lv_task.start();
+  lv_task.start();
 
   // load the audio and play it once as a test
   logger.info("Loading audio...");
