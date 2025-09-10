@@ -84,13 +84,7 @@ size_t Cobs::decode_packet(const uint8_t* encoded_data, size_t length, uint8_t* 
     const uint8_t* end = encoded_data + length;
     
     uint8_t code = 0xff;  // Initialize code outside loop to check final state
-    const uint8_t* block_start = byte;  // Track start of current block
     for (uint8_t block = 0; byte < end; block--) {
-        // Check if current block is too large (more than MAX_BLOCK_SIZE+1 bytes)
-        if (static_cast<size_t>(byte - block_start) > MAX_BLOCK_SIZE + 1) {
-            return 0;  // Block too large - likely malformed
-        }
-        
         if (block) {  // Decode block byte
             *decode++ = *byte++;
             if (decode >= output + length)  // Buffer overflow
@@ -99,7 +93,6 @@ size_t Cobs::decode_packet(const uint8_t* encoded_data, size_t length, uint8_t* 
             if (byte >= end) // Unexpected end of data
                 return 0;  
             block = *byte++;
-            block_start = byte;  // Start of new block
             if (block && (code != 0xff)) {  // Encoded zero, write it unless it's delimiter
                 *decode++ = 0;
                 if (decode >= output + length) // Buffer overflow
