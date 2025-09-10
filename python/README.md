@@ -36,6 +36,12 @@ This section gives a brief overview of what the scripts in this folder do.
   from a webcam or display capture, while the client receives the stream and
   displays it in a window. Note: these scripts require additional 3rd party
   libraries such as `opencv`, `mss`, and `zeroconf`.
+- `cobs_test.py`: This script demonstrates the COBS (Consistent Overhead Byte Stuffing)
+  component functionality through Python bindings using pointer-free tests. The test
+  verifies class instantiation, buffer management, data extraction methods, thread safety,
+  and method availability. Note: Full COBS functionality (encoding/decoding with data)
+  requires raw pointer support which has limitations in the current Python bindings.
+  
 
 ## Setup
 
