@@ -1,4 +1,5 @@
 #include "rtsp_client.hpp"
+#include "rtsp_auth.hpp"
 
 using namespace espp;
 
@@ -11,7 +12,22 @@ RtspClient::RtspClient(const Config &config)
     , rtcp_socket_({.log_level = espp::Logger::Verbosity::WARN})
     , on_jpeg_frame_(config.on_jpeg_frame)
     , cseq_(0)
-    , path_("rtsp://" + server_address_ + ":" + std::to_string(rtsp_port_) + config.path) {}
+    , path_("rtsp://" + server_address_ + ":" + std::to_string(rtsp_port_) + config.path)
+    , auth_username_(config.username)
+    , auth_password_(config.password)
+    , auth_crypto_(config.crypto)
+    , auth_preemptive_basic_(config.preemptive_basic)
+    , auth_allow_url_credentials_(config.allow_url_credentials) {
+  if (auth_allow_url_credentials_ && auth_username_.empty()) {
+    std::string u, p;
+    if (espp::rtsp::parseUserInfoFromUrl(path_, u, p)) {
+      if (auth_username_.empty())
+        auth_username_ = u;
+      if (auth_password_.empty())
+        auth_password_ = p;
+    }
+  }
+}
 
 RtspClient::~RtspClient() {
   std::error_code ec;
@@ -33,6 +49,11 @@ RtspClient::send_request(const std::string &method, const std::string &path,
   }
   for (auto &[key, value] : extra_headers) {
     request += key + ": " + value + "\r\n";
+  }
+  if (auth_preemptive_basic_ && !auth_username_.empty()) {
+    request += std::string("Authorization: ") +
+               espp::rtsp::buildBasicAuthorization(auth_username_, auth_password_, auth_crypto_) +
+               "\r\n";
   }
   request += "User-Agent: rtsp-client\r\n";
   request += "Accept: application/sdp\r\n";
@@ -62,6 +83,55 @@ RtspClient::send_request(const std::string &method, const std::string &path,
 
   // parse the response
   logger_.debug("Response:\n{}", response);
+  if (response.rfind("RTSP/1.0 401", 0) == 0 && !auth_username_.empty()) {
+    std::vector<std::string> www;
+    size_t pos = 0;
+    while ((pos = response.find("WWW-Authenticate:", pos)) != std::string::npos) {
+      size_t end = response.find("\r\n", pos);
+      if (end == std::string::npos)
+        break;
+      std::string line = response.substr(pos + 18, end - (pos + 18));
+      while (!line.empty() && (line[0] == ' ' || line[0] == '\t'))
+        line.erase(line.begin());
+      www.push_back(line);
+      pos = end + 2;
+    }
+    std::vector<espp::rtsp::AuthChallenge> ch;
+    if (espp::rtsp::parseWwwAuthenticate(www, ch)) {
+      std::string auth_header;
+      bool used = false;
+      for (auto &c : ch)
+        if (c.scheme == "Basic") {
+          auth_header =
+              espp::rtsp::buildBasicAuthorization(auth_username_, auth_password_, auth_crypto_);
+          used = true;
+          break;
+        }
+      if (!used) {
+        for (auto &c : ch)
+          if (c.scheme == "Digest" && !c.nonce.empty()) {
+            auto &nc = nonceCount_[c.nonce];
+            if (!nc)
+              nc = 1;
+            else
+              nc++;
+            char ncbuf[9];
+            snprintf(ncbuf, sizeof(ncbuf), "%08x", static_cast<unsigned int>(nc));
+            std::string cnonce =
+                (auth_crypto_.random_hex ? auth_crypto_.random_hex(16) : std::string());
+            auth_header = espp::rtsp::buildDigestAuthorization(
+                auth_username_, auth_password_, c, method, path, auth_crypto_, ncbuf, cnonce);
+            used = true;
+            break;
+          }
+      }
+      if (used) {
+        auto retry_headers = extra_headers;
+        retry_headers["Authorization"] = auth_header;
+        return send_request(method, path, retry_headers, ec);
+      }
+    }
+  }
   if (parse_response(response, ec)) {
     return response;
   }

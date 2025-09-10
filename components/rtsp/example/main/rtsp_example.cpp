@@ -59,12 +59,57 @@ extern "C" void app_main(void) {
   logger.info("Starting RTSP Server on port {}", server_port);
   logger.info("RTSP URI: {}", server_uri);
 
+  // Demo crypto callbacks (Base64/MD5/random) - replace with real implementations
+  espp::rtsp::CryptoCallbacks crypto{};
+  // Simple base64 via IDF helper if available; otherwise, leave unimplemented and skip preemptive
+  crypto.base64_encode = [](const std::string &in) -> std::string {
+    // NOTE: replace with real base64 implementation
+    return std::string();
+  };
+  crypto.base64_decode = [](const std::string &b64) -> std::string {
+    // NOTE: replace with real base64 implementation
+    return std::string();
+  };
+  crypto.md5_hex = [](const std::string &in) -> std::string {
+    // NOTE: replace with real md5 implementation
+    return std::string();
+  };
+  crypto.random_hex = [](size_t n) -> std::string {
+    static uint32_t x = 0x12345678u;
+    const char *hex = "0123456789abcdef";
+    std::string out;
+    out.reserve(n * 2);
+    for (size_t i = 0; i < n; i++) {
+      x ^= x << 13;
+      x ^= x >> 17;
+      x ^= x << 5;
+      unsigned char b = x & 0xff;
+      out.push_back(hex[(b >> 4) & 0xf]);
+      out.push_back(hex[b & 0xf]);
+    }
+    return out;
+  };
+
   espp::RtspServer rtsp_server({
       .server_address = ip_address,
       .port = server_port,
       .path = "/mjpeg/1",
       .log_level = espp::Logger::Verbosity::INFO,
   });
+  espp::rtsp::AuthConfig auth;
+  auth.mode = espp::rtsp::AuthMode::Both;
+  auth.realm = "espp-rtsp";
+  auth.validateBasic = [](const std::string &u, const std::string &p, const std::string &path) {
+    return (path == "/mjpeg/1" && u == "alice" && p == "alicepw");
+  };
+  auth.lookupPassword = [](const std::string &u,
+                           const std::string &path) -> std::optional<std::string> {
+    if (path == "/mjpeg/1" && u == "alice")
+      return std::string("alicepw");
+    return std::nullopt;
+  };
+  auth.crypto = crypto;
+  rtsp_server.set_auth_config(auth);
   rtsp_server.start();
 
   std::span<const uint8_t> frame_data(reinterpret_cast<const uint8_t *>(jpeg_data),

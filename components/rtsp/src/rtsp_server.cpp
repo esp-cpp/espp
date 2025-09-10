@@ -8,7 +8,8 @@ RtspServer::RtspServer(const Config &config)
     , port_(config.port)
     , path_(config.path)
     , rtsp_socket_({.log_level = espp::Logger::Verbosity::WARN})
-    , max_data_size_(config.max_data_size) {
+    , max_data_size_(config.max_data_size)
+    , session_auth_(config.auth) {
   // generate a random ssrc
 #if defined(ESP_PLATFORM)
   ssrc_ = esp_random();
@@ -179,10 +180,13 @@ bool RtspServer::accept_task_function(std::mutex &m, std::condition_variable &cv
 
   // create a new session
   auto session = std::make_unique<RtspSession>(
-      std::move(control_socket),
-      RtspSession::Config{.server_address = fmt::format("{}:{}", server_address_, port_),
-                          .rtsp_path = path_,
-                          .log_level = session_log_level_});
+      std::move(control_socket), RtspSession::Config{
+                                     .auth = session_auth_,
+                                     .server_address = fmt::format("{}:{}", server_address_, port_),
+                                     .rtsp_path = path_,
+                                     .receive_timeout = std::chrono::seconds(5),
+                                     .log_level = session_log_level_,
+                                 });
 
   // add the session to the list of sessions
   auto session_id = session->get_session_id();

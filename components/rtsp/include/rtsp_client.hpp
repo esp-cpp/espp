@@ -13,6 +13,9 @@
 #include "udp_socket.hpp"
 
 #include "jpeg_frame.hpp"
+#include "rtsp_auth.hpp"
+
+// Client auth crypto hooks are supplied via requests when needed
 
 namespace espp {
 
@@ -35,6 +38,12 @@ public:
 
   /// Configuration for the RTSP client
   struct Config {
+    espp::rtsp::CryptoCallbacks crypto{};
+    // Optional credentials; can also be provided in URL userinfo
+    std::string username;
+    std::string password;
+    bool preemptive_basic{false};
+    bool allow_url_credentials{true};
     std::string server_address;   ///< The server IP Address to connect to
     int rtsp_port{8554};          ///< The port of the RTSP server
     std::string path{"/mjpeg/1"}; ///< The path to the RTSP stream on the server. Will be appended
@@ -186,6 +195,13 @@ protected:
   int video_payload_type_ = 0;
   std::string path_;
   std::string session_id_;
+  // Auth state
+  std::string auth_username_;
+  std::string auth_password_;
+  espp::rtsp::CryptoCallbacks auth_crypto_;
+  bool auth_preemptive_basic_{false};
+  bool auth_allow_url_credentials_{true};
+  std::unordered_map<std::string, uint32_t> nonceCount_;
 };
 
 } // namespace espp

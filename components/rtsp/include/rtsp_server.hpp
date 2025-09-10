@@ -22,6 +22,7 @@
 #include "rtcp_packet.hpp"
 #include "rtp_jpeg_packet.hpp"
 #include "rtp_packet.hpp"
+#include "rtsp_auth.hpp"
 
 #include "rtsp_session.hpp"
 
@@ -38,9 +39,10 @@ class RtspServer : public BaseComponent {
 public:
   /// @brief Configuration for the RTSP server
   struct Config {
-    std::string server_address; ///< The ip address of the server
-    int port;                   ///< The port to listen on
-    std::string path;           ///< The path to the RTSP stream
+    espp::rtsp::AuthConfig auth; ///< Authentication configuration for sessions
+    std::string server_address;  ///< The ip address of the server
+    int port;                    ///< The port to listen on
+    std::string path;            ///< The path to the RTSP stream
     size_t max_data_size =
         1000; ///< The maximum size of RTP packet data for the MJPEG stream. Frames will be broken
               ///< up into multiple packets if they are larger than this. It seems that 1500 works
@@ -63,6 +65,9 @@ public:
   ///       already been created
   /// @param log_level The log level to set
   void set_session_log_level(espp::Logger::Verbosity log_level);
+
+  /// Set authentication configuration for new sessions
+  void set_auth_config(const espp::rtsp::AuthConfig &auth) { session_auth_ = auth; }
 
   /// @brief Start the RTSP server
   /// Starts the accept task, session task, and binds the RTSP socket
@@ -106,5 +111,7 @@ protected:
 
   std::unique_ptr<Task> accept_task_;
   std::unique_ptr<Task> session_task_;
+
+  espp::rtsp::AuthConfig session_auth_;
 };
 } // namespace espp

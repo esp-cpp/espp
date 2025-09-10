@@ -1,4 +1,6 @@
 #include "rtsp_session.hpp"
+#include "rtsp_auth.hpp"
+#include <algorithm>
 
 using namespace espp;
 
@@ -10,7 +12,8 @@ RtspSession::RtspSession(std::shared_ptr<TcpSocket> control_socket, const Config
     , session_id_(generate_session_id())
     , server_address_(config.server_address)
     , rtsp_path_(config.rtsp_path)
-    , client_address_(control_socket_->get_remote_info().address) {
+    , client_address_(control_socket_->get_remote_info().address)
+    , auth_(config.auth) {
   // set the logger tag to include the session id
   logger_.set_tag("RtspSession " + std::to_string(session_id_));
   // ensure there is a timeout on the control socket receive
@@ -73,6 +76,116 @@ bool RtspSession::send_rtcp_packet(const RtcpPacket &packet) {
                                               });
 }
 
+static std::string toLower(std::string s) {
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
+  return s;
+}
+
+#include "rtsp_auth.hpp"
+#include "rtsp_session.hpp"
+#include <algorithm>
+
+using namespace espp;
+
+std::string RtspSession::get_header_value(std::string_view headers, std::string_view name) {
+  std::string lname(name);
+  std::transform(lname.begin(), lname.end(), lname.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  size_t pos = 0;
+  while (pos < headers.size()) {
+    size_t eol = headers.find('\n', pos);
+    if (eol == std::string::npos)
+      eol = headers.size();
+    std::string_view line = headers.substr(pos, eol - pos);
+    if (!line.empty() && line.back() == '\r')
+      line.remove_suffix(1);
+    auto colon = line.find(':');
+    if (colon != std::string::npos) {
+      std::string key(line.substr(0, colon));
+      std::transform(key.begin(), key.end(), key.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (key == lname) {
+        size_t vstart = colon + 1;
+        while (vstart < line.size() && (line[vstart] == ' ' || line[vstart] == '\t'))
+          ++vstart;
+        std::string value(line.substr(vstart));
+        while (!value.empty() && (value.back() == ' ' || value.back() == '\t' ||
+                                  value.back() == '\r' || value.back() == '\n'))
+          value.pop_back();
+        return value;
+      }
+    }
+    pos = (eol == headers.size()) ? eol : eol + 1;
+  }
+  return {};
+}
+
+bool RtspSession::ensure_authorized(std::string_view request_headers, const std::string &method,
+                                    int cseq) {
+  using namespace espp::rtsp;
+  if (auth_.mode == AuthMode::None)
+    return true;
+  auto send401 = [&](bool stale) {
+    std::string headers;
+    if (auth_.mode == AuthMode::Basic || auth_.mode == AuthMode::Both) {
+      headers += "WWW-Authenticate: Basic realm=\"" + auth_.realm + "\"\r\n";
+    }
+    if (auth_.mode == AuthMode::Digest || auth_.mode == AuthMode::Both) {
+      std::string nonce = espp::rtsp::generateNonce(auth_.crypto);
+      {
+        std::lock_guard<std::mutex> lk(nonce_mutex_);
+        nonce_expires_[nonce] = std::chrono::steady_clock::now() + auth_.nonceTtl;
+      }
+      headers += "WWW-Authenticate: Digest realm=\"" + auth_.realm + "\", nonce=\"" + nonce +
+                 "\", algorithm=MD5, qop=\"auth\"";
+      if (stale)
+        headers += ", stale=true";
+      headers += "\r\n";
+    }
+    return send_response(401, "Unauthorized", cseq, headers);
+  };
+  std::string authHeader = get_header_value(request_headers, "Authorization");
+  if (authHeader.empty())
+    return send401(false), false;
+  if (auth_.mode == AuthMode::Basic || auth_.mode == AuthMode::Both) {
+    std::string user, pass;
+    if (espp::rtsp::parseBasicAuthorization(authHeader, user, pass, auth_.crypto)) {
+      if (auth_.validateBasic && auth_.validateBasic(user, pass, rtsp_path_))
+        return true;
+      return send401(false), false;
+    }
+  }
+  if (auth_.mode == AuthMode::Digest || auth_.mode == AuthMode::Both) {
+    espp::rtsp::DigestParams dp;
+    if (espp::rtsp::parseDigestAuthorization(authHeader, dp)) {
+      {
+        std::lock_guard<std::mutex> lk(nonce_mutex_);
+        auto it = nonce_expires_.find(dp.nonce);
+        if (it == nonce_expires_.end() || std::chrono::steady_clock::now() > it->second) {
+          return send401(true), false;
+        }
+      }
+      if (!auth_.lookupPassword)
+        return send401(false), false;
+      auto pw = auth_.lookupPassword(dp.username, rtsp_path_);
+      if (!pw)
+        return send401(false), false;
+      const std::string qop = dp.qop.empty() ? "" : "auth";
+      const std::string expected =
+          espp::rtsp::computeDigestResponse(dp.username, *pw, dp.realm, method, dp.uri, dp.nonce,
+                                            dp.nc, dp.cnonce, qop, auth_.crypto);
+      auto lower = [](std::string x) {
+        std::transform(x.begin(), x.end(), x.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        return x;
+      };
+      if (lower(expected) == lower(dp.response))
+        return true;
+      return send401(false), false;
+    }
+  }
+  return send401(false), false;
+}
 bool RtspSession::send_response(int code, std::string_view message, int sequence_number,
                                 std::string_view headers, std::string_view body) {
   // create a response
@@ -110,6 +223,14 @@ bool RtspSession::handle_rtsp_options(std::string_view request) {
 }
 
 bool RtspSession::handle_rtsp_describe(std::string_view request) {
+  int cseq_tmp = 0;
+  if (!parse_rtsp_command_sequence(request, cseq_tmp)) {
+    return handle_rtsp_invalid_request(request);
+  }
+  if (!ensure_authorized(request, "DESCRIBE", cseq_tmp)) {
+    return false;
+  }
+
   int sequence_number = 0;
   if (!parse_rtsp_command_sequence(request, sequence_number)) {
     return handle_rtsp_invalid_request(request);
@@ -147,6 +268,14 @@ bool RtspSession::handle_rtsp_describe(std::string_view request) {
 }
 
 bool RtspSession::handle_rtsp_setup(std::string_view request) {
+  int cseq_tmp = 0;
+  if (!parse_rtsp_command_sequence(request, cseq_tmp)) {
+    return handle_rtsp_invalid_request(request);
+  }
+  if (!ensure_authorized(request, "SETUP", cseq_tmp)) {
+    return false;
+  }
+
   // parse the rtsp path from the request
   std::string_view rtsp_path;
   int client_rtp_port;
@@ -176,6 +305,14 @@ bool RtspSession::handle_rtsp_setup(std::string_view request) {
 }
 
 bool RtspSession::handle_rtsp_play(std::string_view request) {
+  int cseq_tmp = 0;
+  if (!parse_rtsp_command_sequence(request, cseq_tmp)) {
+    return handle_rtsp_invalid_request(request);
+  }
+  if (!ensure_authorized(request, "PLAY", cseq_tmp)) {
+    return false;
+  }
+
   int sequence_number = 0;
   if (!parse_rtsp_command_sequence(request, sequence_number)) {
     return handle_rtsp_invalid_request(request);
@@ -190,6 +327,14 @@ bool RtspSession::handle_rtsp_play(std::string_view request) {
 }
 
 bool RtspSession::handle_rtsp_pause(std::string_view request) {
+  int cseq_tmp = 0;
+  if (!parse_rtsp_command_sequence(request, cseq_tmp)) {
+    return handle_rtsp_invalid_request(request);
+  }
+  if (!ensure_authorized(request, "PAUSE", cseq_tmp)) {
+    return false;
+  }
+
   int sequence_number = 0;
   if (!parse_rtsp_command_sequence(request, sequence_number)) {
     return handle_rtsp_invalid_request(request);
@@ -203,6 +348,14 @@ bool RtspSession::handle_rtsp_pause(std::string_view request) {
 }
 
 bool RtspSession::handle_rtsp_teardown(std::string_view request) {
+  int cseq_tmp = 0;
+  if (!parse_rtsp_command_sequence(request, cseq_tmp)) {
+    return handle_rtsp_invalid_request(request);
+  }
+  if (!ensure_authorized(request, "TEARDOWN", cseq_tmp)) {
+    return false;
+  }
+
   int sequence_number = 0;
   if (!parse_rtsp_command_sequence(request, sequence_number)) {
     return handle_rtsp_invalid_request(request);
@@ -229,8 +382,8 @@ bool RtspSession::handle_rtsp_invalid_request(std::string_view request) {
 
 bool RtspSession::handle_rtsp_request(std::string_view request) {
   logger_.debug("RTSP request:\n{}", request);
-  // store indices of the first and second spaces
-  // to extract the method and the rtsp path
+  // store indices of the first && second spaces
+  // to extract the method && the rtsp path
   auto first_space_index = request.find(' ');
   auto second_space_index = request.find(' ', first_space_index + 1);
   auto end_of_line_index = request.find('\r');
@@ -238,7 +391,7 @@ bool RtspSession::handle_rtsp_request(std::string_view request) {
       end_of_line_index == std::string::npos) {
     return handle_rtsp_invalid_request(request);
   }
-  // extract the method and the rtsp path
+  // extract the method && the rtsp path
   // where the request looks like "METHOD RTSP_PATH RTSP_VERSION"
   std::string_view method = request.substr(0, first_space_index);
   // TODO: we should probably check that the rtsp path is correct
@@ -300,7 +453,7 @@ bool RtspSession::control_task_fn(std::mutex &m, std::condition_variable &cv, bo
     }
   } else {
     // if the receive failed, then let's wait a little / check the task_notified
-    // flag to know if we should stop or not.
+    // flag to know if we should stop || not.
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
     auto stop_requested = cv.wait_for(lk, 1ms, [&task_notified] { return task_notified; });
@@ -397,7 +550,7 @@ bool RtspSession::parse_rtsp_setup_request(std::string_view request, std::string
   if (rtcp_port.empty()) {
     return false;
   }
-  // convert the rtp and rtcp ports to integers
+  // convert the rtp && rtcp ports to integers
   client_rtp_port = std::stoi(std::string{rtp_port});
   client_rtcp_port = std::stoi(std::string{rtcp_port});
   return true;

@@ -2,9 +2,12 @@
 
 #include "socket_msvc.hpp"
 
+#include <chrono>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <system_error>
+#include <unordered_map>
 #include <vector>
 
 #if defined(ESP_PLATFORM)
@@ -20,6 +23,7 @@
 
 #include "rtcp_packet.hpp"
 #include "rtp_packet.hpp"
+#include "rtsp_auth.hpp"
 
 namespace espp {
 /// Class that reepresents an RTSP session, which is uniquely identified by a
@@ -28,8 +32,9 @@ class RtspSession : public BaseComponent {
 public:
   /// Configuration for the RTSP session
   struct Config {
-    std::string server_address; ///< The address of the server
-    std::string rtsp_path;      ///< The RTSP path of the session
+    espp::rtsp::AuthConfig auth; ///< Authentication configuration
+    std::string server_address;  ///< The address of the server
+    std::string rtsp_path;       ///< The RTSP path of the session
     std::chrono::duration<float> receive_timeout =
         std::chrono::seconds(5); ///< The timeout for receiving data. Should be > 0.
     espp::Logger::Verbosity log_level =
@@ -139,6 +144,12 @@ protected:
   /// @return True if the request was handled successfully, false otherwise
   bool handle_rtsp_invalid_request(std::string_view request);
 
+  /// Ensure request is authorized; sends 401 if not. Returns true if authorized.
+  bool ensure_authorized(std::string_view request_headers, const std::string &method, int cseq);
+
+  /// Get header value from request headers (case-insensitive name match)
+  static std::string get_header_value(std::string_view headers, std::string_view name);
+
   /// Handle a single RTSP request
   /// @note Requests are of the form "METHOD RTSP_PATH RTSP_VERSION"
   /// @param request The request to handle
@@ -196,5 +207,10 @@ protected:
   int client_rtcp_port_;
 
   std::unique_ptr<Task> control_task_;
+
+  // Authentication
+  espp::rtsp::AuthConfig auth_;
+  std::mutex nonce_mutex_;
+  std::unordered_map<std::string, std::chrono::steady_clock::time_point> nonce_expires_;
 };
 } // namespace espp
