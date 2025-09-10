@@ -59,9 +59,6 @@ std::vector<uint8_t> Cobs::decode_packet(const uint8_t* encoded_data, size_t len
     }
     
     size_t packet_length = static_cast<size_t>(delimiter - encoded_data);
-    if (packet_length == 0) {
-        return {};  // Empty packet
-    }
     
     // Decode the packet
     std::vector<uint8_t> decoded(packet_length);  // Worst case: same size as encoded

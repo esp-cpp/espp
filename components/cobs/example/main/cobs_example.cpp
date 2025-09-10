@@ -19,7 +19,7 @@ struct Packet48 {
         std::memset(data, 0, sizeof(data));
     }
     
-    Packet48(uint8_t value) {
+    explicit Packet48(uint8_t value) {
         std::fill(data, data + sizeof(data), value);
     }
 };
