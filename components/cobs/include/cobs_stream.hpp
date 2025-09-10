@@ -81,7 +81,7 @@ public:
      * 
      * @return All encoded packets concatenated, const reference
      */
-    std::vector<uint8_t> get_encoded_data() const { return buffer_; }
+    const std::vector<uint8_t>& get_encoded_data() const;
 
     /**
      * @brief Extract encoded data up to a maximum size

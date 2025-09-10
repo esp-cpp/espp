@@ -105,4 +105,9 @@ void CobsStreamEncoder::clear() {
     buffer_.clear();
 }
 
+const std::vector<uint8_t>& CobsStreamEncoder::get_encoded_data() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return buffer_;
+}
+
 } // namespace espp
