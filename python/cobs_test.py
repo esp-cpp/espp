@@ -65,6 +65,8 @@ def test_buffer_management():
         else:
             print("✗ Test 4: FAIL - Decoder initial buffer size")
             return False
+
+        # TODO: Additional tests adding data to the buffers so clear() actually does something. 
             
         # Test clear methods
         encoder.clear()
@@ -128,44 +130,95 @@ def test_data_extraction():
         return False
 
 def test_thread_safety():
-    """Test thread safety by calling methods from different contexts"""
+    """Test thread safety by calling methods concurrently"""
     print("=== Thread Safety Test ===")
     
     try:
-        # Test encoder thread safety
+        import threading
+        import time
+        
+        # Test encoder thread safety with concurrent access
         encoder = espp.CobsStreamEncoder()
+        results = []
+        errors = []
         
-        # Call multiple methods in sequence (simulating different threads)
-        size1 = encoder.buffer_size()
-        encoder.clear()
-        size2 = encoder.buffer_size()
-        data = encoder.get_encoded_data()
-        size3 = encoder.buffer_size()
+        def encoder_worker(worker_id):
+            try:
+                # Each thread calls multiple methods
+                for i in range(10):
+                    size = encoder.buffer_size()
+                    encoder.clear()
+                    data = encoder.get_encoded_data()
+                    results.append((worker_id, i, size, len(data)))
+                    time.sleep(0.001)  # Small delay to increase chance of contention
+            except Exception as e:
+                errors.append(f"Worker {worker_id}: {e}")
         
-        if size1 == 0 and size2 == 0 and size3 == 0 and len(data) == 0:
-            print("✓ Test 10: PASS - Encoder thread safety")
+        # Create multiple threads
+        threads = []
+        for i in range(3):
+            thread = threading.Thread(target=encoder_worker, args=(i,))
+            threads.append(thread)
+            thread.start()
+        
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+        
+        # Check results
+        if errors:
+            print(f"✗ Test 10: FAIL - Encoder thread safety (errors: {errors})")
+            return False
+        
+        # Verify all operations completed without crashes
+        if len(results) == 30:  # 3 threads * 10 iterations
+            print("✓ Test 10: PASS - Encoder thread safety (concurrent access)")
         else:
-            print("✗ Test 10: FAIL - Encoder thread safety")
+            print(f"✗ Test 10: FAIL - Encoder thread safety (expected 30 results, got {len(results)})")
             return False
             
-        # Test decoder thread safety
+        # Test decoder thread safety with concurrent access
         decoder = espp.CobsStreamDecoder()
+        results = []
+        errors = []
         
-        # Call multiple methods in sequence
-        size1 = decoder.buffer_size()
-        decoder.clear()
-        size2 = decoder.buffer_size()
-        remaining = decoder.remaining_data()
-        packet = decoder.extract_packet()
-        size3 = decoder.buffer_size()
+        def decoder_worker(worker_id):
+            try:
+                # Each thread calls multiple methods
+                for i in range(10):
+                    size = decoder.buffer_size()
+                    decoder.clear()
+                    remaining = decoder.remaining_data()
+                    packet = decoder.extract_packet()
+                    results.append((worker_id, i, size, len(remaining), packet is None))
+                    time.sleep(0.001)  # Small delay to increase chance of contention
+            except Exception as e:
+                errors.append(f"Worker {worker_id}: {e}")
         
-        if (size1 == 0 and size2 == 0 and size3 == 0 and 
-            len(remaining) == 0 and packet is None):
-            print("✓ Test 11: PASS - Decoder thread safety")
+        # Create multiple threads
+        threads = []
+        for i in range(3):
+            thread = threading.Thread(target=decoder_worker, args=(i,))
+            threads.append(thread)
+            thread.start()
+        
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+        
+        # Check results
+        if errors:
+            print(f"✗ Test 11: FAIL - Decoder thread safety (errors: {errors})")
+            return False
+        
+        # Verify all operations completed without crashes
+        if len(results) == 30:  # 3 threads * 10 iterations
+            print("✓ Test 11: PASS - Decoder thread safety (concurrent access)")
             return True
         else:
-            print("✗ Test 11: FAIL - Decoder thread safety")
+            print(f"✗ Test 11: FAIL - Decoder thread safety (expected 30 results, got {len(results)})")
             return False
+            
     except Exception as e:
         print(f"✗ Test 10-11: FAIL - Thread safety (exception: {e})")
         return False
