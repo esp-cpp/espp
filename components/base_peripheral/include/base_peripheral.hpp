@@ -21,7 +21,28 @@ namespace espp {
 ///
 /// The peripheral is protected by a mutex to ensure that only one
 /// operation can be performed at a time.
-template <std::integral RegisterAddressType = std::uint8_t, bool UseAddress = true>
+///
+/// @tparam RegisterAddressType The type of the register address. This is usually
+///                            uint8_t or uint16_t.
+///                            Default is uint8_t.
+/// @tparam UseAddress Whether the peripheral uses an address. If true, the
+///                    peripheral will use the address provided in the config
+///                    for all operations. If false, the peripheral will not use
+///                    an address.
+///                    Default is true.
+/// @tparam BigEndianRegisterAddress Whether the register address is in big
+///                                 endian format. If true, the register address
+///                                 will be converted to big endian format before
+///                                 being sent to the peripheral.
+///                                 Default is true. This only applies to
+///                                 register addresses larger than u8.
+/// @tparam BigEndianData Whether the data is in big endian format. If true,
+///                        the data will be converted to big endian format before
+///                        being sent to the peripheral, and will be converted from
+///                        big endian format after being read from the peripheral.
+///                        Default is true (big-endian), which matches the previously hardcoded behavior. This only applies to u16 functions.
+template <std::integral RegisterAddressType = std::uint8_t, bool UseAddress = true,
+          bool BigEndianRegisterAddress = true, bool BigEndianData = true>
 class BasePeripheral : public BaseComponent {
 public:
   /// Function to probe the peripheral
@@ -409,8 +430,13 @@ protected:
   void write_u16(uint16_t data, std::error_code &ec) {
     logger_.debug("write u16");
     uint8_t buffer[2];
-    buffer[0] = (data >> 8) & 0xff;
-    buffer[1] = data & 0xff;
+    if constexpr (BigEndianData) {
+      buffer[0] = (data >> 8) & 0xff;
+      buffer[1] = data & 0xff;
+    } else {
+      buffer[0] = data & 0xff;
+      buffer[1] = (data >> 8) & 0xff;
+    }
     write(buffer, 2, ec);
   }
 
@@ -456,7 +482,11 @@ protected:
     uint8_t buffer[2];
     read(buffer, 2, ec);
     if (!ec) {
-      data = (buffer[0] << 8) | buffer[1];
+      if constexpr (BigEndianData) {
+        data = (buffer[0] << 8) | buffer[1];
+      } else {
+        data = (buffer[1] << 8) | buffer[0];
+      }
     }
     return data;
   }
@@ -487,8 +517,13 @@ protected:
     static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
     uint8_t buffer[reg_addr_size + 2];
     put_register_bytes(reg_addr, buffer);
-    buffer[reg_addr_size] = (data >> 8) & 0xff;
-    buffer[reg_addr_size + 1] = data & 0xff;
+    if constexpr (BigEndianData) {
+      buffer[reg_addr_size] = (data >> 8) & 0xff;
+      buffer[reg_addr_size + 1] = data & 0xff;
+    } else {
+      buffer[reg_addr_size] = data & 0xff;
+      buffer[reg_addr_size + 1] = (data >> 8) & 0xff;
+    }
     write(buffer, reg_addr_size + 2, ec);
   }
 
@@ -564,7 +599,11 @@ protected:
         return 0;
       }
     }
-    return (data[0] << 8) | data[1];
+    if constexpr (BigEndianData) {
+      return (data[0] << 8) | data[1];
+    } else {
+      return (data[1] << 8) | data[0];
+    }
   }
 
   /// Read many bytes from a register on the peripheral
@@ -738,10 +777,18 @@ protected:
       // use the size of the register address to determine how many bytes the
       // register address is
       static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
-      // encode the address as big endian (MSB first)
-      for (size_t i = 0; i < reg_addr_size; i++) {
-        int shift = (reg_addr_size - i - 1) * 8;
-        data[i] = (register_address >> shift) & 0xff;
+      if constexpr (BigEndianRegisterAddress) {
+        // encode the address as big endian (MSB first)
+        for (size_t i = 0; i < reg_addr_size; i++) {
+          int shift = (reg_addr_size - i - 1) * 8;
+          data[i] = (register_address >> shift) & 0xff;
+        }
+      } else {
+        // encode the address as little endian (LSB first)
+        for (size_t i = 0; i < reg_addr_size; i++) {
+          int shift = i * 8;
+          data[i] = (register_address >> shift) & 0xff;
+        }
       }
     }
   }
