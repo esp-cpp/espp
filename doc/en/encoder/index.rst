@@ -8,6 +8,7 @@ Encoder APIs
     encoder_types
     as5600
     mt6701
+    cobs
 
 There are several different types of encoders provided, some within the encoder
 component directly, as well as some that are standalone components for

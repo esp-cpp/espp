@@ -46,6 +46,7 @@ jobs:
             components/byte90
             components/chsc6x
             components/cli
+            components/cobs
             components/codec
             components/color
             components/controller
