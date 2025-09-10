@@ -482,10 +482,11 @@ protected:
     uint8_t buffer[2];
     read(buffer, 2, ec);
     if (!ec) {
-      if constexpr (BigEndianData)
+      if constexpr (BigEndianData) {
         data = (buffer[0] << 8) | buffer[1];
-      else
+      } else {
         data = (buffer[1] << 8) | buffer[0];
+      }
     }
     return data;
   }
