@@ -33,8 +33,7 @@ size_t Cobs::encode_packet(const uint8_t *data, size_t length, uint8_t *output) 
       ++code;
     }
 
-    if (!*byte || code == 0xff) // Input is zero or block completed, restart
-    {
+    if (!*byte || code == 0xff) { // Input is zero or block completed, restart
       *codep = code;
       code = 1;
       codep = encode;
