@@ -19,6 +19,7 @@ set(ESPP_EXTERNAL_INCLUDES_SEPARATE
 set(ESPP_INCLUDES
   ${ESPP_COMPONENTS}/base_component/include
   ${ESPP_COMPONENTS}/base_peripheral/include
+  ${ESPP_COMPONENTS}/cobs/include
   ${ESPP_COMPONENTS}/color/include
   ${ESPP_COMPONENTS}/csv/include
   ${ESPP_COMPONENTS}/event_manager/include
