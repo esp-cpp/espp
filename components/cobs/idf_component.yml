@@ -4,7 +4,7 @@ description: "COBS (Consistent Overhead Byte Stuffing) component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/cobs"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
-  - William Emfinger <waemfinger@gmail.com>
+  - Sam Boegli <samboegli@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/cobs.html"
 examples:
   - path: example
@@ -14,7 +14,7 @@ tags:
   - COBS
   - Encoding
   - Decoding
-  - Packet Framing
+  - PacketFraming
 dependencies:
   idf:
     version: '>=5.0'
