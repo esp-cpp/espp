@@ -74,39 +74,87 @@ void py_init_module_espp(py::module &m) {
           "single-packet encoding and decoding using the COBS algorithm\n * with 0 as the "
           "delimiter.\n * COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead. Plus 1 byte "
           "for the delimiter\n * COBS changes the size of the packet by at least 1 byte, so it's "
-          "not possible to to encode in place.\n * MAX_BLOCK_SIZE = 254 is the maximum number of "
+          "not possible to to encode in\n * place. MAX_BLOCK_SIZE = 254 is the maximum number of "
           "non-zero bytes in an encoded block.\n *\n * @see "
           "https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing\n")
           .def(py::init<>()) // implicit default constructor
           .def_static("encode_packet",
                       py::overload_cast<const uint8_t *, size_t>(&espp::Cobs::encode_packet),
                       py::arg("data"), py::arg("length"),
-                      "*\n     * @brief Encode a single packet\n     *\n     * @param data Input "
-                      "data to encode\n     * @param length Length of input data\n     * @return "
-                      "Encoded data with COBS encoding and delimiter\n")
+                      "*\n   * @brief Encode a single packet\n   *\n   * @param data Input data to "
+                      "encode\n   * @param length Length of input data\n   * @return Encoded data "
+                      "with COBS encoding and delimiter\n")
           .def_static(
               "encode_packet",
               py::overload_cast<const uint8_t *, size_t, uint8_t *>(&espp::Cobs::encode_packet),
               py::arg("data"), py::arg("length"), py::arg("output"),
-              "*\n     * @brief Encode a single packet to existing buffer\n     *\n     * @param "
-              "data Input data to encode\n     * @param length Length of input data\n     * @param "
-              "output Output buffer (must be large enough)\n     * @return Number of bytes written "
-              "to output\n")
+              "*\n   * @brief Encode a single packet to existing buffer\n   *\n   * @param data "
+              "Input data to encode\n   * @param length Length of input data\n   * @param output "
+              "Output buffer (must be large enough)\n   * @return Number of bytes written to "
+              "output\n")
           .def_static("decode_packet",
                       py::overload_cast<const uint8_t *, size_t>(&espp::Cobs::decode_packet),
                       py::arg("encoded_data"), py::arg("length"),
-                      "*\n     * @brief Decode a single packet from COBS-encoded data\n     *\n    "
-                      " * @param encoded_data COBS-encoded data\n     * @param length Length of "
-                      "encoded data\n     * @return Decoded packet data, or empty if invalid\n")
+                      "*\n   * @brief Decode a single packet from COBS-encoded data\n   *\n   * "
+                      "@param encoded_data COBS-encoded data\n   * @param length Length of encoded "
+                      "data\n   * @return Decoded packet data, or empty if invalid\n")
           .def_static(
               "decode_packet",
               py::overload_cast<const uint8_t *, size_t, uint8_t *>(&espp::Cobs::decode_packet),
               py::arg("encoded_data"), py::arg("length"), py::arg("output"),
-              "*\n     * @brief Decode a single packet to existing buffer\n     *\n     * @param "
-              "encoded_data COBS-encoded data\n     * @param length Length of encoded data\n     * "
-              "@param output Output buffer (must be large enough)\n     * @return Number of bytes "
+              "*\n   * @brief Decode a single packet to existing buffer\n   *\n   * @param "
+              "encoded_data COBS-encoded data\n   * @param length Length of encoded data\n   * "
+              "@param output Output buffer (must be large enough)\n   * @return Number of bytes "
               "written to output, or 0 if decoding failed\n");
   ////////////////////    </generated_from:cobs.hpp>    ////////////////////
+
+  ////////////////////    <generated_from:cobs_stream.hpp>    ////////////////////
+  auto pyClassCobsStreamDecoder =
+      py::class_<espp::CobsStreamDecoder>(
+          m, "CobsStreamDecoder", py::dynamic_attr(),
+          "*\n * @brief Streaming decoder for multiple COBS-encoded packets\n *\n * Useful for "
+          "processing incoming data streams where packets may arrive\n * in fragments or multiple "
+          "packets may arrive together.\n")
+          .def(py::init<>())
+          .def("add_data", &espp::CobsStreamDecoder::add_data, py::arg("data"), py::arg("length"),
+               "*\n   * @brief Add encoded data to the decoder buffer\n   *\n   * @param data New "
+               "encoded data\n   * @param length Length of new data\n")
+          .def("extract_packet", &espp::CobsStreamDecoder::extract_packet,
+               "*\n   * @brief Try to extract the next complete packet\n   *\n   * @return Decoded "
+               "packet data, or empty if no complete packet found\n")
+          .def("remaining_data", &espp::CobsStreamDecoder::remaining_data,
+               "*\n   * @brief Access remaining unprocessed data\n   *\n   * @return Const "
+               "reference to buffered data that hasn't been processed yet\n")
+          .def("buffer_size", &espp::CobsStreamDecoder::buffer_size,
+               "*\n   * @brief Get the size of buffered data\n   *\n   * @return Number of bytes "
+               "currently buffered\n")
+          .def("clear", &espp::CobsStreamDecoder::clear,
+               "*\n   * @brief Clear all buffered data\n");
+
+  auto pyClassCobsStreamEncoder =
+      py::class_<espp::CobsStreamEncoder>(
+          m, "CobsStreamEncoder", py::dynamic_attr(),
+          "*\n * @brief Streaming encoder for multiple packets\n *\n * Useful for batching "
+          "multiple packets together for transmission\n * or for building up data to send in "
+          "chunks.\n")
+          .def(py::init<>())
+          .def("add_packet", &espp::CobsStreamEncoder::add_packet, py::arg("data"),
+               py::arg("length"),
+               "*\n   * @brief Add a packet to be encoded\n   *\n   * @param data Packet data\n   "
+               "* @param length Packet length\n")
+          .def("get_encoded_data", &espp::CobsStreamEncoder::get_encoded_data,
+               "*\n   * @brief Get all encoded data as a single buffer\n   *\n   * @return All "
+               "encoded packets concatenated, const reference\n")
+          .def("extract_data", &espp::CobsStreamEncoder::extract_data, py::arg("max_size"),
+               "*\n   * @brief Extract encoded data up to a maximum size\n   *\n   * @param "
+               "max_size Maximum number of bytes to extract\n   * @return Encoded data up to "
+               "max_size bytes\n")
+          .def("buffer_size", &espp::CobsStreamEncoder::buffer_size,
+               "*\n   * @brief Get the current buffer size\n   *\n   * @return Number of bytes "
+               "currently buffered\n")
+          .def("clear", &espp::CobsStreamEncoder::clear,
+               "*\n   * @brief Clear all buffered data\n");
+  ////////////////////    </generated_from:cobs_stream.hpp>    ////////////////////
 
   ////////////////////    <generated_from:color.hpp>    ////////////////////
   auto pyClassRgb =

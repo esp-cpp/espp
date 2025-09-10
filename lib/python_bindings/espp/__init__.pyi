@@ -88,8 +88,8 @@ class Cobs:
      * Provides single-packet encoding and decoding using the COBS algorithm
      * with 0 as the delimiter.
      * COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead. Plus 1 byte for the delimiter
-     * COBS changes the size of the packet by at least 1 byte, so it's not possible to to encode in place.
-     * MAX_BLOCK_SIZE = 254 is the maximum number of non-zero bytes in an encoded block.
+     * COBS changes the size of the packet by at least 1 byte, so it's not possible to to encode in
+     * place. MAX_BLOCK_SIZE = 254 is the maximum number of non-zero bytes in an encoded block.
      *
      * @see https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing
 
@@ -98,11 +98,11 @@ class Cobs:
     @overload
     def encode_packet(data: int, length: int) -> List[int]:
         """*
-             * @brief Encode a single packet
-             *
-             * @param data Input data to encode
-             * @param length Length of input data
-             * @return Encoded data with COBS encoding and delimiter
+           * @brief Encode a single packet
+           *
+           * @param data Input data to encode
+           * @param length Length of input data
+           * @return Encoded data with COBS encoding and delimiter
 
         """
         pass
@@ -111,12 +111,12 @@ class Cobs:
     @overload
     def encode_packet(data: int, length: int, output: int) -> int:
         """*
-             * @brief Encode a single packet to existing buffer
-             *
-             * @param data Input data to encode
-             * @param length Length of input data
-             * @param output Output buffer (must be large enough)
-             * @return Number of bytes written to output
+           * @brief Encode a single packet to existing buffer
+           *
+           * @param data Input data to encode
+           * @param length Length of input data
+           * @param output Output buffer (must be large enough)
+           * @return Number of bytes written to output
 
         """
         pass
@@ -125,11 +125,11 @@ class Cobs:
     @overload
     def decode_packet(encoded_data: int, length: int) -> List[int]:
         """*
-             * @brief Decode a single packet from COBS-encoded data
-             *
-             * @param encoded_data COBS-encoded data
-             * @param length Length of encoded data
-             * @return Decoded packet data, or empty if invalid
+           * @brief Decode a single packet from COBS-encoded data
+           *
+           * @param encoded_data COBS-encoded data
+           * @param length Length of encoded data
+           * @return Decoded packet data, or empty if invalid
 
         """
         pass
@@ -138,12 +138,12 @@ class Cobs:
     @overload
     def decode_packet(encoded_data: int, length: int, output: int) -> int:
         """*
-             * @brief Decode a single packet to existing buffer
-             *
-             * @param encoded_data COBS-encoded data
-             * @param length Length of encoded data
-             * @param output Output buffer (must be large enough)
-             * @return Number of bytes written to output, or 0 if decoding failed
+           * @brief Decode a single packet to existing buffer
+           *
+           * @param encoded_data COBS-encoded data
+           * @param length Length of encoded data
+           * @param output Output buffer (must be large enough)
+           * @return Number of bytes written to output, or 0 if decoding failed
 
         """
         pass
@@ -153,8 +153,128 @@ class Cobs:
         pass
 
 
-
 ####################    </generated_from:cobs.hpp>    ####################
+
+
+####################    <generated_from:cobs_stream.hpp>    ####################
+
+
+
+class CobsStreamDecoder:
+    """*
+     * @brief Streaming decoder for multiple COBS-encoded packets
+     *
+     * Useful for processing incoming data streams where packets may arrive
+     * in fragments or multiple packets may arrive together.
+
+    """
+    def __init__(self) -> None:
+        pass
+
+    def add_data(self, data: int, length: int) -> None:
+        """*
+           * @brief Add encoded data to the decoder buffer
+           *
+           * @param data New encoded data
+           * @param length Length of new data
+
+        """
+        pass
+
+    def extract_packet(self) -> Optional[List[int]]:
+        """*
+           * @brief Try to extract the next complete packet
+           *
+           * @return Decoded packet data, or empty if no complete packet found
+
+        """
+        pass
+
+    def remaining_data(self) -> List[int]:
+        """*
+           * @brief Access remaining unprocessed data
+           *
+           * @return Const reference to buffered data that hasn't been processed yet
+
+        """
+        pass
+
+    def buffer_size(self) -> int:
+        """*
+           * @brief Get the size of buffered data
+           *
+           * @return Number of bytes currently buffered
+
+        """
+        pass
+
+    def clear(self) -> None:
+        """*
+           * @brief Clear all buffered data
+
+        """
+        pass
+
+
+class CobsStreamEncoder:
+    """*
+     * @brief Streaming encoder for multiple packets
+     *
+     * Useful for batching multiple packets together for transmission
+     * or for building up data to send in chunks.
+
+    """
+    def __init__(self) -> None:
+        pass
+
+    def add_packet(self, data: int, length: int) -> None:
+        """*
+           * @brief Add a packet to be encoded
+           *
+           * @param data Packet data
+           * @param length Packet length
+
+        """
+        pass
+
+    def get_encoded_data(self) -> List[int]:
+        """*
+           * @brief Get all encoded data as a single buffer
+           *
+           * @return All encoded packets concatenated, const reference
+
+        """
+        pass
+
+    def extract_data(self, max_size: int) -> List[int]:
+        """*
+           * @brief Extract encoded data up to a maximum size
+           *
+           * @param max_size Maximum number of bytes to extract
+           * @return Encoded data up to max_size bytes
+
+        """
+        pass
+
+    def buffer_size(self) -> int:
+        """*
+           * @brief Get the current buffer size
+           *
+           * @return Number of bytes currently buffered
+
+        """
+        pass
+
+    def clear(self) -> None:
+        """*
+           * @brief Clear all buffered data
+
+        """
+        pass
+
+
+
+####################    </generated_from:cobs_stream.hpp>    ####################
 
 
 ####################    <generated_from:color.hpp>    ####################
