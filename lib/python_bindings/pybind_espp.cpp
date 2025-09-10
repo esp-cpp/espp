@@ -66,6 +66,48 @@ void py_init_module_espp(py::module &m) {
                "be rate limited\n/ \\sa Logger::set_rate_limit");
   ////////////////////    </generated_from:base_component.hpp>    ////////////////////
 
+  ////////////////////    <generated_from:cobs.hpp>    ////////////////////
+  auto pyClassCobs =
+      py::class_<espp::Cobs>(
+          m, "Cobs", py::dynamic_attr(),
+          "*\n * @brief COBS (Consistent Overhead Byte Stuffing) encoder/decoder\n *\n * Provides "
+          "single-packet encoding and decoding using the COBS algorithm\n * with 0 as the "
+          "delimiter.\n * COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead. Plus 1 byte "
+          "for the delimiter\n * COBS changes the size of the packet by at least 1 byte, so it's "
+          "not possible to to encode in place.\n * MAX_BLOCK_SIZE = 254 is the maximum number of "
+          "non-zero bytes in an encoded block.\n *\n * @see "
+          "https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing\n")
+          .def(py::init<>()) // implicit default constructor
+          .def_static("encode_packet",
+                      py::overload_cast<const uint8_t *, size_t>(&espp::Cobs::encode_packet),
+                      py::arg("data"), py::arg("length"),
+                      "*\n     * @brief Encode a single packet\n     *\n     * @param data Input "
+                      "data to encode\n     * @param length Length of input data\n     * @return "
+                      "Encoded data with COBS encoding and delimiter\n")
+          .def_static(
+              "encode_packet",
+              py::overload_cast<const uint8_t *, size_t, uint8_t *>(&espp::Cobs::encode_packet),
+              py::arg("data"), py::arg("length"), py::arg("output"),
+              "*\n     * @brief Encode a single packet to existing buffer\n     *\n     * @param "
+              "data Input data to encode\n     * @param length Length of input data\n     * @param "
+              "output Output buffer (must be large enough)\n     * @return Number of bytes written "
+              "to output\n")
+          .def_static("decode_packet",
+                      py::overload_cast<const uint8_t *, size_t>(&espp::Cobs::decode_packet),
+                      py::arg("encoded_data"), py::arg("length"),
+                      "*\n     * @brief Decode a single packet from COBS-encoded data\n     *\n    "
+                      " * @param encoded_data COBS-encoded data\n     * @param length Length of "
+                      "encoded data\n     * @return Decoded packet data, or empty if invalid\n")
+          .def_static(
+              "decode_packet",
+              py::overload_cast<const uint8_t *, size_t, uint8_t *>(&espp::Cobs::decode_packet),
+              py::arg("encoded_data"), py::arg("length"), py::arg("output"),
+              "*\n     * @brief Decode a single packet to existing buffer\n     *\n     * @param "
+              "encoded_data COBS-encoded data\n     * @param length Length of encoded data\n     * "
+              "@param output Output buffer (must be large enough)\n     * @return Number of bytes "
+              "written to output, or 0 if decoding failed\n");
+  ////////////////////    </generated_from:cobs.hpp>    ////////////////////
+
   ////////////////////    <generated_from:color.hpp>    ////////////////////
   auto pyClassRgb =
       py::class_<espp::Rgb>(m, "Rgb", py::dynamic_attr(),
