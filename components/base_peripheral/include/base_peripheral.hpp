@@ -599,10 +599,11 @@ protected:
         return 0;
       }
     }
-    if constexpr (BigEndianData)
+    if constexpr (BigEndianData) {
       return (data[0] << 8) | data[1];
-    else
+    } else {
       return (data[1] << 8) | data[0];
+    }
   }
 
   /// Read many bytes from a register on the peripheral
