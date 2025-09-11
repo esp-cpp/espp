@@ -74,7 +74,7 @@ void py_init_module_espp(py::module &m) {
           "single-packet encoding and decoding using the COBS algorithm\n * with 0 as the "
           "delimiter.\n * COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead. Plus 1 byte "
           "for the delimiter\n * COBS changes the size of the packet by at least 1 byte, so it's "
-          "not possible to to encode in\n * place. MAX_BLOCK_SIZE = 254 is the maximum number of "
+          "not possible to encode in\n * place. MAX_BLOCK_SIZE = 254 is the maximum number of "
           "non-zero bytes in an encoded block.\n *\n * @see "
           "https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing\n")
           .def(py::init<>()) // implicit default constructor
@@ -116,9 +116,16 @@ void py_init_module_espp(py::module &m) {
           "processing incoming data streams where packets may arrive\n * in fragments or multiple "
           "packets may arrive together.\n")
           .def(py::init<>())
-          .def("add_data", &espp::CobsStreamDecoder::add_data, py::arg("data"), py::arg("length"),
+          .def("add_data",
+               py::overload_cast<const uint8_t *, size_t>(&espp::CobsStreamDecoder::add_data),
+               py::arg("data"), py::arg("length"),
                "*\n   * @brief Add encoded data to the decoder buffer\n   *\n   * @param data New "
                "encoded data\n   * @param length Length of new data\n")
+          .def("add_data",
+               py::overload_cast<std::vector<uint8_t> &&>(&espp::CobsStreamDecoder::add_data),
+               py::arg("data"),
+               "*\n   * @brief Add encoded data to the decoder buffer (move semantics)\n   *\n   * "
+               "@param data New encoded data vector (will be moved)\n")
           .def("extract_packet", &espp::CobsStreamDecoder::extract_packet,
                "*\n   * @brief Try to extract the next complete packet\n   *\n   * @return Decoded "
                "packet data, or empty if no complete packet found\n")
@@ -138,10 +145,16 @@ void py_init_module_espp(py::module &m) {
           "multiple packets together for transmission\n * or for building up data to send in "
           "chunks.\n")
           .def(py::init<>())
-          .def("add_packet", &espp::CobsStreamEncoder::add_packet, py::arg("data"),
-               py::arg("length"),
+          .def("add_packet",
+               py::overload_cast<const uint8_t *, size_t>(&espp::CobsStreamEncoder::add_packet),
+               py::arg("data"), py::arg("length"),
                "*\n   * @brief Add a packet to be encoded\n   *\n   * @param data Packet data\n   "
                "* @param length Packet length\n")
+          .def("add_packet",
+               py::overload_cast<std::vector<uint8_t> &&>(&espp::CobsStreamEncoder::add_packet),
+               py::arg("data"),
+               "*\n   * @brief Add a packet to be encoded (move semantics)\n   *\n   * @param data "
+               "Packet data vector (will be moved)\n")
           .def("get_encoded_data", &espp::CobsStreamEncoder::get_encoded_data,
                "*\n   * @brief Get all encoded data as a single buffer\n   *\n   * @return All "
                "encoded packets concatenated, const reference\n")
