@@ -150,32 +150,57 @@ void test_streaming_encoder(espp::Logger &logger) {
   {
     CobsStreamEncoder encoder;
 
-    // Add multiple packets using move semantics
-    std::vector<std::vector<uint8_t>> packets;
+    // Create original packets and store them for verification
+    std::vector<std::vector<uint8_t>> original_packets;
     for (int i = 0; i < 3; ++i) {
       Packet48 packet(i + 1);
       packet.data[0] = 0x00; // Include some zeros
       packet.data[28] = 0x00;
       packet.data[43] = 0x00;
       
+      // Store original data before moving
+      std::vector<uint8_t> original_data(packet.data, packet.data + sizeof(packet.data));
+      original_packets.push_back(original_data);
+      
       // Convert to vector for move semantics
       std::vector<uint8_t> packet_data(packet.data, packet.data + sizeof(packet.data));
-      packets.push_back(std::move(packet_data));
-    }
-
-    // Add packets using move semantics
-    for (auto &packet : packets) {
-      encoder.add_packet(std::move(packet));
+      encoder.add_packet(std::move(packet_data));
     }
 
     // Extract all data using move semantics
     std::vector<uint8_t> all_encoded = encoder.extract_data(encoder.buffer_size());
 
-    bool success = (all_encoded.size() > 0) && (encoder.buffer_size() == 0);
-    if (success) {
-      logger.info("Test 1: PASS - Multiple packets with move semantics");
+    // Verify encoding worked
+    bool encoding_success = (all_encoded.size() > 0) && (encoder.buffer_size() == 0);
+    if (!encoding_success) {
+      logger.error("Test 1: FAIL - Multiple packets with move semantics (encoding failed)");
     } else {
-      logger.error("Test 1: FAIL - Multiple packets with move semantics");
+      // Verify encoded data can be decoded back to original
+      CobsStreamDecoder decoder;
+      decoder.add_data(std::move(all_encoded));
+      
+      std::vector<std::vector<uint8_t>> decoded_packets;
+      while (auto packet = decoder.extract_packet()) {
+        decoded_packets.push_back(*packet);
+      }
+      
+      // Verify decoded packets match original
+      bool content_success = (decoded_packets.size() == original_packets.size());
+      if (content_success) {
+        for (size_t i = 0; i < original_packets.size(); ++i) {
+          if (decoded_packets[i] != original_packets[i]) {
+            logger.error("Test 1: FAIL - Packet {} content mismatch after encode/decode", i);
+            content_success = false;
+            break;
+          }
+        }
+      }
+      
+      if (content_success) {
+        logger.info("Test 1: PASS - Multiple packets with move semantics");
+      } else {
+        logger.error("Test 1: FAIL - Multiple packets with move semantics (content verification failed)");
+      }
     }
   }
 
@@ -219,13 +244,19 @@ void test_streaming_decoder(espp::Logger &logger) {
   {
     CobsStreamDecoder decoder;
 
-    // Create some encoded packets
+    // Create some original packets and store them for verification
+    std::vector<std::vector<uint8_t>> original_packets;
     std::vector<uint8_t> all_encoded;
+    
     for (int i = 0; i < 3; ++i) {
       Packet48 packet(i + 10);
       packet.data[0] = 0x00; // Include some zeros
       packet.data[28] = 0x00;
       packet.data[43] = 0x00;
+
+      // Store original packet data
+      std::vector<uint8_t> original_data(packet.data, packet.data + sizeof(packet.data));
+      original_packets.push_back(original_data);
 
       std::vector<uint8_t> encoded = Cobs::encode_packet(packet.data, sizeof(packet.data));
       all_encoded.insert(all_encoded.end(), encoded.begin(), encoded.end());
@@ -234,19 +265,35 @@ void test_streaming_decoder(espp::Logger &logger) {
     // Add all encoded data using move semantics
     decoder.add_data(std::move(all_encoded));
 
-    // Extract all packets
+    // Extract all packets and verify content
     int packets_extracted = 0;
+    std::vector<std::vector<uint8_t>> decoded_packets;
+    
     while (auto packet = decoder.extract_packet()) {
+      decoded_packets.push_back(*packet);
       packets_extracted++;
     }
 
-    bool success = (packets_extracted == 3);
-    if (success) {
-      logger.info("Test 1: PASS - Multiple packets with move semantics");
-    } else {
+    // Verify packet count
+    bool count_success = (packets_extracted == 3);
+    if (!count_success) {
       logger.error(
           "Test 1: FAIL - Multiple packets with move semantics (extracted: {}, expected: 3)",
           packets_extracted);
+    } else {
+      // Verify packet content matches original data
+      bool content_success = true;
+      for (size_t i = 0; i < original_packets.size(); ++i) {
+        if (decoded_packets[i] != original_packets[i]) {
+          logger.error("Test 1: FAIL - Packet {} content mismatch", i);
+          content_success = false;
+          break;
+        }
+      }
+      
+      if (content_success) {
+        logger.info("Test 1: PASS - Multiple packets with move semantics");
+      }
     }
   }
 
