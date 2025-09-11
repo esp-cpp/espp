@@ -26,3 +26,4 @@ API Reference
 -------------
 
 .. include-build-file:: inc/cobs.inc
+.. include-build-file:: inc/cobs_stream.inc

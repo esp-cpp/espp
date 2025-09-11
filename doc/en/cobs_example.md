@@ -1,2 +1,2 @@
-```{include} ../../../components/cobs/example/README.md
+```{include} ../../components/cobs/example/README.md
 ```
