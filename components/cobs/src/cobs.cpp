@@ -92,7 +92,7 @@ size_t Cobs::decode_packet(const uint8_t *encoded_data, size_t length, uint8_t *
       if (byte >= end) // Unexpected end of data
         return 0;
       block = *byte++;
-      if (block && (code != 0xff)) { // Encoded zero, write it unless it's delimiter
+      if (block && (code != 0xff)) { // Encoded zero, write it when transitioning between blocks
         *decode++ = 0;
         if (decode >= output + length) // Buffer overflow
           return 0;
