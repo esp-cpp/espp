@@ -219,7 +219,28 @@ void test_streaming_encoder(espp::Logger &logger) {
     }
   }
 
-  // Test 3: Single packet
+  // Test 3: Buffer-based extract_data
+  {
+    CobsStreamEncoder encoder;
+
+    // Add a test packet
+    std::vector<uint8_t> test_data = {0x01, 0x02, 0x00, 0x03, 0x04, 0x00, 0x05};
+    encoder.add_packet(std::move(test_data));
+
+    // Extract to buffer
+    uint8_t output_buffer[100];
+    size_t bytes_extracted = encoder.extract_data(output_buffer, sizeof(output_buffer));
+
+    // Verify extraction worked
+    bool success = (bytes_extracted > 0) && (encoder.buffer_size() == 0);
+    if (success) {
+      logger.info("Test 3: PASS - Buffer-based extract_data");
+    } else {
+      logger.error("Test 3: FAIL - Buffer-based extract_data");
+    }
+  }
+
+  // Test 4: Single packet
   {
     CobsStreamEncoder encoder;
 

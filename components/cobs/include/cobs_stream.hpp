@@ -106,6 +106,15 @@ public:
   std::vector<uint8_t> extract_data(size_t max_size);
 
   /**
+   * @brief Extract encoded data directly to a buffer
+   *
+   * @param output Output buffer to write data to
+   * @param max_size Maximum number of bytes to extract
+   * @return Number of bytes actually written to output
+   */
+  size_t extract_data(uint8_t *output, size_t max_size);
+
+  /**
    * @brief Get the current buffer size
    *
    * @return Number of bytes currently buffered

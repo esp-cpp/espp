@@ -82,13 +82,20 @@ void CobsStreamEncoder::add_packet(const uint8_t *data, size_t length) {
     return;
 
   std::lock_guard<std::mutex> lock(mutex_);
-  // Encode the packet
-  std::vector<uint8_t> encoded = Cobs::encode_packet(data, length);
-
-  // Append to buffer
+  
+  // Calculate worst-case encoded size: original + overhead + delimiter
+  // Overhead is at most ⌈length/254⌉ + 1, plus 1 byte for delimiter
+  size_t max_encoded_size = length + (length / 254) + 2;
+  
+  // Resize buffer to accommodate the encoded data
   size_t old_size = buffer_.size();
-  buffer_.resize(old_size + encoded.size());
-  std::copy(encoded.begin(), encoded.end(), buffer_.begin() + old_size);
+  buffer_.resize(old_size + max_encoded_size);
+  
+  // Encode directly to the buffer
+  size_t encoded_size = Cobs::encode_packet(data, length, buffer_.data() + old_size);
+  
+  // Resize buffer to actual encoded size
+  buffer_.resize(old_size + encoded_size);
 }
 
 void CobsStreamEncoder::add_packet(std::vector<uint8_t> &&data) {
@@ -96,13 +103,20 @@ void CobsStreamEncoder::add_packet(std::vector<uint8_t> &&data) {
     return;
 
   std::lock_guard<std::mutex> lock(mutex_);
-  // Encode the packet using the moved data
-  std::vector<uint8_t> encoded = Cobs::encode_packet(data.data(), data.size());
-
-  // Append to buffer
+  
+  // Calculate worst-case encoded size: original + overhead + delimiter
+  // Overhead is at most ⌈length/254⌉ + 1, plus 1 byte for delimiter
+  size_t max_encoded_size = data.size() + (data.size() / 254) + 2;
+  
+  // Resize buffer to accommodate the encoded data
   size_t old_size = buffer_.size();
-  buffer_.resize(old_size + encoded.size());
-  std::copy(encoded.begin(), encoded.end(), buffer_.begin() + old_size);
+  buffer_.resize(old_size + max_encoded_size);
+  
+  // Encode directly to the buffer
+  size_t encoded_size = Cobs::encode_packet(data.data(), data.size(), buffer_.data() + old_size);
+  
+  // Resize buffer to actual encoded size
+  buffer_.resize(old_size + encoded_size);
 }
 
 std::vector<uint8_t> CobsStreamEncoder::extract_data(size_t max_size) {
@@ -125,6 +139,28 @@ std::vector<uint8_t> CobsStreamEncoder::extract_data(size_t max_size) {
   std::vector<uint8_t> result(buffer_.begin(), buffer_.begin() + extract_size);
   buffer_.erase(buffer_.begin(), buffer_.begin() + extract_size);
   return result;
+}
+
+size_t CobsStreamEncoder::extract_data(uint8_t *output, size_t max_size) {
+  if (output == nullptr) {
+    return 0;
+  }
+
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  if (buffer_.empty()) {
+    return 0;
+  }
+
+  size_t extract_size = std::min(max_size, buffer_.size());
+  
+  // Copy data directly to output buffer
+  std::copy(buffer_.begin(), buffer_.begin() + extract_size, output);
+  
+  // Remove extracted data from buffer
+  buffer_.erase(buffer_.begin(), buffer_.begin() + extract_size);
+  
+  return extract_size;
 }
 
 size_t CobsStreamEncoder::buffer_size() const {
