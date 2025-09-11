@@ -35,14 +35,14 @@ public:
   void add_data(std::vector<uint8_t> &&data);
 
   /**
-   * @brief Try to extract the next complete packet
+   * @brief Try to extract the next complete packet. Removes the extracted data from the buffer.
    *
    * @return Decoded packet data, or empty if no complete packet found
    */
   std::optional<std::vector<uint8_t>> extract_packet();
 
   /**
-   * @brief Access remaining unprocessed data
+   * @brief Access remaining unprocessed data for debug purposes
    *
    * @return Const reference to buffered data that hasn't been processed yet
    */
@@ -91,7 +91,7 @@ public:
   void add_packet(std::vector<uint8_t> &&data);
 
   /**
-   * @brief Get all encoded data as a single buffer
+   * @brief Get all encoded data as a single buffer for debug purposes
    *
    * @return All encoded packets concatenated, const reference
    */
