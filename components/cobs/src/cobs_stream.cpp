@@ -50,13 +50,14 @@ std::optional<std::vector<uint8_t>> CobsStreamDecoder::extract_packet() {
 
   // Decode the packet (include the delimiter in the data passed to decode_packet)
   std::vector<uint8_t> decoded = Cobs::decode_packet(buffer_.data(), packet_end + 1);
-  if (decoded.empty()) {
-    // Invalid packet - let caller decide what to do
-    return std::nullopt;
-  }
-
+  
   // Remove consumed data from buffer
   buffer_.erase(buffer_.begin(), buffer_.begin() + bytes_consumed);
+
+  if (decoded.empty()) {
+    // Invalid packet
+    return std::nullopt;
+  }
 
   return decoded;
 }
