@@ -127,11 +127,12 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Add encoded data to the decoder buffer (move semantics)\n   *\n   * "
                "@param data New encoded data vector (will be moved)\n")
           .def("extract_packet", &espp::CobsStreamDecoder::extract_packet,
-               "*\n   * @brief Try to extract the next complete packet\n   *\n   * @return Decoded "
-               "packet data, or empty if no complete packet found\n")
+               "*\n   * @brief Try to extract the next complete packet. Removes the extracted data "
+               "from the buffer.\n   *\n   * @return Decoded packet data, or empty if no complete "
+               "packet found\n")
           .def("remaining_data", &espp::CobsStreamDecoder::remaining_data,
-               "*\n   * @brief Access remaining unprocessed data\n   *\n   * @return Const "
-               "reference to buffered data that hasn't been processed yet\n")
+               "*\n   * @brief Access remaining unprocessed data for debug purposes\n   *\n   * "
+               "@return Const reference to buffered data that hasn't been processed yet\n")
           .def("buffer_size", &espp::CobsStreamDecoder::buffer_size,
                "*\n   * @brief Get the size of buffered data\n   *\n   * @return Number of bytes "
                "currently buffered\n")
@@ -156,12 +157,19 @@ void py_init_module_espp(py::module &m) {
                "*\n   * @brief Add a packet to be encoded (move semantics)\n   *\n   * @param data "
                "Packet data vector (will be moved)\n")
           .def("get_encoded_data", &espp::CobsStreamEncoder::get_encoded_data,
-               "*\n   * @brief Get all encoded data as a single buffer\n   *\n   * @return All "
-               "encoded packets concatenated, const reference\n")
-          .def("extract_data", &espp::CobsStreamEncoder::extract_data, py::arg("max_size"),
+               "*\n   * @brief Get all encoded data as a single buffer for debug purposes\n   *\n  "
+               " * @return All encoded packets concatenated, const reference\n")
+          .def("extract_data", py::overload_cast<size_t>(&espp::CobsStreamEncoder::extract_data),
+               py::arg("max_size"),
                "*\n   * @brief Extract encoded data up to a maximum size\n   *\n   * @param "
                "max_size Maximum number of bytes to extract\n   * @return Encoded data up to "
                "max_size bytes\n")
+          .def("extract_data",
+               py::overload_cast<uint8_t *, size_t>(&espp::CobsStreamEncoder::extract_data),
+               py::arg("output"), py::arg("max_size"),
+               "*\n   * @brief Extract encoded data directly to a buffer\n   *\n   * @param output "
+               "Output buffer to write data to\n   * @param max_size Maximum number of bytes to "
+               "extract\n   * @return Number of bytes actually written to output\n")
           .def("buffer_size", &espp::CobsStreamEncoder::buffer_size,
                "*\n   * @brief Get the current buffer size\n   *\n   * @return Number of bytes "
                "currently buffered\n")

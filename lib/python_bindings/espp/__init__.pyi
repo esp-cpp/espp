@@ -194,7 +194,7 @@ class CobsStreamDecoder:
 
     def extract_packet(self) -> Optional[List[int]]:
         """*
-           * @brief Try to extract the next complete packet
+           * @brief Try to extract the next complete packet. Removes the extracted data from the buffer.
            *
            * @return Decoded packet data, or empty if no complete packet found
 
@@ -203,7 +203,7 @@ class CobsStreamDecoder:
 
     def remaining_data(self) -> List[int]:
         """*
-           * @brief Access remaining unprocessed data
+           * @brief Access remaining unprocessed data for debug purposes
            *
            * @return Const reference to buffered data that hasn't been processed yet
 
@@ -261,19 +261,32 @@ class CobsStreamEncoder:
 
     def get_encoded_data(self) -> List[int]:
         """*
-           * @brief Get all encoded data as a single buffer
+           * @brief Get all encoded data as a single buffer for debug purposes
            *
            * @return All encoded packets concatenated, const reference
 
         """
         pass
 
+    @overload
     def extract_data(self, max_size: int) -> List[int]:
         """*
            * @brief Extract encoded data up to a maximum size
            *
            * @param max_size Maximum number of bytes to extract
            * @return Encoded data up to max_size bytes
+
+        """
+        pass
+
+    @overload
+    def extract_data(self, output: int, max_size: int) -> int:
+        """*
+           * @brief Extract encoded data directly to a buffer
+           *
+           * @param output Output buffer to write data to
+           * @param max_size Maximum number of bytes to extract
+           * @return Number of bytes actually written to output
 
         """
         pass
