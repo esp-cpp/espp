@@ -50,7 +50,7 @@ std::optional<std::vector<uint8_t>> CobsStreamDecoder::extract_packet() {
 
   // Decode the packet (include the delimiter in the data passed to decode_packet)
   std::vector<uint8_t> decoded = Cobs::decode_packet(buffer_.data(), packet_end + 1);
-  
+
   // Remove consumed data from buffer
   buffer_.erase(buffer_.begin(), buffer_.begin() + bytes_consumed);
 
@@ -82,18 +82,18 @@ void CobsStreamEncoder::add_packet(const uint8_t *data, size_t length) {
     return;
 
   std::lock_guard<std::mutex> lock(mutex_);
-  
+
   // Calculate worst-case encoded size: original + overhead + delimiter
   // Overhead is at most ⌈length/254⌉ + 1, plus 1 byte for delimiter
   size_t max_encoded_size = length + (length / 254) + 2;
-  
+
   // Resize buffer to accommodate the encoded data
   size_t old_size = buffer_.size();
   buffer_.resize(old_size + max_encoded_size);
-  
+
   // Encode directly to the buffer
   size_t encoded_size = Cobs::encode_packet(data, length, buffer_.data() + old_size);
-  
+
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);
 }
@@ -103,18 +103,18 @@ void CobsStreamEncoder::add_packet(std::vector<uint8_t> &&data) {
     return;
 
   std::lock_guard<std::mutex> lock(mutex_);
-  
+
   // Calculate worst-case encoded size: original + overhead + delimiter
   // Overhead is at most ⌈length/254⌉ + 1, plus 1 byte for delimiter
   size_t max_encoded_size = data.size() + (data.size() / 254) + 2;
-  
+
   // Resize buffer to accommodate the encoded data
   size_t old_size = buffer_.size();
   buffer_.resize(old_size + max_encoded_size);
-  
+
   // Encode directly to the buffer
   size_t encoded_size = Cobs::encode_packet(data.data(), data.size(), buffer_.data() + old_size);
-  
+
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);
 }
@@ -127,14 +127,14 @@ std::vector<uint8_t> CobsStreamEncoder::extract_data(size_t max_size) {
   }
 
   size_t extract_size = std::min(max_size, buffer_.size());
-  
+
   // If extracting all data, use move semantics for efficiency
   if (extract_size == buffer_.size()) {
     std::vector<uint8_t> result = std::move(buffer_);
     buffer_.clear(); // Ensure buffer is in a valid state
     return result;
   }
-  
+
   // For partial extraction, we still need to copy (can't move part of a vector)
   std::vector<uint8_t> result(buffer_.begin(), buffer_.begin() + extract_size);
   buffer_.erase(buffer_.begin(), buffer_.begin() + extract_size);
@@ -153,13 +153,13 @@ size_t CobsStreamEncoder::extract_data(uint8_t *output, size_t max_size) {
   }
 
   size_t extract_size = std::min(max_size, buffer_.size());
-  
+
   // Copy data directly to output buffer
   std::copy(buffer_.begin(), buffer_.begin() + extract_size, output);
-  
+
   // Remove extracted data from buffer
   buffer_.erase(buffer_.begin(), buffer_.begin() + extract_size);
-  
+
   return extract_size;
 }
 

@@ -157,11 +157,11 @@ void test_streaming_encoder(espp::Logger &logger) {
       packet.data[0] = 0x00; // Include some zeros
       packet.data[28] = 0x00;
       packet.data[43] = 0x00;
-      
+
       // Store original data before moving
       std::vector<uint8_t> original_data(packet.data, packet.data + sizeof(packet.data));
       original_packets.push_back(original_data);
-      
+
       // Convert to vector for move semantics
       std::vector<uint8_t> packet_data(packet.data, packet.data + sizeof(packet.data));
       encoder.add_packet(std::move(packet_data));
@@ -178,12 +178,12 @@ void test_streaming_encoder(espp::Logger &logger) {
       // Verify encoded data can be decoded back to original
       CobsStreamDecoder decoder;
       decoder.add_data(std::move(all_encoded));
-      
+
       std::vector<std::vector<uint8_t>> decoded_packets;
       while (auto packet = decoder.extract_packet()) {
         decoded_packets.push_back(*packet);
       }
-      
+
       // Verify decoded packets match original
       bool content_success = (decoded_packets.size() == original_packets.size());
       if (content_success) {
@@ -195,11 +195,12 @@ void test_streaming_encoder(espp::Logger &logger) {
           }
         }
       }
-      
+
       if (content_success) {
         logger.info("Test 1: PASS - Multiple packets with move semantics");
       } else {
-        logger.error("Test 1: FAIL - Multiple packets with move semantics (content verification failed)");
+        logger.error(
+            "Test 1: FAIL - Multiple packets with move semantics (content verification failed)");
       }
     }
   }
@@ -268,7 +269,7 @@ void test_streaming_decoder(espp::Logger &logger) {
     // Create some original packets and store them for verification
     std::vector<std::vector<uint8_t>> original_packets;
     std::vector<uint8_t> all_encoded;
-    
+
     for (int i = 0; i < 3; ++i) {
       Packet48 packet(i + 10);
       packet.data[0] = 0x00; // Include some zeros
@@ -289,7 +290,7 @@ void test_streaming_decoder(espp::Logger &logger) {
     // Extract all packets and verify content
     int packets_extracted = 0;
     std::vector<std::vector<uint8_t>> decoded_packets;
-    
+
     while (auto packet = decoder.extract_packet()) {
       decoded_packets.push_back(*packet);
       packets_extracted++;
@@ -311,7 +312,7 @@ void test_streaming_decoder(espp::Logger &logger) {
           break;
         }
       }
-      
+
       if (content_success) {
         logger.info("Test 1: PASS - Multiple packets with move semantics");
       }
@@ -453,7 +454,6 @@ void test_edge_cases(espp::Logger &logger) {
     }
   }
 }
-
 
 extern "C" void app_main(void) {
   //! [cobs example]
