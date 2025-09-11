@@ -36,7 +36,7 @@ bool TDeck::init_spi_bus() {
   bus_cfg.sclk_io_num = spi_sclk_io;
   bus_cfg.quadwp_io_num = -1;
   bus_cfg.quadhd_io_num = -1;
-  bus_cfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
+  bus_cfg.max_transfer_sz = SPI_MAX_TRANSFER_BYTES;
   auto ret = spi_bus_initialize(spi_num, &bus_cfg,
                                 SDSPI_DEFAULT_DMA); // SPI_DMA_CH_AUTO); // SDSPI_DEFAULT_DMA);
   if (ret != ESP_OK) {

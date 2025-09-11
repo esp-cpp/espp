@@ -195,7 +195,7 @@ bool SsRoundDisplay::initialize_lcd() {
   lcd_spi_bus_config_.sclk_io_num = pin_config_.sck;
   lcd_spi_bus_config_.quadwp_io_num = -1;
   lcd_spi_bus_config_.quadhd_io_num = -1;
-  lcd_spi_bus_config_.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
+  lcd_spi_bus_config_.max_transfer_sz = SPI_MAX_TRANSFER_BYTES;
 
   memset(&lcd_config_, 0, sizeof(lcd_config_));
   lcd_config_.mode = 0;
