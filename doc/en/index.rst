@@ -20,6 +20,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    byte90
    controller
    cli
+   cobs
    color
    csv
    display/index
