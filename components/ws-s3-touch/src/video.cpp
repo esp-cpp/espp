@@ -136,6 +136,15 @@ bool WsS3Touch::initialize_display(size_t pixel_buffer_size) {
           .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
       });
 
+  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
+      .touchpad_read =
+          std::bind(&WsS3Touch::touchpad_read, this, std::placeholders::_1, std::placeholders::_2,
+                    std::placeholders::_3, std::placeholders::_4),
+      .swap_xy = touch_swap_xy,
+      .invert_x = touch_invert_x,
+      .invert_y = touch_invert_y,
+      .log_level = espp::Logger::Verbosity::WARN});
+
   logger_.info("Display initialized successfully!");
 
   return true;

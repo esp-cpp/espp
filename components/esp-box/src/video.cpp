@@ -127,6 +127,16 @@ bool EspBox::initialize_display(size_t pixel_buffer_size) {
           .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
       });
 
+  // now initialize the LVGL touchpad input for the display
+  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
+      .touchpad_read =
+          std::bind(&EspBox::touchpad_read, this, std::placeholders::_1, std::placeholders::_2,
+                    std::placeholders::_3, std::placeholders::_4),
+      .swap_xy = touch_swap_xy,
+      .invert_x = touch_invert_x,
+      .invert_y = touch_invert_y,
+      .log_level = espp::Logger::Verbosity::WARN});
+
   frame_buffer0_ =
       (uint8_t *)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   frame_buffer1_ =

@@ -79,13 +79,9 @@ bool MatouchRotaryDisplay::button_state() const {
 
 bool MatouchRotaryDisplay::initialize_touch(
     const MatouchRotaryDisplay::touch_callback_t &callback) {
-  if (cst816_ || touchpad_input_) {
+  if (cst816_) {
     logger_.warn("Touchpad already initialized, not initializing again!");
     return false;
-  }
-  if (!display_) {
-    logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
-                 "will not properly handle the touchpad input!");
   }
   logger_.info("Initializing touch input");
 
@@ -94,15 +90,6 @@ bool MatouchRotaryDisplay::initialize_touch(
                          std::placeholders::_2, std::placeholders::_3),
       .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
                         std::placeholders::_2, std::placeholders::_3),
-      .log_level = espp::Logger::Verbosity::WARN});
-
-  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
-      .touchpad_read =
-          std::bind(&MatouchRotaryDisplay::touchpad_read, this, std::placeholders::_1,
-                    std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-      .swap_xy = touch_swap_xy,
-      .invert_x = touch_invert_x,
-      .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN});
 
   // save the callback
@@ -321,6 +308,15 @@ bool MatouchRotaryDisplay::initialize_display(size_t pixel_buffer_size) {
           .double_buffered = true,
           .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
       });
+
+  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
+      .touchpad_read =
+          std::bind(&MatouchRotaryDisplay::touchpad_read, this, std::placeholders::_1,
+                    std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+      .swap_xy = touch_swap_xy,
+      .invert_x = touch_invert_x,
+      .invert_y = touch_invert_y,
+      .log_level = espp::Logger::Verbosity::WARN});
 
   frame_buffer0_ =
       (uint8_t *)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
