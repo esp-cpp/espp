@@ -14,6 +14,46 @@ The COBS component provides efficient encoding and decoding for the Consistent O
 - **Memory efficient**: Minimal overhead with RAII memory management
 - **Real-time friendly**: O(n) complexity with predictable performance
 
+## Design Differences from Other COBS Libraries
+
+This ESPP COBS implementation has some design choices that may differ from other COBS libraries:
+
+### **Delimiter Handling**
+- **ESPP COBS**: Automatically adds a `0x00` delimiter at the end of encoded packets
+- **Other libraries**: May not add delimiters, requiring manual framing
+- **Impact**: ESPP encoded data includes framing, making it ready for transmission
+
+### **Empty Packet Handling**
+- **ESPP COBS**: Ignores empty packets (length = 0) for performance optimization
+- **Other libraries**: May encode empty packets as a single `0x01` byte
+- **Impact**: Empty packets are filtered out during encoding, reducing overhead
+
+### **Compatibility Notes**
+When integrating with other COBS libraries:
+- **Decoding**: ESPP can decode data from other libraries by adding the missing `0x00` delimiter
+- **Encoding**: Other libraries may need to add `0x00` delimiters to decode ESPP-encoded data
+- **Empty packets**: Handle empty packets separately if compatibility is required
+
+### **Example: Design Differences**
+
+```cpp
+// Input data with zeros
+std::vector<uint8_t> data = {0x01, 0x02, 0x00, 0x03, 0x04};
+
+// ESPP COBS encoding (includes delimiter)
+std::vector<uint8_t> espp_encoded = Cobs::encode_packet(data.data(), data.size());
+// Result: {0x03, 0x01, 0x02, 0x03, 0x03, 0x04, 0x00}
+
+// Other COBS libraries (no delimiter)
+// Result: {0x03, 0x01, 0x02, 0x03, 0x03, 0x04}
+
+// Empty packet handling
+std::vector<uint8_t> empty_data = {};
+espp_encoded = Cobs::encode_packet(empty_data.data(), empty_data.size());
+// ESPP Result: {} (ignored)
+// Other libraries: {0x01} (encoded as single byte)
+```
+
 ## API Design
 
 The COBS implementation provides two levels of API:
