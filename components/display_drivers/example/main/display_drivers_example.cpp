@@ -2,9 +2,11 @@
 #include <memory>
 #include <vector>
 
+#include <driver/spi_master.h>
+#include <hal/spi_ll.h>
+#include <hal/spi_types.h>
+
 #include "display.hpp"
-#include "driver/spi_master.h"
-#include "hal/spi_types.h"
 
 // default, most displays use 16-bit coordinates
 #define DISPLAY_COORDINATES_16BIT 1
