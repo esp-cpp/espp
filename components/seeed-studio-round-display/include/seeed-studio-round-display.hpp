@@ -121,12 +121,11 @@ public:
   /// Initialize the touchpad
   /// \param callback The touchpad callback
   /// \return true if the touchpad was successfully initialized, false otherwise
-  /// \warning This method should be called after the display has been
-  ///          initialized if you want the touchpad to be recognized and used
-  ///          with LVGL and its objects.
   /// \note This will configure the touchpad interrupt pin which will
   ///       automatically call the touch callback function when the touchpad is
   ///       touched
+  /// \note This can be called even if you have not initialized the display or
+  ///       the LCD.
   bool initialize_touch(const touch_callback_t &callback = nullptr);
 
   /// Get the touchpad input

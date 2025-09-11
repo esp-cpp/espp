@@ -146,15 +146,11 @@ void TDeck::on_trackball_interrupt(const espp::Interrupt::Event &event) {
 ////////////////////////
 
 bool TDeck::initialize_touch(const TDeck::touch_callback_t &touch_cb) {
-  if (gt911_ || touchpad_input_) {
+  if (gt911_) {
     logger_.warn("Touch already initialized, not initializing again!");
     return false;
   }
 
-  if (!display_) {
-    logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
-                 "will not properly handle the touchpad input!");
-  }
   logger_.info("Initializing touch input");
 
   gt911_ = std::make_unique<espp::Gt911>(espp::Gt911::Config{
@@ -162,15 +158,6 @@ bool TDeck::initialize_touch(const TDeck::touch_callback_t &touch_cb) {
                          std::placeholders::_2, std::placeholders::_3),
       .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
                         std::placeholders::_2, std::placeholders::_3),
-      .log_level = espp::Logger::Verbosity::WARN});
-
-  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
-      .touchpad_read =
-          std::bind(&TDeck::touchpad_read, this, std::placeholders::_1, std::placeholders::_2,
-                    std::placeholders::_3, std::placeholders::_4),
-      .swap_xy = touch_swap_xy,
-      .invert_x = touch_invert_x,
-      .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN});
 
   // store the callback
@@ -376,6 +363,15 @@ bool TDeck::initialize_display(size_t pixel_buffer_size) {
           .double_buffered = true,
           .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
       });
+
+  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
+      .touchpad_read =
+          std::bind(&TDeck::touchpad_read, this, std::placeholders::_1, std::placeholders::_2,
+                    std::placeholders::_3, std::placeholders::_4),
+      .swap_xy = touch_swap_xy,
+      .invert_x = touch_invert_x,
+      .invert_y = touch_invert_y,
+      .log_level = espp::Logger::Verbosity::WARN});
 
   frame_buffer0_ =
       (uint8_t *)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
