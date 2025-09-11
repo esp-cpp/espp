@@ -14,7 +14,8 @@ tags:
   - COBS
   - Encoding
   - Decoding
-  - PacketFraming
+  - Packet
+  - Framing
 dependencies:
   idf:
     version: '>=5.0'

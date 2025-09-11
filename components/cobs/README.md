@@ -135,20 +135,6 @@ The [example](./example) demonstrates comprehensive COBS usage including:
 - Comprehensive test suite with test cases covering all functionality
 - Performance characteristics for various packet sizes (up to 1000+ bytes)
 
-### Build and Flash
-
-Build the project and flash it to the board, then run monitor tool to view serial output:
-
-```
-idf.py -p PORT flash monitor
-```
-
-(Replace PORT with the name of the serial port to use.)
-
-#### Monitor Commands
-- **Exit monitor**: Type `Ctrl-]`
-- **Reset board**: Type `Ctrl+R`
-
 ## References
 
 - [COBS Wikipedia Article](https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing)
