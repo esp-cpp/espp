@@ -62,25 +62,24 @@ I (305) main_task: Calling app_main()
 [COBS Example/I][0.122]: Test 6: PASS - Single zero byte
 [COBS Example/I][0.128]:
 === Streaming Encoder Test ===
-[COBS Example/I][0.134]: Test 1: PASS - Multiple packets with zeros
-[COBS Example/I][0.140]: Test 2: PASS - Empty encoder
-[COBS Example/I][0.146]: Test 3: PASS - Single packet
+[COBS Example/I][0.134]: Test 1: PASS - Multiple packets with move semantics
+[COBS Example/I][0.141]: Test 2: PASS - Empty encoder
+[COBS Example/I][0.147]: Test 3: PASS - Single packet
 [COBS Example/I][0.152]:
 === Streaming Decoder Test ===
-[COBS Example/I][0.158]: Test 1: PASS - Multiple packets with fragmented input
-[COBS Example/I][0.165]: Test 2: PASS - Empty decoder
+[COBS Example/I][0.159]: Test 1: PASS - Multiple packets with move semantics
+[COBS Example/I][0.166]: Test 2: PASS - Empty decoder
 [COBS Example/I][0.171]: Test 3: PASS - Single packet
-[COBS Example/I][0.176]: Test 4: PASS - Incomplete packet
-[COBS Example/I][0.182]:
+[COBS Example/I][0.177]: Test 4: PASS - Incomplete packet
+[COBS Example/I][0.183]:
 === Edge Cases Test ===
 [COBS Example/I][0.188]: Test 1: PASS - Maximum block size (254 bytes)
 [COBS Example/I][0.195]: Test 2: PASS - Alternating zeros and non-zeros
 [COBS Example/I][0.202]: Test 3: PASS - Consecutive zeros
-[COBS Example/I][0.208]: Large packet encoded: 1002 bytes
-[COBS Example/I][0.214]: Test 4: PASS - Large packet (1000 bytes)
-[COBS Example/I][0.220]: ============================
-[COBS Example/I][0.226]: COBS example complete!
-[COBS Example/I][0.231]: All tests completed successfully!
+[COBS Example/I][0.209]: Test 4: PASS - Large packet (1000 bytes)
+[COBS Example/I][0.215]: ============================
+[COBS Example/I][0.220]: COBS example complete!
+[COBS Example/I][0.225]: All tests completed successfully!
 ```
 
 ## Key Features Demonstrated

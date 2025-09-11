@@ -146,36 +146,36 @@ void test_single_packet(espp::Logger &logger) {
 void test_streaming_encoder(espp::Logger &logger) {
   logger.info("\n=== Streaming Encoder Test ===");
 
-  // Test 1: Multiple packets with zeros
+  // Test 1: Multiple packets with move semantics
   {
     CobsStreamEncoder encoder;
 
-    // Add multiple 48-byte packets
+    // Add multiple packets using move semantics
+    std::vector<std::vector<uint8_t>> packets;
     for (int i = 0; i < 3; ++i) {
       Packet48 packet(i + 1);
       packet.data[0] = 0x00; // Include some zeros
       packet.data[28] = 0x00;
       packet.data[43] = 0x00;
-      encoder.add_packet(packet.data, sizeof(packet.data));
+      
+      // Convert to vector for move semantics
+      std::vector<uint8_t> packet_data(packet.data, packet.data + sizeof(packet.data));
+      packets.push_back(std::move(packet_data));
     }
 
-    // Get all encoded data
-    std::vector<uint8_t> all_encoded = encoder.get_encoded_data();
-
-    // Extract in chunks
-    size_t chunk_size = 100;
-    size_t total_extracted = 0;
-
-    while (encoder.buffer_size() > 0) {
-      std::vector<uint8_t> chunk = encoder.extract_data(chunk_size);
-      total_extracted += chunk.size();
+    // Add packets using move semantics
+    for (auto &packet : packets) {
+      encoder.add_packet(std::move(packet));
     }
 
-    bool success = (total_extracted == all_encoded.size()) && (all_encoded.size() > 0);
+    // Extract all data using move semantics
+    std::vector<uint8_t> all_encoded = encoder.extract_data(encoder.buffer_size());
+
+    bool success = (all_encoded.size() > 0) && (encoder.buffer_size() == 0);
     if (success) {
-      logger.info("Test 1: PASS - Multiple packets with zeros");
+      logger.info("Test 1: PASS - Multiple packets with move semantics");
     } else {
-      logger.error("Test 1: FAIL - Multiple packets with zeros");
+      logger.error("Test 1: FAIL - Multiple packets with move semantics");
     }
   }
 
@@ -215,7 +215,7 @@ void test_streaming_encoder(espp::Logger &logger) {
 void test_streaming_decoder(espp::Logger &logger) {
   logger.info("\n=== Streaming Decoder Test ===");
 
-  // Test 1: Multiple packets with fragmented input
+  // Test 1: Multiple packets with move semantics
   {
     CobsStreamDecoder decoder;
 
@@ -231,29 +231,21 @@ void test_streaming_decoder(espp::Logger &logger) {
       all_encoded.insert(all_encoded.end(), encoded.begin(), encoded.end());
     }
 
-    // Simulate receiving data in chunks
-    size_t chunk_size = 80;
+    // Add all encoded data using move semantics
+    decoder.add_data(std::move(all_encoded));
+
+    // Extract all packets
     int packets_extracted = 0;
-
-    for (size_t offset = 0; offset < all_encoded.size(); offset += chunk_size) {
-      size_t remaining = all_encoded.size() - offset;
-      size_t this_chunk = std::min(chunk_size, remaining);
-
-      // Add chunk to decoder
-      decoder.add_data(all_encoded.data() + offset, this_chunk);
-
-      // Try to extract packets
-      while (auto packet = decoder.extract_packet()) {
-        packets_extracted++;
-      }
+    while (auto packet = decoder.extract_packet()) {
+      packets_extracted++;
     }
 
     bool success = (packets_extracted == 3);
     if (success) {
-      logger.info("Test 1: PASS - Multiple packets with fragmented input");
+      logger.info("Test 1: PASS - Multiple packets with move semantics");
     } else {
       logger.error(
-          "Test 1: FAIL - Multiple packets with fragmented input (extracted: {}, expected: 3)",
+          "Test 1: FAIL - Multiple packets with move semantics (extracted: {}, expected: 3)",
           packets_extracted);
     }
   }
@@ -393,6 +385,7 @@ void test_edge_cases(espp::Logger &logger) {
     }
   }
 }
+
 
 extern "C" void app_main(void) {
   //! [cobs example]

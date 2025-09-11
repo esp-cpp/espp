@@ -14,6 +14,17 @@ void CobsStreamDecoder::add_data(const uint8_t *data, size_t length) {
   std::copy(data, data + length, buffer_.begin() + old_size);
 }
 
+void CobsStreamDecoder::add_data(std::vector<uint8_t> &&data) {
+  if (data.empty())
+    return;
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  // Append new data to buffer using move semantics
+  size_t old_size = buffer_.size();
+  buffer_.resize(old_size + data.size());
+  std::move(data.begin(), data.end(), buffer_.begin() + old_size);
+}
+
 std::optional<std::vector<uint8_t>> CobsStreamDecoder::extract_packet() {
   std::lock_guard<std::mutex> lock(mutex_);
 
@@ -79,6 +90,20 @@ void CobsStreamEncoder::add_packet(const uint8_t *data, size_t length) {
   std::copy(encoded.begin(), encoded.end(), buffer_.begin() + old_size);
 }
 
+void CobsStreamEncoder::add_packet(std::vector<uint8_t> &&data) {
+  if (data.empty())
+    return;
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  // Encode the packet using the moved data
+  std::vector<uint8_t> encoded = Cobs::encode_packet(data.data(), data.size());
+
+  // Append to buffer
+  size_t old_size = buffer_.size();
+  buffer_.resize(old_size + encoded.size());
+  std::copy(encoded.begin(), encoded.end(), buffer_.begin() + old_size);
+}
+
 std::vector<uint8_t> CobsStreamEncoder::extract_data(size_t max_size) {
   std::lock_guard<std::mutex> lock(mutex_);
 
@@ -87,11 +112,17 @@ std::vector<uint8_t> CobsStreamEncoder::extract_data(size_t max_size) {
   }
 
   size_t extract_size = std::min(max_size, buffer_.size());
+  
+  // If extracting all data, use move semantics for efficiency
+  if (extract_size == buffer_.size()) {
+    std::vector<uint8_t> result = std::move(buffer_);
+    buffer_.clear(); // Ensure buffer is in a valid state
+    return result;
+  }
+  
+  // For partial extraction, we still need to copy (can't move part of a vector)
   std::vector<uint8_t> result(buffer_.begin(), buffer_.begin() + extract_size);
-
-  // Remove extracted data from buffer
   buffer_.erase(buffer_.begin(), buffer_.begin() + extract_size);
-
   return result;
 }
 

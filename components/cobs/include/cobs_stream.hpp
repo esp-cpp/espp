@@ -28,6 +28,13 @@ public:
   void add_data(const uint8_t *data, size_t length);
 
   /**
+   * @brief Add encoded data to the decoder buffer (move semantics)
+   *
+   * @param data New encoded data vector (will be moved)
+   */
+  void add_data(std::vector<uint8_t> &&data);
+
+  /**
    * @brief Try to extract the next complete packet
    *
    * @return Decoded packet data, or empty if no complete packet found
@@ -75,6 +82,13 @@ public:
    * @param length Packet length
    */
   void add_packet(const uint8_t *data, size_t length);
+
+  /**
+   * @brief Add a packet to be encoded (move semantics)
+   *
+   * @param data Packet data vector (will be moved)
+   */
+  void add_packet(std::vector<uint8_t> &&data);
 
   /**
    * @brief Get all encoded data as a single buffer
