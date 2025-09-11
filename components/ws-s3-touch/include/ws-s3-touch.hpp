@@ -6,6 +6,7 @@
 
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
+#include <hal/spi_ll.h>
 #include <hal/spi_types.h>
 
 #include "base_component.hpp"
@@ -46,6 +47,10 @@ public:
 
   /// Alias for the display driver
   using DisplayDriver = espp::St7789;
+
+  /// Maximum number of bytes that can be transferred in a single SPI
+  /// transaction to the Display. 32k on the ESP32-S3.
+  static constexpr size_t SPI_MAX_TRANSFER_BYTES = SPI_LL_DMA_MAX_BIT_LEN / 8;
 
   /// Alias for the touch driver
   using TouchDriver = espp::Cst816;

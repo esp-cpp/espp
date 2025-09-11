@@ -6,6 +6,7 @@
 
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
+#include <hal/spi_ll.h>
 #include <hal/spi_types.h>
 
 #include "base_component.hpp"
@@ -27,6 +28,10 @@ class WroverKit : public BaseComponent {
 public:
   /// Alias for the pixel type used by the wrover-kit display
   using Pixel = lv_color16_t;
+
+  /// Maximum number of bytes that can be transferred in a single SPI
+  /// transaction to the Display. 2MB on ESP32.
+  static constexpr size_t SPI_MAX_TRANSFER_BYTES = SPI_LL_DMA_MAX_BIT_LEN / 8;
 
   /// The data structure for the touchpad
   struct TouchpadData {
