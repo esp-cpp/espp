@@ -54,8 +54,8 @@ std::vector<uint8_t> Cobs::decode_packet(std::span<const uint8_t> encoded_data) 
     return {};
 
   // Find the delimiter to determine packet boundary
-  const uint8_t *delimiter =
-      static_cast<const uint8_t *>(std::memchr(encoded_data.data(), DELIMITER, encoded_data.size()));
+  const uint8_t *delimiter = static_cast<const uint8_t *>(
+      std::memchr(encoded_data.data(), DELIMITER, encoded_data.size()));
   if (!delimiter) {
     return {}; // No delimiter found
   }

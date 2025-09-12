@@ -79,33 +79,32 @@ void py_init_module_espp(py::module &m) {
           "https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing\n")
           .def(py::init<>()) // implicit default constructor
           .def_static("encode_packet",
-                      py::overload_cast<const uint8_t *, size_t>(&espp::Cobs::encode_packet),
-                      py::arg("data"), py::arg("length"),
+                      py::overload_cast<std::span<const uint8_t>>(&espp::Cobs::encode_packet),
+                      py::arg("data"),
                       "*\n   * @brief Encode a single packet\n   *\n   * @param data Input data to "
-                      "encode\n   * @param length Length of input data\n   * @return Encoded data "
-                      "with COBS encoding and delimiter\n")
+                      "encode\n   * @return Encoded data with COBS encoding and delimiter\n")
           .def_static(
               "encode_packet",
-              py::overload_cast<const uint8_t *, size_t, uint8_t *>(&espp::Cobs::encode_packet),
-              py::arg("data"), py::arg("length"), py::arg("output"),
+              py::overload_cast<std::span<const uint8_t>, uint8_t *>(&espp::Cobs::encode_packet),
+              py::arg("data"), py::arg("output"),
               "*\n   * @brief Encode a single packet to existing buffer\n   *\n   * @param data "
-              "Input data to encode\n   * @param length Length of input data\n   * @param output "
-              "Output buffer (must be large enough)\n   * @return Number of bytes written to "
-              "output\n")
+              "Input data to encode\n   * @param output Output buffer (must be large enough)\n   * "
+              "@return Number of bytes written to output\n")
           .def_static("decode_packet",
-                      py::overload_cast<const uint8_t *, size_t>(&espp::Cobs::decode_packet),
-                      py::arg("encoded_data"), py::arg("length"),
+                      py::overload_cast<std::span<const uint8_t>>(&espp::Cobs::decode_packet),
+                      py::arg("encoded_data"),
                       "*\n   * @brief Decode a single packet from COBS-encoded data\n   *\n   * "
-                      "@param encoded_data COBS-encoded data\n   * @param length Length of encoded "
-                      "data\n   * @return Decoded packet data, or empty if invalid\n")
+                      "@param encoded_data COBS-encoded data\n   * @return Decoded packet data, or "
+                      "empty if invalid\n")
           .def_static(
               "decode_packet",
-              py::overload_cast<const uint8_t *, size_t, uint8_t *>(&espp::Cobs::decode_packet),
-              py::arg("encoded_data"), py::arg("length"), py::arg("output"),
+              py::overload_cast<std::span<const uint8_t>, uint8_t *>(&espp::Cobs::decode_packet),
+              py::arg("encoded_data"), py::arg("output"),
               "*\n   * @brief Decode a single packet to existing buffer\n   *\n   * @param "
               "encoded_data COBS-encoded data\n   * @param length Length of encoded data\n   * "
               "@param output Output buffer (must be large enough)\n   * @return Number of bytes "
               "written to output, or 0 if decoding failed\n");
+              "encoded_data COBS-encoded data\n   * @param output Output buffer (must be large "
   ////////////////////    </generated_from:cobs.hpp>    ////////////////////
 
   ////////////////////    <generated_from:cobs_stream.hpp>    ////////////////////
@@ -117,10 +116,10 @@ void py_init_module_espp(py::module &m) {
           "packets may arrive together.\n")
           .def(py::init<>())
           .def("add_data",
-               py::overload_cast<const uint8_t *, size_t>(&espp::CobsStreamDecoder::add_data),
-               py::arg("data"), py::arg("length"),
+               py::overload_cast<std::span<const uint8_t>>(&espp::CobsStreamDecoder::add_data),
+               py::arg("data"),
                "*\n   * @brief Add encoded data to the decoder buffer\n   *\n   * @param data New "
-               "encoded data\n   * @param length Length of new data\n")
+               "encoded data span\n")
           .def("add_data",
                py::overload_cast<std::vector<uint8_t> &&>(&espp::CobsStreamDecoder::add_data),
                py::arg("data"),
@@ -147,10 +146,10 @@ void py_init_module_espp(py::module &m) {
           "chunks.\n")
           .def(py::init<>())
           .def("add_packet",
-               py::overload_cast<const uint8_t *, size_t>(&espp::CobsStreamEncoder::add_packet),
-               py::arg("data"), py::arg("length"),
-               "*\n   * @brief Add a packet to be encoded\n   *\n   * @param data Packet data\n   "
-               "* @param length Packet length\n")
+               py::overload_cast<std::span<const uint8_t>>(&espp::CobsStreamEncoder::add_packet),
+               py::arg("data"),
+               "*\n   * @brief Add a packet to be encoded\n   *\n   * @param data Packet data "
+               "span\n")
           .def("add_packet",
                py::overload_cast<std::vector<uint8_t> &&>(&espp::CobsStreamEncoder::add_packet),
                py::arg("data"),

@@ -96,12 +96,11 @@ class Cobs:
     """
     @staticmethod
     @overload
-    def encode_packet(data: int, length: int) -> List[int]:
+    def encode_packet(data: std.span[ int]) -> List[int]:
         """*
            * @brief Encode a single packet
            *
            * @param data Input data to encode
-           * @param length Length of input data
            * @return Encoded data with COBS encoding and delimiter
 
         """
@@ -109,12 +108,11 @@ class Cobs:
 
     @staticmethod
     @overload
-    def encode_packet(data: int, length: int, output: int) -> int:
+    def encode_packet(data: std.span[ int], output: int) -> int:
         """*
            * @brief Encode a single packet to existing buffer
            *
            * @param data Input data to encode
-           * @param length Length of input data
            * @param output Output buffer (must be large enough)
            * @return Number of bytes written to output
 
@@ -123,12 +121,11 @@ class Cobs:
 
     @staticmethod
     @overload
-    def decode_packet(encoded_data: int, length: int) -> List[int]:
+    def decode_packet(encoded_data: std.span[ int]) -> List[int]:
         """*
            * @brief Decode a single packet from COBS-encoded data
            *
            * @param encoded_data COBS-encoded data
-           * @param length Length of encoded data
            * @return Decoded packet data, or empty if invalid
 
         """
@@ -136,12 +133,11 @@ class Cobs:
 
     @staticmethod
     @overload
-    def decode_packet(encoded_data: int, length: int, output: int) -> int:
+    def decode_packet(encoded_data: std.span[ int], output: int) -> int:
         """*
            * @brief Decode a single packet to existing buffer
            *
            * @param encoded_data COBS-encoded data
-           * @param length Length of encoded data
            * @param output Output buffer (must be large enough)
            * @return Number of bytes written to output, or 0 if decoding failed
 
@@ -172,12 +168,11 @@ class CobsStreamDecoder:
         pass
 
     @overload
-    def add_data(self, data: int, length: int) -> None:
+    def add_data(self, data: std.span[ int]) -> None:
         """*
            * @brief Add encoded data to the decoder buffer
            *
-           * @param data New encoded data
-           * @param length Length of new data
+           * @param data New encoded data span
 
         """
         pass
@@ -239,12 +234,11 @@ class CobsStreamEncoder:
         pass
 
     @overload
-    def add_packet(self, data: int, length: int) -> None:
+    def add_packet(self, data: std.span[ int]) -> None:
         """*
            * @brief Add a packet to be encoded
            *
-           * @param data Packet data
-           * @param length Packet length
+           * @param data Packet data span
 
         """
         pass

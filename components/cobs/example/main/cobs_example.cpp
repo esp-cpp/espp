@@ -418,8 +418,7 @@ void test_edge_cases(espp::Logger &logger) {
     std::vector<uint8_t> consecutive_zeros(10, 0x00);
     consecutive_zeros[5] = 0x42; // One non-zero in the middle
 
-    std::vector<uint8_t> encoded =
-        Cobs::encode_packet(consecutive_zeros);
+    std::vector<uint8_t> encoded = Cobs::encode_packet(consecutive_zeros);
     std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     bool success =
