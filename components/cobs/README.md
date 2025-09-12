@@ -41,7 +41,7 @@ When integrating with other COBS libraries:
 std::vector<uint8_t> data = {0x01, 0x02, 0x00, 0x03, 0x04};
 
 // ESPP COBS encoding (includes delimiter)
-std::vector<uint8_t> espp_encoded = Cobs::encode_packet(data.data(), data.size());
+std::vector<uint8_t> espp_encoded = Cobs::encode_packet(data);
 // Result: {0x03, 0x01, 0x02, 0x03, 0x03, 0x04, 0x00}
 
 // Other COBS libraries (no delimiter)
@@ -49,7 +49,7 @@ std::vector<uint8_t> espp_encoded = Cobs::encode_packet(data.data(), data.size()
 
 // Empty packet handling
 std::vector<uint8_t> empty_data = {};
-espp_encoded = Cobs::encode_packet(empty_data.data(), empty_data.size());
+espp_encoded = Cobs::encode_packet(empty_data);
 // ESPP Result: {} (ignored)
 // Other libraries: {0x01} (encoded as single byte)
 ```
@@ -74,13 +74,18 @@ The COBS implementation provides two levels of API:
 
 ```cpp
 #include "cobs.hpp"
+#include <span>
 
 // Encode a packet
 std::vector<uint8_t> data = {0x01, 0x02, 0x00, 0x03, 0x04};
-std::vector<uint8_t> encoded = Cobs::encode_packet(data.data(), data.size());
+std::vector<uint8_t> encoded = Cobs::encode_packet(data);  // Automatic span conversion
 
 // Decode a packet
-std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);  // Automatic span conversion
+
+// Or with arrays (zero-copy)
+uint8_t array[] = {0x01, 0x02, 0x00, 0x03, 0x04};
+std::vector<uint8_t> encoded = Cobs::encode_packet(std::span{array});
 ```
 
 ### Streaming Encoder for Batching

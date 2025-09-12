@@ -45,7 +45,7 @@ std::optional<std::vector<uint8_t>> CobsStreamDecoder::extract_packet() {
   }
 
   // Decode the packet (include the delimiter in the data passed to decode_packet)
-  std::vector<uint8_t> decoded = Cobs::decode_packet(buffer_.data(), packet_end + 1);
+  std::vector<uint8_t> decoded = Cobs::decode_packet(std::span{buffer_.data(), packet_end + 1});
 
   // Remove consumed data from buffer
   buffer_.erase(buffer_.begin(), buffer_.begin() + bytes_consumed);
@@ -88,7 +88,7 @@ void CobsStreamEncoder::add_packet(std::span<const uint8_t> data) {
   buffer_.resize(old_size + max_encoded_size);
 
   // Encode directly to the buffer
-  size_t encoded_size = Cobs::encode_packet(data.data(), data.size(), buffer_.data() + old_size);
+  size_t encoded_size = Cobs::encode_packet(data, buffer_.data() + old_size);
 
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);
@@ -109,7 +109,7 @@ void CobsStreamEncoder::add_packet(std::vector<uint8_t> &&data) {
   buffer_.resize(old_size + max_encoded_size);
 
   // Encode directly to the buffer
-  size_t encoded_size = Cobs::encode_packet(data.data(), data.size(), buffer_.data() + old_size);
+  size_t encoded_size = Cobs::encode_packet(data, buffer_.data() + old_size);
 
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);

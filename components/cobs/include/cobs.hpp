@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace espp {
@@ -24,39 +25,35 @@ public:
    * @brief Encode a single packet
    *
    * @param data Input data to encode
-   * @param length Length of input data
    * @return Encoded data with COBS encoding and delimiter
    */
-  static std::vector<uint8_t> encode_packet(const uint8_t *data, size_t length);
+  static std::vector<uint8_t> encode_packet(std::span<const uint8_t> data);
 
   /**
    * @brief Encode a single packet to existing buffer
    *
    * @param data Input data to encode
-   * @param length Length of input data
    * @param output Output buffer (must be large enough)
    * @return Number of bytes written to output
    */
-  static size_t encode_packet(const uint8_t *data, size_t length, uint8_t *output);
+  static size_t encode_packet(std::span<const uint8_t> data, uint8_t *output);
 
   /**
    * @brief Decode a single packet from COBS-encoded data
    *
    * @param encoded_data COBS-encoded data
-   * @param length Length of encoded data
    * @return Decoded packet data, or empty if invalid
    */
-  static std::vector<uint8_t> decode_packet(const uint8_t *encoded_data, size_t length);
+  static std::vector<uint8_t> decode_packet(std::span<const uint8_t> encoded_data);
 
   /**
    * @brief Decode a single packet to existing buffer
    *
    * @param encoded_data COBS-encoded data
-   * @param length Length of encoded data
    * @param output Output buffer (must be large enough)
    * @return Number of bytes written to output, or 0 if decoding failed
    */
-  static size_t decode_packet(const uint8_t *encoded_data, size_t length, uint8_t *output);
+  static size_t decode_packet(std::span<const uint8_t> encoded_data, uint8_t *output);
 
 private:
   static constexpr uint8_t DELIMITER = 0x00;

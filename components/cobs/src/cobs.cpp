@@ -3,23 +3,23 @@
 
 namespace espp {
 
-std::vector<uint8_t> Cobs::encode_packet(const uint8_t *data, size_t length) {
-  if (data == nullptr || length == 0)
+std::vector<uint8_t> Cobs::encode_packet(std::span<const uint8_t> data) {
+  if (data.empty())
     return {};
 
   // COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead
   // Plus 1 byte for the delimiter
-  size_t max_encoded_size = length + (length / 254) + 2;
+  size_t max_encoded_size = data.size() + (data.size() / 254) + 2;
   std::vector<uint8_t> encoded(max_encoded_size);
 
-  size_t encoded_size = encode_packet(data, length, encoded.data());
+  size_t encoded_size = encode_packet(data, encoded.data());
   encoded.resize(encoded_size);
 
   return encoded;
 }
 
-size_t Cobs::encode_packet(const uint8_t *data, size_t length, uint8_t *output) {
-  if (data == nullptr || output == nullptr || length == 0)
+size_t Cobs::encode_packet(std::span<const uint8_t> data, uint8_t *output) {
+  if (output == nullptr || data.empty())
     return 0;
 
   uint8_t *encode = output; // Encoded byte pointer points to first value data will be copied to
@@ -27,17 +27,17 @@ size_t Cobs::encode_packet(const uint8_t *data, size_t length, uint8_t *output) 
       encode++; // Output code pointer (points to first value of the block (where the code goes))
   uint8_t code = 1; // Code value
 
-  for (const uint8_t *byte = data; length--; ++byte) {
-    if (*byte) { // Byte not zero, write it
-      *encode++ = *byte;
+  for (const uint8_t byte : data) {
+    if (byte) { // Byte not zero, write it
+      *encode++ = byte;
       ++code;
     }
 
-    if (!*byte || code == 0xff) { // Input is zero or block completed, restart
+    if (!byte || code == 0xff) { // Input is zero or block completed, restart
       *codep = code;
       code = 1;
       codep = encode;
-      if (!*byte || length)
+      if (!byte)
         ++encode;
     }
   }
@@ -49,22 +49,22 @@ size_t Cobs::encode_packet(const uint8_t *data, size_t length, uint8_t *output) 
   return static_cast<size_t>(encode - output);
 }
 
-std::vector<uint8_t> Cobs::decode_packet(const uint8_t *encoded_data, size_t length) {
-  if (encoded_data == nullptr)
+std::vector<uint8_t> Cobs::decode_packet(std::span<const uint8_t> encoded_data) {
+  if (encoded_data.empty())
     return {};
 
   // Find the delimiter to determine packet boundary
   const uint8_t *delimiter =
-      static_cast<const uint8_t *>(std::memchr(encoded_data, DELIMITER, length));
+      static_cast<const uint8_t *>(std::memchr(encoded_data.data(), DELIMITER, encoded_data.size()));
   if (!delimiter) {
     return {}; // No delimiter found
   }
 
-  size_t packet_length = static_cast<size_t>(delimiter - encoded_data);
+  size_t packet_length = static_cast<size_t>(delimiter - encoded_data.data());
 
   // Decode the packet
   std::vector<uint8_t> decoded(packet_length); // Worst case: same size as encoded
-  size_t decoded_length = decode_packet(encoded_data, packet_length, decoded.data());
+  size_t decoded_length = decode_packet(encoded_data.subspan(0, packet_length), decoded.data());
 
   if (decoded_length == 0) {
     return {}; // Decoding failed
@@ -74,19 +74,19 @@ std::vector<uint8_t> Cobs::decode_packet(const uint8_t *encoded_data, size_t len
   return decoded;
 }
 
-size_t Cobs::decode_packet(const uint8_t *encoded_data, size_t length, uint8_t *output) {
-  if (encoded_data == nullptr || output == nullptr || length == 0)
+size_t Cobs::decode_packet(std::span<const uint8_t> encoded_data, uint8_t *output) {
+  if (output == nullptr || encoded_data.empty())
     return 0;
 
-  const uint8_t *byte = encoded_data; // Encoded input byte pointer
-  uint8_t *decode = output;           // Decoded output byte pointer
-  const uint8_t *end = encoded_data + length;
+  const uint8_t *byte = encoded_data.data(); // Encoded input byte pointer
+  uint8_t *decode = output;                  // Decoded output byte pointer
+  const uint8_t *end = encoded_data.data() + encoded_data.size();
 
   uint8_t code = 0xff; // Initialize code outside loop to check final state
   for (uint8_t block = 0; byte < end; block--) {
     if (block) { // Decode block byte
       *decode++ = *byte++;
-      if (decode >= output + length) // Buffer overflow
+      if (decode >= output + encoded_data.size()) // Buffer overflow
         return 0;
     } else {
       if (byte >= end) // Unexpected end of data
@@ -94,7 +94,7 @@ size_t Cobs::decode_packet(const uint8_t *encoded_data, size_t length, uint8_t *
       block = *byte++;
       if (block && (code != 0xff)) { // Encoded zero, write it when transitioning between blocks
         *decode++ = 0;
-        if (decode >= output + length) // Buffer overflow
+        if (decode >= output + encoded_data.size()) // Buffer overflow
           return 0;
       }
       code = block;

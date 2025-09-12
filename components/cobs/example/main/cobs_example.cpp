@@ -35,8 +35,8 @@ void test_single_packet(espp::Logger &logger) {
     logger.info("Test 1: Packet with zeros at positions 0, 28, 43");
 
     // Encode and decode
-    std::vector<uint8_t> encoded = Cobs::encode_packet(packet.data, sizeof(packet.data));
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(std::span{packet.data});
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     // Verify
     bool success = (decoded.size() == sizeof(packet.data)) &&
@@ -56,8 +56,8 @@ void test_single_packet(espp::Logger &logger) {
     logger.info("Test 2: Packet with no zeros (1-48)");
 
     // Encode and decode
-    std::vector<uint8_t> encoded = Cobs::encode_packet(packet.data(), packet.size());
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(packet);
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     // Verify
     bool success = (decoded.size() == packet.size()) &&
@@ -76,8 +76,8 @@ void test_single_packet(espp::Logger &logger) {
     logger.info("Test 3: Packet with all zeros");
 
     // Encode and decode
-    std::vector<uint8_t> encoded = Cobs::encode_packet(packet.data(), packet.size());
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(packet);
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     // Verify
     bool success = (decoded.size() == packet.size()) &&
@@ -94,8 +94,8 @@ void test_single_packet(espp::Logger &logger) {
     logger.info("Test 4: Empty packet");
 
     // Encode and decode
-    std::vector<uint8_t> encoded = Cobs::encode_packet(nullptr, 0);
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(std::span<const uint8_t>{});
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     // Verify
     bool success = (decoded.size() == 0);
@@ -113,8 +113,8 @@ void test_single_packet(espp::Logger &logger) {
     logger.info("Test 5: Single byte packet (0x42)");
 
     // Encode and decode
-    std::vector<uint8_t> encoded = Cobs::encode_packet(&single_byte, 1);
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(std::span{&single_byte, 1});
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     // Verify
     bool success = (decoded.size() == 1) && (decoded[0] == single_byte);
@@ -132,8 +132,8 @@ void test_single_packet(espp::Logger &logger) {
     logger.info("Test 6: Single zero byte");
 
     // Encode and decode
-    std::vector<uint8_t> encoded = Cobs::encode_packet(&zero_byte, 1);
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(std::span{&zero_byte, 1});
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     // Verify
     bool success = (decoded.size() == 1) && (decoded[0] == zero_byte);
@@ -282,7 +282,7 @@ void test_streaming_decoder(espp::Logger &logger) {
       std::vector<uint8_t> original_data(packet.data, packet.data + sizeof(packet.data));
       original_packets.push_back(original_data);
 
-      std::vector<uint8_t> encoded = Cobs::encode_packet(packet.data, sizeof(packet.data));
+      std::vector<uint8_t> encoded = Cobs::encode_packet(std::span{packet.data});
       all_encoded.insert(all_encoded.end(), encoded.begin(), encoded.end());
     }
 
@@ -341,7 +341,7 @@ void test_streaming_decoder(espp::Logger &logger) {
     CobsStreamDecoder decoder;
 
     uint8_t single_byte = 0x42;
-    std::vector<uint8_t> encoded = Cobs::encode_packet(&single_byte, 1);
+    std::vector<uint8_t> encoded = Cobs::encode_packet(std::span{&single_byte, 1});
 
     decoder.add_data(encoded);
     auto packet = decoder.extract_packet();
@@ -382,8 +382,8 @@ void test_edge_cases(espp::Logger &logger) {
   // Test 1: Maximum block size (254 non-zero bytes)
   {
     std::vector<uint8_t> max_block(254, 0x42);
-    std::vector<uint8_t> encoded = Cobs::encode_packet(max_block.data(), max_block.size());
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(max_block);
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     bool success = (decoded.size() == max_block.size()) &&
                    (std::memcmp(decoded.data(), max_block.data(), max_block.size()) == 0);
@@ -401,8 +401,8 @@ void test_edge_cases(espp::Logger &logger) {
       alternating[i] = (i % 2 == 0) ? 0x00 : 0x42;
     }
 
-    std::vector<uint8_t> encoded = Cobs::encode_packet(alternating.data(), alternating.size());
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(alternating);
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     bool success = (decoded.size() == alternating.size()) &&
                    (std::memcmp(decoded.data(), alternating.data(), alternating.size()) == 0);
@@ -419,8 +419,8 @@ void test_edge_cases(espp::Logger &logger) {
     consecutive_zeros[5] = 0x42; // One non-zero in the middle
 
     std::vector<uint8_t> encoded =
-        Cobs::encode_packet(consecutive_zeros.data(), consecutive_zeros.size());
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+        Cobs::encode_packet(consecutive_zeros);
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     bool success =
         (decoded.size() == consecutive_zeros.size()) &&
@@ -442,8 +442,8 @@ void test_edge_cases(espp::Logger &logger) {
     large_packet[100] = 0x00; // Add a zero
     large_packet[500] = 0x00; // Add another zero
 
-    std::vector<uint8_t> encoded = Cobs::encode_packet(large_packet.data(), large_packet.size());
-    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size());
+    std::vector<uint8_t> encoded = Cobs::encode_packet(large_packet);
+    std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);
 
     bool success = (decoded.size() == large_packet.size()) &&
                    (std::memcmp(decoded.data(), large_packet.data(), large_packet.size()) == 0);
