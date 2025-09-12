@@ -79,16 +79,15 @@ void CobsStreamEncoder::add_packet(std::span<const uint8_t> data) {
   if (data.empty())
     return;
 
-  // Calculate worst-case encoded size: original + overhead + delimiter
-  // Overhead is at most ⌈length/254⌉ + 1, plus 1 byte for delimiter
-  size_t max_encoded_size = data.size() + (data.size() / 254) + 2;
+  // Calculate worst-case encoded size using the static API
+  size_t max_encoded_size = Cobs::max_encoded_size(data.size());
 
   // Resize buffer to accommodate the encoded data
   size_t old_size = buffer_.size();
   buffer_.resize(old_size + max_encoded_size);
 
   // Encode directly to the buffer
-  size_t encoded_size = Cobs::encode_packet(data, buffer_.data() + old_size);
+  size_t encoded_size = Cobs::encode_packet(data, std::span{buffer_.data() + old_size, max_encoded_size});
 
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);
@@ -100,16 +99,15 @@ void CobsStreamEncoder::add_packet(std::vector<uint8_t> &&data) {
 
   std::lock_guard<std::mutex> lock(mutex_);
 
-  // Calculate worst-case encoded size: original + overhead + delimiter
-  // Overhead is at most ⌈length/254⌉ + 1, plus 1 byte for delimiter
-  size_t max_encoded_size = data.size() + (data.size() / 254) + 2;
+  // Calculate worst-case encoded size using the static API
+  size_t max_encoded_size = Cobs::max_encoded_size(data.size());
 
   // Resize buffer to accommodate the encoded data
   size_t old_size = buffer_.size();
   buffer_.resize(old_size + max_encoded_size);
 
   // Encode directly to the buffer
-  size_t encoded_size = Cobs::encode_packet(data, buffer_.data() + old_size);
+  size_t encoded_size = Cobs::encode_packet(data, std::span{buffer_.data() + old_size, max_encoded_size});
 
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);

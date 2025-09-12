@@ -143,6 +143,148 @@ void test_single_packet(espp::Logger &logger) {
       logger.error("Test 6: FAIL - Single zero byte");
     }
   }
+
+  // Test 7: Buffer-based encoding
+  {
+    logger.info("Test 7: Buffer-based encoding");
+
+    std::vector<uint8_t> test_data = {0x01, 0x02, 0x00, 0x03, 0x04, 0x00, 0x05};
+    uint8_t output_buffer[100];
+    
+    size_t bytes_written = Cobs::encode_packet(test_data, std::span{output_buffer});
+    
+    // Verify encoding worked
+    bool success = (bytes_written > 0) && (bytes_written < sizeof(output_buffer));
+    if (success) {
+      // Decode back to verify
+      std::vector<uint8_t> decoded = Cobs::decode_packet(std::span{output_buffer, bytes_written});
+      success = (decoded == test_data);
+    }
+    
+    if (success) {
+      logger.info("Test 7: PASS - Buffer-based encoding");
+    } else {
+      logger.error("Test 7: FAIL - Buffer-based encoding");
+    }
+  }
+
+  // Test 8: Buffer-based decoding
+  {
+    logger.info("Test 8: Buffer-based decoding");
+
+    std::vector<uint8_t> test_data = {0x01, 0x02, 0x00, 0x03, 0x04, 0x00, 0x05};
+    std::vector<uint8_t> encoded = Cobs::encode_packet(test_data);
+    uint8_t output_buffer[100];
+    
+    size_t bytes_written = Cobs::decode_packet(encoded, std::span{output_buffer});
+    
+    // Verify decoding worked
+    bool success = (bytes_written == test_data.size());
+    if (success) {
+      success = (std::memcmp(output_buffer, test_data.data(), test_data.size()) == 0);
+    }
+    
+    if (success) {
+      logger.info("Test 8: PASS - Buffer-based decoding");
+    } else {
+      logger.error("Test 8: FAIL - Buffer-based decoding");
+    }
+  }
+
+  // Test 9: Buffer size validation - encoding with too small buffer
+  {
+    logger.info("Test 9: Buffer size validation - encoding with too small buffer");
+
+    std::vector<uint8_t> test_data = {0x01, 0x02, 0x00, 0x03, 0x04, 0x00, 0x05};
+    uint8_t small_buffer[2]; // Too small for encoded data
+    
+    size_t bytes_written = Cobs::encode_packet(test_data, std::span{small_buffer});
+    
+    // Should return 0 because buffer is too small
+    bool success = (bytes_written == 0);
+    
+    if (success) {
+      logger.info("Test 9: PASS - Buffer size validation (encoding)");
+    } else {
+      logger.error("Test 9: FAIL - Buffer size validation (encoding)");
+    }
+  }
+
+  // Test 10: Buffer size validation - decoding with too small buffer
+  {
+    logger.info("Test 10: Buffer size validation - decoding with too small buffer");
+
+    std::vector<uint8_t> test_data = {0x01, 0x02, 0x00, 0x03, 0x04, 0x00, 0x05};
+    std::vector<uint8_t> encoded = Cobs::encode_packet(test_data);
+    uint8_t small_buffer[2]; // Too small for decoded data
+    
+    size_t bytes_written = Cobs::decode_packet(encoded, std::span{small_buffer});
+    
+    // Should return 0 because buffer is too small
+    bool success = (bytes_written == 0);
+    
+    if (success) {
+      logger.info("Test 10: PASS - Buffer size validation (decoding)");
+    } else {
+      logger.error("Test 10: FAIL - Buffer size validation (decoding)");
+    }
+  }
+
+  // Test 11: Static API usage - max_encoded_size
+  {
+    logger.info("Test 11: Static API usage - max_encoded_size");
+
+    std::vector<uint8_t> test_data = {0x01, 0x02, 0x00, 0x03, 0x04, 0x00, 0x05};
+    
+    // Calculate required buffer size using static API
+    size_t required_size = Cobs::max_encoded_size(test_data.size());
+    
+    // Allocate buffer with exact size
+    std::vector<uint8_t> buffer(required_size);
+    
+    // Encode using the buffer
+    size_t bytes_written = Cobs::encode_packet(test_data, std::span{buffer});
+    
+    bool success = (bytes_written > 0) && (bytes_written <= required_size);
+    
+    if (success) {
+      logger.info("Test 11: PASS - Static API max_encoded_size (required: {}, written: {})", 
+                  required_size, bytes_written);
+    } else {
+      logger.error("Test 11: FAIL - Static API max_encoded_size");
+    }
+  }
+
+  // Test 12: Static API usage - max_decoded_size
+  {
+    logger.info("Test 12: Static API usage - max_decoded_size");
+
+    std::vector<uint8_t> test_data = {0x01, 0x02, 0x00, 0x03, 0x04, 0x00, 0x05};
+    std::vector<uint8_t> encoded = Cobs::encode_packet(test_data);
+    
+    // Calculate required buffer size using static API
+    size_t required_size = Cobs::max_decoded_size(encoded.size());
+    
+    // Allocate buffer with the calculated size (should be sufficient)
+    std::vector<uint8_t> buffer(required_size);
+    
+    // Decode using the buffer
+    size_t bytes_written = Cobs::decode_packet(encoded, std::span{buffer});
+    
+    // Verify the decoded data matches the original
+    bool content_match = (bytes_written == test_data.size()) && 
+                        (std::memcmp(buffer.data(), test_data.data(), test_data.size()) == 0);
+    
+    bool success = (bytes_written > 0) && (bytes_written <= required_size) && content_match;
+    
+    if (success) {
+      logger.info("Test 12: PASS - Static API max_decoded_size (required: {}, written: {}, original: {})", 
+                  required_size, bytes_written, test_data.size());
+    } else {
+      logger.error("Test 12: FAIL - Static API max_decoded_size (required: {}, written: {}, original: {}, content_match: {})", 
+                   required_size, bytes_written, test_data.size(), content_match);
+    }
+  }
 }
 
 void test_streaming_encoder(espp::Logger &logger) {
@@ -259,6 +401,38 @@ void test_streaming_encoder(espp::Logger &logger) {
       logger.error("Test 3: FAIL - Single packet");
     }
   }
+
+  // Test 5: clear() method
+  {
+    logger.info("Test 5: clear() method");
+
+    CobsStreamEncoder encoder;
+
+    // Add some packets
+    std::vector<uint8_t> test_data1 = {0x01, 0x02, 0x00, 0x03};
+    std::vector<uint8_t> test_data2 = {0x04, 0x05, 0x00, 0x06};
+    encoder.add_packet(test_data1);
+    encoder.add_packet(test_data2);
+
+    // Verify data is there
+    bool has_data = (encoder.buffer_size() > 0);
+    
+    // Clear the buffer
+    encoder.clear();
+    
+    // Verify buffer is empty
+    bool success = has_data && (encoder.buffer_size() == 0);
+    
+    // Try to get encoded data (should be empty)
+    const auto& encoded = encoder.get_encoded_data();
+    success = success && (encoded.size() == 0);
+
+    if (success) {
+      logger.info("Test 5: PASS - clear() method");
+    } else {
+      logger.error("Test 5: FAIL - clear() method");
+    }
+  }
 }
 
 void test_streaming_decoder(espp::Logger &logger) {
@@ -372,6 +546,60 @@ void test_streaming_decoder(espp::Logger &logger) {
       logger.info("Test 4: PASS - Incomplete packet");
     } else {
       logger.error("Test 4: FAIL - Incomplete packet");
+    }
+  }
+
+  // Test 5: remaining_data() access
+  {
+    logger.info("Test 5: remaining_data() access");
+
+    CobsStreamDecoder decoder;
+
+    // Add partial data (no delimiter)
+    uint8_t partial_data[] = {0x02, 0x42, 0x43};
+    decoder.add_data(std::span{partial_data});
+
+    // Check remaining data
+    const auto& remaining = decoder.remaining_data();
+    bool success = (remaining.size() == 3) && 
+                   (remaining[0] == 0x02) && 
+                   (remaining[1] == 0x42) && 
+                   (remaining[2] == 0x43);
+
+    if (success) {
+      logger.info("Test 5: PASS - remaining_data() access");
+    } else {
+      logger.error("Test 5: FAIL - remaining_data() access");
+    }
+  }
+
+  // Test 6: clear() method
+  {
+    logger.info("Test 6: clear() method");
+
+    CobsStreamDecoder decoder;
+
+    // Add some data
+    uint8_t test_data[] = {0x02, 0x42, 0x00};
+    decoder.add_data(std::span{test_data});
+
+    // Verify data is there
+    bool has_data = (decoder.buffer_size() > 0);
+    
+    // Clear the buffer
+    decoder.clear();
+    
+    // Verify buffer is empty
+    bool success = has_data && (decoder.buffer_size() == 0);
+    
+    // Try to extract packet (should be empty)
+    auto packet = decoder.extract_packet();
+    success = success && (!packet.has_value());
+
+    if (success) {
+      logger.info("Test 6: PASS - clear() method");
+    } else {
+      logger.error("Test 6: FAIL - clear() method");
     }
   }
 }

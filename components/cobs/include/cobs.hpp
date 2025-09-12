@@ -22,6 +22,16 @@ namespace espp {
 class Cobs {
 public:
   /**
+   * @brief Calculate maximum encoded size for a given payload length
+   *
+   * @param payload_len Length of input data
+   * @return Maximum number of bytes needed for encoding (including delimiter)
+   */
+  static constexpr size_t max_encoded_size(size_t payload_len) {
+    return payload_len + (payload_len / 254) + 2;
+  }
+
+  /**
    * @brief Encode a single packet
    *
    * @param data Input data to encode
@@ -33,11 +43,18 @@ public:
    * @brief Encode a single packet to existing buffer
    *
    * @param data Input data to encode
-   * @param output Output buffer (must be large enough)
+   * @param output Output buffer span (must be large enough)
    * @return Number of bytes written to output
    */
-  static size_t encode_packet(std::span<const uint8_t> data, uint8_t *output);
+  static size_t encode_packet(std::span<const uint8_t> data, std::span<uint8_t> output);
 
+  static constexpr size_t max_decoded_size(size_t encoded_len) {
+    if (encoded_len == 0) return 0;
+    // For decoding, the maximum decoded size is the encoded size minus the delimiter
+    // (worst case: no zeros in original data, so minimal COBS overhead)
+    return encoded_len > 0 ? encoded_len - 1 : 0;
+  }
+  
   /**
    * @brief Decode a single packet from COBS-encoded data
    *
@@ -50,10 +67,10 @@ public:
    * @brief Decode a single packet to existing buffer
    *
    * @param encoded_data COBS-encoded data
-   * @param output Output buffer (must be large enough)
+   * @param output Output buffer span (must be large enough)
    * @return Number of bytes written to output, or 0 if decoding failed
    */
-  static size_t decode_packet(std::span<const uint8_t> encoded_data, uint8_t *output);
+  static size_t decode_packet(std::span<const uint8_t> encoded_data, std::span<uint8_t> output);
 
 private:
   static constexpr uint8_t DELIMITER = 0x00;

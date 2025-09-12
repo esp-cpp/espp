@@ -41,7 +41,7 @@ When integrating with other COBS libraries:
 std::vector<uint8_t> data = {0x01, 0x02, 0x00, 0x03, 0x04};
 
 // ESPP COBS encoding (includes delimiter)
-std::vector<uint8_t> espp_encoded = Cobs::encode_packet(data);
+std::vector<uint8_t> espp_encoded = Cobs::encode_packet(std::span{data});
 // Result: {0x03, 0x01, 0x02, 0x03, 0x03, 0x04, 0x00}
 
 // Other COBS libraries (no delimiter)
@@ -49,7 +49,7 @@ std::vector<uint8_t> espp_encoded = Cobs::encode_packet(data);
 
 // Empty packet handling
 std::vector<uint8_t> empty_data = {};
-espp_encoded = Cobs::encode_packet(empty_data);
+espp_encoded = Cobs::encode_packet(std::span{empty_data});
 // ESPP Result: {} (ignored)
 // Other libraries: {0x01} (encoded as single byte)
 ```
@@ -61,7 +61,9 @@ The COBS implementation provides two levels of API:
 ### 1. Single Packet API (`cobs.hpp`)
 - **`Cobs::encode_packet()`** - Encode a single packet with COBS
 - **`Cobs::decode_packet()`** - Decode a single COBS-encoded packet
-- Simple, stateless functions for basic encoding/decoding
+- **`Cobs::max_encoded_size()`** - Calculate required buffer size for encoding
+- **`Cobs::max_decoded_size()`** - Calculate required buffer size for decoding
+- Simple, stateless functions for basic encoding/decoding with buffer size calculation
 
 ### 2. Streaming API (`cobs_stream.hpp`)
 - **`CobsStreamEncoder`** - Batch multiple packets for transmission
@@ -76,16 +78,31 @@ The COBS implementation provides two levels of API:
 #include "cobs.hpp"
 #include <span>
 
-// Encode a packet
+// Encode a packet (returns vector)
 std::vector<uint8_t> data = {0x01, 0x02, 0x00, 0x03, 0x04};
-std::vector<uint8_t> encoded = Cobs::encode_packet(data);  // Automatic span conversion
+std::vector<uint8_t> encoded = Cobs::encode_packet(std::span{data});
 
-// Decode a packet
-std::vector<uint8_t> decoded = Cobs::decode_packet(encoded);  // Automatic span conversion
+// Decode a packet (returns vector)
+std::vector<uint8_t> decoded = Cobs::decode_packet(std::span{encoded});
 
-// Or with arrays (zero-copy)
-uint8_t array[] = {0x01, 0x02, 0x00, 0x03, 0x04};
-std::vector<uint8_t> encoded = Cobs::encode_packet(std::span{array});
+// Buffer-based encoding (for embedded systems with limited memory)
+uint8_t input_data[] = {0x01, 0x02, 0x00, 0x03, 0x04};
+size_t required_size = Cobs::max_encoded_size(sizeof(input_data));
+uint8_t output_buffer[100];  // Must be >= required_size
+
+size_t bytes_written = Cobs::encode_packet(std::span{input_data}, std::span{output_buffer});
+if (bytes_written > 0) {
+    // Successfully encoded, output_buffer contains encoded data
+}
+
+// Buffer-based decoding
+size_t decoded_size = Cobs::max_decoded_size(encoded.size());
+uint8_t decode_buffer[100];  // Must be >= decoded_size
+
+size_t bytes_decoded = Cobs::decode_packet(std::span{encoded}, std::span{decode_buffer});
+if (bytes_decoded > 0) {
+    // Successfully decoded, decode_buffer contains original data
+}
 ```
 
 ### Streaming Encoder for Batching
@@ -99,10 +116,10 @@ CobsStreamEncoder encoder;
 
 // Add multiple packets using std::span (zero-copy for contiguous data)
 for (auto& packet : packets) {
-    encoder.add_packet(std::span{packet});  // Automatic conversion from vector
+    encoder.add_packet(std::span{packet});  // Zero-copy from vector
 }
 
-// Or with arrays
+// Or with arrays (zero-copy)
 uint8_t data[] = {0x01, 0x02, 0x00, 0x03};
 encoder.add_packet(std::span{data});
 
@@ -110,6 +127,13 @@ encoder.add_packet(std::span{data});
 while (encoder.buffer_size() > 0) {
     auto chunk = encoder.extract_data(max_chunk_size);
     send_over_bus(chunk);
+}
+
+// Or extract directly to a buffer
+uint8_t tx_buffer[256];
+size_t bytes_extracted = encoder.extract_data(tx_buffer, sizeof(tx_buffer));
+if (bytes_extracted > 0) {
+    send_over_bus(std::span{tx_buffer, bytes_extracted});
 }
 ```
 
@@ -125,20 +149,29 @@ CobsStreamDecoder decoder;
 // Add received data (may be fragmented) using std::span
 decoder.add_data(std::span{received_data, received_length});
 
-// Or with vectors (automatic conversion)
+// Or with vectors (zero-copy)
 std::vector<uint8_t> received_vec = get_received_data();
-decoder.add_data(received_vec);  // Implicit conversion to span
+decoder.add_data(std::span{received_vec});  // Zero-copy from vector
 
 // Extract complete packets
 while (auto packet = decoder.extract_packet()) {
     process_packet(*packet);
 }
 
-// Check remaining data
+// Check remaining data for debugging
 if (decoder.buffer_size() > 0) {
-    // Handle incomplete data
+    const auto& remaining = decoder.remaining_data();
+    // Handle incomplete data or debug buffer contents
 }
+
+// Clear buffer if needed
+decoder.clear();
 ```
+
+
+**Buffer Size Formulas:**
+- **`max_encoded_size(payload_len)`**: `payload_len + ⌈payload_len/254⌉ + 2`
+- **`max_decoded_size(encoded_len)`**: `encoded_len - 1` (accounts for delimiter)
 
 ## COBS Algorithm Details
 
@@ -171,6 +204,8 @@ Output: [0x03, 0x01, 0x02, 0x02, 0x03, 0x04, 0x00]
 - **Memory efficiency**: Uses RAII for automatic memory management
 - **Zero-copy API**: `std::span` interface eliminates unnecessary data copies
 - **Direct buffer encoding**: Packets are encoded directly into internal buffers
+- **Buffer size calculation**: Static methods provide compile-time buffer size estimation
+- **Embedded-friendly**: Buffer-based APIs for systems with limited heap allocation
 
 ## Thread Safety
 
@@ -185,10 +220,13 @@ The streaming classes (`CobsStreamEncoder` and `CobsStreamDecoder`) are **thread
 ## Example
 
 The [example](./example) demonstrates comprehensive COBS usage including:
-- Single packet encoding and decoding with various data patterns
-- Streaming encoder for batching multiple packets using `std::span` API
-- Streaming decoder for processing fragmented data with zero-copy efficiency
+- Single packet encoding and decoding with various data patterns using `std::span` API
+- Buffer-based encoding/decoding for embedded systems with limited memory
+- Static buffer size calculation API usage
+- Streaming encoder for batching multiple packets with zero-copy efficiency
+- Streaming decoder for processing fragmented data with buffer management
 - Edge cases and error handling (empty packets, large packets, alternating patterns)
+- Buffer size validation and overflow protection
 - Comprehensive test suite with test cases covering all functionality
 - Performance characteristics for various packet sizes (up to 1000+ bytes)
 

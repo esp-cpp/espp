@@ -7,22 +7,28 @@ std::vector<uint8_t> Cobs::encode_packet(std::span<const uint8_t> data) {
   if (data.empty())
     return {};
 
-  // COBS encoding can add at most ⌈n/254⌉ + 1 bytes overhead
-  // Plus 1 byte for the delimiter
-  size_t max_encoded_size = data.size() + (data.size() / 254) + 2;
+  // Calculate maximum encoded size using the static API
+  size_t max_encoded_size = Cobs::max_encoded_size(data.size());
   std::vector<uint8_t> encoded(max_encoded_size);
 
-  size_t encoded_size = encode_packet(data, encoded.data());
+  size_t encoded_size = encode_packet(data, std::span{encoded});
   encoded.resize(encoded_size);
 
   return encoded;
 }
 
-size_t Cobs::encode_packet(std::span<const uint8_t> data, uint8_t *output) {
-  if (output == nullptr || data.empty())
+size_t Cobs::encode_packet(std::span<const uint8_t> data, std::span<uint8_t> output) {
+  if (output.empty() || data.empty())
     return 0;
 
-  uint8_t *encode = output; // Encoded byte pointer points to first value data will be copied to
+  // Calculate required buffer size using the static API
+  size_t max_encoded_size = Cobs::max_encoded_size(data.size());
+  
+  // Check if output buffer is large enough
+  if (output.size() < max_encoded_size)
+    return 0;
+
+  uint8_t *encode = output.data(); // Encoded byte pointer points to first value data will be copied to
   uint8_t *codep =
       encode++; // Output code pointer (points to first value of the block (where the code goes))
   uint8_t code = 1; // Code value
@@ -46,7 +52,7 @@ size_t Cobs::encode_packet(std::span<const uint8_t> data, uint8_t *output) {
   // Add delimiter at the end
   *encode++ = DELIMITER;
 
-  return static_cast<size_t>(encode - output);
+  return static_cast<size_t>(encode - output.data());
 }
 
 std::vector<uint8_t> Cobs::decode_packet(std::span<const uint8_t> encoded_data) {
@@ -64,7 +70,7 @@ std::vector<uint8_t> Cobs::decode_packet(std::span<const uint8_t> encoded_data) 
 
   // Decode the packet
   std::vector<uint8_t> decoded(packet_length); // Worst case: same size as encoded
-  size_t decoded_length = decode_packet(encoded_data.subspan(0, packet_length), decoded.data());
+  size_t decoded_length = decode_packet(encoded_data.subspan(0, packet_length), std::span{decoded});
 
   if (decoded_length == 0) {
     return {}; // Decoding failed
@@ -74,19 +80,26 @@ std::vector<uint8_t> Cobs::decode_packet(std::span<const uint8_t> encoded_data) 
   return decoded;
 }
 
-size_t Cobs::decode_packet(std::span<const uint8_t> encoded_data, uint8_t *output) {
-  if (output == nullptr || encoded_data.empty())
+size_t Cobs::decode_packet(std::span<const uint8_t> encoded_data, std::span<uint8_t> output) {
+  if (output.empty() || encoded_data.empty())
+    return 0;
+
+  // Calculate maximum decoded size using the static API
+  size_t max_decoded_size = Cobs::max_decoded_size(encoded_data.size());
+  
+  // Check if output buffer is large enough
+  if (output.size() < max_decoded_size)
     return 0;
 
   const uint8_t *byte = encoded_data.data(); // Encoded input byte pointer
-  uint8_t *decode = output;                  // Decoded output byte pointer
+  uint8_t *decode = output.data();           // Decoded output byte pointer
   const uint8_t *end = encoded_data.data() + encoded_data.size();
 
   uint8_t code = 0xff; // Initialize code outside loop to check final state
   for (uint8_t block = 0; byte < end; block--) {
     if (block) { // Decode block byte
       *decode++ = *byte++;
-      if (decode >= output + encoded_data.size()) // Buffer overflow
+      if (decode >= output.data() + output.size()) // Buffer overflow
         return 0;
     } else {
       if (byte >= end) // Unexpected end of data
@@ -94,7 +107,7 @@ size_t Cobs::decode_packet(std::span<const uint8_t> encoded_data, uint8_t *outpu
       block = *byte++;
       if (block && (code != 0xff)) { // Encoded zero, write it when transitioning between blocks
         *decode++ = 0;
-        if (decode >= output + encoded_data.size()) // Buffer overflow
+        if (decode >= output.data() + output.size()) // Buffer overflow
           return 0;
       }
       code = block;
@@ -108,12 +121,12 @@ size_t Cobs::decode_packet(std::span<const uint8_t> encoded_data, uint8_t *outpu
   if (code != 0 && byte >= end) {
     // We've processed all data and the last code is not 0, which means we didn't find a delimiter
     // This is expected when called from the vector version that strips the delimiter
-    return static_cast<size_t>(decode - output);
+    return static_cast<size_t>(decode - output.data());
   } else if (code != 0) {
     return 0; // No delimiter found - incomplete packet
   }
 
-  return static_cast<size_t>(decode - output);
+  return static_cast<size_t>(decode - output.data());
 }
 
 } // namespace espp
