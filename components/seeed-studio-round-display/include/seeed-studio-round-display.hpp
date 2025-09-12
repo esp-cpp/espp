@@ -4,6 +4,7 @@
 
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
+#include <hal/spi_ll.h>
 #include <hal/spi_types.h>
 
 #include "chsc6x.hpp"
@@ -36,6 +37,10 @@ public:
   using DisplayDriver = espp::Gc9a01;      ///< Alias for the display driver.
   using TouchDriver = espp::Chsc6x;        ///< Alias for the touch driver.
   using TouchpadData = espp::TouchpadData; ///< Alias for the touchpad data.
+
+  /// Maximum number of bytes that can be transferred in a single SPI
+  /// transaction to the Display. 32k on the ESP32-S3.
+  static constexpr size_t SPI_MAX_TRANSFER_BYTES = SPI_LL_DMA_MAX_BIT_LEN / 8;
 
   /// The touch callback function type
   /// \param data The touchpad data
@@ -121,12 +126,11 @@ public:
   /// Initialize the touchpad
   /// \param callback The touchpad callback
   /// \return true if the touchpad was successfully initialized, false otherwise
-  /// \warning This method should be called after the display has been
-  ///          initialized if you want the touchpad to be recognized and used
-  ///          with LVGL and its objects.
   /// \note This will configure the touchpad interrupt pin which will
   ///       automatically call the touch callback function when the touchpad is
   ///       touched
+  /// \note This can be called even if you have not initialized the display or
+  ///       the LCD.
   bool initialize_touch(const touch_callback_t &callback = nullptr);
 
   /// Get the touchpad input

@@ -12,6 +12,7 @@
 #include <driver/gpio.h>
 #include <driver/sdmmc_host.h>
 #include <driver/spi_master.h>
+#include <hal/spi_ll.h>
 #include <hal/spi_types.h>
 
 #include "base_component.hpp"
@@ -41,6 +42,10 @@ public:
 
   /// Alias for the pixel type used by the display
   using Pixel = lv_color16_t;
+
+  /// Maximum number of bytes that can be transferred in a single SPI
+  /// transaction to the Display. 32k on the ESP32-S3.
+  static constexpr size_t SPI_MAX_TRANSFER_BYTES = SPI_LL_DMA_MAX_BIT_LEN / 8;
 
   /// Mount point for the uSD card on the TDeck.
   static constexpr char mount_point[] = "/sdcard";

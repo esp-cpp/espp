@@ -6,6 +6,7 @@
 
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
+#include <hal/spi_ll.h>
 #include <hal/spi_types.h>
 
 #include "abi_encoder.hpp"
@@ -38,11 +39,23 @@ public:
   /// Alias for the pixel type used by the Matouch display
   using Pixel = lv_color16_t;
 
+  /// Maximum number of bytes that can be transferred in a single SPI
+  /// transaction to the Display. 32k on the ESP32-S3.
+  static constexpr size_t SPI_MAX_TRANSFER_BYTES = SPI_LL_DMA_MAX_BIT_LEN / 8;
+
   /// Alias for the display driver used by the Matouch display
   using DisplayDriver = espp::Gc9a01;
+
+  /// Alias for the touchpad driver used by the Matouch display
   using TouchpadData = espp::TouchpadData;
+
+  /// Alias for the Encoder used by the Matouch display
   using Encoder = espp::AbiEncoder<espp::EncoderType::ROTATIONAL>;
+
+  /// Alias for the button callback function type
   using button_callback_t = espp::Interrupt::event_callback_fn;
+
+  /// Alias for the touch callback function type
   using touch_callback_t = std::function<void(const TouchpadData &)>;
 
   /// @brief Access the singleton instance of the MatouchRotaryDisplay class
@@ -107,9 +120,8 @@ public:
   /// \return true if the touchpad was successfully initialized, false otherwise
   /// \note This will also register an interrupt for the touchpad which will
   ///       automatically update the touchpad data when the touchpad is touched
-  /// \warning This method should be called after the display has been
-  ///          initialized if you want the touchpad to be recognized and used
-  ///          with LVGL and its objects.
+  /// \note This can be called even if you have not initialized the display or
+  ///       the LCD.
   bool initialize_touch(const touch_callback_t &callback = nullptr);
 
   /// Get the touchpad input

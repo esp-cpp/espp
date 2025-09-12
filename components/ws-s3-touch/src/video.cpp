@@ -54,7 +54,7 @@ bool WsS3Touch::initialize_lcd() {
   lcd_spi_bus_config_.sclk_io_num = lcd_sclk_io;
   lcd_spi_bus_config_.quadwp_io_num = -1;
   lcd_spi_bus_config_.quadhd_io_num = -1;
-  lcd_spi_bus_config_.max_transfer_sz = sizeof(lv_color_t) * (lcd_width_ * lcd_height_);
+  lcd_spi_bus_config_.max_transfer_sz = SPI_MAX_TRANSFER_BYTES;
 
   memset(&lcd_config_, 0, sizeof(lcd_config_));
   lcd_config_.mode = 0;
@@ -135,6 +135,15 @@ bool WsS3Touch::initialize_display(size_t pixel_buffer_size) {
           .double_buffered = false,
           .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
       });
+
+  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
+      .touchpad_read =
+          std::bind(&WsS3Touch::touchpad_read, this, std::placeholders::_1, std::placeholders::_2,
+                    std::placeholders::_3, std::placeholders::_4),
+      .swap_xy = touch_swap_xy,
+      .invert_x = touch_invert_x,
+      .invert_y = touch_invert_y,
+      .log_level = espp::Logger::Verbosity::WARN});
 
   logger_.info("Display initialized successfully!");
 
