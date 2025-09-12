@@ -23,12 +23,13 @@ size_t Cobs::encode_packet(std::span<const uint8_t> data, std::span<uint8_t> out
 
   // Calculate required buffer size using the static API
   size_t max_encoded_size = Cobs::max_encoded_size(data.size());
-  
+
   // Check if output buffer is large enough
   if (output.size() < max_encoded_size)
     return 0;
 
-  uint8_t *encode = output.data(); // Encoded byte pointer points to first value data will be copied to
+  uint8_t *encode =
+      output.data(); // Encoded byte pointer points to first value data will be copied to
   uint8_t *codep =
       encode++; // Output code pointer (points to first value of the block (where the code goes))
   uint8_t code = 1; // Code value
@@ -86,7 +87,7 @@ size_t Cobs::decode_packet(std::span<const uint8_t> encoded_data, std::span<uint
 
   // Calculate maximum decoded size using the static API
   size_t max_decoded_size = Cobs::max_decoded_size(encoded_data.size());
-  
+
   // Check if output buffer is large enough
   if (output.size() < max_decoded_size)
     return 0;

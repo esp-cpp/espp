@@ -78,31 +78,37 @@ void py_init_module_espp(py::module &m) {
           "non-zero bytes in an encoded block.\n *\n * @see "
           "https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing\n")
           .def(py::init<>()) // implicit default constructor
+          .def_static("max_encoded_size", &espp::Cobs::max_encoded_size, py::arg("payload_len"),
+                      "*\n   * @brief Calculate maximum encoded size for a given payload length\n  "
+                      " *\n   * @param payload_len Length of input data\n   * @return Maximum "
+                      "number of bytes needed for encoding (including delimiter)\n")
           .def_static("encode_packet",
                       py::overload_cast<std::span<const uint8_t>>(&espp::Cobs::encode_packet),
                       py::arg("data"),
                       "*\n   * @brief Encode a single packet\n   *\n   * @param data Input data to "
                       "encode\n   * @return Encoded data with COBS encoding and delimiter\n")
-          .def_static(
-              "encode_packet",
-              py::overload_cast<std::span<const uint8_t>, uint8_t *>(&espp::Cobs::encode_packet),
-              py::arg("data"), py::arg("output"),
-              "*\n   * @brief Encode a single packet to existing buffer\n   *\n   * @param data "
-              "Input data to encode\n   * @param output Output buffer (must be large enough)\n   * "
-              "@return Number of bytes written to output\n")
+          .def_static("encode_packet",
+                      py::overload_cast<std::span<const uint8_t>, std::span<uint8_t>>(
+                          &espp::Cobs::encode_packet),
+                      py::arg("data"), py::arg("output"),
+                      "*\n   * @brief Encode a single packet to existing buffer\n   *\n   * @param "
+                      "data Input data to encode\n   * @param output Output buffer span (must be "
+                      "large enough)\n   * @return Number of bytes written to output\n")
+          .def_static("max_decoded_size", &espp::Cobs::max_decoded_size, py::arg("encoded_len"))
           .def_static("decode_packet",
                       py::overload_cast<std::span<const uint8_t>>(&espp::Cobs::decode_packet),
                       py::arg("encoded_data"),
                       "*\n   * @brief Decode a single packet from COBS-encoded data\n   *\n   * "
                       "@param encoded_data COBS-encoded data\n   * @return Decoded packet data, or "
                       "empty if invalid\n")
-          .def_static(
-              "decode_packet",
-              py::overload_cast<std::span<const uint8_t>, uint8_t *>(&espp::Cobs::decode_packet),
-              py::arg("encoded_data"), py::arg("output"),
-              "*\n   * @brief Decode a single packet to existing buffer\n   *\n   * @param "
-              "encoded_data COBS-encoded data\n   * @param output Output buffer (must be large "
-              "enough)\n   * @return Number of bytes written to output, or 0 if decoding failed\n");
+          .def_static("decode_packet",
+                      py::overload_cast<std::span<const uint8_t>, std::span<uint8_t>>(
+                          &espp::Cobs::decode_packet),
+                      py::arg("encoded_data"), py::arg("output"),
+                      "*\n   * @brief Decode a single packet to existing buffer\n   *\n   * @param "
+                      "encoded_data COBS-encoded data\n   * @param output Output buffer span (must "
+                      "be large enough)\n   * @return Number of bytes written to output, or 0 if "
+                      "decoding failed\n");
   ////////////////////    </generated_from:cobs.hpp>    ////////////////////
 
   ////////////////////    <generated_from:cobs_stream.hpp>    ////////////////////

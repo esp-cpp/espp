@@ -95,6 +95,17 @@ class Cobs:
 
     """
     @staticmethod
+    def max_encoded_size(payload_len: int) -> int:
+        """*
+           * @brief Calculate maximum encoded size for a given payload length
+           *
+           * @param payload_len Length of input data
+           * @return Maximum number of bytes needed for encoding (including delimiter)
+
+        """
+        pass
+
+    @staticmethod
     @overload
     def encode_packet(data: std.span[ int]) -> List[int]:
         """*
@@ -108,15 +119,19 @@ class Cobs:
 
     @staticmethod
     @overload
-    def encode_packet(data: std.span[ int], output: int) -> int:
+    def encode_packet(data: std.span[ int], output: std.span[int]) -> int:
         """*
            * @brief Encode a single packet to existing buffer
            *
            * @param data Input data to encode
-           * @param output Output buffer (must be large enough)
+           * @param output Output buffer span (must be large enough)
            * @return Number of bytes written to output
 
         """
+        pass
+
+    @staticmethod
+    def max_decoded_size(encoded_len: int) -> int:
         pass
 
     @staticmethod
@@ -133,12 +148,12 @@ class Cobs:
 
     @staticmethod
     @overload
-    def decode_packet(encoded_data: std.span[ int], output: int) -> int:
+    def decode_packet(encoded_data: std.span[ int], output: std.span[int]) -> int:
         """*
            * @brief Decode a single packet to existing buffer
            *
            * @param encoded_data COBS-encoded data
-           * @param output Output buffer (must be large enough)
+           * @param output Output buffer span (must be large enough)
            * @return Number of bytes written to output, or 0 if decoding failed
 
         """

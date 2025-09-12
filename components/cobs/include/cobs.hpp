@@ -49,12 +49,13 @@ public:
   static size_t encode_packet(std::span<const uint8_t> data, std::span<uint8_t> output);
 
   static constexpr size_t max_decoded_size(size_t encoded_len) {
-    if (encoded_len == 0) return 0;
+    if (encoded_len == 0)
+      return 0;
     // For decoding, the maximum decoded size is the encoded size minus the delimiter
     // (worst case: no zeros in original data, so minimal COBS overhead)
     return encoded_len > 0 ? encoded_len - 1 : 0;
   }
-  
+
   /**
    * @brief Decode a single packet from COBS-encoded data
    *

@@ -5,7 +5,7 @@ namespace espp {
 
 void CobsStreamDecoder::add_data(std::span<const uint8_t> data) {
   std::lock_guard<std::mutex> lock(mutex_);
-  
+
   // Append data directly to buffer (zero-copy for contiguous data)
   buffer_.insert(buffer_.end(), data.begin(), data.end());
 }
@@ -87,7 +87,8 @@ void CobsStreamEncoder::add_packet(std::span<const uint8_t> data) {
   buffer_.resize(old_size + max_encoded_size);
 
   // Encode directly to the buffer
-  size_t encoded_size = Cobs::encode_packet(data, std::span{buffer_.data() + old_size, max_encoded_size});
+  size_t encoded_size =
+      Cobs::encode_packet(data, std::span{buffer_.data() + old_size, max_encoded_size});
 
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);
@@ -107,7 +108,8 @@ void CobsStreamEncoder::add_packet(std::vector<uint8_t> &&data) {
   buffer_.resize(old_size + max_encoded_size);
 
   // Encode directly to the buffer
-  size_t encoded_size = Cobs::encode_packet(data, std::span{buffer_.data() + old_size, max_encoded_size});
+  size_t encoded_size =
+      Cobs::encode_packet(data, std::span{buffer_.data() + old_size, max_encoded_size});
 
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);
