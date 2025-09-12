@@ -87,14 +87,18 @@ void py_init_module_espp(py::module &m) {
                       py::arg("data"),
                       "*\n   * @brief Encode a single packet\n   *\n   * @param data Input data to "
                       "encode\n   * @return Encoded data with COBS encoding and delimiter\n")
-          .def_static("encode_packet",
-                      py::overload_cast<std::span<const uint8_t>, std::span<uint8_t>>(
-                          &espp::Cobs::encode_packet),
-                      py::arg("data"), py::arg("output"),
-                      "*\n   * @brief Encode a single packet to existing buffer\n   *\n   * @param "
-                      "data Input data to encode\n   * @param output Output buffer span (must be "
-                      "large enough)\n   * @return Number of bytes written to output\n")
-          .def_static("max_decoded_size", &espp::Cobs::max_decoded_size, py::arg("encoded_len"))
+          .def_static(
+              "encode_packet",
+              py::overload_cast<std::span<const uint8_t>, std::span<uint8_t>>(
+                  &espp::Cobs::encode_packet),
+              py::arg("data"), py::arg("output"),
+              "*\n   * @brief Encode a single packet to existing buffer\n   *\n   * @param data "
+              "Input data to encode\n   * @param output Output buffer span (must be at least "
+              "max_encoded_size)\n   * @return Number of bytes written to output\n")
+          .def_static("max_decoded_size", &espp::Cobs::max_decoded_size, py::arg("encoded_len"),
+                      "*\n   * @brief Calculate maximum decoded size for a given encoded length\n  "
+                      " *\n   * @param encoded_len Length of COBS-encoded data\n   * @return "
+                      "Maximum number of bytes needed for decoding (accounts for delimiter)\n")
           .def_static("decode_packet",
                       py::overload_cast<std::span<const uint8_t>>(&espp::Cobs::decode_packet),
                       py::arg("encoded_data"),
@@ -107,8 +111,8 @@ void py_init_module_espp(py::module &m) {
                       py::arg("encoded_data"), py::arg("output"),
                       "*\n   * @brief Decode a single packet to existing buffer\n   *\n   * @param "
                       "encoded_data COBS-encoded data\n   * @param output Output buffer span (must "
-                      "be large enough)\n   * @return Number of bytes written to output, or 0 if "
-                      "decoding failed\n");
+                      "be at least max_decoded_size)\n   * @return Number of bytes written to "
+                      "output, or 0 if decoding failed\n");
   ////////////////////    </generated_from:cobs.hpp>    ////////////////////
 
   ////////////////////    <generated_from:cobs_stream.hpp>    ////////////////////

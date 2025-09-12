@@ -124,7 +124,7 @@ class Cobs:
            * @brief Encode a single packet to existing buffer
            *
            * @param data Input data to encode
-           * @param output Output buffer span (must be large enough)
+           * @param output Output buffer span (must be at least max_encoded_size)
            * @return Number of bytes written to output
 
         """
@@ -132,6 +132,13 @@ class Cobs:
 
     @staticmethod
     def max_decoded_size(encoded_len: int) -> int:
+        """*
+           * @brief Calculate maximum decoded size for a given encoded length
+           *
+           * @param encoded_len Length of COBS-encoded data
+           * @return Maximum number of bytes needed for decoding (accounts for delimiter)
+
+        """
         pass
 
     @staticmethod
@@ -153,7 +160,7 @@ class Cobs:
            * @brief Decode a single packet to existing buffer
            *
            * @param encoded_data COBS-encoded data
-           * @param output Output buffer span (must be large enough)
+           * @param output Output buffer span (must be at least max_decoded_size)
            * @return Number of bytes written to output, or 0 if decoding failed
 
         """
