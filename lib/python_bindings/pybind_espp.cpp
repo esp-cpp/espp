@@ -101,10 +101,8 @@ void py_init_module_espp(py::module &m) {
               py::overload_cast<std::span<const uint8_t>, uint8_t *>(&espp::Cobs::decode_packet),
               py::arg("encoded_data"), py::arg("output"),
               "*\n   * @brief Decode a single packet to existing buffer\n   *\n   * @param "
-              "encoded_data COBS-encoded data\n   * @param length Length of encoded data\n   * "
-              "@param output Output buffer (must be large enough)\n   * @return Number of bytes "
-              "written to output, or 0 if decoding failed\n");
               "encoded_data COBS-encoded data\n   * @param output Output buffer (must be large "
+              "enough)\n   * @return Number of bytes written to output, or 0 if decoding failed\n");
   ////////////////////    </generated_from:cobs.hpp>    ////////////////////
 
   ////////////////////    <generated_from:cobs_stream.hpp>    ////////////////////
