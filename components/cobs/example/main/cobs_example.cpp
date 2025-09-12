@@ -1,6 +1,8 @@
+#include <array>
 #include <chrono>
 #include <cstring>
 #include <numeric>
+#include <span>
 #include <thread>
 #include <vector>
 
@@ -246,7 +248,7 @@ void test_streaming_encoder(espp::Logger &logger) {
     CobsStreamEncoder encoder;
 
     uint8_t single_byte = 0x42;
-    encoder.add_packet(&single_byte, 1);
+    encoder.add_packet(std::span{&single_byte, 1});
 
     std::vector<uint8_t> all_encoded = encoder.get_encoded_data();
 
@@ -341,7 +343,7 @@ void test_streaming_decoder(espp::Logger &logger) {
     uint8_t single_byte = 0x42;
     std::vector<uint8_t> encoded = Cobs::encode_packet(&single_byte, 1);
 
-    decoder.add_data(encoded.data(), encoded.size());
+    decoder.add_data(encoded);
     auto packet = decoder.extract_packet();
 
     bool success = packet.has_value() && (packet->size() == 1) && (packet->at(0) == single_byte);
@@ -360,7 +362,7 @@ void test_streaming_decoder(espp::Logger &logger) {
 
     // Add partial data (no delimiter)
     uint8_t partial_data[] = {0x02, 0x42};
-    decoder.add_data(partial_data, sizeof(partial_data));
+    decoder.add_data(std::span{partial_data});
 
     auto packet = decoder.extract_packet();
     size_t buffer_size = decoder.buffer_size();

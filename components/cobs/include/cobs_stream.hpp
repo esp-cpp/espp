@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace espp {
@@ -22,10 +23,9 @@ public:
   /**
    * @brief Add encoded data to the decoder buffer
    *
-   * @param data New encoded data
-   * @param length Length of new data
+   * @param data New encoded data span
    */
-  void add_data(const uint8_t *data, size_t length);
+  void add_data(std::span<const uint8_t> data);
 
   /**
    * @brief Add encoded data to the decoder buffer (move semantics)
@@ -78,10 +78,9 @@ public:
   /**
    * @brief Add a packet to be encoded
    *
-   * @param data Packet data
-   * @param length Packet length
+   * @param data Packet data span
    */
-  void add_packet(const uint8_t *data, size_t length);
+  void add_packet(std::span<const uint8_t> data);
 
   /**
    * @brief Add a packet to be encoded (move semantics)

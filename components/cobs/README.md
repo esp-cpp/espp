@@ -87,14 +87,19 @@ std::vector<uint8_t> decoded = Cobs::decode_packet(encoded.data(), encoded.size(
 
 ```cpp
 #include "cobs_stream.hpp"
+#include <span>
 
 // Create streaming encoder
 CobsStreamEncoder encoder;
 
-// Add multiple packets
+// Add multiple packets using std::span (zero-copy for contiguous data)
 for (auto& packet : packets) {
-    encoder.add_packet(packet.data(), packet.size());
+    encoder.add_packet(std::span{packet});  // Automatic conversion from vector
 }
+
+// Or with arrays
+uint8_t data[] = {0x01, 0x02, 0x00, 0x03};
+encoder.add_packet(std::span{data});
 
 // Extract data in chunks suitable for transmission
 while (encoder.buffer_size() > 0) {
@@ -107,12 +112,17 @@ while (encoder.buffer_size() > 0) {
 
 ```cpp
 #include "cobs_stream.hpp"
+#include <span>
 
 // Create streaming decoder
 CobsStreamDecoder decoder;
 
-// Add received data (may be fragmented)
-decoder.add_data(received_data, received_length);
+// Add received data (may be fragmented) using std::span
+decoder.add_data(std::span{received_data, received_length});
+
+// Or with vectors (automatic conversion)
+std::vector<uint8_t> received_vec = get_received_data();
+decoder.add_data(received_vec);  // Implicit conversion to span
 
 // Extract complete packets
 while (auto packet = decoder.extract_packet()) {
@@ -154,6 +164,8 @@ Output: [0x03, 0x01, 0x02, 0x02, 0x03, 0x04, 0x00]
 - **Speed**: Optimized for embedded systems with minimal overhead
 - **Large packet support**: Tested and verified with packets up to 1000+ bytes
 - **Memory efficiency**: Uses RAII for automatic memory management
+- **Zero-copy API**: `std::span` interface eliminates unnecessary data copies
+- **Direct buffer encoding**: Packets are encoded directly into internal buffers
 
 ## Thread Safety
 
@@ -169,8 +181,8 @@ The streaming classes (`CobsStreamEncoder` and `CobsStreamDecoder`) are **thread
 
 The [example](./example) demonstrates comprehensive COBS usage including:
 - Single packet encoding and decoding with various data patterns
-- Streaming encoder for batching multiple packets
-- Streaming decoder for processing fragmented data
+- Streaming encoder for batching multiple packets using `std::span` API
+- Streaming decoder for processing fragmented data with zero-copy efficiency
 - Edge cases and error handling (empty packets, large packets, alternating patterns)
 - Comprehensive test suite with test cases covering all functionality
 - Performance characteristics for various packet sizes (up to 1000+ bytes)

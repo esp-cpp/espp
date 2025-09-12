@@ -3,15 +3,11 @@
 
 namespace espp {
 
-void CobsStreamDecoder::add_data(const uint8_t *data, size_t length) {
-  if (data == nullptr)
-    return;
-
+void CobsStreamDecoder::add_data(std::span<const uint8_t> data) {
   std::lock_guard<std::mutex> lock(mutex_);
-  // Append new data to buffer
-  size_t old_size = buffer_.size();
-  buffer_.resize(old_size + length);
-  std::copy(data, data + length, buffer_.begin() + old_size);
+  
+  // Append data directly to buffer (zero-copy for contiguous data)
+  buffer_.insert(buffer_.end(), data.begin(), data.end());
 }
 
 void CobsStreamDecoder::add_data(std::vector<uint8_t> &&data) {
@@ -77,22 +73,22 @@ void CobsStreamDecoder::clear() {
   buffer_.clear();
 }
 
-void CobsStreamEncoder::add_packet(const uint8_t *data, size_t length) {
-  if (data == nullptr)
-    return;
-
+void CobsStreamEncoder::add_packet(std::span<const uint8_t> data) {
   std::lock_guard<std::mutex> lock(mutex_);
+
+  if (data.empty())
+    return;
 
   // Calculate worst-case encoded size: original + overhead + delimiter
   // Overhead is at most ⌈length/254⌉ + 1, plus 1 byte for delimiter
-  size_t max_encoded_size = length + (length / 254) + 2;
+  size_t max_encoded_size = data.size() + (data.size() / 254) + 2;
 
   // Resize buffer to accommodate the encoded data
   size_t old_size = buffer_.size();
   buffer_.resize(old_size + max_encoded_size);
 
   // Encode directly to the buffer
-  size_t encoded_size = Cobs::encode_packet(data, length, buffer_.data() + old_size);
+  size_t encoded_size = Cobs::encode_packet(data.data(), data.size(), buffer_.data() + old_size);
 
   // Resize buffer to actual encoded size
   buffer_.resize(old_size + encoded_size);
