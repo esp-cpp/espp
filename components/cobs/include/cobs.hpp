@@ -59,7 +59,7 @@ public:
       return 0;
     // For decoding, the maximum decoded size is the encoded size minus the delimiter
     // (worst case: no zeros in original data, so minimal COBS overhead)
-    return encoded_len > 0 ? encoded_len - 1 : 0;
+    return encoded_len - 1;
   }
 
   /**
