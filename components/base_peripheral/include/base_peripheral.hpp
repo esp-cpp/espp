@@ -40,7 +40,8 @@ namespace espp {
 ///                        the data will be converted to big endian format before
 ///                        being sent to the peripheral, and will be converted from
 ///                        big endian format after being read from the peripheral.
-///                        Default is true (big-endian), which matches the previously hardcoded behavior. This only applies to u16 functions.
+///                        Default is true (big-endian), which matches the previously hardcoded
+///                        behavior. This only applies to u16 functions.
 template <std::integral RegisterAddressType = std::uint8_t, bool UseAddress = true,
           bool BigEndianRegisterAddress = true, bool BigEndianData = true>
 class BasePeripheral : public BaseComponent {
