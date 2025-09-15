@@ -1,5 +1,5 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  SRCS "src/odrive_ascii.cpp"
+  SRC_DIRS "src"
   REQUIRES base_component
 )
