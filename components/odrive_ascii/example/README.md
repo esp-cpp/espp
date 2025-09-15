@@ -9,6 +9,7 @@ This example demonstrates how to use the `espp::OdriveAscii` component to proces
   - [Requirements](#requirements)
   - [Build](#build)
   - [Flash and Monitor](#flash-and-monitor)
+  - [Example Output](#example-output)
   - [Interactive Usage](#interactive-usage)
   - [Notes](#notes)
 
@@ -38,6 +39,10 @@ idf.py flash monitor
 The example will:
 - Run a scripted test sequence
 - Enter interactive mode reading from stdin and writing responses to stdout
+
+## Example Output
+
+<img width="719" height="204" alt="CleanShot 2025-09-15 at 09 37 01" src="https://github.com/user-attachments/assets/92bfaa85-7ac7-433e-8584-48c6f520d107" />
 
 ## Interactive Usage
 
