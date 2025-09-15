@@ -2,8 +2,6 @@
 
 #include <sdkconfig.h>
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
-
 #include <functional>
 #include <memory>
 #include <vector>
@@ -314,4 +312,3 @@ protected:
   std::vector<std::shared_ptr<Driver>> drivers_;
 }; // class Drv2605Menu
 } // namespace espp
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)

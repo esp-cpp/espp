@@ -19,6 +19,9 @@ extern "C" void app_main(void) {
         [](std::ostream &) { cli::Cli::cout() << "Hello everybody" << std::endl; },
         "Print hello everybody on all open sessions");
     root_menu->Insert(
+        "add", [](std::ostream &out, float x, float y) { out << (x + y) << "\n"; },
+        "Add two numbers");
+    root_menu->Insert(
         "answer", [](std::ostream &out, int x) { out << "The answer is: " << x << "\n"; },
         "Print the answer to Life, the Universe and Everything ");
     root_menu->Insert(

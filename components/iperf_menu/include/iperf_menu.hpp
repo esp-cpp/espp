@@ -44,8 +44,6 @@ template <> struct fmt::formatter<iperf_cfg_t> : fmt::formatter<std::string> {
   }
 };
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
-
 #include <functional>
 #include <memory>
 #include <vector>
@@ -451,5 +449,3 @@ protected:
   int length_{0};
 };
 } // namespace espp
-
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)

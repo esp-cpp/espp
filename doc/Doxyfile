@@ -319,7 +319,6 @@ PREDEFINED             = _DOXYGEN_ \
                          CONFIG_BT_NIMBLE_ROLE_PERIPHERAL \
                          CONFIG_BT_NIMBLE_ROLE_BROADCASTER \
                          CONFIG_BT_NIMBLE_EXT_ADV \
-                         CONFIG_COMPILER_CXX_EXCEPTIONS \
                          $(ENV_DOXYGEN_DEFINES)
 
 

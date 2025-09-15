@@ -1,10 +1,4 @@
-set(CLI_INCLUDES "include")
-
-if (CONFIG_COMPILER_CXX_EXCEPTIONS)
-  list(APPEND CLI_INCLUDES "detail/cli/include")
-else()
-  message(WARNING "C++ exceptions are disabled, CLI is disabled")
-endif()
+set(CLI_INCLUDES "include" "detail/cli/include")
 
 idf_component_register(
   INCLUDE_DIRS ${CLI_INCLUDES}
