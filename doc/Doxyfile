@@ -19,6 +19,8 @@ EXAMPLE_RECURSIVE = YES
 
 PROJECT_NAME = "Espressif++ (ESPP), an ESP C++ Library"
 
+# NOTE: please ensure these are kept in alphabetical order, as that helps track
+#       what's here and what's not
 EXAMPLE_PATH =
 EXAMPLE_PATH += $(PROJECT_PATH)/components/adc/example/main/adc_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ads1x15/example/main/ads1x15_example.cpp
@@ -115,6 +117,9 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_
 EXTRACT_ALL = YES
 
 INPUT = $(PROJECT_PATH)/README.md
+
+# NOTE: please ensure these are kept in alphabetical order, as that helps track
+#       what's here and what's not
 INPUT += $(PROJECT_PATH)/components/adc/include/adc_types.hpp
 INPUT += $(PROJECT_PATH)/components/adc/include/oneshot_adc.hpp
 INPUT += $(PROJECT_PATH)/components/adc/include/continuous_adc.hpp
