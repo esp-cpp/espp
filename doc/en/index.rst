@@ -52,6 +52,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    network/index
    nfc/index
    nvs
+   odrive_ascii
    pid
    power/index
    qtpy
@@ -62,7 +63,6 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    runqueue
    seeed_studio_round_display
    serialization
-   odrive_ascii
    state_machine
    t_deck
    t_dongle_s3

@@ -77,6 +77,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_exampl
 EXAMPLE_PATH += $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp
@@ -105,7 +106,6 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_ex
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-geek/example/main/ws_s3_geek_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-lcd-1-47/example/main/ws_s3_lcd_1_47_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
 ## to automatically generate API reference list files header_file.inc
@@ -231,6 +231,7 @@ INPUT += $(PROJECT_PATH)/components/nvs/include/nvs.hpp
 INPUT += $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp
 INPUT += $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp
 INPUT += $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp
+INPUT += $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp
 INPUT += $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp
 INPUT += $(PROJECT_PATH)/components/pid/include/pid.hpp
 INPUT += $(PROJECT_PATH)/components/qmi8658/include/qmi8658.hpp
@@ -279,7 +280,6 @@ INPUT += $(PROJECT_PATH)/components/wrover-kit/include/wrover-kit.hpp
 INPUT += $(PROJECT_PATH)/components/ws-s3-geek/include/ws-s3-geek.hpp
 INPUT += $(PROJECT_PATH)/components/ws-s3-lcd-1-47/include/ws-s3-lcd-1-47.hpp
 INPUT += $(PROJECT_PATH)/components/ws-s3-touch/include/ws-s3-touch.hpp
-INPUT += $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp
 
 USE_MDFILE_AS_MAINPAGE = $(PROJECT_PATH)/README.md
 
