@@ -82,11 +82,11 @@ std::vector<uint8_t> OdriveAscii::process_bytes(std::span<const uint8_t> data) {
 
   // Concatenate responses into out buffer
   size_t total = 0;
-  for (auto &r : responses)
-    total += r.size();
+  for (const auto &r : responses)
+    total += r.size(); // cppcheck-suppress useStlAlgorithm
   out.resize(total);
   size_t off = 0;
-  for (auto &r : responses) {
+  for (const auto &r : responses) {
     memcpy(out.data() + off, r.data(), r.size());
     off += r.size();
   }
@@ -111,7 +111,8 @@ std::optional<std::string> OdriveAscii::handle_line(std::string_view raw) {
   if (cmd == "help") {
     return std::string(
         "ODrive ASCII: r <path> | w <path> <val> | p <axis> <pos> [vel_ff [torque_ff]] | v <axis> "
-        "<vel> [torque_ff] | t <axis> <torque> | c <axis> <current>\n");
+        "<vel> [torque_ff] | t <axis> <goal_pos_turns> | c <axis> <torque_nm> | f <axis> | es "
+        "<axis> <abs_pos_turns>\n");
   }
   if (cmd == "r") {
     if (toks.size() < 2)

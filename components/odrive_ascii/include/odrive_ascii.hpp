@@ -200,7 +200,7 @@ public:
       int axis, float vel, const std::optional<float> &torque_ff, std::error_code &ec)>;
 
   /**
-   * @brief Callback for high-rate torque/current command 't'/'c'.
+   * @brief Callback for high-rate torque/current command 'c'.
    * Signature: (axis, torque) -> bool
    */
   using torque_command_fn = std::function<bool(int axis, float torque_nm, std::error_code &ec)>;
