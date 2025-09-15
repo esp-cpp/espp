@@ -70,6 +70,4 @@ ser.write(b'es 0 0.0\n'); print(ser.readline())           # set encoder abs pos
 
 ## Notes
 
-- Example config: `components/odrive_ascii/example/sdkconfig.defaults` sets 8KB main task stack and 115200 baud. Enable USB Serial/JTAG by uncommenting its line if needed.
-- The example simulates motor state: position/velocity/torque are updated by incoming commands.
 - For full odrivetool auto-discovery you would need to implement Fibre (not covered here).
