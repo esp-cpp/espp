@@ -91,7 +91,11 @@ public:
 
   /**
    * @brief Helper to register a numeric property using typed getter/setter.
-   * Converts to/from string using std::to_string / std::strtod.
+   *        Converts to/from string using std::to_string / std::strtod.
+   * @param path Property path.
+   * @param getter Getter function; if null, property is write-only.
+   * @param setter Setter function; if null, property is read-only.
+   * @note The float is formatted using "{:0.6g}".
    */
   void
   register_float_property(const std::string &path, const std::function<float()> &getter,
@@ -100,12 +104,9 @@ public:
     write_fn wf = nullptr;
     if (getter) {
       rf = [getter](std::error_code &ec) {
-        char buf[32];
         auto v = getter();
-        // Use a compact formatting to reduce bandwidth while keeping precision
-        int n = snprintf(buf, sizeof(buf), "%.6g", static_cast<double>(v));
         ec.clear();
-        return std::string(buf, n > 0 ? static_cast<size_t>(n) : 0U);
+        return fmt::format("{:0.6g}", static_cast<double>(v));
       };
     }
     if (setter) {
@@ -126,6 +127,10 @@ public:
 
   /**
    * @brief Helper to register an integer property using typed getter/setter.
+   * @param path Property path.
+   * @param getter Getter function; if null, property is write-only.
+   * @param setter Setter function; if null, property is read-only.
+   * @note The integer is formatted using std::to_string.
    */
   void
   register_int_property(const std::string &path, const std::function<int32_t()> &getter,
@@ -159,6 +164,7 @@ public:
    * @param path Property path.
    * @param getter Getter function; if null, property is write-only.
    * @param setter Setter function; if null, property is read-only.
+   * @note The boolean is formatted as "0" or "1".
    */
   void
   register_bool_property(const std::string &path, const std::function<bool()> &getter,
