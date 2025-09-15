@@ -145,6 +145,8 @@ jobs:
           target: esp32s3
         - path: 'components/nvs/example'
           target: esp32s3
+        - path: 'components/odrive_ascii/example'
+          target: esp32
         - path: 'components/pcf85063/example'
           target: esp32s3
         - path: 'components/pi4ioe5v/example'

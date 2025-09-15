@@ -105,6 +105,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_ex
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-geek/example/main/ws_s3_geek_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-lcd-1-47/example/main/ws_s3_lcd_1_47_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp
 
 ## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
 ## to automatically generate API reference list files header_file.inc
@@ -278,6 +279,7 @@ INPUT += $(PROJECT_PATH)/components/wrover-kit/include/wrover-kit.hpp
 INPUT += $(PROJECT_PATH)/components/ws-s3-geek/include/ws-s3-geek.hpp
 INPUT += $(PROJECT_PATH)/components/ws-s3-lcd-1-47/include/ws-s3-lcd-1-47.hpp
 INPUT += $(PROJECT_PATH)/components/ws-s3-touch/include/ws-s3-touch.hpp
+INPUT += $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp
 
 USE_MDFILE_AS_MAINPAGE = $(PROJECT_PATH)/README.md
 
