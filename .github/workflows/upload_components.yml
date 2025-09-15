@@ -91,6 +91,7 @@ jobs:
             components/ndef
             components/neopixel
             components/nvs
+            components/odrive_ascii
             components/pi4ioe5v
             components/pid
             components/pcf85063

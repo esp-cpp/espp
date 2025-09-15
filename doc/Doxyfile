@@ -19,6 +19,8 @@ EXAMPLE_RECURSIVE = YES
 
 PROJECT_NAME = "Espressif++ (ESPP), an ESP C++ Library"
 
+# NOTE: please ensure these are kept in alphabetical order, as that helps track
+#       what's here and what's not
 EXAMPLE_PATH =
 EXAMPLE_PATH += $(PROJECT_PATH)/components/adc/example/main/adc_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ads1x15/example/main/ads1x15_example.cpp
@@ -77,6 +79,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_exampl
 EXAMPLE_PATH += $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp
@@ -114,6 +117,9 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_
 EXTRACT_ALL = YES
 
 INPUT = $(PROJECT_PATH)/README.md
+
+# NOTE: please ensure these are kept in alphabetical order, as that helps track
+#       what's here and what's not
 INPUT += $(PROJECT_PATH)/components/adc/include/adc_types.hpp
 INPUT += $(PROJECT_PATH)/components/adc/include/oneshot_adc.hpp
 INPUT += $(PROJECT_PATH)/components/adc/include/continuous_adc.hpp
@@ -230,6 +236,7 @@ INPUT += $(PROJECT_PATH)/components/nvs/include/nvs.hpp
 INPUT += $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp
 INPUT += $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp
 INPUT += $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp
+INPUT += $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp
 INPUT += $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp
 INPUT += $(PROJECT_PATH)/components/pid/include/pid.hpp
 INPUT += $(PROJECT_PATH)/components/qmi8658/include/qmi8658.hpp
