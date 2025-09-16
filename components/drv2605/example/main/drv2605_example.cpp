@@ -7,7 +7,6 @@
 #include "logger.hpp"
 #include "task.hpp"
 
-#include "cli.hpp"
 #include "drv2605_menu.hpp"
 
 using namespace std::chrono_literals;
