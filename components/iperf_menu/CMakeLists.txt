@@ -1,3 +1,3 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  PRIV_REQUIRES format cli iperf)
+  REQUIRES format cli iperf)

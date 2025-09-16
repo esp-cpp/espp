@@ -11,7 +11,6 @@
 #include "task.hpp"
 #include "wifi_sta.hpp"
 
-#include "cli.hpp"
 #include "iperf_menu.hpp"
 #include "wifi_sta_menu.hpp"
 

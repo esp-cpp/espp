@@ -2,8 +2,13 @@
 
 #include <sdkconfig.h>
 
+#include <functional>
+#include <memory>
+#include <vector>
+
 #include <iperf.h>
 
+#include "cli.hpp"
 #include "format.hpp"
 
 // for libfmt formatting of iperf_cfg_t
@@ -43,13 +48,6 @@ template <> struct fmt::formatter<iperf_cfg_t> : fmt::formatter<std::string> {
     }
   }
 };
-
-#include <functional>
-#include <memory>
-#include <vector>
-
-#include "cli.hpp"
-#include "format.hpp"
 
 namespace espp {
 /// @brief A CLI menu for running iperf tests.
