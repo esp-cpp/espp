@@ -97,13 +97,7 @@ jobs:
           command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api" build
         - path: 'components/i2c/example'
           target: esp32
-          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api;sdkconfig.defaults.cli" build
-        - path: 'components/i2c/example'
-          target: esp32
           command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api" build
-        - path: 'components/i2c/example'
-          target: esp32
-          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api;sdkconfig.defaults.cli;" build
 
         - path: 'components/icm20948/example'
           target: esp32s3

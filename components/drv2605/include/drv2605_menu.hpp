@@ -2,8 +2,6 @@
 
 #include <sdkconfig.h>
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
-
 #include <functional>
 #include <memory>
 #include <vector>
@@ -115,20 +113,18 @@ public:
           // convert the string IDs to integers
           std::vector<uint8_t> waveform_ids;
           for (const auto &id_str : waveforms) {
-            try {
-              int id = std::stoi(id_str);
-              if (id < 1 || id > 123) {
-                throw std::out_of_range("ID out of range");
-              }
-              waveform_ids.push_back(id);
-            } catch (const std::invalid_argument &) {
+            char *endptr = nullptr;
+            int id = static_cast<int>(std::strtol(id_str.c_str(), &endptr, 10));
+            if (endptr != id_str.c_str() + id_str.size()) {
               out << "Invalid waveform ID: " << id_str
                   << ". Must be an integer between 1 and 123.\n";
               return;
-            } catch (const std::out_of_range &) {
+            }
+            if (id < 1 || id > 123) {
               out << "Waveform ID out of range: " << id_str << ". Must be between 1 and 123.\n";
               return;
             }
+            waveform_ids.push_back(id);
           }
           set_waveforms(out, waveform_ids);
         },
@@ -314,4 +310,3 @@ protected:
   std::vector<std::shared_ptr<Driver>> drivers_;
 }; // class Drv2605Menu
 } // namespace espp
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)

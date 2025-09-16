@@ -2,8 +2,6 @@
 
 #include <sdkconfig.h>
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
-
 #include <functional>
 #include <memory>
 #include <vector>
@@ -248,5 +246,3 @@ protected:
   std::reference_wrapper<espp::WifiSta> wifi_sta_;
 };
 } // namespace espp
-
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)

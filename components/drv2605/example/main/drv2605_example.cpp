@@ -7,10 +7,7 @@
 #include "logger.hpp"
 #include "task.hpp"
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS
-#include "cli.hpp"
 #include "drv2605_menu.hpp"
-#endif
 
 using namespace std::chrono_literals;
 
@@ -49,7 +46,6 @@ extern "C" void app_main(void) {
       logger.error("select library failed: {}", ec.message());
     }
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS
     //! [drv2605 menu example]
     using DriverPtr = std::shared_ptr<Driver>;
     // since we're wrapping a stack-allocated object, we need to ensure that the
@@ -68,7 +64,6 @@ extern "C" void app_main(void) {
     // the user enters the `exit` command.
     input.Start();
     //! [drv2605 menu example]
-#endif
 
     // do the calibration for the LRA motor
     Driver::LraCalibrationSettings lra_calibration_settings{};

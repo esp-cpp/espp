@@ -5,8 +5,6 @@
 // Only include this menu if the new API is selected
 #if defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(__DOXYGEN__)
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
-
 #include <functional>
 #include <memory>
 #include <string>
@@ -108,7 +106,5 @@ protected:
 };
 
 } // namespace espp
-
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
 #endif // CONFIG_ESPP_I2C_USE_NEW_API
