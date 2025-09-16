@@ -24,7 +24,6 @@ extern "C" void app_main(void) {
 //////////////////////////////////
 #if defined(CONFIG_ESPP_I2C_USE_LEGACY_API)
   {
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
     //! [i2c menu example]
     espp::I2c i2c({
         .port = I2C_NUM_0,
@@ -45,9 +44,6 @@ extern "C" void app_main(void) {
 
     input.Start();
     //! [i2c menu example]
-#else
-    logger.warn("C++ exceptions are not enabled, skipping I2C menu example");
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
   }
 
   {
@@ -126,7 +122,6 @@ extern "C" void app_main(void) {
     }
     logger.info("[NEW API] Created device with address {:#02x}", dev->get_device_address());
     //! [i2c master device creation example]
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
     //! [i2c master menu example]
     using espp::I2cMasterDeviceMenu;
     using espp::I2cMasterMenu;
@@ -143,7 +138,6 @@ extern "C" void app_main(void) {
     input.SetInputHistorySize(10);
     input.Start();
     //! [i2c master menu example]
-#else // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
     //! [i2c master bus probe example]
     // NOTE: we turn off logging for this so we don't spam the console
@@ -176,8 +170,6 @@ extern "C" void app_main(void) {
       logger.error("Could not find device with address {:#02x}", device_address);
     }
     //! [i2c master device read example]
-
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
     // test manually calling the deinit methods
     dev->deinit(ec);

@@ -105,7 +105,6 @@ extern "C" void app_main(void) {
     adv_data.addTxPower();
     ble_gatt_server.set_advertisement_data(adv_data);
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS
     // let's test and use the BLE menu (CLI)
     // turn off some of the logs so that it doesn't clutter up the CLI
     ble_gatt_server.set_log_level(espp::Logger::Verbosity::WARN);
@@ -118,7 +117,6 @@ extern "C" void app_main(void) {
     espp::Cli input(cli);
     input.SetInputHistorySize(10);
     input.Start(); // this will not return until the user enters the `exit` command.
-#endif
 
     logger.info("Menu has finished, starting advertising");
     // The menu has finished, so let's go into a loop to keep the device running

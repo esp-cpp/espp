@@ -5,8 +5,6 @@
 // Only include this menu if the legacy API is selected
 #if defined(CONFIG_ESPP_I2C_USE_LEGACY_API) || defined(__DOXYGEN__)
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
-
 #include <functional>
 #include <memory>
 #include <vector>
@@ -215,7 +213,5 @@ protected:
   std::reference_wrapper<espp::I2c> i2c_;
 };
 } // namespace espp
-
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
 #endif // CONFIG_ESPP_I2C_USE_LEGACY_API

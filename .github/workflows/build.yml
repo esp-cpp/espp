@@ -51,6 +51,8 @@ jobs:
           target: esp32s3
         - path: 'components/cli/example'
           target: esp32
+        - path: 'components/cobs/example'
+          target: esp32s3
         - path: 'components/color/example'
           target: esp32
         - path: 'components/controller/example'
@@ -95,13 +97,7 @@ jobs:
           command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api" build
         - path: 'components/i2c/example'
           target: esp32
-          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.legacy_api;sdkconfig.defaults.cli" build
-        - path: 'components/i2c/example'
-          target: esp32
           command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api" build
-        - path: 'components/i2c/example'
-          target: esp32
-          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.new_api;sdkconfig.defaults.cli;" build
 
         - path: 'components/icm20948/example'
           target: esp32s3
@@ -143,6 +139,8 @@ jobs:
           target: esp32s3
         - path: 'components/nvs/example'
           target: esp32s3
+        - path: 'components/odrive_ascii/example'
+          target: esp32
         - path: 'components/pcf85063/example'
           target: esp32s3
         - path: 'components/pi4ioe5v/example'

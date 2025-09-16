@@ -50,7 +50,7 @@ public:
             "Max1704x", config.log_level) {
     if (config.auto_init) {
       std::error_code ec;
-      initalize(ec);
+      initialize(ec);
       if (ec) {
         logger_.error("Failed to initialize MAX1704x: {}", ec.message());
       }
@@ -59,8 +59,9 @@ public:
 
   /**
    * @brief Initialize the MAX1704x.
+   * @param ec Error code set if an error occurs during initialization.
    */
-  void initalize(std::error_code &ec) {
+  void initialize(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // Get the IC version
     version_ = get_version(ec);

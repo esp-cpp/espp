@@ -31,7 +31,7 @@ bool WsS3Geek::initialize_sdcard(const WsS3Geek::SdCardConfig &config) {
   bus_cfg.sclk_io_num = sdcard_clk;
   bus_cfg.quadwp_io_num = -1;
   bus_cfg.quadhd_io_num = -1;
-  bus_cfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
+  bus_cfg.max_transfer_sz = SPI_MAX_TRANSFER_BYTES;
   ret = spi_bus_initialize(sdcard_spi_num, &bus_cfg,
                            SDSPI_DEFAULT_DMA); // SPI_DMA_CH_AUTO); // SDSPI_DEFAULT_DMA);
   if (ret != ESP_OK) {

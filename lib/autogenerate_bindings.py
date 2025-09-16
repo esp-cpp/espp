@@ -105,6 +105,8 @@ def autogenerate() -> None:
 
     include_dir = repository_dir + "/components/"
     header_files = [include_dir + "base_component/include/base_component.hpp",
+                    include_dir + "cobs/include/cobs.hpp",
+                    include_dir + "cobs/include/cobs_stream.hpp",
                     include_dir + "color/include/color.hpp",
                     include_dir + "event_manager/include/event_manager.hpp",
                     # include_dir + "file_system/include/file_system.hpp", # can't deal with singleton that does not support constructor / destructor

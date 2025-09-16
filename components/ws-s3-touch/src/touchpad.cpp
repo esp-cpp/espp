@@ -7,14 +7,9 @@ using namespace espp;
 ////////////////////////
 
 bool WsS3Touch::initialize_touch(const WsS3Touch::touch_callback_t &callback) {
-  if (touchpad_input_) {
+  if (touch_driver_) {
     logger_.warn("Touchpad already initialized, not initializing again!");
     return true;
-  }
-
-  if (!display_) {
-    logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
-                 "will not properly handle the touchpad input!");
   }
 
   logger_.info("Initializing TouchDriver");
@@ -23,15 +18,6 @@ bool WsS3Touch::initialize_touch(const WsS3Touch::touch_callback_t &callback) {
                          std::placeholders::_2, std::placeholders::_3),
       .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
                         std::placeholders::_2, std::placeholders::_3),
-      .log_level = espp::Logger::Verbosity::WARN});
-
-  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
-      .touchpad_read =
-          std::bind(&WsS3Touch::touchpad_read, this, std::placeholders::_1, std::placeholders::_2,
-                    std::placeholders::_3, std::placeholders::_4),
-      .swap_xy = touch_swap_xy,
-      .invert_x = touch_invert_x,
-      .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN});
 
   // store the callback

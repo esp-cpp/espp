@@ -2,7 +2,6 @@
 
 #include <sdkconfig.h>
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 #if CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
 
 #include <functional>
@@ -400,4 +399,3 @@ protected:
 } // namespace espp
 
 #endif // CONFIG_BT_NIMBLE_ENABLED || defined(_DOXYGEN_)
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)

@@ -22,7 +22,7 @@ static void handle_account_key_written(uint64_t peer_addr, const uint8_t key[16]
   }
 }
 
-static void handle_nda_ready(const uint8_t* adv_data, size_t len) {
+static void handle_nda_ready(const uint8_t *adv_data, size_t len) {
   if (internal_config.on_non_discoverable_advertisement_ready_callback) {
     std::span<const uint8_t> payload(adv_data, len);
     internal_config.on_non_discoverable_advertisement_ready_callback(payload);
@@ -34,16 +34,15 @@ static void handle_nda_ready(const uint8_t* adv_data, size_t len) {
 void espp::gfps::init(const espp::gfps::Config &config) {
   // store anything we need from the config
   g_gfps_notify_cb = config.notify;
-  internal_config = config;  // Used by internal handlers
+  internal_config = config; // Used by internal handlers
 
   // Define Fast Pair client callbacks for event-specific handling.
   // These callbacks are invoked by the embedded GFPS runtime when relevant events occur.
   // Each callback delegates responsibility to the application layer via the provided config.
   static nearby_fp_client_Callbacks callbacks = {
-    .on_event = nullptr,
-    .on_account_key_written = handle_account_key_written,
-    .on_nondiscoverable_advertisement_ready = handle_nda_ready
-  };
+      .on_event = nullptr,
+      .on_account_key_written = handle_account_key_written,
+      .on_nondiscoverable_advertisement_ready = handle_nda_ready};
 
   // Calls into google/nearby/embedded to initialize the nearby framework, using
   // the platform specific implementation of the nearby API which is in the
@@ -57,7 +56,7 @@ void espp::gfps::init(const espp::gfps::Config &config) {
 void espp::gfps::deinit() {
   // The embedded Fast Pair library does not yet implement nearby_fp_client_Deinit.
   // Once available, it should be invoked here to release internal resources.
-  
+
   // Clear callback bindings (temporary substitute until proper teardown is implemented)
   internal_config = {}; // nearby_fp_client_Deinit()
   g_gfps_notify_cb = nullptr;

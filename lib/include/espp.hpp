@@ -15,6 +15,8 @@ extern "C" {
 #include "base_component.hpp"
 #include "bezier.hpp"
 #include "butterworth_filter.hpp"
+#include "cobs.hpp"
+#include "cobs_stream.hpp"
 #include "color.hpp"
 #include "csv.hpp"
 #include "event_manager.hpp"

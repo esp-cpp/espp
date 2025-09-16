@@ -33,14 +33,9 @@ espp::Interrupt &SsRoundDisplay::interrupts() { return interrupts_; }
 ////////////////////////
 
 bool SsRoundDisplay::initialize_touch(const SsRoundDisplay::touch_callback_t &callback) {
-  if (touchpad_input_) {
+  if (touch_) {
     logger_.warn("Touchpad already initialized, not initializing again!");
     return false;
-  }
-
-  if (!display_) {
-    logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
-                 "will not properly handle the touchpad input!");
   }
 
   logger_.info("Initializing Touch Driver");
@@ -49,15 +44,6 @@ bool SsRoundDisplay::initialize_touch(const SsRoundDisplay::touch_callback_t &ca
                          std::placeholders::_2, std::placeholders::_3),
       .read = std::bind(&espp::I2c::read, &internal_i2c_, std::placeholders::_1,
                         std::placeholders::_2, std::placeholders::_3),
-      .log_level = espp::Logger::Verbosity::WARN});
-
-  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
-      .touchpad_read =
-          std::bind(&SsRoundDisplay::touchpad_read, this, std::placeholders::_1,
-                    std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-      .swap_xy = touch_swap_xy,
-      .invert_x = touch_invert_x,
-      .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN});
 
   // store the callback
@@ -209,7 +195,7 @@ bool SsRoundDisplay::initialize_lcd() {
   lcd_spi_bus_config_.sclk_io_num = pin_config_.sck;
   lcd_spi_bus_config_.quadwp_io_num = -1;
   lcd_spi_bus_config_.quadhd_io_num = -1;
-  lcd_spi_bus_config_.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
+  lcd_spi_bus_config_.max_transfer_sz = SPI_MAX_TRANSFER_BYTES;
 
   memset(&lcd_config_, 0, sizeof(lcd_config_));
   lcd_config_.mode = 0;
@@ -281,6 +267,15 @@ bool SsRoundDisplay::initialize_display(size_t pixel_buffer_size) {
           .double_buffered = true,
           .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
       });
+
+  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
+      .touchpad_read =
+          std::bind(&SsRoundDisplay::touchpad_read, this, std::placeholders::_1,
+                    std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+      .swap_xy = touch_swap_xy,
+      .invert_x = touch_invert_x,
+      .invert_y = touch_invert_y,
+      .log_level = espp::Logger::Verbosity::WARN});
 
   frame_buffer0_ =
       (uint8_t *)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);

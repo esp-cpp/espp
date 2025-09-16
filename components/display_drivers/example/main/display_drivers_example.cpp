@@ -2,9 +2,11 @@
 #include <memory>
 #include <vector>
 
+#include <driver/spi_master.h>
+#include <hal/spi_ll.h>
+#include <hal/spi_types.h>
+
 #include "display.hpp"
-#include "driver/spi_master.h"
-#include "hal/spi_types.h"
 
 // default, most displays use 16-bit coordinates
 #define DISPLAY_COORDINATES_16BIT 1
@@ -506,6 +508,11 @@ extern "C" void app_main(void) {
   //! [byte90_config example]
 #endif
 
+  /// Maximum number of bytes that can be transferred in a single SPI
+  /// transaction to the Display. 2MB on ESP32, 1MB on ESP32-S2, 32k on the
+  /// ESP32-S3.
+  static constexpr size_t SPI_MAX_TRANSFER_BYTES = SPI_LL_DMA_MAX_BIT_LEN / 8;
+
   fmt::print("Starting display_drivers example for {}\n", dev_kit);
   {
 #ifdef CONFIG_T_ENCODER_PRO
@@ -534,7 +541,7 @@ extern "C" void app_main(void) {
     buscfg.quadhd_io_num = -1;
 #endif
     buscfg.sclk_io_num = sclk;
-    buscfg.max_transfer_sz = (int)(pixel_buffer_size * sizeof(lv_color_t));
+    buscfg.max_transfer_sz = SPI_MAX_TRANSFER_BYTES;
     // create the spi device
     spi_device_interface_config_t devcfg;
     memset(&devcfg, 0, sizeof(devcfg));

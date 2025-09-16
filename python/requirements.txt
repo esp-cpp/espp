@@ -2,3 +2,4 @@ zeroconf
 opencv-python
 mss
 simplejpeg
+cobs

@@ -144,7 +144,8 @@ public:
   /// \note This function will also initialize the nearby framework
   void init(NimBLEServer *server) {
     espp::gfps::Config config;
-    config.notify = [this](nearby_fp_Characteristic characteristic, const uint8_t *value, size_t length) {
+    config.notify = [this](nearby_fp_Characteristic characteristic, const uint8_t *value,
+                           size_t length) {
       // notify the characteristic
       return notify(characteristic, value, length);
     };
@@ -153,14 +154,15 @@ public:
 
   /// Initialize the service with custom GFPS configuration.
   /// \param server The BLE server to attach the service to
-  /// \param app_config Application-provided callbacks (e.g., passkey handling, Account Key, NDA advertisement)
-  /// \note Use this overload to inject application-specific behavior into GFPS logic  
+  /// \param app_config Application-provided callbacks (e.g., passkey handling, Account Key, NDA
+  /// advertisement) \note Use this overload to inject application-specific behavior into GFPS logic
   void init(NimBLEServer *server, const espp::gfps::Config &app_config) {
     // make the service
     make_service(server);
 
     espp::gfps::Config full_config = app_config;
-    full_config.notify = [this](nearby_fp_Characteristic characteristic, const uint8_t *value, size_t length) {
+    full_config.notify = [this](nearby_fp_Characteristic characteristic, const uint8_t *value,
+                                size_t length) {
       // notify the characteristic
       return notify(characteristic, value, length);
     };

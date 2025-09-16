@@ -12,11 +12,9 @@
 #include "wifi_ap.hpp"
 #include "wifi_sta.hpp"
 
-#if defined(CONFIG_COMPILER_CXX_EXCEPTIONS)
 #include "cli.hpp"
 #include "wifi_ap_menu.hpp"
 #include "wifi_sta_menu.hpp"
-#endif
 
 using namespace std::chrono_literals;
 
@@ -36,7 +34,6 @@ extern "C" void app_main(void) {
   ESP_ERROR_CHECK(ret);
 #endif
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
   {
     //! [wifi sta menu example]
     espp::WifiSta wifi_sta({.ssid = "",     // CONFIG_ESP_WIFI_SSID,
@@ -60,7 +57,6 @@ extern "C" void app_main(void) {
     input.Start();
     //! [wifi sta menu example]
   }
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
   {
     logger.info("Starting WiFi STA example...");
@@ -86,7 +82,6 @@ extern "C" void app_main(void) {
     logger.info("WiFi STA example complete!");
   }
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
   {
     //! [wifi ap menu example]
     espp::WifiAp wifi_ap({.ssid = "", .password = ""});
@@ -100,7 +95,6 @@ extern "C" void app_main(void) {
     input.Start();
     //! [wifi ap menu example]
   }
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
   {
     logger.info("Starting WiFi AP example...");

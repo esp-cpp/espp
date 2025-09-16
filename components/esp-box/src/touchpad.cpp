@@ -7,15 +7,11 @@ using namespace espp;
 ////////////////////////
 
 bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
-  if (touchpad_input_) {
-    logger_.warn("Touchpad already initialized, not initializing again!");
+  if (gt911_ || tt21100_) {
+    logger_.warn("Touch already initialized, not initializing again!");
     return false;
   }
 
-  if (!display_) {
-    logger_.warn("You should call initialize_display() before initialize_touch(), otherwise lvgl "
-                 "will not properly handle the touchpad input!");
-  }
   switch (box_type_) {
   case BoxType::BOX3:
     logger_.info("Initializing GT911");
@@ -38,15 +34,6 @@ bool EspBox::initialize_touch(const EspBox::touch_callback_t &callback) {
   default:
     return false;
   }
-
-  touchpad_input_ = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
-      .touchpad_read =
-          std::bind(&EspBox::touchpad_read, this, std::placeholders::_1, std::placeholders::_2,
-                    std::placeholders::_3, std::placeholders::_4),
-      .swap_xy = touch_swap_xy,
-      .invert_x = touch_invert_x,
-      .invert_y = touch_invert_y,
-      .log_level = espp::Logger::Verbosity::WARN});
 
   // store the callback
   touch_callback_ = callback;

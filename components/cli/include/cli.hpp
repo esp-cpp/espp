@@ -3,8 +3,6 @@
 #if defined(ESP_PLATFORM)
 #include <sdkconfig.h>
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
-
 #define __linux__
 
 #include "driver/uart.h"
@@ -283,7 +281,6 @@ public:
    * @brief Construct a Cli object and call
    *        espp::Cli::configure_stdin_stdout() to ensure that std::cin works
    *        as needed.
-   * @throw std::invalid_argument if @c _in or @c out are invalid streams
    * @param _cli the cli::Cli object containing the menus and functions to
    *        run.
    * @param _in The input stream from which to read characters.
@@ -293,10 +290,8 @@ public:
       : CliSession(_cli, _out, 1)
       , exit(false)
       , in(_in) {
-    if (!_in.good())
-      throw std::invalid_argument("istream invalid");
-    if (!_out.good())
-      throw std::invalid_argument("ostream invalid");
+    if (!_in.good() || !_out.good())
+      exit = true;
     ExitAction([this](std::ostream &) { exit = true; });
     // for std::cin to work (it must be blocking), we need to configure the uart
     // driver to have it block. see
@@ -308,7 +303,10 @@ public:
    * @brief Set the input history size for this session.
    * @param history_size new History size. Must be >= 1.
    */
-  void SetInputHistorySize(size_t history_size) { line_input_.set_history_size(history_size); }
+  void SetInputHistorySize(size_t history_size) {
+    line_input_.set_history_size(history_size);
+    SetHistoryMaxSize(history_size);
+  }
 
   /**
    * @brief Set the input history - replaces any existing history.
@@ -390,7 +388,5 @@ private:
   std::istream &in;
 };
 } // namespace espp
-
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS
 
 #endif // ESP_PLATFORM

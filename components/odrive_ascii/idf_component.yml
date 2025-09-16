@@ -1,0 +1,24 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "ODrive ASCII protocol parsing component for ESP-IDF"
+url: "https://github.com/esp-cpp/espp/tree/main/components/odrive_ascii"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/odrive_ascii.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Command-Line
+  - CLI
+  - Input
+  - ODrive
+  - Motor
+  - BLDC
+  - ASCII
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/base_component: '>=1.0'

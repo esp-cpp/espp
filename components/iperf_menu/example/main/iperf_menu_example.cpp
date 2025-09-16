@@ -11,11 +11,8 @@
 #include "task.hpp"
 #include "wifi_sta.hpp"
 
-#if defined(CONFIG_COMPILER_CXX_EXCEPTIONS)
-#include "cli.hpp"
 #include "iperf_menu.hpp"
 #include "wifi_sta_menu.hpp"
-#endif
 
 using namespace std::chrono_literals;
 
@@ -33,7 +30,6 @@ extern "C" void app_main(void) {
   ESP_ERROR_CHECK(ret);
 #endif
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
   {
     //! [iperf menu example]
     espp::WifiSta wifi_sta({.ssid = "",               // CONFIG_ESP_WIFI_SSID,
@@ -64,9 +60,6 @@ extern "C" void app_main(void) {
     input.Start();
     //! [iperf menu example]
   }
-#else
-  logger.error("C++ exceptions are not enabled. Please enable them in the menuconfig.");
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
 
   logger.info("Example complete!");
 

@@ -36,10 +36,26 @@ This section gives a brief overview of what the scripts in this folder do.
   from a webcam or display capture, while the client receives the stream and
   displays it in a window. Note: these scripts require additional 3rd party
   libraries such as `opencv`, `mss`, and `zeroconf`.
+- `cobs_demo.py`: Demonstration of ESPP COBS functionality with native Python data types.
+  Shows ESPP encoding/decoding, cross-library compatibility with the cobs-python library,
+  and practical usage examples. Includes design differences explanation and validation
+  against the reference implementation.
+
+**Important Design Differences**: The ESPP COBS implementation differs from other COBS libraries:
+- **Delimiters**: ESPP automatically adds `0x00` delimiters to encoded packets, while other libraries may not
+- **Empty Packets**: ESPP ignores empty packets (length = 0) for performance, while other libraries may encode them
+- **Compatibility**: The demo scripts show how to handle these differences for cross-library integration
+  
 
 ## Setup
 
-For all scripts, you must have the `espp` shared objects built and
+For all scripts, you must have the `espp` shared objects built and the required Python dependencies installed:
+
+```bash
+pip install -r requirements.txt
+```
+
+**Note**: The COBS demo script (`cobs_demo.py`) requires the `cobs` library for cross-validation with the reference implementation.
 accessible in the `espp/lib` folder. See the [espp/lib](../lib/README.md)
 README for more details.
 

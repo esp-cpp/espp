@@ -19,6 +19,8 @@ EXAMPLE_RECURSIVE = YES
 
 PROJECT_NAME = "Espressif++ (ESPP), an ESP C++ Library"
 
+# NOTE: please ensure these are kept in alphabetical order, as that helps track
+#       what's here and what's not
 EXAMPLE_PATH =
 EXAMPLE_PATH += $(PROJECT_PATH)/components/adc/example/main/adc_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/ads1x15/example/main/ads1x15_example.cpp
@@ -36,6 +38,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/button/example/main/button_example.cp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/chsc6x/example/main/chsc6x_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/cli/example/main/cli_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/cobs/example/main/cobs_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/color/example/main/color_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/controller/example/main/controller_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/cst816/example/main/cst816_example.cpp
@@ -76,6 +79,7 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_exampl
 EXAMPLE_PATH += $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp
+EXAMPLE_PATH += $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp
 EXAMPLE_PATH += $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp
@@ -113,6 +117,9 @@ EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_
 EXTRACT_ALL = YES
 
 INPUT = $(PROJECT_PATH)/README.md
+
+# NOTE: please ensure these are kept in alphabetical order, as that helps track
+#       what's here and what's not
 INPUT += $(PROJECT_PATH)/components/adc/include/adc_types.hpp
 INPUT += $(PROJECT_PATH)/components/adc/include/oneshot_adc.hpp
 INPUT += $(PROJECT_PATH)/components/adc/include/continuous_adc.hpp
@@ -146,6 +153,8 @@ INPUT += $(PROJECT_PATH)/components/byte90/include/byte90.hpp
 INPUT += $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp
 INPUT += $(PROJECT_PATH)/components/cli/include/cli.hpp
 INPUT += $(PROJECT_PATH)/components/cli/include/line_input.hpp
+INPUT += $(PROJECT_PATH)/components/cobs/include/cobs.hpp
+INPUT += $(PROJECT_PATH)/components/cobs/include/cobs_stream.hpp
 INPUT += $(PROJECT_PATH)/components/color/include/color.hpp
 INPUT += $(PROJECT_PATH)/components/controller/include/controller.hpp
 INPUT += $(PROJECT_PATH)/components/cst816/include/cst816.hpp
@@ -227,6 +236,7 @@ INPUT += $(PROJECT_PATH)/components/nvs/include/nvs.hpp
 INPUT += $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp
 INPUT += $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp
 INPUT += $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp
+INPUT += $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp
 INPUT += $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp
 INPUT += $(PROJECT_PATH)/components/pid/include/pid.hpp
 INPUT += $(PROJECT_PATH)/components/qmi8658/include/qmi8658.hpp
@@ -309,7 +319,6 @@ PREDEFINED             = _DOXYGEN_ \
                          CONFIG_BT_NIMBLE_ROLE_PERIPHERAL \
                          CONFIG_BT_NIMBLE_ROLE_BROADCASTER \
                          CONFIG_BT_NIMBLE_EXT_ADV \
-                         CONFIG_COMPILER_CXX_EXCEPTIONS \
                          $(ENV_DOXYGEN_DEFINES)
 
 

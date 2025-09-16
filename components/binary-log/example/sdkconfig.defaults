@@ -2,9 +2,6 @@ CONFIG_IDF_TARGET="esp32s3"
 
 # Common ESP-related
 #
-# binary_log requires exceptions right now...
-# CONFIG_COMPILER_CXX_EXCEPTIONS=y
-
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="4MB"
 

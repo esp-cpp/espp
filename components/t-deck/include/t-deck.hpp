@@ -12,6 +12,7 @@
 #include <driver/gpio.h>
 #include <driver/i2s_std.h>
 #include <driver/spi_master.h>
+#include <hal/spi_ll.h>
 #include <hal/spi_types.h>
 
 #include <freertos/FreeRTOS.h>
@@ -60,6 +61,10 @@ public:
 
   /// Alias for the pixel type used by the TDeck display
   using Pixel = lv_color16_t;
+
+  /// Maximum number of bytes that can be transferred in a single SPI
+  /// transaction to the Display. 32k on the ESP32-S3.
+  static constexpr size_t SPI_MAX_TRANSFER_BYTES = SPI_LL_DMA_MAX_BIT_LEN / 8;
 
   /// Alias for the keypress callback for keyboard keypresses.
   using keypress_callback_t = TKeyboard::key_cb_fn;
@@ -250,12 +255,11 @@ public:
   /// \param touch_cb The touch callback function, called when the touchpad is
   ///        touched if not null
   /// \return true if the touchpad was successfully initialized, false otherwise
-  /// \warning This method should be called after the display has been
-  ///          initialized if you want the touchpad to be recognized and used
-  ///          with LVGL and its objects.
   /// \note This will configure the touchpad interrupt pin which will
   ///       automatically call the touch callback function when the touchpad is
   ///       touched
+  /// \note This can be called even if you have not initialized the display or
+  ///       the LCD.
   bool initialize_touch(const touch_callback_t &touch_cb = nullptr);
 
   /// Get the touchpad input

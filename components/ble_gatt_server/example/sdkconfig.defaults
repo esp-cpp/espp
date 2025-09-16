@@ -36,6 +36,3 @@ CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192
 
 # Set the ESP-NIMBLE-CPP Config
 CONFIG_NIMBLE_CPP_LOG_LEVEL_NONE=y
-
-# the cli library requires exceptions right now...
-CONFIG_COMPILER_CXX_EXCEPTIONS=y

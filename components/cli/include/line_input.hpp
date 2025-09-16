@@ -4,8 +4,6 @@
 
 #include <sdkconfig.h>
 
-#if CONFIG_COMPILER_CXX_EXCEPTIONS || defined(_DOXYGEN_)
-
 #include <algorithm>
 #include <atomic>
 #include <deque>
@@ -427,7 +425,5 @@ protected:
   std::atomic<bool> handle_control_commands_{true};
 };
 } // namespace espp
-
-#endif // CONFIG_COMPILER_CXX_EXCEPTIONS
 
 #endif // ESP_PLATFORM

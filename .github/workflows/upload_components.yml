@@ -46,6 +46,7 @@ jobs:
             components/byte90
             components/chsc6x
             components/cli
+            components/cobs
             components/codec
             components/color
             components/controller
@@ -90,6 +91,7 @@ jobs:
             components/ndef
             components/neopixel
             components/nvs
+            components/odrive_ascii
             components/pi4ioe5v
             components/pid
             components/pcf85063
