@@ -5,10 +5,11 @@
 
 namespace hid::page {
 class unicode;
-template <> constexpr inline auto get_info<unicode>() {
-  return info(0x0010, 0x0000, "Unicode",
-              [](hid::usage_id_t id) { return id ? "Unicode {}" : nullptr; });
-}
+template <> struct info<unicode> {
+  constexpr static page_id_t page_id = 0x0010;
+  constexpr static usage_id_t max_usage_id = 0x0000;
+  constexpr static const char *name = "Unicode";
+};
 class unicode {
 public:
   constexpr operator usage_id_t() const { return id; }

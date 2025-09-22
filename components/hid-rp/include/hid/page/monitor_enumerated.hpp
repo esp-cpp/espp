@@ -5,10 +5,11 @@
 
 namespace hid::page {
 class monitor_enumerated;
-template <> constexpr inline auto get_info<monitor_enumerated>() {
-  return info(0x0081, 0xffff, "Monitor Enumerated",
-              [](hid::usage_id_t id) { return id ? "ENUM_{}" : nullptr; });
-}
+template <> struct info<monitor_enumerated> {
+  constexpr static page_id_t page_id = 0x0081;
+  constexpr static usage_id_t max_usage_id = 0xffff;
+  constexpr static const char *name = "Monitor Enumerated";
+};
 class monitor_enumerated {
 public:
   constexpr operator usage_id_t() const { return id; }

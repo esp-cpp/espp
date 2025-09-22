@@ -14,31 +14,20 @@
 
 namespace hid::page {
 enum class playstation_vendor_00 : std::uint16_t;
+template <> struct info<playstation_vendor_00> {
+  constexpr static page_id_t page_id = 0xFF00;
+  constexpr static usage_id_t max_usage_id = 0xFFFF;
+  constexpr static const char *name = "Playstation Vendor Page (0xFF00)";
+};
+} // namespace hid::page
+
+namespace hid::page {
 enum class playstation_vendor_80 : std::uint16_t;
-template <> constexpr inline auto get_info<playstation_vendor_00>() {
-  return info(
-      0xFF00, 0xFFFF, "Playstation Vendor Page (0xFF00)",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
-template <> constexpr inline auto get_info<playstation_vendor_80>() {
-  return info(
-      0xFF80, 0xFFFF, "Playstation Vendor Page (0xFF80)",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
-enum class playstation_vendor_00 : std::uint16_t {};
-enum class playstation_vendor_80 : std::uint16_t {};
+template <> struct info<playstation_vendor_80> {
+  constexpr static page_id_t page_id = 0xFF80;
+  constexpr static usage_id_t max_usage_id = 0xFFFF;
+  constexpr static const char *name = "Playstation Vendor Page (0xFF80)";
+};
 } // namespace hid::page
 
 namespace espp {

@@ -5,25 +5,11 @@
 
 namespace hid::page {
 enum class monitor : std::uint8_t;
-template <> constexpr inline auto get_info<monitor>() {
-  return info(
-      0x0080, 0x0004, "Monitor",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        case 0x0001:
-          return "Monitor Control";
-        case 0x0002:
-          return "EDID Information";
-        case 0x0003:
-          return "VDIF Information";
-        case 0x0004:
-          return "VESA Version";
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
+template <> struct info<monitor> {
+  constexpr static page_id_t page_id = 0x0080;
+  constexpr static usage_id_t max_usage_id = 0x0004;
+  constexpr static const char *name = "Monitor";
+};
 enum class monitor : std::uint8_t {
   MONITOR_CONTROL = 0x0001,
   EDID_INFORMATION = 0x0002,

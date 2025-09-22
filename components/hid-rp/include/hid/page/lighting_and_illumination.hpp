@@ -5,83 +5,11 @@
 
 namespace hid::page {
 enum class lighting_and_illumination : std::uint8_t;
-template <> constexpr inline auto get_info<lighting_and_illumination>() {
-  return info(
-      0x0059, 0x0071, "Lighting and Illumination",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        case 0x0001:
-          return "Lamp Array";
-        case 0x0002:
-          return "Lamp Array Attributes Report";
-        case 0x0003:
-          return "Lamp Count";
-        case 0x0004:
-          return "Bounding Box Width (um)";
-        case 0x0005:
-          return "Bounding Box Height (um)";
-        case 0x0006:
-          return "Bounding Box Depth (um)";
-        case 0x0007:
-          return "Lamp Array Kind";
-        case 0x0008:
-          return "Minimal Update Interval (us)";
-        case 0x0020:
-          return "Lamp Attributes Request Report";
-        case 0x0021:
-          return "Lamp ID";
-        case 0x0022:
-          return "Lamp Attributes Response Report";
-        case 0x0023:
-          return "Position X (um)";
-        case 0x0024:
-          return "Position Y (um)";
-        case 0x0025:
-          return "Position Z (um)";
-        case 0x0026:
-          return "Lamp Purposes";
-        case 0x0027:
-          return "Update Latency (us)";
-        case 0x0028:
-          return "Red Level Count";
-        case 0x0029:
-          return "Green Level Count";
-        case 0x002a:
-          return "Blue Level Count";
-        case 0x002b:
-          return "Intensity Level Count";
-        case 0x002c:
-          return "Programmable";
-        case 0x002d:
-          return "Input Binding";
-        case 0x0050:
-          return "Lamp Multi Update Report";
-        case 0x0051:
-          return "Red Update Channel";
-        case 0x0052:
-          return "Green Update Channel";
-        case 0x0053:
-          return "Blue Update Channel";
-        case 0x0054:
-          return "Intensity Update Channel";
-        case 0x0055:
-          return "Lamp Update Flags";
-        case 0x0060:
-          return "Lamp Range Update Report";
-        case 0x0061:
-          return "Lamp ID Start";
-        case 0x0062:
-          return "Lamp ID End";
-        case 0x0070:
-          return "Lamp Array Control Report";
-        case 0x0071:
-          return "Autonomous Mode";
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
+template <> struct info<lighting_and_illumination> {
+  constexpr static page_id_t page_id = 0x0059;
+  constexpr static usage_id_t max_usage_id = 0x0071;
+  constexpr static const char *name = "Lighting and Illumination";
+};
 enum class lighting_and_illumination : std::uint8_t {
   LAMP_ARRAY = 0x0001,
   LAMP_ARRAY_ATTRIBUTES_REPORT = 0x0002,

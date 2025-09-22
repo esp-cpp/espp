@@ -5,107 +5,11 @@
 
 namespace hid::page {
 enum class vesa_virtual : std::uint8_t;
-template <> constexpr inline auto get_info<vesa_virtual>() {
-  return info(
-      0x0082, 0x00d4, "VESA Virtual Controls",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        case 0x0001:
-          return "Degauss";
-        case 0x0010:
-          return "Brightness";
-        case 0x0012:
-          return "Contrast";
-        case 0x0016:
-          return "Red Video Gain";
-        case 0x0018:
-          return "Green Video Gain";
-        case 0x001a:
-          return "Blue Video Gain";
-        case 0x001c:
-          return "Focus";
-        case 0x0020:
-          return "Horizontal Position";
-        case 0x0022:
-          return "Horizontal Size";
-        case 0x0024:
-          return "Horizontal Pincushion";
-        case 0x0026:
-          return "Horizontal Pincushion Balance";
-        case 0x0028:
-          return "Horizontal Misconvergence";
-        case 0x002a:
-          return "Horizontal Linearity";
-        case 0x002c:
-          return "Horizontal Linearity Balance";
-        case 0x0030:
-          return "Vertical Position";
-        case 0x0032:
-          return "Vertical Size";
-        case 0x0034:
-          return "Vertical Pincushion";
-        case 0x0036:
-          return "Vertical Pincushion Balance";
-        case 0x0038:
-          return "Vertical Misconvergence";
-        case 0x003a:
-          return "Vertical Linearity";
-        case 0x003c:
-          return "Vertical Linearity Balance";
-        case 0x0040:
-          return "Parallelogram Distortion (Key Balance)";
-        case 0x0042:
-          return "Trapezoidal Distortion (Key)";
-        case 0x0044:
-          return "Tilt (Rotation)";
-        case 0x0046:
-          return "Top Corner Distortion Control";
-        case 0x0048:
-          return "Top Corner Distortion Balance";
-        case 0x004a:
-          return "Bottom Corner Distortion Control";
-        case 0x004c:
-          return "Bottom Corner Distortion Balance";
-        case 0x0056:
-          return "Horizontal Moire";
-        case 0x0058:
-          return "Vertical Moire";
-        case 0x005e:
-          return "Input Level Select";
-        case 0x0060:
-          return "Input Source Select";
-        case 0x006c:
-          return "Red Video Black Level";
-        case 0x006e:
-          return "Green Video Black Level";
-        case 0x0070:
-          return "Blue Video Black Level";
-        case 0x00a2:
-          return "Auto Size Center";
-        case 0x00a4:
-          return "Polarity Horizontal Synchronization";
-        case 0x00a6:
-          return "Polarity Vertical Synchronization";
-        case 0x00a8:
-          return "Synchronization Type";
-        case 0x00aa:
-          return "Screen Orientation";
-        case 0x00ac:
-          return "Horizontal Frequency";
-        case 0x00ae:
-          return "Vertical Frequency";
-        case 0x00b0:
-          return "Settings";
-        case 0x00ca:
-          return "On Screen Display";
-        case 0x00d4:
-          return "StereoMode";
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
+template <> struct info<vesa_virtual> {
+  constexpr static page_id_t page_id = 0x0082;
+  constexpr static usage_id_t max_usage_id = 0x00d4;
+  constexpr static const char *name = "VESA Virtual Controls";
+};
 enum class vesa_virtual : std::uint8_t {
   DEGAUSS = 0x0001,
   BRIGHTNESS = 0x0010,

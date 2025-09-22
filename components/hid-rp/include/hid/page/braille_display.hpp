@@ -5,103 +5,11 @@
 
 namespace hid::page {
 enum class braille_display : std::uint16_t;
-template <> constexpr inline auto get_info<braille_display>() {
-  return info(
-      0x0041, 0x021e, "Braille Display",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        case 0x0001:
-          return "Braille Display";
-        case 0x0002:
-          return "Braille Row";
-        case 0x0003:
-          return "8 Dot Braille Cell";
-        case 0x0004:
-          return "6 Dot Braille Cell";
-        case 0x0005:
-          return "Number of Braille Cells";
-        case 0x0006:
-          return "Screen Reader Control";
-        case 0x0007:
-          return "Screen Reader Identifier";
-        case 0x00fa:
-          return "Router Set 1";
-        case 0x00fb:
-          return "Router Set 2";
-        case 0x00fc:
-          return "Router Set 3";
-        case 0x0100:
-          return "Router Key";
-        case 0x0101:
-          return "Row Router Key";
-        case 0x0200:
-          return "Braille Buttons";
-        case 0x0201:
-          return "Braille Keyboard Dot 1";
-        case 0x0202:
-          return "Braille Keyboard Dot 2";
-        case 0x0203:
-          return "Braille Keyboard Dot 3";
-        case 0x0204:
-          return "Braille Keyboard Dot 4";
-        case 0x0205:
-          return "Braille Keyboard Dot 5";
-        case 0x0206:
-          return "Braille Keyboard Dot 6";
-        case 0x0207:
-          return "Braille Keyboard Dot 7";
-        case 0x0208:
-          return "Braille Keyboard Dot 8";
-        case 0x0209:
-          return "Braille Keyboard Space";
-        case 0x020a:
-          return "Braille Keyboard Left Space";
-        case 0x020b:
-          return "Braille Keyboard Right Space";
-        case 0x020c:
-          return "Braille Face Controls";
-        case 0x020d:
-          return "Braille Left Controls";
-        case 0x020e:
-          return "Braille Right Controls";
-        case 0x020f:
-          return "Braille Top Controls";
-        case 0x0210:
-          return "Braille Joystick Center";
-        case 0x0211:
-          return "Braille Joystick Up";
-        case 0x0212:
-          return "Braille Joystick Down";
-        case 0x0213:
-          return "Braille Joystick Left";
-        case 0x0214:
-          return "Braille Joystick Right";
-        case 0x0215:
-          return "Braille D-Pad Center";
-        case 0x0216:
-          return "Braille D-Pad Up";
-        case 0x0217:
-          return "Braille D-Pad Down";
-        case 0x0218:
-          return "Braille D-Pad Left";
-        case 0x0219:
-          return "Braille D-Pad Right";
-        case 0x021a:
-          return "Braille Pan Left";
-        case 0x021b:
-          return "Braille Pan Right";
-        case 0x021c:
-          return "Braille Rocker Up";
-        case 0x021d:
-          return "Braille Rocker Down";
-        case 0x021e:
-          return "Braille Rocker Press";
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
+template <> struct info<braille_display> {
+  constexpr static page_id_t page_id = 0x0041;
+  constexpr static usage_id_t max_usage_id = 0x021e;
+  constexpr static const char *name = "Braille Display";
+};
 enum class braille_display : std::uint16_t {
   BRAILLE_DISPLAY = 0x0001,
   BRAILLE_ROW = 0x0002,

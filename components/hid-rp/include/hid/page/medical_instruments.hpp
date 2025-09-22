@@ -5,75 +5,11 @@
 
 namespace hid::page {
 enum class medical_instruments : std::uint8_t;
-template <> constexpr inline auto get_info<medical_instruments>() {
-  return info(
-      0x0040, 0x00a1, "Medical Instrument",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        case 0x0001:
-          return "Medical Ultrasound";
-        case 0x0020:
-          return "VCR/Acquisition";
-        case 0x0021:
-          return "Freeze/Thaw";
-        case 0x0022:
-          return "Clip Store";
-        case 0x0023:
-          return "Update";
-        case 0x0024:
-          return "Next";
-        case 0x0025:
-          return "Save";
-        case 0x0026:
-          return "Print";
-        case 0x0027:
-          return "Microphone Enable";
-        case 0x0040:
-          return "Cine";
-        case 0x0041:
-          return "Transmit Power";
-        case 0x0042:
-          return "Volume";
-        case 0x0043:
-          return "Focus";
-        case 0x0044:
-          return "Depth";
-        case 0x0060:
-          return "Soft Step - Primary";
-        case 0x0061:
-          return "Soft Step - Secondary";
-        case 0x0070:
-          return "Depth Gain Compensation";
-        case 0x0080:
-          return "Zoom Select";
-        case 0x0081:
-          return "Zoom Adjust";
-        case 0x0082:
-          return "Spectral Doppler Mode Select";
-        case 0x0083:
-          return "Spectral Doppler Adjust";
-        case 0x0084:
-          return "Color Doppler Mode Select";
-        case 0x0085:
-          return "Color Doppler Adjust";
-        case 0x0086:
-          return "Motion Mode Select";
-        case 0x0087:
-          return "Motion Mode Adjust";
-        case 0x0088:
-          return "2-D Mode Select";
-        case 0x0089:
-          return "2-D Mode Adjust";
-        case 0x00a0:
-          return "Soft Control Select";
-        case 0x00a1:
-          return "Soft Control Adjust";
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
+template <> struct info<medical_instruments> {
+  constexpr static page_id_t page_id = 0x0040;
+  constexpr static usage_id_t max_usage_id = 0x00a1;
+  constexpr static const char *name = "Medical Instrument";
+};
 enum class medical_instruments : std::uint8_t {
   MEDICAL_ULTRASOUND = 0x0001,
   VCR_ACQUISITION = 0x0020,

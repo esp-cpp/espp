@@ -5,71 +5,11 @@
 
 namespace hid::page {
 enum class arcade : std::uint8_t;
-template <> constexpr inline auto get_info<arcade>() {
-  return info(
-      0x0091, 0x004d, "Arcade",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        case 0x0001:
-          return "General Purpose IO Card";
-        case 0x0002:
-          return "Coin Door";
-        case 0x0003:
-          return "Watchdog Timer";
-        case 0x0030:
-          return "General Purpose Analog Input State";
-        case 0x0031:
-          return "General Purpose Digital Input State";
-        case 0x0032:
-          return "General Purpose Optical Input State";
-        case 0x0033:
-          return "General Purpose Digital Output State";
-        case 0x0034:
-          return "Number of Coin Doors";
-        case 0x0035:
-          return "Coin Drawer Drop Count";
-        case 0x0036:
-          return "Coin Drawer Start";
-        case 0x0037:
-          return "Coin Drawer Service";
-        case 0x0038:
-          return "Coin Drawer Tilt";
-        case 0x0039:
-          return "Coin Door Test";
-        case 0x0040:
-          return "Coin Door Lockout";
-        case 0x0041:
-          return "Watchdog Timeout";
-        case 0x0042:
-          return "Watchdog Action";
-        case 0x0043:
-          return "Watchdog Reboot";
-        case 0x0044:
-          return "Watchdog Restart";
-        case 0x0045:
-          return "Alarm Input";
-        case 0x0046:
-          return "Coin Door Counter";
-        case 0x0047:
-          return "I/O Direction Mapping";
-        case 0x0048:
-          return "Set I/O Direction Mapping";
-        case 0x0049:
-          return "Extended Optical Input State";
-        case 0x004a:
-          return "Pin Pad Input State";
-        case 0x004b:
-          return "Pin Pad Status";
-        case 0x004c:
-          return "Pin Pad Output";
-        case 0x004d:
-          return "Pin Pad Command";
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
+template <> struct info<arcade> {
+  constexpr static page_id_t page_id = 0x0091;
+  constexpr static usage_id_t max_usage_id = 0x004d;
+  constexpr static const char *name = "Arcade";
+};
 enum class arcade : std::uint8_t {
   GENERAL_PURPOSE_IO_CARD = 0x0001,
   COIN_DOOR = 0x0002,

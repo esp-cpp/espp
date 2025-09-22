@@ -5,85 +5,11 @@
 
 namespace hid::page {
 enum class sport : std::uint8_t;
-template <> constexpr inline auto get_info<sport>() {
-  return info(
-      0x0004, 0x0063, "Sport Controls",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        case 0x0001:
-          return "Baseball Bat";
-        case 0x0002:
-          return "Golf Club";
-        case 0x0003:
-          return "Rowing Machine";
-        case 0x0004:
-          return "Treadmill";
-        case 0x0030:
-          return "Oar";
-        case 0x0031:
-          return "Slope";
-        case 0x0032:
-          return "Rate";
-        case 0x0033:
-          return "Stick Speed";
-        case 0x0034:
-          return "Stick Face Angle";
-        case 0x0035:
-          return "Stick Heel/Toe";
-        case 0x0036:
-          return "Stick Follow Through";
-        case 0x0037:
-          return "Stick Tempo";
-        case 0x0038:
-          return "Stick Type";
-        case 0x0039:
-          return "Stick Height";
-        case 0x0050:
-          return "Putter";
-        case 0x0051:
-          return "1 Iron";
-        case 0x0052:
-          return "2 Iron";
-        case 0x0053:
-          return "3 Iron";
-        case 0x0054:
-          return "4 Iron";
-        case 0x0055:
-          return "5 Iron";
-        case 0x0056:
-          return "6 Iron";
-        case 0x0057:
-          return "7 Iron";
-        case 0x0058:
-          return "8 Iron";
-        case 0x0059:
-          return "9 Iron";
-        case 0x005a:
-          return "10 Iron";
-        case 0x005b:
-          return "11 Iron";
-        case 0x005c:
-          return "Sand Wedge";
-        case 0x005d:
-          return "Loft Wedge";
-        case 0x005e:
-          return "Power Wedge";
-        case 0x005f:
-          return "1 Wood";
-        case 0x0060:
-          return "3 Wood";
-        case 0x0061:
-          return "5 Wood";
-        case 0x0062:
-          return "7 Wood";
-        case 0x0063:
-          return "9 Wood";
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
+template <> struct info<sport> {
+  constexpr static page_id_t page_id = 0x0004;
+  constexpr static usage_id_t max_usage_id = 0x0063;
+  constexpr static const char *name = "Sport Controls";
+};
 enum class sport : std::uint8_t {
   BASEBALL_BAT = 0x0001,
   GOLF_CLUB = 0x0002,

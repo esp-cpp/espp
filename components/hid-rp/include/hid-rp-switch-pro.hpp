@@ -7,18 +7,11 @@
 
 namespace hid::page {
 enum class switch_vendor : std::uint16_t;
-template <> constexpr inline auto get_info<switch_vendor>() {
-  return info(
-      0xFF00, 0xFFFF, "Switch Vendor Page (0xFF00)",
-      [](hid::usage_id_t id) {
-        switch (id) {
-        default:
-          return (const char *)nullptr;
-        }
-      },
-      0x0000);
-}
-enum class switch_vendor : std::uint16_t {};
+template <> struct info<switch_vendor> {
+  constexpr static page_id_t page_id = 0xFF00;
+  constexpr static usage_id_t max_usage_id = 0xFFFF;
+  constexpr static const char *name = "Switch Vendor Page";
+};
 } // namespace hid::page
 
 namespace espp {
