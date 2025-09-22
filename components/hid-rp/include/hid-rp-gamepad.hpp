@@ -277,7 +277,9 @@ public:
 
   /// Set the hat switch value
   /// \param hat The hat switch value to set.
-  constexpr void set_hat_switch(Hat hat) { hat_switch = static_cast<std::uint8_t>(hat); }
+  constexpr void set_hat_switch(Hat hat) { // cppcheck-suppress passedByValue
+    hat_switch = static_cast<std::uint8_t>(hat);
+  }
   /// Set the hat switch value
   /// \param value The hat switch value to set.
   /// \note The value should match the values within the Hat enum.
