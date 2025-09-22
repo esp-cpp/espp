@@ -5,11 +5,453 @@
 
 namespace hid::page {
 enum class keyboard_keypad : std::uint8_t;
-template <> struct info<keyboard_keypad> {
-  constexpr static page_id_t page_id = 0x0007;
-  constexpr static usage_id_t max_usage_id = 0x00e7;
-  constexpr static const char *name = "Keyboard/Keypad";
-};
+template <> constexpr inline auto get_info<keyboard_keypad>() {
+  return info(
+      0x0007, 0x00e7, "Keyboard/Keypad",
+      [](hid::usage_id_t id) {
+        switch (id) {
+        case 0x0001:
+          return "Error RollOver";
+        case 0x0002:
+          return "POST Fail";
+        case 0x0003:
+          return "Error Undefined";
+        case 0x0004:
+          return "Keyboard A";
+        case 0x0005:
+          return "Keyboard B";
+        case 0x0006:
+          return "Keyboard C";
+        case 0x0007:
+          return "Keyboard D";
+        case 0x0008:
+          return "Keyboard E";
+        case 0x0009:
+          return "Keyboard F";
+        case 0x000a:
+          return "Keyboard G";
+        case 0x000b:
+          return "Keyboard H";
+        case 0x000c:
+          return "Keyboard I";
+        case 0x000d:
+          return "Keyboard J";
+        case 0x000e:
+          return "Keyboard K";
+        case 0x000f:
+          return "Keyboard L";
+        case 0x0010:
+          return "Keyboard M";
+        case 0x0011:
+          return "Keyboard N";
+        case 0x0012:
+          return "Keyboard O";
+        case 0x0013:
+          return "Keyboard P";
+        case 0x0014:
+          return "Keyboard Q";
+        case 0x0015:
+          return "Keyboard R";
+        case 0x0016:
+          return "Keyboard S";
+        case 0x0017:
+          return "Keyboard T";
+        case 0x0018:
+          return "Keyboard U";
+        case 0x0019:
+          return "Keyboard V";
+        case 0x001a:
+          return "Keyboard W";
+        case 0x001b:
+          return "Keyboard X";
+        case 0x001c:
+          return "Keyboard Y";
+        case 0x001d:
+          return "Keyboard Z";
+        case 0x001e:
+          return "Keyboard 1 ! (Bang)";
+        case 0x001f:
+          return "Keyboard 2 @ (At)";
+        case 0x0020:
+          return "Keyboard 3 # (Hash)";
+        case 0x0021:
+          return "Keyboard 4 $ (Dollar)";
+        case 0x0022:
+          return "Keyboard 5 % (Percent)";
+        case 0x0023:
+          return "Keyboard 6 ^ (Caret)";
+        case 0x0024:
+          return "Keyboard 7 & (Ampersand)";
+        case 0x0025:
+          return "Keyboard 8 * (Star)";
+        case 0x0026:
+          return "Keyboard 9 ( (Left Bracket)";
+        case 0x0027:
+          return "Keyboard 0 ) (Right Bracket)";
+        case 0x0028:
+          return "Keyboard Enter";
+        case 0x0029:
+          return "Keyboard Escape";
+        case 0x002a:
+          return "Keyboard Backspace";
+        case 0x002b:
+          return "Keyboard Tab";
+        case 0x002c:
+          return "Keyboard Space";
+        case 0x002d:
+          return "Keyboard - _ (Dash Underscore)";
+        case 0x002e:
+          return "Keyboard = + (Equals Plus)";
+        case 0x002f:
+          return "Keyboard [ { (Left Brace)";
+        case 0x0030:
+          return "Keyboard ] } (Right Brace)";
+        case 0x0031:
+          return "Keyboard \\ | (Backslash Pipe)";
+        case 0x0032:
+          return "Keyboard # ~ (Non-US Hash Tilde)";
+        case 0x0033:
+          return "Keyboard ; : (Semicolon Colon)";
+        case 0x0034:
+          return "Keyboard ' \" (Left Apos Double)";
+        case 0x0035:
+          return "Keyboard ` ´ (Grave Accent Tilde)";
+        case 0x0036:
+          return "Keyboard , < (Comma Less)";
+        case 0x0037:
+          return "Keyboard . > (Period Greater)";
+        case 0x0038:
+          return "Keyboard / ? (ForwardSlash QuestionMark)";
+        case 0x0039:
+          return "Keyboard Caps Lock";
+        case 0x003a:
+          return "Keyboard F1";
+        case 0x003b:
+          return "Keyboard F2";
+        case 0x003c:
+          return "Keyboard F3";
+        case 0x003d:
+          return "Keyboard F4";
+        case 0x003e:
+          return "Keyboard F5";
+        case 0x003f:
+          return "Keyboard F6";
+        case 0x0040:
+          return "Keyboard F7";
+        case 0x0041:
+          return "Keyboard F8";
+        case 0x0042:
+          return "Keyboard F9";
+        case 0x0043:
+          return "Keyboard F10";
+        case 0x0044:
+          return "Keyboard F11";
+        case 0x0045:
+          return "Keyboard F12";
+        case 0x0046:
+          return "Keyboard PrintScreen";
+        case 0x0047:
+          return "Keyboard Scroll Lock";
+        case 0x0048:
+          return "Keyboard Pause";
+        case 0x0049:
+          return "Keyboard Insert";
+        case 0x004a:
+          return "Keyboard Home";
+        case 0x004b:
+          return "Keyboard PageUp";
+        case 0x004c:
+          return "Keyboard Delete";
+        case 0x004d:
+          return "Keyboard End";
+        case 0x004e:
+          return "Keyboard PageDown";
+        case 0x004f:
+          return "Keyboard RightArrow";
+        case 0x0050:
+          return "Keyboard LeftArrow";
+        case 0x0051:
+          return "Keyboard DownArrow";
+        case 0x0052:
+          return "Keyboard UpArrow";
+        case 0x0053:
+          return "Keypad Num Lock and Clear";
+        case 0x0054:
+          return "Keypad / (ForwardSlash)";
+        case 0x0055:
+          return "Keypad * (Star)";
+        case 0x0056:
+          return "Keypad - (Dash)";
+        case 0x0057:
+          return "Keypad + (Plus)";
+        case 0x0058:
+          return "Keypad Enter";
+        case 0x0059:
+          return "Keypad 1 End";
+        case 0x005a:
+          return "Keypad 2 Down Arrow";
+        case 0x005b:
+          return "Keypad 3 PageDn";
+        case 0x005c:
+          return "Keypad 4 Left Arrow";
+        case 0x005d:
+          return "Keypad 5";
+        case 0x005e:
+          return "Keypad 6 Right Arrow";
+        case 0x005f:
+          return "Keypad 7 Home";
+        case 0x0060:
+          return "Keypad 8 Up Arrow";
+        case 0x0061:
+          return "Keypad 9 PageUp";
+        case 0x0062:
+          return "Keypad 0 Insert";
+        case 0x0063:
+          return "Keypad . Delete";
+        case 0x0064:
+          return "Keyboard \\ | (Non-US Backslash Pipe)";
+        case 0x0065:
+          return "Keyboard Application";
+        case 0x0066:
+          return "Keyboard Power";
+        case 0x0067:
+          return "Keypad = (Equals)";
+        case 0x0068:
+          return "Keyboard F13";
+        case 0x0069:
+          return "Keyboard F14";
+        case 0x006a:
+          return "Keyboard F15";
+        case 0x006b:
+          return "Keyboard F16";
+        case 0x006c:
+          return "Keyboard F17";
+        case 0x006d:
+          return "Keyboard F18";
+        case 0x006e:
+          return "Keyboard F19";
+        case 0x006f:
+          return "Keyboard F20";
+        case 0x0070:
+          return "Keyboard F21";
+        case 0x0071:
+          return "Keyboard F22";
+        case 0x0072:
+          return "Keyboard F23";
+        case 0x0073:
+          return "Keyboard F24";
+        case 0x0074:
+          return "Keyboard Execute";
+        case 0x0075:
+          return "Keyboard Help";
+        case 0x0076:
+          return "Keyboard Menu";
+        case 0x0077:
+          return "Keyboard Select";
+        case 0x0078:
+          return "Keyboard Stop";
+        case 0x0079:
+          return "Keyboard Again";
+        case 0x007a:
+          return "Keyboard Undo";
+        case 0x007b:
+          return "Keyboard Cut";
+        case 0x007c:
+          return "Keyboard Copy";
+        case 0x007d:
+          return "Keyboard Paste";
+        case 0x007e:
+          return "Keyboard Find";
+        case 0x007f:
+          return "Keyboard Mute";
+        case 0x0080:
+          return "Keyboard Volume Up";
+        case 0x0081:
+          return "Keyboard Volume Down";
+        case 0x0082:
+          return "Keyboard Locking Caps Lock";
+        case 0x0083:
+          return "Keyboard Locking Num Lock";
+        case 0x0084:
+          return "Keyboard Locking Scroll Lock";
+        case 0x0085:
+          return "Keypad Comma";
+        case 0x0086:
+          return "Keypad Equal Sign";
+        case 0x0087:
+          return "Keyboard International1";
+        case 0x0088:
+          return "Keyboard International2";
+        case 0x0089:
+          return "Keyboard International3";
+        case 0x008a:
+          return "Keyboard International4";
+        case 0x008b:
+          return "Keyboard International5";
+        case 0x008c:
+          return "Keyboard International6";
+        case 0x008d:
+          return "Keyboard International7";
+        case 0x008e:
+          return "Keyboard International8";
+        case 0x008f:
+          return "Keyboard International9";
+        case 0x0090:
+          return "Keyboard LANG1";
+        case 0x0091:
+          return "Keyboard LANG2";
+        case 0x0092:
+          return "Keyboard LANG3";
+        case 0x0093:
+          return "Keyboard LANG4";
+        case 0x0094:
+          return "Keyboard LANG5";
+        case 0x0095:
+          return "Keyboard LANG6";
+        case 0x0096:
+          return "Keyboard LANG7";
+        case 0x0097:
+          return "Keyboard LANG8";
+        case 0x0098:
+          return "Keyboard LANG9";
+        case 0x0099:
+          return "Keyboard Alternate Erase";
+        case 0x009a:
+          return "Keyboard SysReq Attention";
+        case 0x009b:
+          return "Keyboard Cancel";
+        case 0x009c:
+          return "Keyboard Clear";
+        case 0x009d:
+          return "Keyboard Prior";
+        case 0x009e:
+          return "Keyboard Return";
+        case 0x009f:
+          return "Keyboard Separator";
+        case 0x00a0:
+          return "Keyboard Out";
+        case 0x00a1:
+          return "Keyboard Oper";
+        case 0x00a2:
+          return "Keyboard Clear/Again";
+        case 0x00a3:
+          return "Keyboard CrSel/Props";
+        case 0x00a4:
+          return "Keyboard ExSel";
+        case 0x00b0:
+          return "Keypad 00";
+        case 0x00b1:
+          return "Keypad 000";
+        case 0x00b2:
+          return "Thousands Separator";
+        case 0x00b3:
+          return "Decimal Separator";
+        case 0x00b4:
+          return "Currency Unit";
+        case 0x00b5:
+          return "Currency Sub-unit";
+        case 0x00b6:
+          return "Keypad ( (Left Bracket)";
+        case 0x00b7:
+          return "Keypad ) (Right Bracket)";
+        case 0x00b8:
+          return "Keypad { (Left Brace)";
+        case 0x00b9:
+          return "Keypad } (Right Brace)";
+        case 0x00ba:
+          return "Keypad Tab";
+        case 0x00bb:
+          return "Keypad Backspace";
+        case 0x00bc:
+          return "Keypad A";
+        case 0x00bd:
+          return "Keypad B";
+        case 0x00be:
+          return "Keypad C";
+        case 0x00bf:
+          return "Keypad D";
+        case 0x00c0:
+          return "Keypad E";
+        case 0x00c1:
+          return "Keypad F";
+        case 0x00c2:
+          return "Keypad XOR";
+        case 0x00c3:
+          return "Keypad ^ (Caret)";
+        case 0x00c4:
+          return "Keypad % (Percent)";
+        case 0x00c5:
+          return "Keypad < (Less)";
+        case 0x00c6:
+          return "Keypad > (Greater)";
+        case 0x00c7:
+          return "Keypad & (Ampersand)";
+        case 0x00c8:
+          return "Keypad && (Double Ampersand)";
+        case 0x00c9:
+          return "Keypad | (Bar)";
+        case 0x00ca:
+          return "Keypad || (Double Bar)";
+        case 0x00cb:
+          return "Keypad : (Colon)";
+        case 0x00cc:
+          return "Keypad # (Hash)";
+        case 0x00cd:
+          return "Keypad Space";
+        case 0x00ce:
+          return "Keypad @ (At)";
+        case 0x00cf:
+          return "Keypad ! (Bang)";
+        case 0x00d0:
+          return "Keypad Memory Store";
+        case 0x00d1:
+          return "Keypad Memory Recall";
+        case 0x00d2:
+          return "Keypad Memory Clear";
+        case 0x00d3:
+          return "Keypad Memory Add";
+        case 0x00d4:
+          return "Keypad Memory Subtract";
+        case 0x00d5:
+          return "Keypad Memory Multiply";
+        case 0x00d6:
+          return "Keypad Memory Divide";
+        case 0x00d7:
+          return "Keypad +/- (Plus Minus)";
+        case 0x00d8:
+          return "Keypad Clear";
+        case 0x00d9:
+          return "Keypad Clear Entry";
+        case 0x00da:
+          return "Keypad Binary";
+        case 0x00db:
+          return "Keypad Octal";
+        case 0x00dc:
+          return "Keypad Decimal";
+        case 0x00dd:
+          return "Keypad Hexadecimal";
+        case 0x00e0:
+          return "Keyboard Left Control";
+        case 0x00e1:
+          return "Keyboard Left Shift";
+        case 0x00e2:
+          return "Keyboard Left Alt";
+        case 0x00e3:
+          return "Keyboard Left GUI";
+        case 0x00e4:
+          return "Keyboard Right Control";
+        case 0x00e5:
+          return "Keyboard Right Shift";
+        case 0x00e6:
+          return "Keyboard Right Alt";
+        case 0x00e7:
+          return "Keyboard Right GUI";
+        default:
+          return (const char *)nullptr;
+        }
+      },
+      0x0000);
+}
 enum class keyboard_keypad : std::uint8_t {
   ERROR_ROLLOVER = 0x0001,
   POST_FAIL = 0x0002,

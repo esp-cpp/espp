@@ -5,7 +5,8 @@ The `hid-rp` component provides a wrapper around
 https://github.com/intergatedcircuits/hid-rp and also provides an example
 implementation of a configurable HID Gamepad using hid-rp.
 
-It also implements Switch Pro and Xbox gamepad reports.
+It also implements Playstation Dualsense, Nintendo Switch Pro, and Xbox gamepad
+reports.
 
 .. ------------------------------- Example -------------------------------------
 
@@ -18,7 +19,10 @@ It also implements Switch Pro and Xbox gamepad reports.
 API Reference
 -------------
 
+.. include-build-file:: inc/gamepad_hat.inc
+.. include-build-file:: inc/gamepad_imu.inc
 .. include-build-file:: inc/hid-rp.inc
 .. include-build-file:: inc/hid-rp-gamepad.inc
+.. include-build-file:: inc/hid-rp-playstation.inc
 .. include-build-file:: inc/hid-rp-switch-pro.inc
 .. include-build-file:: inc/hid-rp-xbox.inc

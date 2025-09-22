@@ -5,11 +5,37 @@
 
 namespace hid::page {
 enum class magnetic_stripe_reader : std::uint8_t;
-template <> struct info<magnetic_stripe_reader> {
-  constexpr static page_id_t page_id = 0x008e;
-  constexpr static usage_id_t max_usage_id = 0x0024;
-  constexpr static const char *name = "Magnetic Stripe Reader";
-};
+template <> constexpr inline auto get_info<magnetic_stripe_reader>() {
+  return info(
+      0x008e, 0x0024, "Magnetic Stripe Reader",
+      [](hid::usage_id_t id) {
+        switch (id) {
+        case 0x0001:
+          return "MSR Device Read-Only";
+        case 0x0011:
+          return "Track 1 Length";
+        case 0x0012:
+          return "Track 2 Length";
+        case 0x0013:
+          return "Track 3 Length";
+        case 0x0014:
+          return "Track JIS Length";
+        case 0x0020:
+          return "Track Data";
+        case 0x0021:
+          return "Track 1 Data";
+        case 0x0022:
+          return "Track 2 Data";
+        case 0x0023:
+          return "Track 3 Data";
+        case 0x0024:
+          return "Track JIS Data";
+        default:
+          return (const char *)nullptr;
+        }
+      },
+      0x0000);
+}
 enum class magnetic_stripe_reader : std::uint8_t {
   MSR_DEVICE_READ_ONLY = 0x0001,
   TRACK_1_LENGTH = 0x0011,

@@ -5,11 +5,10 @@
 
 namespace hid::page {
 class ordinal;
-template <> struct info<ordinal> {
-  constexpr static page_id_t page_id = 0x000a;
-  constexpr static usage_id_t max_usage_id = 0xffff;
-  constexpr static const char *name = "Ordinal";
-};
+template <> constexpr inline auto get_info<ordinal>() {
+  return info(0x000a, 0xffff, "Ordinal",
+              [](hid::usage_id_t id) { return id ? "Instance {}" : nullptr; });
+}
 class ordinal {
 public:
   constexpr operator usage_id_t() const { return id; }

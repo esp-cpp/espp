@@ -5,11 +5,199 @@
 
 namespace hid::page {
 enum class battery_system : std::uint8_t;
-template <> struct info<battery_system> {
-  constexpr static page_id_t page_id = 0x0085;
-  constexpr static usage_id_t max_usage_id = 0x00f3;
-  constexpr static const char *name = "Battery System";
-};
+template <> constexpr inline auto get_info<battery_system>() {
+  return info(
+      0x0085, 0x00f3, "Battery System",
+      [](hid::usage_id_t id) {
+        switch (id) {
+        case 0x0001:
+          return "Smart Battery Battery Mode";
+        case 0x0002:
+          return "Smart Battery Battery Status";
+        case 0x0003:
+          return "Smart Battery Alarm Warning";
+        case 0x0004:
+          return "Smart Battery Charger Mode";
+        case 0x0005:
+          return "Smart Battery Charger Status";
+        case 0x0006:
+          return "Smart Battery Charger Spec Info";
+        case 0x0007:
+          return "Smart Battery Selector State";
+        case 0x0008:
+          return "Smart Battery Selector Presets";
+        case 0x0009:
+          return "Smart Battery Selector Info";
+        case 0x0010:
+          return "Optional Mfg Function 1";
+        case 0x0011:
+          return "Optional Mfg Function 2";
+        case 0x0012:
+          return "Optional Mfg Function 3";
+        case 0x0013:
+          return "Optional Mfg Function 4";
+        case 0x0014:
+          return "Optional Mfg Function 5";
+        case 0x0015:
+          return "Connection To SM Bus";
+        case 0x0016:
+          return "Output Connection";
+        case 0x0017:
+          return "Charger Connection";
+        case 0x0018:
+          return "Battery Insertion";
+        case 0x0019:
+          return "Use Next";
+        case 0x001a:
+          return "OK To Use";
+        case 0x001b:
+          return "Battery Supported";
+        case 0x001c:
+          return "Selector Revision";
+        case 0x001d:
+          return "Charging Indicator";
+        case 0x0028:
+          return "Manufacturer Access";
+        case 0x0029:
+          return "Remaining Capacity Limit";
+        case 0x002a:
+          return "Remaining Time Limit";
+        case 0x002b:
+          return "At Rate";
+        case 0x002c:
+          return "Capacity Mode";
+        case 0x002d:
+          return "Broadcast To Charger";
+        case 0x002e:
+          return "Primary Battery";
+        case 0x002f:
+          return "Charge Controller";
+        case 0x0040:
+          return "Terminate Charge";
+        case 0x0041:
+          return "Terminate Discharge";
+        case 0x0042:
+          return "Below Remaining Capacity Limit";
+        case 0x0043:
+          return "Remaining Time Limit Expired";
+        case 0x0044:
+          return "Charging";
+        case 0x0045:
+          return "Discharging";
+        case 0x0046:
+          return "Fully Charged";
+        case 0x0047:
+          return "Fully Discharged";
+        case 0x0048:
+          return "Conditioning Flag";
+        case 0x0049:
+          return "At Rate OK";
+        case 0x004a:
+          return "Smart Battery Error Code";
+        case 0x004b:
+          return "Need Replacement";
+        case 0x0060:
+          return "At Rate Time To Full";
+        case 0x0061:
+          return "At Rate Time To Empty";
+        case 0x0062:
+          return "Average Current";
+        case 0x0063:
+          return "Max Error";
+        case 0x0064:
+          return "Relative State Of Charge";
+        case 0x0065:
+          return "Absolute State Of Charge";
+        case 0x0066:
+          return "Remaining Capacity";
+        case 0x0067:
+          return "Full Charge Capacity";
+        case 0x0068:
+          return "Run Time To Empty";
+        case 0x0069:
+          return "Average Time To Empty";
+        case 0x006a:
+          return "Average Time To Full";
+        case 0x006b:
+          return "Cycle Count";
+        case 0x0080:
+          return "Battery Pack Model Level";
+        case 0x0081:
+          return "Internal Charge Controller";
+        case 0x0082:
+          return "Primary Battery Support";
+        case 0x0083:
+          return "Design Capacity";
+        case 0x0084:
+          return "Specification Info";
+        case 0x0085:
+          return "Manufacture Date";
+        case 0x0086:
+          return "Serial Number";
+        case 0x0087:
+          return "iManufacturer Name";
+        case 0x0088:
+          return "iDevice Name";
+        case 0x0089:
+          return "iDevice Chemistry";
+        case 0x008a:
+          return "Manufacturer Data";
+        case 0x008b:
+          return "Rechargable";
+        case 0x008c:
+          return "Warning Capacity Limit";
+        case 0x008d:
+          return "Capacity Granularity 1";
+        case 0x008e:
+          return "Capacity Granularity 2";
+        case 0x008f:
+          return "iOEM Information";
+        case 0x00c0:
+          return "Inhibit Charge";
+        case 0x00c1:
+          return "Enable Polling";
+        case 0x00c2:
+          return "Reset To Zero";
+        case 0x00d0:
+          return "AC Present";
+        case 0x00d1:
+          return "Battery Present";
+        case 0x00d2:
+          return "Power Fail";
+        case 0x00d3:
+          return "Alarm Inhibited";
+        case 0x00d4:
+          return "Thermistor Under Range";
+        case 0x00d5:
+          return "Thermistor Hot";
+        case 0x00d6:
+          return "Thermistor Cold";
+        case 0x00d7:
+          return "Thermistor Over Range";
+        case 0x00d8:
+          return "Voltage Out Of Range";
+        case 0x00d9:
+          return "Current Out Of Range";
+        case 0x00da:
+          return "Current Not Regulated";
+        case 0x00db:
+          return "Voltage Not Regulated";
+        case 0x00dc:
+          return "Master Mode";
+        case 0x00f0:
+          return "Charger Selector Support";
+        case 0x00f1:
+          return "Charger Spec";
+        case 0x00f2:
+          return "Level 2";
+        case 0x00f3:
+          return "Level 3";
+        default:
+          return (const char *)nullptr;
+        }
+      },
+      0x0000);
+}
 enum class battery_system : std::uint8_t {
   SMART_BATTERY_BATTERY_MODE = 0x0001,
   SMART_BATTERY_BATTERY_STATUS = 0x0002,

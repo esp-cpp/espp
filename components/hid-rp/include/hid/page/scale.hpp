@@ -5,11 +5,109 @@
 
 namespace hid::page {
 enum class scale : std::uint8_t;
-template <> struct info<scale> {
-  constexpr static page_id_t page_id = 0x008d;
-  constexpr static usage_id_t max_usage_id = 0x0081;
-  constexpr static const char *name = "Scales";
-};
+template <> constexpr inline auto get_info<scale>() {
+  return info(
+      0x008d, 0x0081, "Scales",
+      [](hid::usage_id_t id) {
+        switch (id) {
+        case 0x0001:
+          return "Scales";
+        case 0x0020:
+          return "Scale Device";
+        case 0x0021:
+          return "Scale Class";
+        case 0x0022:
+          return "Scale Class I Metric";
+        case 0x0023:
+          return "Scale Class II Metric";
+        case 0x0024:
+          return "Scale Class III Metric";
+        case 0x0025:
+          return "Scale Class IIIL Metric";
+        case 0x0026:
+          return "Scale Class IV Metric";
+        case 0x0027:
+          return "Scale Class III English";
+        case 0x0028:
+          return "Scale Class IIIL English";
+        case 0x0029:
+          return "Scale Class IV English";
+        case 0x002a:
+          return "Scale Class Generic";
+        case 0x0030:
+          return "Scale Attribute Report";
+        case 0x0031:
+          return "Scale Control Report";
+        case 0x0032:
+          return "Scale Data Report";
+        case 0x0033:
+          return "Scale Status Report";
+        case 0x0034:
+          return "Scale Weight Limit Report";
+        case 0x0035:
+          return "Scale Statistics Report";
+        case 0x0040:
+          return "Data Weight";
+        case 0x0041:
+          return "Data Scaling";
+        case 0x0050:
+          return "Weight Unit";
+        case 0x0051:
+          return "Weight Unit Milligram";
+        case 0x0052:
+          return "Weight Unit Gram";
+        case 0x0053:
+          return "Weight Unit Kilogram";
+        case 0x0054:
+          return "Weight Unit Carats";
+        case 0x0055:
+          return "Weight Unit Taels";
+        case 0x0056:
+          return "Weight Unit Grains";
+        case 0x0057:
+          return "Weight Unit Pennyweights";
+        case 0x0058:
+          return "Weight Unit Metric Ton";
+        case 0x0059:
+          return "Weight Unit Avoir Ton";
+        case 0x005a:
+          return "Weight Unit Troy Ounce";
+        case 0x005b:
+          return "Weight Unit Ounce";
+        case 0x005c:
+          return "Weight Unit Pound";
+        case 0x0060:
+          return "Calibration Count";
+        case 0x0061:
+          return "Re-Zero Count";
+        case 0x0070:
+          return "Scale Status";
+        case 0x0071:
+          return "Scale Status Fault";
+        case 0x0072:
+          return "Scale Status Stable at Center of Zero";
+        case 0x0073:
+          return "Scale Status In Motion";
+        case 0x0074:
+          return "Scale Status Weight Stable";
+        case 0x0075:
+          return "Scale Status Under Zero";
+        case 0x0076:
+          return "Scale Status Over Weight Limit";
+        case 0x0077:
+          return "Scale Status Requires Calibration";
+        case 0x0078:
+          return "Scale Status Requires Rezeroing";
+        case 0x0080:
+          return "Zero Scale";
+        case 0x0081:
+          return "Enforced Zero Return";
+        default:
+          return (const char *)nullptr;
+        }
+      },
+      0x0000);
+}
 enum class scale : std::uint8_t {
   SCALES = 0x0001,
   SCALE_DEVICE = 0x0020,

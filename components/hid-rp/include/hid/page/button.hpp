@@ -5,11 +5,10 @@
 
 namespace hid::page {
 class button;
-template <> struct info<button> {
-  constexpr static page_id_t page_id = 0x0009;
-  constexpr static usage_id_t max_usage_id = 0xffff;
-  constexpr static const char *name = "Button";
-};
+template <> constexpr inline auto get_info<button>() {
+  return info(0x0009, 0xffff, "Button",
+              [](hid::usage_id_t id) { return id ? "Button {}" : nullptr; });
+}
 class button {
 public:
   constexpr operator usage_id_t() const { return id; }

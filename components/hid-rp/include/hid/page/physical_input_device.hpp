@@ -5,11 +5,227 @@
 
 namespace hid::page {
 enum class physical_input_device : std::uint8_t;
-template <> struct info<physical_input_device> {
-  constexpr static page_id_t page_id = 0x000f;
-  constexpr static usage_id_t max_usage_id = 0x00ac;
-  constexpr static const char *name = "Physical Input Device";
-};
+template <> constexpr inline auto get_info<physical_input_device>() {
+  return info(
+      0x000f, 0x00ac, "Physical Input Device",
+      [](hid::usage_id_t id) {
+        switch (id) {
+        case 0x0001:
+          return "Physical Input Device";
+        case 0x0020:
+          return "Normal";
+        case 0x0021:
+          return "Set Effect Report";
+        case 0x0022:
+          return "Effect Parameter Block Index";
+        case 0x0023:
+          return "Parameter Block Offset";
+        case 0x0024:
+          return "ROM Flag";
+        case 0x0025:
+          return "Effect Type";
+        case 0x0026:
+          return "ET Constant-Force";
+        case 0x0027:
+          return "ET Ramp";
+        case 0x0028:
+          return "ET Custom-Force";
+        case 0x0030:
+          return "ET Square";
+        case 0x0031:
+          return "ET Sine";
+        case 0x0032:
+          return "ET Triangle";
+        case 0x0033:
+          return "ET Sawtooth Up";
+        case 0x0034:
+          return "ET Sawtooth Down";
+        case 0x0040:
+          return "ET Spring";
+        case 0x0041:
+          return "ET Damper";
+        case 0x0042:
+          return "ET Inertia";
+        case 0x0043:
+          return "ET Friction";
+        case 0x0050:
+          return "Duration";
+        case 0x0051:
+          return "Sample Period";
+        case 0x0052:
+          return "Gain";
+        case 0x0053:
+          return "Trigger Button";
+        case 0x0054:
+          return "Trigger Repeat Interval";
+        case 0x0055:
+          return "Axes Enable";
+        case 0x0056:
+          return "Direction Enable";
+        case 0x0057:
+          return "Direction";
+        case 0x0058:
+          return "Type Specific Block Offset";
+        case 0x0059:
+          return "Block Type";
+        case 0x005a:
+          return "Set Envelope Report";
+        case 0x005b:
+          return "Attack Level";
+        case 0x005c:
+          return "Attack Time";
+        case 0x005d:
+          return "Fade Level";
+        case 0x005e:
+          return "Fade Time";
+        case 0x005f:
+          return "Set Condition Report";
+        case 0x0060:
+          return "Center-Point Offset";
+        case 0x0061:
+          return "Positive Coefficient";
+        case 0x0062:
+          return "Negative Coefficient";
+        case 0x0063:
+          return "Positive Saturation";
+        case 0x0064:
+          return "Negative Saturation";
+        case 0x0065:
+          return "Dead Band";
+        case 0x0066:
+          return "Download Force Sample";
+        case 0x0067:
+          return "Isoch Custom-Force Enable";
+        case 0x0068:
+          return "Custom-Force Data Report";
+        case 0x0069:
+          return "Custom-Force Data";
+        case 0x006a:
+          return "Custom-Force Vendor Defined Data";
+        case 0x006b:
+          return "Set Custom-Force Report";
+        case 0x006c:
+          return "Custom-Force Data Offset";
+        case 0x006d:
+          return "Sample Count";
+        case 0x006e:
+          return "Set Periodic Report";
+        case 0x006f:
+          return "Offset";
+        case 0x0070:
+          return "Magnitude";
+        case 0x0071:
+          return "Phase";
+        case 0x0072:
+          return "Period";
+        case 0x0073:
+          return "Set Constant-Force Report";
+        case 0x0074:
+          return "Set Ramp-Force Report";
+        case 0x0075:
+          return "Ramp Start";
+        case 0x0076:
+          return "Ramp End";
+        case 0x0077:
+          return "Effect Operation Report";
+        case 0x0078:
+          return "Effect Operation";
+        case 0x0079:
+          return "Op Effect Start";
+        case 0x007a:
+          return "Op Effect Start Solo";
+        case 0x007b:
+          return "Op Effect Stop";
+        case 0x007c:
+          return "Loop Count";
+        case 0x007d:
+          return "Device Gain Report";
+        case 0x007e:
+          return "Device Gain";
+        case 0x007f:
+          return "Parameter Block Pools Report";
+        case 0x0080:
+          return "RAM Pool Size";
+        case 0x0081:
+          return "ROM Pool Size";
+        case 0x0082:
+          return "ROM Effect Block Count";
+        case 0x0083:
+          return "Simultaneous Effects Max";
+        case 0x0084:
+          return "Pool Alignment";
+        case 0x0085:
+          return "Parameter Block Move Report";
+        case 0x0086:
+          return "Move Source";
+        case 0x0087:
+          return "Move Destination";
+        case 0x0088:
+          return "Move Length";
+        case 0x0089:
+          return "Effect Parameter Block Load Report";
+        case 0x008b:
+          return "Effect Parameter Block Load Status";
+        case 0x008c:
+          return "Block Load Success";
+        case 0x008d:
+          return "Block Load Full";
+        case 0x008e:
+          return "Block Load Error";
+        case 0x008f:
+          return "Block Handle";
+        case 0x0090:
+          return "Effect Parameter Block Free Report";
+        case 0x0091:
+          return "Type Specific Block Handle";
+        case 0x0092:
+          return "PID State Report";
+        case 0x0094:
+          return "Effect Playing";
+        case 0x0095:
+          return "PID Device Control Report";
+        case 0x0096:
+          return "PID Device Control";
+        case 0x0097:
+          return "DC Enable Actuators";
+        case 0x0098:
+          return "DC Disable Actuators";
+        case 0x0099:
+          return "DC Stop All Effects";
+        case 0x009a:
+          return "DC Reset";
+        case 0x009b:
+          return "DC Pause";
+        case 0x009c:
+          return "DC Continue";
+        case 0x009f:
+          return "Device Paused";
+        case 0x00a0:
+          return "Actuators Enabled";
+        case 0x00a4:
+          return "Safety Switch";
+        case 0x00a5:
+          return "Actuator Override Switch";
+        case 0x00a6:
+          return "Actuator Power";
+        case 0x00a7:
+          return "Start Delay";
+        case 0x00a8:
+          return "Parameter Block Size";
+        case 0x00a9:
+          return "Device-Managed Pool";
+        case 0x00aa:
+          return "Shared Parameter Blocks";
+        case 0x00ab:
+          return "Create New Effect Parameter Block Report";
+        case 0x00ac:
+          return "RAM Pool Available";
+        default:
+          return (const char *)nullptr;
+        }
+      },
+      0x0000);
+}
 enum class physical_input_device : std::uint8_t {
   PHYSICAL_INPUT_DEVICE = 0x0001,
   NORMAL = 0x0020,

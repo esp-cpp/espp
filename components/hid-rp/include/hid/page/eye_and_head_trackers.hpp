@@ -5,11 +5,85 @@
 
 namespace hid::page {
 enum class eye_and_head_trackers : std::uint16_t;
-template <> struct info<eye_and_head_trackers> {
-  constexpr static page_id_t page_id = 0x0012;
-  constexpr static usage_id_t max_usage_id = 0x0400;
-  constexpr static const char *name = "Eye and Head Trackers";
-};
+template <> constexpr inline auto get_info<eye_and_head_trackers>() {
+  return info(
+      0x0012, 0x0400, "Eye and Head Trackers",
+      [](hid::usage_id_t id) {
+        switch (id) {
+        case 0x0001:
+          return "Eye Tracker";
+        case 0x0002:
+          return "Head Tracker";
+        case 0x0010:
+          return "Tracking Data";
+        case 0x0011:
+          return "Capabilities";
+        case 0x0012:
+          return "Configuration";
+        case 0x0013:
+          return "Status";
+        case 0x0014:
+          return "Control";
+        case 0x0020:
+          return "Sensor Timestamp";
+        case 0x0021:
+          return "Position X";
+        case 0x0022:
+          return "Position Y";
+        case 0x0023:
+          return "Position Z";
+        case 0x0024:
+          return "Gaze Point";
+        case 0x0025:
+          return "Left Eye Position";
+        case 0x0026:
+          return "Right Eye Position";
+        case 0x0027:
+          return "Head Position";
+        case 0x0028:
+          return "Head Direction Point";
+        case 0x0029:
+          return "Rotation about X axis";
+        case 0x002a:
+          return "Rotation about Y axis";
+        case 0x002b:
+          return "Rotation about Z axis";
+        case 0x0100:
+          return "Tracker Quality";
+        case 0x0101:
+          return "Minimum Tracking Distance";
+        case 0x0102:
+          return "Optimum Tracking Distance";
+        case 0x0103:
+          return "Maximum Tracking Distance";
+        case 0x0104:
+          return "Maximum Screen Plane Width";
+        case 0x0105:
+          return "Maximum Screen Plane Height";
+        case 0x0200:
+          return "Display Manufacturer ID";
+        case 0x0201:
+          return "Display Product ID";
+        case 0x0202:
+          return "Display Serial Number";
+        case 0x0203:
+          return "Display Manufacturer Date";
+        case 0x0204:
+          return "Calibrated Screen Width";
+        case 0x0205:
+          return "Calibrated Screen Height";
+        case 0x0300:
+          return "Sampling Frequency";
+        case 0x0301:
+          return "Configuration Status";
+        case 0x0400:
+          return "Device Mode Request";
+        default:
+          return (const char *)nullptr;
+        }
+      },
+      0x0000);
+}
 enum class eye_and_head_trackers : std::uint16_t {
   EYE_TRACKER = 0x0001,
   HEAD_TRACKER = 0x0002,

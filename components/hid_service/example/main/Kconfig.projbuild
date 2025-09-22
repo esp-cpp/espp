@@ -1,0 +1,20 @@
+menu "HID Service Example Configuration"
+  choice "Example Gamepad Emulation"
+  default EXAMPLE_AS_XBOX
+  prompt "Select the gamepad emulation type for the example application."
+  help
+    Select the type of gamepad emulation to be used in the HID service example application.
+  config EXAMPLE_AS_XBOX
+  bool "Xbox Controller Emulation"
+  help
+    Emulate an Xbox controller for the HID service example application.
+  config EXAMPLE_AS_PLAYSTATION_DUALSENSE_BLE
+  bool "PS5 (DualSense) Controller Emulation over BLE"
+  help
+    Emulate a PS5 controller for the HID service example application.
+  config EXAMPLE_AS_SWITCH_PRO
+  bool "Switch Pro Controller Emulation"
+  help
+    Emulate a Switch Pro controller for the HID service example application.
+  endchoice
+endmenu

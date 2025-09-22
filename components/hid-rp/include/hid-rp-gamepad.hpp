@@ -5,6 +5,8 @@
 #include "format.hpp"
 #include "hid-rp.hpp"
 
+#include "gamepad_hat.hpp"
+
 namespace espp {
 
 /// HID Gamepad Input Report
@@ -54,18 +56,7 @@ protected:
   };
 
 public:
-  /// Possible Hat switch directions
-  enum class Hat {
-    CENTERED = 0x0f, ///< Centered, no direction pressed.
-    UP = 1,
-    UP_RIGHT,
-    RIGHT,
-    DOWN_RIGHT,
-    DOWN,
-    DOWN_LEFT,
-    LEFT,
-    UP_LEFT
-  };
+  using Hat = espp::gamepad::Hat;
 
   /// Construct a new Gamepad Input Report object
   constexpr GamepadInputReport() = default;
@@ -136,13 +127,17 @@ public:
   /// @return brake trigger value
   constexpr void get_brake(TRIGGER_TYPE &value) const { value = trigger_axes[0]; }
 
+  /// Get the left trigger value
+  /// @param value left trigger value, in the range [0, 1]
+  constexpr void get_left_trigger(float &value) const { get_brake(value); }
+
   /// Set the brake trigger value
   /// @param value brake trigger value, in the range [0, 1]
   constexpr void set_brake(float value) { set_trigger_axis(0, value); }
 
-  /// Set the accelerator trigger value
-  /// @param value accelerator trigger value, in the range [0, 1]
-  constexpr void set_accelerator(float value) { set_trigger_axis(1, value); }
+  /// Set the left trigger value
+  /// @param value left trigger value, in the range [0, 1]
+  constexpr void set_left_trigger(float value) { set_trigger_axis(0, value); }
 
   /// Get the accelerator trigger value
   /// @param value accelerator trigger value, in the range [0, 1]
@@ -153,6 +148,18 @@ public:
   /// Get the accelerator trigger value
   /// @return accelerator trigger value
   constexpr void get_accelerator(TRIGGER_TYPE &value) const { value = trigger_axes[1]; }
+
+  /// Get the right trigger value
+  /// @param value right trigger value, in the range [0, 1]
+  constexpr void get_right_trigger(float &value) const { get_accelerator(value); }
+
+  /// Set the accelerator trigger value
+  /// @param value accelerator trigger value, in the range [0, 1]
+  constexpr void set_accelerator(float value) { set_trigger_axis(1, value); }
+
+  /// Set the right trigger value
+  /// @param value right trigger value, in the range [0, 1]
+  constexpr void set_right_trigger(float value) { set_trigger_axis(1, value); }
 
   /// Set the hat switch (d-pad) value
   /// @param hat Hat enum / direction to set

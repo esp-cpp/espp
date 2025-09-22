@@ -5,11 +5,119 @@
 
 namespace hid::page {
 enum class simulation : std::uint8_t;
-template <> struct info<simulation> {
-  constexpr static page_id_t page_id = 0x0002;
-  constexpr static usage_id_t max_usage_id = 0x00d0;
-  constexpr static const char *name = "Simulation Controls";
-};
+template <> constexpr inline auto get_info<simulation>() {
+  return info(
+      0x0002, 0x00d0, "Simulation Controls",
+      [](hid::usage_id_t id) {
+        switch (id) {
+        case 0x0001:
+          return "Flight Simulation Device";
+        case 0x0002:
+          return "Automobile Simulation Device";
+        case 0x0003:
+          return "Tank Simulation Device";
+        case 0x0004:
+          return "Spaceship Simulation Device";
+        case 0x0005:
+          return "Submarine Simulation Device";
+        case 0x0006:
+          return "Sailing Simulation Device";
+        case 0x0007:
+          return "Motorcycle Simulation Device";
+        case 0x0008:
+          return "Sports Simulation Device";
+        case 0x0009:
+          return "Airplane Simulation Device";
+        case 0x000a:
+          return "Helicopter Simulation Device";
+        case 0x000b:
+          return "Magic Carpet Simulation Device";
+        case 0x000c:
+          return "Bicycle Simulation Device";
+        case 0x0020:
+          return "Flight Control Stick";
+        case 0x0021:
+          return "Flight Stick";
+        case 0x0022:
+          return "Cyclic Control";
+        case 0x0023:
+          return "Cyclic Trim";
+        case 0x0024:
+          return "Flight Yoke";
+        case 0x0025:
+          return "Track Control";
+        case 0x00b0:
+          return "Aileron";
+        case 0x00b1:
+          return "Aileron Trim";
+        case 0x00b2:
+          return "Anti-Torque Control";
+        case 0x00b3:
+          return "Autopilot Enable";
+        case 0x00b4:
+          return "Chaff Release";
+        case 0x00b5:
+          return "Collective Control";
+        case 0x00b6:
+          return "Dive Brake";
+        case 0x00b7:
+          return "Electronic Countermeasures";
+        case 0x00b8:
+          return "Elevator";
+        case 0x00b9:
+          return "Elevator Trim";
+        case 0x00ba:
+          return "Rudder";
+        case 0x00bb:
+          return "Throttle";
+        case 0x00bc:
+          return "Flight Communications";
+        case 0x00bd:
+          return "Flare Release";
+        case 0x00be:
+          return "Landing Gear";
+        case 0x00bf:
+          return "Toe Brake";
+        case 0x00c0:
+          return "Trigger";
+        case 0x00c1:
+          return "Weapons Arm";
+        case 0x00c2:
+          return "Weapons Select";
+        case 0x00c3:
+          return "Wing Flaps";
+        case 0x00c4:
+          return "Accelerator";
+        case 0x00c5:
+          return "Brake";
+        case 0x00c6:
+          return "Clutch";
+        case 0x00c7:
+          return "Shifter";
+        case 0x00c8:
+          return "Steering";
+        case 0x00c9:
+          return "Turret Direction";
+        case 0x00ca:
+          return "Barrel Elevation";
+        case 0x00cb:
+          return "Dive Plane";
+        case 0x00cc:
+          return "Ballast";
+        case 0x00cd:
+          return "Bicycle Crank";
+        case 0x00ce:
+          return "Handle Bars";
+        case 0x00cf:
+          return "Front Brake";
+        case 0x00d0:
+          return "Rear Brake";
+        default:
+          return (const char *)nullptr;
+        }
+      },
+      0x0000);
+}
 enum class simulation : std::uint8_t {
   FLIGHT_SIMULATION_DEVICE = 0x0001,
   AUTOMOBILE_SIMULATION_DEVICE = 0x0002,

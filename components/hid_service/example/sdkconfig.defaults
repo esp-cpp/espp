@@ -30,9 +30,9 @@ CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE=8192
 
 # NOTE: the MAX_CCCDS must be 4 * MAX_BONDS, otherwise the number of bonded
 # devices allowed will be limited by the number of CCCDs / 4.
-CONFIG_BT_NIMBLE_MAX_BONDS=5
+CONFIG_BT_NIMBLE_MAX_BONDS=3
 # should be 4 * MAX_BONDS
-CONFIG_BT_NIMBLE_MAX_CCCDS=20
+CONFIG_BT_NIMBLE_MAX_CCCDS=128
 
 # NOTE: we can support extended advertising (longer advertisement packets) by
 #       enabling the following:
