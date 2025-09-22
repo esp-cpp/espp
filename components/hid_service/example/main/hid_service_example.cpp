@@ -157,7 +157,7 @@ extern "C" void app_main(void) {
   auto raw_descriptor = espp::playstation_dualsense_ble_descriptor();
 #else
 #error                                                                                             \
-    "You must define one of CONFIG_EXAMPLE_AS_XBOX, CONFIG_EXAMPLE_AS_SWITCH PRO, or CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSENSE_BLE"
+    "You must define one of CONFIG_EXAMPLE_AS_XBOX, CONFIG_EXAMPLE_AS_SWITCH_PRO, or CONFIG_EXAMPLE_AS_PLAYSTATION_DUALSENSE_BLE"
 #endif
 
   // create the GATT server
