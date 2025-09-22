@@ -461,13 +461,13 @@ extern "C" void app_main(void) {
           auto rssi = ble_gatt_server.get_connected_device_rssi(info);
           auto name = ble_gatt_server.get_connected_device_name(info);
           auto mfg_name = ble_gatt_server.get_connected_device_manufacturer_name(info);
-          auto model_number = ble_gatt_server.get_connected_device_model_number(info);
+          auto mn = ble_gatt_server.get_connected_device_model_number(info);
           auto pnp_id = ble_gatt_server.get_connected_device_pnp_id(info);
           logger.info("            RSSI:  {}", rssi);
           logger.info("            Name:  {}", name);
           // NOTE: these are optionals, so they may not be set
           logger.info("            Mfg:   {}", mfg_name);
-          logger.info("            Model: {}", model_number);
+          logger.info("            Model: {}", mn);
           logger.info("            PnP:   {}", pnp_id);
         }
 

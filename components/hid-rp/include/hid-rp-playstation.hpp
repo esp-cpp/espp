@@ -769,10 +769,9 @@ public:
     std::fill(vendor_defined.raw.begin(), vendor_defined.raw.end(), 0);
     timestamp = prev_timestamp; // cppcheck-suppress redundantAssignment
     counter = prev_counter;     // cppcheck-suppress redundantAssignment
-    vendor_defined.coarse_timestamp =
-        prev_coarse_timestamp;                             // cppcheck-suppress redundantAssignment
-    vendor_defined.fine_timestamp1 = prev_fine_timestamp1; // cppcheck-suppress
-    vendor_defined.fine_timestamp2 = prev_fine_timestamp2; // cppcheck-suppress redundantAssignment
+    vendor_defined.coarse_timestamp = prev_coarse_timestamp;
+    vendor_defined.fine_timestamp1 = prev_fine_timestamp1;
+    vendor_defined.fine_timestamp2 = prev_fine_timestamp2;
     set_battery_level(prev_battery, prev_charging);
     set_hat(Hat::CENTERED);
     // set first byte of each touch position to 0x80
