@@ -34,7 +34,8 @@ namespace espp {
 
 #pragma pack(push, 1)
 
-/// Playstation DualSense Touchpad Data
+/// Playstation DualSense Touchpad Data Used in the vendor defined data for
+/// input report ID 0x31 (49) when used over BLE.
 struct PlaystationTouchpadData {
   union {
     std::uint8_t raw[9]; ///< Raw data array
@@ -45,7 +46,8 @@ struct PlaystationTouchpadData {
   };
 };
 
-/// Playstation DualSense Gamepad Buttons
+/// Playstation DualSense Gamepad Buttons Used in input reports (0x01, 0x31)
+/// when used over BLE.
 union PlaystationDualsenseGamepadButtons {
   std::array<std::uint8_t, 3> raw; ///< Buttons as bytes
   struct {
@@ -72,7 +74,8 @@ union PlaystationDualsenseGamepadButtons {
   };                                  // struct
 };                                    // union PlaystationDualsenseGamepadButtons
 
-/// Playstation DualSense Vendor Defined Data
+/// Playstation DualSense Vendor Defined Data. Used for IMU, touchpad, battery,
+/// etc. in input report 0x31 (49) over Bluetooth.
 union PlaystationDualsenseVendorDefinedData {
   using Accelerometer = espp::gamepad::Accelerometer; ///< Accelerometer type
   using Gyroscope = espp::gamepad::Gyroscope;         ///< Gyroscope type
@@ -114,27 +117,30 @@ union PlaystationDualsenseVendorDefinedData {
 
 /// Button Struct concept for the Playstation controller
 /// This concept defines the requirements for a struct that contains the
-/// button values for the Playstation controller.
+/// button values for the Playstation controller. Any struct which meets these
+/// requirements can be used with the PlaystationDualsenseBLESimpleInputReport
+/// and PlaystationDualsenseBLEComplexInputReport classes.
 template <typename T>
 concept PlaystationDualsenseButtonStruct = requires(T t) {
-  { auto(t.cross) } -> std::integral;    // xbox a
-  { auto(t.circle) } -> std::integral;   // xbox b
-  { auto(t.square) } -> std::integral;   // xbox x
-  { auto(t.triangle) } -> std::integral; // xbox y
-  { auto(t.l1) } -> std::integral;
-  { auto(t.r1) } -> std::integral;
-  { auto(t.l2) } -> std::integral;
-  { auto(t.r2) } -> std::integral;
-  { auto(t.l3) } -> std::integral;
-  { auto(t.r3) } -> std::integral;
-  { auto(t.home) } -> std::integral;            // ps button
-  { auto(t.capture) } -> std::integral;         // create button
-  { auto(t.menu) } -> std::integral;            // touchpad button
-  { auto(t.options) } -> std::integral;         // options button
-  { auto(t.microphone_mute) } -> std::integral; // microphone mute button
+  { auto(t.cross) } -> std::integral;    ///< Cross button, same as xbox a
+  { auto(t.circle) } -> std::integral;   ///< Circle button, same as xbox b
+  { auto(t.square) } -> std::integral;   ///< Square button, same as xbox x
+  { auto(t.triangle) } -> std::integral; ///< Triangle button, same as xbox y
+  { auto(t.l1) } -> std::integral;       ///< L1 (left shoulder) button
+  { auto(t.r1) } -> std::integral;       ///< R1 (right shoulder) button
+  { auto(t.l2) } -> std::integral;       ///< L2 (left trigger, digital representation) button
+  { auto(t.r2) } -> std::integral;       ///< R2 (right trigger, digital representation) button
+  { auto(t.l3) } -> std::integral;       ///< L3 (left joystick) button
+  { auto(t.r3) } -> std::integral;       ///< R3 (left joystick) button
+  { auto(t.home) } -> std::integral;     ///< Playstation button
+  { auto(t.capture) } -> std::integral;  ///< Create button
+  { auto(t.menu) } -> std::integral;     ///< Touchpad button
+  { auto(t.options) } -> std::integral;  ///< Options button
+  { auto(t.microphone_mute) } -> std::integral; ///< Microphone mute button
 };
 
-/// Possible Hat switch directions for Playstation controller
+/// Possible Hat switch directions for Playstation controller. Uses different
+/// values than espp::gamepad::Hat
 enum class PlaystationHat {
   CENTERED = 0x08, ///< Centered, no direction pressed.
   UP = 0,
@@ -147,11 +153,11 @@ enum class PlaystationHat {
   UP_LEFT = 7
 };
 
-/// Convert from espp::gamepad::Hat to Hat
+/// Convert from espp::gamepad::Hat to PlaystationHat
 /// \param hat The espp::gamepad::Hat value to convert
-/// \return The corresponding Hat value
+/// \return The corresponding PlaystationHat value
 /// \note This is a constexpr function, so it can be used in compile-time
-///       expressions.
+///       expressions, as well as at runtime.
 [[maybe_unused]] static constexpr PlaystationHat from_gamepad_hat(espp::gamepad::Hat hat) {
   if (hat == espp::gamepad::Hat::CENTERED) {
     return PlaystationHat::CENTERED;
@@ -164,10 +170,16 @@ enum class PlaystationHat {
 /// This class implements a HID Playstation DualSense Bluetooth Gamepad Report.
 /// It supports 14 buttons, a d-pad, 4 joystick axes, and 2 trigger axes.
 ///
-/// This matches the information found here:
-/// https://github.com/nondebug/dualsense
+/// This is the simple report which is used by default when connecting the
+/// controller over bluetooth and matches report ID 0x01.
 ///
-/// which provides a bluetooth VID/PID of 054C:0CE6
+/// \note I have tested the playstation dualsense report descriptor and input
+/// reports over BLE with iOS, MacOS, Windows, and Android and found that:
+/// - iOS, MacOS, and Windows only parse the complex report (0x31) and ignore
+///   the simple report (0x01). This means that the simple report is effectively
+///   unused fields in the report descriptor.
+/// - Android seems to require Audio support, which it cannot find over BLE, so
+///   it does not work at all.
 ///
 /// \section hid_rp_playstation_ex1 HID-RP Playstation Gamepad Example
 /// \snippet hid_rp_example.cpp hid rp example
@@ -667,8 +679,15 @@ public:
 ///
 /// This matches the information found here:
 /// https://github.com/nondebug/dualsense
-///
 /// which provides a bluetooth VID/PID of 054C:0CE6
+///
+/// \note I have tested the playstation dualsense report descriptor and input
+/// reports over BLE with iOS, MacOS, Windows, and Android and found that:
+/// - iOS, MacOS, and Windows only parse the complex report (0x31) and ignore
+///   the simple report (0x01). This means that the simple report is effectively
+///   unused fields in the report descriptor.
+/// - Android seems to require Audio support, which it cannot find over BLE, so
+///   it does not work at all.
 ///
 /// \section hid_rp_playstation_ex1 HID-RP Playstation Gamepad Example
 /// \snippet hid_rp_example.cpp hid rp example
