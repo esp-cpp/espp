@@ -122,6 +122,8 @@ public:
   constexpr bool get_button_capture() const { return this->get_consumer_record(); }
   constexpr bool get_button_menu() const { return this->get_button(BTN_MENU_INDEX); }
   constexpr bool get_button_options() const { return this->get_button(BTN_OPTIONS_INDEX); }
+
+  friend fmt::formatter<XboxGamepadInputReport<REPORT_ID>>;
 };
 
 /// HID Xbox Rumble Output Report
@@ -435,3 +437,5 @@ public:
 } // xbox_descriptor
 
 } // namespace espp
+
+#include "hid-rp-xbox-formatters.hpp"

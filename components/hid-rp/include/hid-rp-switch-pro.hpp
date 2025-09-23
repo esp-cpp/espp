@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "gamepad_imu.hpp"
 #include "hid-rp-gamepad.hpp"
 
 namespace hid::page {
@@ -55,6 +56,10 @@ concept SwitchProButtonStruct = requires(T t) {
 template <uint8_t REPORT_ID = 0x30>
 class SwitchProGamepadInputReport : public hid::report::base<hid::report::type::INPUT, REPORT_ID> {
 public:
+  using Hat = espp::gamepad::Hat;
+
+  static constexpr size_t button_count = 15;
+
   using JOYSTICK_TYPE = std::int16_t;
   static constexpr JOYSTICK_TYPE joystick_min = 0;
   static constexpr JOYSTICK_TYPE joystick_max = 4096;
@@ -62,19 +67,8 @@ public:
   static constexpr size_t joystick_value_range = joystick_max - joystick_min;
   static constexpr JOYSTICK_TYPE joystick_range = joystick_value_range / 2;
 
-  /// Accelerometer data
-  struct Accelerometer {
-    int16_t X;
-    int16_t Y;
-    int16_t Z;
-  };
-
-  /// Gyroscope data
-  struct Gyroscope {
-    int16_t X;
-    int16_t Y;
-    int16_t Z;
-  };
+  using Accelerometer = espp::gamepad::Accelerometer;
+  using Gyroscope = espp::gamepad::Gyroscope;
 
 protected:
   // union for the input report data
@@ -306,6 +300,24 @@ public:
     ry = y;
   }
 
+  /// Set the left trigger value
+  /// @param value The value to set the left trigger to.
+  ///        Should be in the range [0, 1].
+  constexpr void set_left_trigger(float value) { set_trigger_axis(0, value); }
+
+  /// Set the right trigger value
+  /// @param value The value to set the right trigger to.
+  constexpr void set_left_trigger(bool pressed) { btn_zl = pressed; }
+
+  /// Set the right trigger value
+  /// @param value The value to set the right trigger to.
+  ///        Should be in the range [0, 1].
+  constexpr void set_right_trigger(float value) { set_trigger_axis(1, value); }
+
+  /// Set the right trigger value
+  /// @param value The value to set the right trigger to.
+  constexpr void set_right_trigger(bool pressed) { btn_zr = pressed; }
+
   /// Set the brake trigger value
   /// @param pressed Whether the brake trigger is pressed or not
   constexpr void set_brake(bool pressed) { set_trigger_axis(0, pressed); }
@@ -379,6 +391,45 @@ public:
     dpad_left = left;
     dpad_right = right;
   }
+
+  /// Set the d-pad as a hat switch value from espp::gamepad::Hat
+  /// \param hat The espp::gamepad::Hat value to set.
+  constexpr void set_hat_switch(espp::gamepad::Hat hat) {
+    switch (hat) {
+    case espp::gamepad::Hat::UP:
+      set_dpad(true, false, false, false);
+      break;
+    case espp::gamepad::Hat::UP_RIGHT:
+      set_dpad(true, false, false, true);
+      break;
+    case espp::gamepad::Hat::RIGHT:
+      set_dpad(false, false, false, true);
+      break;
+    case espp::gamepad::Hat::DOWN_RIGHT:
+      set_dpad(false, true, false, true);
+      break;
+    case espp::gamepad::Hat::DOWN:
+      set_dpad(false, true, false, false);
+      break;
+    case espp::gamepad::Hat::DOWN_LEFT:
+      set_dpad(false, true, true, false);
+      break;
+    case espp::gamepad::Hat::LEFT:
+      set_dpad(false, false, true, false);
+      break;
+    case espp::gamepad::Hat::UP_LEFT:
+      set_dpad(true, false, true, false);
+      break;
+    case espp::gamepad::Hat::CENTERED:
+    default:
+      set_dpad(false, false, false, false);
+      break;
+    }
+  }
+
+  /// Set the hat switch (d-pad) value
+  /// @param hat Hat enum / direction to set
+  constexpr void set_hat(espp::gamepad::Hat hat) { set_hat_switch(hat); }
 
   constexpr void set_button_a(bool pressed) { btn_a = pressed; }
   constexpr void set_button_b(bool pressed) { btn_b = pressed; }

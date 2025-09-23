@@ -4,6 +4,7 @@
 #include "logger.hpp"
 
 #include "hid-rp-gamepad.hpp"
+#include "hid-rp-playstation.hpp"
 #include "hid-rp-switch-pro.hpp"
 #include "hid-rp-xbox.hpp"
 #include "hid-rp.hpp"
@@ -60,7 +61,6 @@ extern "C" void app_main(void) {
 
   using SwitchProInput = espp::SwitchProGamepadInputReport<>;
   SwitchProInput switch_pro_input_report;
-  switch_pro_input_report.reset();
   logger.info("{}", switch_pro_input_report);
   logger.info("Switch Pro Input Report Size: {}", switch_pro_input_report.get_report().size());
   logger.info("Switch Pro Input Report Data: {::#04X}", switch_pro_input_report.get_report());
@@ -76,12 +76,39 @@ extern "C" void app_main(void) {
   }
   logger.info("  Data: [{}]", str);
 
+  using PlaystationDualsenseBleSimpleInput = espp::PlaystationDualsenseBLESimpleInputReport<>;
+  PlaystationDualsenseBleSimpleInput dualsense_simple_input_report;
+  using PlaystationDualsenseBleComplexInput = espp::PlaystationDualsenseBLEComplexInputReport<>;
+  PlaystationDualsenseBleComplexInput dualsense_complex_input_report;
+  logger.info("Playstation Dualsense BLE Report Descriptor:");
+  auto ps_raw_descriptor = espp::playstation_dualsense_ble_descriptor();
+  auto ps_descriptor = std::vector<uint8_t>(ps_raw_descriptor.begin(), ps_raw_descriptor.end());
+  logger.info("  Size: {}", ps_descriptor.size());
+  str = "";
+  for (auto &byte : ps_descriptor) {
+    str += fmt::format("0x{:02X}, ", byte);
+  }
+  logger.info("  Data: [{}]", str);
+
   GamepadInput::Hat hat = GamepadInput::Hat::UP_RIGHT;
   int button_index = 5;
   float angle = 2.0f * M_PI * button_index / num_buttons;
 
-  // update the gamepad input report
+  // reset all reports
   gamepad_input_report.reset();
+  xbox_input_report.reset();
+  switch_pro_input_report.reset();
+  dualsense_simple_input_report.reset();
+  dualsense_complex_input_report.reset();
+
+  // print out the reports in their default states
+  logger.info("{}", gamepad_input_report);
+  logger.info("{}", xbox_input_report);
+  logger.info("{}", switch_pro_input_report);
+  logger.info("{}", dualsense_simple_input_report);
+  logger.info("{}", dualsense_complex_input_report);
+
+  // update the gamepad input report
   logger.info("{}", gamepad_input_report);
   gamepad_input_report.set_hat(hat);
   gamepad_input_report.set_button(button_index, true);
@@ -92,11 +119,51 @@ extern "C" void app_main(void) {
   gamepad_input_report.set_accelerator(std::abs(sin(angle)));
   gamepad_input_report.set_brake(std::abs(cos(angle)));
 
+  switch_pro_input_report.set_button(button_index, true);
+  switch_pro_input_report.set_dpad(false, true, false, true); // down-right
+  switch_pro_input_report.set_left_joystick(sin(angle), cos(angle));
+  switch_pro_input_report.set_right_joystick(cos(angle), sin(angle));
+  switch_pro_input_report.set_left_trigger((float)std::abs(cos(angle)));
+  switch_pro_input_report.set_right_trigger((float)std::abs(sin(angle)));
+
+  dualsense_simple_input_report.set_button(button_index, true);
+  dualsense_simple_input_report.set_hat(hat);
+  dualsense_simple_input_report.set_left_joystick(sin(angle), cos(angle));
+  dualsense_simple_input_report.set_right_joystick(cos(angle), sin(angle));
+  dualsense_simple_input_report.set_left_trigger(std::abs(cos(angle)));
+  dualsense_simple_input_report.set_right_trigger(std::abs(sin(angle)));
+
+  dualsense_complex_input_report.set_button(button_index, true);
+  dualsense_complex_input_report.set_hat(hat);
+  dualsense_complex_input_report.set_left_joystick(sin(angle), cos(angle));
+  dualsense_complex_input_report.set_right_joystick(cos(angle), sin(angle));
+  dualsense_complex_input_report.set_left_trigger(std::abs(cos(angle)));
+  dualsense_complex_input_report.set_right_trigger(std::abs(sin(angle)));
+
   button_index = (button_index % num_buttons) + 1;
 
   // send an input report
   auto report = gamepad_input_report.get_report();
-  logger.info("Input report:");
+  logger.info("{}", gamepad_input_report);
+  logger.info("Gamepad Input report:");
+  logger.info("  Size: {}", report.size());
+  logger.info("  Data: {::#02X}", report);
+
+  report = switch_pro_input_report.get_report();
+  logger.info("{}", switch_pro_input_report);
+  logger.info("Switch Pro Input report:");
+  logger.info("  Size: {}", report.size());
+  logger.info("  Data: {::#02X}", report);
+
+  report = dualsense_simple_input_report.get_report();
+  logger.info("{}", dualsense_simple_input_report);
+  logger.info("Playstation Dualsense BLE Simple Input report:");
+  logger.info("  Size: {}", report.size());
+  logger.info("  Data: {::#02X}", report);
+
+  report = dualsense_complex_input_report.get_report();
+  logger.info("{}", dualsense_complex_input_report);
+  logger.info("Playstation Dualsense BLE Complex Input report:");
   logger.info("  Size: {}", report.size());
   logger.info("  Data: {::#02X}", report);
 
