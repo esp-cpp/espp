@@ -42,6 +42,7 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    iperf_menu
    joystick
    led
+   led_driver/index
    led_strip
    logger
    monitor

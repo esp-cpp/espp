@@ -1,4 +1,4 @@
-# BLE HID Service Example
+# BLE HID Service
 
 [![Badge](https://components.espressif.com/components/espp/hid_service/badge.svg)](https://components.espressif.com/components/espp/hid_service)
 
