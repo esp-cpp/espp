@@ -80,6 +80,7 @@ jobs:
             components/led
             components/led_strip
             components/logger
+            components/lp5817
             components/lsm6dso
             components/math
             components/matouch-rotary-display
