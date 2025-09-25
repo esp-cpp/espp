@@ -339,6 +339,7 @@ public:
   /**
    * @brief Issue reset command.
    * @param ec Error code set on failure.
+   * @return true on success, false on failure.
    */
   bool reset(std::error_code &ec) {
     write_u8_to_register((uint8_t)Registers::RESET_CMD, 0xCC, ec);
