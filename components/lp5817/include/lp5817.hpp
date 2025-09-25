@@ -444,8 +444,9 @@ protected:
       return (uint8_t)Registers::OUT1_DC;
     case Channel::OUT2:
       return (uint8_t)Registers::OUT2_DC;
+    default:
+      return (uint8_t)Registers::OUT0_DC;
     }
-    return (uint8_t)Registers::OUT0_DC;
   }
 
   inline uint8_t manual_pwm_register_for(Channel ch) const {
@@ -456,8 +457,9 @@ protected:
       return (uint8_t)Registers::OUT1_MANUAL_PWM;
     case Channel::OUT2:
       return (uint8_t)Registers::OUT2_MANUAL_PWM;
+    default:
+      return (uint8_t)Registers::OUT0_MANUAL_PWM;
     }
-    return (uint8_t)Registers::OUT0_MANUAL_PWM;
   }
 
   bool init(std::error_code &ec) {
