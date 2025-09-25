@@ -74,9 +74,6 @@ extern "C" void app_main(void) {
 
   // Simple breathing RGB demo
   auto task_fn = [&](std::mutex &m, std::condition_variable &cv) {
-    auto now = esp_timer_get_time();
-    static auto start = now;
-    float t = (now - start) / 1'000'000.0f; // us to seconds
     static float brightness = 0.0f;
     brightness = (brightness == 0.0f) ? 1.0f : 0.0f;
     // for now we'll just to white and fade it in and out
