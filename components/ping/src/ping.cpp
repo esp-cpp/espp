@@ -313,7 +313,7 @@ void Ping::handle_success(void *h) {
 }
 
 void Ping::handle_timeout(void *h) {
-  uint16_t seqno = 0;
+  uint32_t seqno = 0;
   esp_ping_get_profile(h, ESP_PING_PROF_SEQNO, &seqno, sizeof(seqno));
   logger_.debug("Request timed out for seq={}", seqno);
   std::lock_guard<std::mutex> clk(config_mutex_);
