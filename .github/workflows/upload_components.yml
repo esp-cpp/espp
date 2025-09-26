@@ -95,6 +95,7 @@ jobs:
             components/odrive_ascii
             components/pi4ioe5v
             components/pid
+            components/ping
             components/pcf85063
             components/qmi8658
             components/qtpy
