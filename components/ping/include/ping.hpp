@@ -63,8 +63,8 @@ public:
     uint32_t interval_ms{1000};   ///< Interval between requests in milliseconds
     uint32_t timeout_ms{1000};    ///< Per-request timeout in milliseconds
     uint32_t data_size{0};        ///< Payload size in bytes
-    uint8_t ttl{64};              ///< Time-to-live
-    uint8_t tos{0};               ///< Type of service
+    uint8_t ttl{64};              ///< Time-to-live in the range [1, 255]
+    uint8_t tos{0};               ///< Type of service in the range [0, 255]
   };
 
   /**

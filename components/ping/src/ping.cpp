@@ -262,23 +262,16 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
   // Set full config in one command
   menu->Insert(
       "config", {"host", "count", "interval_ms", "timeout_ms", "size", "ttl", "tos", "stack"},
-      [this](std::ostream &out, const std::string &host, int count, int interval_ms, int timeout_ms,
-             int size, int ttl, int tos, int stack) {
+      [this](std::ostream &out, const std::string &host, uint32_t count, uint32_t interval_ms,
+             uint32_t timeout_ms, uint32_t size, uint8_t ttl, uint8_t tos, size_t stack) {
         ping_.get().set_target_host(host);
-        if (count >= 0)
-          ping_.get().set_count((uint32_t)count);
-        if (interval_ms >= 0)
-          ping_.get().set_interval_ms((uint32_t)interval_ms);
-        if (timeout_ms >= 0)
-          ping_.get().set_timeout_ms((uint32_t)timeout_ms);
-        if (size >= 0)
-          ping_.get().set_data_size((uint32_t)size);
-        if (ttl >= 0)
-          ping_.get().set_ttl((uint8_t)ttl);
-        if (tos >= 0)
-          ping_.get().set_tos((uint8_t)tos);
-        if (stack >= 0)
-          ping_.get().set_task_stack_size((size_t)stack);
+        ping_.get().set_count(count);
+        ping_.get().set_interval_ms(interval_ms);
+        ping_.get().set_timeout_ms(timeout_ms);
+        ping_.get().set_data_size(size);
+        ping_.get().set_ttl(ttl);
+        ping_.get().set_tos(tos);
+        ping_.get().set_task_stack_size(stack);
         out << "OK\n";
       },
       "Set session config: host count interval_ms timeout_ms size ttl tos stack");
