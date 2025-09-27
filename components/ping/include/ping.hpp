@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <lwip/inet.h>
+#include <lwip/netdb.h>
 #include <ping/ping_sock.h>
 
 #include "base_component.hpp"

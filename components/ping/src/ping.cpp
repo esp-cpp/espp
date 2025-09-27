@@ -1,11 +1,5 @@
 #include "ping.hpp"
 
-#include <cstring>
-#include <esp_event.h>
-#include <esp_log.h>
-#include <esp_netif.h>
-#include <lwip/netdb.h>
-
 namespace espp {
 
 Ping::Ping(const Config &config)
