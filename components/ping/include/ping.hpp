@@ -30,6 +30,17 @@ namespace espp {
  */
 class Ping : public BaseComponent {
 public:
+  /// Statistics from a completed ping session
+  struct Stats {
+    uint32_t transmitted{0}; ///< Number of packets transmitted
+    uint32_t received{0};    ///< Number of packets received
+    float loss_pct{0.0f};    ///< Packet loss percentage
+    uint32_t avg_ms{0};      ///< Average round-trip time in milliseconds
+    uint32_t min_ms{
+        std::numeric_limits<uint32_t>::max()}; ///< Minimum round-trip time in milliseconds
+    uint32_t max_ms{0};                        ///< Maximum round-trip time in milliseconds
+  };
+
   /// Alias for the ping session start callback
   typedef std::function<void()> session_start_cb_t;
   /// Alias for the ping reply callback
@@ -38,9 +49,7 @@ public:
   /// Alias for the ping timeout callback
   typedef std::function<void()> timeout_cb_t;
   /// Alias for the ping session end callback
-  typedef std::function<void(uint32_t transmitted, uint32_t received, uint32_t loss_pct,
-                             uint32_t avg_ms, uint32_t min_ms, uint32_t max_ms)>
-      end_cb_t;
+  typedef std::function<void(const Stats &stats)> end_cb_t;
 
   /**
    * @brief User-provided callbacks for ping events.
@@ -233,6 +242,15 @@ public:
    */
   SessionConfig get_session_config() const;
 
+  /**
+   * @brief Get statistics from the last completed ping session.
+   * @return Statistics structure (all zeros if no session completed).
+   */
+  Stats get_stats() const {
+    std::lock_guard<std::mutex> slk(stats_mutex_);
+    return stats_;
+  }
+
   // Create a CLI submenu to run ping
   /**
    * @brief Small CLI wrapper for invoking ping from a menu.
@@ -277,6 +295,9 @@ private:
   ip_addr_t resolve_target(std::error_code &ec) const;
   /** @endcond */
 
+  mutable std::mutex stats_mutex_;
+  Stats stats_{};
+
   // configuration and session state
   mutable std::mutex config_mutex_;
   Config config_;
@@ -290,7 +311,16 @@ private:
 
 } // namespace espp
 
-// fmt formatters for espp::Ping::SessionConfig and espp::Ping::Config
+// fmt formatters for espp::Ping::Stats, espp::Ping::SessionConfig, and espp::Ping::Config
+template <> struct fmt::formatter<espp::Ping::Stats> : fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const espp::Ping::Stats &s, FormatContext &ctx) const {
+    return fmt::format_to(
+        ctx.out(), "transmitted={} received={} loss_pct={:.02f}% avg_ms={} min_ms={} max_ms={}",
+        s.transmitted, s.received, s.loss_pct, s.avg_ms, s.min_ms, s.max_ms);
+  }
+};
+
 template <> struct fmt::formatter<espp::Ping::SessionConfig> : fmt::formatter<std::string_view> {
   template <typename FormatContext>
   auto format(const espp::Ping::SessionConfig &s, FormatContext &ctx) const {

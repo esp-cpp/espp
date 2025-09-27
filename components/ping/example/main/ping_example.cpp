@@ -37,27 +37,24 @@ extern "C" void app_main(void) {
                                 },
                             .log_level = espp::Logger::Verbosity::INFO});
     // create the ping instance
-    espp::Ping ping(
-        {.session =
-             {
-                 .target_host = "google.com",
-             },
-         .callbacks = {
-             .on_session_start = [&]() { logger.info("Ping session started"); },
-             .on_reply =
-                 [&](uint32_t seq, uint32_t ttl, uint32_t time_ms, uint32_t bytes) {
-                   logger.info("Reply: seq={} ttl={} time={}ms bytes={}", seq, ttl, time_ms, bytes);
-                 },
-             .on_timeout = [&]() { logger.warn("Request timed out"); },
-             .on_end =
-                 [&](uint32_t tx, uint32_t rx, uint32_t loss, uint32_t avg, uint32_t min,
-                     uint32_t max) {
-                   logger.info(
-                       "Ping session ended: tx={} rx={} loss={}% avg={}ms min={}ms max={}ms", tx,
-                       rx, loss, avg, min, max);
-                 },
-         },
-         .log_level = espp::Logger::Verbosity::DEBUG});
+    espp::Ping ping({.session =
+                         {
+                             .target_host = "google.com",
+                         },
+                     .callbacks = {
+                         .on_session_start = [&]() { logger.info("Ping session started"); },
+                         .on_reply =
+                             [&](uint32_t seq, uint32_t ttl, uint32_t time_ms, uint32_t bytes) {
+                               logger.info("Reply: seq={} ttl={} time={}ms bytes={}", seq, ttl,
+                                           time_ms, bytes);
+                             },
+                         .on_timeout = [&]() { logger.warn("Request timed out"); },
+                         .on_end =
+                             [&](const espp::Ping::Stats &stats) {
+                               logger.info("Ping session ended: {}", stats);
+                             },
+                     },
+                     .log_level = espp::Logger::Verbosity::DEBUG});
     // wait for wifi connection
     while (!got_ip) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -88,28 +85,25 @@ extern "C" void app_main(void) {
     espp::WifiStaMenu wifi_menu(wifi_sta);
 
     // create the ping instance and menu
-    espp::Ping ping(
-        {.session =
-             {
-                 .target_host = "1.1.1.1",
-                 .task_stack_size = 8192,
-             },
-         .callbacks = {
-             .on_session_start = [&]() { logger.info("Ping session started"); },
-             .on_reply =
-                 [&](uint32_t seq, uint32_t ttl, uint32_t time_ms, uint32_t bytes) {
-                   logger.info("Reply: seq={} ttl={} time={}ms bytes={}", seq, ttl, time_ms, bytes);
-                 },
-             .on_timeout = [&]() { logger.warn("Request timed out"); },
-             .on_end =
-                 [&](uint32_t tx, uint32_t rx, uint32_t loss, uint32_t avg, uint32_t min,
-                     uint32_t max) {
-                   logger.info(
-                       "Ping session ended: tx={} rx={} loss={}% avg={}ms min={}ms max={}ms", tx,
-                       rx, loss, avg, min, max);
-                 },
-         },
-         .log_level = espp::Logger::Verbosity::DEBUG});
+    espp::Ping ping({.session =
+                         {
+                             .target_host = "1.1.1.1",
+                             .task_stack_size = 8192,
+                         },
+                     .callbacks = {
+                         .on_session_start = [&]() { logger.info("Ping session started"); },
+                         .on_reply =
+                             [&](uint32_t seq, uint32_t ttl, uint32_t time_ms, uint32_t bytes) {
+                               logger.info("Reply: seq={} ttl={} time={}ms bytes={}", seq, ttl,
+                                           time_ms, bytes);
+                             },
+                         .on_timeout = [&]() { logger.warn("Request timed out"); },
+                         .on_end =
+                             [&](const espp::Ping::Stats &stats) {
+                               logger.info("Ping session ended: {}", stats);
+                             },
+                     },
+                     .log_level = espp::Logger::Verbosity::DEBUG});
     espp::Ping::Menu ping_menu(ping);
 
     auto root = std::make_unique<cli::Menu>("root", "root menu");
@@ -123,7 +117,6 @@ extern "C" void app_main(void) {
     espp::Cli input(cli);
     input.SetInputHistorySize(10);
     input.Start();
-
     //! [ping_cli_example]
   }
 }

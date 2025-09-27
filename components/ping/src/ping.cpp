@@ -23,6 +23,12 @@ bool Ping::run_async(std::error_code &ec) {
     ec = std::make_error_code(std::errc::device_or_resource_busy);
     return false;
   }
+  // reset the stats
+  {
+    std::lock_guard<std::mutex> clk(stats_mutex_);
+    stats_ = Stats{};
+  }
+  // create a new session
   if (!create_session(ec))
     return false;
   {
@@ -165,6 +171,14 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
 
   // setters/getters
   menu->Insert(
+      "stats",
+      [this](std::ostream &out) {
+        const auto s = ping_.get().get_stats();
+        out << fmt::format("{}\n", s);
+      },
+      "Show statistics for last completed session");
+
+  menu->Insert(
       "host", [this](std::ostream &out) { out << ping_.get().get_target_host() << "\n"; },
       "Get target host");
   menu->Insert(
@@ -305,6 +319,16 @@ void Ping::handle_success(void *h) {
   esp_ping_get_profile(h, ESP_PING_PROF_TTL, &ttl, sizeof(ttl));
   esp_ping_get_profile(h, ESP_PING_PROF_TIMEGAP, &elapsed_time, sizeof(elapsed_time));
   esp_ping_get_profile(h, ESP_PING_PROF_SIZE, &data_size, sizeof(data_size));
+  // update stats
+  {
+    std::lock_guard<std::mutex> slk(stats_mutex_);
+    stats_.transmitted++;
+    stats_.received++;
+    // min is std::numeric_limits<uint32_t>::max() initially, so we can just take min()
+    stats_.min_ms = std::min(stats_.min_ms, elapsed_time);
+    stats_.max_ms = std::max(stats_.max_ms, elapsed_time);
+  }
+  // call user callback
   {
     std::lock_guard<std::mutex> clk(config_mutex_);
     if (config_.callbacks.on_reply)
@@ -316,6 +340,12 @@ void Ping::handle_timeout(void *h) {
   uint32_t seqno = 0;
   esp_ping_get_profile(h, ESP_PING_PROF_SEQNO, &seqno, sizeof(seqno));
   logger_.debug("Request timed out for seq={}", seqno);
+  // update stats
+  {
+    std::lock_guard<std::mutex> slk(stats_mutex_);
+    stats_.transmitted++;
+  }
+  // call user callback
   std::lock_guard<std::mutex> clk(config_mutex_);
   if (config_.callbacks.on_timeout)
     config_.callbacks.on_timeout();
@@ -329,14 +359,23 @@ void Ping::handle_end(void *h) {
   esp_ping_get_profile(h, ESP_PING_PROF_REQUEST, &transmitted, sizeof(transmitted));
   esp_ping_get_profile(h, ESP_PING_PROF_REPLY, &received, sizeof(received));
   esp_ping_get_profile(h, ESP_PING_PROF_TIMEGAP, &avg_time, sizeof(avg_time));
-  uint32_t loss_pct =
-      transmitted == 0 ? 0 : (uint32_t)((100.0f * (transmitted - received)) / transmitted);
-  uint32_t min_time = 0;
-  uint32_t max_time = 0;
+  float loss_pct = transmitted == 0 ? 0 : (100.0f * (transmitted - received)) / transmitted;
+  // udpate stats
+  Stats stats_copy;
+  {
+    std::lock_guard<std::mutex> slk(stats_mutex_);
+    stats_.transmitted = transmitted;
+    stats_.received = received;
+    stats_.loss_pct = loss_pct;
+    stats_.avg_ms = avg_time;
+    // don't update min/max here, they were updated on each success
+    stats_copy = stats_;
+  }
+  // call user callback
   {
     std::lock_guard<std::mutex> clk(config_mutex_);
     if (config_.callbacks.on_end)
-      config_.callbacks.on_end(transmitted, received, loss_pct, avg_time, min_time, max_time);
+      config_.callbacks.on_end(stats_copy);
   }
   {
     std::lock_guard<std::mutex> slk(state_mutex_);
@@ -356,7 +395,7 @@ bool Ping::create_session(std::error_code &ec) {
   esp_ping_config_t ping_config = ESP_PING_DEFAULT_CONFIG();
   {
     std::lock_guard<std::mutex> clk(config_mutex_);
-    auto &s = config_.session;
+    const auto &s = config_.session;
     if (s.count > 0)
       ping_config.count = s.count;
     if (s.interval_ms > 0)
