@@ -21,53 +21,6 @@ extern "C" void app_main(void) {
 #endif
 
   {
-    //! [ping_simple_example]
-    std::atomic<bool> got_ip{false};
-    // Simple WiFi STA bring-up assumed configured via menu
-    espp::WifiSta wifi_sta({.ssid = "",
-                            .password = "",
-                            .num_connect_retries = 5,
-                            .on_connected = nullptr,
-                            .on_disconnected = nullptr,
-                            .on_got_ip =
-                                [&](ip_event_got_ip_t *eventdata) {
-                                  logger.info("got IP: {}.{}.{}.{}",
-                                              IP2STR(&eventdata->ip_info.ip));
-                                  got_ip = true;
-                                },
-                            .log_level = espp::Logger::Verbosity::INFO});
-    // create the ping instance
-    espp::Ping ping({.session =
-                         {
-                             .target_host = "google.com",
-                         },
-                     .callbacks = {
-                         .on_session_start = [&]() { logger.info("Ping session started"); },
-                         .on_reply =
-                             [&](uint32_t seq, uint32_t ttl, uint32_t time_ms, uint32_t bytes) {
-                               logger.info("Reply: seq={} ttl={} time={}ms bytes={}", seq, ttl,
-                                           time_ms, bytes);
-                             },
-                         .on_timeout = [&]() { logger.warn("Request timed out"); },
-                         .on_end =
-                             [&](const espp::Ping::Stats &stats) {
-                               logger.info("Ping session ended: {}", stats);
-                             },
-                     },
-                     .log_level = espp::Logger::Verbosity::DEBUG});
-    // wait for wifi connection
-    while (!got_ip) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-    // run the ping session (synchronously)
-    std::error_code ec;
-    if (!ping.run(ec)) {
-      logger.error("Ping failed to start: {}", ec.message());
-    }
-    //! [ping_simple_example]
-  }
-
-  {
     //! [ping_cli_example]
     // Simple WiFi STA bring-up assumed configured via menu
     espp::WifiSta wifi_sta({.ssid = "",
@@ -118,5 +71,55 @@ extern "C" void app_main(void) {
     input.SetInputHistorySize(10);
     input.Start();
     //! [ping_cli_example]
+  }
+
+  // run the simple example after the CLI so that the user can set the
+  // SSID/password, which will allow the second wifi_sta to auto-connect, since
+  // it will use the stored config in NVS
+  {
+    //! [ping_simple_example]
+    std::atomic<bool> got_ip{false};
+    // Simple WiFi STA bring-up assumed configured via menu
+    espp::WifiSta wifi_sta({.ssid = "",
+                            .password = "",
+                            .num_connect_retries = 5,
+                            .on_connected = nullptr,
+                            .on_disconnected = nullptr,
+                            .on_got_ip =
+                                [&](ip_event_got_ip_t *eventdata) {
+                                  logger.info("got IP: {}.{}.{}.{}",
+                                              IP2STR(&eventdata->ip_info.ip));
+                                  got_ip = true;
+                                },
+                            .log_level = espp::Logger::Verbosity::INFO});
+    // create the ping instance
+    espp::Ping ping({.session =
+                         {
+                             .target_host = "google.com",
+                         },
+                     .callbacks = {
+                         .on_session_start = [&]() { logger.info("Ping session started"); },
+                         .on_reply =
+                             [&](uint32_t seq, uint32_t ttl, uint32_t time_ms, uint32_t bytes) {
+                               logger.info("Reply: seq={} ttl={} time={}ms bytes={}", seq, ttl,
+                                           time_ms, bytes);
+                             },
+                         .on_timeout = [&]() { logger.warn("Request timed out"); },
+                         .on_end =
+                             [&](const espp::Ping::Stats &stats) {
+                               logger.info("Ping session ended: {}", stats);
+                             },
+                     },
+                     .log_level = espp::Logger::Verbosity::DEBUG});
+    // wait for wifi connection
+    while (!got_ip) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    // run the ping session (synchronously)
+    std::error_code ec;
+    if (!ping.run(ec)) {
+      logger.error("Ping failed to start: {}", ec.message());
+    }
+    //! [ping_simple_example]
   }
 }
