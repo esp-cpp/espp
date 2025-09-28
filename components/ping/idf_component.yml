@@ -1,0 +1,20 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "C++ wrapper for esp_ping with CLI integration"
+url: "https://github.com/esp-cpp/espp/tree/main/components/ping"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/network/ping.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - Network
+  - Ping
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/cli: '>=1.0'
+  espp/base_component: '>=1.0'
