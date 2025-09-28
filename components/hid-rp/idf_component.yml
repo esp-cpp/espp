@@ -1,5 +1,5 @@
 ## IDF Component Manager Manifest File
-license: "MIT"
+license: "MIT + MPL-2.0"
 description: "HID Report (using hid-rp) component for ESP-IDF"
 url: "https://github.com/esp-cpp/espp/tree/main/components/hid-rp"
 repository: "git://github.com/esp-cpp/espp.git"
