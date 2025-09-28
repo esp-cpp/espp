@@ -5,7 +5,7 @@ This example demonstrates using the `Ping` component to run `esp_ping` with a si
 Run the app, then use serial CLI:
 - `sta ...` to bring up WiFi (see WiFi STA menu), e.g. `sta connect <ssid> <password>`
 - `ping` to enter the `ping` submenu to start/stop pinging a target IP address
-  - `ping google.com`, or `ping 127.0.01` for example
+  - `ping google.com`, or `ping 127.0.0.1` for example
 
 ## How to use example
 

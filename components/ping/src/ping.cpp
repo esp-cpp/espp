@@ -188,8 +188,8 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
       "Get ping count");
   menu->Insert(
       "count", {"n"},
-      [this](std::ostream &out, int n) {
-        ping_.get().set_count((uint32_t)n);
+      [this](std::ostream &out, uint32_t n) {
+        ping_.get().set_count(n);
         out << "OK\n";
       },
       "Set ping count");
@@ -199,8 +199,8 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
       "Get interval (ms)");
   menu->Insert(
       "interval", {"ms"},
-      [this](std::ostream &out, int ms) {
-        ping_.get().set_interval_ms((uint32_t)ms);
+      [this](std::ostream &out, uint32_t ms) {
+        ping_.get().set_interval_ms(ms);
         out << "OK\n";
       },
       "Set interval (ms)");
@@ -210,8 +210,8 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
       "Get timeout (ms)");
   menu->Insert(
       "timeout", {"ms"},
-      [this](std::ostream &out, int ms) {
-        ping_.get().set_timeout_ms((uint32_t)ms);
+      [this](std::ostream &out, uint32_t ms) {
+        ping_.get().set_timeout_ms(ms);
         out << "OK\n";
       },
       "Set timeout (ms)");
@@ -221,8 +221,8 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
       "Get payload size");
   menu->Insert(
       "size", {"bytes"},
-      [this](std::ostream &out, int bytes) {
-        ping_.get().set_data_size((uint32_t)bytes);
+      [this](std::ostream &out, uint32_t bytes) {
+        ping_.get().set_data_size(bytes);
         out << "OK\n";
       },
       "Set payload size (bytes)");
@@ -231,8 +231,8 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
       "ttl", [this](std::ostream &out) { out << (int)ping_.get().get_ttl() << "\n"; }, "Get TTL");
   menu->Insert(
       "ttl", {"value"},
-      [this](std::ostream &out, int v) {
-        ping_.get().set_ttl((uint8_t)v);
+      [this](std::ostream &out, uint8_t v) {
+        ping_.get().set_ttl(v);
         out << "OK\n";
       },
       "Set TTL");
@@ -241,8 +241,8 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
       "tos", [this](std::ostream &out) { out << (int)ping_.get().get_tos() << "\n"; }, "Get TOS");
   menu->Insert(
       "tos", {"value"},
-      [this](std::ostream &out, int v) {
-        ping_.get().set_tos((uint8_t)v);
+      [this](std::ostream &out, uint8_t v) {
+        ping_.get().set_tos(v);
         out << "OK\n";
       },
       "Set TOS");
@@ -252,8 +252,8 @@ std::unique_ptr<cli::Menu> Ping::Menu::get(std::string_view name, std::string_vi
       "Get ping task stack size");
   menu->Insert(
       "stack", {"bytes"},
-      [this](std::ostream &out, int bytes) {
-        ping_.get().set_task_stack_size((size_t)bytes);
+      [this](std::ostream &out, size_t bytes) {
+        ping_.get().set_task_stack_size(bytes);
         out << "OK\n";
       },
       "Set ping task stack size (bytes)");
