@@ -705,18 +705,6 @@ protected:
 
   // DSI write helpers
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);
-  void dsi_write_lcd_lines(int sx, int sy, int ex, int ey, const uint8_t *color_data,
-                           uint32_t flags);
-
-  static esp_err_t lcd_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_start, int x_end,
-                                   int y_end, const void *color_data);
-  static esp_err_t lcd_reset(esp_lcd_panel_t *panel);
-  static esp_err_t lcd_disp_init(esp_lcd_panel_t *panel);
-  static esp_err_t lcd_disp_mirror(esp_lcd_panel_t *panel, bool mirror_x, bool mirror_y);
-  static esp_err_t lcd_disp_swap_xy(esp_lcd_panel_t *panel, bool swap_xy);
-  static esp_err_t lcd_disp_invert_color(esp_lcd_panel_t *panel, bool invert_color);
-  static esp_err_t lcd_disp_on_off(esp_lcd_panel_t *panel, bool on);
-  static esp_err_t lcd_disp_sleep(esp_lcd_panel_t *panel, bool sleep);
 
   // IO expander bit mapping (can be adjusted if hardware changes)
   static constexpr uint8_t IO43_BIT_SPK_EN = 1;   // P1

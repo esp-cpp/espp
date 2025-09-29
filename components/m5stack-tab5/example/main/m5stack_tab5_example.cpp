@@ -31,7 +31,7 @@ static size_t load_audio();
 static void play_click(espp::M5StackTab5 &tab5);
 
 extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "M5Stack Tab5 Example", .level = espp::Logger::Verbosity::INFO});
+  espp::Logger logger({.tag = "M5Stack Tab5 Example", .level = espp::Logger::Verbosity::DEBUG});
   logger.info("Starting example!");
 
   //! [m5stack tab5 example]

@@ -14,14 +14,16 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
 
   // Reset touch controller via expander if available
   touch_reset(true);
-  vTaskDelay(pdMS_TO_TICKS(10));
+  using namespace std::chrono_literals;
+  std::this_thread::sleep_for(10ms);
   touch_reset(false);
-  vTaskDelay(pdMS_TO_TICKS(50));
+  std::this_thread::sleep_for(50ms);
 
   // Create touch driver instance
   touch_driver_ = std::make_shared<TouchDriver>(
       TouchDriver::Config{.write = std::bind_front(&I2c::write, &internal_i2c_),
                           .read = std::bind_front(&I2c::read, &internal_i2c_),
+                          .address = TouchDriver::DEFAULT_ADDRESS_2, // GT911 0x14 address
                           .log_level = espp::Logger::Verbosity::WARN});
 
   // Create touchpad input wrapper
@@ -44,7 +46,9 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
 }
 
 bool M5StackTab5::update_touch() {
+  // logger_.debug("Updating touch data");
   if (!touch_driver_) {
+    logger_.error("Touch driver not initialized");
     return false;
   }
 
@@ -52,7 +56,7 @@ bool M5StackTab5::update_touch() {
   std::error_code ec;
   bool new_data = touch_driver_->update(ec);
   if (ec) {
-    logger_.error("could not update touch_driver: {}\n", ec.message());
+    logger_.error("could not update touch_driver: {}", ec.message());
     std::lock_guard<std::recursive_mutex> lock(touchpad_data_mutex_);
     touchpad_data_ = {};
     return false;
