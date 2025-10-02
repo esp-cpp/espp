@@ -239,10 +239,11 @@ public:
   /// @param[out] yaw Yaw angle in degrees
   /// @note Euler angles are in degrees
   void get_euler(float &pitch, float &roll, float &yaw) const {
-    pitch =
-        atan2(2.0f * (q0 * q1 + q2 * q3), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3) * 180.0f / M_PI;
-    roll = asin(-2.0f * (q1 * q3 - q0 * q2)) * 180.0f / M_PI;
-    yaw = atan2(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 180.0f / M_PI;
+    pitch = atan2f(2.0f * (q0 * q1 + q2 * q3), q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3) * 180.0f /
+            (float)(M_PI);
+    roll = asinf(-2.0f * (q1 * q3 - q0 * q2)) * 180.0f / (float)(M_PI);
+    yaw = atan2f(2.0f * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 180.0f /
+          (float)(M_PI);
   }
 
 protected:

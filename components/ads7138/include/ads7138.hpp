@@ -1240,7 +1240,7 @@ protected:
     // can represent avdd_mv_ volts with 65536 values
     // therefore, each value represents avdd_mv_ / 65536 volts.
     // multiply by 1000 to get mV
-    return static_cast<float>(raw) * avdd_mv_ / 65536.0;
+    return static_cast<float>(raw) * avdd_mv_ / 65536.0f;
   }
 
   /**

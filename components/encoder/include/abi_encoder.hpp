@@ -119,7 +119,7 @@ public:
    * @return Number of radians, as a floating point number.
    */
   float get_radians() requires(T == EncoderType::ROTATIONAL) {
-    return get_revolutions() * 2.0f * M_PI;
+    return get_revolutions() * 2.0f * (float)(M_PI);
   }
 
   /**
