@@ -412,15 +412,15 @@ public:
         Uout = 1.0f / (fast_inv_sqrt(ud * ud + uq * uq) * driver_->get_voltage_limit());
         // angle normalisation in between 0 and 2pi
         // only necessary if using fast_sin and fast_cos - approximation functions
-        el_angle = normalize_angle(el_angle + atan2(uq, ud));
+        el_angle = normalize_angle(el_angle + atan2f(uq, ud));
       } else { // only uq available - no need for atan2 and sqrt
         Uout = uq / driver_->get_voltage_limit();
         // angle normalisation in between 0 and 2pi
         // only necessary if using fast_sin and fast_cos - approximation functions
-        el_angle = normalize_angle(el_angle + M_PI_2);
+        el_angle = normalize_angle(el_angle + (float)(M_PI_2));
       }
       // find the sector we are in currently
-      sector = floor(el_angle / _PI_3) + 1;
+      sector = floorf(el_angle / _PI_3) + 1;
       // calculate the duty cycles
       float T1 = _SQRT3 * fast_sin(sector * _PI_3 - el_angle) * Uout;
       float T2 = _SQRT3 * fast_sin(el_angle - (sector - 1.0f) * _PI_3) * Uout;

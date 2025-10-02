@@ -798,14 +798,14 @@ protected:
       // can represent avdd_mv_ volts with 65536 values
       // therefore, each value represents avdd_mv_ / 65536 volts.
       // multiply by 1000 to get mV
-      return static_cast<float>(raw) * avdd_mv_ / 65536.0;
+      return static_cast<float>(raw) * avdd_mv_ / 65536.0f;
     } else {
       // we have a 12-bit ADC, so we can represent 2^12 = 4096 values
       // we were configured with avdd_mv_ as the reference voltage, so we
       // can represent avdd_mv_ volts with 4096 values
       // therefore, each value represents avdd_mv_ / 4096 volts.
       // multiply by 1000 to get mV
-      return static_cast<float>(raw) * avdd_mv_ / 4096.0;
+      return static_cast<float>(raw) * avdd_mv_ / 4096.0f;
     }
   }
 

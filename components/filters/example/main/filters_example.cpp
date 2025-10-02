@@ -48,7 +48,7 @@ extern "C" void app_main(void) {
       float seconds = std::chrono::duration<float>(now - start).count();
       // use time to create a stairstep function
       constexpr float noise_scale = 0.2f;
-      float input = floor(seconds) + get_random() * noise_scale;
+      float input = floorf(seconds) + get_random() * noise_scale;
       fmt::print("{:.03f}, {:.03f}, {:.03f}, {:.03f}, "
                  "{:.03f}, {:.03f}, {:.03f}, {:.03f}\n",
                  seconds, input, slpf.update(input), lpf.update(input), bwf_df1_o1.update(input),

@@ -269,7 +269,7 @@ public:
       return T(0);
     }
     T dot_product = dot(other);
-    return acos(dot_product / (mag1 * mag2));
+    return acosf(dot_product / (mag1 * mag2));
   }
 
   /**
@@ -292,7 +292,7 @@ public:
     }
     T dot_product = dot(other);
     T cross_product = x_ * other.y_ - y_ * other.x_;
-    return atan2(cross_product, dot_product);
+    return atan2f(cross_product, dot_product);
   }
 
   /**
@@ -317,8 +317,8 @@ public:
             typename std::enable_if<std::is_floating_point<U>::value>::type * = nullptr>
   Vector2d rotated(T radians) const {
     if (radians != T(0)) {
-      T x2 = x_ * cos(radians) - y_ * sin(radians);
-      T y2 = x_ * sin(radians) + y_ * cos(radians);
+      T x2 = x_ * cosf(radians) - y_ * sinf(radians);
+      T y2 = x_ * sinf(radians) + y_ * cosf(radians);
       return Vector2d(x2, y2);
     }
     return *this;

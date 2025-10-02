@@ -223,8 +223,8 @@ public:
     // small for the P factor to work well.
     const float derivative_lower_strength = config.detent_strength * kd_factor_max_;
     const float derivative_upper_strength = config.detent_strength * kd_factor_min_;
-    const float derivative_position_width_lower = 3.0f * M_PI / 180.0f; // radians(3);
-    const float derivative_position_width_upper = 8.0f * M_PI / 180.0f; // radians(8);
+    const float derivative_position_width_lower = 3.0f * (float)(M_PI) / 180.0f; // radians(3);
+    const float derivative_position_width_upper = 8.0f * (float)(M_PI) / 180.0f; // radians(8);
     const float raw = derivative_lower_strength +
                       (derivative_upper_strength - derivative_lower_strength) /
                           (derivative_position_width_upper - derivative_position_width_lower) *

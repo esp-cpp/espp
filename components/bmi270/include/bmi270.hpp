@@ -327,9 +327,9 @@ public:
       orientation_ = orientation_filter_(dt, accel, gyro);
       // Calculate gravity vector from orientation
       gravity_vector_ = {
-          static_cast<float>(sin(orientation_.pitch)),
-          static_cast<float>(-sin(orientation_.roll) * cos(orientation_.pitch)),
-          static_cast<float>(-cos(orientation_.roll) * cos(orientation_.pitch)),
+          static_cast<float>(sinf(orientation_.pitch)),
+          static_cast<float>(-sinf(orientation_.roll) * cosf(orientation_.pitch)),
+          static_cast<float>(-cosf(orientation_.roll) * cosf(orientation_.pitch)),
       };
     }
 

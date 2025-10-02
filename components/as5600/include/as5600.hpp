@@ -44,7 +44,7 @@ public:
   static constexpr float COUNTS_PER_REVOLUTION_F =
       16384.0f; ///< Float number of counts per revolution for the magnetic encoder.
   static constexpr float COUNTS_TO_RADIANS =
-      2.0f * M_PI /
+      2.0f * (float)(M_PI) /
       COUNTS_PER_REVOLUTION_F; ///< Conversion factor to convert from count value to radians.
   static constexpr float COUNTS_TO_DEGREES =
       360.0f /
