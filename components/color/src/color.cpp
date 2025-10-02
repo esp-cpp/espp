@@ -6,10 +6,10 @@ Rgb::Rgb(const float &_r, const float &_g, const float &_b)
     : r(_r)
     , g(_g)
     , b(_b) {
-  if (r > 1.0 || g > 1.0 || b > 1.0) {
-    r /= 255.;
-    g /= 255.;
-    b /= 255.;
+  if (r > 1.0f || g > 1.0f || b > 1.0f) {
+    r /= 255.0f;
+    g /= 255.0f;
+    b /= 255.0f;
   }
   r = std::clamp(r, 0.0f, 1.0f);
   g = std::clamp(g, 0.0f, 1.0f);
@@ -124,27 +124,27 @@ Rgb Hsv::rgb() const {
 
   float H = h, S = s, V = v, P, Q, T, fract;
 
-  (H == 360.) ? (H = 0.) : (H /= 60.);
-  fract = H - floor(H);
+  (H == 360.0f) ? (H = 0.0f) : (H /= 60.0f);
+  fract = H - floorf(H);
 
-  P = V * (1. - S);
-  Q = V * (1. - S * fract);
-  T = V * (1. - S * (1. - fract));
+  P = V * (1.0f - S);
+  Q = V * (1.0f - S * fract);
+  T = V * (1.0f - S * (1.0f - fract));
 
-  if (0. <= H && H < 1.)
+  if (0.0f <= H && H < 1.0f)
     RGB = Rgb(V, T, P);
-  else if (1. <= H && H < 2.)
+  else if (1.0f <= H && H < 2.0f)
     RGB = Rgb(Q, V, P);
-  else if (2. <= H && H < 3.)
+  else if (2.0f <= H && H < 3.0f)
     RGB = Rgb(P, V, T);
-  else if (3. <= H && H < 4.)
+  else if (3.0f <= H && H < 4.0f)
     RGB = Rgb(P, Q, V);
-  else if (4. <= H && H < 5.)
+  else if (4.0f <= H && H < 5.0f)
     RGB = Rgb(T, P, V);
-  else if (5. <= H && H < 6.)
+  else if (5.0f <= H && H < 6.0f)
     RGB = Rgb(V, P, Q);
   else
-    RGB = Rgb(0., 0., 0.);
+    RGB = Rgb(0.0f, 0.0f, 0.0f);
 
   return RGB;
 }
