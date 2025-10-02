@@ -79,9 +79,9 @@ size_t FileSystem::get_used_space() const {
 std::string FileSystem::human_readable(size_t bytes) {
   int i{};
   float mantissa = bytes;
-  for (; mantissa >= 1024.; mantissa /= 1024., ++i) {
+  for (; mantissa >= 1024.0f; mantissa /= 1024.0f, ++i) {
   }
-  mantissa = std::ceil(mantissa * 10.) / 10.;
+  mantissa = std::ceilf(mantissa * 10.0f) / 10.0f;
   return i == 0 ? fmt::format("{}", bytes) : fmt::format("{:.3f}{}", mantissa, "BKMGTPE"[i]);
 }
 
