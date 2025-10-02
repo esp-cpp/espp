@@ -46,7 +46,7 @@ public:
   float at(float t) const {
     float tmb_y = (t - beta_) / gamma_;  // (t - B) / y
     float power = -0.5f * tmb_y * tmb_y; // -(t - B)^2 / 2y^2
-    return alpha_ * exp(power);
+    return alpha_ * expf(power);
   }
 
   /**

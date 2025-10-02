@@ -40,7 +40,7 @@ extern "C" void app_main(void) {
   {
     //! [fast_ln example]
     float x = 3.0f;
-    auto slow = log(x);
+    auto slow = logf(x);
     auto fast = espp::fast_ln(x);
     auto diff = std::abs(slow - fast);
     fmt::print("ln({}) = {} (slow), {} (fast), diff = {}\n", x, slow, fast, diff);
@@ -49,7 +49,7 @@ extern "C" void app_main(void) {
   {
     //! [fast_inv_sqrt example]
     float x = 3.0f;
-    auto slow = sqrt(x);
+    auto slow = sqrtf(x);
     auto fast = 1.0f / espp::fast_inv_sqrt(x);
     auto diff = std::abs(slow - fast);
     fmt::print("sqrt({}) = {} (slow), {} (fast), diff = {}\n", x, slow, fast, diff);
@@ -58,7 +58,7 @@ extern "C" void app_main(void) {
   {
     //! [fast_sin example]
     float x = 3.0f;
-    auto slow = sin(x);
+    auto slow = sinf(x);
     auto fast = espp::fast_sin(x);
     auto diff = std::abs(slow - fast);
     fmt::print("sin({}) = {} (slow), {} (fast), diff = {}\n", x, slow, fast, diff);
@@ -67,7 +67,7 @@ extern "C" void app_main(void) {
   {
     //! [fast_cos example]
     float x = 3.0f;
-    auto slow = cos(x);
+    auto slow = cosf(x);
     auto fast = espp::fast_cos(x);
     auto diff = std::abs(slow - fast);
     fmt::print("cos({}) = {} (slow), {} (fast), diff = {}\n", x, slow, fast, diff);
@@ -368,7 +368,7 @@ extern "C" void app_main(void) {
     };
     fmt::print("points: {}\n", points);
     fmt::print("% x, instant, aggressive, delayed\n");
-    for (float x = 0; x <= 1.0; x += 0.01) {
+    for (float x = 0; x <= 1.0f; x += 0.01f) {
       float y1 = espp::piecewise_linear(instant, x);
       float y2 = espp::piecewise_linear(aggressive, x);
       float y3 = espp::piecewise_linear(delayed, x);

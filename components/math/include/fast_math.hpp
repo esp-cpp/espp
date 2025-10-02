@@ -14,14 +14,14 @@ namespace espp {
  * @param degrees Angle in degrees
  * @return Angle in radians
  */
-[[maybe_unused]] static float deg_to_rad(float degrees) { return degrees * M_PI / 180.0f; }
+[[maybe_unused]] static float deg_to_rad(float degrees) { return degrees * (float)(M_PI) / 180.0f; }
 
 /**
  * @brief Convert radians to degrees
  * @param radians Angle in radians
  * @return Angle in degrees
  */
-[[maybe_unused]] static float rad_to_deg(float radians) { return radians * 180.0f / M_PI; }
+[[maybe_unused]] static float rad_to_deg(float radians) { return radians * 180.0f / (float)(M_PI); }
 
 /**
  * @brief Simple square of the input.
@@ -125,7 +125,7 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
  * @param x Floating point value to be rounded.
  * @return Nearest integer to x.
  */
-[[maybe_unused]] static int round(float x) { return (x > 0) ? (int)(x + 0.5) : (int)(x - 0.5); }
+[[maybe_unused]] static int round(float x) { return (x > 0) ? (int)(x + 0.5f) : (int)(x - 0.5f); }
 
 /**
  * @brief fast natural log function, ln(x).
@@ -144,7 +144,7 @@ template <typename T> int sgn(T x) { return (T(0) < x) - (x < T(0)); }
   bx = 1065353216 | (bx & 8388607);
   // x = * reinterpret_cast<float *>(&bx);
   memcpy(&x, &bx, sizeof(x));
-  return -1.49278 + (2.11263 + (-0.729104 + 0.10969 * x) * x) * x + 0.6931471806 * t;
+  return -1.49278f + (2.11263f + (-0.729104f + 0.10969f * x) * x) * x + 0.6931471806f * t;
 }
 
 /**
@@ -173,11 +173,11 @@ static constexpr int sine_array[200] = {
  * @return Approximation of sin(value)
  */
 [[maybe_unused]] static float fast_sin(float angle) {
-  if (angle < M_PI_2) {
+  if (angle < (float)(M_PI_2)) {
     return 0.0001f * sine_array[round(126.6873f * angle)];
-  } else if (angle < M_PI) {
+  } else if (angle < (float)(M_PI)) {
     return 0.0001f * sine_array[398 - round(126.6873f * angle)];
-  } else if (angle < (3.0f * M_PI_2)) {
+  } else if (angle < (3.0f * (float)(M_PI_2))) {
     return -0.0001f * sine_array[round(126.6873f * angle) - 398];
   } else {
     return -0.0001f * sine_array[796 - round(126.6873f * angle)];
@@ -191,8 +191,8 @@ static constexpr int sine_array[200] = {
  * @return Approximation of cos(value)
  */
 [[maybe_unused]] static float fast_cos(float angle) {
-  float a_sin = angle + M_PI_2;
-  a_sin = (a_sin > (2.0f * M_PI)) ? (a_sin - (2.0f * M_PI)) : a_sin;
+  float a_sin = angle + (float)(M_PI_2);
+  a_sin = (a_sin > (2.0f * (float)(M_PI))) ? (a_sin - (2.0f * (float)(M_PI))) : a_sin;
   return fast_sin(a_sin);
 }
 } // namespace espp
