@@ -365,9 +365,9 @@ bool Lsm6dso<Interface>::update(float dt, std::error_code &ec) {
     orientation_ = orientation_filter_(dt, accel, gyro);
     // now calculate the gravity vector
     gravity_vector_ = {
-        (float)(sin(orientation_.pitch)),
-        (float)(-sin(orientation_.roll) * cos(orientation_.pitch)),
-        (float)(-cos(orientation_.roll) * cos(orientation_.pitch)),
+        (float)(sinf(orientation_.pitch)),
+        (float)(-sinf(orientation_.roll) * cosf(orientation_.pitch)),
+        (float)(-cosf(orientation_.roll) * cosf(orientation_.pitch)),
     };
   }
   return true;

@@ -40,9 +40,9 @@ void LowpassFilter::init(const Config &config) {
 #if defined(ESP_PLATFORM)
   dsps_biquad_gen_lpf_f32(coeffs_, config.normalized_cutoff_frequency, config.q_factor);
 #else
-  float w0 = 2 * M_PI * config.normalized_cutoff_frequency;
-  float alpha = sin(w0) / (2 * config.q_factor);
-  float cos_w0 = cos(w0);
+  float w0 = 2 * (float)(M_PI)*config.normalized_cutoff_frequency;
+  float alpha = sinf(w0) / (2 * config.q_factor);
+  float cos_w0 = cosf(w0);
   float b0 = (1 - cos_w0) / 2;
   float b1 = 1 - cos_w0;
   float b2 = (1 - cos_w0) / 2;

@@ -420,7 +420,7 @@ public:
         el_angle = normalize_angle(el_angle + (float)(M_PI_2));
       }
       // find the sector we are in currently
-      sector = floor(el_angle / _PI_3) + 1;
+      sector = floorf(el_angle / _PI_3) + 1;
       // calculate the duty cycles
       float T1 = _SQRT3 * fast_sin(sector * _PI_3 - el_angle) * Uout;
       float T2 = _SQRT3 * fast_sin(el_angle - (sector - 1.0f) * _PI_3) * Uout;

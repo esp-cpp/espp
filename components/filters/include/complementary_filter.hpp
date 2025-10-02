@@ -19,7 +19,7 @@ class ComplementaryFilter {
 public:
   /// Constructor
   /// \param alpha Filter coefficient (0 < alpha < 1)
-  explicit ComplementaryFilter(float alpha = 0.98)
+  explicit ComplementaryFilter(float alpha = 0.98f)
       : alpha(alpha)
       , pitch(0.0f)
       , roll(0.0f) {}
@@ -47,12 +47,12 @@ public:
   /// same coordinate system.
   void update(float ax, float ay, float az, float gx, float gy, float gz, float dt) {
     // Convert gyroscope readings from degrees/s to radians/s
-    gx = gx * M_PI / 180.0f;
-    gy = gy * M_PI / 180.0f;
+    gx = gx * (float)(M_PI) / 180.0f;
+    gy = gy * (float)(M_PI) / 180.0f;
 
     // Compute pitch and roll from accelerometer (degrees)
-    float accelPitch = atan2(ay, sqrt(ax * ax + az * az)) * 180.0f / M_PI;
-    float accelRoll = atan2(-ax, az) * 180.0f / M_PI;
+    float accelPitch = atan2f(ay, sqrt(ax * ax + az * az)) * 180.0f / (float)(M_PI);
+    float accelRoll = atan2f(-ax, az) * 180.0f / (float)(M_PI);
 
     // Integrate gyroscope readings
     float gyroPitch = pitch + gy * dt;

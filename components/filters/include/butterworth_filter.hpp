@@ -40,7 +40,7 @@ public:
 protected:
   template <size_t N = (ORDER + 1) / 2>
   static std::array<TransferFunction<3>, N> make_filter_config(float normalized_cutoff_frequency) {
-    const float gamma = 1.0f / std::tanf((float)(M_PI)*normalized_cutoff_frequency / 2.0f);
+    const float gamma = 1.0f / tanf((float)(M_PI)*normalized_cutoff_frequency / 2.0f);
     std::array<TransferFunction<3>, N> filter_config;
     if constexpr (ORDER % 2 == 0) {
       // we have an even order filter
@@ -62,7 +62,7 @@ protected:
 
   template <size_t N = (ORDER + 1) / 2> static TransferFunction<3> make_sos(size_t k, float gamma) {
     float g_squared = gamma * gamma;
-    float alpha = 2.0f * std::cosf(2.0f * (float)(M_PI) * (2 * k + ORDER + 1) / (4 * ORDER));
+    float alpha = 2.0f * cosf(2.0f * (float)(M_PI) * (2 * k + ORDER + 1) / (4 * ORDER));
     return TransferFunction<3>{{{1.0f, 2.0f, 1.0f}}, // b0, b1, b2
                                {{
                                    g_squared - alpha * gamma + 1, // a0
