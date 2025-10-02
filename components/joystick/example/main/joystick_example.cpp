@@ -16,7 +16,7 @@ extern "C" void app_main(void) {
     float min = 0;
     float max = 255;
     float center = 127;
-    float deadband_percent = 0.1;
+    float deadband_percent = 0.1f;
     float deadband = deadband_percent * (max - min);
 
     // circular joystick
@@ -58,8 +58,8 @@ extern "C" void app_main(void) {
     float min = 0;
     float max = 255;
     float center = 127;
-    float center_deadzone_radius = 0.5;
-    float range_deadzone_radius = 0.5;
+    float center_deadzone_radius = 0.5f;
+    float range_deadzone_radius = 0.5f;
 
     // circular joystick
     espp::Joystick js1({
@@ -79,8 +79,8 @@ extern "C" void app_main(void) {
     }
     // update the deadzones to be very large (overlapping)
     logger.info("Setting deadzones to overlap");
-    js1.set_center_deadzone_radius(0.75);
-    js1.set_range_deadzone(0.75);
+    js1.set_center_deadzone_radius(0.75f);
+    js1.set_range_deadzone(0.75f);
     // and run the loop again
     fmt::print("raw x, raw y, js x, js y\n");
     for (float x = min - 10.0f; x <= max + 10.0f; x += 10.0f) {

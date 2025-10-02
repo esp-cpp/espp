@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.20)
 set(ENV{IDF_COMPONENT_MANAGER} "0")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
+add_compile_options(-Wdouble-promotion)
+
 # add the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
   "../../../components/"

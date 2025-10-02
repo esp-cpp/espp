@@ -19,7 +19,7 @@ bool IRAM_ATTR Led::cb_ledc_fade_end_event(const ledc_cb_param_t *param, void *u
 Led::Led(const Config &config) noexcept
     : BaseComponent("Led", config.log_level)
     , duty_resolution_(config.duty_resolution)
-    , max_raw_duty_((uint32_t)(std::pow(2, (int)duty_resolution_) - 1))
+    , max_raw_duty_((uint32_t)(std::powf(2, (int)duty_resolution_) - 1))
     , channels_(config.channels) {
 
   logger_.info("Initializing timer");
