@@ -41,9 +41,8 @@ extern "C" void app_main(void) {
        .auto_init = false,
        .log_level = espp::Logger::Verbosity::INFO});
   std::error_code ec;
-  kts1622.initialize(
-      ec); // Initialized separately from the constructor since we set auto_init to false
-  if (ec) {
+  // Initialized separately from the constructor since we set auto_init to false
+  if (!kts1622.initialize(ec)) {
     logger.error("kts1622 initialization failed: {}", ec.message());
     return;
   }

@@ -40,8 +40,8 @@ public:
    * The output drive mode configuration.
    */
   enum class OutputDriveMode : int {
-    PUSH_PULL = 0,  ///< In this mode it needs no pull-up resistor.
-    OPEN_DRAIN = 1, ///< In this mode it needs a pull-up reistor. This is the default mode.
+    PUSH_PULL = 0,  ///< In this mode it needs no pull-up resistor. This is the default mode.
+    OPEN_DRAIN = 1, ///< In this mode it needs a pull-up reistor.
   };
 
   /**
@@ -72,6 +72,12 @@ public:
     uint8_t port_0_interrupt_mask = 0xFF; ///< Interrupt mask (1 = disable interrupt) for port 0.
     uint8_t port_1_direction_mask = 0xFF; ///< Direction mask (1 = input) for port 1.
     uint8_t port_1_interrupt_mask = 0xFF; ///< Interrupt mask (1 = disable interrupt) for port 1.
+    std::optional<uint8_t> port_0_initial_output =
+        std::nullopt; ///< Initial output value for port 0 (only for pins set as
+                      ///< outputs). If not set, outputs will be low.
+    std::optional<uint8_t> port_1_initial_output =
+        std::nullopt; ///< Initial output value for port 1 (only for pins set as
+                      ///< outputs). If not set, outputs will be low.
     OutputDriveMode output_drive_mode =
         OutputDriveMode::PUSH_PULL; ///< Output drive mode for the ports.
     BasePeripheral::write_fn write; ///< Function to write to the device.
@@ -93,8 +99,7 @@ public:
       , config_(config) {
     if (config.auto_init) {
       std::error_code ec;
-      initialize(ec);
-      if (ec) {
+      if (!initialize(ec)) {
         logger_.error("Failed to initialize KTS1622: {}", ec.message());
       }
     }
@@ -103,8 +108,9 @@ public:
   /**
    * @brief Initialize the component class.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void initialize(std::error_code &ec) { init(config_, ec); }
+  bool initialize(std::error_code &ec) { return init(config_, ec); }
 
   // TODO: provide configuration of output drive strength (registers 0x40-0x43),
   //      where each port pin can be configured to have a drive strength of
@@ -144,12 +150,14 @@ public:
    * @param port The Port for which to write the pins
    * @param value The pin values to apply.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note This will overwrite any previous pin values on the port for all
    *       output pins on the port.
    */
-  void output(Port port, uint8_t value, std::error_code &ec) {
+  bool output(Port port, uint8_t value, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
     write_u8_to_register((uint8_t)addr, value, ec);
+    return !ec;
   }
 
   /**
@@ -157,30 +165,30 @@ public:
    * @param p0 The pin values to apply to Port 0.
    * @param p1 The pin values to apply to Port 1.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note This will overwrite any previous pin values on the port for all
    *       output pins on the ports.
    */
-  void output(uint8_t p0, uint8_t p1, std::error_code &ec) {
+  bool output(uint8_t p0, uint8_t p1, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    output(Port::PORT0, p0, ec);
-    if (ec)
-      return;
-    output(Port::PORT1, p1, ec);
+    if (!output(Port::PORT0, p0, ec))
+      return false;
+    return output(Port::PORT1, p1, ec);
   }
 
   /**
    * @brief Write the pin values on both Port 0 and Port 1.
    * @param value The pin values to apply as a 16 bit value (P0_0 lsb, P1_7 msb).
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note This will overwrite any previous pin values on the port for all
    *       output pins on the ports.
    */
-  void output(uint16_t value, std::error_code &ec) {
+  bool output(uint16_t value, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    output(Port::PORT0, value & 0xFF, ec);
-    if (ec)
-      return;
-    output(Port::PORT1, value >> 8, ec);
+    if (!output(Port::PORT0, value & 0xFF, ec))
+      return false;
+    return output(Port::PORT1, value >> 8, ec);
   }
 
   /**
@@ -189,15 +197,17 @@ public:
    * @param port The Port for which to clear the pin outputs.
    * @param mask The pin values as an 8 bit mask to clear.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void clear_pins(Port port, uint8_t mask, std::error_code &ec) {
+  bool clear_pins(Port port, uint8_t mask, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
     auto data = read_u8_from_register((uint8_t)addr, ec);
     if (ec)
-      return;
+      return false;
     data &= ~mask;
     write_u8_to_register((uint8_t)addr, data, ec);
+    return !ec;
   }
 
   /**
@@ -206,13 +216,13 @@ public:
    * @param p0 The pin values as an 8 bit mask for Port 0 to clear.
    * @param p1 The pin values as an 8 bit mask for Port 1 to clear.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void clear_pins(uint8_t p0, uint8_t p1, std::error_code &ec) {
+  bool clear_pins(uint8_t p0, uint8_t p1, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    clear_pins(Port::PORT0, p0, ec);
-    if (ec)
-      return;
-    clear_pins(Port::PORT1, p1, ec);
+    if (!clear_pins(Port::PORT0, p0, ec))
+      return false;
+    return clear_pins(Port::PORT1, p1, ec);
   }
 
   /**
@@ -220,13 +230,13 @@ public:
    * @details Reads the current pin values and clears any bits set in the mask.
    * @param mask The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to clear.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void clear_pins(uint16_t mask, std::error_code &ec) {
+  bool clear_pins(uint16_t mask, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    clear_pins(Port::PORT0, mask & 0xFF, ec);
-    if (ec)
-      return;
-    clear_pins(Port::PORT1, mask >> 8, ec);
+    if (!clear_pins(Port::PORT0, mask & 0xFF, ec))
+      return false;
+    return clear_pins(Port::PORT1, mask >> 8, ec);
   }
 
   /**
@@ -235,15 +245,17 @@ public:
    * @param port The Port for which to set the pin outputs.
    * @param mask The pin values as an 8 bit mask to set.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_pins(Port port, uint8_t mask, std::error_code &ec) {
+  bool set_pins(Port port, uint8_t mask, std::error_code &ec) {
     auto addr = port == Port::PORT0 ? Registers::OUTPORT0 : Registers::OUTPORT1;
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     auto data = read_u8_from_register((uint8_t)addr, ec);
     if (ec)
-      return;
+      return false;
     data |= mask;
     write_u8_to_register((uint8_t)addr, data, ec);
+    return !ec;
   }
 
   /**
@@ -252,13 +264,13 @@ public:
    * @param p0 The pin values for Port 0 as an 8 bit mask to set.
    * @param p1 The pin values for Port 1 as an 8 bit mask to set.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_pins(uint8_t p0, uint8_t p1, std::error_code &ec) {
+  bool set_pins(uint8_t p0, uint8_t p1, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    set_pins(Port::PORT0, p0, ec);
-    if (ec)
-      return;
-    set_pins(Port::PORT1, p1, ec);
+    if (!set_pins(Port::PORT0, p0, ec))
+      return false;
+    return set_pins(Port::PORT1, p1, ec);
   }
 
   /**
@@ -266,13 +278,13 @@ public:
    * @details Reads the current pin values and sets any bits set in the mask.
    * @param mask The pin values as a 16 bit mask (P0_0 lsb, P1_7 msb) to set.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_pins(uint16_t mask, std::error_code &ec) {
+  bool set_pins(uint16_t mask, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    set_pins(Port::PORT0, mask & 0xFF, ec);
-    if (ec)
-      return;
-    set_pins(Port::PORT1, mask >> 8, ec);
+    if (!set_pins(Port::PORT0, mask & 0xFF, ec))
+      return false;
+    return set_pins(Port::PORT1, mask >> 8, ec);
   }
 
   /**
@@ -307,18 +319,20 @@ public:
    * @param port The port to set the output drive mode for.
    * @param mode The output drive mode to set for the port.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_port_output_drive_mode(Port port, OutputDriveMode mode, std::error_code &ec) {
+  bool set_port_output_drive_mode(Port port, OutputDriveMode mode, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // get the current value from the register
     uint8_t data = read_u8_from_register((uint8_t)Registers::OUT_CFG, ec);
     if (ec)
-      return;
+      return false;
     // if it's PORT0, we write to bit 0 of the register, if it's PORT1, we write to bit 1
     uint8_t mask = port == Port::PORT0 ? 0x01 : 0x02;
     // if it's OPEN_DRAIN, we write 1 to the bit, if it's PUSH_PULL, we write 0
     data = mode == OutputDriveMode::OPEN_DRAIN ? data | mask : data & ~mask;
     write_u8_to_register((uint8_t)Registers::OUT_CFG, data, ec);
+    return !ec;
   }
 
   /**
@@ -326,14 +340,16 @@ public:
    * @param port The port associated with the provided pin mask.
    * @param mask The pin mask to configure for interrupt (0=interrupt).
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note You should also call configure_interrupt to configure the interrupt type for the
    *       pins.
    * @see configure_interrupt
    */
-  void enable_interrupt(Port port, uint8_t mask, std::error_code &ec) {
+  bool enable_interrupt(Port port, uint8_t mask, std::error_code &ec) {
     logger_.info("Enabling interrupt (0=interrupt enabled) for Port {} pins {:#08b}", port, mask);
     auto addr = port == Port::PORT0 ? Registers::INT_MASK0 : Registers::INT_MASK1;
     write_u8_to_register((uint8_t)addr, mask, ec);
+    return !ec;
   }
 
   /**
@@ -341,27 +357,30 @@ public:
    * @param p0 The pin mask for Port 0 to configure for interrupt (0=interrupt).
    * @param p1 The pin mask for Port 1 to configure for interrupt (0=interrupt).
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note You should also call configure_interrupt to configure the interrupt type for the
    *       pins.
    * @see configure_interrupt
    */
-  void enable_interrupt(uint8_t p0, uint8_t p1, std::error_code &ec) {
+  bool enable_interrupt(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.info("Enabling interrupt (0=interrupt enabled) p0:{:#08b}, p1:{:#08b}", p0, p1);
     auto addr = Registers::INT_MASK0;
     const uint8_t data[] = {p0, p1};
     write_many_to_register((uint8_t)addr, data, 2, ec);
+    return !ec;
   }
 
   /**
    * @brief Configure the provided pins to interrupt on change.
    * @param mask The pin mask to configure for interrupt (0=interrupt).
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note You should also call configure_interrupt to configure the interrupt type for the
    *       pins.
    * @see configure_interrupt
    */
-  void enable_interrupt(uint16_t mask, std::error_code &ec) {
-    enable_interrupt((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
+  bool enable_interrupt(uint16_t mask, std::error_code &ec) {
+    return enable_interrupt((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
   }
 
   /**
@@ -370,13 +389,14 @@ public:
    * @param mask The pin mask to configure for interrupt.
    * @param type The type of interrupt to configure.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note You should also call enable_interrupt to enable the interrupt for the
    *       pins.
    * @note This will overwrite any previous interrupt configuration on the port for all
    *       pins on the port.
    * @see enable_interrupt
    */
-  void configure_interrupt(Port port, uint8_t mask, InterruptType type, std::error_code &ec) {
+  bool configure_interrupt(Port port, uint8_t mask, InterruptType type, std::error_code &ec) {
     logger_.info("Configuring interrupt for Port {} pins {:#08b} to {}", port, mask, type);
     // The configuration takes 2 bits per pin, so we need to potentially write 2
     // bytes for a single 8 bit mask (8 pins). Therefore we'll build the value
@@ -391,6 +411,7 @@ public:
     // on the port
     auto addr = port == Port::PORT0 ? Registers::INT_EDGE0A : Registers::INT_EDGE1A;
     write_u16_to_register((uint8_t)addr, data, ec);
+    return !ec;
   }
 
   /**
@@ -399,19 +420,21 @@ public:
    * @param p1 The pin mask for Port 1 to configure for interrupt.
    * @param type The type of interrupt to configure.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note You should also call enable_interrupt to enable the interrupt for the
    *       pins.
    * @note This will overwrite any previous interrupt configuration on the port for all
    *       pins on the port.
    * @see enable_interrupt
    */
-  void configure_interrupt(uint8_t p0, uint8_t p1, InterruptType type, std::error_code &ec) {
+  bool configure_interrupt(uint8_t p0, uint8_t p1, InterruptType type, std::error_code &ec) {
     logger_.info("Configuring interrupt p0:{:#08b}, p1:{:#08b} to {}", p0, p1, type);
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     configure_interrupt(Port::PORT0, p0, type, ec);
     if (ec)
-      return;
+      return false;
     configure_interrupt(Port::PORT1, p1, type, ec);
+    return !ec;
   }
 
   /**
@@ -419,11 +442,13 @@ public:
    * @param port The port associated with the provided pin mask.
    * @param mask The pin mask to clear the interrupt for.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void clear_interrupt(Port port, uint8_t mask, std::error_code &ec) {
+  bool clear_interrupt(Port port, uint8_t mask, std::error_code &ec) {
     logger_.info("Clearing interrupt for Port {} pins {:#08b}", port, mask);
     auto addr = port == Port::PORT0 ? Registers::INT_CLEAR0 : Registers::INT_CLEAR1;
     write_u8_to_register((uint8_t)addr, mask, ec);
+    return !ec;
   }
 
   /**
@@ -431,33 +456,39 @@ public:
    * @param p0 The pin mask for Port 0 to clear the interrupt for.
    * @param p1 The pin mask for Port 1 to clear the interrupt for.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void clear_interrupt(uint8_t p0, uint8_t p1, std::error_code &ec) {
+  bool clear_interrupt(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.info("Clearing interrupt p0:{:#08b}, p1:{:#08b}", p0, p1);
     auto addr = Registers::INT_CLEAR0;
     const uint8_t data[] = {p0, p1};
     write_many_to_register((uint8_t)addr, data, 2, ec);
+    return !ec;
   }
 
   /**
    * @brief Clear the interrupt for the provided pins.
    * @param mask The pin mask to clear the interrupt for.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void clear_interrupt(uint16_t mask, std::error_code &ec) {
+  bool clear_interrupt(uint16_t mask, std::error_code &ec) {
     clear_interrupt((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
+    return !ec;
   }
 
   /**
    * @brief Clear all interrupts.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void clear_interrupts(std::error_code &ec) {
+  bool clear_interrupts(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     write_u8_to_register((uint8_t)Registers::INT_CLEAR0, 0xFF, ec);
     if (ec)
-      return;
+      return false;
     write_u8_to_register((uint8_t)Registers::INT_CLEAR1, 0xFF, ec);
+    return !ec;
   }
 
   /**
@@ -465,11 +496,13 @@ public:
    * @param port The port associated with the provided pin mask.
    * @param mask The mask indicating direction (1 = input, 0 = output)
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_direction(Port port, uint8_t mask, std::error_code &ec) {
+  bool set_direction(Port port, uint8_t mask, std::error_code &ec) {
     logger_.info("Setting direction (1=input) for Port {} to {:#08b}", port, mask);
     auto addr = port == Port::PORT0 ? Registers::CONFIG0 : Registers::CONFIG1;
     write_u8_to_register((uint8_t)addr, mask, ec);
+    return !ec;
   }
 
   /**
@@ -477,21 +510,24 @@ public:
    * @param p0 The mask for Port 0 indicating direction (1 = input, 0 = output)
    * @param p1 The mask for Port 1 indicating direction (1 = input, 0 = output)
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_direction(uint8_t p0, uint8_t p1, std::error_code &ec) {
+  bool set_direction(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.info("Setting direction (1=input) p0:{:#08b}, p1:{:#08b}", p0, p1);
     auto addr = Registers::CONFIG0;
     const uint8_t data[] = {p0, p1};
     write_many_to_register((uint8_t)addr, data, 2, ec);
+    return !ec;
   }
 
   /**
    * @brief Set the i/o direction for the pins according to mask.
    * @param mask The mask indicating direction (1 = input, 0 = output)
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_direction(uint16_t mask, std::error_code &ec) {
-    set_direction((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
+  bool set_direction(uint16_t mask, std::error_code &ec) {
+    return set_direction((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
   }
 
   /**
@@ -499,14 +535,15 @@ public:
    * @param mask The mask indicating pin position
    * @param direction The direction indicating direction (1 = input, 0 = output)
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_direction(uint16_t mask, bool direction, std::error_code &ec) {
+  bool set_direction(uint16_t mask, bool direction, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     auto addr = Registers::CONFIG0;
     uint8_t data[] = {0, 0};
     read_many_from_register((uint8_t)addr, data, 2, ec);
     if (ec)
-      return;
+      return false;
     if (direction) {
       // To Input port
       data[0] |= (uint8_t)mask;
@@ -517,6 +554,7 @@ public:
       data[1] &= (uint8_t)(~mask >> 8);
     }
     write_many_to_register((uint8_t)addr, data, 2, ec);
+    return !ec;
   }
 
   /**
@@ -524,14 +562,16 @@ public:
    * @param port The port associated with the provided pin mask.
    * @param mask The mask indicating polarity inversion (1 = inverted, 0 = normal)
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note This will overwrite any previous polarity inversion on the port for all
    *       pins on the port.
    * @note This will only affect pins configured as inputs.
    */
-  void set_polarity_inversion(Port port, uint8_t mask, std::error_code &ec) {
+  bool set_polarity_inversion(Port port, uint8_t mask, std::error_code &ec) {
     logger_.info("Setting polarity inversion (1=inverted) for Port {} to {:#08b}", port, mask);
     auto addr = port == Port::PORT0 ? Registers::POLARITY0 : Registers::POLARITY1;
     write_u8_to_register((uint8_t)addr, mask, ec);
+    return !ec;
   }
 
   /**
@@ -539,27 +579,30 @@ public:
    * @param p0 The mask for Port 0 indicating polarity inversion (1 = inverted, 0 = normal)
    * @param p1 The mask for Port 1 indicating polarity inversion (1 = inverted, 0 = normal)
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note This will overwrite any previous polarity inversion on the port for all
    *       pins on the port.
    * @note This will only affect pins configured as inputs.
    */
-  void set_polarity_inversion(uint8_t p0, uint8_t p1, std::error_code &ec) {
+  bool set_polarity_inversion(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.info("Setting polarity inversion (1=inverted) p0:{:#08b}, p1:{:#08b}", p0, p1);
     auto addr = Registers::POLARITY0;
     const uint8_t data[] = {p0, p1};
     write_many_to_register((uint8_t)addr, data, 2, ec);
+    return !ec;
   }
 
   /**
    * @brief Set polarity inversion for the pins according to mask.
    * @param mask The mask indicating polarity inversion (1 = inverted, 0 = normal)
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note This will overwrite any previous polarity inversion on the port for all
    *       pins on the port.
    * @note This will only affect pins configured as inputs.
    */
-  void set_polarity_inversion(uint16_t mask, std::error_code &ec) {
-    set_polarity_inversion((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
+  bool set_polarity_inversion(uint16_t mask, std::error_code &ec) {
+    return set_polarity_inversion((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
   }
 
   /**
@@ -570,11 +613,13 @@ public:
    *        a pin configured as an interrupt input will clear the interrupt if
    *        it returns to its original state before the interrupt is read.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_input_latch(Port port, uint8_t latch, std::error_code &ec) {
+  bool set_input_latch(Port port, uint8_t latch, std::error_code &ec) {
     logger_.info("Setting input latch (1=latched) for Port {} to {:#08b}", port, latch);
     auto addr = port == Port::PORT0 ? Registers::INPUT_LATCH0 : Registers::INPUT_LATCH1;
     write_u8_to_register((uint8_t)addr, latch, ec);
+    return !ec;
   }
 
   /**
@@ -588,16 +633,18 @@ public:
    *        a pin configured as an interrupt input will clear the interrupt if
    *        it returns to its original state before the interrupt is read.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note This will overwrite any previous latch values on the port for all
    *       input pins on the port.
    * @see set_input_latch(Port, uint8_t, std::error_code&)
    * @see enable_interrupt(Port, uint8_t, std::error_code&)
    */
-  void set_input_latch(uint8_t p0, uint8_t p1, std::error_code &ec) {
+  bool set_input_latch(uint8_t p0, uint8_t p1, std::error_code &ec) {
     logger_.info("Setting input latch (1=latched) p0:{:#08b}, p1:{:#08b}", p0, p1);
     auto addr = Registers::INPUT_LATCH0;
     const uint8_t data[] = {p0, p1};
     write_many_to_register((uint8_t)addr, data, 2, ec);
+    return !ec;
   }
 
   /**
@@ -607,13 +654,14 @@ public:
    *        a pin configured as an interrupt input will clear the interrupt if
    *        it returns to its original state before the interrupt is read.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    * @note This will overwrite any previous latch values on the port for all
    *       input pins on the port.
    * @see set_input_latch(Port, uint8_t, std::error_code&)
    * @see enable_interrupt(Port, uint8_t, std::error_code&)
    */
-  void set_input_latch(uint16_t mask, std::error_code &ec) {
-    set_input_latch((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
+  bool set_input_latch(uint16_t mask, std::error_code &ec) {
+    return set_input_latch((uint8_t)(mask & 0xFF), (uint8_t)(mask >> 8), ec);
   }
 
   /**
@@ -622,8 +670,9 @@ public:
    * @param pin_mask The pin mask to configure for pull resistor.
    * @param pull The pull resistor to configure.
    * @param ec Error code to set if an error occurs.
+   * @return true if successful, false if an error occurred.
    */
-  void set_pull_resistor_for_pin(Port port, uint8_t pin_mask, PullResistor pull,
+  bool set_pull_resistor_for_pin(Port port, uint8_t pin_mask, PullResistor pull,
                                  std::error_code &ec) {
     // if pull == PullResistor::NO_PULL, then clear the bits in the appropriate
     // PULL_UP_DOWN_EN register
@@ -631,7 +680,7 @@ public:
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     auto data = read_u8_from_register((uint8_t)addr, ec);
     if (ec)
-      return;
+      return false;
     if (pull == PullResistor::NO_PULL) {
       logger_.info("Disabling pull-up/down for Port {} pin {:#08b}", port, pin_mask);
       data &= ~pin_mask;
@@ -641,16 +690,16 @@ public:
     }
     write_u8_to_register((uint8_t)addr, data, ec);
     if (ec)
-      return;
+      return false;
     if (pull == PullResistor::NO_PULL) {
-      return;
+      return true;
     }
     // if pull != PullResistor::NO_PULL, then set the bits in the appropriate
     // PULL_UP_DOWN_SEL register. 1 (default) is pull-up, 0 is pull-down
     addr = port == Port::PORT0 ? Registers::PULL_UP_DOWN_SEL0 : Registers::PULL_UP_DOWN_SEL1;
     data = read_u8_from_register((uint8_t)addr, ec);
     if (ec)
-      return;
+      return false;
     if (pull == PullResistor::PULL_UP) {
       logger_.info("Setting pull-up for Port {} pin {:#08b}", port, pin_mask);
       data |= pin_mask;
@@ -659,6 +708,7 @@ public:
       data &= ~pin_mask;
     }
     write_u8_to_register((uint8_t)addr, data, ec);
+    return !ec;
   }
 
 protected:
@@ -718,18 +768,43 @@ protected:
     DEBOUNCE_COUNT = 0x5C, ///< Debounce count (default=0)
   };
 
-  void init(const Config &config, std::error_code &ec) {
+  bool init(const Config &config, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    set_direction(Port::PORT0, config.port_0_direction_mask, ec);
-    if (ec)
-      return;
-    set_direction(Port::PORT1, config.port_1_direction_mask, ec);
-    if (ec)
-      return;
-    enable_interrupt(Port::PORT0, config.port_0_interrupt_mask, ec);
-    if (ec)
-      return;
-    enable_interrupt(Port::PORT1, config.port_1_interrupt_mask, ec);
+    // set the output drive mode for both ports before setting the output values
+    // or direction
+    if (!set_port_output_drive_mode(Port::PORT0, config.output_drive_mode, ec))
+      return false;
+    if (!set_port_output_drive_mode(Port::PORT1, config.output_drive_mode, ec))
+      return false;
+
+    // set the intial output value before setting the direction, to make sure
+    // there are no glitches on the output pins
+    if (config.port_0_initial_output.has_value()) {
+      auto initial_value = config.port_0_initial_output.value();
+      logger_.info("Setting initial output value for Port 0 to {:#08b}", initial_value);
+      if (!output(Port::PORT0, initial_value, ec))
+        return false;
+    }
+    if (config.port_1_initial_output.has_value()) {
+      auto initial_value = config.port_1_initial_output.value();
+      logger_.info("Setting initial output value for Port 1 to {:#08b}", initial_value);
+      if (!output(Port::PORT1, initial_value, ec))
+        return false;
+    }
+
+    // now set the direction
+    if (!set_direction(Port::PORT0, config.port_0_direction_mask, ec))
+      return false;
+    if (!set_direction(Port::PORT1, config.port_1_direction_mask, ec))
+      return false;
+
+    // and finally enable any interrupts
+    if (!enable_interrupt(Port::PORT0, config.port_0_interrupt_mask, ec))
+      return false;
+    if (!enable_interrupt(Port::PORT1, config.port_1_interrupt_mask, ec))
+      return false;
+
+    return true;
   }
 
   Config config_;
