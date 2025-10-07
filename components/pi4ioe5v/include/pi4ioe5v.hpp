@@ -184,7 +184,7 @@ public:
    * @return true if successful, false if an error occurred.
    */
   bool set_direction(uint8_t mask, std::error_code &ec) {
-    logger_.info("Setting direction (1=input) to {:#10b}", mask);
+    logger_.info("Setting direction (1=output) to {:#10b}", mask);
     write_u8_to_register((uint8_t)Registers::DIRECTION, mask, ec);
     return !ec;
   }
@@ -360,8 +360,6 @@ protected:
     INPUT = 0x0F,          ///< Input values (read-only)
     INT_MASK = 0x11,       ///< Interrupt mask (1=disabled, 0=enabled)
     INT_STATUS = 0x13,     ///< Interrupt status (read-only)
-    POLARITY_INV = 0x15,   ///< Polarity inversion (1=inverted, 0=normal) - NOTE: This may not exist
-                           ///< on all variants
   };
 
   /**
