@@ -340,7 +340,7 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
 }
 
 void M5StackTab5::brightness(float brightness) {
-  std::clamp(brightness, 0.0f, 100.0f);
+  brightness = std::clamp(brightness, 0.0f, 100.0f);
   if (backlight_) {
     backlight_->set_duty(LEDC_CHANNEL_0, brightness);
   } else {
