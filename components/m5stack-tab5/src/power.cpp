@@ -29,7 +29,7 @@ bool M5StackTab5::initialize_battery_monitoring() {
       .log_level = espp::Logger::Verbosity::WARN,
   };
 
-  ina226_ = std::make_unique<espp::Ina226>(cfg);
+  ina226_ = std::make_shared<espp::Ina226>(cfg);
 
   std::error_code ec;
   if (!ina226_->initialize(ec) || ec) {

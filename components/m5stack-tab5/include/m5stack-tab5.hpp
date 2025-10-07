@@ -30,11 +30,11 @@
 #include "es8388.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
-#include "ili9881.hpp"
 #include "ina226.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
+#include "st7703.hpp"
 #include "touchpad_input.hpp"
 
 namespace espp {
@@ -67,7 +67,7 @@ public:
   using Pixel = lv_color16_t;
 
   /// Alias for the display driver used by the Tab5
-  using DisplayDriver = espp::Ili9881;
+  using DisplayDriver = espp::St7703;
 
   /// Alias for the GT911 touch controller used by the Tab5
   using TouchDriver = espp::Gt911;
@@ -128,7 +128,7 @@ public:
   // Display & Touchpad
   /////////////////////////////////////////////////////////////////////////////
 
-  /// Initialize the LCD (low level display driver, MIPI-DSI + ILI9881)
+  /// Initialize the LCD (low level display driver, MIPI-DSI + ST7703)
   /// \return true if the LCD was successfully initialized, false otherwise
   bool initialize_lcd();
 
@@ -344,17 +344,24 @@ public:
   bool initialize_io_expanders();
 
   /// Control the LCD reset (active-low) routed via IO expander (0x43 P4)
-  /// assert_reset=true drives reset low; false releases reset high.
-  void lcd_reset(bool assert_reset);
+  /// \param assert_reset=true drives reset low; false releases reset high.
+  /// \return true on success
+  bool lcd_reset(bool assert_reset);
 
   /// Control the GT911 touch reset (active-low) via IO expander (0x43 P5)
-  void touch_reset(bool assert_reset);
+  /// \param assert_reset=true drives reset low; false releases reset high.
+  /// \return true on success
+  bool touch_reset(bool assert_reset);
 
   /// Enable/disable the speaker amplifier (NS4150B SPK_EN on 0x43 P1)
-  void set_speaker_enabled(bool enable);
+  /// \param enable True to enable speaker, false to disable
+  /// \return true on success
+  bool set_speaker_enabled(bool enable);
 
   /// Enable/disable battery charging (IP2326 CHG_EN on 0x44 P7)
-  void set_charging_enabled(bool enable);
+  /// \param enable True to enable charging, false to disable
+  /// \return true on success
+  bool set_charging_enabled(bool enable);
 
   /// Read battery charging status (IP2326 CHG_STAT on 0x44 P6)
   /// Returns true if charging is indicated asserted.
@@ -452,8 +459,8 @@ protected:
   // Hardware pin definitions based on Tab5 specifications
 
   // ESP32-P4 Main Controller pins
-  static constexpr size_t display_width_ = 1280;
-  static constexpr size_t display_height_ = 720;
+  static constexpr size_t display_width_ = 720;
+  static constexpr size_t display_height_ = 1280;
 
   // Internal I2C (GT911 touch, ES8388/ES7210 audio, BMI270 IMU, RX8130CE RTC, INA226 power,
   // PI4IOE5V6408 IO expanders)
@@ -462,42 +469,55 @@ protected:
   static constexpr gpio_num_t internal_i2c_sda = GPIO_NUM_31; // Int SDA
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_32; // Int SCL
 
+  // IO expander bit mapping (can be adjusted if hardware changes)
+  static constexpr uint8_t IO43_BIT_SPK_EN = 1;   // P1
+  static constexpr uint8_t IO43_BIT_LCD_RST = 4;  // P4
+  static constexpr uint8_t IO43_BIT_TP_RST = 5;   // P5
+  static constexpr uint8_t IO44_BIT_CHG_EN = 7;   // P7
+  static constexpr uint8_t IO44_BIT_CHG_STAT = 6; // P6
+
   // IOX pins (0x43 PI4IO)
-  static constexpr int HP_DET_PIN = 7;  // HP_DETECT (via PI4IOE5V6408 P7)
-  static constexpr int CAM_RST_PIN = 6; // CAM_RST (via PI4IOE5V6408 P6)
-  static constexpr int TP_RST_PIN = 5;  // TP_RST (via PI4IOE5V6408 P5)
-  static constexpr int LCD_RST_PIN = 4; // LCD_RST (via PI4IOE5V6408 P4)
+  static constexpr int HP_DET_PIN = (1 << 7);  // HP_DETECT (via PI4IOE5V6408 P7)
+  static constexpr int CAM_RST_PIN = (1 << 6); // CAM_RST (via PI4IOE5V6408 P6)
+  static constexpr int TP_RST_PIN = (1 << 5);  // TP_RST (via PI4IOE5V6408 P5)
+  static constexpr int LCD_RST_PIN = (1 << 4); // LCD_RST (via PI4IOE5V6408 P4)
   // NOTE: pin 3 is not used in Tab5 design
-  static constexpr int EXT_5V_EN_PIN = 2; // EXT_5V_EN (via PI4IOE5V6408 P2)
-  static constexpr int SPK_EN_PIN = 1;    // SPK_EN (via PI4IOE5V6408 P1)
-  static constexpr int IOX_0x43_PINS[] = {HP_DET_PIN,  CAM_RST_PIN,   TP_RST_PIN,
-                                          LCD_RST_PIN, EXT_5V_EN_PIN, SPK_EN_PIN};
-  static constexpr int IOX_0x43_PINS_COUNT = sizeof(IOX_0x43_PINS) / sizeof(IOX_0x43_PINS[0]);
-  static constexpr int IOX_0x43_INPUTS[] = {HP_DET_PIN}; // Only HP_DET is an input
-  static constexpr int IOX_0x43_INPUTS_COUNT = sizeof(IOX_0x43_INPUTS) / sizeof(IOX_0x43_INPUTS[0]);
-  static constexpr int IOX_0x43_OUTPUTS[] = {CAM_RST_PIN, TP_RST_PIN, LCD_RST_PIN, EXT_5V_EN_PIN,
-                                             SPK_EN_PIN};
-  static constexpr int IOX_0x43_OUTPUTS_COUNT =
-      sizeof(IOX_0x43_OUTPUTS) / sizeof(IOX_0x43_OUTPUTS[0]);
+  static constexpr int EXT_5V_EN_PIN = (1 << 2); // EXT_5V_EN (via PI4IOE5V6408 P2)
+  static constexpr int SPK_EN_PIN = (1 << 1);    // SPK_EN (via PI4IOE5V6408 P1)
+  // NOTE: pin 0 is not used in Tab5 design
+
+  static constexpr uint8_t IOX_0x43_OUTPUTS =
+      CAM_RST_PIN | TP_RST_PIN | LCD_RST_PIN | EXT_5V_EN_PIN | SPK_EN_PIN;
+  static constexpr uint8_t IOX_0x43_INPUTS = HP_DET_PIN;
+  // 0 = input, 1 = output
+  static constexpr uint8_t IOX_0x43_DIRECTION_MASK = IOX_0x43_OUTPUTS;
+  static constexpr uint8_t IOX_0x43_HIGH_Z_MASK = 0x00;                 // No high-Z outputs
+  static constexpr uint8_t IOX_0x43_DEFAULT_OUTPUTS = IOX_0x43_OUTPUTS; // All outputs high to start
+  static constexpr uint8_t IOX_0x43_PULL_UPS =
+      CAM_RST_PIN | TP_RST_PIN | LCD_RST_PIN | EXT_5V_EN_PIN | SPK_EN_PIN;
+  static constexpr uint8_t IOX_0x43_PULL_DOWNS = 0;
 
   // IOX pins (0x44 PI4IO)
-  static constexpr int CHG_EN_PIN = 7;       // CHG_EN (via PI4IOE5V6408 P7)
-  static constexpr int CHG_STAT_PIN = 6;     // CHG_STAT (via PI4IOE5V6408 P6)
-  static constexpr int N_CHG_QC_EN_PIN = 5;  // N_CHG_QC_EN (via PI4IOE5V6408 P5)
-  static constexpr int PWROFF_PLUSE_PIN = 4; // PWROFF_PLUSE (via PI4IOE5V6408 P4)
-  static constexpr int USB_5V_EN_PIN = 3;    // USB_5V_EN (via PI4IOE5V6408 P5)
+  static constexpr int CHG_EN_PIN = (1 << 7);       // CHG_EN (via PI4IOE5V6408 P7)
+  static constexpr int CHG_STAT_PIN = (1 << 6);     // CHG_STAT (via PI4IOE5V6408 P6)
+  static constexpr int N_CHG_QC_EN_PIN = (1 << 5);  // N_CHG_QC_EN (via PI4IOE5V6408 P5)
+  static constexpr int PWROFF_PLUSE_PIN = (1 << 4); // PWROFF_PLUSE (via PI4IOE5V6408 P4)
+  static constexpr int USB_5V_EN_PIN = (1 << 3);    // USB_5V_EN (via PI4IOE5V6408 P5)
   // NOTE: pin 2 is not used in Tab5 design
   // NOTE: pin 1 is not used in Tab5 design
-  static constexpr int WLAN_PWR_EN_PIN = 0; // WLAN_PWR_EN (via PI4IOE5V6408 P0)
-  static constexpr int IOX_0x44_PINS[] = {CHG_EN_PIN,       CHG_STAT_PIN,  N_CHG_QC_EN_PIN,
-                                          PWROFF_PLUSE_PIN, USB_5V_EN_PIN, WLAN_PWR_EN_PIN};
-  static constexpr int IOX_0x44_PINS_COUNT = sizeof(IOX_0x44_PINS) / sizeof(IOX_0x44_PINS[0]);
-  static constexpr int IOX_0x44_INPUTS[] = {CHG_STAT_PIN}; // Only CHG_STAT is an input
-  static constexpr int IOX_0x44_INPUTS_COUNT = sizeof(IOX_0x44_INPUTS) / sizeof(IOX_0x44_INPUTS[0]);
-  static constexpr int IOX_0x44_OUTPUTS[] = {CHG_EN_PIN, N_CHG_QC_EN_PIN, PWROFF_PLUSE_PIN,
-                                             USB_5V_EN_PIN, WLAN_PWR_EN_PIN};
-  static constexpr int IOX_0x44_OUTPUTS_COUNT =
-      sizeof(IOX_0x44_OUTPUTS) / sizeof(IOX_0x44_OUTPUTS[0]);
+  static constexpr int WLAN_PWR_EN_PIN = (1 << 0); // WLAN_PWR_EN (via PI4IOE5V6408 P0)
+
+  static constexpr uint8_t IOX_0x44_OUTPUTS =
+      CHG_EN_PIN | N_CHG_QC_EN_PIN | PWROFF_PLUSE_PIN | USB_5V_EN_PIN | WLAN_PWR_EN_PIN;
+  static constexpr uint8_t IOX_0x44_INPUTS = CHG_STAT_PIN;
+  // 0 = input, 1 = output
+  static constexpr uint8_t IOX_0x44_DIRECTION_MASK = IOX_0x44_OUTPUTS;
+  static constexpr uint8_t IOX_0x44_HIGH_Z_MASK = (1 << 2) | (1 << 1); // P2, P1 are high-Z
+  static constexpr uint8_t IOX_0x44_DEFAULT_OUTPUTS =
+      WLAN_PWR_EN_PIN | USB_5V_EN_PIN; // Default outputs
+  static constexpr uint8_t IOX_0x44_PULL_UPS =
+      USB_5V_EN_PIN | WLAN_PWR_EN_PIN | PWROFF_PLUSE_PIN | N_CHG_QC_EN_PIN | CHG_EN_PIN;
+  static constexpr uint8_t IOX_0x44_PULL_DOWNS = CHG_STAT_PIN;
 
   // button
   static constexpr gpio_num_t button_io = GPIO_NUM_35; // BOOT button
@@ -511,7 +531,7 @@ protected:
   static constexpr bool mirror_x = true;
   static constexpr bool mirror_y = true;
   static constexpr bool swap_xy = false;
-  static constexpr bool swap_color_order = true;
+  static constexpr bool swap_color_order = false;
   // touch
   static constexpr bool touch_swap_xy = false;
   static constexpr bool touch_invert_x = false;
@@ -669,10 +689,10 @@ protected:
   std::atomic<bool> battery_monitoring_initialized_{false};
   BatteryStatus battery_status_;
   std::mutex battery_mutex_;
-  std::unique_ptr<espp::Ina226> ina226_;
+  std::shared_ptr<espp::Ina226> ina226_;
   // IO expanders on the internal I2C (addresses 0x43 and 0x44 per Tab5 design)
-  std::unique_ptr<espp::Pi4ioe5v> ioexp_0x43_;
-  std::unique_ptr<espp::Pi4ioe5v> ioexp_0x44_;
+  std::shared_ptr<espp::Pi4ioe5v> ioexp_0x43_;
+  std::shared_ptr<espp::Pi4ioe5v> ioexp_0x44_;
 
   // Communication interfaces
   std::atomic<bool> rs485_initialized_{false};
@@ -705,13 +725,5 @@ protected:
 
   // DSI write helpers
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);
-
-  // IO expander bit mapping (can be adjusted if hardware changes)
-  static constexpr uint8_t IO43_BIT_SPK_EN = 1;   // P1
-  static constexpr uint8_t IO43_BIT_LCD_RST = 4;  // P4
-  static constexpr uint8_t IO43_BIT_TP_RST = 5;   // P5
-  static constexpr uint8_t IO44_BIT_CHG_EN = 7;   // P7
-  static constexpr uint8_t IO44_BIT_CHG_STAT = 6; // P6
-
 }; // class M5StackTab5
 } // namespace espp

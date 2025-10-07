@@ -18,94 +18,51 @@ bool M5StackTab5::initialize_io_expanders() {
   std::error_code ec;
 
   // Create instances
-  ioexp_0x43_ = std::make_unique<Pi4ioe5v>(Pi4ioe5v::Config{
+  ioexp_0x43_ = std::make_shared<Pi4ioe5v>(Pi4ioe5v::Config{
       .device_address = 0x43,
-      .probe = std::bind(&I2c::probe_device, &internal_i2c_, std::placeholders::_1),
+      .direction_mask = IOX_0x43_DIRECTION_MASK,
+      .initial_output = IOX_0x43_DEFAULT_OUTPUTS,
+      .high_z_mask = IOX_0x43_HIGH_Z_MASK,
+      .pull_up_mask = IOX_0x43_PULL_UPS,
+      .pull_down_mask = IOX_0x43_PULL_DOWNS,
       .write = std::bind(&I2c::write, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
                          std::placeholders::_3),
-      .read_register =
-          std::bind(&I2c::read_at_register, &internal_i2c_, std::placeholders::_1,
-                    std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       .write_then_read =
           std::bind(&I2c::write_read, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
                     std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-      .auto_init = false,
-      .log_level = Logger::Verbosity::WARN});
-  ioexp_0x44_ = std::make_unique<Pi4ioe5v>(Pi4ioe5v::Config{
+      .log_level = Logger::Verbosity::INFO});
+  ioexp_0x44_ = std::make_shared<Pi4ioe5v>(Pi4ioe5v::Config{
       .device_address = 0x44,
-      .probe = std::bind(&I2c::probe_device, &internal_i2c_, std::placeholders::_1),
+      .direction_mask = IOX_0x44_DIRECTION_MASK,
+      .initial_output = IOX_0x44_DEFAULT_OUTPUTS,
+      .high_z_mask = IOX_0x44_HIGH_Z_MASK,
+      .pull_up_mask = IOX_0x44_PULL_UPS,
+      .pull_down_mask = IOX_0x44_PULL_DOWNS,
       .write = std::bind(&I2c::write, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
                          std::placeholders::_3),
-      .read_register =
-          std::bind(&I2c::read_at_register, &internal_i2c_, std::placeholders::_1,
-                    std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       .write_then_read =
           std::bind(&I2c::write_read, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
                     std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-      .auto_init = false,
-      .log_level = Logger::Verbosity::WARN});
-
-  // Configure 0x43 using IOX_0x43_* sets
-  {
-    auto &io = *ioexp_0x43_;
-    uint8_t dir = 0xFF;
-    for (int i = 0; i < IOX_0x43_OUTPUTS_COUNT; ++i)
-      dir &= ~(1u << IOX_0x43_OUTPUTS[i]);
-    for (int i = 0; i < IOX_0x43_INPUTS_COUNT; ++i)
-      dir |= (1u << IOX_0x43_INPUTS[i]);
-    io.set_direction(dir, ec);
-    if (ec) {
-      logger_.error("ioexp 0x43 set_direction failed: {}", ec.message());
-      return false;
-    }
-    uint8_t out = 0; // default all outputs to low
-    io.write_outputs(out, ec);
-    if (ec) {
-      logger_.error("ioexp 0x43 write_outputs failed: {}", ec.message());
-      return false;
-    }
-  }
-
-  // Configure 0x44 using IOX_0x44_* sets
-  {
-    auto &io = *ioexp_0x44_;
-    uint8_t dir = 0xFF;
-    for (int i = 0; i < IOX_0x44_OUTPUTS_COUNT; ++i)
-      dir &= ~(1u << IOX_0x44_OUTPUTS[i]);
-    for (int i = 0; i < IOX_0x44_INPUTS_COUNT; ++i)
-      dir |= (1u << IOX_0x44_INPUTS[i]);
-    io.set_direction(dir, ec);
-    if (ec) {
-      logger_.error("ioexp 0x44 set_direction failed: {}", ec.message());
-      return false;
-    }
-    // Safe defaults: disable charging, USB 5V off, WLAN power off, PWROFF pulse low
-    uint8_t out = 0x00;
-    io.write_outputs(out, ec);
-    if (ec) {
-      logger_.error("ioexp 0x44 write_outputs failed: {}", ec.message());
-      return false;
-    }
-  }
+      .log_level = Logger::Verbosity::INFO});
 
   logger_.info("IO expanders initialized");
   return true;
 }
 
-void M5StackTab5::lcd_reset(bool assert_reset) {
-  set_io_expander_output(0x43, IO43_BIT_LCD_RST, !assert_reset);
+bool M5StackTab5::lcd_reset(bool assert_reset) {
+  return set_io_expander_output(0x43, IO43_BIT_LCD_RST, !assert_reset);
 }
 
-void M5StackTab5::touch_reset(bool assert_reset) {
-  set_io_expander_output(0x43, IO43_BIT_TP_RST, !assert_reset);
+bool M5StackTab5::touch_reset(bool assert_reset) {
+  return set_io_expander_output(0x43, IO43_BIT_TP_RST, !assert_reset);
 }
 
-void M5StackTab5::set_speaker_enabled(bool enable) {
-  set_io_expander_output(0x43, IO43_BIT_SPK_EN, enable);
+bool M5StackTab5::set_speaker_enabled(bool enable) {
+  return set_io_expander_output(0x43, IO43_BIT_SPK_EN, enable);
 }
 
-void M5StackTab5::set_charging_enabled(bool enable) {
-  set_io_expander_output(0x44, IO44_BIT_CHG_EN, enable);
+bool M5StackTab5::set_charging_enabled(bool enable) {
+  return set_io_expander_output(0x44, IO44_BIT_CHG_EN, enable);
 }
 
 bool M5StackTab5::charging_status() {
@@ -120,26 +77,12 @@ bool M5StackTab5::set_io_expander_output(uint8_t address, uint8_t bit, bool leve
     io = ioexp_0x43_.get();
   else if (address == 0x44)
     io = ioexp_0x44_.get();
-  if (!io) {
-    // Try lazy initialization
-    if (!initialize_io_expanders())
-      return false;
-    if (address == 0x43)
-      io = ioexp_0x43_.get();
-    else if (address == 0x44)
-      io = ioexp_0x44_.get();
-  }
   if (!io)
     return false;
-  uint8_t val = io->read_outputs(ec);
-  if (ec)
-    return false;
   if (level)
-    val |= (1u << bit);
+    return io->set_pins(1u << bit, ec);
   else
-    val &= ~(1u << bit);
-  io->write_outputs(val, ec);
-  return !ec;
+    return io->clear_pins(1u << bit, ec);
 }
 
 std::optional<bool> M5StackTab5::get_io_expander_output(uint8_t address, uint8_t bit) {
@@ -149,17 +92,9 @@ std::optional<bool> M5StackTab5::get_io_expander_output(uint8_t address, uint8_t
     io = ioexp_0x43_.get();
   else if (address == 0x44)
     io = ioexp_0x44_.get();
-  if (!io) {
-    // Try lazy initialization
-    const_cast<M5StackTab5 *>(this)->initialize_io_expanders();
-    if (address == 0x43)
-      io = ioexp_0x43_.get();
-    else if (address == 0x44)
-      io = ioexp_0x44_.get();
-  }
   if (!io)
     return std::nullopt;
-  uint8_t val = io->read_outputs(ec);
+  uint8_t val = io->get_output(ec);
   if (ec)
     return std::nullopt;
   return (val >> bit) & 0x1u;
@@ -172,17 +107,9 @@ std::optional<bool> M5StackTab5::get_io_expander_input(uint8_t address, uint8_t 
     io = ioexp_0x43_.get();
   else if (address == 0x44)
     io = ioexp_0x44_.get();
-  if (!io) {
-    // Try lazy initialization
-    const_cast<M5StackTab5 *>(this)->initialize_io_expanders();
-    if (address == 0x43)
-      io = ioexp_0x43_.get();
-    else if (address == 0x44)
-      io = ioexp_0x44_.get();
-  }
   if (!io)
     return std::nullopt;
-  uint8_t val = io->read_inputs(ec);
+  uint8_t val = io->get_input(ec);
   if (ec)
     return std::nullopt;
   return (val >> bit) & 0x1u;
