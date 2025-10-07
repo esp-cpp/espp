@@ -134,7 +134,7 @@ public:
 
   /**
    * @brief Set the pin values according to the provided value.
-   * @details Reads the current pin values and clears any bits set in the mask.
+   * @details Reads the current pin values and sets any bits set in the mask.
    * @param value The pin values as an 8 bit mask to set.
    * @param ec Error code to set if an error occurs.
    * @return true if successful, false if an error occurred.

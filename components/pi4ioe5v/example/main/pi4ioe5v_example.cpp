@@ -43,7 +43,7 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // Configure pull resistors for input pins (upper 4 bits)
+  // Configure pull resistors for input pins (lower 4 bits)
   exp.set_pull_resistor_for_pin(0xF0, espp::Pi4ioe5v::PullResistor::PULL_UP, ec);
   if (ec) {
     logger.error("Failed to configure pull resistors: {}", ec.message());
@@ -57,7 +57,7 @@ extern "C" void app_main(void) {
     auto now = std::chrono::high_resolution_clock::now();
     auto seconds = std::chrono::duration<float>(now - start).count();
 
-    // Toggle output pattern on lower 4 bits
+    // Toggle output pattern on upper 4 bits
     output_pattern ^= 0xF0;
     exp.output(output_pattern, ec);
     if (ec) {
