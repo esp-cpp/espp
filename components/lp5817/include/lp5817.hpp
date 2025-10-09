@@ -425,7 +425,7 @@ protected:
     RESET_CMD = 0x0E,
     UPDATE_CMD = 0x0F,
     // 0x10..0x12 reserved
-    FLAG_CLR = 0x13, // bit1 POR_CLR, bit2 TSD_CLR
+    FLAG_CLR = 0x13, // bit0 POR_CLR, bit1 TSD_CLR
     OUT0_DC = 0x14,
     OUT1_DC = 0x15,
     OUT2_DC = 0x16,

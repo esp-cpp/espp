@@ -306,7 +306,7 @@ public:
   constexpr void set_left_trigger(float value) { set_trigger_axis(0, value); }
 
   /// Set the right trigger value
-  /// @param value The value to set the right trigger to.
+  /// @param pressed Whether the right trigger is pressed or not
   constexpr void set_left_trigger(bool pressed) { btn_zl = pressed; }
 
   /// Set the right trigger value
@@ -315,7 +315,7 @@ public:
   constexpr void set_right_trigger(float value) { set_trigger_axis(1, value); }
 
   /// Set the right trigger value
-  /// @param value The value to set the right trigger to.
+  /// @param pressed Whether the right trigger is pressed or not
   constexpr void set_right_trigger(bool pressed) { btn_zr = pressed; }
 
   /// Set the brake trigger value

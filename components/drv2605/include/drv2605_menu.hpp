@@ -26,7 +26,7 @@ public:
   using Driver = espp::Drv2605;
 
   /// @brief Construct a new Drv2605Menu object.
-  /// @param i2c A vector of shared pointers to the Drv2605s to interact with.
+  /// @param drivers A vector of shared pointers to DRV2605 drivers to control.
   explicit Drv2605Menu(const std::vector<std::shared_ptr<Driver>> &drivers)
       : drivers_(drivers) {}
 

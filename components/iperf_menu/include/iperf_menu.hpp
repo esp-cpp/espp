@@ -388,8 +388,8 @@ public:
 
   /// @brief Start an iperf server.
   /// @param out The output stream to write the result to.
-  /// @param host The source IP to listen on. This helps select which interface
-  ///             to bind to, if provided.
+  /// @param source The source IP address to bind to. Can be an IP address in
+  ///               IPv4 or IPv6 format. If empty, binds to all interfaces.
   /// @param port The port to listen on. If 0, the default port (5000) is used.
   void iperf_server(std::ostream &out, const std::string &source = "", int port = 0) {
     // Set the server flag
