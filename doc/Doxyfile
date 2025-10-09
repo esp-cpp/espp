@@ -353,8 +353,6 @@ PREDEFINED             = \
   IRAM_ATTR= \
   __attribute__(x)=
 
-HAVE_DOT        = NO
-
 ## Generate XML that is required for Breathe
 ##
 GENERATE_XML    = YES
