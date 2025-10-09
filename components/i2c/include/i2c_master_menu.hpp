@@ -3,7 +3,7 @@
 #include <sdkconfig.h>
 
 // Only include this menu if the new API is selected
-#if defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(__DOXYGEN__)
+#if defined(CONFIG_ESPP_I2C_USE_NEW_API) || defined(_DOXYGEN_)
 
 #include <functional>
 #include <memory>
@@ -200,4 +200,4 @@ protected:
 
 } // namespace espp
 
-#endif // CONFIG_ESPP_I2C_USE_NEW_API || defined(__DOXYGEN__)
+#endif // CONFIG_ESPP_I2C_USE_NEW_API || defined(_DOXYGEN_)

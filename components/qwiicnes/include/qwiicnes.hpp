@@ -19,9 +19,9 @@ public:
   static constexpr uint8_t DEFAULT_ADDRESS = (0x54);
 
   /// @brief The buttons on the NES controller.
-  /// @deftails The values in this enum match the button's corresponding bit
-  ///           field in the byte returned by read_current_state() and
-  ///           read_button_accumulator().
+  /// @details The values in this enum match the button's corresponding bit
+  ///          field in the byte returned by read_current_state() and
+  ///          read_button_accumulator().
   enum class Button : int { A, B, SELECT, START, UP, DOWN, LEFT, RIGHT };
 
   /// @brief The state of the buttons on the NES controller.

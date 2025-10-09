@@ -469,7 +469,8 @@ protected:
 } // namespace espp
 
 // libfmt printing of WifiAp::Station
-template <> struct fmt::formatter<espp::WifiAp::Station> : fmt::formatter<std::string> {
+namespace fmt {
+template <> struct formatter<espp::WifiAp::Station> : fmt::formatter<std::string> {
   template <typename FormatContext>
   auto format(const espp::WifiAp::Station &station, FormatContext &ctx) const {
     return fmt::format_to(ctx.out(),
@@ -478,3 +479,4 @@ template <> struct fmt::formatter<espp::WifiAp::Station> : fmt::formatter<std::s
                           station.mac[4], station.mac[5], station.rssi, station.ip);
   }
 };
+} // namespace fmt

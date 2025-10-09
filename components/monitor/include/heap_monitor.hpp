@@ -16,7 +16,7 @@ namespace espp {
 /// name for the monitor.
 ///
 /// \section heap_monitor_ex1 Heap Monitor Example
-/// \snippet monitor_example.cpp HeapMonitor Example
+/// \snippet monitor_example.cpp HeapMonitor example
 class HeapMonitor : public BaseComponent {
 public:
   /// Info about a heap region

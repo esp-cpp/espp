@@ -707,6 +707,8 @@ protected:
     ZG_ST_DATA = 0x05, ///< Z-axis gyroscope self-test data register
   };
 
+#pragma pack(push, 1)
+
   /// @brief Structure for the ICM42607 FIFO header
   struct FifoHeader {
     uint8_t odr_gyro : 1;  ///< 1: ODfor gyro is different fro this packet comapred to previous gyro
@@ -719,7 +721,7 @@ protected:
     uint8_t has_gyro : 1;        ///< 1: Packet is sized so that it contains gyroscope data
     uint8_t has_accel : 1;       ///< 1: Packet is sized so that it contains accelerometer data
     uint8_t empty : 1;           ///< 1: Packet is empty, 0: packet contains sensor data
-  } __attribute__((packed));
+  };
 
   /// @brief Struct for the FIFO Packet 1 data
   struct FifoPacket1 {
@@ -758,6 +760,8 @@ protected:
     uint8_t
         z_extension; ///< Z-axis extension data (accelz [3:0] high nibble + gyroz [3:0] low nibble)
   };
+
+#pragma pack(pop)
 
   static float accelerometer_range_to_sensitivty(const AccelerometerRange &range) {
     switch (range) {

@@ -19,6 +19,8 @@ namespace espp {
  *        the input center will map to both output_max and output_min
  *        depending on the sign of the input.
  *
+ * @tparam T Numeric type to use for the input and output values.
+ *
  * @note When inverting the input range, you are introducing a discontinuity
  *       between the input distribution and the output distribution at the
  *       input center. Noise around the input's center value will create
@@ -226,7 +228,7 @@ public:
   /**
    * @brief Unmap a value \p v from the configured output range (centered,
    *        default [-1,1]) back into the input distribution.
-   * @param T&v Value from the centered output distribution.
+   * @param v Value from the centered output distribution.
    * @return Value within the input distribution.
    */
   T unmap(const T &v) const {

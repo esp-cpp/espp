@@ -959,9 +959,11 @@ protected:
 
 #include "format.hpp"
 
+namespace fmt {
+
 // for allowing easy serialization/printing of the
 // espp::Tla2528::OverSamplingRatio enum
-template <> struct fmt::formatter<espp::Tla2528::OversamplingRatio> {
+template <> struct formatter<espp::Tla2528::OversamplingRatio> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
     return ctx.begin();
   }
@@ -993,7 +995,7 @@ template <> struct fmt::formatter<espp::Tla2528::OversamplingRatio> {
 
 // for allowing easy serialization/printing of the
 // espp::Tla2528::Mode enum
-template <> struct fmt::formatter<espp::Tla2528::Mode> {
+template <> struct formatter<espp::Tla2528::Mode> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
     return ctx.begin();
   }
@@ -1013,7 +1015,7 @@ template <> struct fmt::formatter<espp::Tla2528::Mode> {
 
 // for allowing easy serialization/printing of the
 // espp::Tla2528::DataFormat enum
-template <> struct fmt::formatter<espp::Tla2528::DataFormat> {
+template <> struct formatter<espp::Tla2528::DataFormat> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
     return ctx.begin();
   }
@@ -1033,7 +1035,7 @@ template <> struct fmt::formatter<espp::Tla2528::DataFormat> {
 
 // for allowing easy serialization/printing of the
 // espp::Tla2528::Append enum
-template <> struct fmt::formatter<espp::Tla2528::Append> {
+template <> struct formatter<espp::Tla2528::Append> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
     return ctx.begin();
   }
@@ -1053,7 +1055,7 @@ template <> struct fmt::formatter<espp::Tla2528::Append> {
 
 // for allowing easy serialization/printing of the
 // espp::Tla2528::Channel enum
-template <> struct fmt::formatter<espp::Tla2528::Channel> {
+template <> struct formatter<espp::Tla2528::Channel> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
     return ctx.begin();
   }
@@ -1085,7 +1087,7 @@ template <> struct fmt::formatter<espp::Tla2528::Channel> {
 
 // for allowing easy serialization/printing of a
 // std::vector<espp::Tla2528::Channel> object
-template <> struct fmt::formatter<std::vector<espp::Tla2528::Channel>> {
+template <> struct formatter<std::vector<espp::Tla2528::Channel>> {
   template <typename ParseContext> constexpr auto parse(ParseContext &ctx) const {
     return ctx.begin();
   }
@@ -1102,3 +1104,4 @@ template <> struct fmt::formatter<std::vector<espp::Tla2528::Channel>> {
     return fmt::format_to(ctx.out(), "{}", result);
   }
 };
+} // namespace fmt

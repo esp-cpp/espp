@@ -124,7 +124,7 @@ public:
   }
 
   /// Get the brake trigger value
-  /// @return brake trigger value
+  /// @param value brake trigger value
   constexpr void get_brake(TRIGGER_TYPE &value) const { value = trigger_axes[0]; }
 
   /// Get the left trigger value
@@ -146,7 +146,7 @@ public:
   }
 
   /// Get the accelerator trigger value
-  /// @return accelerator trigger value
+  /// @param value accelerator trigger value
   constexpr void get_accelerator(TRIGGER_TYPE &value) const { value = trigger_axes[1]; }
 
   /// Get the right trigger value

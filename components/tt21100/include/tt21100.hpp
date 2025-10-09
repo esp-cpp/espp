@@ -157,6 +157,8 @@ protected:
     Y_POS = 0x03,
   };
 
+#pragma pack(push, 1)
+
   struct TouchRecord {
     uint8_t : 5;
     uint8_t touch_type : 3;
@@ -168,7 +170,7 @@ protected:
     uint8_t pressure;
     uint16_t major_axis_length;
     uint8_t orientation;
-  } __attribute__((packed));
+  };
 
   struct TouchReport {
     uint16_t data_len;
@@ -181,7 +183,7 @@ protected:
     uint8_t : 3;
     uint8_t noise_efect : 3;
     TouchRecord touch_record[0];
-  } __attribute__((packed));
+  };
 
   struct ButtonRecord {
     uint16_t length;     /*!< Always 14(0x000E) */
@@ -189,7 +191,9 @@ protected:
     uint16_t time_stamp; /*!< Number in units of 100 us */
     uint8_t btn_val;     /*!< Only use bit[0..3] */
     uint16_t btn_signal[4];
-  } __attribute__((packed));
+  };
+
+#pragma pack(pop)
 
   std::atomic<bool> home_button_pressed_{false};
   std::atomic<uint8_t> num_touch_points_;

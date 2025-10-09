@@ -29,8 +29,7 @@ namespace espp {
 /// This class is a wrapper around the ESP-IDF I2C slave device API.
 /// It provides thread-safe, modern C++ access to I2C slave device operations.
 ///
-/// \section i2c_slave_device_ex1 Example
-/// \snippet i2c_example.cpp NEW SLAVE API
+/// @note There is no example for this yet as this code is untested.
 ///
 /// Usage:
 ///   - Construct with a config

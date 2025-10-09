@@ -71,6 +71,8 @@ public:
   using Gyroscope = espp::gamepad::Gyroscope;
 
 protected:
+#pragma pack(push, 1)
+
   // union for the input report data
   union {
     // struct for the input report and follow-up data such as IMU or command
@@ -130,14 +132,14 @@ protected:
               uint16_t joy_ly : 12;
               uint16_t joy_rx : 12;
               uint16_t joy_ry : 12;
-            } __attribute__((packed));
-          } __attribute__((packed));
+            };
+          };
           // Byte 11: Vibrator input report.
           //          Decides if next vibration pattern should be sent.
           uint8_t vibrator_input_report;
-        } __attribute__((packed)); // input report data struct
+        }; // input report data struct
         uint8_t raw_input_report[12];
-      } __attribute__((packed)); // input report data union
+      }; // input report data union
       // Union for post-input report data such as IMU or command replies
       union {
         // for report IDs 0x30, 0x31, 0x32, 0x33, this is 6-axis data. 3 frames of 2
@@ -155,25 +157,27 @@ protected:
               // Frame 2
               Accelerometer acc_2;
               Gyroscope gyro_2;
-            } __attribute__((packed));
-          } __attribute__((packed));
-        } __attribute__((packed)); //
+            };
+          };
+        }; //
         // 0x21 subcommand reply data; max len 35
         struct {
           uint8_t subcmd_ack;
           uint8_t subcmd_id;
           uint8_t subcmd_reply[35];
-        } __attribute__((packed));
+        };
         // TODO: for report ID 0x23, this is NFC/IR MCU FW update input report (max len 37)
         //
         // TODO: for report id 0x31, there are aditional 313 bytes of NFC/IR data input
         // after this.
-      } __attribute__((packed)); // data union
-    } __attribute__((packed));   // input report data struct
+      }; // data union
+    };   // input report data struct
     // this will ensure we always have enough space for the largest report
     // without having padding bytes defined anywhere.
     uint8_t raw_report[63];
-  } __attribute__((packed));
+  };
+
+#pragma pack(pop)
 
   static constexpr size_t num_data_bytes = 63;
 

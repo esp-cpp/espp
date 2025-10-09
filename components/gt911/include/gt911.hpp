@@ -133,6 +133,8 @@ protected:
     POINT_5 = 0x816F,
   };
 
+#pragma pack(push, 1)
+
   // From Goodix library
   struct GTInfo {
     // 0x8140-0x814A
@@ -141,7 +143,7 @@ protected:
     uint16_t xResolution;
     uint16_t yResolution;
     uint8_t vendorId;
-  } __attribute__((packed));
+  };
 
   struct GTPoint {
     // 0x814F-0x8156, ... 0x8176 (5 points)
@@ -150,12 +152,12 @@ protected:
     uint16_t y;
     uint16_t area;
     uint8_t reserved;
-  } __attribute__((packed));
+  };
 
   struct GTLevelConfig {
     uint8_t touch; // Threshold of touch grow out of nothing
     uint8_t leave; // Threshold of touch decrease to nothing
-  } __attribute__((packed));
+  };
 
   struct GTStylusConfig {
     uint8_t txGain;
@@ -163,12 +165,12 @@ protected:
     uint8_t dumpShift;
     GTLevelConfig level;
     uint8_t control; // Pen mode escape time out period (Unit: Sec)
-  } __attribute__((packed));
+  };
 
   struct GTFreqHoppingConfig {
     uint16_t hoppingBitFreq;
     uint8_t hoppingFactor;
-  } __attribute__((packed));
+  };
 
   struct GTKeyConfig {
     // Key position: 0-255 valid
@@ -182,7 +184,7 @@ protected:
     uint8_t sens12;
     uint8_t sens34;
     uint8_t restrain;
-  } __attribute__((packed));
+  };
 
   struct GTConfig {
     // start at 0x8047
@@ -250,7 +252,9 @@ protected:
     // 0x8091
     uint8_t NC_5[2];
     GTKeyConfig keys;
-  } __attribute__((packed));
+  };
+
+#pragma pack(pop)
 
   std::atomic<bool> home_button_pressed_{false};
   std::atomic<uint8_t> num_touch_points_;

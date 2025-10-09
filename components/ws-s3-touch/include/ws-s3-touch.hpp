@@ -36,7 +36,7 @@ namespace espp {
 /// The class is a singleton and can be accessed using the get() method.
 ///
 /// \section ws_s3_touch_example Example
-/// \snippet sw_s3_touch_example.cpp ws-s3-touch example
+/// \snippet ws_s3_touch_example.cpp ws-s3-touch example
 class WsS3Touch : public BaseComponent {
 public:
   /// Alias for the button callback function
