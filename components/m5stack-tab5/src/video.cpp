@@ -271,25 +271,16 @@ bool M5StackTab5::initialize_lcd() {
           },
       .vendor_config = &vendor_config,
   };
+
   ESP_ERROR_CHECK(esp_lcd_new_panel_ili9881c(io, &lcd_dev_config, &disp_panel));
   ESP_ERROR_CHECK(esp_lcd_panel_reset(disp_panel));
   ESP_ERROR_CHECK(esp_lcd_panel_init(disp_panel));
   //  ESP_ERROR_CHECK(esp_lcd_panel_mirror(disp_panel, false, true));
-  ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(disp_panel, true));
 
   // set our handles
   lcd_handles_.io = io;
   lcd_handles_.mipi_dsi_bus = mipi_dsi_bus;
   lcd_handles_.panel = disp_panel;
-
-  logger_.info("Display initialized with resolution {}x{}", display_width_, display_height_);
-
-  logger_.info("Register DPI panel event callback for LVGL flush ready notification");
-  esp_lcd_dpi_panel_event_callbacks_t cbs = {
-      .on_color_trans_done = &M5StackTab5::notify_lvgl_flush_ready,
-      .on_refresh_done = nullptr,
-  };
-  ESP_ERROR_CHECK(esp_lcd_dpi_panel_register_event_callbacks(lcd_handles_.panel, &cbs, this));
 
   // Now initialize DisplayDriver for any additional configuration
   logger_.info("Initializing DisplayDriver with DSI configuration");
@@ -309,6 +300,17 @@ bool M5StackTab5::initialize_lcd() {
       .mirror_y = mirror_y,
       .mirror_portrait = false,
   });
+
+  ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(disp_panel, true));
+
+  logger_.info("Display initialized with resolution {}x{}", display_width_, display_height_);
+
+  logger_.info("Register DPI panel event callback for LVGL flush ready notification");
+  esp_lcd_dpi_panel_event_callbacks_t cbs = {
+      .on_color_trans_done = &M5StackTab5::notify_lvgl_flush_ready,
+      .on_refresh_done = nullptr,
+  };
+  ESP_ERROR_CHECK(esp_lcd_dpi_panel_register_event_callbacks(lcd_handles_.panel, &cbs, this));
 
   logger_.info("M5Stack Tab5 LCD initialization completed successfully");
   return true;
@@ -400,7 +402,8 @@ bool IRAM_ATTR M5StackTab5::notify_lvgl_flush_ready(esp_lcd_panel_handle_t panel
 void M5StackTab5::dsi_write_command(uint8_t cmd, std::span<const uint8_t> params,
                                     uint32_t /*flags*/) {
   if (!lcd_handles_.io) {
-    return; // Can't log safely in this context
+    logger_.error("DSI write_command does not have a valid IO handle");
+    return;
   }
 
   logger_.debug("DSI write_command 0x{:02X} with {} bytes", cmd, params.size());
@@ -409,8 +412,9 @@ void M5StackTab5::dsi_write_command(uint8_t cmd, std::span<const uint8_t> params
   const void *data_ptr = params.data();
   size_t data_size = params.size();
   esp_err_t err = esp_lcd_panel_io_tx_param(io, (int)cmd, data_ptr, data_size);
-  // Silently handle errors for now to avoid ISR-unsafe operations
-  (void)err; // Suppress unused variable warning
+  if (err != ESP_OK) {
+    logger_.error("DSI write_command 0x{:02X} failed: {}", cmd, esp_err_to_name(err));
+  }
 }
 
 } // namespace espp
