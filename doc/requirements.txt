@@ -2,6 +2,5 @@
 # pip install --user -r requirements.txt
 #
 cairosvg
-sphinx
 esp-docs
 myst-parser
