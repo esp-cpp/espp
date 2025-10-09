@@ -27,14 +27,14 @@ namespace espp {
  * and send the returned response bytes over their transport (UART/USB/etc.).
  *
  * Supported commands (subset of ODrive ASCII):
- *  - r <path>
- *  - w <path> <value>
- *  - p <axis> <pos> [vel_ff [torque_ff]]
- *  - v <axis> <vel> [torque_ff]
- *  - c <axis> <torque_nm>
- *  - t <axis> <goal_pos_turns>
- *  - f <axis>
- *  - es <axis> <abs_pos_turns>
+ *  - r \<path\>
+ *  - w \<path\> \<value\>
+ *  - p \<axis\> \<pos> [vel_ff [torque_ff]]
+ *  - v \<axis\> \<vel> [torque_ff]
+ *  - c \<axis\> \<torque_nm\>
+ *  - t \<axis\> \<goal_pos_turns\>
+ *  - f \<axis\>
+ *  - es \<axis\> \<abs_pos_turns\>
  *  - help
  *
  * Applications integrate by registering properties and command callbacks via

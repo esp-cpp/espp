@@ -19,327 +19,6 @@ EXAMPLE_RECURSIVE = YES
 
 PROJECT_NAME = "Espressif++ (ESPP), an ESP C++ Library"
 
-# NOTE: please ensure these are kept in alphabetical order, as that helps track
-#       what's here and what's not
-EXAMPLE_PATH =
-EXAMPLE_PATH += $(PROJECT_PATH)/components/adc/example/main/adc_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ads1x15/example/main/ads1x15_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ads7138/example/main/ads7138_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/adxl345/example/main/adxl345_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/as5600/example/main/as5600_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/aw9523/example/main/aw9523_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/lp5817/example/main/lp5817_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/binary-log/example/main/binary_log_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ble_gatt_server/example/main/ble_gatt_server_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/bldc_motor/example/main/bldc_motor_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/bldc_haptics/example/main/bldc_haptics_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/bm8563/example/main/bm8563_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/bmi270/example/main/bmi270_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/button/example/main/button_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/chsc6x/example/main/chsc6x_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/cli/example/main/cli_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/cobs/example/main/cobs_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/color/example/main/color_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/controller/example/main/controller_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/cst816/example/main/cst816_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/csv/example/main/csv_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/display_drivers/example/main/display_drivers_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/encoder/example/main/encoder_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/event_manager/example/main/event_manager_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/file_system/example/main/file_system_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/filters/example/main/filters_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ftp/example/main/ftp_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ft5x06/example/main/ft5x06_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/gfps_service/example/main/gfps_service_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/gt911/example/main/gt911_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/hid-rp/example/main/hid_rp_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/hid_service/example/main/hid_service_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/i2c/example/main/i2c_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/icm20948/example/main/icm20948_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/icm42607/example/main/icm42607_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ina226/example/main/ina226_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/interrupt/example/main/interrupt_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/iperf_menu/example/main/iperf_menu_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/joystick/example/main/joystick_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/kts1622/example/main/kts1622_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/pi4ioe5v/example/main/pi4ioe5v_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/led/example/main/led_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/led_strip/example/main/led_strip_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/lsm6dso/example/main/lsm6dso_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/math/example/main/math_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/matouch-rotary-display/example/main/matouch_rotary_display_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/max1704x/example/main/max1704x_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/motorgo-mini/example/main/motorgo_mini_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/qmi8658/example/main/qmi8658_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/rmt/example/main/rmt_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/rtsp/example/main/rtsp_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ping/example/main/ping_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/runqueue/example/main/runqueue_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/serialization/example/main/serialization_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/seeed-studio-round-display/example/main/seeed_studio_round_display_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/socket/example/main/socket_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/t-dongle-s3/example/main/t_dongle_s3_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/t_keyboard/example/main/t_keyboard_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/task/example/main/task_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-geek/example/main/ws_s3_geek_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-lcd-1-47/example/main/ws_s3_lcd_1_47_example.cpp
-EXAMPLE_PATH += $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_example.cpp
-
-## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
-## to automatically generate API reference list files header_file.inc
-## These files are placed in '_inc' directory
-## and used to include in API reference documentation
-
-EXTRACT_ALL = YES
-
-INPUT = $(PROJECT_PATH)/README.md
-
-# NOTE: please ensure these are kept in alphabetical order, as that helps track
-#       what's here and what's not
-INPUT += $(PROJECT_PATH)/components/adc/include/adc_types.hpp
-INPUT += $(PROJECT_PATH)/components/adc/include/oneshot_adc.hpp
-INPUT += $(PROJECT_PATH)/components/adc/include/continuous_adc.hpp
-INPUT += $(PROJECT_PATH)/components/ads1x15/include/ads1x15.hpp
-INPUT += $(PROJECT_PATH)/components/ads7138/include/ads7138.hpp
-INPUT += $(PROJECT_PATH)/components/adxl345/include/adxl345.hpp
-INPUT += $(PROJECT_PATH)/components/as5600/include/as5600.hpp
-INPUT += $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp
-INPUT += $(PROJECT_PATH)/components/lp5817/include/lp5817.hpp
-INPUT += $(PROJECT_PATH)/components/base_component/include/base_component.hpp
-INPUT += $(PROJECT_PATH)/components/base_peripheral/include/base_peripheral.hpp
-INPUT += $(PROJECT_PATH)/components/binary-log/include/binary-log.hpp
-INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/battery_service.hpp
-INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/ble_appearances.hpp
-INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server.hpp
-INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp
-INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server_menu.hpp
-INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/device_info_service.hpp
-INPUT += $(PROJECT_PATH)/components/ble_gatt_server/include/generic_access_service.hpp
-INPUT += $(PROJECT_PATH)/components/bldc_driver/include/bldc_driver.hpp
-INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/bldc_haptics.hpp
-INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/detent_config.hpp
-INPUT += $(PROJECT_PATH)/components/bldc_haptics/include/haptic_config.hpp
-INPUT += $(PROJECT_PATH)/components/bldc_motor/include/bldc_motor.hpp
-INPUT += $(PROJECT_PATH)/components/bldc_motor/include/bldc_types.hpp
-INPUT += $(PROJECT_PATH)/components/bldc_motor/include/sensor_direction.hpp
-INPUT += $(PROJECT_PATH)/components/bm8563/include/bm8563.hpp
-INPUT += $(PROJECT_PATH)/components/bmi270/include/bmi270.hpp
-INPUT += $(PROJECT_PATH)/components/bmi270/include/bmi270_detail.hpp
-INPUT += $(PROJECT_PATH)/components/button/include/button.hpp
-INPUT += $(PROJECT_PATH)/components/byte90/include/byte90.hpp
-INPUT += $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp
-INPUT += $(PROJECT_PATH)/components/cli/include/cli.hpp
-INPUT += $(PROJECT_PATH)/components/cli/include/line_input.hpp
-INPUT += $(PROJECT_PATH)/components/cobs/include/cobs.hpp
-INPUT += $(PROJECT_PATH)/components/cobs/include/cobs_stream.hpp
-INPUT += $(PROJECT_PATH)/components/color/include/color.hpp
-INPUT += $(PROJECT_PATH)/components/controller/include/controller.hpp
-INPUT += $(PROJECT_PATH)/components/cst816/include/cst816.hpp
-INPUT += $(PROJECT_PATH)/components/csv/include/csv.hpp
-INPUT += $(PROJECT_PATH)/components/display/include/display.hpp
-INPUT += $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp
-INPUT += $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp
-INPUT += $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp
-INPUT += $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp
-INPUT += $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp
-INPUT += $(PROJECT_PATH)/components/drv2605/include/drv2605.hpp
-INPUT += $(PROJECT_PATH)/components/drv2605/include/drv2605_menu.hpp
-INPUT += $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp
-INPUT += $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp
-INPUT += $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp
-INPUT += $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp
-INPUT += $(PROJECT_PATH)/components/event_manager/include/event_manager.hpp
-INPUT += $(PROJECT_PATH)/components/file_system/include/file_system.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/biquad_filter.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/butterworth_filter.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/complementary_filter.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/kalman_filter.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/lowpass_filter.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/madgwick_filter.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/simple_lowpass_filter.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/sos_filter.hpp
-INPUT += $(PROJECT_PATH)/components/filters/include/transfer_function.hpp
-INPUT += $(PROJECT_PATH)/components/ftp/include/ftp_server.hpp
-INPUT += $(PROJECT_PATH)/components/ftp/include/ftp_client_session.hpp
-INPUT += $(PROJECT_PATH)/components/ft5x06/include/ft5x06.hpp
-INPUT += $(PROJECT_PATH)/components/gfps_service/include/gfps.hpp
-INPUT += $(PROJECT_PATH)/components/gfps_service/include/gfps_characteristic_callbacks.hpp
-INPUT += $(PROJECT_PATH)/components/gfps_service/include/gfps_service.hpp
-INPUT += $(PROJECT_PATH)/components/gt911/include/gt911.hpp
-INPUT += $(PROJECT_PATH)/components/hid-rp/include/gamepad_hat.hpp
-INPUT += $(PROJECT_PATH)/components/hid-rp/include/gamepad_imu.hpp
-INPUT += $(PROJECT_PATH)/components/hid-rp/include/hid-rp.hpp
-INPUT += $(PROJECT_PATH)/components/hid-rp/include/hid-rp-gamepad.hpp
-INPUT += $(PROJECT_PATH)/components/hid-rp/include/hid-rp-playstation.hpp
-INPUT += $(PROJECT_PATH)/components/hid-rp/include/hid-rp-switch-pro.hpp
-INPUT += $(PROJECT_PATH)/components/hid-rp/include/hid-rp-xbox.hpp
-INPUT += $(PROJECT_PATH)/components/hid_service/include/hid_service.hpp
-INPUT += $(PROJECT_PATH)/components/i2c/include/i2c.hpp
-INPUT += $(PROJECT_PATH)/components/i2c/include/i2c_menu.hpp
-INPUT += $(PROJECT_PATH)/components/i2c/include/i2c_master.hpp
-INPUT += $(PROJECT_PATH)/components/i2c/include/i2c_master_menu.hpp
-INPUT += $(PROJECT_PATH)/components/i2c/include/i2c_master_device_menu.hpp
-INPUT += $(PROJECT_PATH)/components/i2c/include/i2c_slave.hpp
-INPUT += $(PROJECT_PATH)/components/i2c/include/i2c_slave_menu.hpp
-INPUT += $(PROJECT_PATH)/components/icm20948/include/icm20948.hpp
-INPUT += $(PROJECT_PATH)/components/icm20948/include/icm20948_detail.hpp
-INPUT += $(PROJECT_PATH)/components/icm42607/include/icm42607.hpp
-INPUT += $(PROJECT_PATH)/components/icm42607/include/icm42607_detail.hpp
-INPUT += $(PROJECT_PATH)/components/ina226/include/ina226.hpp
-INPUT += $(PROJECT_PATH)/components/interrupt/include/interrupt.hpp
-INPUT += $(PROJECT_PATH)/components/input_drivers/include/encoder_input.hpp
-INPUT += $(PROJECT_PATH)/components/input_drivers/include/keypad_input.hpp
-INPUT += $(PROJECT_PATH)/components/input_drivers/include/pointer_input.hpp
-INPUT += $(PROJECT_PATH)/components/input_drivers/include/touchpad_input.hpp
-INPUT += $(PROJECT_PATH)/components/iperf_menu/include/iperf_menu.hpp
-INPUT += $(PROJECT_PATH)/components/joystick/include/joystick.hpp
-INPUT += $(PROJECT_PATH)/components/kts1622/include/kts1622.hpp
-INPUT += $(PROJECT_PATH)/components/pi4ioe5v/include/pi4ioe5v.hpp
-INPUT += $(PROJECT_PATH)/components/led/include/led.hpp
-INPUT += $(PROJECT_PATH)/components/led_strip/include/led_strip.hpp
-INPUT += $(PROJECT_PATH)/components/logger/include/logger.hpp
-INPUT += $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso.hpp
-INPUT += $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso_detail.hpp
-INPUT += $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp
-INPUT += $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp
-INPUT += $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp
-INPUT += $(PROJECT_PATH)/components/math/include/bezier.hpp
-INPUT += $(PROJECT_PATH)/components/math/include/fast_math.hpp
-INPUT += $(PROJECT_PATH)/components/math/include/gaussian.hpp
-INPUT += $(PROJECT_PATH)/components/math/include/range_mapper.hpp
-INPUT += $(PROJECT_PATH)/components/math/include/vector2d.hpp
-INPUT += $(PROJECT_PATH)/components/matouch-rotary-display/include/matouch-rotary-display.hpp
-INPUT += $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp
-INPUT += $(PROJECT_PATH)/components/ndef/include/ndef.hpp
-INPUT += $(PROJECT_PATH)/components/neopixel/include/neopixel.hpp
-INPUT += $(PROJECT_PATH)/components/nvs/include/nvs.hpp
-INPUT += $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp
-INPUT += $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp
-INPUT += $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp
-INPUT += $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp
-INPUT += $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp
-INPUT += $(PROJECT_PATH)/components/pid/include/pid.hpp
-INPUT += $(PROJECT_PATH)/components/ping/include/ping.hpp
-INPUT += $(PROJECT_PATH)/components/qmi8658/include/qmi8658.hpp
-INPUT += $(PROJECT_PATH)/components/qmi8658/include/qmi8658_detail.hpp
-INPUT += $(PROJECT_PATH)/components/qtpy/include/qtpy.hpp
-INPUT += $(PROJECT_PATH)/components/qwiicnes/include/qwiicnes.hpp
-INPUT += $(PROJECT_PATH)/components/rmt/include/rmt.hpp
-INPUT += $(PROJECT_PATH)/components/rmt/include/rmt_encoder.hpp
-INPUT += $(PROJECT_PATH)/components/rtsp/include/rtsp_client.hpp
-INPUT += $(PROJECT_PATH)/components/rtsp/include/rtsp_server.hpp
-INPUT += $(PROJECT_PATH)/components/rtsp/include/rtsp_session.hpp
-INPUT += $(PROJECT_PATH)/components/rtsp/include/rtcp_packet.hpp
-INPUT += $(PROJECT_PATH)/components/rtsp/include/rtp_packet.hpp
-INPUT += $(PROJECT_PATH)/components/rtsp/include/rtp_jpeg_packet.hpp
-INPUT += $(PROJECT_PATH)/components/rtsp/include/jpeg_frame.hpp
-INPUT += $(PROJECT_PATH)/components/rtsp/include/jpeg_header.hpp
-INPUT += $(PROJECT_PATH)/components/runqueue/include/runqueue.hpp
-INPUT += $(PROJECT_PATH)/components/serialization/include/serialization.hpp
-INPUT += $(PROJECT_PATH)/components/seeed-studio-round-display/include/seeed-studio-round-display.hpp
-INPUT += $(PROJECT_PATH)/components/socket/include/socket.hpp
-INPUT += $(PROJECT_PATH)/components/socket/include/udp_socket.hpp
-INPUT += $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp
-INPUT += $(PROJECT_PATH)/components/st25dv/include/st25dv.hpp
-INPUT += $(PROJECT_PATH)/components/state_machine/include/deep_history_state.hpp
-INPUT += $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.hpp
-INPUT += $(PROJECT_PATH)/components/state_machine/include/state_base.hpp
-INPUT += $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp
-INPUT += $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp
-INPUT += $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp
-INPUT += $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp
-INPUT += $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp
-INPUT += $(PROJECT_PATH)/components/task/include/task.hpp
-INPUT += $(PROJECT_PATH)/components/task/include/run_on_core.hpp
-INPUT += $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp
-INPUT += $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp
-INPUT += $(PROJECT_PATH)/components/timer/include/timer.hpp
-INPUT += $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp
-INPUT += $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp
-INPUT += $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp
-INPUT += $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp
-INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp
-INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_ap_menu.hpp
-INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp
-INPUT += $(PROJECT_PATH)/components/wifi/include/wifi_sta_menu.hpp
-INPUT += $(PROJECT_PATH)/components/wrover-kit/include/wrover-kit.hpp
-INPUT += $(PROJECT_PATH)/components/ws-s3-geek/include/ws-s3-geek.hpp
-INPUT += $(PROJECT_PATH)/components/ws-s3-lcd-1-47/include/ws-s3-lcd-1-47.hpp
-INPUT += $(PROJECT_PATH)/components/ws-s3-touch/include/ws-s3-touch.hpp
-
-USE_MDFILE_AS_MAINPAGE = $(PROJECT_PATH)/README.md
-
-## Get warnings for functions that have no documentation for their parameters or return value
-##
-WARN_NO_PARAMDOC = YES
-
-## Ignore duplicate c++ declaration documentation and other spurious warnings?
-##
-WARN_IF_DOC_ERROR = NO
-
-## Enable preprocessing and remove __attribute__(...) expressions from the INPUT files
-##
-ENABLE_PREPROCESSING   = YES
-MACRO_EXPANSION        = YES
-EXPAND_ONLY_PREDEF     = YES
-CREATE_SUBDIRS         = NO
-
-# The PREDEFINED tag can be used to specify one or more macro names that are
-# defined before the preprocessor is started (similar to the -D option of e.g.
-# gcc). The argument of the tag is a list of macros of the form: name or
-# name=definition (no spaces). If the definition and the "=" are omitted, "=1"
-# is assumed. To prevent a macro definition from being undefined via #undef or
-# recursively expanded use the := operator instead of the = operator.
-# This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
-
-PREDEFINED             = _DOXYGEN_ \
-                         CONFIG_BT_ENABLED \
-                         CONFIG_BT_NIMBLE_ENABLED \
-                         CONFIG_BT_NIMBLE_ROLE_CENTRAL \
-                         CONFIG_BT_NIMBLE_ROLE_OBSERVER \
-                         CONFIG_BT_NIMBLE_ROLE_PERIPHERAL \
-                         CONFIG_BT_NIMBLE_ROLE_BROADCASTER \
-                         CONFIG_BT_NIMBLE_EXT_ADV \
-                         $(ENV_DOXYGEN_DEFINES)
-
-
-## Generate XML that is required for Breathe
-##
-GENERATE_XML    = YES
-XML_OUTPUT      = xml
-
-GENERATE_HTML   = NO
-HAVE_DOT        = NO
-GENERATE_LATEX  = YES
-GENERATE_MAN    = YES
-GENERATE_RTF    = NO
-
 ## Skip distracting progress messages
 ##
 QUIET = YES
@@ -384,4 +63,304 @@ SHOW_NAMESPACES        = YES
 SHOW_FILES             = YES
 BUILTIN_STL_SUPPORT    = YES
 HIDE_SCOPE_NAMES       = NO
-MARKDOWN_SUPPORT       = YES
+MARKDOWN_SUPPORT       = NO
+
+# NOTE: please ensure these are kept in alphabetical order, as that helps track
+#       what's here and what's not
+EXAMPLE_PATH = \
+  $(PROJECT_PATH)/components/adc/example/main/adc_example.cpp \
+  $(PROJECT_PATH)/components/ads1x15/example/main/ads1x15_example.cpp \
+  $(PROJECT_PATH)/components/ads7138/example/main/ads7138_example.cpp \
+  $(PROJECT_PATH)/components/adxl345/example/main/adxl345_example.cpp \
+  $(PROJECT_PATH)/components/as5600/example/main/as5600_example.cpp \
+  $(PROJECT_PATH)/components/aw9523/example/main/aw9523_example.cpp \
+  $(PROJECT_PATH)/components/lp5817/example/main/lp5817_example.cpp \
+  $(PROJECT_PATH)/components/binary-log/example/main/binary_log_example.cpp \
+  $(PROJECT_PATH)/components/ble_gatt_server/example/main/ble_gatt_server_example.cpp \
+  $(PROJECT_PATH)/components/bldc_motor/example/main/bldc_motor_example.cpp \
+  $(PROJECT_PATH)/components/bldc_haptics/example/main/bldc_haptics_example.cpp \
+  $(PROJECT_PATH)/components/bm8563/example/main/bm8563_example.cpp \
+  $(PROJECT_PATH)/components/bmi270/example/main/bmi270_example.cpp \
+  $(PROJECT_PATH)/components/button/example/main/button_example.cpp \
+  $(PROJECT_PATH)/components/byte90/example/main/byte90_example.cpp \
+  $(PROJECT_PATH)/components/chsc6x/example/main/chsc6x_example.cpp \
+  $(PROJECT_PATH)/components/cli/example/main/cli_example.cpp \
+  $(PROJECT_PATH)/components/cobs/example/main/cobs_example.cpp \
+  $(PROJECT_PATH)/components/color/example/main/color_example.cpp \
+  $(PROJECT_PATH)/components/controller/example/main/controller_example.cpp \
+  $(PROJECT_PATH)/components/cst816/example/main/cst816_example.cpp \
+  $(PROJECT_PATH)/components/csv/example/main/csv_example.cpp \
+  $(PROJECT_PATH)/components/display_drivers/example/main/display_drivers_example.cpp \
+  $(PROJECT_PATH)/components/drv2605/example/main/drv2605_example.cpp \
+  $(PROJECT_PATH)/components/encoder/example/main/encoder_example.cpp \
+  $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
+  $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp \
+  $(PROJECT_PATH)/components/event_manager/example/main/event_manager_example.cpp \
+  $(PROJECT_PATH)/components/file_system/example/main/file_system_example.cpp \
+  $(PROJECT_PATH)/components/filters/example/main/filters_example.cpp \
+  $(PROJECT_PATH)/components/ftp/example/main/ftp_example.cpp \
+  $(PROJECT_PATH)/components/ft5x06/example/main/ft5x06_example.cpp \
+  $(PROJECT_PATH)/components/gfps_service/example/main/gfps_service_example.cpp \
+  $(PROJECT_PATH)/components/gt911/example/main/gt911_example.cpp \
+  $(PROJECT_PATH)/components/hid-rp/example/main/hid_rp_example.cpp \
+  $(PROJECT_PATH)/components/hid_service/example/main/hid_service_example.cpp \
+  $(PROJECT_PATH)/components/i2c/example/main/i2c_example.cpp \
+  $(PROJECT_PATH)/components/icm20948/example/main/icm20948_example.cpp \
+  $(PROJECT_PATH)/components/icm42607/example/main/icm42607_example.cpp \
+  $(PROJECT_PATH)/components/ina226/example/main/ina226_example.cpp \
+  $(PROJECT_PATH)/components/interrupt/example/main/interrupt_example.cpp \
+  $(PROJECT_PATH)/components/iperf_menu/example/main/iperf_menu_example.cpp \
+  $(PROJECT_PATH)/components/joystick/example/main/joystick_example.cpp \
+  $(PROJECT_PATH)/components/kts1622/example/main/kts1622_example.cpp \
+  $(PROJECT_PATH)/components/pi4ioe5v/example/main/pi4ioe5v_example.cpp \
+  $(PROJECT_PATH)/components/led/example/main/led_example.cpp \
+  $(PROJECT_PATH)/components/led_strip/example/main/led_strip_example.cpp \
+  $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp \
+  $(PROJECT_PATH)/components/lsm6dso/example/main/lsm6dso_example.cpp \
+  $(PROJECT_PATH)/components/math/example/main/math_example.cpp \
+  $(PROJECT_PATH)/components/matouch-rotary-display/example/main/matouch_rotary_display_example.cpp \
+  $(PROJECT_PATH)/components/max1704x/example/main/max1704x_example.cpp \
+  $(PROJECT_PATH)/components/monitor/example/main/monitor_example.cpp \
+  $(PROJECT_PATH)/components/motorgo-mini/example/main/motorgo_mini_example.cpp \
+  $(PROJECT_PATH)/components/mcp23x17/example/main/mcp23x17_example.cpp \
+  $(PROJECT_PATH)/components/mt6701/example/main/mt6701_example.cpp \
+  $(PROJECT_PATH)/components/neopixel/example/main/neopixel_example.cpp \
+  $(PROJECT_PATH)/components/nvs/example/main/nvs_example.cpp \
+  $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
+  $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
+  $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp \
+  $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp \
+  $(PROJECT_PATH)/components/qmi8658/example/main/qmi8658_example.cpp \
+  $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp \
+  $(PROJECT_PATH)/components/rmt/example/main/rmt_example.cpp \
+  $(PROJECT_PATH)/components/rtsp/example/main/rtsp_example.cpp \
+  $(PROJECT_PATH)/components/ping/example/main/ping_example.cpp \
+  $(PROJECT_PATH)/components/runqueue/example/main/runqueue_example.cpp \
+  $(PROJECT_PATH)/components/serialization/example/main/serialization_example.cpp \
+  $(PROJECT_PATH)/components/seeed-studio-round-display/example/main/seeed_studio_round_display_example.cpp \
+  $(PROJECT_PATH)/components/socket/example/main/socket_example.cpp \
+  $(PROJECT_PATH)/components/st25dv/example/main/st25dv_example.cpp \
+  $(PROJECT_PATH)/components/state_machine/example/main/hfsm_example.cpp \
+  $(PROJECT_PATH)/components/tabulate/example/main/tabulate_example.cpp \
+  $(PROJECT_PATH)/components/t-deck/example/main/t_deck_example.cpp \
+  $(PROJECT_PATH)/components/t-dongle-s3/example/main/t_dongle_s3_example.cpp \
+  $(PROJECT_PATH)/components/t_keyboard/example/main/t_keyboard_example.cpp \
+  $(PROJECT_PATH)/components/task/example/main/task_example.cpp \
+  $(PROJECT_PATH)/components/thermistor/example/main/thermistor_example.cpp \
+  $(PROJECT_PATH)/components/timer/example/main/timer_example.cpp \
+  $(PROJECT_PATH)/components/tla2528/example/main/tla2528_example.cpp \
+  $(PROJECT_PATH)/components/tt21100/example/main/tt21100_example.cpp \
+  $(PROJECT_PATH)/components/vl53l/example/main/vl53l_example.cpp \
+  $(PROJECT_PATH)/components/wifi/example/main/wifi_example.cpp \
+  $(PROJECT_PATH)/components/wrover-kit/example/main/wrover_kit_example.cpp \
+  $(PROJECT_PATH)/components/ws-s3-geek/example/main/ws_s3_geek_example.cpp \
+  $(PROJECT_PATH)/components/ws-s3-lcd-1-47/example/main/ws_s3_lcd_1_47_example.cpp \
+  $(PROJECT_PATH)/components/ws-s3-touch/example/main/ws_s3_touch_example.cpp
+
+## The 'INPUT' statement below is used as input by script 'gen-df-input.py'
+## to automatically generate API reference list files header_file.inc
+## These files are placed in '_inc' directory
+## and used to include in API reference documentation
+
+# NOTE: please ensure these are kept in alphabetical order, as that helps track
+#       what's here and what's not
+INPUT = \
+  $(PROJECT_PATH)/components/adc/include/adc_types.hpp \
+  $(PROJECT_PATH)/components/adc/include/oneshot_adc.hpp \
+  $(PROJECT_PATH)/components/adc/include/continuous_adc.hpp \
+  $(PROJECT_PATH)/components/ads1x15/include/ads1x15.hpp \
+  $(PROJECT_PATH)/components/ads7138/include/ads7138.hpp \
+  $(PROJECT_PATH)/components/adxl345/include/adxl345.hpp \
+  $(PROJECT_PATH)/components/as5600/include/as5600.hpp \
+  $(PROJECT_PATH)/components/aw9523/include/aw9523.hpp \
+  $(PROJECT_PATH)/components/base_component/include/base_component.hpp \
+  $(PROJECT_PATH)/components/base_peripheral/include/base_peripheral.hpp \
+  $(PROJECT_PATH)/components/binary-log/include/binary-log.hpp \
+  $(PROJECT_PATH)/components/ble_gatt_server/include/battery_service.hpp \
+  $(PROJECT_PATH)/components/ble_gatt_server/include/ble_appearances.hpp \
+  $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server.hpp \
+  $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server_callbacks.hpp \
+  $(PROJECT_PATH)/components/ble_gatt_server/include/ble_gatt_server_menu.hpp \
+  $(PROJECT_PATH)/components/ble_gatt_server/include/device_info_service.hpp \
+  $(PROJECT_PATH)/components/ble_gatt_server/include/generic_access_service.hpp \
+  $(PROJECT_PATH)/components/bldc_driver/include/bldc_driver.hpp \
+  $(PROJECT_PATH)/components/bldc_haptics/include/bldc_haptics.hpp \
+  $(PROJECT_PATH)/components/bldc_haptics/include/detent_config.hpp \
+  $(PROJECT_PATH)/components/bldc_haptics/include/haptic_config.hpp \
+  $(PROJECT_PATH)/components/bldc_motor/include/bldc_motor.hpp \
+  $(PROJECT_PATH)/components/bldc_motor/include/bldc_types.hpp \
+  $(PROJECT_PATH)/components/bldc_motor/include/sensor_direction.hpp \
+  $(PROJECT_PATH)/components/bm8563/include/bm8563.hpp \
+  $(PROJECT_PATH)/components/bmi270/include/bmi270.hpp \
+  $(PROJECT_PATH)/components/bmi270/include/bmi270_detail.hpp \
+  $(PROJECT_PATH)/components/button/include/button.hpp \
+  $(PROJECT_PATH)/components/byte90/include/byte90.hpp \
+  $(PROJECT_PATH)/components/chsc6x/include/chsc6x.hpp \
+  $(PROJECT_PATH)/components/cli/include/cli.hpp \
+  $(PROJECT_PATH)/components/cli/include/line_input.hpp \
+  $(PROJECT_PATH)/components/cobs/include/cobs.hpp \
+  $(PROJECT_PATH)/components/cobs/include/cobs_stream.hpp \
+  $(PROJECT_PATH)/components/color/include/color.hpp \
+  $(PROJECT_PATH)/components/controller/include/controller.hpp \
+  $(PROJECT_PATH)/components/cst816/include/cst816.hpp \
+  $(PROJECT_PATH)/components/csv/include/csv.hpp \
+  $(PROJECT_PATH)/components/display/include/display.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/gc9a01.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/ili9341.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/ssd1351.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/st7789.hpp \
+  $(PROJECT_PATH)/components/display_drivers/include/sh8601.hpp \
+  $(PROJECT_PATH)/components/drv2605/include/drv2605.hpp \
+  $(PROJECT_PATH)/components/drv2605/include/drv2605_menu.hpp \
+  $(PROJECT_PATH)/components/encoder/include/abi_encoder.hpp \
+  $(PROJECT_PATH)/components/encoder/include/encoder_types.hpp \
+  $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
+  $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp \
+  $(PROJECT_PATH)/components/event_manager/include/event_manager.hpp \
+  $(PROJECT_PATH)/components/file_system/include/file_system.hpp \
+  $(PROJECT_PATH)/components/filters/include/biquad_filter.hpp \
+  $(PROJECT_PATH)/components/filters/include/butterworth_filter.hpp \
+  $(PROJECT_PATH)/components/filters/include/complementary_filter.hpp \
+  $(PROJECT_PATH)/components/filters/include/kalman_filter.hpp \
+  $(PROJECT_PATH)/components/filters/include/lowpass_filter.hpp \
+  $(PROJECT_PATH)/components/filters/include/madgwick_filter.hpp \
+  $(PROJECT_PATH)/components/filters/include/simple_lowpass_filter.hpp \
+  $(PROJECT_PATH)/components/filters/include/sos_filter.hpp \
+  $(PROJECT_PATH)/components/filters/include/transfer_function.hpp \
+  $(PROJECT_PATH)/components/ftp/include/ftp_server.hpp \
+  $(PROJECT_PATH)/components/ftp/include/ftp_client_session.hpp \
+  $(PROJECT_PATH)/components/ft5x06/include/ft5x06.hpp \
+  $(PROJECT_PATH)/components/gfps_service/include/gfps.hpp \
+  $(PROJECT_PATH)/components/gfps_service/include/gfps_characteristic_callbacks.hpp \
+  $(PROJECT_PATH)/components/gfps_service/include/gfps_service.hpp \
+  $(PROJECT_PATH)/components/gt911/include/gt911.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/gamepad_hat.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/gamepad_imu.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/hid-rp.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/hid-rp-gamepad.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/hid-rp-playstation.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/hid-rp-switch-pro.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/hid-rp-xbox.hpp \
+  $(PROJECT_PATH)/components/hid_service/include/hid_service.hpp \
+  $(PROJECT_PATH)/components/i2c/include/i2c.hpp \
+  $(PROJECT_PATH)/components/i2c/include/i2c_menu.hpp \
+  $(PROJECT_PATH)/components/i2c/include/i2c_master.hpp \
+  $(PROJECT_PATH)/components/i2c/include/i2c_master_menu.hpp \
+  $(PROJECT_PATH)/components/i2c/include/i2c_master_device_menu.hpp \
+  $(PROJECT_PATH)/components/i2c/include/i2c_slave.hpp \
+  $(PROJECT_PATH)/components/i2c/include/i2c_slave_menu.hpp \
+  $(PROJECT_PATH)/components/icm20948/include/icm20948.hpp \
+  $(PROJECT_PATH)/components/icm20948/include/icm20948_detail.hpp \
+  $(PROJECT_PATH)/components/icm42607/include/icm42607.hpp \
+  $(PROJECT_PATH)/components/icm42607/include/icm42607_detail.hpp \
+  $(PROJECT_PATH)/components/ina226/include/ina226.hpp \
+  $(PROJECT_PATH)/components/interrupt/include/interrupt.hpp \
+  $(PROJECT_PATH)/components/input_drivers/include/encoder_input.hpp \
+  $(PROJECT_PATH)/components/input_drivers/include/keypad_input.hpp \
+  $(PROJECT_PATH)/components/input_drivers/include/pointer_input.hpp \
+  $(PROJECT_PATH)/components/input_drivers/include/touchpad_input.hpp \
+  $(PROJECT_PATH)/components/iperf_menu/include/iperf_menu.hpp \
+  $(PROJECT_PATH)/components/joystick/include/joystick.hpp \
+  $(PROJECT_PATH)/components/kts1622/include/kts1622.hpp \
+  $(PROJECT_PATH)/components/pi4ioe5v/include/pi4ioe5v.hpp \
+  $(PROJECT_PATH)/components/led/include/led.hpp \
+  $(PROJECT_PATH)/components/led_strip/include/led_strip.hpp \
+  $(PROJECT_PATH)/components/logger/include/logger.hpp \
+  $(PROJECT_PATH)/components/lp5817/include/lp5817.hpp \
+  $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso.hpp \
+  $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso_detail.hpp \
+  $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
+  $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
+  $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp \
+  $(PROJECT_PATH)/components/math/include/bezier.hpp \
+  $(PROJECT_PATH)/components/math/include/fast_math.hpp \
+  $(PROJECT_PATH)/components/math/include/gaussian.hpp \
+  $(PROJECT_PATH)/components/math/include/range_mapper.hpp \
+  $(PROJECT_PATH)/components/math/include/vector2d.hpp \
+  $(PROJECT_PATH)/components/matouch-rotary-display/include/matouch-rotary-display.hpp \
+  $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp \
+  $(PROJECT_PATH)/components/ndef/include/ndef.hpp \
+  $(PROJECT_PATH)/components/neopixel/include/neopixel.hpp \
+  $(PROJECT_PATH)/components/nvs/include/nvs.hpp \
+  $(PROJECT_PATH)/components/nvs/include/nvs_handle_espp.hpp \
+  $(PROJECT_PATH)/components/mcp23x17/include/mcp23x17.hpp \
+  $(PROJECT_PATH)/components/mt6701/include/mt6701.hpp \
+  $(PROJECT_PATH)/components/odrive_ascii/include/odrive_ascii.hpp \
+  $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
+  $(PROJECT_PATH)/components/pid/include/pid.hpp \
+  $(PROJECT_PATH)/components/ping/include/ping.hpp \
+  $(PROJECT_PATH)/components/qmi8658/include/qmi8658.hpp \
+  $(PROJECT_PATH)/components/qmi8658/include/qmi8658_detail.hpp \
+  $(PROJECT_PATH)/components/qtpy/include/qtpy.hpp \
+  $(PROJECT_PATH)/components/qwiicnes/include/qwiicnes.hpp \
+  $(PROJECT_PATH)/components/rmt/include/rmt.hpp \
+  $(PROJECT_PATH)/components/rmt/include/rmt_encoder.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtsp_client.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtsp_server.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtsp_session.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtcp_packet.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtp_packet.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/rtp_jpeg_packet.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/jpeg_frame.hpp \
+  $(PROJECT_PATH)/components/rtsp/include/jpeg_header.hpp \
+  $(PROJECT_PATH)/components/runqueue/include/runqueue.hpp \
+  $(PROJECT_PATH)/components/serialization/include/serialization.hpp \
+  $(PROJECT_PATH)/components/seeed-studio-round-display/include/seeed-studio-round-display.hpp \
+  $(PROJECT_PATH)/components/socket/include/socket.hpp \
+  $(PROJECT_PATH)/components/socket/include/udp_socket.hpp \
+  $(PROJECT_PATH)/components/socket/include/tcp_socket.hpp \
+  $(PROJECT_PATH)/components/st25dv/include/st25dv.hpp \
+  $(PROJECT_PATH)/components/state_machine/include/deep_history_state.hpp \
+  $(PROJECT_PATH)/components/state_machine/include/shallow_history_state.hpp \
+  $(PROJECT_PATH)/components/state_machine/include/state_base.hpp \
+  $(PROJECT_PATH)/components/state_machine/include/state_machine.hpp \
+  $(PROJECT_PATH)/components/t-deck/include/t-deck.hpp \
+  $(PROJECT_PATH)/components/t-dongle-s3/include/t-dongle-s3.hpp \
+  $(PROJECT_PATH)/components/t_keyboard/include/t_keyboard.hpp \
+  $(PROJECT_PATH)/components/tabulate/include/tabulate.hpp \
+  $(PROJECT_PATH)/components/task/include/task.hpp \
+  $(PROJECT_PATH)/components/task/include/run_on_core.hpp \
+  $(PROJECT_PATH)/components/thermistor/include/thermistor.hpp \
+  $(PROJECT_PATH)/components/timer/include/high_resolution_timer.hpp \
+  $(PROJECT_PATH)/components/timer/include/timer.hpp \
+  $(PROJECT_PATH)/components/tla2528/include/tla2528.hpp \
+  $(PROJECT_PATH)/components/tt21100/include/tt21100.hpp \
+  $(PROJECT_PATH)/components/vl53l/include/vl53l.hpp \
+  $(PROJECT_PATH)/components/utils/include/bitmask_operators.hpp \
+  $(PROJECT_PATH)/components/wifi/include/wifi_ap.hpp \
+  $(PROJECT_PATH)/components/wifi/include/wifi_ap_menu.hpp \
+  $(PROJECT_PATH)/components/wifi/include/wifi_sta.hpp \
+  $(PROJECT_PATH)/components/wifi/include/wifi_sta_menu.hpp \
+  $(PROJECT_PATH)/components/wrover-kit/include/wrover-kit.hpp \
+  $(PROJECT_PATH)/components/ws-s3-geek/include/ws-s3-geek.hpp \
+  $(PROJECT_PATH)/components/ws-s3-lcd-1-47/include/ws-s3-lcd-1-47.hpp \
+  $(PROJECT_PATH)/components/ws-s3-touch/include/ws-s3-touch.hpp
+
+## Get warnings for functions that have no documentation for their parameters or return value
+##
+WARN_NO_PARAMDOC = YES
+
+## Enable preprocessing and remove __attribute__(...) expressions from the INPUT files
+##
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+
+PREDEFINED             = \
+  $(ENV_DOXYGEN_DEFINES) \
+  _DOXYGEN_=1 \
+  __DOXYGEN__=1 \
+  IRAM_ATTR= \
+  __attribute__(x)=
+
+## Generate XML that is required for Breathe
+##
+GENERATE_XML    = YES
+XML_OUTPUT      = xml
+
+GENERATE_HTML   = NO
+HAVE_DOT        = NO
+GENERATE_LATEX  = YES
+GENERATE_MAN    = NO
+GENERATE_RTF    = NO
+

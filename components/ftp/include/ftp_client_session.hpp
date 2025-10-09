@@ -165,12 +165,8 @@ protected:
   }
 
   /// \brief Receive data from the client.
-  /// \details This function receives data from the client and stores it in
-  ///     the given buffer. This function uses the data socket and not the
-  ///     control socket, and handles both active and passive mode.
-  /// \param buffer The buffer to store the data in.
-  /// \param size The size of the buffer.
-  /// \return The number of bytes received.
+  /// \return The data received from the client, or std::nullopt if
+  ///         receiving the data failed.
   std::optional<std::vector<uint8_t>> receive_data() {
     if (is_passive_data_connection_) {
       if (!passive_socket_.is_valid()) {
@@ -653,7 +649,7 @@ protected:
   ///     take a second parameter. The first parameter is denoted by a single
   ///     Telnet character, as is the second Format parameter for ASCII and
   ///     EBCDIC; the second parameter for local byte is a decimal integer to
-  ///     indicate Bytesize. The parameters are separated by a <SP> (Space,
+  ///     indicate Bytesize. The parameters are separated by a \<SP\> (Space,
   ///     ASCII code 32).
   /// \param arguments The arguments to the TYPE command.
   /// \return True if the command was handled, false otherwise.

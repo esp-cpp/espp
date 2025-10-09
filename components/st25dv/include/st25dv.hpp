@@ -606,8 +606,9 @@ protected:
 };
 } // namespace espp
 
+namespace fmt {
 // For printing out the IT_STS register using libfmt
-template <> struct fmt::formatter<espp::St25dv::IT_STS> {
+template <> struct formatter<espp::St25dv::IT_STS> {
   constexpr auto parse(format_parse_context &ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
@@ -621,3 +622,4 @@ template <> struct fmt::formatter<espp::St25dv::IT_STS> {
         (bool)it_sts.RF_GET_MSG, (bool)it_sts.RF_WRITE);
   }
 };
+} // namespace fmt

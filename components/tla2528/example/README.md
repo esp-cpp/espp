@@ -16,7 +16,7 @@ and shown to be working. Averaging / oversampling mode does not currently work.
 
 To run this example, you need:
 * [QtPy ESP32S3](https://www.adafruit.com/product/5426)
-* [TLA2528]()
+* [TLA2528](https://www.mouser.com/new/texas-instruments/ti-tla2528-adc/?srsltid=AfmBOorOSmJ_xMD_vlC3nIPyFZANhIUgXK-1zWK5L4Bmc__4uJB2mp8E)
 * [Adafruit Thumb Joystick](https://www.adafruit.com/product/512)
 * Some dupont wires
 * QwiiC cable (JST-SH to Dupont)

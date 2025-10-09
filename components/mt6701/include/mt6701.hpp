@@ -305,11 +305,15 @@ public:
   }
 
 protected:
+#pragma pack(push, 1)
+
   struct MagneticFieldStatus {
     uint8_t magnetic_field_strength : 2;
     uint8_t push_button : 1;
     uint8_t tracking_status : 1;
-  } __attribute__((packed));
+  };
+
+#pragma pack(pop)
 
   void read(std::error_code &ec) requires(Interface == Mt6701Interface::I2C) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);

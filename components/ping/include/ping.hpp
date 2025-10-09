@@ -105,8 +105,8 @@ public:
   bool run(std::error_code &ec);
 
   /**
-   * @brief Set new configuration and run the ping session synchronously.
-   * @param config New ping configuration and callbacks.
+   * @brief Set new session configuration and run the ping session synchronously.
+   * @param session_config New session configuration.
    * @param ec Error code set on failure.
    * @return true if session completed successfully, false otherwise.
    */
@@ -266,7 +266,7 @@ public:
         : ping_(ping) {}
 
     /**
-     * @brief Create a CLI submenu with a `run <host>` command.
+     * @brief Create a CLI submenu with a `run \<host\>` command.
      * @param name Menu name (default: "ping")
      * @param description Menu description (default: "Ping menu")
      * @return Unique pointer to the menu instance.

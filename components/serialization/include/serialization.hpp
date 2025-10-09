@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef __gnu_linux__
 #define __gnu_linux__
+#endif
 
 #include "alpaca/alpaca.h"
 

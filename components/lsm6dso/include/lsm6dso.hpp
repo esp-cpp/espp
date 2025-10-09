@@ -98,14 +98,14 @@ public:
   /// @return The configuration
   ImuConfig get_config() const;
 
-  /// Set the accelerometer output data rate (ODR)
-  /// @param odr The output data rate
+  /// Set the accelerometer range
+  /// @param range The range of the accelerometer
   /// @param ec The error code to set if an error occurs
   /// @return True if successful
   bool set_accelerometer_range(AccelRange range, std::error_code &ec);
 
-  /// Set the gyroscope output data rate (ODR)
-  /// @param odr The output data rate
+  /// Set the gyroscope range
+  /// @param range The range of the gyroscope
   /// @param ec The error code to set if an error occurs
   /// @return True if successful
   bool set_gyroscope_range(GyroRange range, std::error_code &ec);

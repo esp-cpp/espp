@@ -4,7 +4,7 @@ extensions += ['sphinx_copybutton',
                # Needed as a trigger for running doxygen
                'esp_docs.esp_extensions.dummy_build_system',
                'esp_docs.esp_extensions.run_doxygen',
-               'myst_parser'
+               'myst_parser',
                ]
 
 exclude_paterns = ['build', '_build', 'detail']

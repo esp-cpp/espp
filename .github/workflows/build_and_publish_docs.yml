@@ -13,15 +13,16 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           fetch-tags: true
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.13"
+          cache: 'pip'
 
       - name: Install Dependencies
         run: |
@@ -33,7 +34,7 @@ jobs:
         run: |
           cd doc
           # ignore if the following command fails
-          build-docs -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
+          build-docs -bs html -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
           mkdir -p ../docs
           cp -r _build/en/esp32/html/* ../docs/.
           # go to the latex output

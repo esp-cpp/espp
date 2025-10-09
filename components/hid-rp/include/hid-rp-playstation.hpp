@@ -181,7 +181,7 @@ enum class PlaystationHat {
 /// - Android seems to require Audio support, which it cannot find over BLE, so
 ///   it does not work at all.
 ///
-/// \section hid_rp_playstation_ex1 HID-RP Playstation Gamepad Example
+/// \section hid_rp_playstation_ex2 HID-RP Playstation Gamepad Example
 /// \snippet hid_rp_example.cpp hid rp example
 template <uint8_t REPORT_ID = 1>
 class PlaystationDualsenseBLESimpleInputReport
