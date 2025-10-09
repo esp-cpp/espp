@@ -39,7 +39,7 @@ API Reference
 New API
 =======
 
-This driver was introduced and has been refined in ESP-IDF v5. As of v5.5, it
+This driver was introduced and has been refined in ESP-IDF v5. As of v6.0, it
 will be the only driver available.
 
 The `I2cMasterBus` and `I2cMasterDevice` classes provide simple interfaces to

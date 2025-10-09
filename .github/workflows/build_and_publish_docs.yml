@@ -34,7 +34,7 @@ jobs:
         run: |
           cd doc
           # ignore if the following command fails
-          build-docs -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
+          build-docs -bs html -t esp32 -l en --project-path ../ --source-dir ./ --doxyfile_dir ./ || true
           mkdir -p ../docs
           cp -r _build/en/esp32/html/* ../docs/.
           # go to the latex output
