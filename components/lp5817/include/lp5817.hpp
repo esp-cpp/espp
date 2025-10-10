@@ -218,6 +218,7 @@ public:
       return false;
     if (!set_dot_current(Channel::OUT2, data[2], ec))
       return false;
+    return true;
   }
 
   /**
