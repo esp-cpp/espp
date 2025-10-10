@@ -102,6 +102,18 @@ public:
     return !ec;
   }
 
+  /**
+   * @brief Check if device is enabled.
+   * @param ec Error code set on failure.
+   * @return true if device is enabled, false otherwise.
+   */
+  bool is_enabled(std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::CHIP_EN, ec);
+    if (ec)
+      return false;
+    return (reg & CHIP_EN_MASK) != 0;
+  }
+
   // Per-channel 8-bit brightness (0-255) - DC registers
   /**
    * @brief Set per-channel 8-bit brightness.
@@ -128,6 +140,17 @@ public:
   bool set_brightness(Channel ch, float value, std::error_code &ec) {
     value = std::clamp(value, 0.0f, 1.0f);
     return set_brightness(ch, static_cast<uint8_t>(value * 255.0f), ec);
+  }
+
+  /**
+   * @brief Get the current brightness of a channel.
+   * @param ch Channel to read.
+   * @param ec Error code set on failure.
+   * @return Brightness [0,255].
+   */
+  uint8_t get_brightness(Channel ch, std::error_code &ec) {
+    auto reg = dc_register_for(ch);
+    return read_u8_from_register(reg, ec);
   }
 
   // Set all channels at once
@@ -245,6 +268,17 @@ public:
   }
 
   /**
+   * @brief Get the current manual PWM value of a channel (manual mode).
+   * @param ch Channel to read.
+   * @param ec Error code set on failure.
+   * @return Manual PWM value [0,255].
+   */
+  uint8_t get_manual_pwm(Channel ch, std::error_code &ec) {
+    auto reg = manual_pwm_register_for(ch);
+    return read_u8_from_register(reg, ec);
+  }
+
+  /**
    * @brief Set global fade time (datasheet-defined).
    * @param time Fade time.
    * @param ec Error code set on failure.
@@ -256,6 +290,18 @@ public:
   bool set_fade_time(FadeTime time, std::error_code &ec) {
     logger_.debug("Setting fade time to {}", time);
     return set_fade_time_code(static_cast<uint8_t>(time), ec);
+  }
+
+  /**
+   * @brief Get the current global fade time setting.
+   * @param ec Error code set on failure.
+   * @return Current global fade time setting.
+   */
+  FadeTime get_fade_time(std::error_code &ec) {
+    auto code = get_fade_time_code(ec);
+    if (ec)
+      return FadeTime::TIME_0; // default
+    return static_cast<FadeTime>(code);
   }
 
   /**
@@ -276,6 +322,20 @@ public:
   }
 
   /**
+   * @brief Is fading enabled for a channel?
+   * @param ch Channel to check.
+   * @param ec Error code set on failure.
+   * @return true if fading is enabled, false otherwise.
+   */
+  bool is_fade_enabled(Channel ch, std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG2, ec);
+    if (ec)
+      return false;
+    uint8_t bit = 1 << (uint8_t)ch; // bits 0..2
+    return (reg & bit) != 0;
+  }
+
+  /**
    * @brief Enable/disable exponential dimming for a channel.
    * @param ch Channel to configure.
    * @param enable True to enable exponential dimming, false for linear.
@@ -290,6 +350,20 @@ public:
     uint8_t bit = 1 << (4 + (uint8_t)ch); // bits 4..6
     set_bits_in_register_by_mask((uint8_t)Registers::DEV_CONFIG3, bit, enable ? bit : 0, ec);
     return !ec;
+  }
+
+  /**
+   * @brief Is exponential dimming enabled for a channel?
+   * @param ch Channel to check.
+   * @param ec Error code set on failure.
+   * @return true if exponential dimming is enabled, false otherwise.
+   */
+  bool is_exponential_dimming_enabled(Channel ch, std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG3, ec);
+    if (ec)
+      return false;
+    uint8_t bit = 1 << (4 + (uint8_t)ch);
+    return (reg & bit) != 0;
   }
 
   /**
@@ -308,6 +382,20 @@ public:
   }
 
   /**
+   * @brief Check if output stage is enabled for a channel.
+   * @param ch Channel to check.
+   * @param ec Error code set on failure.
+   * @return true if output stage is enabled, false otherwise.
+   */
+  bool is_output_enabled(Channel ch, std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG1, ec);
+    if (ec)
+      return false;
+    uint8_t bit = 1 << (uint8_t)ch; // bits 0..2
+    return (reg & bit) != 0;
+  }
+
+  /**
    * @brief Set global max current.
    * @param current Global max current setting.
    * @param ec Error code set on failure.
@@ -319,6 +407,18 @@ public:
   bool set_max_current(GlobalMaxCurrent current, std::error_code &ec) {
     set_max_current_code(static_cast<uint8_t>(current), ec);
     return !ec;
+  }
+
+  /**
+   * @brief Get the current global max current setting.
+   * @param ec Error code set on failure.
+   * @return Current global max current setting.
+   */
+  GlobalMaxCurrent get_max_current(std::error_code &ec) {
+    auto code = get_max_current_code(ec);
+    if (ec)
+      return GlobalMaxCurrent::MA_25_5; // default
+    return static_cast<GlobalMaxCurrent>(code);
   }
 
   /**
@@ -349,79 +449,6 @@ public:
   bool shutdown(std::error_code &ec) {
     write_u8_to_register((uint8_t)Registers::SHUTDOWN_CMD, 0x33, ec);
     return !ec;
-  }
-
-  /**
-   * @brief Check if device is enabled.
-   * @param ec Error code set on failure.
-   * @return true if device is enabled, false otherwise.
-   */
-  bool is_enabled(std::error_code &ec) {
-    auto reg = read_u8_from_register((uint8_t)Registers::CHIP_EN, ec);
-    if (ec)
-      return false;
-    return (reg & CHIP_EN_MASK) != 0;
-  }
-
-  /**
-   * @brief Check if output stage is enabled for a channel.
-   * @param ch Channel to check.
-   * @param ec Error code set on failure.
-   * @return true if output stage is enabled, false otherwise.
-   */
-  bool is_channel_enabled(Channel ch, std::error_code &ec) {
-    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG1, ec);
-    if (ec)
-      return false;
-    uint8_t bit = 1 << (uint8_t)ch; // bits 0..2
-    return (reg & bit) != 0;
-  }
-
-  /**
-   * @brief Get the current global max current setting.
-   * @param ec Error code set on failure.
-   * @return Current global max current setting.
-   */
-  GlobalMaxCurrent get_max_current(std::error_code &ec) {
-    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG0, ec);
-    if (ec)
-      return GlobalMaxCurrent::MA_25_5; // default
-    return (reg & MAX_CURRENT_MASK) ? GlobalMaxCurrent::MA_51 : GlobalMaxCurrent::MA_25_5;
-  }
-
-  /**
-   * @brief Get the current brightness of a channel.
-   * @param ch Channel to read.
-   * @param ec Error code set on failure.
-   * @return Brightness [0,255].
-   */
-  uint8_t get_brightness(Channel ch, std::error_code &ec) {
-    auto reg = dc_register_for(ch);
-    return read_u8_from_register(reg, ec);
-  }
-
-  /**
-   * @brief Get the current manual PWM value of a channel (manual mode).
-   * @param ch Channel to read.
-   * @param ec Error code set on failure.
-   * @return Manual PWM value [0,255].
-   */
-  uint8_t get_manual_pwm(Channel ch, std::error_code &ec) {
-    auto reg = manual_pwm_register_for(ch);
-    return read_u8_from_register(reg, ec);
-  }
-
-  /**
-   * @brief Get the current global fade time setting.
-   * @param ec Error code set on failure.
-   * @return Current fade time setting.
-   */
-  bool is_fade_enabled(Channel ch, std::error_code &ec) {
-    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG2, ec);
-    if (ec)
-      return false;
-    uint8_t bit = 1 << (uint8_t)ch; // bits 0..2
-    return (reg & bit) != 0;
   }
 
   /**
@@ -557,10 +584,24 @@ protected:
     return !ec;
   }
 
+  uint8_t get_fade_time_code(std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG2, ec);
+    if (ec)
+      return 0; // default
+    return (reg & DEV_CONFIG2_FADE_TIME_MASK) >> 4;
+  }
+
   bool set_max_current_code(uint8_t code, std::error_code &ec) {
     uint8_t value = (uint8_t)(code & 0x01); // bit0 only
     set_bits_in_register_by_mask((uint8_t)Registers::DEV_CONFIG0, MAX_CURRENT_MASK, value, ec);
     return !ec;
+  }
+
+  uint8_t get_max_current_code(std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG0, ec);
+    if (ec)
+      return 0; // default
+    return reg & MAX_CURRENT_MASK;
   }
 
   // Bit masks per datasheet
