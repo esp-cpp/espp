@@ -584,7 +584,7 @@ protected:
     return !ec;
   }
 
-  uint8_t get_fade_time_code(std::error_code &ec) const {
+  uint8_t get_fade_time_code(std::error_code &ec) {
     auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG2, ec);
     if (ec)
       return 0; // default
@@ -597,7 +597,7 @@ protected:
     return !ec;
   }
 
-  uint8_t get_max_current_code(std::error_code &ec) const {
+  uint8_t get_max_current_code(std::error_code &ec) {
     auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG0, ec);
     if (ec)
       return 0; // default
