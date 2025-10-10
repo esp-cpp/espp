@@ -12,6 +12,21 @@ namespace espp {
  * Implements a minimal functional interface to control RGB brightness and fades
  * following the register map of the LP5817 datasheet.
  *
+ * \note Dot-current (brightness) is controlled on a per-channel basis
+ *       using the DC registers. It represents the maximum current
+ *       that can be driven through the LED channel, and is an 8-bit value
+ *       (0-255). The actual brightness output is then controlled using the
+ *       PWM registers, which can be changed on-the-fly to adjust brightness.
+ *
+ * \note In this driver, brightness is equivalent to the dot-current (DC) setting
+ *       in the datasheet, which is an 8-bit value (0-255).
+ *
+ * \note When initializing, you should set the global max current and the
+ *       dot-current (brightness) for each channel to appropriate values
+ *       for your application. Then you can use the pwm registers to adjust
+ *       brightness on-the-fly, which will also take into account any fading
+ *       that is enabled.
+ *
  * For more information see the datasheet here:
  * https://www.ti.com/lit/gpn/LP5817
  *
@@ -20,7 +35,8 @@ namespace espp {
  */
 class Lp5817 : public BasePeripheral<> {
 public:
-  static constexpr uint8_t DEFAULT_ADDRESS = 0x2D; // 7-bit address
+  static constexpr uint8_t DEFAULT_ADDRESS = 0x2D;   // 7-bit address
+  static constexpr uint8_t BROADCAST_ADDRESS = 0x34; // 7-bit address
 
   /// LED channels
   enum class Channel : uint8_t { OUT0 = 0, OUT1 = 1, OUT2 = 2 };
@@ -94,38 +110,70 @@ public:
    */
   bool enable(bool on, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    logger_.info("Turning device {}", on ? "ON" : "OFF");
+    logger_.info("Setting enable to {}", on);
     // set the chip_en bit
     set_bits_in_register_by_mask((uint8_t)Registers::CHIP_EN, CHIP_EN_MASK,
                                  on ? CHIP_EN_MASK : 0x00, ec);
-    // then clear the POR flag if enabling
-    if (on && !ec) {
-      if (!clear_por_flag(ec)) {
-        logger_.error("Failed to clear POR flag: {}", ec.message());
-      }
-    }
     return !ec;
   }
 
-  // Per-channel 8-bit brightness (0-255) - DC registers
   /**
-   * @brief Set per-channel 8-bit brightness.
+   * @brief Check if device is enabled.
+   * @param ec Error code set on failure.
+   * @return true if device is enabled, false otherwise.
+   */
+  bool is_enabled(std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::CHIP_EN, ec);
+    if (ec)
+      return false;
+    return (reg & CHIP_EN_MASK) != 0;
+  }
+
+  // Per-channel 8-bit brightness (0-255) - DC registers
+
+  /**
+   * @brief Set per-channel 8-bit dot-current (DC).
    * @param ch Channel to update.
-   * @param value Brightness [0,255].
+   * @param value Dot-current [0,255].
    * @param ec Error code set on failure.
    * @return true on success, false on failure.
    */
-  bool set_brightness(Channel ch, uint8_t value, std::error_code &ec) {
-    logger_.debug("Setting brightness of channel {} to {}", ch, value);
+  bool set_dot_current(Channel ch, uint8_t value, std::error_code &ec) {
+    logger_.debug("Setting dot-current (DC) of channel {} to {}", ch, value);
     auto reg = dc_register_for(ch);
     write_u8_to_register(reg, value, ec);
     return !ec;
   }
 
   /**
-   * @brief Set per-channel brightness using a float value.
+   * @brief Set per-channel dot-current (DC) using a float value.
    * @param ch Channel to update.
-   * @param value Brightness [0.0, 1.0].
+   * @param value Dot-current [0.0, 1.0].
+   * @param ec Error code set on failure.
+   * @return true on success, false on failure.
+   * @note Value is clamped to [0.0, 1.0] range.
+   */
+  bool set_dot_current(Channel ch, float value, std::error_code &ec) {
+    value = std::clamp(value, 0.0f, 1.0f);
+    return set_dot_current(ch, static_cast<uint8_t>(value * 255.0f), ec);
+  }
+
+  /**
+   * @brief Set per-channel 8-bit brightness (dot-current).
+   * @param ch Channel to update.
+   * @param value Dot-Current Brightness [0,255].
+   * @param ec Error code set on failure.
+   * @return true on success, false on failure.
+   * @note This is an alias for set_dot_current().
+   */
+  bool set_brightness(Channel ch, uint8_t value, std::error_code &ec) {
+    return set_dot_current(ch, value, ec);
+  }
+
+  /**
+   * @brief Set per-channel brightness (dot-current) using a float value.
+   * @param ch Channel to update.
+   * @param value Dot-Current Brightness [0.0, 1.0].
    * @param ec Error code set on failure.
    * @return true on success, false on failure.
    * @note Value is clamped to [0.0, 1.0] range.
@@ -135,39 +183,81 @@ public:
     return set_brightness(ch, static_cast<uint8_t>(value * 255.0f), ec);
   }
 
+  /**
+   * @brief Get the current dot-current (DC) of a channel.
+   * @param ch Channel to read.
+   * @param ec Error code set on failure.
+   * @return Dot-current [0,255].
+   */
+  uint8_t get_dot_current(Channel ch, std::error_code &ec) {
+    auto reg = dc_register_for(ch);
+    return read_u8_from_register(reg, ec);
+  }
+
+  /**
+   * @brief Get the brightness (dot-current) of a channel.
+   * @param ch Channel to read.
+   * @param ec Error code set on failure.
+   * @return Dot Current Brightness [0,255].
+   */
+  uint8_t get_brightness(Channel ch, std::error_code &ec) { return get_dot_current(ch, ec); }
+
   // Set all channels at once
   /**
-   * @brief Set all three channel brightness values.
-   * @param r Red brightness [0,255].
-   * @param g Green brightness [0,255].
-   * @param b Blue brightness [0,255].
+   * @brief Set all three channel dot-current (DC) values.
+   * @param data Array of three dot-current values [0,255].
+   * @param ec Error code set on failure.
+   * @return true on success, false on failure.
+   */
+  bool set_dot_current(const std::array<uint8_t, 3> &data, std::error_code &ec) {
+    logger_.debug("Setting dot-currents to {}, {}, {}", data[0], data[1], data[2]);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    if (!set_dot_current(Channel::OUT0, data[0], ec))
+      return false;
+    if (!set_dot_current(Channel::OUT1, data[1], ec))
+      return false;
+    if (!set_dot_current(Channel::OUT2, data[2], ec))
+      return false;
+    return true;
+  }
+
+  /**
+   * @brief Set all three channel dot-current (DC) values.
+   * @param r Red dot-current [0,255].
+   * @param g Green dot-current [0,255].
+   * @param b Blue dot-current [0,255].
    * @param ec Error code set on failure.
    * @return true on success, false on failure.
    * @note This assumes RGB are mapped to channels 0, 1, 2 respectively.
    */
-  bool set_rgb(uint8_t r, uint8_t g, uint8_t b, std::error_code &ec) {
-    logger_.debug("Setting RGB to ({}, {}, {})", r, g, b);
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    const uint8_t data[3] = {r, g, b};
-    write_u8_to_register((uint8_t)Registers::OUT0_DC, data[0], ec);
-    if (ec)
-      return false;
-    write_u8_to_register((uint8_t)Registers::OUT1_DC, data[1], ec);
-    if (ec)
-      return false;
-    write_u8_to_register((uint8_t)Registers::OUT2_DC, data[2], ec);
-    return !ec;
+  bool set_rgb_dot_current(uint8_t r, uint8_t g, uint8_t b, std::error_code &ec) {
+    return set_dot_current({r, g, b}, ec);
   }
 
   /**
-   * @brief Set all three channel brightness values using float values.
-   * @param r Red brightness [0.0, 1.0].
-   * @param g Green brightness [0.0, 1.0].
-   * @param b Blue brightness [0.0, 1.0].
+   * @brief Set all three channel brightness (dot-current) values.
+   * @param r Red Dot-Current brightness [0,255].
+   * @param g Green Dot-Current brightness [0,255].
+   * @param b Blue Dot-Current brightness [0,255].
+   * @param ec Error code set on failure.
+   * @return true on success, false on failure.
+   * @note This assumes RGB are mapped to channels 0, 1, 2 respectively.
+   * @note This is an alias for set_rgb_dot_current().
+   */
+  bool set_rgb(uint8_t r, uint8_t g, uint8_t b, std::error_code &ec) {
+    return set_rgb_dot_current(r, g, b, ec);
+  }
+
+  /**
+   * @brief Set all three channel brightness (dot-current) values using float values.
+   * @param r Red Dot-Current brightness [0.0, 1.0].
+   * @param g Green Dot-Current brightness [0.0, 1.0].
+   * @param b Blue Dot-Current brightness [0.0, 1.0].
    * @param ec Error code set on failure.
    * @return true on success, false on failure.
    * @note Values are clamped to [0.0, 1.0] range.
    * @note This assumes RGB are mapped to channels 0, 1, 2 respectively.
+   * @note This is an alias for set_rgb_dot_current().
    */
   bool set_rgb(float r, float g, float b, std::error_code &ec) {
     r = std::clamp(r, 0.0f, 1.0f);
@@ -175,6 +265,24 @@ public:
     b = std::clamp(b, 0.0f, 1.0f);
     return set_rgb(static_cast<uint8_t>(r * 255.0f), static_cast<uint8_t>(g * 255.0f),
                    static_cast<uint8_t>(b * 255.0f), ec);
+  }
+
+  /**
+   * @brief Set all three channel manual PWM values (manual mode).
+   * @param data Array of three manual PWM values [0,255].
+   * @param ec Error code set on failure.
+   * @return true on success, false on failure.
+   */
+  bool set_pwm(const std::array<uint8_t, 3> &data, std::error_code &ec) {
+    logger_.debug("Setting PWM to {}, {}, {}", data[0], data[1], data[2]);
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    if (!set_manual_pwm(Channel::OUT0, data[0], ec))
+      return false;
+    if (!set_manual_pwm(Channel::OUT1, data[1], ec))
+      return false;
+    if (!set_manual_pwm(Channel::OUT2, data[2], ec))
+      return false;
+    return true;
   }
 
   /**
@@ -190,14 +298,7 @@ public:
    */
   bool set_rgb_pwm(uint8_t r, uint8_t g, uint8_t b, std::error_code &ec) {
     logger_.debug("Setting RGB manual PWM to ({}, {}, {})", r, g, b);
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    if (!set_manual_pwm(Channel::OUT0, r, ec))
-      return false;
-    if (!set_manual_pwm(Channel::OUT1, g, ec))
-      return false;
-    if (!set_manual_pwm(Channel::OUT2, b, ec))
-      return false;
-    return true;
+    return set_pwm({r, g, b}, ec);
   }
 
   /**
@@ -250,6 +351,17 @@ public:
   }
 
   /**
+   * @brief Get the current manual PWM value of a channel (manual mode).
+   * @param ch Channel to read.
+   * @param ec Error code set on failure.
+   * @return Manual PWM value [0,255].
+   */
+  uint8_t get_manual_pwm(Channel ch, std::error_code &ec) {
+    auto reg = manual_pwm_register_for(ch);
+    return read_u8_from_register(reg, ec);
+  }
+
+  /**
    * @brief Set global fade time (datasheet-defined).
    * @param time Fade time.
    * @param ec Error code set on failure.
@@ -261,6 +373,18 @@ public:
   bool set_fade_time(FadeTime time, std::error_code &ec) {
     logger_.debug("Setting fade time to {}", time);
     return set_fade_time_code(static_cast<uint8_t>(time), ec);
+  }
+
+  /**
+   * @brief Get the current global fade time setting.
+   * @param ec Error code set on failure.
+   * @return Current global fade time setting.
+   */
+  FadeTime get_fade_time(std::error_code &ec) {
+    auto code = get_fade_time_code(ec);
+    if (ec)
+      return FadeTime::TIME_0; // default
+    return static_cast<FadeTime>(code);
   }
 
   /**
@@ -281,6 +405,20 @@ public:
   }
 
   /**
+   * @brief Is fading enabled for a channel?
+   * @param ch Channel to check.
+   * @param ec Error code set on failure.
+   * @return true if fading is enabled, false otherwise.
+   */
+  bool is_fade_enabled(Channel ch, std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG2, ec);
+    if (ec)
+      return false;
+    uint8_t bit = 1 << (uint8_t)ch; // bits 0..2
+    return (reg & bit) != 0;
+  }
+
+  /**
    * @brief Enable/disable exponential dimming for a channel.
    * @param ch Channel to configure.
    * @param enable True to enable exponential dimming, false for linear.
@@ -295,6 +433,20 @@ public:
     uint8_t bit = 1 << (4 + (uint8_t)ch); // bits 4..6
     set_bits_in_register_by_mask((uint8_t)Registers::DEV_CONFIG3, bit, enable ? bit : 0, ec);
     return !ec;
+  }
+
+  /**
+   * @brief Is exponential dimming enabled for a channel?
+   * @param ch Channel to check.
+   * @param ec Error code set on failure.
+   * @return true if exponential dimming is enabled, false otherwise.
+   */
+  bool is_exponential_dimming_enabled(Channel ch, std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG3, ec);
+    if (ec)
+      return false;
+    uint8_t bit = 1 << (4 + (uint8_t)ch);
+    return (reg & bit) != 0;
   }
 
   /**
@@ -313,6 +465,20 @@ public:
   }
 
   /**
+   * @brief Check if output stage is enabled for a channel.
+   * @param ch Channel to check.
+   * @param ec Error code set on failure.
+   * @return true if output stage is enabled, false otherwise.
+   */
+  bool is_output_enabled(Channel ch, std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG1, ec);
+    if (ec)
+      return false;
+    uint8_t bit = 1 << (uint8_t)ch; // bits 0..2
+    return (reg & bit) != 0;
+  }
+
+  /**
    * @brief Set global max current.
    * @param current Global max current setting.
    * @param ec Error code set on failure.
@@ -324,6 +490,18 @@ public:
   bool set_max_current(GlobalMaxCurrent current, std::error_code &ec) {
     set_max_current_code(static_cast<uint8_t>(current), ec);
     return !ec;
+  }
+
+  /**
+   * @brief Get the current global max current setting.
+   * @param ec Error code set on failure.
+   * @return Current global max current setting.
+   */
+  GlobalMaxCurrent get_max_current(std::error_code &ec) {
+    auto code = get_max_current_code(ec);
+    if (ec)
+      return GlobalMaxCurrent::MA_25_5; // default
+    return static_cast<GlobalMaxCurrent>(code);
   }
 
   /**
@@ -388,6 +566,16 @@ public:
     if (ec)
       return false;
     return (flags & FLAG_CLR_TSD_MASK) != 0;
+  }
+
+  /**
+   * @brief Clear both POR (Power-On Reset) and TSD (Thermal Shutdown) flags.
+   * @param ec Error code set on failure.
+   * @return true on success, false on failure.
+   */
+  bool clear_flags(std::error_code &ec) {
+    write_u8_to_register((uint8_t)Registers::FLAG_CLR, FLAG_CLR_POR_MASK | FLAG_CLR_TSD_MASK, ec);
+    return !ec;
   }
 
   /**
@@ -479,10 +667,24 @@ protected:
     return !ec;
   }
 
+  uint8_t get_fade_time_code(std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG2, ec);
+    if (ec)
+      return 0; // default
+    return (reg & DEV_CONFIG2_FADE_TIME_MASK) >> 4;
+  }
+
   bool set_max_current_code(uint8_t code, std::error_code &ec) {
     uint8_t value = (uint8_t)(code & 0x01); // bit0 only
     set_bits_in_register_by_mask((uint8_t)Registers::DEV_CONFIG0, MAX_CURRENT_MASK, value, ec);
     return !ec;
+  }
+
+  uint8_t get_max_current_code(std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG0, ec);
+    if (ec)
+      return 0; // default
+    return reg & MAX_CURRENT_MASK;
   }
 
   // Bit masks per datasheet

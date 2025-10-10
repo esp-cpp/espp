@@ -52,16 +52,25 @@ extern "C" void app_main(void) {
   // enable fading and exponential dimming on all channels
   using Ch = espp::Lp5817::Channel;
   for (auto ch : {Ch::OUT0, Ch::OUT1, Ch::OUT2}) {
+    // enable output on the channel
+    if (!lp.set_output_enable(ch, true, ec)) {
+      logger.error("Failed to enable output on channel {}: {}", ch, ec.message());
+      return;
+    }
+    // set the dot current (DC) according to how much current you want to drive
+    uint8_t dc_value = 0x50; // about 80/255 of max current
+    if (!lp.set_dot_current(ch, dc_value, ec)) {
+      logger.error("Failed to set dot-current on channel {}: {}", ch, ec.message());
+      return;
+    }
+    // enable fading on the channel
     if (!lp.set_fade_enable(ch, true, ec)) {
       logger.error("Failed to enable fading on channel {}: {}", ch, ec.message());
       return;
     }
+    // enable exponential dimming on the channel
     if (!lp.set_exponential_dimming_enable(ch, true, ec)) {
       logger.error("Failed to enable exponential dimming on channel {}: {}", ch, ec.message());
-      return;
-    }
-    if (!lp.set_output_enable(ch, true, ec)) {
-      logger.error("Failed to enable output on channel {}: {}", ch, ec.message());
       return;
     }
   }
