@@ -20,7 +20,8 @@ namespace espp {
  */
 class Lp5817 : public BasePeripheral<> {
 public:
-  static constexpr uint8_t DEFAULT_ADDRESS = 0x2D; // 7-bit address
+  static constexpr uint8_t DEFAULT_ADDRESS = 0x2D;   // 7-bit address
+  static constexpr uint8_t BROADCAST_ADDRESS = 0x34; // 7-bit address
 
   /// LED channels
   enum class Channel : uint8_t { OUT0 = 0, OUT1 = 1, OUT2 = 2 };
@@ -94,16 +95,10 @@ public:
    */
   bool enable(bool on, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    logger_.info("Turning device {}", on ? "ON" : "OFF");
+    logger_.info("Setting enable to {}", on);
     // set the chip_en bit
     set_bits_in_register_by_mask((uint8_t)Registers::CHIP_EN, CHIP_EN_MASK,
                                  on ? CHIP_EN_MASK : 0x00, ec);
-    // then clear the POR flag if enabling
-    if (on && !ec) {
-      if (!clear_por_flag(ec)) {
-        logger_.error("Failed to clear POR flag: {}", ec.message());
-      }
-    }
     return !ec;
   }
 
@@ -357,6 +352,79 @@ public:
   }
 
   /**
+   * @brief Check if device is enabled.
+   * @param ec Error code set on failure.
+   * @return true if device is enabled, false otherwise.
+   */
+  bool is_enabled(std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::CHIP_EN, ec);
+    if (ec)
+      return false;
+    return (reg & CHIP_EN_MASK) != 0;
+  }
+
+  /**
+   * @brief Check if output stage is enabled for a channel.
+   * @param ch Channel to check.
+   * @param ec Error code set on failure.
+   * @return true if output stage is enabled, false otherwise.
+   */
+  bool is_channel_enabled(Channel ch, std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG1, ec);
+    if (ec)
+      return false;
+    uint8_t bit = 1 << (uint8_t)ch; // bits 0..2
+    return (reg & bit) != 0;
+  }
+
+  /**
+   * @brief Get the current global max current setting.
+   * @param ec Error code set on failure.
+   * @return Current global max current setting.
+   */
+  GlobalMaxCurrent get_max_current(std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG0, ec);
+    if (ec)
+      return GlobalMaxCurrent::MA_25_5; // default
+    return (reg & MAX_CURRENT_MASK) ? GlobalMaxCurrent::MA_51 : GlobalMaxCurrent::MA_25_5;
+  }
+
+  /**
+   * @brief Get the current brightness of a channel.
+   * @param ch Channel to read.
+   * @param ec Error code set on failure.
+   * @return Brightness [0,255].
+   */
+  uint8_t get_brightness(Channel ch, std::error_code &ec) {
+    auto reg = dc_register_for(ch);
+    return read_u8_from_register(reg, ec);
+  }
+
+  /**
+   * @brief Get the current manual PWM value of a channel (manual mode).
+   * @param ch Channel to read.
+   * @param ec Error code set on failure.
+   * @return Manual PWM value [0,255].
+   */
+  uint8_t get_manual_pwm(Channel ch, std::error_code &ec) {
+    auto reg = manual_pwm_register_for(ch);
+    return read_u8_from_register(reg, ec);
+  }
+
+  /**
+   * @brief Get the current global fade time setting.
+   * @param ec Error code set on failure.
+   * @return Current fade time setting.
+   */
+  bool is_fade_enabled(Channel ch, std::error_code &ec) {
+    auto reg = read_u8_from_register((uint8_t)Registers::DEV_CONFIG2, ec);
+    if (ec)
+      return false;
+    uint8_t bit = 1 << (uint8_t)ch; // bits 0..2
+    return (reg & bit) != 0;
+  }
+
+  /**
    * @brief Read flag register (POR/TSD).
    * @param ec Error code set on failure.
    * @return Flag register value.
@@ -388,6 +456,16 @@ public:
     if (ec)
       return false;
     return (flags & FLAG_CLR_TSD_MASK) != 0;
+  }
+
+  /**
+   * @brief Clear both POR (Power-On Reset) and TSD (Thermal Shutdown) flags.
+   * @param ec Error code set on failure.
+   * @return true on success, false on failure.
+   */
+  bool clear_flags(std::error_code &ec) {
+    write_u8_to_register((uint8_t)Registers::FLAG_CLR, FLAG_CLR_POR_MASK | FLAG_CLR_TSD_MASK, ec);
+    return !ec;
   }
 
   /**
