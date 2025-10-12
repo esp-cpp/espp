@@ -419,17 +419,14 @@ protected:
       }
     } else if (base_config_.write && base_config_.read) {
       logger_.debug("write {} bytes then read {} bytes", write_length, read_length);
-      if (!base_config_.write(base_config_.address, write_data, write_length)) {
-        ec = std::make_error_code(std::errc::io_error);
+      write(write_data, write_length, ec);
+      if (ec) {
         return;
       }
       if (base_config_.separate_write_then_read_delay.count() > 0) {
         std::this_thread::sleep_for(base_config_.separate_write_then_read_delay);
       }
-      if (!base_config_.read(base_config_.address, read_data, read_length)) {
-        ec = std::make_error_code(std::errc::io_error);
-        return;
-      }
+      read(read_data, read_length, ec);
     } else {
       ec = std::make_error_code(std::errc::operation_not_supported);
     }
