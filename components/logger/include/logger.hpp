@@ -128,7 +128,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   Logger(Logger &&other) noexcept // cppcheck-suppress missingMemberCopy
       : tag_([&other] {
-        std::lock_guard<std::mutex> lock(other.tag_mutex_);
+        std::scoped_lock lock(other.tag_mutex_);
         return std::move(other.tag_);
       }())
       , rate_limit_(std::move(other.rate_limit_))
@@ -155,7 +155,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @param tag The new tag.
    */
   void set_tag(const std::string_view tag) {
-    std::lock_guard<std::mutex> lock(tag_mutex_);
+    std::scoped_lock lock(tag_mutex_);
     tag_ = tag;
   }
 
@@ -194,7 +194,8 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @param args optional arguments passed to be formatted.
    * @return formatted std::string
    */
-  template <typename... Args> std::string format(std::string_view rt_fmt_str, Args &&...args) {
+  template <typename... Args>
+  std::string format(std::string_view rt_fmt_str, Args &&...args) const {
     return fmt::vformat(rt_fmt_str, fmt::make_format_args(args...));
   }
 
@@ -203,16 +204,16 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @param rt_fmt_str format string
    * @param args optional arguments passed to be formatted.
    */
-  template <typename... Args> void debug(std::string_view rt_fmt_str, Args &&...args) {
+  template <typename... Args> void debug(std::string_view rt_fmt_str, Args &&...args) const {
 #if ESPP_LOGGER_DEBUG_ENABLED
     if (level_ > espp::Logger::Verbosity::DEBUG)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
-      std::lock_guard<std::mutex> lock(tag_mutex_);
+      std::scoped_lock lock(tag_mutex_);
       fmt::print(fg(fmt::color::gray), "[{}/D][{}]: {}\n", tag_, get_time(), msg);
     } else {
-      std::lock_guard<std::mutex> lock(tag_mutex_);
+      std::scoped_lock lock(tag_mutex_);
       fmt::print(fg(fmt::color::gray), "[{}/D]:{}\n", tag_, msg);
     }
 #endif
@@ -223,16 +224,16 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @param rt_fmt_str format string
    * @param args optional arguments passed to be formatted.
    */
-  template <typename... Args> void info(std::string_view rt_fmt_str, Args &&...args) {
+  template <typename... Args> void info(std::string_view rt_fmt_str, Args &&...args) const {
 #if ESPP_LOGGER_INFO_ENABLED
     if (level_ > espp::Logger::Verbosity::INFO)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
-      std::lock_guard<std::mutex> lock(tag_mutex_);
+      std::scoped_lock lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::green), "[{}/I][{}]: {}\n", tag_, get_time(), msg);
     } else {
-      std::lock_guard<std::mutex> lock(tag_mutex_);
+      std::scoped_lock lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::green), "[{}/I]:{}\n", tag_, msg);
     }
 #endif
@@ -243,16 +244,16 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @param rt_fmt_str format string
    * @param args optional arguments passed to be formatted.
    */
-  template <typename... Args> void warn(std::string_view rt_fmt_str, Args &&...args) {
+  template <typename... Args> void warn(std::string_view rt_fmt_str, Args &&...args) const {
 #if ESPP_LOGGER_WARN_ENABLED
     if (level_ > espp::Logger::Verbosity::WARN)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
-      std::lock_guard<std::mutex> lock(tag_mutex_);
+      std::scoped_lock lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::yellow), "[{}/W][{}]: {}\n", tag_, get_time(), msg);
     } else {
-      std::lock_guard<std::mutex> lock(tag_mutex_);
+      std::scoped_lock lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::yellow), "[{}/W]:{}\n", tag_, msg);
     }
 #endif
@@ -263,16 +264,16 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @param rt_fmt_str format string
    * @param args optional arguments passed to be formatted.
    */
-  template <typename... Args> void error(std::string_view rt_fmt_str, Args &&...args) {
+  template <typename... Args> void error(std::string_view rt_fmt_str, Args &&...args) const {
 #if ESPP_LOGGER_ERROR_ENABLED
     if (level_ > espp::Logger::Verbosity::ERROR)
       return;
     auto msg = format(rt_fmt_str, std::forward<Args>(args)...);
     if (include_time_) {
-      std::lock_guard<std::mutex> lock(tag_mutex_);
+      std::scoped_lock lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::red), "[{}/E][{}]: {}\n", tag_, get_time(), msg);
     } else {
-      std::lock_guard<std::mutex> lock(tag_mutex_);
+      std::scoped_lock lock(tag_mutex_);
       fmt::print(fg(fmt::terminal_color::red), "[{}/E]:{}\n", tag_, msg);
     }
 #endif
@@ -438,8 +439,8 @@ protected:
    */
   static std::chrono::steady_clock::time_point start_time_;
 
-  std::mutex tag_mutex_; ///< Mutex for the tag.
-  std::string tag_;      ///< Name of the logger to be prepended to all logs.
+  mutable std::mutex tag_mutex_; ///< Mutex for the tag.
+  std::string tag_;              ///< Name of the logger to be prepended to all logs.
   std::chrono::duration<float> rate_limit_{
       0.0f}; ///< Rate limit for the logger. If set to 0, no rate limiting will be performed.
   std::chrono::high_resolution_clock::time_point
