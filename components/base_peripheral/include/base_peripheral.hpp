@@ -335,9 +335,6 @@ protected:
           ec = std::make_error_code(std::errc::io_error);
           return;
         }
-        if (ec) {
-          return;
-        }
         if (base_config_.separate_write_then_read_delay.count() > 0) {
           std::this_thread::sleep_for(base_config_.separate_write_then_read_delay);
         }
