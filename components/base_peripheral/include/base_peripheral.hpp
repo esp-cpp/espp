@@ -625,7 +625,6 @@ protected:
   uint8_t read_u8_from_register(RegisterAddressType register_address, std::error_code &ec) const {
     logger_.debug("read u8 from register 0x{:x}", register_address);
     uint8_t data = 0;
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     read_register(register_address, &data, 1, ec);
     if (ec) {
       return 0;
@@ -640,7 +639,6 @@ protected:
   uint16_t read_u16_from_register(RegisterAddressType register_address, std::error_code &ec) const {
     logger_.debug("read u16 from register 0x{:x}", register_address);
     uint8_t data[2];
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     read_register(register_address, data, 2, ec);
     if (ec) {
       return 0;
@@ -661,7 +659,6 @@ protected:
                                std::error_code &ec) const {
     logger_.debug("read_many_from_register {} bytes from register 0x{:x}", length,
                   register_address);
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     read_register(register_address, data, length, ec);
   }
 
