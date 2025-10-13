@@ -30,11 +30,11 @@
 #include "es8388.hpp"
 #include "gt911.hpp"
 #include "i2c.hpp"
+#include "ili9881.hpp"
 #include "ina226.hpp"
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
-#include "st7703.hpp"
 #include "touchpad_input.hpp"
 
 namespace espp {
@@ -67,7 +67,7 @@ public:
   using Pixel = lv_color16_t;
 
   /// Alias for the display driver used by the Tab5
-  using DisplayDriver = espp::St7703;
+  using DisplayDriver = espp::Ili9881;
 
   /// Alias for the GT911 touch controller used by the Tab5
   using TouchDriver = espp::Gt911;
@@ -725,5 +725,6 @@ protected:
 
   // DSI write helpers
   void dsi_write_command(uint8_t cmd, std::span<const uint8_t> params, uint32_t flags);
+  void dsi_read_command(uint8_t cmd, std::span<uint8_t> data, uint32_t flags);
 }; // class M5StackTab5
 } // namespace espp
