@@ -100,7 +100,7 @@ public:
   /// \note If the probe function is not set, this function will return false
   ///      and set the error code to operation_not_supported
   /// \note This function is only available if UseAddress is true
-  bool probe(std::error_code &ec) requires(UseAddress) {
+  bool probe(std::error_code &ec) const requires(UseAddress) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.probe) {
       return base_config_.probe(base_config_.address);
@@ -213,6 +213,14 @@ public:
     base_config_ = std::move(config);
   }
 
+  /// Get the configuration for the peripheral
+  /// \return The configuration for the peripheral
+  const Config &config() const { return base_config_; }
+
+  /// Get the address of the peripheral
+  /// \return The address of the peripheral
+  uint8_t address() const { return base_config_.address; }
+
 protected:
   /// Constructor
   /// \param config The configuration for the peripheral
@@ -222,14 +230,6 @@ protected:
                  espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
       : BaseComponent(name, verbosity)
       , base_config_(config) {}
-
-  /// Get the configuration for the peripheral
-  /// \return The configuration for the peripheral
-  const Config &config() const { return base_config_; }
-
-  /// Get the address of the peripheral
-  /// \return The address of the peripheral
-  uint8_t address() const { return base_config_.address; }
 
   /// Write data to the peripheral
   /// \param data The data to write
@@ -269,7 +269,7 @@ protected:
   /// \param data The buffer to read into
   /// \param length The length of the buffer
   /// \param ec The error code to set if there is an error
-  void read(uint8_t *data, size_t length, std::error_code &ec) requires(UseAddress) {
+  void read(uint8_t *data, size_t length, std::error_code &ec) const requires(UseAddress) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read) {
       if (!base_config_.read(base_config_.address, data, length)) {
@@ -286,7 +286,7 @@ protected:
   /// \param data The buffer to read into
   /// \param length The length of the buffer
   /// \param ec The error code to set if there is an error
-  void read(uint8_t *data, size_t length, std::error_code &ec) requires(!UseAddress) {
+  void read(uint8_t *data, size_t length, std::error_code &ec) const requires(!UseAddress) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read) {
       if (!base_config_.read(data, length)) {
@@ -305,7 +305,7 @@ protected:
   /// \param length The length of the buffer
   /// \param ec The error code to set if there is an error
   void read_register(RegisterAddressType reg_addr, uint8_t *data, size_t length,
-                     std::error_code &ec) requires(UseAddress) {
+                     std::error_code &ec) const requires(UseAddress) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read_register) {
       if (!base_config_.read_register(base_config_.address, reg_addr, data, length)) {
@@ -314,7 +314,39 @@ protected:
         ec.clear();
       }
     } else {
-      ec = std::make_error_code(std::errc::operation_not_supported);
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      uint8_t buffer[reg_addr_size];
+      put_register_bytes(reg_addr, buffer);
+
+      // now we need to determine if we can write_then_read, or if we need to
+      // write then read separately
+      if (base_config_.write_then_read) {
+        // we can use write_then_read
+        if (!base_config_.write_then_read(base_config_.address, buffer, reg_addr_size, data,
+                                          length)) {
+          ec = std::make_error_code(std::errc::io_error);
+        } else {
+          ec.clear();
+        }
+      } else if (base_config_.write && base_config_.read) {
+        if (!base_config_.write(base_config_.address, buffer, reg_addr_size)) {
+          ec = std::make_error_code(std::errc::io_error);
+          return;
+        }
+        if (base_config_.separate_write_then_read_delay.count() > 0) {
+          std::this_thread::sleep_for(base_config_.separate_write_then_read_delay);
+        }
+        if (!base_config_.read(base_config_.address, data, length)) {
+          ec = std::make_error_code(std::errc::io_error);
+          return;
+        }
+      } else {
+        // we can't do anything
+        ec = std::make_error_code(std::errc::operation_not_supported);
+        return;
+      }
     }
   }
 
@@ -324,7 +356,7 @@ protected:
   /// \param length The length of the buffer
   /// \param ec The error code to set if there is an error
   void read_register(RegisterAddressType reg_addr, uint8_t *data, size_t length,
-                     std::error_code &ec) requires(!UseAddress) {
+                     std::error_code &ec) const requires(!UseAddress) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     if (base_config_.read_register) {
       if (!base_config_.read_register(reg_addr, data, length)) {
@@ -333,7 +365,38 @@ protected:
         ec.clear();
       }
     } else {
-      ec = std::make_error_code(std::errc::operation_not_supported);
+      // use the size of the register address to determine how many bytes the
+      // register address is
+      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
+      uint8_t buffer[reg_addr_size];
+      put_register_bytes(reg_addr, buffer);
+
+      // now we need to determine if we can write_then_read, or if we need to
+      // write then read separately
+      if (base_config_.write_then_read) {
+        // we can use write_then_read
+        if (!base_config_.write_then_read(buffer, reg_addr_size, data, length)) {
+          ec = std::make_error_code(std::errc::io_error);
+        } else {
+          ec.clear();
+        }
+      } else if (base_config_.write && base_config_.read) {
+        if (!base_config_.write(buffer, reg_addr_size)) {
+          ec = std::make_error_code(std::errc::io_error);
+          return;
+        }
+        if (base_config_.separate_write_then_read_delay.count() > 0) {
+          std::this_thread::sleep_for(base_config_.separate_write_then_read_delay);
+        }
+        if (!base_config_.read(data, length)) {
+          ec = std::make_error_code(std::errc::io_error);
+          return;
+        }
+      } else {
+        // we can't do anything
+        ec = std::make_error_code(std::errc::operation_not_supported);
+        return;
+      }
     }
   }
 
@@ -445,7 +508,7 @@ protected:
   /// \param data The buffer to read into
   /// \param length The length of the buffer
   /// \param ec The error code to set if there is an error
-  void read_many(uint8_t *data, size_t length, std::error_code &ec) {
+  void read_many(uint8_t *data, size_t length, std::error_code &ec) const {
     logger_.debug("read {} bytes", length);
     read(data, length, ec);
   }
@@ -456,7 +519,7 @@ protected:
   /// \note You should ensure that the buffer is the correct size before calling
   ///       this function since the buffer size is what is used to know how many
   ///       bytes to read
-  void read_many(std::vector<uint8_t> &data, std::error_code &ec) {
+  void read_many(std::vector<uint8_t> &data, std::error_code &ec) const {
     logger_.debug("read {} bytes", data.size());
     read(data.data(), data.size(), ec);
   }
@@ -464,7 +527,7 @@ protected:
   /// Read a uint8_t from the peripheral
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
-  uint8_t read_u8(std::error_code &ec) {
+  uint8_t read_u8(std::error_code &ec) const {
     logger_.debug("read u8");
     uint8_t data = 0;
     read(&data, 1, ec);
@@ -477,7 +540,7 @@ protected:
   /// Read a uint16_t from the peripheral
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
-  uint16_t read_u16(std::error_code &ec) {
+  uint16_t read_u16(std::error_code &ec) const {
     logger_.debug("read u16");
     uint16_t data = 0;
     uint8_t buffer[2];
@@ -559,22 +622,12 @@ protected:
   /// \param register_address The address of the register to read from
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
-  uint8_t read_u8_from_register(RegisterAddressType register_address, std::error_code &ec) {
+  uint8_t read_u8_from_register(RegisterAddressType register_address, std::error_code &ec) const {
     logger_.debug("read u8 from register 0x{:x}", register_address);
     uint8_t data = 0;
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    if (base_config_.read_register) {
-      read_register(register_address, &data, 1, ec);
-    } else {
-      // use the size of the register address to determine how many bytes the
-      // register address is
-      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
-      uint8_t buffer[reg_addr_size];
-      put_register_bytes(register_address, buffer);
-      write_then_read(buffer, reg_addr_size, &data, 1, ec);
-      if (ec) {
-        return 0;
-      }
+    read_register(register_address, &data, 1, ec);
+    if (ec) {
+      return 0;
     }
     return data;
   }
@@ -583,22 +636,12 @@ protected:
   /// \param register_address The address of the register to read from
   /// \param ec The error code to set if there is an error
   /// \return The data read from the peripheral
-  uint16_t read_u16_from_register(RegisterAddressType register_address, std::error_code &ec) {
+  uint16_t read_u16_from_register(RegisterAddressType register_address, std::error_code &ec) const {
     logger_.debug("read u16 from register 0x{:x}", register_address);
     uint8_t data[2];
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    if (base_config_.read_register) {
-      read_register(register_address, data, 2, ec);
-    } else {
-      // use the size of the register address to determine how many bytes the
-      // register address is
-      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
-      uint8_t buffer[reg_addr_size];
-      put_register_bytes(register_address, buffer);
-      write_then_read(buffer, reg_addr_size, (uint8_t *)&data, 2, ec);
-      if (ec) {
-        return 0;
-      }
+    read_register(register_address, data, 2, ec);
+    if (ec) {
+      return 0;
     }
     if constexpr (BigEndianData) {
       return (data[0] << 8) | data[1];
@@ -613,20 +656,10 @@ protected:
   /// \param length The length of the buffer
   /// \param ec The error code to set if there is an error
   void read_many_from_register(RegisterAddressType register_address, uint8_t *data, size_t length,
-                               std::error_code &ec) {
+                               std::error_code &ec) const {
     logger_.debug("read_many_from_register {} bytes from register 0x{:x}", length,
                   register_address);
-    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    if (base_config_.read_register) {
-      read_register(register_address, data, length, ec);
-    } else {
-      // use the size of the register address to determine how many bytes the
-      // register address is
-      static constexpr size_t reg_addr_size = sizeof(RegisterAddressType);
-      uint8_t buffer[reg_addr_size];
-      put_register_bytes(register_address, buffer);
-      write_then_read(buffer, reg_addr_size, data, length, ec);
-    }
+    read_register(register_address, data, length, ec);
   }
 
   /// Read many bytes from a register on the peripheral
@@ -634,7 +667,7 @@ protected:
   /// \param data The buffer to read into
   /// \param ec The error code to set if there is an error
   void read_many_from_register(RegisterAddressType register_address, std::vector<uint8_t> &data,
-                               std::error_code &ec) {
+                               std::error_code &ec) const {
     logger_.debug("read_many_from_register {} bytes from register 0x{:x}", data.size(),
                   register_address);
     read_many_from_register(register_address, data.data(), data.size(), ec);
@@ -771,7 +804,7 @@ protected:
   }
 
   // Set the bytes of the register address in the buffer
-  void put_register_bytes(RegisterAddressType register_address, uint8_t *data) {
+  void put_register_bytes(RegisterAddressType register_address, uint8_t *data) const {
     if constexpr (std::is_same_v<RegisterAddressType, uint8_t>) {
       data[0] = register_address;
     } else {
@@ -794,7 +827,7 @@ protected:
     }
   }
 
-  Config base_config_;              ///< The configuration for the peripheral
-  std::recursive_mutex base_mutex_; ///< The mutex to protect access to the peripheral
+  Config base_config_;                      ///< The configuration for the peripheral
+  mutable std::recursive_mutex base_mutex_; ///< The mutex to protect access to the peripheral
 };
 } // namespace espp
