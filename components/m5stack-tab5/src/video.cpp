@@ -7,8 +7,8 @@
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_ldo_regulator.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+
+using namespace std::chrono_literals;
 
 namespace espp {
 
@@ -58,10 +58,10 @@ bool M5StackTab5::initialize_lcd() {
 
   // Perform hardware reset sequence via IO expander
   logger_.info("Performing LCD hardware reset sequence");
-  lcd_reset(true);                // Assert reset
-  vTaskDelay(pdMS_TO_TICKS(10));  // Hold reset for 10ms
-  lcd_reset(false);               // Release reset
-  vTaskDelay(pdMS_TO_TICKS(120)); // Wait 120ms for controller to boot
+  lcd_reset(true); // Assert reset
+  std::this_thread::sleep_for(10ms);
+  lcd_reset(false); // Release reset
+  std::this_thread::sleep_for(120ms);
 
   // Code from the m5stack_tab5 userdemo:
   esp_err_t ret = ESP_OK;
