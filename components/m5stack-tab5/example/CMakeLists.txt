@@ -2,7 +2,7 @@
 # in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.20)
 
-set(ENV{IDF_COMPONENT_MANAGER} "1")
+set(ENV{IDF_COMPONENT_MANAGER} "0")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add the component directories that we want to use
@@ -11,14 +11,18 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/base_component"
   "../../../components/format"
   "../../../components/logger"
+  "../../../components/cli"
   "../../../components/codec"
   "../../../components/display"
   "../../../components/display_drivers"
+  "../../../components/esp-dsp"
   "../../../components/filters"
   "../../../components/gt911"
   "../../../components/i2c"
   "../../../components/ina226"
   "../../../components/input_drivers"
+  "../../../components/led"
+  "../../../components/lvgl"
   "../../../components/math"
   "../../../components/interrupt"
   "../../../components/pi4ioe5v"

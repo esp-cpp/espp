@@ -3,18 +3,12 @@
 #include <algorithm>
 #include <cstdlib>
 
-#include "esp_lcd_ili9881c.h"
-
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_ldo_regulator.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-
-extern "C" {
-#include "ili_9881_init_data.c"
-}
 
 namespace espp {
 
