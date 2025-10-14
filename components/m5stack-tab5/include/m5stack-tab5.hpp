@@ -526,10 +526,10 @@ protected:
   static constexpr gpio_num_t lcd_backlight_io = GPIO_NUM_22;   // LEDA
   static constexpr gpio_num_t touch_interrupt_io = GPIO_NUM_23; // TP_INT
   static constexpr bool backlight_value = true;
-  static constexpr bool invert_colors = true;
+  static constexpr bool invert_colors = false;
   static constexpr auto rotation = espp::DisplayRotation::LANDSCAPE;
-  static constexpr bool mirror_x = true;
-  static constexpr bool mirror_y = true;
+  static constexpr bool mirror_x = false;
+  static constexpr bool mirror_y = false;
   static constexpr bool swap_xy = false;
   static constexpr bool swap_color_order = false;
   // touch

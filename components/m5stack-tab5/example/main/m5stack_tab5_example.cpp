@@ -190,7 +190,7 @@ extern "C" void app_main(void) {
   lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
 
-  /*Create style*/
+  // Create style for line 0 (blue line, used for kalman filter)
   static lv_style_t style_line0;
   lv_style_init(&style_line0);
   lv_style_set_line_width(&style_line0, 8);
@@ -204,7 +204,7 @@ extern "C" void app_main(void) {
   lv_line_set_points(line0, line_points0, 2);
   lv_obj_add_style(line0, &style_line0, 0);
 
-  /*Create style*/
+  // Create style for line 1 (red line, used for madgwick filter)
   static lv_style_t style_line1;
   lv_style_init(&style_line1);
   lv_style_set_line_width(&style_line1, 8);
@@ -218,6 +218,16 @@ extern "C" void app_main(void) {
   lv_line_set_points(line1, line_points1, 2);
   lv_obj_add_style(line1, &style_line1, 0);
 
+  static auto rotate_display = []() {
+    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+    clear_circles();
+    static auto rotation = LV_DISPLAY_ROTATION_0;
+    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+    lv_display_t *disp = lv_display_get_default();
+    lv_disp_set_rotation(disp, rotation);
+    // refresh the display
+  };
+
   // add a button in the top left which (when pressed) will rotate the display
   // through 0, 90, 180, 270 degrees
   lv_obj_t *btn = lv_btn_create(lv_screen_active());
@@ -228,16 +238,7 @@ extern "C" void app_main(void) {
   // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(
-      btn,
-      [](auto event) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        clear_circles();
-        static auto rotation = LV_DISPLAY_ROTATION_0;
-        rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-        lv_display_t *disp = lv_display_get_default();
-        lv_disp_set_rotation(disp, rotation);
-      },
-      LV_EVENT_PRESSED, nullptr);
+      btn, [](auto event) { rotate_display(); }, LV_EVENT_PRESSED, nullptr);
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)
@@ -302,6 +303,9 @@ extern "C" void app_main(void) {
          auto temp = imu->get_temperature();
          auto orientation = imu->get_orientation();
          auto gravity_vector = imu->get_gravity_vector();
+         // invert the axes
+         gravity_vector.y = -gravity_vector.y;
+         gravity_vector.x = -gravity_vector.x;
 
          // now update the gravity vector line to show the direction of "down"
          // taking into account the configured rotation of the display
@@ -346,6 +350,10 @@ extern "C" void app_main(void) {
          float vy = -cos(pitch) * sin(roll);
          [[maybe_unused]] float vz = -cos(pitch) * cos(roll);
 
+         // invert the axes
+         vx = -vx;
+         vy = -vy;
+
          // now update the line to show the direction of "down" based on the
          // configured rotation of the display
          if (rotation == LV_DISPLAY_ROTATION_90) {
@@ -384,6 +392,7 @@ extern "C" void app_main(void) {
   // loop forever
   while (true) {
     std::this_thread::sleep_for(1s);
+    rotate_display();
   }
   //! [m5stack tab5 example]
 }
