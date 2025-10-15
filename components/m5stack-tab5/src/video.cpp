@@ -172,6 +172,8 @@ bool M5StackTab5::initialize_lcd() {
   return true;
 }
 
+static uint16_t *third_buffer = nullptr;
+
 bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
   logger_.info("Initializing LVGL display with pixel buffer size: {} pixels", pixel_buffer_size);
   if (!display_) {
@@ -179,7 +181,7 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
         Display<Pixel>::LvglConfig{.width = display_width_,
                                    .height = display_height_,
                                    .flush_callback = std::bind_front(&M5StackTab5::flush, this),
-                                   .rotation_callback = DisplayDriver::rotate,
+                                   .rotation_callback = nullptr, // DisplayDriver::rotate,
                                    .rotation = rotation},
         Display<Pixel>::OledConfig{
             .set_brightness_callback =
@@ -192,6 +194,9 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
         },
         Logger::Verbosity::WARN);
   }
+
+  third_buffer = (uint16_t *)heap_caps_malloc(pixel_buffer_size * sizeof(uint16_t),
+                                              MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
 
   logger_.info("LVGL display initialized");
   return true;
@@ -232,6 +237,38 @@ void IRAM_ATTR M5StackTab5::flush(lv_display_t *disp, const lv_area_t *area, uin
   int offsetx2 = area->x2;
   int offsety1 = area->y1;
   int offsety2 = area->y2;
+
+  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  if (rotation > LV_DISPLAY_ROTATION_0) {
+    /* SW rotation */
+    int32_t ww = lv_area_get_width(area);
+    int32_t hh = lv_area_get_height(area);
+    lv_color_format_t cf = lv_display_get_color_format(disp);
+    uint32_t w_stride = lv_draw_buf_width_to_stride(ww, cf);
+    uint32_t h_stride = lv_draw_buf_width_to_stride(hh, cf);
+    if (rotation == LV_DISPLAY_ROTATION_180) {
+      lv_draw_sw_rotate(px_map, third_buffer, hh, ww, h_stride, h_stride, LV_DISPLAY_ROTATION_180,
+                        cf);
+    } else if (rotation == LV_DISPLAY_ROTATION_90) {
+      // printf("%ld %ld\n", w_stride, h_stride);
+      lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_90,
+                        cf);
+      // // rotate_copy_pixel((uint16_t*)color_map, (uint16_t*)third_buffer, offsetx1, offsety1,
+      // //                   offsetx2, offsety2, LV_HOR_RES, LV_VER_RES, 270);
+      // rotate_copy_pixel((uint16_t*)color_map, (uint16_t*)third_buffer, 0, 0, offsetx2 - offsetx1,
+      //                   offsety2 - offsety1, offsetx2 - offsetx1 + 1, offsety2 - offsety1 + 1,
+      //                   270);
+    } else if (rotation == LV_DISPLAY_ROTATION_270) {
+      lv_draw_sw_rotate(px_map, third_buffer, ww, hh, w_stride, h_stride, LV_DISPLAY_ROTATION_270,
+                        cf);
+    }
+    px_map = (uint8_t *)third_buffer;
+    lv_display_rotate_area(disp, (lv_area_t *)area);
+    offsetx1 = area->x1;
+    offsetx2 = area->x2;
+    offsety1 = area->y1;
+    offsety2 = area->y2;
+  }
 
   // pass the draw buffer to the DPI panel driver
   esp_lcd_panel_draw_bitmap(lcd_handles_.panel, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1,
