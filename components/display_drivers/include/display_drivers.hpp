@@ -59,7 +59,7 @@ struct Config {
                                   whether the bits are data or command bits. */
   bool reset_value{false}; /**< The value to set the reset pin to when resetting the display (low to
                                 reset default). */
-  int bits_per_pixel{16};  /**< How many bits per pixel, e.g. [1, 8, 16, 18, 24, 32]*/
+  uint8_t bits_per_pixel{16};   /**< How many bits per pixel, e.g. [1, 8, 16, 18, 24, 32]*/
   bool invert_colors{false};    /**< Whether to invert the colors on the display. */
   bool swap_color_order{false}; /**< Whether to swap the color order (RGB/BGR) on the display. */
   int offset_x{0};              /**< X Gap / offset, in pixels. */
