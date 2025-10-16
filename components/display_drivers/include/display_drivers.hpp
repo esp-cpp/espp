@@ -1,8 +1,12 @@
 #pragma once
 
+#include <mutex>
+#include <thread>
+
+#include <driver/gpio.h>
+#include <esp_lcd_panel_commands.h>
+
 #include "display.hpp"
-#include "driver/gpio.h"
-#include "esp_lcd_panel_commands.h"
 
 namespace espp {
 namespace display_drivers {
@@ -10,11 +14,19 @@ namespace display_drivers {
  * @brief Low-level callback to write bytes to the display controller.
  * @param command to write
  * @param parameters The command parameters to write
- * @param user_data User data associated with this transfer, used for flags.
+ * @param flags User data associated with this transfer, used for flags.
  */
-typedef std::function<void(uint8_t command, std::span<const uint8_t> parameters,
-                           uint32_t user_data)>
+typedef std::function<void(uint8_t command, std::span<const uint8_t> parameters, uint32_t flags)>
     write_command_fn;
+
+/**
+ * @brief Low-level callback to read bytes from the display controller.
+ * @param command to read
+ * @param data Span to store the read data.
+ * @param flags User data associated with this transfer, used for flags.
+ */
+typedef std::function<void(uint8_t command, std::span<uint8_t> data, uint32_t flags)>
+    read_command_fn;
 
 /**
  * @brief Send color data to the display, with optional flags.
@@ -35,14 +47,19 @@ typedef std::function<void(int sx, int sy, int ex, int ey, const uint8_t *color_
  */
 struct Config {
   write_command_fn write_command; /**< Function which the display driver uses to write commands to
-                                     the display. */
-  send_lines_fn lcd_send_lines;   /**< Function which the display driver uses to send bulk (color)
-                     data (non-blocking) to be written to the display. */
+                                       the display. */
+  read_command_fn read_command{
+      nullptr};                 /**< Function which the display driver uses to read commands from
+                                     the display. Optional, may be nullptr if not supported. */
+  send_lines_fn lcd_send_lines; /**< Function which the display driver uses to send bulk (color)
+                                     data (non-blocking) to be written to the display. Optional, may
+                                   be nullptr. */
   gpio_num_t reset_pin{GPIO_NUM_NC};        /**< Optional GPIO used for resetting the display. */
   gpio_num_t data_command_pin{GPIO_NUM_NC}; /**< Optional GPIO used for indicating to the LCD
                                   whether the bits are data or command bits. */
   bool reset_value{false}; /**< The value to set the reset pin to when resetting the display (low to
-                              reset default). */
+                                reset default). */
+  int bits_per_pixel{16};  /**< How many bits per pixel, e.g. [1, 8, 16, 18, 24, 32]*/
   bool invert_colors{false};    /**< Whether to invert the colors on the display. */
   bool swap_color_order{false}; /**< Whether to swap the color order (RGB/BGR) on the display. */
   int offset_x{0};              /**< X Gap / offset, in pixels. */
@@ -100,11 +117,14 @@ static void init_pins(gpio_num_t reset, gpio_num_t data_command, uint8_t reset_v
     gpio_output_pin_sel |= (1ULL << reset);
   }
 
-  gpio_config_t o_conf{.pin_bit_mask = gpio_output_pin_sel,
-                       .mode = GPIO_MODE_OUTPUT,
-                       .pull_up_en = GPIO_PULLUP_DISABLE,
-                       .pull_down_en = GPIO_PULLDOWN_DISABLE,
-                       .intr_type = GPIO_INTR_DISABLE};
+  gpio_config_t o_conf {
+    .pin_bit_mask = gpio_output_pin_sel, .mode = GPIO_MODE_OUTPUT,
+    .pull_up_en = GPIO_PULLUP_DISABLE, .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    .intr_type = GPIO_INTR_DISABLE,
+#if SOC_GPIO_SUPPORT_PIN_HYS_FILTER
+    .hys_ctrl_mode = GPIO_HYS_SOFT_DISABLE,
+#endif
+  };
   ESP_ERROR_CHECK(gpio_config(&o_conf));
 
   using namespace std::chrono_literals;

@@ -299,7 +299,8 @@ public:
    *          or set by set_offset(), updated for the current rotation.
    */
   static void get_offset_rotated(int &x, int &y) {
-    switch (auto rotation = lv_display_get_rotation(lv_display_get_default())) {
+    auto rotation = lv_display_get_rotation(lv_display_get_default());
+    switch (rotation) {
     case LV_DISPLAY_ROTATION_90:
       // intentional fallthrough
     case LV_DISPLAY_ROTATION_270:
