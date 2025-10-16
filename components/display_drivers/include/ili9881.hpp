@@ -95,7 +95,7 @@ public:
    * @brief Store config and send initialization commands to the controller.
    * @param config display_drivers::Config
    */
-  static void initialize(const display_drivers::Config &config) {
+  static bool initialize(const display_drivers::Config &config) {
     write_command_ = config.write_command;
     read_command_ = config.read_command;
     lcd_send_lines_ = config.lcd_send_lines;
@@ -151,8 +151,10 @@ public:
       read_command_(static_cast<uint8_t>(0x00), {&id[0], 1}, 0); // ID1
       read_command_(static_cast<uint8_t>(0x01), {&id[1], 1}, 0); // ID2
       read_command_(static_cast<uint8_t>(0x02), {&id[2], 1}, 0); // ID3
-      // log the ID
-      fmt::print("ILI9881C ID: {:02X} {:02X} {:02X}\n", id[0], id[1], id[2]);
+
+      if (id[0] != 0x98 || id[1] != 0x81 || id[2] != 0x5C) {
+        return false;
+      }
     }
 
     // Comprehensive ILI9881C initialization sequence (M5Stack Tab5 specific)
@@ -396,38 +398,8 @@ public:
     });
 
     send_commands(init_commands);
-  }
 
-  /**
-   * @brief Get M5Stack Tab5 specific initialization commands.
-   * @return Array of initialization commands for M5Stack Tab5
-   * @note This provides the same initialization sequence used in initialize()
-   *       but as a separate method for custom initialization flows.
-   */
-  static auto get_m5stack_tab5_init_commands(uint8_t madctl = 0x00) {
-    return std::to_array<display_drivers::DisplayInitCmd<>>({
-        // CMD_Page 1 - DSI and Basic Setup
-        {static_cast<uint8_t>(Command::page_select), {0x98, 0x81, 0x01}, 0},
-        {static_cast<uint8_t>(Command::dsi_ctrl), {0x03}, 0},
-
-        // CMD_Page 3 - GIP Configuration (abbreviated for space)
-        {static_cast<uint8_t>(Command::page_select), {0x98, 0x81, 0x03}, 0},
-        {static_cast<uint8_t>(Command::gip_1), {0x00}, 0},
-        // ... (full sequence would be here - see initialize() for complete list)
-
-        // CMD_Page 4 - Power Control
-        {static_cast<uint8_t>(Command::page_select), {0x98, 0x81, 0x04}, 0},
-        {static_cast<uint8_t>(Command::vreg2out), {0x01}, 0},
-        {static_cast<uint8_t>(Command::power_ctrl), {0xA4}, 0},
-
-        // CMD_Page 0 - Final Commands
-        {static_cast<uint8_t>(Command::page_select), {0x98, 0x81, 0x00}, 0},
-        {static_cast<uint8_t>(Command::te_on), {}, 0},
-        {static_cast<uint8_t>(Command::sleep_out), {}, 120},
-        {static_cast<uint8_t>(Command::madctl), {madctl}, 0},
-        {static_cast<uint8_t>(Command::colmod), {0x55}, 0},
-        {static_cast<uint8_t>(Command::display_on), {}, 20},
-    });
+    return true;
   }
 
   /**

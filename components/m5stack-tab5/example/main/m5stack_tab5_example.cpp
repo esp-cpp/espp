@@ -43,7 +43,7 @@ extern "C" void app_main(void) {
   logger.info("Probing internal I2C bus...");
   auto &i2c = tab5.internal_i2c();
   std::vector<uint8_t> found_addresses;
-  for (uint8_t address = 0; address < 128; address++) {
+  for (uint8_t address = 1; address < 128; address++) {
     if (i2c.probe_device(address)) {
       found_addresses.push_back(address);
     }
@@ -108,7 +108,7 @@ extern "C" void app_main(void) {
   static espp::KalmanFilter<2> kf;
   kf.set_process_noise(rate_noise);
   kf.set_measurement_noise(angle_noise);
-  static constexpr float beta = 0.1f; // higher = more accelerometer, lower = more gyro
+  static constexpr float beta = 0.5f; // higher = more accelerometer, lower = more gyro
   static espp::MadgwickFilter f(beta);
 
   using Imu = espp::M5StackTab5::Imu;
@@ -218,13 +218,15 @@ extern "C" void app_main(void) {
   lv_line_set_points(line1, line_points1, 2);
   lv_obj_add_style(line1, &style_line1, 0);
 
-  static auto rotate_display = []() {
+  static auto rotate_display = [&]() {
     std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
     clear_circles();
     static auto rotation = LV_DISPLAY_ROTATION_0;
     rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
     lv_display_t *disp = lv_display_get_default();
     lv_disp_set_rotation(disp, rotation);
+    // update the size of the screen
+    lv_obj_set_size(bg, tab5.rotated_display_width(), tab5.rotated_display_height());
     // refresh the display
   };
 
@@ -331,13 +333,15 @@ extern "C" void app_main(void) {
 
          // use the pitch to to draw a line on the screen indiating the
          // direction from the center of the screen to "down"
-         int x0 = tab5.display_width() / 2;
-         int y0 = tab5.display_height() / 2;
+         int x0 = tab5.rotated_display_width() / 2;
+         int y0 = tab5.rotated_display_height() / 2;
 
          int x1 = x0 + 50 * gravity_vector.x;
          int y1 = y0 + 50 * gravity_vector.y;
 
          static lv_point_precise_t line_points0[] = {{x0, y0}, {x1, y1}};
+         line_points0[0].x = x0;
+         line_points0[0].y = y0;
          line_points0[1].x = x1;
          line_points0[1].y = y1;
 
@@ -371,6 +375,8 @@ extern "C" void app_main(void) {
          y1 = y0 + 50 * vy;
 
          static lv_point_precise_t line_points1[] = {{x0, y0}, {x1, y1}};
+         line_points1[0].x = x0;
+         line_points1[0].y = y0;
          line_points1[1].x = x1;
          line_points1[1].y = y1;
 
@@ -393,6 +399,7 @@ extern "C" void app_main(void) {
   while (true) {
     std::this_thread::sleep_for(20s);
     rotate_display();
+    play_click(tab5);
   }
   //! [m5stack tab5 example]
 }

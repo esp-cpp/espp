@@ -57,7 +57,7 @@ extern "C" void app_main(void) {
     });
 
     std::vector<uint8_t> found_addresses;
-    for (uint8_t address = 0; address < 128; address++) {
+    for (uint8_t address = 1; address < 128; address++) {
       if (i2c.probe_device(address)) {
         found_addresses.push_back(address);
       }
@@ -143,7 +143,7 @@ extern "C" void app_main(void) {
     // NOTE: we turn off logging for this so we don't spam the console
     bus.set_log_level(espp::Logger::Verbosity::ERROR);
     std::vector<uint8_t> found_addresses;
-    for (uint8_t address = 0; address < 128; address++) {
+    for (uint8_t address = 1; address < 128; address++) {
       static constexpr int timeout_ms = 50; // timeout for probing each address
       if (bus.probe(address, timeout_ms, ec)) {
         found_addresses.push_back(address);

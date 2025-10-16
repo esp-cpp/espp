@@ -202,6 +202,36 @@ bool M5StackTab5::initialize_display(size_t pixel_buffer_size) {
   return true;
 }
 
+size_t M5StackTab5::rotated_display_width() const {
+  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  switch (rotation) {
+  // swap
+  case LV_DISPLAY_ROTATION_90:
+  case LV_DISPLAY_ROTATION_270:
+    return display_height_;
+  // as configured
+  case LV_DISPLAY_ROTATION_0:
+  case LV_DISPLAY_ROTATION_180:
+  default:
+    return display_width_;
+  }
+}
+
+size_t M5StackTab5::rotated_display_height() const {
+  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  switch (rotation) {
+  // swap
+  case LV_DISPLAY_ROTATION_90:
+  case LV_DISPLAY_ROTATION_270:
+    return display_width_;
+  // as configured
+  case LV_DISPLAY_ROTATION_0:
+  case LV_DISPLAY_ROTATION_180:
+  default:
+    return display_height_;
+  }
+}
+
 void M5StackTab5::brightness(float brightness) {
   brightness = std::clamp(brightness, 0.0f, 100.0f);
   if (backlight_) {
