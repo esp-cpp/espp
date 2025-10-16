@@ -45,10 +45,11 @@ This is the documentation for esp-idf c++ components, ESPP (`espp <https://githu
    led_driver/index
    led_strip
    logger
-   monitor
-   motorgo_mini
+   m5stack_tab5
    math/index
    matouch_rotary_display
+   monitor
+   motorgo_mini
    neopixel
    network/index
    nfc/index
