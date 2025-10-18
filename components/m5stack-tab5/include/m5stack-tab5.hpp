@@ -546,14 +546,13 @@ protected:
   static constexpr bool touch_invert_y = false;
 
   // Audio
-  static constexpr gpio_num_t audio_cdata_io = GPIO_NUM_31;   // CDATA (shared with I2C)
-  static constexpr gpio_num_t audio_cclk_io = GPIO_NUM_32;    // CCLK (shared with I2C)
-  static constexpr gpio_num_t audio_mclk_io = GPIO_NUM_30;    // MCLK (shared ES8388/ES7210)
-  static constexpr gpio_num_t audio_sclk_io = GPIO_NUM_27;    // SCLK (shared ES8388/ES7210)
-  static constexpr gpio_num_t audio_lrck_io = GPIO_NUM_29;    // LRCK (shared ES8388/ES7210)
-  static constexpr gpio_num_t audio_dsdin_io = GPIO_NUM_26;   // ES8388 DSDIN
-  static constexpr gpio_num_t audio_asdout_io = GPIO_NUM_28;  // ES7210 ASDOUT
-  static constexpr gpio_num_t speaker_enable_io = GPIO_NUM_1; // SPK_EN (via PI4IOE5V6408 P1)
+  static constexpr gpio_num_t audio_cdata_io = GPIO_NUM_31;  // CDATA (shared with I2C)
+  static constexpr gpio_num_t audio_cclk_io = GPIO_NUM_32;   // CCLK (shared with I2C)
+  static constexpr gpio_num_t audio_mclk_io = GPIO_NUM_30;   // MCLK (shared ES8388/ES7210)
+  static constexpr gpio_num_t audio_sclk_io = GPIO_NUM_27;   // SCLK (shared ES8388/ES7210)
+  static constexpr gpio_num_t audio_lrck_io = GPIO_NUM_29;   // LRCK (shared ES8388/ES7210)
+  static constexpr gpio_num_t audio_dsdin_io = GPIO_NUM_26;  // ES8388 DSDIN
+  static constexpr gpio_num_t audio_asdout_io = GPIO_NUM_28; // ES7210 ASDOUT
 
   // Camera
   static constexpr gpio_num_t camera_scl_io = GPIO_NUM_32;  // CAM_SCL (shared with I2C)
