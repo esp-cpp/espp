@@ -685,7 +685,6 @@ protected:
   std::vector<uint8_t> audio_rx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   StreamBufferHandle_t audio_rx_stream;
-  std::atomic<bool> has_sound{false};
   std::atomic<bool> recording_{false};
   std::function<void(const uint8_t *data, size_t length)> audio_rx_callback_{nullptr};
 

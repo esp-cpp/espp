@@ -397,7 +397,7 @@ extern "C" void app_main(void) {
 
   // loop forever
   while (true) {
-    std::this_thread::sleep_for(20s);
+    std::this_thread::sleep_for(1s);
     rotate_display();
     play_click(tab5);
   }

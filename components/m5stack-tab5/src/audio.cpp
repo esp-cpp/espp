@@ -109,7 +109,11 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   audio_task_ = espp::Task::make_unique(
       {.callback = std::bind(&M5StackTab5::audio_task_callback, this, _1, _2, _3),
        .task_config = task_config});
+
+  enable_audio(true);
+
   audio_initialized_ = true;
+
   return audio_task_->start();
 }
 
@@ -140,7 +144,6 @@ void M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
     return;
   }
   xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
-  has_sound = true;
 }
 
 void M5StackTab5::play_audio(const std::vector<uint8_t> &data) {
