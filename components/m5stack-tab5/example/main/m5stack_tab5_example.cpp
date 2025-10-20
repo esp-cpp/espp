@@ -151,6 +151,13 @@ extern "C" void app_main(void) {
     return;
   }
 
+  // initialize the uSD card
+  using SdCardConfig = espp::M5StackTab5::SdCardConfig;
+  SdCardConfig sdcard_config{};
+  if (!tab5.initialize_sdcard(sdcard_config)) {
+    logger.warn("Failed to initialize uSD card, there may not be a uSD card inserted!");
+  }
+
   logger.info("Initializing sound...");
   // initialize the sound
   if (!tab5.initialize_audio()) {

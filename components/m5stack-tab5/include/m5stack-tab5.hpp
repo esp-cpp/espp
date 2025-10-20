@@ -85,6 +85,9 @@ public:
   /// Camera data callback function
   using camera_callback_t = std::function<void(const uint8_t *data, size_t length)>;
 
+  /// Mount point for the uSD card on the TDeck.
+  static constexpr char mount_point[] = "/sdcard";
+
   /// Battery status structure
   struct BatteryStatus {
     float voltage_v;      ///< Battery voltage in volts
@@ -424,13 +427,31 @@ public:
   /// \return Number of bytes received, or -1 on error
   int rs485_receive(uint8_t *buffer, size_t max_length, uint32_t timeout_ms = 1000);
 
-  /// Initialize microSD card
-  /// \return True if SD card was successfully initialized
-  bool initialize_sd_card();
+  /////////////////////////////////////////////////////////////////////////////
+  // uSD Card
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// Configuration for the uSD card
+  struct SdCardConfig {
+    bool format_if_mount_failed = false;    ///< Format the uSD card if mount failed
+    int max_files = 5;                      ///< The maximum number of files to open at once
+    size_t allocation_unit_size = 2 * 1024; ///< The allocation unit size in bytes
+  };
+
+  /// Initialize microSD / uSD card
+  /// \param config Configuration for the uSD card
+  /// \return True if uSD card was successfully initialized
+  bool initialize_sdcard(const SdCardConfig &config);
 
   /// Check if SD card is present and mounted
   /// \return True if SD card is available
   bool is_sd_card_available() const;
+
+  /// Get the uSD card
+  /// \return A pointer to the uSD card
+  /// \note The uSD card is only available if it was successfully initialized
+  ///       and the mount point is valid
+  sdmmc_card_t *sdcard() const { return sdcard_; }
 
   /// Get SD card info
   /// \param size_mb Pointer to store size in MB
@@ -582,7 +603,7 @@ protected:
   static constexpr gpio_num_t sd_sck_io = GPIO_NUM_43;  // SCK/CLK
   static constexpr gpio_num_t sd_mosi_io = GPIO_NUM_44; // MOSI/CMD
 
-  // microSD (SDIO)
+  // microSD (SDIO / SDMMC)
   static constexpr gpio_num_t sd_dat0_io = GPIO_NUM_39; // MISO/DAT0
   static constexpr gpio_num_t sd_dat1_io = GPIO_NUM_40; // MISO/DAT0
   static constexpr gpio_num_t sd_dat2_io = GPIO_NUM_41; // MISO/DAT0
@@ -713,6 +734,9 @@ protected:
   std::atomic<bool> usb_host_initialized_{false};
   std::atomic<bool> usb_device_initialized_{false};
   std::atomic<bool> wireless_initialized_{false};
+
+  // uSD Card
+  sdmmc_card_t *sdcard_{nullptr};
 
   // RTC
   std::atomic<bool> rtc_initialized_{false};

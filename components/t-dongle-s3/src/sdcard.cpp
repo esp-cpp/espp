@@ -28,7 +28,7 @@ bool TDongleS3::initialize_sdcard(const TDongleS3::SdCardConfig &config) {
   // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
   // Please check its source code and implement error recovery when developing
   // production applications.
-  logger_.debug("Using SPI peripheral");
+  logger_.debug("Using SDMMC peripheral");
 
   // By default, SD card frequency is initialized to SDMMC_FREQ_DEFAULT (20MHz)
   // For setting a specific frequency, use host.max_freq_khz (range 400kHz - 20MHz for SDSPI)
