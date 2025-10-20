@@ -2,20 +2,22 @@
 
 namespace espp {
 
+//////////////////////////////////////////////////////////////////////////
+// Battery Monitoring
+//////////////////////////////////////////////////////////////////////////
+
 bool M5StackTab5::initialize_battery_monitoring() {
-  logger_.info("Initializing INA226 battery monitoring");
+  logger_.info("Initializing battery monitoring (INA226)");
 
   // INA226 connected to the internal I2C bus; setup with typical values.
-  // NOTE: Adjust shunt resistance and current LSB to match Tab5 hardware.
-  // Assumptions: 0.01 ohm shunt, 1 mA/LSB scaling.
-  espp::Ina226::Config cfg{
-      .device_address = espp::Ina226::DEFAULT_ADDRESS,
-      .averaging = espp::Ina226::Avg::AVG_16,
-      .bus_conv_time = espp::Ina226::ConvTime::MS_1_1,
-      .shunt_conv_time = espp::Ina226::ConvTime::MS_1_1,
-      .mode = espp::Ina226::Mode::SHUNT_BUS_CONT,
-      .current_lsb = 0.001f,          // 1 mA / LSB
-      .shunt_resistance_ohms = 0.01f, // 10 mΩ (adjust if different on board)
+  BatteryMonitor::Config cfg{
+      .device_address = 0x41, // NOTE: not the default address, the ES7210 uses 0x40
+      .averaging = BatteryMonitor::Avg::AVG_16,
+      .bus_conv_time = BatteryMonitor::ConvTime::MS_1_1,
+      .shunt_conv_time = BatteryMonitor::ConvTime::MS_1_1,
+      .mode = BatteryMonitor::Mode::SHUNT_BUS_CONT,
+      .current_lsb = 0.0005f,          // 0.5 mA / LSB
+      .shunt_resistance_ohms = 0.005f, // 5 mΩ (adjust if different on board)
       .probe = std::bind(&espp::I2c::probe_device, &internal_i2c(), std::placeholders::_1),
       .write = std::bind(&espp::I2c::write, &internal_i2c(), std::placeholders::_1,
                          std::placeholders::_2, std::placeholders::_3),
@@ -29,12 +31,12 @@ bool M5StackTab5::initialize_battery_monitoring() {
       .log_level = espp::Logger::Verbosity::WARN,
   };
 
-  ina226_ = std::make_shared<espp::Ina226>(cfg);
+  battery_monitor_ = std::make_shared<BatteryMonitor>(cfg);
 
   std::error_code ec;
-  if (!ina226_->initialize(ec) || ec) {
-    logger_.error("INA226 initialization failed: {}", ec.message());
-    ina226_.reset();
+  if (!battery_monitor_->initialize(ec) || ec) {
+    logger_.error("Battery monitor (INA226) initialization failed: {}", ec.message());
+    battery_monitor_.reset();
     return false;
   }
 
@@ -51,99 +53,77 @@ bool M5StackTab5::initialize_battery_monitoring() {
                        .is_present = false};
   }
 
-  logger_.info("Battery monitoring initialization placeholder completed");
+  logger_.info("Battery monitoring initialized");
   return true;
 }
 
-M5StackTab5::BatteryStatus M5StackTab5::get_battery_status() {
+M5StackTab5::BatteryStatus M5StackTab5::get_battery_status() const { return battery_status_; }
+
+bool M5StackTab5::update_battery_status() {
   if (!battery_monitoring_initialized_) {
-    logger_.warn("Battery monitoring not initialized");
-    return {};
+    return false;
   }
 
+  if (!battery_monitor_) {
+    return false;
+  }
+
+  static constexpr float cell_voltage_min = 3.2f; // volts
+  static constexpr float cell_voltage_max = 4.2f; // volts
+  // Cells are in a 2S1P configuration
+  static constexpr float num_cells = 2.0f;
+  static constexpr float pack_voltage_min = cell_voltage_min * num_cells;
+  static constexpr float pack_voltage_max = cell_voltage_max * num_cells;
+
+  std::error_code ec;
   std::lock_guard<std::mutex> lock(battery_mutex_);
-
-  BatteryStatus status = battery_status_;
-  if (ina226_) {
-    std::error_code ec;
-    float vbus = ina226_->bus_voltage_volts(ec);
-    float vshunt = ina226_->shunt_voltage_volts(ec);
-    float current_a = ina226_->current_amps(ec);
-    float power_w = ina226_->power_watts(ec);
-    if (!ec) {
-      status.voltage_v = vbus;
-      status.current_ma = current_a * 1000.0f;
-      status.power_mw = power_w * 1000.0f;
-      status.is_charging = current_a > 0.0f;
-      status.is_present = true; // assume battery present if INA226 readable
-      // Basic SoC estimate from voltage (very rough placeholder)
-      float v = vbus;
-      float soc = (v - 3.2f) / (4.2f - 3.2f);
-      if (soc < 0.0f)
-        soc = 0.0f;
-      if (soc > 1.0f)
-        soc = 1.0f;
-      status.charge_percent = soc * 100.0f;
-    }
+  float vbus = battery_monitor_->bus_voltage_volts(ec);
+  float vshunt = battery_monitor_->shunt_voltage_volts(ec);
+  float current_a = battery_monitor_->current_amps(ec);
+  float power_w = battery_monitor_->power_watts(ec);
+  if (!ec) {
+    logger_.debug("Battery status updated");
+    battery_status_.voltage_v = vbus;
+    battery_status_.current_ma = current_a * 1000.0f;
+    battery_status_.power_mw = power_w * 1000.0f;
+    // Basic SoC estimate from voltage (very rough placeholder)
+    float v = vbus;
+    float soc = (v - pack_voltage_min) / (pack_voltage_max - pack_voltage_min);
+    soc = std::clamp(soc, 0.0f, 1.0f);
+    battery_status_.charge_percent = soc * 100.0f;
+    // only charging if the bit sayus we are and  the current is < -1.0 mA
+    battery_status_.is_charging = get_charging_status() && battery_status_.current_ma < -1.0f;
+    battery_status_.is_present = true;
+  } else {
+    logger_.warn("Battery status not updated: {}", ec.message());
+    battery_status_.voltage_v = 0.0f;
+    battery_status_.current_ma = 0.0f;
+    battery_status_.power_mw = 0.0f;
+    battery_status_.charge_percent = 0.0f;
+    battery_status_.is_charging = false;
+    battery_status_.is_present = false;
   }
 
-  return status;
+  return !ec;
 }
 
-void M5StackTab5::update_battery_status() {
-  if (!battery_monitoring_initialized_) {
-    return;
+M5StackTab5::BatteryStatus M5StackTab5::read_battery_status() {
+  if (!update_battery_status()) {
+    return {};
   }
-
-  std::lock_guard<std::mutex> lock(battery_mutex_);
-
-  if (ina226_) {
-    std::error_code ec;
-    battery_status_.voltage_v = ina226_->bus_voltage_volts(ec);
-    float current_a = ina226_->current_amps(ec);
-    battery_status_.current_ma = current_a * 1000.0f;
-    battery_status_.power_mw = ina226_->power_watts(ec) * 1000.0f;
-    battery_status_.is_charging = current_a > 0.0f;
-    battery_status_.is_present = (ec ? false : true);
-    // Basic SoC estimate from voltage (placeholder linear mapping)
-    float v = battery_status_.voltage_v;
-    float soc = (v - 3.2f) / (4.2f - 3.2f);
-    if (soc < 0.0f)
-      soc = 0.0f;
-    if (soc > 1.0f)
-      soc = 1.0f;
-    battery_status_.charge_percent = soc * 100.0f;
-  }
-
-  logger_.debug("Battery status updated");
+  return get_battery_status();
 }
 
 void M5StackTab5::enable_battery_charging(bool enable) {
-  // TODO: Control charging via IP2326 charge management IC
-  // This would typically be done through the PI4IOE5V6408 GPIO expander
-  // CHG_EN pin controls charging enable/disable
-
+  // Control charging via IP2326 charge management IC This is done through the
+  // PI4IOE5V6408 GPIO expander
   logger_.info("Battery charging {}", enable ? "enabled" : "disabled");
+  set_charging_enabled(enable);
 }
 
-void M5StackTab5::set_power_mode(bool low_power) {
-  if (low_power) {
-    // TODO: Implement low power mode
-    // 1. Reduce CPU frequency
-    // 2. Disable unnecessary peripherals
-    // 3. Configure wake-up sources
-    // 4. Enter light sleep when possible
-
-    logger_.info("Entering low power mode");
-  } else {
-    // TODO: Implement normal power mode
-    // 1. Restore CPU frequency
-    // 2. Re-enable peripherals
-    // 3. Clear power management settings
-
-    logger_.info("Entering normal power mode");
-  }
-}
+//////////////////////////////////////////////////////////////////////////
+// Real-Time Clock
+//////////////////////////////////////////////////////////////////////////
 
 bool M5StackTab5::initialize_rtc() {
   logger_.info("Initializing RX8130CE real-time clock");

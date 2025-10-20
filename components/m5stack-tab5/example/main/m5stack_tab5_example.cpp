@@ -36,7 +36,7 @@ extern "C" void app_main(void) {
 
   //! [m5stack tab5 example]
   espp::M5StackTab5 &tab5 = espp::M5StackTab5::get();
-  tab5.set_log_level(espp::Logger::Verbosity::DEBUG);
+  // tab5.set_log_level(espp::Logger::Verbosity::DEBUG);
   logger.info("Running on M5Stack Tab5");
 
   // first let's get the internal i2c bus and probe for all devices on the bus
@@ -157,6 +157,16 @@ extern "C" void app_main(void) {
   if (!tab5.initialize_sdcard(sdcard_config)) {
     logger.warn("Failed to initialize uSD card, there may not be a uSD card inserted!");
   }
+
+  logger.info("Initializing battery management...");
+  // initialize battery monitoring
+  if (!tab5.initialize_battery_monitoring()) {
+    logger.error("Failed to initialize battery monitoring!");
+    return;
+  }
+
+  // enable charging
+  tab5.set_charging_enabled(true);
 
   logger.info("Initializing sound...");
   // initialize the sound
@@ -283,8 +293,9 @@ extern "C" void app_main(void) {
   // set the brightness to 75%
   tab5.brightness(75.0f);
 
-  // make a task to read out the IMU data and print it to console
-  logger.info("Starting IMU task...");
+  // make a task to read out various data such as IMU, battery monitoring, etc.
+  // and print it to screen
+  logger.info("Starting data display task...");
   espp::Task imu_task(
       {.callback = [&](std::mutex &m, std::condition_variable &cv) -> bool {
          // sleep first in case we don't get IMU data and need to exit early
@@ -294,6 +305,12 @@ extern "C" void app_main(void) {
          }
          static auto &tab5 = espp::M5StackTab5::get();
          static auto imu = tab5.imu();
+
+         auto battery_status = tab5.read_battery_status();
+         std::string battery_text =
+             fmt::format("Battery: {:0.2f} V, {:0.1f} mA, {:0.1f} %, Charging: {}\n",
+                         battery_status.voltage_v, battery_status.current_ma,
+                         battery_status.charge_percent, battery_status.is_charging ? "Yes" : "No");
 
          auto now = esp_timer_get_time(); // time in microseconds
          static auto t0 = now;
@@ -331,12 +348,16 @@ extern "C" void app_main(void) {
          }
 
          std::string text = fmt::format("{}\n\n\n\n\n", label_text);
+         text += "IMU Data:\n";
          text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
          text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", espp::deg_to_rad(gyro.x),
                              espp::deg_to_rad(gyro.y), espp::deg_to_rad(gyro.z));
          text += fmt::format("Angle: {:03.2f} {:03.2f}\n", espp::rad_to_deg(orientation.roll),
                              espp::rad_to_deg(orientation.pitch));
          text += fmt::format("Temp: {:02.1f} C\n", temp);
+         // separator for battery
+         text += "\nBattery Data:\n";
+         text += battery_text;
 
          // use the pitch to to draw a line on the screen indiating the
          // direction from the center of the screen to "down"
@@ -395,7 +416,7 @@ extern "C" void app_main(void) {
          return false;
        },
        .task_config = {
-           .name = "IMU",
+           .name = "Data Display Task",
            .stack_size_bytes = 6 * 1024,
            .priority = 10,
            .core_id = 0,
@@ -404,7 +425,7 @@ extern "C" void app_main(void) {
 
   // loop forever
   while (true) {
-    std::this_thread::sleep_for(1s);
+    std::this_thread::sleep_for(20s);
     rotate_display();
     play_click(tab5);
   }
@@ -440,8 +461,6 @@ static size_t load_audio() {
   // load the audio data
   extern const uint8_t click_wav_start[] asm("_binary_click_wav_start");
   extern const uint8_t click_wav_end[] asm("_binary_click_wav_end");
-  size_t click_wav_size = click_wav_end - click_wav_start;
-  fmt::print("Click wav size: {} bytes\n", click_wav_size);
   audio_bytes = std::vector<uint8_t>(click_wav_start, click_wav_end);
   return audio_bytes.size();
 }

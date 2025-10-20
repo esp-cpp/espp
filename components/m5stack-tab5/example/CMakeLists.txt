@@ -9,6 +9,8 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 set(EXTRA_COMPONENT_DIRS
   "../"
   "../../../components/base_component"
+  # "../../../components/ble_gatt_server"
+  # "../../../components/esp-nimble-cpp"
   "../../../components/format"
   "../../../components/logger"
   "../../../components/cli"

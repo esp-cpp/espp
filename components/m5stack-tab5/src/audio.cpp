@@ -35,29 +35,25 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
                             std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
   // I2S standard channel for TX (playback)
-  i2s_chan_config_t chan_cfg_tx = {
-      .id = I2S_NUM_0,
-      .role = I2S_ROLE_MASTER,
-      .dma_desc_num = 16,
-      .dma_frame_num = 48,
-      .auto_clear = true,
-      .auto_clear_before_cb = false,
-      .allow_pd = false,
-      .intr_priority = 0,
-  };
+  // i2s_chan_config_t chan_cfg = {
+  //     .id = I2S_NUM_0,
+  //     .role = I2S_ROLE_MASTER,
+  //     .dma_desc_num = 16,
+  //     .dma_frame_num = 48,
+  //     .auto_clear = true,
+  //     .auto_clear_before_cb = false,
+  //     .allow_pd = false,
+  //     .intr_priority = 0,
+  // };
   logger_.info("Creating I2S channel for playback (TX)");
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg_tx, &audio_tx_handle, nullptr));
-
-  // Optional RX channel for recording (ES7210)
-  i2s_chan_config_t chan_cfg_rx = chan_cfg_tx;
-  logger_.info("Creating I2S channel for recording (RX)");
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg_rx, nullptr, &audio_rx_handle));
+  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
+  chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
+  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &audio_tx_handle, &audio_rx_handle));
 
   // Configure I2S for stereo output (needed for proper ES8388 operation)
   audio_std_cfg = {
       .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate),
-      .slot_cfg =
-          I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
+      .slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
       .gpio_cfg = {.mclk = audio_mclk_io,
                    .bclk = audio_sclk_io,
                    .ws = audio_lrck_io,
@@ -65,10 +61,8 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
                    .din = audio_asdout_io, // ES7210 ASDOUT (record data output)
                    .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
   };
-  audio_std_cfg.clk_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_256;
   logger_.info("Configuring I2S standard mode with sample rate {} Hz", sample_rate);
   ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_tx_handle, &audio_std_cfg));
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(audio_rx_handle, &audio_std_cfg));
 
   // ES8388 DAC playback config
   audio_hal_codec_config_t es8388_cfg{};
@@ -118,11 +112,49 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   }
   es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_START);
 
-  play_audio_task_handle_ = xTaskGetCurrentTaskHandle();
+  // Optional RX channel for recording (ES7210)
+  logger_.info("Creating I2S channel for recording (RX)");
+  i2s_tdm_config_t tdm_cfg = {
+      .clk_cfg =
+          {
+              .sample_rate_hz = (uint32_t)48000,
+              .clk_src = I2S_CLK_SRC_DEFAULT,
+              .ext_clk_freq_hz = 0,
+              .mclk_multiple = I2S_MCLK_MULTIPLE_256,
+              .bclk_div = 8,
+          },
+      .slot_cfg = {.data_bit_width = I2S_DATA_BIT_WIDTH_16BIT,
+                   .slot_bit_width = I2S_SLOT_BIT_WIDTH_AUTO,
+                   .slot_mode = I2S_SLOT_MODE_STEREO,
+                   .slot_mask = (i2s_tdm_slot_mask_t)(I2S_TDM_SLOT0 | I2S_TDM_SLOT1 |
+                                                      I2S_TDM_SLOT2 | I2S_TDM_SLOT3),
+                   .ws_width = I2S_TDM_AUTO_WS_WIDTH,
+                   .ws_pol = false,
+                   .bit_shift = true,
+                   .left_align = false,
+                   .big_endian = false,
+                   .bit_order_lsb = false,
+                   .skip_mask = false,
+                   .total_slot = I2S_TDM_AUTO_SLOT_NUM},
+      .gpio_cfg = {.mclk = audio_mclk_io,
+                   .bclk = audio_sclk_io,
+                   .ws = audio_lrck_io,
+                   .dout = audio_dsdin_io, // ES8388 DSDIN (playback data input)
+                   .din = audio_asdout_io, // ES7210 ASDOUT (record data output)
+                   .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
+  };
+  ESP_ERROR_CHECK(i2s_channel_init_tdm_mode(audio_rx_handle, &tdm_cfg));
 
+  // Register TX done callback
   memset(&audio_tx_callbacks_, 0, sizeof(audio_tx_callbacks_));
   audio_tx_callbacks_.on_sent = audio_tx_sent_callback;
   i2s_channel_register_event_callback(audio_tx_handle, &audio_tx_callbacks_, NULL);
+
+  // now enable both channels
+  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
+  ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
+
+  play_audio_task_handle_ = xTaskGetCurrentTaskHandle();
 
   // Stream buffers and task
   auto tx_buf_size = calc_audio_buffer_size(sample_rate);
@@ -131,10 +163,6 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   xStreamBufferReset(audio_tx_stream);
   // RX buffer for recording
   audio_rx_buffer.resize(tx_buf_size);
-
-  logger_.info("Enabling I2S channels for playback and recording");
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
-  ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
 
   logger_.info("Creating audio task for playback and recording");
   using namespace std::placeholders;

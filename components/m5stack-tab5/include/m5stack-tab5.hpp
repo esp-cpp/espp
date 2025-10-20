@@ -10,6 +10,7 @@
 
 #include <driver/gpio.h>
 #include <driver/i2s_std.h>
+#include <driver/i2s_tdm.h>
 #include <driver/sdmmc_host.h>
 #include <driver/spi_master.h>
 #include <driver/uart.h>
@@ -25,6 +26,7 @@
 #include <freertos/task.h>
 
 #include "base_component.hpp"
+// #include "ble_gatt_server.hpp"
 #include "bmi270.hpp"
 #include "display.hpp"
 #include "es7210.hpp"
@@ -37,6 +39,8 @@
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
 #include "touchpad_input.hpp"
+// #include "wifi_ap.hpp"
+// #include "wifi_sta.hpp"
 
 namespace espp {
 /// The M5StackTab5 class provides an interface to the M5Stack Tab5 development board.
@@ -51,7 +55,7 @@ namespace espp {
 /// - RS-485 industrial interface
 /// - Grove and M5-Bus expansion headers
 /// - microSD card slot
-/// - NP-F550 removable battery with power management
+/// - NP-F550 removable battery with battery management via INA226
 /// - Real-time clock (RX8130CE)
 /// - Multiple buttons and interrupts
 ///
@@ -63,6 +67,9 @@ class M5StackTab5 : public BaseComponent {
 public:
   /// Alias for the button callback function
   using button_callback_t = espp::Interrupt::event_callback_fn;
+
+  /// Alias for the I/O Expanders (IOX) used by the Tab5
+  using IoExpander = espp::Pi4ioe5v;
 
   /// Alias for the pixel type used by the Tab5 display
   using Pixel = lv_color16_t;
@@ -78,6 +85,9 @@ public:
 
   /// Alias the IMU used by the Tab5
   using Imu = espp::Bmi270<espp::bmi270::Interface::I2C>;
+
+  /// Alias the INA226 battery power monitor
+  using BatteryMonitor = espp::Ina226;
 
   /// Alias for the touch callback when touch events are received
   using touch_callback_t = std::function<void(const TouchpadData &)>;
@@ -304,17 +314,23 @@ public:
   /// \return True if battery monitoring was successfully initialized
   bool initialize_battery_monitoring();
 
-  /// Get the current battery status
+  /// Get the latest battery status from the INA226
   /// \return Battery status structure
-  BatteryStatus get_battery_status();
+  BatteryStatus read_battery_status();
+
+  /// Get the most recent cached battery status
+  /// \return Battery status structure
+  /// \note This does not read from the INA226, use read_battery_status() to get
+  ///       the latest data
+  BatteryStatus get_battery_status() const;
 
   /// Enable or disable battery charging
   /// \param enable True to enable charging, false to disable
   void enable_battery_charging(bool enable);
 
-  /// Set the system power mode
-  /// \param low_power True for low power mode, false for normal mode
-  void set_power_mode(bool low_power);
+  /// Get the Battery Monitor Instance (INA226)
+  /// \return Shared pointer to the battery monitor
+  std::shared_ptr<BatteryMonitor> battery_monitor() const { return battery_monitor_; };
 
   /////////////////////////////////////////////////////////////////////////////
   // Real-Time Clock
@@ -382,7 +398,7 @@ public:
 
   /// Read battery charging status (IP2326 CHG_STAT on 0x44 P6)
   /// Returns true if charging is indicated asserted.
-  bool charging_status();
+  bool get_charging_status();
 
   /// Generic helpers to control IO expander pins (0x43/0x44)
   /// These perform read-modify-write on the output latch.
@@ -488,7 +504,7 @@ protected:
   M5StackTab5();
 
   bool update_touch();
-  void update_battery_status();
+  bool update_battery_status();
   bool audio_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   // Hardware pin definitions based on Tab5 specifications
@@ -504,7 +520,7 @@ protected:
   static constexpr gpio_num_t internal_i2c_sda = GPIO_NUM_31; // Int SDA
   static constexpr gpio_num_t internal_i2c_scl = GPIO_NUM_32; // Int SCL
 
-  // IO expander bit mapping (can be adjusted if hardware changes)
+  // IO expander bit mapping
   static constexpr uint8_t IO43_BIT_SPK_EN = 1;   // P1
   static constexpr uint8_t IO43_BIT_LCD_RST = 4;  // P4
   static constexpr uint8_t IO43_BIT_TP_RST = 5;   // P5
@@ -723,10 +739,10 @@ protected:
   std::atomic<bool> battery_monitoring_initialized_{false};
   BatteryStatus battery_status_;
   std::mutex battery_mutex_;
-  std::shared_ptr<espp::Ina226> ina226_;
+  std::shared_ptr<BatteryMonitor> battery_monitor_;
   // IO expanders on the internal I2C (addresses 0x43 and 0x44 per Tab5 design)
-  std::shared_ptr<espp::Pi4ioe5v> ioexp_0x43_;
-  std::shared_ptr<espp::Pi4ioe5v> ioexp_0x44_;
+  std::shared_ptr<IoExpander> ioexp_0x43_;
+  std::shared_ptr<IoExpander> ioexp_0x44_;
 
   // Communication interfaces
   std::atomic<bool> rs485_initialized_{false};

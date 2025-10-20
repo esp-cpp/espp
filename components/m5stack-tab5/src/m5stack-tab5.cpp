@@ -18,7 +18,7 @@ bool M5StackTab5::initialize_io_expanders() {
   std::error_code ec;
 
   // Create instances
-  ioexp_0x43_ = std::make_shared<Pi4ioe5v>(Pi4ioe5v::Config{
+  ioexp_0x43_ = std::make_shared<IoExpander>(IoExpander::Config{
       .device_address = 0x43,
       .direction_mask = IOX_0x43_DIRECTION_MASK,
       .initial_output = IOX_0x43_DEFAULT_OUTPUTS,
@@ -31,7 +31,7 @@ bool M5StackTab5::initialize_io_expanders() {
           std::bind(&I2c::write_read, &internal_i2c_, std::placeholders::_1, std::placeholders::_2,
                     std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
       .log_level = Logger::Verbosity::INFO});
-  ioexp_0x44_ = std::make_shared<Pi4ioe5v>(Pi4ioe5v::Config{
+  ioexp_0x44_ = std::make_shared<IoExpander>(IoExpander::Config{
       .device_address = 0x44,
       .direction_mask = IOX_0x44_DIRECTION_MASK,
       .initial_output = IOX_0x44_DEFAULT_OUTPUTS,
@@ -65,14 +65,14 @@ bool M5StackTab5::set_charging_enabled(bool enable) {
   return set_io_expander_output(0x44, IO44_BIT_CHG_EN, enable);
 }
 
-bool M5StackTab5::charging_status() {
+bool M5StackTab5::get_charging_status() {
   auto state = get_io_expander_input(0x44, IO44_BIT_CHG_STAT);
   return state.value_or(false);
 }
 
 bool M5StackTab5::set_io_expander_output(uint8_t address, uint8_t bit, bool level) {
   std::error_code ec;
-  espp::Pi4ioe5v *io = nullptr;
+  IoExpander *io = nullptr;
   if (address == 0x43)
     io = ioexp_0x43_.get();
   else if (address == 0x44)
@@ -87,7 +87,7 @@ bool M5StackTab5::set_io_expander_output(uint8_t address, uint8_t bit, bool leve
 
 std::optional<bool> M5StackTab5::get_io_expander_output(uint8_t address, uint8_t bit) {
   std::error_code ec;
-  espp::Pi4ioe5v *io = nullptr;
+  IoExpander *io = nullptr;
   if (address == 0x43)
     io = ioexp_0x43_.get();
   else if (address == 0x44)
@@ -102,7 +102,7 @@ std::optional<bool> M5StackTab5::get_io_expander_output(uint8_t address, uint8_t
 
 std::optional<bool> M5StackTab5::get_io_expander_input(uint8_t address, uint8_t bit) {
   std::error_code ec;
-  espp::Pi4ioe5v *io = nullptr;
+  IoExpander *io = nullptr;
   if (address == 0x43)
     io = ioexp_0x43_.get();
   else if (address == 0x44)
