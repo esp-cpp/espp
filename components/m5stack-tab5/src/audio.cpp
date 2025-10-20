@@ -1,5 +1,17 @@
 #include "m5stack-tab5.hpp"
-#include <cmath>
+
+////////////////////////
+// Audio Functions   //
+////////////////////////
+
+static TaskHandle_t play_audio_task_handle_ = NULL;
+
+static bool IRAM_ATTR audio_tx_sent_callback(i2s_chan_handle_t handle, i2s_event_data_t *event,
+                                             void *user_ctx) {
+  // notify the main task that we're done
+  vTaskNotifyGiveFromISR(play_audio_task_handle_, NULL);
+  return true;
+}
 
 namespace espp {
 
@@ -62,7 +74,7 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   audio_hal_codec_config_t es8388_cfg{};
   es8388_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_DECODE;
   es8388_cfg.dac_output = AUDIO_HAL_DAC_OUTPUT_ALL; // Enable both L and R outputs
-  es8388_cfg.adc_input = AUDIO_HAL_ADC_INPUT_LINE1; // Not used for playback but set anyway
+  // es8388_cfg.adc_input = AUDIO_HAL_ADC_INPUT_LINE1;  // Not used for playback but set anyway
   es8388_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
   es8388_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
   es8388_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
@@ -105,6 +117,12 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
     logger_.error("ES7210 I2S cfg failed");
   }
   es7210_adc_ctrl_state(AUDIO_HAL_CODEC_MODE_ENCODE, AUDIO_HAL_CTRL_START);
+
+  play_audio_task_handle_ = xTaskGetCurrentTaskHandle();
+
+  memset(&audio_tx_callbacks_, 0, sizeof(audio_tx_callbacks_));
+  audio_tx_callbacks_.on_sent = audio_tx_sent_callback;
+  i2s_channel_register_event_callback(audio_tx_handle, &audio_tx_callbacks_, NULL);
 
   // Stream buffers and task
   auto tx_buf_size = calc_audio_buffer_size(sample_rate);
@@ -158,7 +176,11 @@ void M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (!audio_initialized_ || !data || num_bytes == 0) {
     return;
   }
+  if (has_sound) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+  }
   xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
+  has_sound = true;
 }
 
 void M5StackTab5::play_audio(const std::vector<uint8_t> &data) {
@@ -217,14 +239,12 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
   int buffer_size = audio_tx_buffer.size();
   available = std::min<uint16_t>(available, buffer_size);
   uint8_t *tx_buf = audio_tx_buffer.data();
+  memset(tx_buf, 0, buffer_size);
   if (available == 0) {
-    memset(tx_buf, 0, buffer_size);
     i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
   } else {
     xStreamBufferReceive(audio_tx_stream, tx_buf, available, 0);
-    if (available < buffer_size)
-      memset(tx_buf + available, 0, buffer_size - available);
-    i2s_channel_write(audio_tx_handle, tx_buf, buffer_size, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, tx_buf, available, NULL, portMAX_DELAY);
   }
 
   // Recording: read from RX channel and invoke callback
