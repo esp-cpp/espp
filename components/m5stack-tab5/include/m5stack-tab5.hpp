@@ -251,6 +251,11 @@ public:
   /// Stop recording audio
   void stop_audio_recording();
 
+  /// Test audio output with a simple tone
+  /// \param frequency_hz The frequency of the test tone in Hz
+  /// \param duration_ms The duration of the test tone in milliseconds
+  void test_audio_output(uint16_t frequency_hz = 1000, uint16_t duration_ms = 1000);
+
   /////////////////////////////////////////////////////////////////////////////
   // Camera System
   /////////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,5 @@
 #include "m5stack-tab5.hpp"
+#include <cmath>
 
 namespace espp {
 
@@ -40,14 +41,16 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   logger_.info("Creating I2S channel for recording (RX)");
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg_rx, nullptr, &audio_rx_handle));
 
+  // Configure I2S for stereo output (needed for proper ES8388 operation)
   audio_std_cfg = {
       .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate),
-      .slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
+      .slot_cfg =
+          I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
       .gpio_cfg = {.mclk = audio_mclk_io,
                    .bclk = audio_sclk_io,
                    .ws = audio_lrck_io,
-                   .dout = audio_asdout_io,
-                   .din = audio_dsdin_io,
+                   .dout = audio_dsdin_io, // ES8388 DSDIN (playback data input)
+                   .din = audio_asdout_io, // ES7210 ASDOUT (record data output)
                    .invert_flags = {.mclk_inv = false, .bclk_inv = false, .ws_inv = false}},
   };
   audio_std_cfg.clk_cfg.mclk_multiple = I2S_MCLK_MULTIPLE_256;
@@ -58,6 +61,8 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   // ES8388 DAC playback config
   audio_hal_codec_config_t es8388_cfg{};
   es8388_cfg.codec_mode = AUDIO_HAL_CODEC_MODE_DECODE;
+  es8388_cfg.dac_output = AUDIO_HAL_DAC_OUTPUT_ALL; // Enable both L and R outputs
+  es8388_cfg.adc_input = AUDIO_HAL_ADC_INPUT_LINE1; // Not used for playback but set anyway
   es8388_cfg.i2s_iface.bits = AUDIO_HAL_BIT_LENGTH_16BITS;
   es8388_cfg.i2s_iface.fmt = AUDIO_HAL_I2S_NORMAL;
   es8388_cfg.i2s_iface.mode = AUDIO_HAL_MODE_SLAVE;
@@ -73,7 +78,15 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   if (es8388_set_bits_per_sample(ES_MODULE_DAC, BIT_LENGTH_16BITS) != ESP_OK) {
     logger_.error("ES8388 bps config failed");
   }
+
+  // Configure DAC output routing
+  if (es8388_config_dac_output(DAC_OUTPUT_ALL) != ESP_OK) {
+    logger_.error("ES8388 DAC output config failed");
+  }
+
+  // Set initial volume and unmute
   es8388_set_voice_volume(static_cast<int>(volume_));
+  es8388_set_voice_mute(false); // Make sure it's not muted
   es8388_ctrl_state(AUDIO_HAL_CODEC_MODE_DECODE, AUDIO_HAL_CTRL_START);
 
   // ES7210 ADC recording config
@@ -100,6 +113,7 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
   xStreamBufferReset(audio_tx_stream);
   // RX buffer for recording
   audio_rx_buffer.resize(tx_buf_size);
+
   logger_.info("Enabling I2S channels for playback and recording");
   ESP_ERROR_CHECK(i2s_channel_enable(audio_tx_handle));
   ESP_ERROR_CHECK(i2s_channel_enable(audio_rx_handle));
@@ -110,6 +124,7 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
       {.callback = std::bind(&M5StackTab5::audio_task_callback, this, _1, _2, _3),
        .task_config = task_config});
 
+  // Enable speaker output
   enable_audio(true);
 
   audio_initialized_ = true;
@@ -167,6 +182,34 @@ void M5StackTab5::stop_audio_recording() {
   logger_.info("Audio recording stopped");
 }
 
+void M5StackTab5::test_audio_output(uint16_t frequency_hz, uint16_t duration_ms) {
+  if (!audio_initialized_) {
+    logger_.error("Audio system not initialized");
+    return;
+  }
+
+  logger_.info("Generating test tone: {} Hz for {} ms", frequency_hz, duration_ms);
+
+  const uint32_t sample_rate = 48000;
+  const uint16_t amplitude = 8000; // Moderate volume
+  const size_t num_samples = (sample_rate * duration_ms) / 1000;
+
+  std::vector<int16_t> tone_data(num_samples * 2); // Stereo
+
+  for (size_t i = 0; i < num_samples; i++) {
+    float t = (float)i / sample_rate;
+    int16_t sample = (int16_t)(amplitude * sin(2.0 * M_PI * frequency_hz * t));
+    tone_data[i * 2] = sample;     // Left channel
+    tone_data[i * 2 + 1] = sample; // Right channel
+  }
+
+  // Play the generated tone
+  play_audio(reinterpret_cast<const uint8_t *>(tone_data.data()),
+             tone_data.size() * sizeof(int16_t));
+
+  logger_.info("Test tone queued for playback");
+}
+
 bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                       bool &task_notified) {
   // Playback: write next buffer worth of audio from stream buffer
@@ -192,13 +235,6 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
     if (bytes_read > 0 && audio_rx_callback_) {
       audio_rx_callback_(audio_rx_buffer.data(), bytes_read);
     }
-  }
-
-  // Sleep ~1 frame at 60 Hz
-  {
-    using namespace std::chrono_literals;
-    std::unique_lock<std::mutex> lock(m);
-    cv.wait_for(lock, 16ms);
   }
   return false;
 }
