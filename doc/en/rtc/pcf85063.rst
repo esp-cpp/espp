@@ -1,7 +1,9 @@
 PCF85063
 ********
 
-The `Pcf85063` component provides a driver for the Pcf85063 RTC chip.
+The `Pcf85063` component provides a driver for the PCF85063 RTC chip.
+
+This component supports **std::tm based APIs** for easy portability and integration with standard C time functions.
 
 .. ------------------------------- Example -------------------------------------
 

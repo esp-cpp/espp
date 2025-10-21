@@ -165,6 +165,8 @@ jobs:
           target: esp32
         - path: 'components/runqueue/example'
           target: esp32
+        - path: 'components/rx8130ce/example'
+          target: esp32s3
         - path: 'components/seeed-studio-round-display/example'
           target: esp32s3
         - path: 'components/serialization/example'
