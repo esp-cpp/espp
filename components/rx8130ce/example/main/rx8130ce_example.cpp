@@ -91,7 +91,7 @@ extern "C" void app_main(void) {
   logger.info("Testing timer functionality");
 
   // Set a 5-second timer
-  if (rtc.set_timer(5, Rtc::TimerClockSource::FREQ_1_HZ, false, ec)) {
+  if (rtc.set_timer(5, Rtc::TimerClockSource::FREQ_1_HZ, ec)) {
     logger.info("Timer set for 5 seconds");
   }
 
@@ -124,7 +124,7 @@ extern "C" void app_main(void) {
       rtc.clear_timer_flag(ec);
 
       // Restart timer for another 5 seconds
-      rtc.set_timer(5, Rtc::TimerClockSource::FREQ_1_HZ, false, ec);
+      rtc.set_timer(5, Rtc::TimerClockSource::FREQ_1_HZ, ec);
       logger.info("Timer restarted");
     }
   }

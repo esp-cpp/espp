@@ -323,16 +323,17 @@ public:
 
   /// @brief Set an alarm using std::tm structure
   /// @param alarm_time The time to trigger the alarm
-  /// @param is_day_target True to use day as target of alarm function, false to use week
+  /// @param is_week_day_target True to use week day as target of alarm
+  ///        function, false to use month day
   /// @param ec The error code to set if an error occurs
   /// @return True if the alarm was set successfully, false otherwise
-  /// @note If is_day_target is true, the alarm will trigger on the specified
+  /// @note If is_week_day_target is true, the alarm will trigger on the specified
   ///       day of the month. If false, it will trigger on the specified day of
   ///       the week.
   /// @note This will match exactly the minute, hour, and day/week specified
   ///       because it will set all the alarm bits to 0 (enabled for exact
   ///       match).
-  bool set_alarm(const std::tm &alarm_time, bool is_day_target, std::error_code &ec) {
+  bool set_alarm(const std::tm &alarm_time, bool is_week_day_target, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
     // Note: this will match exactly the minute,hour and day/week specified
@@ -343,7 +344,7 @@ public:
     uint8_t data[3];
     data[0] = decimal_to_bcd(alarm_time.tm_min);
     data[1] = decimal_to_bcd(alarm_time.tm_hour);
-    if (is_day_target) {
+    if (is_week_day_target) {
       data[2] = decimal_to_bcd(alarm_time.tm_wday);
     } else {
       data[2] = decimal_to_bcd(alarm_time.tm_mday);
@@ -354,7 +355,7 @@ public:
 
     // Set week/day alarm bit
     set_bits_in_register_by_mask(static_cast<uint8_t>(Register::EXTENSION), WEEK_DAY_ALARM_BIT,
-                                 is_day_target ? WEEK_DAY_ALARM_BIT : 0x00, ec);
+                                 is_week_day_target ? WEEK_DAY_ALARM_BIT : 0x00, ec);
 
     return !ec;
   }
@@ -420,10 +421,9 @@ public:
   /// @brief Set the countdown timer
   /// @param value Timer value (0-4095)
   /// @param clock_source Timer clock source
-  /// @param repeat Whether to repeat the timer
   /// @param ec The error code to set if an error occurs
   /// @return True if the timer was set successfully, false otherwise
-  bool set_timer(uint16_t value, TimerClockSource clock_source, bool repeat, std::error_code &ec) {
+  bool set_timer(uint16_t value, TimerClockSource clock_source, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
 
     // ensure timer enable (TE) bit is 0 before writing to timer registers
