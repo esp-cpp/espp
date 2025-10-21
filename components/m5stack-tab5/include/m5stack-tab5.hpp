@@ -38,6 +38,7 @@
 #include "interrupt.hpp"
 #include "led.hpp"
 #include "pi4ioe5v.hpp"
+#include "rx8130ce.hpp"
 #include "touchpad_input.hpp"
 // #include "wifi_ap.hpp"
 // #include "wifi_sta.hpp"
@@ -82,6 +83,9 @@ public:
 
   /// Alias for the touchpad data used by the Tab5 touchpad
   using TouchpadData = espp::TouchpadData;
+
+  /// Alias for the RTC used by the Tab5
+  using Rtc = espp::Rx8130ce<>;
 
   /// Alias the IMU used by the Tab5
   using Imu = espp::Bmi270<espp::bmi270::Interface::I2C>;
@@ -345,15 +349,28 @@ public:
   /// \return True if time was set successfully
   bool set_rtc_time(uint64_t unix_timestamp);
 
+  /// Set the RTC time
+  /// \param time The time to set
+  /// \return True if time was set successfully
+  bool set_rtc_time(const std::tm &time);
+
+  /// Get the RTC time
+  /// \param time The time structure to fill
+  /// \return True if time was retrieved successfully
+  bool get_rtc_time(std::tm &time);
+
   /// Get the RTC time
   /// \return Unix timestamp, or 0 if RTC not initialized
-  uint64_t get_rtc_time();
+  uint64_t get_unix_time();
 
   /// Enable RTC wake-up interrupt
   /// \param seconds_from_now Seconds from now to wake up
-  /// \param callback Function to call on wake-up
   /// \return True if wake-up was set successfully
-  bool set_rtc_wakeup(uint32_t seconds_from_now, std::function<void()> callback = nullptr);
+  bool set_rtc_wakeup(uint32_t seconds_from_now);
+
+  /// Get the RTC instance
+  /// \return Shared pointer to the RTC
+  std::shared_ptr<Rtc> rtc() const { return rtc_; }
 
   /////////////////////////////////////////////////////////////////////////////
   // Buttons & GPIO
@@ -756,7 +773,7 @@ protected:
 
   // RTC
   std::atomic<bool> rtc_initialized_{false};
-  std::function<void()> rtc_wakeup_callback_{nullptr};
+  std::shared_ptr<Rtc> rtc_;
 
   // Display state
   std::shared_ptr<Display<Pixel>> display_;

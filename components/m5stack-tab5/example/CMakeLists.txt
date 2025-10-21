@@ -9,7 +9,9 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 set(EXTRA_COMPONENT_DIRS
   "../"
   "../../../components/base_component"
+  "../../../components/base_peripheral"
   # "../../../components/ble_gatt_server"
+  "../../../components/bmi270"
   # "../../../components/esp-nimble-cpp"
   "../../../components/format"
   "../../../components/logger"
@@ -23,14 +25,13 @@ set(EXTRA_COMPONENT_DIRS
   "../../../components/i2c"
   "../../../components/ina226"
   "../../../components/input_drivers"
+  "../../../components/interrupt"
   "../../../components/led"
   "../../../components/lvgl"
   "../../../components/math"
-  "../../../components/interrupt"
+  "../../../components/rx8130ce"
   "../../../components/pi4ioe5v"
   "../../../components/task"
-  "../../../components/bmi270"
-  "../../../components/base_peripheral"
 )
 
 set(

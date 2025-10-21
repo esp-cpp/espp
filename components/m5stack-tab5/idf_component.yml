@@ -15,6 +15,7 @@ dependencies:
   espp/input_drivers: ">=1.0"
   espp/interrupt: ">=1.0"
   espp/pi4ioe5v: ">=1.0"
+  espp/rx8130ce: ">=1.0"
   espp/task: ">=1.0"
   # espp/wifi: ">=1.0"
 targets:

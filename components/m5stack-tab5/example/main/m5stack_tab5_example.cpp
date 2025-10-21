@@ -158,6 +158,39 @@ extern "C" void app_main(void) {
     logger.warn("Failed to initialize uSD card, there may not be a uSD card inserted!");
   }
 
+  logger.info("Initializing RTC...");
+  // initialize the RTC
+  if (!tab5.initialize_rtc()) {
+    logger.error("Failed to initialize RTC!");
+    return;
+  }
+
+  auto current_time = std::tm{};
+  if (!tab5.get_rtc_time(current_time)) {
+    logger.error("Failed to get RTC time");
+    return;
+  }
+
+  // only set the time if the year is before 2024
+  if (current_time.tm_year < 124) {
+    // set the RTC time to a known value (2024-01-15 14:30:45)
+    // Set time using std::tm
+    std::tm time = {};
+    time.tm_year = 124; // 2024 - 1900
+    time.tm_mon = 0;    // January (0-based)
+    time.tm_mday = 15;  // 15th
+    time.tm_hour = 14;  // 2 PM
+    time.tm_min = 30;
+    time.tm_sec = 45;
+    time.tm_wday = 1; // Monday
+    if (!tab5.set_rtc_time(time)) {
+      logger.error("Failed to set RTC time");
+      return;
+    }
+  } else {
+    logger.info("RTC time is already set to a valid value {:%Y-%m-%d %H:%M:%S}", current_time);
+  }
+
   logger.info("Initializing battery management...");
   // initialize battery monitoring
   if (!tab5.initialize_battery_monitoring()) {
@@ -306,9 +339,21 @@ extern "C" void app_main(void) {
          static auto &tab5 = espp::M5StackTab5::get();
          static auto imu = tab5.imu();
 
+         //////////////////////////////////////////////////////////////////////////
+         // Update the Date/Time from the RTC
+         //////////////////////////////////////////////////////////////////////////
+         std::tm rtc_time;
+         std::string rtc_text = "";
+         if (tab5.get_rtc_time(rtc_time)) {
+           rtc_text = fmt::format("\n{:%Y-%m-%d %H:%M:%S}\n", rtc_time);
+         }
+
+         //////////////////////////////////////////////////////////////////////////
+         // Update the battery status
+         //////////////////////////////////////////////////////////////////////////
          auto battery_status = tab5.read_battery_status();
          std::string battery_text =
-             fmt::format("Battery: {:0.2f} V, {:0.1f} mA, {:0.1f} %, Charging: {}\n",
+             fmt::format("\nBattery: {:0.2f} V, {:0.1f} mA, {:0.1f} %, Charging: {}\n",
                          battery_status.voltage_v, battery_status.current_ma,
                          battery_status.charge_percent, battery_status.is_charging ? "Yes" : "No");
 
@@ -318,6 +363,9 @@ extern "C" void app_main(void) {
          float dt = (t1 - t0) / 1'000'000.0f; // convert us to s
          t0 = t1;
 
+         //////////////////////////////////////////////////////////////////////////
+         // Update the IMU data
+         //////////////////////////////////////////////////////////////////////////
          std::error_code ec;
          // update the imu data
          if (!imu->update(dt, ec)) {
@@ -347,17 +395,14 @@ extern "C" void app_main(void) {
            gravity_vector.y = -gravity_vector.y;
          }
 
-         std::string text = fmt::format("{}\n\n\n\n\n", label_text);
-         text += "IMU Data:\n";
-         text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
-         text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", espp::deg_to_rad(gyro.x),
-                             espp::deg_to_rad(gyro.y), espp::deg_to_rad(gyro.z));
-         text += fmt::format("Angle: {:03.2f} {:03.2f}\n", espp::rad_to_deg(orientation.roll),
-                             espp::rad_to_deg(orientation.pitch));
-         text += fmt::format("Temp: {:02.1f} C\n", temp);
-         // separator for battery
-         text += "\nBattery Data:\n";
-         text += battery_text;
+         // separator for imu
+         std::string imu_text = "\nIMU Data:\n";
+         imu_text += fmt::format("Accel: {:02.2f} {:02.2f} {:02.2f}\n", accel.x, accel.y, accel.z);
+         imu_text += fmt::format("Gyro: {:03.2f} {:03.2f} {:03.2f}\n", espp::deg_to_rad(gyro.x),
+                                 espp::deg_to_rad(gyro.y), espp::deg_to_rad(gyro.z));
+         imu_text += fmt::format("Angle: {:03.2f} {:03.2f}\n", espp::rad_to_deg(orientation.roll),
+                                 espp::rad_to_deg(orientation.pitch));
+         imu_text += fmt::format("Temp: {:02.1f} C\n", temp);
 
          // use the pitch to to draw a line on the screen indiating the
          // direction from the center of the screen to "down"
@@ -407,6 +452,11 @@ extern "C" void app_main(void) {
          line_points1[0].y = y0;
          line_points1[1].x = x1;
          line_points1[1].y = y1;
+
+         std::string text = fmt::format("{}\n\n\n\n\n", label_text);
+         text += battery_text;
+         text += rtc_text;
+         text += imu_text;
 
          std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
          lv_label_set_text(label, text.c_str());
