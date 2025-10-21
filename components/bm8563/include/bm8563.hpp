@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ctime>
 #include <functional>
 
 #include "base_peripheral.hpp"
@@ -96,13 +97,79 @@ public:
     }
   }
 
-  /// @brief Get the date and time.
+  /////////////////////////////////////////////////////////////////////////////
+  // std::tm based APIs (recommended for portability)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// @brief Set the time using std::tm structure
+  /// @param time The time to set
+  /// @param ec The error code to set if an error occurs
+  /// @return True if the time was set successfully, false otherwise
+  bool set_time(const std::tm &time, std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
+    // Validate time values
+    if (time.tm_year < 0 || time.tm_year > 199 || // Years 1900-2099
+        time.tm_mon < 0 || time.tm_mon > 11 || time.tm_mday < 1 || time.tm_mday > 31 ||
+        time.tm_hour < 0 || time.tm_hour > 23 || time.tm_min < 0 || time.tm_min > 59 ||
+        time.tm_sec < 0 || time.tm_sec > 59) {
+      ec = std::make_error_code(std::errc::invalid_argument);
+      return false;
+    }
+
+    // Convert std::tm to device-specific format and set
+    DateTime dt;
+    dt.date.year = time.tm_year + 1900;
+    dt.date.month = time.tm_mon + 1;
+    dt.date.weekday = time.tm_wday;
+    dt.date.day = time.tm_mday;
+    dt.time.hour = time.tm_hour;
+    dt.time.minute = time.tm_min;
+    dt.time.second = time.tm_sec;
+
+    set_date_time(dt, ec);
+    return !ec;
+  }
+
+  /// @brief Get the time using std::tm structure
+  /// @param ec The error code to set if an error occurs
+  /// @return The time from the device
+  std::tm get_time(std::error_code &ec) {
+    std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+
+    auto dt = get_date_time(ec);
+    if (ec) {
+      return {};
+    }
+
+    std::tm time = {};
+    time.tm_sec = dt.time.second;
+    time.tm_min = dt.time.minute;
+    time.tm_hour = dt.time.hour;
+    time.tm_mday = dt.date.day;
+    time.tm_mon = dt.date.month - 1;
+    time.tm_year = dt.date.year - 1900;
+    time.tm_wday = dt.date.weekday;
+    time.tm_yday = -1;  // Let mktime calculate it
+    time.tm_isdst = -1; // Let system determine DST
+
+    // Normalize the time structure
+    mktime(&time);
+
+    return time;
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Device-specific APIs (for backward compatibility)
+  /////////////////////////////////////////////////////////////////////////////
+
+  /// @brief Get the date and time (device-specific format).
   /// @param ec The error code.
   /// @return The date and time.
   DateTime get_date_time(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     DateTime dt;
-    dt.time = get_time(ec);
+    dt.time = get_time_device(ec);
     if (ec)
       return {};
     dt.date = get_date(ec);
@@ -111,7 +178,7 @@ public:
     return dt;
   }
 
-  /// @brief Set the date and time.
+  /// @brief Set the date and time (device-specific format).
   /// @param dt The date and time.
   /// @param ec The error code.
   void set_date_time(const DateTime &dt, std::error_code &ec) {
@@ -119,10 +186,10 @@ public:
     set_date(dt.date, ec);
     if (ec)
       return;
-    set_time(dt.time, ec);
+    set_time_device(dt.time, ec);
   }
 
-  /// @brief Get the date.
+  /// @brief Get the date (device-specific format).
   /// @param ec The error code.
   /// @return The date.
   Date get_date(std::error_code &ec) {
@@ -141,7 +208,7 @@ public:
     return d;
   }
 
-  /// @brief Set the date.
+  /// @brief Set the date (device-specific format).
   /// @param d The date.
   /// @param ec The error code.
   void set_date(const Date &d, std::error_code &ec) {
@@ -152,10 +219,10 @@ public:
     write_many_to_register((uint8_t)Registers::DATE, data, 4, ec);
   }
 
-  /// @brief Get the time.
+  /// @brief Get the time (device-specific format).
   /// @param ec The error code.
   /// @return The time.
-  Time get_time(std::error_code &ec) {
+  Time get_time_device(std::error_code &ec) {
     logger_.info("getting time");
     uint8_t data[3];
     read_many_from_register((uint8_t)Registers::TIME, data, 3, ec);
@@ -169,10 +236,10 @@ public:
     return t;
   }
 
-  /// @brief Set the time.
+  /// @brief Set the time (device-specific format).
   /// @param t The time.
   /// @param ec The error code.
-  void set_time(const Time &t, std::error_code &ec) {
+  void set_time_device(const Time &t, std::error_code &ec) {
     logger_.info("Setting time");
     const uint8_t data[] = {decimal_to_bcd(t.second), decimal_to_bcd(t.minute),
                             decimal_to_bcd(t.hour)};

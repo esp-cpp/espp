@@ -1,7 +1,9 @@
 BM8563
 ******
 
-The `Bm8563` component provides a driver for the Bm8563 RTC chip.
+The `Bm8563` component provides a driver for the BM8563 RTC chip.
+
+This component supports both **std::tm based APIs** for portability across different RTC chips, and **device-specific APIs** for backward compatibility and accessing chip-specific features.
 
 .. ------------------------------- Example -------------------------------------
 
