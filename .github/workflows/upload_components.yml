@@ -104,6 +104,7 @@ jobs:
             components/rmt
             components/rtsp
             components/runqueue
+            components/rx8130ce
             components/seeed-studio-round-display
             components/serialization
             components/socket

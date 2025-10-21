@@ -6,3 +6,4 @@ RTC APIs
 
     bm8563
     pcf85063
+    rx8130ce
