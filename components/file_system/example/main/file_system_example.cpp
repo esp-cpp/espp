@@ -214,11 +214,13 @@ extern "C" void app_main(void) {
     fs::path file = sandbox / fs::path{test_file};
 
     // write to a file
-    std::ofstream ofs(file);
-    ofs << file_contents;
-    ofs.close();
-    ofs.flush();
-    logger.info("Wrote '{}' to {}", file_contents, file.string());
+    {
+      std::ofstream ofs(file);
+      ofs << file_contents;
+      ofs.close();
+      ofs.flush();
+      logger.info("Wrote '{}' to {}", file_contents, file.string());
+    }
 
     // Get file size
     size_t file_size = fs::file_size(file, ec);
@@ -230,17 +232,65 @@ extern "C" void app_main(void) {
     }
 
     // read from a file
-    std::ifstream ifs(file, std::ios::in | std::ios::binary | std::ios::ate); // at the end
-    // ifstream::pos_type file_size = ifs.tellg(); // an alternate way to get size
-    ifs.seekg(0, std::ios::beg);
-    // read bytes
-    std::vector<char> file_bytes(file_size);
-    ifs.read(file_bytes.data(), file_size);
-    // convert bytes to string_view
-    std::string_view file_string(file_bytes.data(), file_size);
-    logger.info("Read bytes from file: {}", file_bytes);
-    logger.info("Read string from file: {}", file_string);
-    ifs.close();
+    {
+      std::ifstream ifs(file, std::ios::in | std::ios::binary);
+      // you can also get size if you use std::ios::ate flag:
+      // ifstream::pos_type file_size = ifs.tellg();
+      ifs.seekg(0, std::ios::beg);
+      // read bytes
+      file_size = fs::file_size(file, ec);
+      std::vector<char> file_bytes(file_size);
+      ifs.read(file_bytes.data(), file_size);
+      // convert bytes to string_view
+      std::string_view file_string(file_bytes.data(), file_size);
+      logger.info("Read bytes from file: {}", file_bytes);
+      logger.info("Read string from file: {}", file_string);
+      ifs.close();
+    }
+
+    // append to the file
+    {
+      std::ofstream ofs(file, std::ios::out | std::ios::binary | std::ios::app);
+      ofs << " - Appended!";
+      logger.info("Appended file");
+      ofs.close();
+    }
+
+    // read from an appended file
+    {
+      std::ifstream ifs(file, std::ios::in | std::ios::binary);
+      // read bytes
+      file_size = fs::file_size(file, ec);
+      std::vector<char> file_bytes(file_size);
+      ifs.read(file_bytes.data(), file_size);
+      // convert bytes to string_view
+      std::string_view file_string(file_bytes.data(), file_size);
+      logger.info("Read bytes from appended file: {}", file_bytes);
+      logger.info("Read string from appended file: {}", file_string);
+      ifs.close();
+    }
+
+    // overwrite (truncate) the file
+    {
+      std::ofstream ofs(file, std::ios::out | std::ios::binary | std::ios::trunc);
+      ofs << "Truncated!";
+      logger.info("Overwrote file");
+      ofs.close();
+    }
+
+    // read from a file (again)
+    {
+      std::ifstream ifs(file, std::ios::in | std::ios::binary);
+      // read bytes
+      file_size = fs::file_size(file, ec);
+      std::vector<char> file_bytes(file_size);
+      ifs.read(file_bytes.data(), file_size);
+      // convert bytes to string_view
+      std::string_view file_string(file_bytes.data(), file_size);
+      logger.info("Read bytes from truncated / overwritten file: {}", file_bytes);
+      logger.info("Read string from truncated / overwritten file: {}", file_string);
+      ifs.close();
+    }
 
     // rename the file
     fs::path file2 = sandbox / "test2.csv";
