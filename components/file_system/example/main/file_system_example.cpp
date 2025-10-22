@@ -233,8 +233,9 @@ extern "C" void app_main(void) {
 
     // read from a file
     {
-      std::ifstream ifs(file, std::ios::in | std::ios::binary | std::ios::ate); // at the end
-      // ifstream::pos_type file_size = ifs.tellg(); // an alternate way to get size
+      std::ifstream ifs(file, std::ios::in | std::ios::binary);
+      // you can also get size if you use std::ios::ate flag:
+      // ifstream::pos_type file_size = ifs.tellg();
       ifs.seekg(0, std::ios::beg);
       // read bytes
       file_size = fs::file_size(file, ec);
@@ -249,8 +250,7 @@ extern "C" void app_main(void) {
 
     // append to the file
     {
-      std::ofstream ofs(file, std::ios::out | std::ios::binary | std::ios::app |
-                                  std::ios::ate); // at the end
+      std::ofstream ofs(file, std::ios::out | std::ios::binary | std::ios::app);
       ofs << " - Appended!";
       logger.info("Appended file");
       ofs.close();
@@ -258,9 +258,7 @@ extern "C" void app_main(void) {
 
     // read from an appended file
     {
-      std::ifstream ifs(file, std::ios::in | std::ios::binary | std::ios::ate); // at the end
-      // ifstream::pos_type file_size = ifs.tellg(); // an alternate way to get size
-      ifs.seekg(0, std::ios::beg);
+      std::ifstream ifs(file, std::ios::in | std::ios::binary);
       // read bytes
       file_size = fs::file_size(file, ec);
       std::vector<char> file_bytes(file_size);
@@ -274,8 +272,7 @@ extern "C" void app_main(void) {
 
     // overwrite (truncate) the file
     {
-      std::ofstream ofs(file, std::ios::out | std::ios::binary | std::ios::trunc |
-                                  std::ios::ate); // at the end
+      std::ofstream ofs(file, std::ios::out | std::ios::binary | std::ios::trunc);
       ofs << "Truncated!";
       logger.info("Overwrote file");
       ofs.close();
@@ -283,9 +280,7 @@ extern "C" void app_main(void) {
 
     // read from a file (again)
     {
-      std::ifstream ifs(file, std::ios::in | std::ios::binary | std::ios::ate); // at the end
-      // ifstream::pos_type file_size = ifs.tellg(); // an alternate way to get size
-      ifs.seekg(0, std::ios::beg);
+      std::ifstream ifs(file, std::ios::in | std::ios::binary);
       // read bytes
       file_size = fs::file_size(file, ec);
       std::vector<char> file_bytes(file_size);
