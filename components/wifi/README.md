@@ -9,11 +9,24 @@ to WiFi-enabled devices.
 **Table of Contents**
 
 - [WiFi Component](#wifi-component)
+  - [WiFi Singleton](#wifi-singleton)
   - [WiFi Access Point (AP)](#wifi-access-point-ap)
   - [WiFi Station (STA)](#wifi-station-sta)
   - [Example](#example)
 
 <!-- markdown-toc end -->
+
+## WiFi Singleton
+
+The `espp::Wifi` singleton provides a unified interface for managing multiple
+WiFi access points and stations. You can register multiple AP and STA
+configurations and switch between them dynamically.
+
+Key features:
+- Register multiple AP and STA configurations with unique names
+- Switch between registered configurations
+- Access active or specific AP/STA instances
+- Remove configurations when no longer needed
 
 ## WiFi Access Point (AP)
 

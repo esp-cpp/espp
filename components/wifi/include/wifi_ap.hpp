@@ -9,6 +9,8 @@
 #include "nvs_flash.h"
 
 #include "base_component.hpp"
+#include "wifi.hpp"
+#include "wifi_base.hpp"
 #include "wifi_format_helpers.hpp"
 
 namespace espp {
@@ -25,7 +27,7 @@ namespace espp {
  * \section wifiap_ex1 WiFi Access Point Example
  * \snippet wifi_example.cpp wifi ap example
  */
-class WifiAp : public BaseComponent {
+class WifiAp : public WifiBase {
 public:
   /**
    * @brief Configuration structure for the WiFi Access Point (AP)
@@ -52,45 +54,34 @@ public:
   };
 
   /**
+   * @brief Initialize the WiFi Station (STA)
+   * @param config WifiSta::Config structure with initialization information.
+   */
+  explicit WifiAp(const Config &config);
+
+  /**
    * @brief Initialize the WiFi Access Point (AP)
    * @param config WifiAp::Config structure with initialization information.
+   * @param netif Pointer to the AP network interface (obtained from Wifi singleton)
    */
-  explicit WifiAp(const Config &config)
-      : BaseComponent("WifiAp", config.log_level) {
+  explicit WifiAp(const Config &config, esp_netif_t *netif)
+      : WifiBase("WifiAp", config.log_level, netif) {
     // Code below is modified from:
     // https://github.com/espressif/esp-idf/blob/master/examples/wifi/getting_started/softAP/main/softap_example_main.c
-    // NOTE: Init phase
-    esp_err_t err;
-    logger_.debug("Initializing network interfaces");
-    err = esp_netif_init();
-    if (err != ESP_OK) {
-      logger_.error("Could not initialize esp_netif: {}", err);
-    }
-    logger_.debug("Creating event loop");
-    err = esp_event_loop_create_default();
-    if (err != ESP_OK) {
-      logger_.error("Could not create default event loop: {}", err);
-    }
 
-    logger_.debug("Creating default WiFi AP");
-    netif_ = esp_netif_create_default_wifi_ap();
     if (netif_ == nullptr) {
-      logger_.error("Could not create default WiFi AP");
+      logger_.error("Network interface is null - WiFi stack may not be initialized");
+      return;
     }
 
     // NOTE: Configure phase
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    logger_.debug("Initializing WiFi");
-    err = esp_wifi_init(&cfg);
-    if (err != ESP_OK) {
-      logger_.error("Could not init  wifi: {}", err);
-    }
+    esp_err_t err;
 
     logger_.debug("Registering event handler");
     err = esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiAp::event_handler,
                                               this, &event_handler_instance_);
     if (err != ESP_OK) {
-      logger_.error("Could not register wifi event handler: {}", err);
+      logger_.error("Could not register wifi event handler: {}", esp_err_to_name(err));
     }
 
     wifi_config_t wifi_config;
@@ -107,26 +98,26 @@ public:
     logger_.debug("Setting mode to AP");
     err = esp_wifi_set_mode(WIFI_MODE_AP);
     if (err != ESP_OK) {
-      logger_.error("Could not set WiFi to AP: {}", err);
+      logger_.error("Could not set WiFi to AP: {}", esp_err_to_name(err));
     }
 
     logger_.debug("Setting WiFi config");
     err = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
     if (err != ESP_OK) {
-      logger_.error("Could not create default event loop: {}", err);
+      logger_.error("Could not create default event loop: {}", esp_err_to_name(err));
     }
 
     logger_.debug("Setting WiFi phy rate to {}", config.phy_rate);
     err = esp_wifi_config_80211_tx_rate(WIFI_IF_AP, config.phy_rate);
     if (err != ESP_OK) {
-      logger_.error("Could not set WiFi PHY rate: {}", err);
+      logger_.error("Could not set WiFi PHY rate: {}", esp_err_to_name(err));
     }
 
     // NOTE: Start phase
     logger_.debug("Starting WiFi");
     err = esp_wifi_start();
     if (err != ESP_OK) {
-      logger_.error("Could not create default event loop: {}", err);
+      logger_.error("Could not create default event loop: {}", esp_err_to_name(err));
     }
     logger_.info("WiFi AP started, SSID: '{}'", config.ssid);
   }
@@ -143,25 +134,17 @@ public:
     err = esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID,
                                                 event_handler_instance_);
     if (err != ESP_OK) {
-      logger_.error("Could not unregister event handler: {}", err);
+      logger_.error("Could not unregister event handler: {}", esp_err_to_name(err));
     }
     // NOTE: Deinit phase
     // stop the wifi
     logger_.debug("Stopping WiFi");
     err = esp_wifi_stop();
-    if (err != ESP_OK) {
-      logger_.error("Could not stop WiFiAp: {}", err);
+    if (err != ESP_OK && err != ESP_ERR_WIFI_NOT_INIT) {
+      logger_.error("Could not stop WiFiAp: {}", esp_err_to_name(err));
     }
-    // deinit the subsystem
-    logger_.debug("Deinit WiFi subsystem");
-    err = esp_wifi_deinit();
-    if (err != ESP_OK) {
-      logger_.error("Could not deinit WiFiAp: {}", err);
-    }
-    logger_.info("WiFi stopped");
-    // destroy (free the memory)
-    logger_.debug("Destroying default WiFi AP");
-    esp_netif_destroy_default_wifi(netif_);
+    logger_.info("WiFi AP stopped");
+    // Note: WiFi deinit and netif destruction are handled by Wifi singleton
   }
 
   /**
@@ -172,38 +155,9 @@ public:
   bool get_saved_config(wifi_config_t &wifi_config) {
     esp_err_t err = esp_wifi_get_config(WIFI_IF_AP, &wifi_config);
     if (err != ESP_OK) {
-      logger_.error("Could not get WiFi AP config: {}", err);
+      logger_.error("Could not get WiFi AP config: {}", esp_err_to_name(err));
       return false;
     }
-    return true;
-  }
-
-  /**
-   * @brief Get the current hostname of the WiFi Access Point (AP)
-   * @return Current hostname of the access point as a string.
-   */
-  std::string get_hostname() {
-    const char *hostname;
-    esp_err_t err = esp_netif_get_hostname(netif_, &hostname);
-    if (err != ESP_OK) {
-      logger_.error("Could not get hostname: {}", err);
-      return "";
-    }
-    return std::string(hostname);
-  }
-
-  /**
-   * @brief Set the hostname for the WiFi Access Point (AP)
-   * @param hostname New hostname for the access point.
-   * @return True if the operation was successful, false otherwise.
-   */
-  bool set_hostname(const std::string &hostname) {
-    esp_err_t err = esp_netif_set_hostname(netif_, hostname.c_str());
-    if (err != ESP_OK) {
-      logger_.error("Could not set hostname: {}", err);
-      return false;
-    }
-    logger_.info("Hostname set to '{}'", hostname);
     return true;
   }
 
@@ -215,7 +169,7 @@ public:
     uint8_t mac[6];
     esp_err_t err = esp_wifi_get_mac(WIFI_IF_AP, mac);
     if (err != ESP_OK) {
-      logger_.error("Could not get MAC address: {}", err);
+      logger_.error("Could not get MAC address: {}", esp_err_to_name(err));
       return {};
     }
     return std::vector<uint8_t>(mac, mac + sizeof(mac));
@@ -237,40 +191,16 @@ public:
   }
 
   /**
-   * @brief Get the IP address of the WiFi Access Point (AP)
-   * @return IP address of the AP as a string.
+   * @brief Check if any stations are connected to the WiFi Access Point (AP)
+   * @return True if at least one station is connected, false otherwise.
    */
-  std::string get_ip_address() {
-    esp_netif_ip_info_t ip_info;
-    esp_err_t err = esp_netif_get_ip_info(netif_, &ip_info);
-    if (err != ESP_OK) {
-      logger_.error("Could not get IP address: {}", err);
-      return "";
-    }
-    char ip_str[16];
-    snprintf(ip_str, sizeof(ip_str), IPSTR, IP2STR(&ip_info.ip));
-    return std::string(ip_str);
-  }
-
-  /**
-   * @brief Check if the WiFi Access Point (AP) is connected to a station
-   * @return True if connected, false otherwise.
-   */
-  bool is_connected() {
-    wifi_sta_list_t sta_list;
-    esp_err_t err = esp_wifi_ap_get_sta_list(&sta_list);
-    if (err != ESP_OK) {
-      logger_.error("Could not get station list: {}", err);
-      return false;
-    }
-    return sta_list.num > 0;
-  }
+  bool is_connected() const override { return get_num_connected_stations() > 0; }
 
   /**
    * @brief Get the SSID of the WiFi Access Point (AP)
    * @return SSID of the AP as a string.
    */
-  std::string get_ssid() {
+  std::string get_ssid() override {
     wifi_config_t wifi_config;
     if (!get_saved_config(wifi_config)) {
       return "";
@@ -283,13 +213,14 @@ public:
    * @brief Get the number of connected stations to this AP
    * @return Number of connected stations.
    */
-  uint8_t get_num_connected_stations() {
+  uint8_t get_num_connected_stations() const {
     wifi_sta_list_t sta_list;
     esp_err_t err = esp_wifi_ap_get_sta_list(&sta_list);
     if (err != ESP_OK) {
-      logger_.error("Could not get station list: {}", err);
+      logger_.error("Could not get station list: {}", esp_err_to_name(err));
       return 0;
     }
+    logger_.debug("Number of connected stations: {}", sta_list.num);
     return sta_list.num;
   }
 
@@ -302,7 +233,7 @@ public:
     wifi_sta_list_t sta_list;
     esp_err_t err = esp_wifi_ap_get_sta_list(&sta_list);
     if (err != ESP_OK) {
-      logger_.error("Could not get station list: {}", err);
+      logger_.error("Could not get station list: {}", esp_err_to_name(err));
       return rssis;
     }
 
@@ -321,7 +252,7 @@ public:
     wifi_sta_list_t sta_list;
     esp_err_t err = esp_wifi_ap_get_sta_list(&sta_list);
     if (err != ESP_OK) {
-      logger_.error("Could not get station list: {}", err);
+      logger_.error("Could not get station list: {}", esp_err_to_name(err));
       return ips;
     }
 
@@ -330,7 +261,7 @@ public:
     wifi_sta_mac_ip_list_t sta_list_with_ip;
     err = esp_wifi_ap_get_sta_list_with_ip(&sta_list, &sta_list_with_ip);
     if (err != ESP_OK) {
-      logger_.error("Could not get station list with IPs: {}", err);
+      logger_.error("Could not get station list with IPs: {}", esp_err_to_name(err));
       return ips;
     }
 
@@ -352,7 +283,7 @@ public:
     wifi_sta_list_t sta_list;
     esp_err_t err = esp_wifi_ap_get_sta_list(&sta_list);
     if (err != ESP_OK) {
-      logger_.error("Could not get station list: {}", err);
+      logger_.error("Could not get station list: {}", esp_err_to_name(err));
       return stations;
     }
 
@@ -360,7 +291,7 @@ public:
     wifi_sta_mac_ip_list_t sta_list_with_ip;
     err = esp_wifi_ap_get_sta_list_with_ip(&sta_list, &sta_list_with_ip);
     if (err != ESP_OK) {
-      logger_.error("Could not get station list with IPs: {}", err);
+      logger_.error("Could not get station list with IPs: {}", esp_err_to_name(err));
       return stations;
     }
 
@@ -382,10 +313,10 @@ public:
    * @brief Start the WiFi Access Point (AP)
    * @return True if the operation was successful, false otherwise.
    */
-  bool start() {
+  bool start() override {
     esp_err_t err = esp_wifi_start();
     if (err != ESP_OK) {
-      logger_.error("Could not start WiFi AP: {}", err);
+      logger_.error("Could not start WiFi AP: {}", esp_err_to_name(err));
       return false;
     }
     logger_.info("WiFi AP started");
@@ -396,10 +327,10 @@ public:
    * @brief Stop the WiFi Access Point (AP)
    * @return True if the operation was successful, false otherwise.
    */
-  bool stop() {
+  bool stop() override {
     esp_err_t err = esp_wifi_stop();
     if (err != ESP_OK) {
-      logger_.error("Could not stop WiFi AP: {}", err);
+      logger_.error("Could not stop WiFi AP: {}", esp_err_to_name(err));
       return false;
     }
     logger_.info("WiFi AP stopped");
@@ -419,7 +350,7 @@ public:
     // get the current configuration
     esp_err_t err = esp_wifi_get_config(WIFI_IF_AP, &wifi_config);
     if (err != ESP_OK) {
-      logger_.error("Could not get current WiFi config: {}", err);
+      logger_.error("Could not get current WiFi config: {}", esp_err_to_name(err));
       return false;
     }
     memset(wifi_config.ap.ssid, 0, sizeof(wifi_config.ap.ssid));
@@ -437,7 +368,7 @@ public:
     // set the new configuration
     err = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
     if (err != ESP_OK) {
-      logger_.error("Could not set SSID and password: {}", err);
+      logger_.error("Could not set SSID and password: {}", esp_err_to_name(err));
       return false;
     }
     logger_.info("SSID and password updated to '{}'", ssid);
@@ -463,7 +394,6 @@ protected:
     }
   }
 
-  esp_netif_t *netif_{nullptr}; ///< Pointer to the default WiFi AP netif.
   esp_event_handler_instance_t event_handler_instance_;
 };
 } // namespace espp
