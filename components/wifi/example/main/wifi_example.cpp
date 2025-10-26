@@ -37,32 +37,20 @@ extern "C" void app_main(void) {
 
   {
     //! [wifi sta menu example]
-    auto &wifi = espp::Wifi::get();
-    if (!wifi.init()) {
-      logger.error("Failed to initialize WiFi stack");
-      return;
-    }
+    espp::WifiSta::Config config{.ssid = "",     // use whatever was saved to NVS (if any)
+                                 .password = "", // use whatever was saved to NVS (if any)
+                                 .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
+                                 .on_connected = nullptr,
+                                 .on_disconnected = nullptr,
+                                 .on_got_ip =
+                                     [&](ip_event_got_ip_t *eventdata) {
+                                       logger.info("got IP: {}.{}.{}.{}",
+                                                   IP2STR(&eventdata->ip_info.ip));
+                                     },
+                                 .log_level = espp::Logger::Verbosity::DEBUG};
 
-    wifi.register_sta("menu_sta",
-                      {.ssid = "",     // use whatever was saved to NVS (if any)
-                       .password = "", // use whatever was saved to NVS (if any)
-                       .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
-                       .on_connected = nullptr,
-                       .on_disconnected = nullptr,
-                       .on_got_ip =
-                           [&](ip_event_got_ip_t *eventdata) {
-                             logger.info("got IP: {}.{}.{}.{}", IP2STR(&eventdata->ip_info.ip));
-                           },
-                       .log_level = espp::Logger::Verbosity::DEBUG},
-                      true);
-
-    auto *wifi_sta = wifi.get_sta();
-    if (!wifi_sta) {
-      logger.error("Failed to get STA");
-      return;
-    }
-
-    auto sta_menu = espp::WifiStaMenu(*wifi_sta);
+    espp::WifiSta wifi_sta(config);
+    auto sta_menu = espp::WifiStaMenu(wifi_sta);
     cli::Cli cli(sta_menu.get());
     cli::SetColor();
     cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
@@ -70,66 +58,40 @@ extern "C" void app_main(void) {
     espp::Cli input(cli);
     input.SetInputHistorySize(10);
     input.Start();
-
-    wifi.deinit();
     //! [wifi sta menu example]
   }
 
   {
     logger.info("Starting WiFi STA example...");
     //! [wifi sta example]
-    auto &wifi = espp::Wifi::get();
-    if (!wifi.init()) {
-      logger.error("Failed to initialize WiFi stack");
-      return;
-    }
+    espp::WifiSta::Config config{.ssid = "",     // use whatever was saved to NVS (if any)
+                                 .password = "", // use whatever was saved to NVS (if any)
+                                 .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
+                                 .on_connected = nullptr,
+                                 .on_disconnected = nullptr,
+                                 .on_got_ip =
+                                     [&](ip_event_got_ip_t *eventdata) {
+                                       logger.info("got IP: {}.{}.{}.{}",
+                                                   IP2STR(&eventdata->ip_info.ip));
+                                     },
+                                 .log_level = espp::Logger::Verbosity::DEBUG};
 
-    wifi.register_sta("example_sta",
-                      {.ssid = "",     // use whatever was saved to NVS (if any)
-                       .password = "", // use whatever was saved to NVS (if any)
-                       .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
-                       .on_connected = nullptr,
-                       .on_disconnected = nullptr,
-                       .on_got_ip =
-                           [&](ip_event_got_ip_t *eventdata) {
-                             logger.info("got IP: {}.{}.{}.{}", IP2STR(&eventdata->ip_info.ip));
-                           },
-                       .log_level = espp::Logger::Verbosity::DEBUG},
-                      true);
-
-    auto *wifi_sta = wifi.get_sta();
-    if (!wifi_sta) {
-      logger.error("Failed to get STA");
-      return;
-    }
-
-    while (!wifi_sta->is_connected()) {
+    espp::WifiSta wifi_sta(config);
+    while (!wifi_sta.is_connected()) {
       std::this_thread::sleep_for(100ms);
     }
     //! [wifi sta example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
-    wifi.deinit();
     logger.info("WiFi STA example complete!");
   }
 
   {
     //! [wifi ap menu example]
-    auto &wifi = espp::Wifi::get();
-    if (!wifi.init()) {
-      logger.error("Failed to initialize WiFi stack");
-      return;
-    }
+    espp::WifiAp::Config config{.ssid = "ESP++ WiFi AP", .password = ""};
 
-    wifi.register_ap("menu_ap", {.ssid = "ESP++ WiFi AP", .password = ""}, true);
-
-    auto *wifi_ap = wifi.get_ap();
-    if (!wifi_ap) {
-      logger.error("Failed to get AP");
-      return;
-    }
-
-    auto ap_menu = espp::WifiApMenu(*wifi_ap);
+    espp::WifiAp wifi_ap(config);
+    auto ap_menu = espp::WifiApMenu(wifi_ap);
     cli::Cli cli(ap_menu.get());
     cli::SetColor();
     cli.ExitAction([](auto &out) { out << "Goodbye and thanks for all the fish.\n"; });
@@ -137,29 +99,19 @@ extern "C" void app_main(void) {
     espp::Cli input(cli);
     input.SetInputHistorySize(10);
     input.Start();
-
-    wifi.deinit();
     //! [wifi ap menu example]
   }
 
   {
     logger.info("Starting WiFi AP example...");
     //! [wifi ap example]
-    auto &wifi = espp::Wifi::get();
-    if (!wifi.init()) {
-      logger.error("Failed to initialize WiFi stack");
-      return;
-    }
-
-    wifi.register_ap("example_ap",
-                     {.ssid = CONFIG_ESP_WIFI_SSID,
-                      .password = CONFIG_ESP_WIFI_PASSWORD,
-                      .log_level = espp::Logger::Verbosity::DEBUG},
-                     true);
+    espp::WifiAp::Config config{.ssid = CONFIG_ESP_WIFI_SSID,
+                                .password = CONFIG_ESP_WIFI_PASSWORD,
+                                .log_level = espp::Logger::Verbosity::DEBUG};
+    espp::WifiAp wifi_ap(config);
     //! [wifi ap example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
-    wifi.deinit();
     logger.info("WiFi AP example complete!");
   }
 
@@ -340,6 +292,14 @@ extern "C" void app_main(void) {
 
     logger.info("WiFi singleton example complete!");
   }
+
+  // now that we're done with the examples, deinit the wifi stack
+  auto &wifi = espp::Wifi::get();
+  if (!wifi.deinit()) {
+    logger.error("Failed to deinitialize WiFi stack");
+    return;
+  }
+  logger.info("WiFi stack deinitialized");
 
   logger.info("WiFi example complete!");
 

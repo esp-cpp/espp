@@ -73,7 +73,10 @@ public:
    * @brief Initialize the WiFi Station (STA)
    * @param config WifiSta::Config structure with initialization information.
    */
-  explicit WifiSta(const Config &config);
+  explicit WifiSta(const Config &config)
+      : WifiBase("WifiSta", config.log_level) {
+    init(config);
+  }
 
   /**
    * @brief Initialize the WiFi Station (STA)
@@ -82,24 +85,7 @@ public:
    */
   explicit WifiSta(const Config &config, esp_netif_t *netif)
       : WifiBase("WifiSta", config.log_level, netif) {
-    // Code below is modified from:
-    // https://github.com/espressif/esp-idf/blob/1c84cfde14dcffdc77d086a5204ce8a548dce935/examples/wifi/getting_started/station/main/station_example_main.c
-
-    if (netif_ == nullptr) {
-      logger_.error("Network interface is null - WiFi stack may not be initialized");
-    }
-
-    if (!register_event_handlers()) {
-      logger_.error("Could not register event handlers");
-    }
-
-    if (!reconfigure(config)) {
-      logger_.error("Could not configure WiFi STA");
-    }
-
-    if (!start()) {
-      logger_.error("Could not start WiFi STA");
-    }
+    init(config);
   }
 
   /**
@@ -624,6 +610,8 @@ protected:
     }
     return true;
   }
+
+  void init(const Config &config);
 
   std::atomic<size_t> attempts_{0};
   std::atomic<size_t> num_retries_{0};

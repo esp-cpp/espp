@@ -56,7 +56,10 @@ public:
    * @brief Initialize the WiFi Station (STA)
    * @param config WifiSta::Config structure with initialization information.
    */
-  explicit WifiAp(const Config &config);
+  explicit WifiAp(const Config &config)
+      : WifiBase("WifiAp", config.log_level) {
+    init(config);
+  }
 
   /**
    * @brief Initialize the WiFi Access Point (AP)
@@ -65,60 +68,7 @@ public:
    */
   explicit WifiAp(const Config &config, esp_netif_t *netif)
       : WifiBase("WifiAp", config.log_level, netif) {
-    // Code below is modified from:
-    // https://github.com/espressif/esp-idf/blob/master/examples/wifi/getting_started/softAP/main/softap_example_main.c
-
-    if (netif_ == nullptr) {
-      logger_.error("Network interface is null - WiFi stack may not be initialized");
-      return;
-    }
-
-    // NOTE: Configure phase
-    esp_err_t err;
-
-    logger_.debug("Registering event handler");
-    err = esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiAp::event_handler,
-                                              this, &event_handler_instance_);
-    if (err != ESP_OK) {
-      logger_.error("Could not register wifi event handler: {}", esp_err_to_name(err));
-    }
-
-    wifi_config_t wifi_config;
-    memset(&wifi_config, 0, sizeof(wifi_config));
-    wifi_config.ap.ssid_len = (uint8_t)config.ssid.size();
-    wifi_config.ap.channel = config.channel;
-    wifi_config.ap.max_connection = config.max_number_of_stations;
-    memcpy(wifi_config.ap.ssid, config.ssid.data(), config.ssid.size());
-    memcpy(wifi_config.ap.password, config.password.data(), config.password.size());
-    if (config.password.size() == 0) {
-      wifi_config.ap.authmode = WIFI_AUTH_OPEN;
-    }
-
-    logger_.debug("Setting mode to AP");
-    err = esp_wifi_set_mode(WIFI_MODE_AP);
-    if (err != ESP_OK) {
-      logger_.error("Could not set WiFi to AP: {}", esp_err_to_name(err));
-    }
-
-    logger_.debug("Setting WiFi config");
-    err = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
-    if (err != ESP_OK) {
-      logger_.error("Could not create default event loop: {}", esp_err_to_name(err));
-    }
-
-    logger_.debug("Setting WiFi phy rate to {}", config.phy_rate);
-    err = esp_wifi_config_80211_tx_rate(WIFI_IF_AP, config.phy_rate);
-    if (err != ESP_OK) {
-      logger_.error("Could not set WiFi PHY rate: {}", esp_err_to_name(err));
-    }
-
-    // NOTE: Start phase
-    logger_.debug("Starting WiFi");
-    err = esp_wifi_start();
-    if (err != ESP_OK) {
-      logger_.error("Could not create default event loop: {}", esp_err_to_name(err));
-    }
-    logger_.info("WiFi AP started, SSID: '{}'", config.ssid);
+    init(config);
   }
 
   /**
@@ -127,22 +77,12 @@ public:
    * This will stop the WiFi AP and deinitialize the WiFi subsystem.
    */
   ~WifiAp() {
-    esp_err_t err;
-    // unregister our event handler
-    logger_.debug("Unregistering event handler");
-    err = esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID,
-                                                event_handler_instance_);
-    if (err != ESP_OK) {
-      logger_.error("Could not unregister event handler: {}", esp_err_to_name(err));
+    if (!unregister_event_handlers()) {
+      logger_.error("Could not unregister event handlers");
     }
-    // NOTE: Deinit phase
-    // stop the wifi
-    logger_.debug("Stopping WiFi");
-    err = esp_wifi_stop();
-    if (err != ESP_OK && err != ESP_ERR_WIFI_NOT_INIT) {
-      logger_.error("Could not stop WiFiAp: {}", esp_err_to_name(err));
+    if (!stop()) {
+      logger_.error("Could not stop WiFi AP");
     }
-    logger_.info("WiFi AP stopped");
     // Note: WiFi deinit and netif destruction are handled by Wifi singleton
   }
 
@@ -373,6 +313,7 @@ public:
    * @return True if the operation was successful, false otherwise.
    */
   bool start() override {
+    logger_.debug("Starting WiFi");
     esp_err_t err = esp_wifi_start();
     if (err != ESP_OK) {
       logger_.error("Could not start WiFi AP: {}", esp_err_to_name(err));
@@ -387,6 +328,7 @@ public:
    * @return True if the operation was successful, false otherwise.
    */
   bool stop() override {
+    logger_.debug("Stopping WiFi");
     esp_err_t err = esp_wifi_stop();
     if (err != ESP_OK) {
       logger_.error("Could not stop WiFi AP: {}", esp_err_to_name(err));
@@ -452,6 +394,30 @@ protected:
       logger_.info("Station leave, AID={}", event->aid); // MAC2STR(event->mac) MACSTR
     }
   }
+
+  bool register_event_handlers() {
+    logger_.debug("Registering event handler");
+    esp_err_t err = esp_event_handler_instance_register(
+        WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiAp::event_handler, this, &event_handler_instance_);
+    if (err != ESP_OK) {
+      logger_.error("Could not register wifi event handler: {}", esp_err_to_name(err));
+      return false;
+    }
+    return true;
+  }
+
+  bool unregister_event_handlers() {
+    logger_.debug("Unregistering event handler");
+    esp_err_t err = esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                                                          event_handler_instance_);
+    if (err != ESP_OK) {
+      logger_.error("Could not unregister wifi event handler: {}", esp_err_to_name(err));
+      return false;
+    }
+    return true;
+  }
+
+  void init(const Config &config);
 
   esp_event_handler_instance_t event_handler_instance_;
 };
