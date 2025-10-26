@@ -91,7 +91,7 @@ public:
   /**
    * @brief Stop the WiFi station and deinit the wifi subystem.
    */
-  ~WifiSta() {
+  ~WifiSta() override {
     // remove any callbacks
     logger_.debug("Destroying WiFiSta");
     connected_ = false;
@@ -297,12 +297,6 @@ public:
    * @param callback Callback to be called when the station gets an IP address.
    */
   void set_ip_callback(ip_callback callback) { ip_callback_ = callback; }
-
-  /**
-   * @brief Get the netif associated with this WiFi station.
-   * @return Pointer to the esp_netif_t associated with this WiFi station.
-   */
-  esp_netif_t *get_netif() const { return netif_; }
 
   /**
    * @brief Get the saved WiFi configuration.

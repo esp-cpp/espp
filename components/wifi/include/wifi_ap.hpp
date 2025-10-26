@@ -76,7 +76,7 @@ public:
    *
    * This will stop the WiFi AP and deinitialize the WiFi subsystem.
    */
-  ~WifiAp() {
+  ~WifiAp() override {
     if (!unregister_event_handlers()) {
       logger_.error("Could not unregister event handlers");
     }
@@ -118,7 +118,7 @@ public:
    * @brief Get the MAC address of the WiFi Access Point (AP)
    * @return MAC address of the AP as a string.
    */
-  std::string get_mac_address_string() {
+  std::string get_mac_address_string() override {
     std::vector<uint8_t> mac = get_mac_address();
     if (mac.empty()) {
       return "";

@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "esp_wifi.h"
 
@@ -158,7 +160,7 @@ public:
   /// @return Pointer to the esp_netif_t of the active interface, or nullptr if
   ///         no interface is active.
   esp_netif_t *get_active_netif() {
-    auto *active = get_active();
+    const auto *active = get_active();
     if (!active) {
       return nullptr;
     }
@@ -353,9 +355,8 @@ public:
   std::vector<std::string> get_registered_sta_names() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::vector<std::string> names;
-    for (const auto &pair : sta_configs_) {
-      names.push_back(pair.first);
-    }
+    std::transform(sta_configs_.begin(), sta_configs_.end(), std::back_inserter(names),
+                   [](const auto &pair) { return pair.first; });
     return names;
   }
 
@@ -364,9 +365,8 @@ public:
   std::vector<std::string> get_registered_ap_names() {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::vector<std::string> names;
-    for (const auto &pair : ap_configs_) {
-      names.push_back(pair.first);
-    }
+    std::transform(ap_configs_.begin(), ap_configs_.end(), std::back_inserter(names),
+                   [](const auto &pair) { return pair.first; });
     return names;
   }
 
@@ -587,10 +587,6 @@ protected:
     // Create or reconfigure AP
     if (!ap_) {
       ap_ = std::make_unique<WifiAp>(config, get_ap_netif());
-      if (!ap_) {
-        logger_.error("Failed to create WifiAp");
-        return false;
-      }
       // Don't need to start here since it's auto-started in constructor
     } else {
       // Reconfigure existing AP with full config
@@ -630,10 +626,6 @@ protected:
     // Create or reconfigure STA
     if (!sta_) {
       sta_ = std::make_unique<WifiSta>(config, get_sta_netif());
-      if (!sta_) {
-        logger_.error("Failed to create WifiSta");
-        return false;
-      }
       // Don't need to start here since it's auto-started in constructor
     } else {
       // Reconfigure existing STA with full config
