@@ -4,6 +4,7 @@ WiFi APIs
 .. toctree::
     :maxdepth: 1
 
+    wifi
     wifi_ap
     wifi_sta
     wifi_example

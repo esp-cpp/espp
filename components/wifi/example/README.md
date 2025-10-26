@@ -4,6 +4,13 @@ This example shows the use of the `espp::WifiSta` for connecting to existing
 wifi networks, and the `espp::WifiAp` for creating a wifi access point, both of
 which are provided by the `wifi` component.
 
+It also demonstrates how to use the `espp::Wifi` singleton class to manage both
+station and access point modes simultaneously.
+
+Finally, it provides a simple example of how to use the `espp::WifiStaMenu` and
+`espp::WifiApMenu` classes to configure wifi settings via the interactive CLI at
+runtime.
+
 ## How to use example
 
 ### Configure the project
