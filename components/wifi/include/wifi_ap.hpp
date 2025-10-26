@@ -53,8 +53,8 @@ public:
   };
 
   /**
-   * @brief Initialize the WiFi Station (STA)
-   * @param config WifiSta::Config structure with initialization information.
+   * @brief Initialize the WiFi Access Point (AP)
+   * @param config WifiAp::Config structure with initialization information.
    */
   explicit WifiAp(const Config &config)
       : WifiBase("WifiAp", config.log_level) {
