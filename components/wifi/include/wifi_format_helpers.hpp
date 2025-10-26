@@ -4,7 +4,7 @@
 
 #include "format.hpp"
 
-// for libfmt formtating of wifi_phy_rate_t
+// for libfmt formatting of wifi_phy_rate_t
 template <> struct fmt::formatter<wifi_phy_rate_t> : fmt::formatter<std::string> {
   template <typename FormatContext>
   auto format(const wifi_phy_rate_t &value, FormatContext &ctx) const -> decltype(ctx.out()) {
@@ -102,7 +102,7 @@ template <> struct fmt::formatter<wifi_phy_rate_t> : fmt::formatter<std::string>
   }
 };
 
-// for libfmt formtating of wifi_mode_t
+// for libfmt formatting of wifi_mode_t
 template <> struct fmt::formatter<wifi_mode_t> : fmt::formatter<std::string> {
   template <typename FormatContext>
   auto format(const wifi_mode_t &value, FormatContext &ctx) const -> decltype(ctx.out()) {
@@ -121,7 +121,7 @@ template <> struct fmt::formatter<wifi_mode_t> : fmt::formatter<std::string> {
   }
 };
 
-// for libfmt formtating of wifi_ps_type_t
+// for libfmt formatting of wifi_ps_type_t
 template <> struct fmt::formatter<wifi_ps_type_t> : fmt::formatter<std::string> {
   template <typename FormatContext>
   auto format(const wifi_ps_type_t &value, FormatContext &ctx) const -> decltype(ctx.out()) {
@@ -138,7 +138,7 @@ template <> struct fmt::formatter<wifi_ps_type_t> : fmt::formatter<std::string> 
   }
 };
 
-// for libfmt formtating of wifi_storage_t
+// for libfmt formatting of wifi_storage_t
 template <> struct fmt::formatter<wifi_storage_t> : fmt::formatter<std::string> {
   template <typename FormatContext>
   auto format(const wifi_storage_t &value, FormatContext &ctx) const -> decltype(ctx.out()) {

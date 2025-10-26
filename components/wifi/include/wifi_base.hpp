@@ -29,7 +29,7 @@ public:
     const char *hostname;
     esp_err_t err = esp_netif_get_hostname(netif_, &hostname);
     if (err != ESP_OK) {
-      logger_.error("Could not get hostname: {}", err);
+      logger_.error("Could not get hostname: {}", esp_err_to_name(err));
       return "";
     }
     return std::string(hostname);
@@ -43,7 +43,7 @@ public:
   virtual bool set_hostname(const std::string &hostname) {
     esp_err_t err = esp_netif_set_hostname(netif_, hostname.c_str());
     if (err != ESP_OK) {
-      logger_.error("Could not set hostname: {}", err);
+      logger_.error("Could not set hostname: {}", esp_err_to_name(err));
       return false;
     }
     logger_.info("Hostname set to '{}'", hostname);
@@ -68,7 +68,7 @@ public:
     logger_.info("Getting IP address...");
     esp_err_t err = esp_netif_get_ip_info(netif_, &ip_info);
     if (err != ESP_OK) {
-      logger_.error("Could not get IP address: {}", err);
+      logger_.error("Could not get IP address: {}", esp_err_to_name(err));
       return "";
     }
     return fmt::format("{}.{}.{}.{}", IP2STR(&ip_info.ip));
