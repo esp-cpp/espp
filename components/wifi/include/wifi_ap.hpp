@@ -441,11 +441,12 @@ namespace fmt {
 template <> struct formatter<espp::WifiAp::Config> : fmt::formatter<std::string> {
   template <typename FormatContext>
   auto format(const espp::WifiAp::Config &config, FormatContext &ctx) const {
-    return fmt::format_to(ctx.out(),
-                          "WifiAp::Config {{ ssid: '{}', password: '{}', phy_rate: {}, channel: "
-                          "{}, max_number_of_stations: {} }}",
-                          config.ssid, config.password, config.phy_rate, config.channel,
-                          config.max_number_of_stations);
+    return fmt::format_to(
+        ctx.out(),
+        "WifiAp::Config {{ ssid: '{}', password length: {}, phy_rate: {}, channel: "
+        "{}, max_number_of_stations: {} }}",
+        config.ssid, config.password.size(), config.phy_rate, config.channel,
+        config.max_number_of_stations);
   }
 };
 } // namespace fmt

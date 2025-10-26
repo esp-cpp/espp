@@ -632,11 +632,12 @@ template <> struct formatter<espp::WifiSta::Config> : fmt::formatter<std::string
   auto format(const espp::WifiSta::Config &config, FormatContext &ctx) const {
     return fmt::format_to(
         ctx.out(),
-        "WifiSta::Config {{ ssid: '{}', password: '{}', phy_rate: {}, num_connect_retries: {}, "
+        "WifiSta::Config {{ ssid: '{}', password length: {}, phy_rate: {}, num_connect_retries: "
+        "{}, "
         "channel: {}, set_ap_mac: {}, ap_mac: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} }}",
-        config.ssid, config.password, config.phy_rate, config.num_connect_retries, config.channel,
-        config.set_ap_mac, config.ap_mac[0], config.ap_mac[1], config.ap_mac[2], config.ap_mac[3],
-        config.ap_mac[4], config.ap_mac[5]);
+        config.ssid, config.password.size(), config.phy_rate, config.num_connect_retries,
+        config.channel, config.set_ap_mac, config.ap_mac[0], config.ap_mac[1], config.ap_mac[2],
+        config.ap_mac[3], config.ap_mac[4], config.ap_mac[5]);
   }
 };
 
