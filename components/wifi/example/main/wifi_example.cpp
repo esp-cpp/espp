@@ -43,19 +43,20 @@ extern "C" void app_main(void) {
       return;
     }
 
-    wifi.register_sta("menu_sta", {.ssid = "",     // use whatever was saved to NVS (if any)
-                                   .password = "", // use whatever was saved to NVS (if any)
-                                   .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
-                                   .on_connected = nullptr,
-                                   .on_disconnected = nullptr,
-                                   .on_got_ip =
-                                       [&](ip_event_got_ip_t *eventdata) {
-                                         logger.info("got IP: {}.{}.{}.{}",
-                                                     IP2STR(&eventdata->ip_info.ip));
-                                       },
-                                   .log_level = espp::Logger::Verbosity::DEBUG});
+    wifi.register_sta("menu_sta",
+                      {.ssid = "",     // use whatever was saved to NVS (if any)
+                       .password = "", // use whatever was saved to NVS (if any)
+                       .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
+                       .on_connected = nullptr,
+                       .on_disconnected = nullptr,
+                       .on_got_ip =
+                           [&](ip_event_got_ip_t *eventdata) {
+                             logger.info("got IP: {}.{}.{}.{}", IP2STR(&eventdata->ip_info.ip));
+                           },
+                       .log_level = espp::Logger::Verbosity::DEBUG},
+                      true);
 
-    auto *wifi_sta = wifi.get_sta("menu_sta");
+    auto *wifi_sta = wifi.get_sta();
     if (!wifi_sta) {
       logger.error("Failed to get STA");
       return;
@@ -83,19 +84,20 @@ extern "C" void app_main(void) {
       return;
     }
 
-    wifi.register_sta("example_sta", {.ssid = "",     // use whatever was saved to NVS (if any)
-                                      .password = "", // use whatever was saved to NVS (if any)
-                                      .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
-                                      .on_connected = nullptr,
-                                      .on_disconnected = nullptr,
-                                      .on_got_ip =
-                                          [&](ip_event_got_ip_t *eventdata) {
-                                            logger.info("got IP: {}.{}.{}.{}",
-                                                        IP2STR(&eventdata->ip_info.ip));
-                                          },
-                                      .log_level = espp::Logger::Verbosity::DEBUG});
+    wifi.register_sta("example_sta",
+                      {.ssid = "",     // use whatever was saved to NVS (if any)
+                       .password = "", // use whatever was saved to NVS (if any)
+                       .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
+                       .on_connected = nullptr,
+                       .on_disconnected = nullptr,
+                       .on_got_ip =
+                           [&](ip_event_got_ip_t *eventdata) {
+                             logger.info("got IP: {}.{}.{}.{}", IP2STR(&eventdata->ip_info.ip));
+                           },
+                       .log_level = espp::Logger::Verbosity::DEBUG},
+                      true);
 
-    auto *wifi_sta = wifi.get_sta("example_sta");
+    auto *wifi_sta = wifi.get_sta();
     if (!wifi_sta) {
       logger.error("Failed to get STA");
       return;
@@ -119,9 +121,9 @@ extern "C" void app_main(void) {
       return;
     }
 
-    wifi.register_ap("menu_ap", {.ssid = "", .password = ""});
+    wifi.register_ap("menu_ap", {.ssid = "ESP++ WiFi AP", .password = ""}, true);
 
-    auto *wifi_ap = wifi.get_ap("menu_ap");
+    auto *wifi_ap = wifi.get_ap();
     if (!wifi_ap) {
       logger.error("Failed to get AP");
       return;
@@ -149,9 +151,11 @@ extern "C" void app_main(void) {
       return;
     }
 
-    wifi.register_ap("example_ap", {.ssid = CONFIG_ESP_WIFI_SSID,
-                                    .password = CONFIG_ESP_WIFI_PASSWORD,
-                                    .log_level = espp::Logger::Verbosity::DEBUG});
+    wifi.register_ap("example_ap",
+                     {.ssid = CONFIG_ESP_WIFI_SSID,
+                      .password = CONFIG_ESP_WIFI_PASSWORD,
+                      .log_level = espp::Logger::Verbosity::DEBUG},
+                     true);
     //! [wifi ap example]
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
@@ -163,7 +167,7 @@ extern "C" void app_main(void) {
     logger.info("Starting WiFi singleton example...");
     //! [wifi example]
     auto &wifi = espp::Wifi::get();
-    wifi.set_log_level(espp::Logger::Verbosity::INFO);
+    wifi.set_log_level(espp::Logger::Verbosity::DEBUG);
 
     // Initialize the WiFi stack
     if (!wifi.init()) {
@@ -182,6 +186,10 @@ extern "C" void app_main(void) {
                                    },
                                .log_level = espp::Logger::Verbosity::INFO});
 
+    // set the 'home' network to be active and ensure that the backup
+    // registration (when added) doesn't override it
+    wifi.switch_to_sta("home");
+
     wifi.register_sta("backup", {.ssid = "BackupNetwork",
                                  .password = "backuppassword",
                                  .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
@@ -192,6 +200,12 @@ extern "C" void app_main(void) {
                                      },
                                  .log_level = espp::Logger::Verbosity::INFO});
 
+    // ensure that the active interface is still 'home'
+    if (wifi.get_active_name() != "home") {
+      logger.error("Active interface changed unexpectedly after registering backup STA");
+      return;
+    }
+
     // Register an AP configuration
     wifi.register_ap("device_ap", {.ssid = "MyESP32-AP",
                                    .password = "esp32password",
@@ -199,36 +213,129 @@ extern "C" void app_main(void) {
                                    .max_number_of_stations = 4,
                                    .log_level = espp::Logger::Verbosity::INFO});
 
-    // The first registered interface is automatically active
-    logger.info("Active interface: {}", wifi.get_active_name());
+    // ensure that the active interface is still 'home' (STA)
+    if (wifi.get_active_name() != "home") {
+      logger.error("Active interface changed unexpectedly after registering AP");
+      return;
+    }
 
-    // Wait for connection
+    logger.info("Registered STA configurations: ");
+    auto sta_names = wifi.get_registered_sta_names();
+    for (const auto &name : sta_names) {
+      logger.info(" - '{}'", name);
+    }
+    logger.info("Registered AP configurations: ");
+    auto ap_names = wifi.get_registered_ap_names();
+    for (const auto &name : ap_names) {
+      logger.info(" - '{}'", name);
+    }
+
+    // now switch to AP
+    logger.info("\n=== Testing switch to AP ===");
+    wifi.switch_to_ap("device_ap");
+
+    // Check what's currently active
+    std::string active_name = wifi.get_active_name();
+    if (active_name != "device_ap") {
+      logger.error("Active interface is not 'device_ap' after switch_to_ap");
+      return;
+    }
+    logger.info("Active interface: '{}' (is_ap={}, is_sta={})", active_name, wifi.is_active_ap(),
+                wifi.is_active_sta());
+
+    // Wait for the active interface to be ready/connected
     auto *active = wifi.get_active();
     if (active) {
-      logger.info("Waiting for connection to {}", wifi.get_active_name());
+      logger.info("Waiting for '{}' to be connected...", active_name);
       while (!active->is_connected()) {
         std::this_thread::sleep_for(100ms);
       }
-      logger.info("Connected to {}", wifi.get_active_name());
+      logger.info("'{}' is now connected!", active_name);
+
+      logger.info("Checking IP address...");
+      // Get and display IP
+      std::string ip;
+      if (wifi.get_ip_address(ip)) {
+        logger.info("IP address: {}", ip);
+      }
     }
 
     std::this_thread::sleep_for(num_seconds_to_run * 1s);
 
-    // Access specific STA by name
-    auto *home_sta = wifi.get_sta("home");
+    // Access STA instance (single instance, manages all configs)
+    auto *home_sta = wifi.get_sta();
     if (home_sta) {
-      logger.info("Home STA is available and connected: {}", home_sta->is_connected());
+      logger.info("STA is connected: {}", home_sta->is_connected());
     }
 
     // Get AP and check connected stations
-    auto *device_ap = wifi.get_ap("device_ap");
+    auto *device_ap = wifi.get_ap();
     if (device_ap) {
       auto stations = device_ap->get_connected_stations();
-      logger.info("AP 'device_ap' has {} connected stations", stations.size());
+      logger.info("AP has {} connected stations", stations.size());
     }
 
-    // Demonstrate switching
-    wifi.switch_to("backup");
+    // Demonstrate switching to STA
+    logger.info("\n=== Testing switch to STA ===");
+    wifi.switch_to_sta("home");
+    active_name = wifi.get_active_name();
+    logger.info("Active interface: '{}' (is_ap={}, is_sta={})", active_name, wifi.is_active_ap(),
+                wifi.is_active_sta());
+
+    // Wait for STA to connect
+    active = wifi.get_active();
+    if (active) {
+      logger.info("Waiting for '{}' to be connected...", active_name);
+      int wait_count = 0;
+      while (!active->is_connected() && wait_count < 100) {
+        std::this_thread::sleep_for(100ms);
+        wait_count++;
+      }
+      if (active->is_connected()) {
+        logger.info("'{}' is now connected!", active_name);
+        std::string ip;
+        if (wifi.get_ip_address(ip)) {
+          logger.info("IP address: {}", ip);
+        }
+      } else {
+        logger.warn("'{}' failed to connect within timeout", active_name);
+      }
+    }
+
+    std::this_thread::sleep_for(2s);
+
+    // Demonstrate switching back to AP
+    logger.info("\n=== Testing switch back to AP ===");
+    wifi.switch_to_ap("device_ap");
+    active_name = wifi.get_active_name();
+    logger.info("Active interface: '{}' (is_ap={}, is_sta={})", active_name, wifi.is_active_ap(),
+                wifi.is_active_sta());
+
+    // Wait for AP to be ready
+    active = wifi.get_active();
+    if (active) {
+      logger.info("Waiting for '{}' to be ready...", active_name);
+      std::this_thread::sleep_for(1s); // AP starts quickly
+      if (active->is_connected()) {    // For AP, this checks if stations are connected
+        logger.info("'{}' has stations connected", active_name);
+      } else {
+        logger.info("'{}' is ready (no stations connected yet)", active_name);
+      }
+
+      std::string ip;
+      if (wifi.get_ip_address(ip)) {
+        logger.info("IP address: {}", ip);
+      }
+    }
+
+    std::this_thread::sleep_for(2s);
+
+    // Demonstrate stop
+    logger.info("\n=== Testing stop ===");
+    wifi.stop();
+    active_name = wifi.get_active_name();
+    logger.info("Active interface after stop: '{}' (empty=stopped)", active_name);
+
     //! [wifi example]
 
     logger.info("WiFi singleton example complete!");

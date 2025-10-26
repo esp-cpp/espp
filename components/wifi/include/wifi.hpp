@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
@@ -80,7 +81,7 @@ public:
 
   /// @brief Deinitialize the WiFi stack.
   /// @return True if deinitialization was successful, false otherwise.
-  /// @note This will stop and remove all registered interfaces.
+  /// @note This will stop all interfaces and clear all configurations.
   bool deinit() {
     if (!initialized_) {
       return true; // Already deinitialized
@@ -88,10 +89,15 @@ public:
 
     logger_.info("Deinitializing WiFi stack...");
 
-    // Remove all interfaces
-    interfaces_.clear();
-    active_ = nullptr;
-    active_name_.clear();
+    // Clear all configs
+    ap_configs_.clear();
+    sta_configs_.clear();
+    active_ap_name_.clear();
+    active_sta_name_.clear();
+
+    // Destroy AP and STA instances
+    ap_.reset();
+    sta_.reset();
 
     // Destroy network interfaces
     if (sta_netif_) {
@@ -146,6 +152,17 @@ public:
       ap_netif_ = esp_netif_create_default_wifi_ap();
     }
     return ap_netif_;
+  }
+
+  /// @brief Get the esp_netif_t of the currently active interface.
+  /// @return Pointer to the esp_netif_t of the active interface, or nullptr if
+  ///         no interface is active.
+  esp_netif_t *get_active_netif() {
+    auto *active = get_active();
+    if (!active) {
+      return nullptr;
+    }
+    return active->get_netif();
   }
 
   /// @brief Get the current WiFi mode.
@@ -277,140 +294,239 @@ public:
   /// @brief Register a new WiFi Access Point configuration.
   /// @param name Unique identifier for this AP configuration.
   /// @param config WifiAp::Config structure with AP configuration.
+  /// @param set_active If true, immediately activate this AP configuration.
   /// @return True if registration was successful, false otherwise.
   /// @note WiFi stack must be initialized via init() before calling this.
-  bool register_ap(const std::string &name, const WifiAp::Config &config) {
+  ///       Only one interface (AP or STA) can be active at a time.
+  bool register_ap(const std::string &name, const WifiAp::Config &config, bool set_active = false) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
     if (!initialized_) {
-      return false; // WiFi stack not initialized
+      logger_.error("WiFi subsystem not initialized");
+      return false;
     }
-    if (interfaces_.find(name) != interfaces_.end()) {
-      return false; // Interface with this name already exists
+    if (ap_configs_.find(name) != ap_configs_.end()) {
+      logger_.warn("AP config '{}' already exists", name);
+      return false;
     }
-    auto ap = std::make_unique<WifiAp>(config, get_ap_netif());
-    // if there is an active interface, stop it
-    if (active_) {
-      logger_.info("Stopping currently active interface '{}'", active_name_);
-      active_->stop();
+
+    ap_configs_[name] = config;
+
+    if (set_active) {
+      return switch_to_ap_internal(name);
     }
-    // set the active
-    active_ = ap.get();
-    active_name_ = name;
-    // store the interface
-    interfaces_[name] = std::move(ap);
+
     return true;
   }
 
   /// @brief Register a new WiFi Station configuration.
   /// @param name Unique identifier for this STA configuration.
   /// @param config WifiSta::Config structure with STA configuration.
+  /// @param set_active If true, immediately activate this STA configuration.
   /// @return True if registration was successful, false otherwise.
   /// @note WiFi stack must be initialized via init() before calling this.
-  bool register_sta(const std::string &name, const WifiSta::Config &config) {
+  ///       Only one interface (AP or STA) can be active at a time.
+  bool register_sta(const std::string &name, const WifiSta::Config &config,
+                    bool set_active = false) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
     if (!initialized_) {
-      return false; // WiFi stack not initialized
-    }
-    if (interfaces_.find(name) != interfaces_.end()) {
-      return false; // Interface with this name already exists
-    }
-    auto sta = std::make_unique<WifiSta>(config, get_sta_netif());
-    // if there is an active interface, stop it
-    if (active_) {
-      logger_.info("Stopping currently active interface '{}'", active_name_);
-      active_->stop();
-    }
-    // set the active
-    active_ = sta.get();
-    active_name_ = name;
-    // store the interface
-    interfaces_[name] = std::move(sta);
-    return true;
-  }
-
-  /// @brief Switch to a different registered interface.
-  /// @param name The name of the interface to switch to.
-  /// @return True if the switch was successful, false otherwise.
-  bool switch_to(const std::string &name) {
-    auto it = interfaces_.find(name);
-    if (it == interfaces_.end()) {
-      return false; // Interface not found
-    }
-    if (active_ && active_name_ != name) {
-      active_->stop();
-    }
-    active_ = it->second.get();
-    active_name_ = name;
-    return active_->start();
-  }
-
-  /// @brief Get pointer to the active WiFi interface.
-  /// @return Pointer to the active WifiBase instance, or nullptr if none active.
-  WifiBase *get_active() { return active_; }
-
-  /// @brief Get pointer to a specific WiFi interface by name.
-  /// @param name The name of the interface to retrieve.
-  /// @return Pointer to the WifiBase instance, or nullptr if not found.
-  WifiBase *get(const std::string &name) {
-    auto it = interfaces_.find(name);
-    return (it != interfaces_.end()) ? it->second.get() : nullptr;
-  }
-
-  /// @brief Get pointer to a specific WiFi AP by name.
-  /// @param name The name of the AP to retrieve.
-  /// @return Pointer to the WifiAp instance, or nullptr if not found.
-  /// @note The caller must ensure the named interface is actually an AP.
-  WifiAp *get_ap(const std::string &name) {
-    auto it = interfaces_.find(name);
-    if (it == interfaces_.end()) {
-      return nullptr;
-    }
-    return static_cast<WifiAp *>(it->second.get());
-  }
-
-  /// @brief Get pointer to a specific WiFi STA by name.
-  /// @param name The name of the STA to retrieve.
-  /// @return Pointer to the WifiSta instance, or nullptr if not found.
-  /// @note The caller must ensure the named interface is actually a STA.
-  WifiSta *get_sta(const std::string &name) {
-    auto it = interfaces_.find(name);
-    if (it == interfaces_.end()) {
-      return nullptr;
-    }
-    return static_cast<WifiSta *>(it->second.get());
-  }
-
-  /// @brief Get the name of the currently active interface.
-  /// @return Name of the active interface, or empty string if none active.
-  const std::string &get_active_name() const { return active_name_; }
-
-  /// @brief Remove a registered interface.
-  /// @param name The name of the interface to remove.
-  /// @return True if the interface was removed, false if not found.
-  bool remove(const std::string &name) {
-    auto it = interfaces_.find(name);
-    if (it == interfaces_.end()) {
+      logger_.error("WiFi subsystem not initialized");
       return false;
     }
-    if (active_ == it->second.get()) {
-      active_->stop();
-      active_ = nullptr;
-      active_name_.clear();
+    if (sta_configs_.find(name) != sta_configs_.end()) {
+      logger_.warn("STA config '{}' already exists", name);
+      return false;
     }
-    interfaces_.erase(it);
+
+    sta_configs_[name] = config;
+
+    if (set_active) {
+      return switch_to_sta_internal(name);
+    }
+
     return true;
+  }
+
+  /// @brief Get all registered STA configuration names.
+  /// @return Vector of registered STA configuration names.
+  std::vector<std::string> get_registered_sta_names() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::vector<std::string> names;
+    for (const auto &pair : sta_configs_) {
+      names.push_back(pair.first);
+    }
+    return names;
+  }
+
+  /// @brief Get all registered AP configuration names.
+  /// @return Vector of registered AP configuration names.
+  std::vector<std::string> get_registered_ap_names() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::vector<std::string> names;
+    for (const auto &pair : ap_configs_) {
+      names.push_back(pair.first);
+    }
+    return names;
+  }
+
+  /// @brief Get all registered STA configurations.
+  /// @return Unordered map of registered STA configurations.
+  std::unordered_map<std::string, WifiSta::Config> get_registered_sta_configs() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return sta_configs_;
+  }
+
+  /// @brief Get all registered AP configurations.
+  /// @return Unordered map of registered AP configurations.
+  std::unordered_map<std::string, WifiAp::Config> get_registered_ap_configs() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return ap_configs_;
+  }
+
+  /// @brief Switch to a different registered AP configuration.
+  /// @param name The name of the AP configuration to switch to.
+  /// @return True if the switch was successful, false otherwise.
+  /// @note This will stop any active STA interface.
+  bool switch_to_ap(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return switch_to_ap_internal(name);
+  }
+
+  /// @brief Switch to a different registered STA configuration.
+  /// @param name The name of the STA configuration to switch to.
+  /// @return True if the switch was successful, false otherwise.
+  /// @note This will stop any active AP interface.
+  bool switch_to_sta(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return switch_to_sta_internal(name);
+  }
+
+  /// @brief Get pointer to the WiFi AP instance.
+  /// @return Pointer to the WifiAp instance, or nullptr if not created.
+  WifiAp *get_ap() { return ap_.get(); }
+
+  /// @brief Get pointer to the WiFi STA instance.
+  /// @return Pointer to the WifiSta instance, or nullptr if not created.
+  WifiSta *get_sta() { return sta_.get(); }
+
+  /// @brief Get pointer to the currently active interface.
+  /// @return Pointer to the active WifiBase instance, or nullptr if none active.
+  WifiBase *get_active() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!active_sta_name_.empty() && sta_) {
+      return sta_.get();
+    }
+    if (!active_ap_name_.empty() && ap_) {
+      return ap_.get();
+    }
+    return nullptr;
+  }
+
+  /// @brief Get the name of the currently active interface (AP or STA).
+  /// @return Name of the active interface, or empty string if none active.
+  std::string get_active_name() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    if (!active_sta_name_.empty()) {
+      return active_sta_name_;
+    }
+    if (!active_ap_name_.empty()) {
+      return active_ap_name_;
+    }
+    return "";
+  }
+
+  /// @brief Check if the active interface is an AP.
+  /// @return True if active interface is AP, false otherwise.
+  bool is_active_ap() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return !active_ap_name_.empty();
+  }
+
+  /// @brief Check if the active interface is a STA.
+  /// @return True if active interface is STA, false otherwise.
+  bool is_active_sta() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return !active_sta_name_.empty();
+  }
+
+  /// @brief Get the name of the currently active AP configuration.
+  /// @return Name of the active AP config, or empty string if none active.
+  std::string get_active_ap_name() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return active_ap_name_;
+  }
+
+  /// @brief Get the name of the currently active STA configuration.
+  /// @return Name of the active STA config, or empty string if none active.
+  std::string get_active_sta_name() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return active_sta_name_;
+  }
+
+  /// @brief Remove a registered AP configuration.
+  /// @param name The name of the AP config to remove.
+  /// @return True if the config was removed, false if not found.
+  bool remove_ap(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+    auto it = ap_configs_.find(name);
+    if (it == ap_configs_.end()) {
+      return false;
+    }
+
+    // Stop if this is the active AP
+    if (active_ap_name_ == name) {
+      stop_internal();
+    }
+
+    ap_configs_.erase(it);
+    return true;
+  }
+
+  /// @brief Remove a registered STA configuration.
+  /// @param name The name of the STA config to remove.
+  /// @return True if the config was removed, false if not found.
+  bool remove_sta(const std::string &name) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+    auto it = sta_configs_.find(name);
+    if (it == sta_configs_.end()) {
+      return false;
+    }
+
+    // Stop if this is the active STA
+    if (active_sta_name_ == name) {
+      stop_internal();
+    }
+
+    sta_configs_.erase(it);
+    return true;
+  }
+
+  /// @brief Stop the currently active interface (AP or STA).
+  /// @return True if an interface was stopped, false if none was active.
+  bool stop() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    return stop_internal();
   }
 
   /// @brief Get the IP address of the active WiFi interface.
   /// @param ip_address The IP address of the active WiFi interface.
   /// @return True if the IP address was retrieved, false otherwise.
   bool get_ip_address(std::string &ip_address) {
-    if (!active_) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+    auto *active = get_active();
+    if (!active) {
+      logger_.error("No active WiFi interface");
       return false;
     }
-    std::string ip = active_->get_ip_address();
-    if (ip.empty()) {
+    ip_address = active->get_ip_address();
+    if (ip_address.empty()) {
+      logger_.error("Active WiFi interface has no IP address");
       return false;
     }
-    ip_address = ip;
     return true;
   }
 
@@ -428,9 +544,122 @@ protected:
     }
   }
 
-  std::unordered_map<std::string, std::unique_ptr<WifiBase>> interfaces_;
-  WifiBase *active_{nullptr};
-  std::string active_name_;
+  /// @brief Internal method to stop active interface without mutex.
+  /// @return True if an interface was stopped, false if none was active.
+  bool stop_internal() {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    bool stopped = false;
+
+    if (!active_sta_name_.empty() && sta_) {
+      logger_.info("Stopping active STA '{}'", active_sta_name_);
+      sta_->disconnect();
+      active_sta_name_.clear();
+      stopped = true;
+    }
+
+    if (!active_ap_name_.empty() && ap_) {
+      logger_.info("Stopping active AP '{}'", active_ap_name_);
+      ap_->stop();
+      active_ap_name_.clear();
+      stopped = true;
+    }
+
+    return stopped;
+  }
+
+  /// @brief Internal AP switch without mutex (already locked by caller).
+  /// @param name The name of the AP configuration to switch to.
+  /// @return True if the switch was successful, false otherwise.
+  bool switch_to_ap_internal(const std::string &name) {
+    logger_.debug("Switching to AP config for name '{}'", name);
+
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto it = ap_configs_.find(name);
+    if (it == ap_configs_.end()) {
+      logger_.error("AP config '{}' not found", name);
+      return false;
+    }
+
+    // Stop any active interface (mutual exclusivity)
+    stop_internal();
+
+    const WifiAp::Config &config = it->second;
+    // Create or reconfigure AP
+    if (!ap_) {
+      ap_ = std::make_unique<WifiAp>(config, get_ap_netif());
+      if (!ap_) {
+        logger_.error("Failed to create WifiAp");
+        return false;
+      }
+      // Don't need to start here since it's auto-started in constructor
+    } else {
+      // Reconfigure existing AP with full config
+      if (!ap_->reconfigure(config)) {
+        logger_.error("Failed to reconfigure WifiAp");
+        return false;
+      }
+      // since we're reconfiguring an existing AP, we need to start it again.
+      logger_.info("Starting AP '{}'", name);
+      if (!ap_->start()) {
+        logger_.error("Failed to start WifiAp after reconfiguration");
+        return false;
+      }
+    }
+    logger_.debug("Switched to AP config: {}", config);
+    active_ap_name_ = name;
+    return true;
+  }
+
+  /// @brief Internal STA switch without mutex (already locked by caller).
+  /// @param name The name of the STA configuration to switch to.
+  /// @return True if the switch was successful, false otherwise.
+  bool switch_to_sta_internal(const std::string &name) {
+    logger_.debug("Switching to STA config for name '{}'", name);
+
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    auto it = sta_configs_.find(name);
+    if (it == sta_configs_.end()) {
+      logger_.error("STA config '{}' not found", name);
+      return false;
+    }
+
+    // Stop any active interface (mutual exclusivity)
+    stop_internal();
+
+    const WifiSta::Config &config = it->second;
+    // Create or reconfigure STA
+    if (!sta_) {
+      sta_ = std::make_unique<WifiSta>(config, get_sta_netif());
+      if (!sta_) {
+        logger_.error("Failed to create WifiSta");
+        return false;
+      }
+      // Don't need to start here since it's auto-started in constructor
+    } else {
+      // Reconfigure existing STA with full config
+      if (!sta_->reconfigure(config)) {
+        logger_.error("Failed to reconfigure WifiSta");
+        return false;
+      }
+      // since we're reconfiguring an existing STA, we need to start it again.
+      logger_.info("Starting STA '{}'", name);
+      if (!sta_->start()) {
+        logger_.error("Failed to start WifiSta after reconfiguration");
+        return false;
+      }
+    }
+    active_sta_name_ = name;
+    logger_.debug("Switched to STA config {}", config);
+    return true;
+  }
+
+  mutable std::recursive_mutex mutex_; ///< Mutex for thread-safe access to configs and state
+  std::unordered_map<std::string, WifiAp::Config> ap_configs_;
+  std::unordered_map<std::string, WifiSta::Config> sta_configs_;
+  std::unique_ptr<WifiAp> ap_;
+  std::unique_ptr<WifiSta> sta_;
+  std::string active_ap_name_;
+  std::string active_sta_name_;
   bool initialized_{false};
   esp_netif_t *sta_netif_{nullptr};
   esp_netif_t *ap_netif_{nullptr};

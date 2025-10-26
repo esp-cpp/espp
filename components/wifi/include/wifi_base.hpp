@@ -61,7 +61,11 @@ public:
    * @return IP address as a string
    */
   virtual std::string get_ip_address() {
+    if (netif_ == nullptr) {
+      return "";
+    }
     esp_netif_ip_info_t ip_info;
+    logger_.info("Getting IP address...");
     esp_err_t err = esp_netif_get_ip_info(netif_, &ip_info);
     if (err != ESP_OK) {
       logger_.error("Could not get IP address: {}", err);
@@ -105,9 +109,17 @@ protected:
    * @brief Constructor for WifiBase
    * @param tag Logger tag
    * @param log_level Logger verbosity level
+   */
+  explicit WifiBase(const std::string &tag, Logger::Verbosity log_level)
+      : BaseComponent(tag, log_level) {}
+
+  /**
+   * @brief Constructor for WifiBase
+   * @param tag Logger tag
+   * @param log_level Logger verbosity level
    * @param netif Pointer to the network interface
    */
-  WifiBase(const std::string &tag, Logger::Verbosity log_level, esp_netif_t *netif)
+  explicit WifiBase(const std::string &tag, Logger::Verbosity log_level, esp_netif_t *netif)
       : BaseComponent(tag, log_level)
       , netif_(netif) {}
 

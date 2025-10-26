@@ -9,7 +9,6 @@
 #include "nvs_flash.h"
 
 #include "base_component.hpp"
-#include "wifi.hpp"
 #include "wifi_base.hpp"
 #include "wifi_format_helpers.hpp"
 
@@ -310,6 +309,66 @@ public:
   }
 
   /**
+   * @brief Reconfigure the WiFi Access Point with a new configuration.
+   * @param config WifiAp::Config structure with new AP configuration.
+   * @return True if reconfiguration was successful, false otherwise.
+   * @note This will stop the AP, apply the new configuration, and restart it.
+   */
+  bool reconfigure(const Config &config) {
+    logger_.info("Reconfiguring WiFi AP");
+
+    // Stop the current AP
+    bool was_running = false;
+    wifi_mode_t mode;
+    esp_err_t err = esp_wifi_get_mode(&mode);
+    if (err == ESP_OK && (mode == WIFI_MODE_AP || mode == WIFI_MODE_APSTA)) {
+      was_running = true;
+      stop();
+    }
+
+    // Update configuration
+    wifi_config_t wifi_config;
+    memset(&wifi_config, 0, sizeof(wifi_config));
+    wifi_config.ap.ssid_len = (uint8_t)config.ssid.size();
+    wifi_config.ap.channel = config.channel;
+    wifi_config.ap.max_connection = config.max_number_of_stations;
+    memcpy(wifi_config.ap.ssid, config.ssid.data(), config.ssid.size());
+    memcpy(wifi_config.ap.password, config.password.data(), config.password.size());
+    if (config.password.size() == 0) {
+      wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    }
+
+    logger_.debug("Setting WiFi mode to AP");
+    err = esp_wifi_set_mode(WIFI_MODE_AP);
+    if (err != ESP_OK) {
+      logger_.error("Could not set WiFi to AP: {}", err);
+      return false;
+    }
+
+    logger_.debug("Setting WiFi config");
+    err = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
+    if (err != ESP_OK) {
+      logger_.error("Could not set WiFi config: {}", err);
+      return false;
+    }
+
+    logger_.debug("Setting WiFi phy rate to {}", config.phy_rate);
+    err = esp_wifi_config_80211_tx_rate(WIFI_IF_AP, config.phy_rate);
+    if (err != ESP_OK) {
+      logger_.error("Could not set WiFi PHY rate: {}", err);
+      return false;
+    }
+
+    // Restart if it was running
+    if (was_running) {
+      return start();
+    }
+
+    logger_.info("WiFi AP reconfigured successfully");
+    return true;
+  }
+
+  /**
    * @brief Start the WiFi Access Point (AP)
    * @return True if the operation was successful, false otherwise.
    */
@@ -407,6 +466,20 @@ template <> struct formatter<espp::WifiAp::Station> : fmt::formatter<std::string
                           "{{MAC: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}, RSSI: {}, IP: {}}}",
                           station.mac[0], station.mac[1], station.mac[2], station.mac[3],
                           station.mac[4], station.mac[5], station.rssi, station.ip);
+  }
+};
+} // namespace fmt
+
+namespace fmt {
+// libfmt printing of WifiAp::Config
+template <> struct formatter<espp::WifiAp::Config> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const espp::WifiAp::Config &config, FormatContext &ctx) const {
+    return fmt::format_to(ctx.out(),
+                          "WifiAp::Config {{ ssid: '{}', password: '{}', phy_rate: {}, channel: "
+                          "{}, max_number_of_stations: {} }}",
+                          config.ssid, config.password, config.phy_rate, config.channel,
+                          config.max_number_of_stations);
   }
 };
 } // namespace fmt
