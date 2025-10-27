@@ -62,7 +62,7 @@ public:
   /// Alias for the pixel type used by the TDeck display
   using Pixel = lv_color16_t;
 
-  /// Alias for the keyboard used by the TDeck
+  /// Alias for the display driver used by the TDeck
   using DisplayDriver = espp::St7789;
 
   /// Maximum number of bytes that can be transferred in a single SPI
