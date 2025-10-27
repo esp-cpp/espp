@@ -215,6 +215,17 @@ esp_err_t es8311_codec_get_voice_volume(int *volume);
 esp_err_t es8311_config_fmt(es_i2s_fmt_t fmt);
 
 /**
+ * @brief Configure ES8311 data sample rate
+ *
+ * @param sample_rate:  data sample rate
+ *
+ * @return
+ *     - ESP_OK
+ *     - ESP_FAIL
+ */
+esp_err_t es8311_codec_set_sample_rate(int sample_rate);
+
+/**
  * @brief Configure ES8311 data sample bits
  *
  * @param mode:  set ADC or DAC or both
