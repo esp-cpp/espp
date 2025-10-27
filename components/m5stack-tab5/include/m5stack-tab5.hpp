@@ -259,7 +259,7 @@ public:
 
   /// Play audio data
   /// \param data The audio data to play
-  void play_audio(const std::vector<uint8_t> &data);
+  void play_audio(std::span<const uint8_t> data);
 
   /// Start recording audio
   /// \param callback Function to call with recorded audio data

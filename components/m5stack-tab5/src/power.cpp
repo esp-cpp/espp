@@ -78,7 +78,7 @@ bool M5StackTab5::update_battery_status() {
   std::error_code ec;
   std::lock_guard<std::mutex> lock(battery_mutex_);
   float vbus = battery_monitor_->bus_voltage_volts(ec);
-  float vshunt = battery_monitor_->shunt_voltage_volts(ec);
+  [[maybe_unused]] float vshunt = battery_monitor_->shunt_voltage_volts(ec);
   float current_a = battery_monitor_->current_amps(ec);
   float power_w = battery_monitor_->power_watts(ec);
   if (!ec) {
@@ -91,7 +91,7 @@ bool M5StackTab5::update_battery_status() {
     float soc = (v - pack_voltage_min) / (pack_voltage_max - pack_voltage_min);
     soc = std::clamp(soc, 0.0f, 1.0f);
     battery_status_.charge_percent = soc * 100.0f;
-    // only charging if the bit sayus we are and  the current is < -1.0 mA
+    // only charging if the bit says we are and  the current is < -1.0 mA
     battery_status_.is_charging = get_charging_status() && battery_status_.current_ma < -1.0f;
     battery_status_.is_present = true;
   } else {

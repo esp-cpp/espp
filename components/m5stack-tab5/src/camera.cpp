@@ -23,7 +23,7 @@ bool M5StackTab5::start_camera_capture(uint16_t width, uint16_t height) {
   height = std::min(height, static_cast<uint16_t>(1200));
 
   // TODO: Start continuous camera capture
-  logger_.info("Camera capture started at {}{}", width, height);
+  logger_.info("Camera capture started at {}x{}", width, height);
   return true;
 }
 

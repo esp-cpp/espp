@@ -35,16 +35,6 @@ bool M5StackTab5::initialize_audio(uint32_t sample_rate,
                             std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
   // I2S standard channel for TX (playback)
-  // i2s_chan_config_t chan_cfg = {
-  //     .id = I2S_NUM_0,
-  //     .role = I2S_ROLE_MASTER,
-  //     .dma_desc_num = 16,
-  //     .dma_frame_num = 48,
-  //     .auto_clear = true,
-  //     .auto_clear_before_cb = false,
-  //     .allow_pd = false,
-  //     .intr_priority = 0,
-  // };
   logger_.info("Creating I2S channel for playback (TX)");
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
@@ -211,7 +201,7 @@ void M5StackTab5::play_audio(const uint8_t *data, uint32_t num_bytes) {
   has_sound = true;
 }
 
-void M5StackTab5::play_audio(const std::vector<uint8_t> &data) {
+void M5StackTab5::play_audio(std::span<const uint8_t> data) {
   play_audio(data.data(), data.size());
 }
 

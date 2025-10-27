@@ -12,6 +12,9 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
 
   touch_callback_ = callback;
 
+  // add touch interrupt
+  interrupts_.add_interrupt(touch_interrupt_pin_);
+
   // Reset touch controller via expander if available
   touch_reset(true);
   using namespace std::chrono_literals;
@@ -34,19 +37,12 @@ bool M5StackTab5::initialize_touch(const touch_callback_t &callback) {
                             .invert_y = false,
                             .log_level = espp::Logger::Verbosity::WARN});
 
-  // Configure and add touch interrupt
-  touch_interrupt_pin_.active_level = espp::Interrupt::ActiveLevel::HIGH;
-  touch_interrupt_pin_.interrupt_type = espp::Interrupt::Type::RISING_EDGE;
-  touch_interrupt_pin_.pullup_enabled = false;
-
-  interrupts_.add_interrupt(touch_interrupt_pin_);
-
   logger_.info("Touch controller initialized successfully");
   return true;
 }
 
 bool M5StackTab5::update_touch() {
-  // logger_.debug("Updating touch data");
+  logger_.debug("Updating touch data");
   if (!touch_driver_) {
     logger_.error("Touch driver not initialized");
     return false;

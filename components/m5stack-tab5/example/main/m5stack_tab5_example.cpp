@@ -508,9 +508,16 @@ static void clear_circles() {
 }
 
 static size_t load_audio() {
-  // load the audio data
-  extern const uint8_t click_wav_start[] asm("_binary_click_wav_start");
-  extern const uint8_t click_wav_end[] asm("_binary_click_wav_end");
+  // if the audio_bytes vector is already populated, return the size
+  if (audio_bytes.size() > 0) {
+    return audio_bytes.size();
+  }
+
+  // load the audio data. these are configured in the CMakeLists.txt file
+  extern const uint8_t click_wav_start[] asm(
+      "_binary_click_wav_start"); // cppcheck-suppress syntaxError
+  extern const uint8_t click_wav_end[] asm(
+      "_binary_click_wav_end"); // cppcheck-suppress syntaxError
   audio_bytes = std::vector<uint8_t>(click_wav_start, click_wav_end);
   return audio_bytes.size();
 }
