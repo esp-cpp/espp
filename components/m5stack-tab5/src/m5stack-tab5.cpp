@@ -15,8 +15,6 @@ M5StackTab5::M5StackTab5()
 
 bool M5StackTab5::initialize_io_expanders() {
   logger_.info("Initializing IO expanders (0x43, 0x44)");
-  std::error_code ec;
-
   // Create instances
   ioexp_0x43_ = std::make_shared<IoExpander>(IoExpander::Config{
       .device_address = 0x43,
