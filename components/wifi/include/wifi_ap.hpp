@@ -80,7 +80,7 @@ public:
     if (!unregister_event_handlers()) {
       logger_.error("Could not unregister event handlers");
     }
-    if (!stop()) {
+    if (!WifiAp::stop()) {
       logger_.error("Could not stop WiFi AP");
     }
     // Note: WiFi deinit and netif destruction are handled by Wifi singleton
