@@ -12,9 +12,9 @@ namespace espp {
 /// \snippet gt911_example.cpp gt911 example
 class Gt911 : public BasePeripheral<std::uint16_t> {
 public:
-  /// Default address for the GT911 chip
+  /// Default address for the GT911 chip, if the interrupt pin is low on power on
   static constexpr uint8_t DEFAULT_ADDRESS_1 = 0x5D;
-  /// Alternate address for the GT911 chip
+  /// Alternate address for the GT911 chip, if the interrupt pin is high on power on
   static constexpr uint8_t DEFAULT_ADDRESS_2 = 0x14;
 
   /// @brief Configuration for the GT911 driver
