@@ -4,7 +4,7 @@
 
 #include "format.hpp"
 
-// for libfmt formtating of wifi_phy_rate_t
+// for libfmt formatting of wifi_phy_rate_t
 template <> struct fmt::formatter<wifi_phy_rate_t> : fmt::formatter<std::string> {
   template <typename FormatContext>
   auto format(const wifi_phy_rate_t &value, FormatContext &ctx) const -> decltype(ctx.out()) {
@@ -98,6 +98,57 @@ template <> struct fmt::formatter<wifi_phy_rate_t> : fmt::formatter<std::string>
       return fmt::format_to(ctx.out(), "LoRa 500Kbps");
     default:
       return fmt::format_to(ctx.out(), "Unknown PHY rate: {}", static_cast<int>(value));
+    }
+  }
+};
+
+// for libfmt formatting of wifi_mode_t
+template <> struct fmt::formatter<wifi_mode_t> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const wifi_mode_t &value, FormatContext &ctx) const -> decltype(ctx.out()) {
+    switch (value) {
+    case WIFI_MODE_NULL:
+      return fmt::format_to(ctx.out(), "WIFI_MODE_NULL");
+    case WIFI_MODE_STA:
+      return fmt::format_to(ctx.out(), "WIFI_MODE_STA");
+    case WIFI_MODE_AP:
+      return fmt::format_to(ctx.out(), "WIFI_MODE_AP");
+    case WIFI_MODE_APSTA:
+      return fmt::format_to(ctx.out(), "WIFI_MODE_APSTA");
+    default:
+      return fmt::format_to(ctx.out(), "Unknown mode: {}", static_cast<int>(value));
+    }
+  }
+};
+
+// for libfmt formatting of wifi_ps_type_t
+template <> struct fmt::formatter<wifi_ps_type_t> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const wifi_ps_type_t &value, FormatContext &ctx) const -> decltype(ctx.out()) {
+    switch (value) {
+    case WIFI_PS_NONE:
+      return fmt::format_to(ctx.out(), "WIFI_PS_NONE");
+    case WIFI_PS_MIN_MODEM:
+      return fmt::format_to(ctx.out(), "WIFI_PS_MIN_MODEM");
+    case WIFI_PS_MAX_MODEM:
+      return fmt::format_to(ctx.out(), "WIFI_PS_MAX_MODEM");
+    default:
+      return fmt::format_to(ctx.out(), "Unknown PS type: {}", static_cast<int>(value));
+    }
+  }
+};
+
+// for libfmt formatting of wifi_storage_t
+template <> struct fmt::formatter<wifi_storage_t> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(const wifi_storage_t &value, FormatContext &ctx) const -> decltype(ctx.out()) {
+    switch (value) {
+    case WIFI_STORAGE_RAM:
+      return fmt::format_to(ctx.out(), "WIFI_STORAGE_RAM");
+    case WIFI_STORAGE_FLASH:
+      return fmt::format_to(ctx.out(), "WIFI_STORAGE_FLASH");
+    default:
+      return fmt::format_to(ctx.out(), "Unknown storage type: {}", static_cast<int>(value));
     }
   }
 };
