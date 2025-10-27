@@ -117,6 +117,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/led_strip/example/main/led_strip_example.cpp \
   $(PROJECT_PATH)/components/logger/example/main/logger_example.cpp \
   $(PROJECT_PATH)/components/lsm6dso/example/main/lsm6dso_example.cpp \
+  $(PROJECT_PATH)/components/m5stack-tab5/example/main/m5stack_tab5_example.cpp \
   $(PROJECT_PATH)/components/math/example/main/math_example.cpp \
   $(PROJECT_PATH)/components/matouch-rotary-display/example/main/matouch_rotary_display_example.cpp \
   $(PROJECT_PATH)/components/max1704x/example/main/max1704x_example.cpp \
@@ -270,9 +271,7 @@ INPUT = \
   $(PROJECT_PATH)/components/lp5817/include/lp5817.hpp \
   $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso.hpp \
   $(PROJECT_PATH)/components/lsm6dso/include/lsm6dso_detail.hpp \
-  $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
-  $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
-  $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp \
+  $(PROJECT_PATH)/components/m5stack-tab5/include/m5stack-tab5.hpp \
   $(PROJECT_PATH)/components/math/include/bezier.hpp \
   $(PROJECT_PATH)/components/math/include/fast_math.hpp \
   $(PROJECT_PATH)/components/math/include/gaussian.hpp \
@@ -280,6 +279,9 @@ INPUT = \
   $(PROJECT_PATH)/components/math/include/vector2d.hpp \
   $(PROJECT_PATH)/components/matouch-rotary-display/include/matouch-rotary-display.hpp \
   $(PROJECT_PATH)/components/max1704x/include/max1704x.hpp \
+  $(PROJECT_PATH)/components/monitor/include/heap_monitor.hpp \
+  $(PROJECT_PATH)/components/monitor/include/task_monitor.hpp \
+  $(PROJECT_PATH)/components/motorgo-mini/include/motorgo-mini.hpp \
   $(PROJECT_PATH)/components/ndef/include/ndef.hpp \
   $(PROJECT_PATH)/components/neopixel/include/neopixel.hpp \
   $(PROJECT_PATH)/components/nvs/include/nvs.hpp \

@@ -1,0 +1,15 @@
+menu "M5Stack Tab5 Configuration"
+  config M5STACK_TAB5_INTERRUPT_STACK_SIZE
+  int "Interrupt stack size"
+  default 4096
+  help
+    Size of the stack used for the interrupt handler. Used by the touch
+    callback and other interrupt handlers.
+            
+  config M5STACK_TAB5_AUDIO_TASK_STACK_SIZE
+  int "Audio task stack size"
+  default 8192
+  help
+    Size of the stack used for the audio processing task.
+
+endmenu

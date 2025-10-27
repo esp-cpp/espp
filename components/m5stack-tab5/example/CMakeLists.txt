@@ -7,7 +7,31 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
-  "../../../components/"
+  "../"
+  "../../../components/base_component"
+  "../../../components/base_peripheral"
+  # "../../../components/ble_gatt_server"
+  "../../../components/bmi270"
+  # "../../../components/esp-nimble-cpp"
+  "../../../components/format"
+  "../../../components/logger"
+  "../../../components/cli"
+  "../../../components/codec"
+  "../../../components/display"
+  "../../../components/display_drivers"
+  "../../../components/esp-dsp"
+  "../../../components/filters"
+  "../../../components/gt911"
+  "../../../components/i2c"
+  "../../../components/ina226"
+  "../../../components/input_drivers"
+  "../../../components/interrupt"
+  "../../../components/led"
+  "../../../components/lvgl"
+  "../../../components/math"
+  "../../../components/rx8130ce"
+  "../../../components/pi4ioe5v"
+  "../../../components/task"
 )
 
 set(
@@ -16,8 +40,6 @@ set(
   CACHE STRING
   "List of components to include"
   )
-# "Trim" the build. Include the minimal set of components, main, and anything it depends on.
-idf_build_set_property(MINIMAL_BUILD ON)
 
 project(m5stack_tab5_example)
 

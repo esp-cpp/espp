@@ -82,6 +82,7 @@ jobs:
             components/logger
             components/lp5817
             components/lsm6dso
+            components/m5stack-tab5
             components/math
             components/matouch-rotary-display
             components/max1704x

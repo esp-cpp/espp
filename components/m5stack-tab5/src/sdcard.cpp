@@ -1,12 +1,15 @@
-#include "t-dongle-s3.hpp"
+#include "m5stack-tab5.hpp"
 
-using namespace espp;
+#include <esp_vfs_fat.h>
+#include <sdmmc_cmd.h>
+
+namespace espp {
 
 /////////////////////////////////////////////////////////////////////////////
 // uSD Card
 /////////////////////////////////////////////////////////////////////////////
 
-bool TDongleS3::initialize_sdcard(const TDongleS3::SdCardConfig &config) {
+bool M5StackTab5::initialize_sdcard(const M5StackTab5::SdCardConfig &config) {
   if (sdcard_) {
     logger_.error("SD card already initialized!");
     return false;
@@ -38,12 +41,12 @@ bool TDongleS3::initialize_sdcard(const TDongleS3::SdCardConfig &config) {
   // This initializes the slot without card detect (CD) and write protect (WP) signals.
   // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
   sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
-  slot_config.clk = sdcard_clk;
-  slot_config.cmd = sdcard_cmd;
-  slot_config.d0 = sdcard_d0;
-  slot_config.d1 = sdcard_d1;
-  slot_config.d2 = sdcard_d2;
-  slot_config.d3 = sdcard_d3;
+  slot_config.clk = sd_clk_io;
+  slot_config.cmd = sd_cmd_io;
+  slot_config.d0 = sd_dat0_io;
+  slot_config.d1 = sd_dat1_io;
+  slot_config.d2 = sd_dat2_io;
+  slot_config.d3 = sd_dat3_io;
 
   logger_.debug("Mounting filesystem");
   ret = esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
@@ -66,5 +69,33 @@ bool TDongleS3::initialize_sdcard(const TDongleS3::SdCardConfig &config) {
   // Card has been initialized, print its properties
   sdmmc_card_print_info(stdout, sdcard_);
 
+  sd_card_initialized_ = true;
+
   return true;
 }
+
+bool M5StackTab5::is_sd_card_available() const { return sd_card_initialized_; }
+
+bool M5StackTab5::get_sd_card_info(uint32_t *size_mb, uint32_t *free_mb) const {
+  if (!sd_card_initialized_) {
+    return false;
+  }
+
+  uint64_t total_bytes = 0, free_bytes = 0;
+  esp_err_t ret = esp_vfs_fat_info(mount_point, &total_bytes, &free_bytes);
+  if (ret != ESP_OK) {
+    logger_.error("Failed to get SD card information ({})", esp_err_to_name(ret));
+    return false;
+  }
+
+  if (size_mb) {
+    *size_mb = total_bytes / (1024 * 1024);
+  }
+  if (free_mb) {
+    *free_mb = free_bytes / (1024 * 1024);
+  }
+
+  return true;
+}
+
+} // namespace espp
