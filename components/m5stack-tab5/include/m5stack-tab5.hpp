@@ -50,11 +50,11 @@ namespace espp {
 /// - 5" 720p MIPI-DSI Display with GT911 multi-touch
 /// - Dual audio codecs (ES8388 + ES7210 AEC)
 /// - BMI270 6-axis IMU sensor
-/// - SC2356 2MP camera via MIPI-CSI
+/// - SC2356 2MP camera via MIPI-CSI (not yet implemented)
 /// - ESP32-C6 wireless module (Wi-Fi 6, Thread, ZigBee)
 /// - USB-A Host and USB-C OTG ports
-/// - RS-485 industrial interface
-/// - Grove and M5-Bus expansion headers
+/// - RS-485 industrial interface (not yet implemented)
+/// - Grove and M5-Bus expansion headers (not yet implemented)
 /// - microSD card slot
 /// - NP-F550 removable battery with battery management via INA226
 /// - Real-time clock (RX8130CE)
@@ -95,9 +95,6 @@ public:
 
   /// Alias for the touch callback when touch events are received
   using touch_callback_t = std::function<void(const TouchpadData &)>;
-
-  /// Camera data callback function
-  using camera_callback_t = std::function<void(const uint8_t *data, size_t length)>;
 
   /// Mount point for the uSD card on the TDeck.
   static constexpr char mount_point[] = "/sdcard";
@@ -269,34 +266,6 @@ public:
   /// Stop recording audio
   void stop_audio_recording();
 
-  /// Test audio output with a simple tone
-  /// \param frequency_hz The frequency of the test tone in Hz
-  /// \param duration_ms The duration of the test tone in milliseconds
-  void test_audio_output(uint16_t frequency_hz = 1000, uint16_t duration_ms = 1000);
-
-  /////////////////////////////////////////////////////////////////////////////
-  // Camera System
-  /////////////////////////////////////////////////////////////////////////////
-
-  /// Initialize the SC2356 2MP camera
-  /// \param callback Function to call with camera frame data
-  /// \return True if camera was successfully initialized
-  bool initialize_camera(const camera_callback_t &callback = nullptr);
-
-  /// Start camera capture
-  /// \param width Frame width (max 1600)
-  /// \param height Frame height (max 1200)
-  /// \return True if capture started successfully
-  bool start_camera_capture(uint16_t width = 1600, uint16_t height = 1200);
-
-  /// Stop camera capture
-  void stop_camera_capture();
-
-  /// Take a single photo
-  /// \param callback Function to call with photo data
-  /// \return True if photo capture initiated successfully
-  bool take_photo(const camera_callback_t &callback);
-
   /////////////////////////////////////////////////////////////////////////////
   // IMU & Sensors
   /////////////////////////////////////////////////////////////////////////////
@@ -438,29 +407,6 @@ public:
   std::optional<bool> get_io_expander_input(uint8_t address, uint8_t bit);
 
   /////////////////////////////////////////////////////////////////////////////
-  // Expansion & Communication
-  /////////////////////////////////////////////////////////////////////////////
-
-  /// Initialize the RS-485 interface
-  /// \param baud_rate The baud rate for RS-485 communication
-  /// \param enable_termination True to enable 120Ω termination
-  /// \return True if RS-485 was successfully initialized
-  bool initialize_rs485(uint32_t baud_rate = 115200, bool enable_termination = false);
-
-  /// Send data via RS-485
-  /// \param data The data to send
-  /// \param length The length of data to send
-  /// \return Number of bytes sent, or -1 on error
-  int rs485_send(const uint8_t *data, size_t length);
-
-  /// Receive data via RS-485
-  /// \param buffer Buffer to store received data
-  /// \param max_length Maximum length to receive
-  /// \param timeout_ms Timeout in milliseconds
-  /// \return Number of bytes received, or -1 on error
-  int rs485_receive(uint8_t *buffer, size_t max_length, uint32_t timeout_ms = 1000);
-
-  /////////////////////////////////////////////////////////////////////////////
   // uSD Card
   /////////////////////////////////////////////////////////////////////////////
 
@@ -491,31 +437,6 @@ public:
   /// \param free_mb Pointer to store free space in MB
   /// \return True if info retrieved successfully
   bool get_sd_card_info(uint32_t *size_mb, uint32_t *free_mb) const;
-
-  /// Initialize USB host functionality
-  /// \return True if USB host was successfully initialized
-  bool initialize_usb_host();
-
-  /// Initialize USB device (OTG) functionality
-  /// \return True if USB device was successfully initialized
-  bool initialize_usb_device();
-
-  /////////////////////////////////////////////////////////////////////////////
-  // ESP32-C6 Wireless Module
-  /////////////////////////////////////////////////////////////////////////////
-
-  /// Initialize the ESP32-C6 wireless module
-  /// \return True if wireless module was successfully initialized
-  bool initialize_wireless();
-
-  /// Send command to ESP32-C6 module
-  /// \param command The command to send
-  /// \param response Buffer to store response
-  /// \param max_response_len Maximum response length
-  /// \param timeout_ms Timeout in milliseconds
-  /// \return Length of response, or -1 on error
-  int send_wireless_command(const char *command, char *response, size_t max_response_len,
-                            uint32_t timeout_ms = 5000);
 
 protected:
   M5StackTab5();
@@ -748,10 +669,6 @@ protected:
   std::atomic<bool> recording_{false};
   std::function<void(const uint8_t *data, size_t length)> audio_rx_callback_{nullptr};
 
-  // Camera system
-  std::atomic<bool> camera_initialized_{false};
-  camera_callback_t camera_callback_{nullptr};
-
   // Power management
   std::atomic<bool> battery_monitoring_initialized_{false};
   BatteryStatus battery_status_;
@@ -762,11 +679,7 @@ protected:
   std::shared_ptr<IoExpander> ioexp_0x44_;
 
   // Communication interfaces
-  std::atomic<bool> rs485_initialized_{false};
   std::atomic<bool> sd_card_initialized_{false};
-  std::atomic<bool> usb_host_initialized_{false};
-  std::atomic<bool> usb_device_initialized_{false};
-  std::atomic<bool> wireless_initialized_{false};
 
   // uSD Card
   sdmmc_card_t *sdcard_{nullptr};

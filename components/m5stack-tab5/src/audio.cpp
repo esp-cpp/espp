@@ -222,34 +222,6 @@ void M5StackTab5::stop_audio_recording() {
   logger_.info("Audio recording stopped");
 }
 
-void M5StackTab5::test_audio_output(uint16_t frequency_hz, uint16_t duration_ms) {
-  if (!audio_initialized_) {
-    logger_.error("Audio system not initialized");
-    return;
-  }
-
-  logger_.info("Generating test tone: {} Hz for {} ms", frequency_hz, duration_ms);
-
-  const uint32_t sample_rate = 48000;
-  const uint16_t amplitude = 8000; // Moderate volume
-  const size_t num_samples = (sample_rate * duration_ms) / 1000;
-
-  std::vector<int16_t> tone_data(num_samples * 2); // Stereo
-
-  for (size_t i = 0; i < num_samples; i++) {
-    float t = (float)i / sample_rate;
-    int16_t sample = (int16_t)(amplitude * sin(2.0 * M_PI * frequency_hz * t));
-    tone_data[i * 2] = sample;     // Left channel
-    tone_data[i * 2 + 1] = sample; // Right channel
-  }
-
-  // Play the generated tone
-  play_audio(reinterpret_cast<const uint8_t *>(tone_data.data()),
-             tone_data.size() * sizeof(int16_t));
-
-  logger_.info("Test tone queued for playback");
-}
-
 bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv,
                                       bool &task_notified) {
   // Playback: write next buffer worth of audio from stream buffer
