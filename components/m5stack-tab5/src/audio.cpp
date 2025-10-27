@@ -249,4 +249,21 @@ bool M5StackTab5::audio_task_callback(std::mutex &m, std::condition_variable &cv
   return false;
 }
 
+uint32_t M5StackTab5::audio_sample_rate() const { return audio_std_cfg.clk_cfg.sample_rate_hz; }
+
+size_t M5StackTab5::audio_buffer_size() const { return audio_tx_buffer.size(); }
+
+void M5StackTab5::audio_sample_rate(uint32_t sample_rate) {
+  logger_.info("Setting audio sample rate to {} Hz", sample_rate);
+  // stop the channel
+  i2s_channel_disable(audio_tx_handle);
+  // update the sample rate
+  audio_std_cfg.clk_cfg.sample_rate_hz = sample_rate;
+  i2s_channel_reconfig_std_clock(audio_tx_handle, &audio_std_cfg.clk_cfg);
+  // clear the buffer
+  xStreamBufferReset(audio_tx_stream);
+  // restart the channel
+  i2s_channel_enable(audio_tx_handle);
+}
+
 } // namespace espp

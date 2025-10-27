@@ -249,6 +249,18 @@ public:
   /// \return True if muted, false otherwise
   bool is_muted() const;
 
+  /// Get the audio sample rate
+  /// \return The audio sample rate, in Hz
+  uint32_t audio_sample_rate() const;
+
+  /// Set the audio sample rate
+  /// \param sample_rate The audio sample rate, in Hz
+  void audio_sample_rate(uint32_t sample_rate);
+
+  /// Get the audio buffer size
+  /// \return The audio buffer size, in bytes
+  size_t audio_buffer_size() const;
+
   /// Play audio data
   /// \param data The audio data to play
   /// \param num_bytes The number of bytes to play

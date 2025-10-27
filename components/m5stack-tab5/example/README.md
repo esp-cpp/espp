@@ -2,6 +2,8 @@
 
 This example demonstrates the comprehensive functionality of the M5Stack Tab5 development board using the `espp::M5StackTab5` BSP component. It showcases all major features including display, touch, audio, camera, IMU, power management, and communication interfaces.
 
+<img width="715" height="949" alt="image" src="https://github.com/user-attachments/assets/124ae37f-c27f-4805-aa5b-79951d069b99" />
+
 ## Features Demonstrated
 
 ### Core Systems
@@ -46,3 +48,4 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
+<img width="1001" height="1110" alt="CleanShot 2025-10-26 at 23 19 57" src="https://github.com/user-attachments/assets/dbb48431-6d0e-424d-a673-c12d8f10d12d" />
