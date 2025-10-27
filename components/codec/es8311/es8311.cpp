@@ -364,7 +364,7 @@ esp_err_t es8311_codec_init(audio_hal_codec_config_t *codec_cfg) {
     return ESP_FAIL;
   }
   /*
-   * Set clock parammeters
+   * Set clock parameters
    */
   regv = es8311_read_reg(ES8311_CLK_MANAGER_REG02) & 0x07;
   regv |= (coeff_div[coeff].pre_div - 1) << 5;
@@ -464,7 +464,7 @@ esp_err_t es8311_codec_set_sample_rate(int sample_rate) {
     return ESP_FAIL;
   }
   /*
-   * Set clock parammeters
+   * Set clock parameters
    */
   uint8_t regv = es8311_read_reg(ES8311_CLK_MANAGER_REG02) & 0x07;
   regv |= (coeff_div[coeff].pre_div - 1) << 5;
@@ -522,7 +522,7 @@ esp_err_t es8311_codec_set_sample_rate(int sample_rate) {
   }
   ret |= es8311_write_reg(ES8311_CLK_MANAGER_REG06, regv);
 
-  return ESP_OK;
+  return ret;
 }
 
 esp_err_t es8311_codec_deinit() { return ESP_OK; }
