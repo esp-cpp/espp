@@ -156,6 +156,14 @@ extern "C" void app_main(void) {
   SdCardConfig sdcard_config{};
   if (!tab5.initialize_sdcard(sdcard_config)) {
     logger.warn("Failed to initialize uSD card, there may not be a uSD card inserted!");
+  } else {
+    uint32_t size_mb = 0;
+    uint32_t free_mb = 0;
+    if (tab5.get_sd_card_info(&size_mb, &free_mb)) {
+      logger.info("uSD card size: {} MB, free space: {} MB", size_mb, free_mb);
+    } else {
+      logger.warn("Failed to get uSD card info");
+    }
   }
 
   logger.info("Initializing RTC...");
