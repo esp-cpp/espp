@@ -174,6 +174,7 @@ extern "C" void app_main(void) {
                       },
                       .task_config = {
                           .name = "lv_task",
+                          .stack_size_bytes = 6 * 1024,
                       }});
   lv_task.start();
 
@@ -227,23 +228,14 @@ static size_t load_audio() {
     return audio_bytes.size();
   }
 
-  // these are configured in the CMakeLists.txt file
-  extern const char wav_start[] asm("_binary_click_wav_start"); // cppcheck-suppress syntaxError
-  extern const char wav_end[] asm("_binary_click_wav_end");     // cppcheck-suppress syntaxError
+  // load the audio data. these are configured in the CMakeLists.txt file
 
-  // -1 due to the size being 1 byte too large, I think because end is the byte
-  // immediately after the last byte in the memory but I'm not sure - cmm 2022-08-20
-  //
-  // Suppression as these are linker symbols and cppcheck doesn't know how to ensure
-  // they are the same object
-  // cppcheck-suppress comparePointers
-  size_t wav_size = (wav_end - wav_start) - 1;
-  FILE *fp = fmemopen((void *)wav_start, wav_size, "rb");
-  // read the file into the audio_bytes vector
-  audio_bytes.resize(wav_size);
-  fread(audio_bytes.data(), 1, wav_size, fp);
-  fclose(fp);
-  return wav_size;
+  // cppcheck-suppress syntaxError
+  extern const uint8_t click_wav_start[] asm("_binary_click_wav_start");
+  // cppcheck-suppress syntaxError
+  extern const uint8_t click_wav_end[] asm("_binary_click_wav_end");
+  audio_bytes = std::vector<uint8_t>(click_wav_start, click_wav_end);
+  return audio_bytes.size();
 }
 
 static void play_click(espp::TDeck &tdeck) {
