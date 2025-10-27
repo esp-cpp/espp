@@ -229,10 +229,11 @@ static size_t load_audio() {
   }
 
   // load the audio data. these are configured in the CMakeLists.txt file
-  extern const uint8_t click_wav_start[] asm(
-      "_binary_click_wav_start"); // cppcheck-suppress syntaxError
-  extern const uint8_t click_wav_end[] asm(
-      "_binary_click_wav_end"); // cppcheck-suppress syntaxError
+
+  // cppcheck-suppress syntaxError
+  extern const uint8_t click_wav_start[] asm("_binary_click_wav_start");
+  // cppcheck-suppress syntaxError
+  extern const uint8_t click_wav_end[] asm("_binary_click_wav_end");
   audio_bytes = std::vector<uint8_t>(click_wav_start, click_wav_end);
   return audio_bytes.size();
 }
