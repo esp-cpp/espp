@@ -475,9 +475,7 @@ extern "C" void app_main(void) {
 
   // loop forever
   while (true) {
-    std::this_thread::sleep_for(20s);
-    rotate_display();
-    play_click(tab5);
+    std::this_thread::sleep_for(1s);
   }
   //! [m5stack tab5 example]
 }
