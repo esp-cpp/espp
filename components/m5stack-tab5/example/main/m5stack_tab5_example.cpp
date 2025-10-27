@@ -242,8 +242,7 @@ extern "C" void app_main(void) {
 
   // add text in the center of the screen
   lv_obj_t *label = lv_label_create(lv_screen_active());
-  static std::string label_text =
-      "\n\n\n\nTouch the screen!\nPress the home button to clear circles.";
+  static std::string label_text = "\n\n\n\nTouch the screen!";
   lv_label_set_text(label, label_text.c_str());
   lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, 0);
   lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_LEFT, 0);
