@@ -165,6 +165,7 @@ protected:
     // adjust which side of the clamp we're adjusting by the cursor size based
     // on rotation
     switch (rotation) {
+    default:
     case LV_DISPLAY_ROTATION_0:
       x = std::clamp<int>(x, 0, screen_size_x - cursor_diameter);
       y = std::clamp<int>(y, 0, screen_size_y - cursor_diameter);
@@ -180,8 +181,6 @@ protected:
     case LV_DISPLAY_ROTATION_270:
       x = std::clamp<int>(x, cursor_diameter, screen_size_x);
       y = std::clamp<int>(y, 0, screen_size_y - cursor_diameter);
-      break;
-    default:
       break;
     }
 
