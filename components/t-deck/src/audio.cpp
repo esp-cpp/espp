@@ -6,15 +6,6 @@ using namespace espp;
 // Audio Functions   //
 ////////////////////////
 
-static TaskHandle_t play_audio_task_handle_ = NULL;
-
-static bool IRAM_ATTR audio_tx_sent_callback(i2s_chan_handle_t handle, i2s_event_data_t *event,
-                                             void *user_ctx) {
-  // notify the main task that we're done
-  vTaskNotifyGiveFromISR(play_audio_task_handle_, NULL);
-  return true;
-}
-
 bool TDeck::initialize_i2s(uint32_t default_audio_rate) {
   logger_.info("initializing i2s driver");
   logger_.debug("Using newer I2S standard");
@@ -64,12 +55,6 @@ bool TDeck::initialize_i2s(uint32_t default_audio_rate) {
   audio_tx_buffer.resize(buffer_size);
 
   audio_tx_stream = xStreamBufferCreate(buffer_size * 4, 0);
-
-  play_audio_task_handle_ = xTaskGetCurrentTaskHandle();
-
-  memset(&audio_tx_callbacks_, 0, sizeof(audio_tx_callbacks_));
-  audio_tx_callbacks_.on_sent = audio_tx_sent_callback;
-  i2s_channel_register_event_callback(audio_tx_handle, &audio_tx_callbacks_, NULL);
 
   xStreamBufferReset(audio_tx_stream);
 
@@ -125,13 +110,13 @@ bool TDeck::audio_task_callback(std::mutex &m, std::condition_variable &cv, bool
       // pointers to the buffer to the correct positions.
       int16_t *ptr = reinterpret_cast<int16_t *>(buffer);
       for (int i = 0; i < (available / 2); ++i) {
-        int16_t sample = ptr[i];
-        ptr[i] = static_cast<int16_t>((sample * volume_) / 100.0f);
+        int32_t sample = (ptr[i] * volume_) / 100.0f;
+        ptr[i] = std::clamp<int16_t>(static_cast<int16_t>(sample), INT16_MIN, INT16_MAX);
       }
     }
 
     // write the buffer to the I2S channel
-    i2s_channel_write(audio_tx_handle, buffer, available, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
   }
   return false; // don't stop the task
 }
@@ -164,11 +149,6 @@ void TDeck::audio_sample_rate(uint32_t sample_rate) {
 void TDeck::play_audio(const std::vector<uint8_t> &data) { play_audio(data.data(), data.size()); }
 
 void TDeck::play_audio(const uint8_t *data, uint32_t num_bytes) {
-  play_audio_task_handle_ = xTaskGetCurrentTaskHandle();
-  if (has_sound) {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-  }
   // don't block here
   xStreamBufferSendFromISR(audio_tx_stream, data, num_bytes, NULL);
-  has_sound = true;
 }
