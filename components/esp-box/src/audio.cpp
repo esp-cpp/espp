@@ -120,7 +120,7 @@ bool EspBox::audio_task_callback(std::mutex &m, std::condition_variable &cv, boo
     i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
   } else {
     xStreamBufferReceive(audio_tx_stream, buffer, available, 0);
-    i2s_channel_write(audio_tx_handle, buffer, available, NULL, portMAX_DELAY);
+    i2s_channel_write(audio_tx_handle, buffer, buffer_size, NULL, portMAX_DELAY);
   }
   return false; // don't stop the task
 }
