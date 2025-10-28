@@ -667,7 +667,5 @@ protected:
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   i2s_std_config_t audio_std_cfg;
-  i2s_event_callbacks_t audio_tx_callbacks_;
-  std::atomic<bool> has_sound{false};
 }; // class TDeck
 } // namespace espp
