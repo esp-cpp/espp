@@ -521,11 +521,10 @@ protected:
   std::unique_ptr<espp::Task> audio_task_{nullptr};
   // i2s / low-level audio
   i2s_chan_handle_t audio_tx_handle{nullptr};
+  i2s_chan_handle_t audio_rx_handle{nullptr};
   std::vector<uint8_t> audio_tx_buffer;
   StreamBufferHandle_t audio_tx_stream;
   i2s_std_config_t audio_std_cfg;
-  i2s_event_callbacks_t audio_tx_callbacks_;
-  std::atomic<bool> has_sound{false};
 
   // IMU
   std::shared_ptr<Imu> imu_;
