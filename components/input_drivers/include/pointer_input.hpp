@@ -153,8 +153,36 @@ protected:
       return;
     }
     read_(x, y, left_pressed, right_pressed);
-    data->point.x = std::clamp<int>(x, 0, screen_size_x_ - cursor_radius_ * 2);
-    data->point.y = std::clamp<int>(y, 0, screen_size_y_ - cursor_radius_ * 2);
+    auto cursor_diameter = cursor_radius_ * 2;
+    auto disp = lv_display_get_default();
+    static int screen_size_x = lv_disp_get_hor_res(disp);
+    static int screen_size_y = lv_disp_get_ver_res(disp);
+    auto rotation = lv_disp_get_rotation(disp);
+    // adjust which side of the clamp we're adjusting by the cursor size based
+    // on rotation
+    switch (rotation) {
+    case LV_DISPLAY_ROTATION_0:
+      x = std::clamp<int>(x, 0, screen_size_x - cursor_diameter);
+      y = std::clamp<int>(y, 0, screen_size_y - cursor_diameter);
+      break;
+    case LV_DISPLAY_ROTATION_90:
+      x = std::clamp<int>(x, 0, screen_size_x - cursor_diameter);
+      y = std::clamp<int>(y, cursor_diameter, screen_size_y);
+      break;
+    case LV_DISPLAY_ROTATION_180:
+      x = std::clamp<int>(x, cursor_diameter, screen_size_x);
+      y = std::clamp<int>(y, cursor_diameter, screen_size_y);
+      break;
+    case LV_DISPLAY_ROTATION_270:
+      x = std::clamp<int>(x, cursor_diameter, screen_size_x);
+      y = std::clamp<int>(y, 0, screen_size_y - cursor_diameter);
+      break;
+    default:
+      break;
+    }
+
+    data->point.x = x;
+    data->point.y = y;
     data->state = left_pressed ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
   }
 
@@ -178,16 +206,10 @@ protected:
     lv_obj_set_style_bg_color(cursor_obj_, lv_palette_lighten(LV_PALETTE_BLUE, 2), 0);
     lv_obj_clear_flag(cursor_obj_, LV_OBJ_FLAG_CLICKABLE);
     lv_indev_set_cursor(indev_pointer_, cursor_obj_);
-
-    auto disp = lv_display_get_default();
-    screen_size_x_ = (uint16_t)lv_display_get_horizontal_resolution(disp);
-    screen_size_y_ = (uint16_t)lv_display_get_vertical_resolution(disp);
   }
 
   read_fn read_;
   int cursor_radius_{8};
-  uint16_t screen_size_x_;
-  uint16_t screen_size_y_;
   lv_indev_t *indev_pointer_{nullptr};
   lv_obj_t *cursor_obj_{nullptr};
 };
