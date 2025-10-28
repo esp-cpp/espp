@@ -14,7 +14,7 @@ static std::recursive_mutex lvgl_mutex;
 static void draw_circle(int x0, int y0, int radius);
 static void clear_circles();
 
-static size_t load_audio();
+static bool load_audio(size_t &out_size, size_t &out_sample_rate);
 static void play_click(espp::TDeck &tdeck);
 
 LV_IMG_DECLARE(mouse_cursor_icon);
@@ -180,8 +180,17 @@ extern "C" void app_main(void) {
   lv_task.start();
 
   // load the audio file (wav file bundled in memory)
-  size_t wav_size = load_audio();
+  size_t wav_size = 0;
+  size_t wav_sample_rate = 0;
+  if (!load_audio(wav_size, wav_sample_rate)) {
+    logger.error("Failed to load audio file!");
+    return;
+  }
   logger.info("Loaded {} bytes of audio", wav_size);
+
+  // the wav file is 44.1kHz, set the audio rate to match
+  logger.info("Setting audio sample rate to {} Hz", wav_sample_rate);
+  tdeck.audio_sample_rate(wav_sample_rate);
 
   // unmute the audio and set the volume to 20%
   tdeck.mute(false);
@@ -223,10 +232,10 @@ static void clear_circles() {
   circles.clear();
 }
 
-static size_t load_audio() {
+static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   // if the audio_bytes vector is already populated, return the size
   if (audio_bytes.size() > 0) {
-    return audio_bytes.size();
+    return true;
   }
 
   // load the audio data. these are configured in the CMakeLists.txt file
@@ -236,7 +245,16 @@ static size_t load_audio() {
   // cppcheck-suppress syntaxError
   extern const uint8_t click_wav_end[] asm("_binary_click_wav_end");
   audio_bytes = std::vector<uint8_t>(click_wav_start, click_wav_end);
-  return audio_bytes.size();
+  // get the sample rate from the wav header (bytes 24-27)
+  uint32_t sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
+  // set the audio sample rate accordingly
+  // decode the wav file header (first 44 bytes) and remove it
+  if (audio_bytes.size() > 44) {
+    audio_bytes.erase(audio_bytes.begin(), audio_bytes.begin() + 44);
+  }
+  out_size = audio_bytes.size();
+  out_sample_rate = sample_rate;
+  return true;
 }
 
 static void play_click(espp::TDeck &tdeck) {
