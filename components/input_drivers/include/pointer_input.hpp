@@ -155,6 +155,10 @@ protected:
     read_(x, y, left_pressed, right_pressed);
     auto cursor_diameter = cursor_radius_ * 2;
     auto disp = lv_display_get_default();
+    // NOTE: we cache these static values since the screen size is not going to
+    //       change during runtime, and we want the actual screen size (not the
+    //       rotated size) The input driver in lvgl will perform the input
+    //       rotation for us, so we should not rotate the coordinates here.
     static int screen_size_x = lv_disp_get_hor_res(disp);
     static int screen_size_y = lv_disp_get_ver_res(disp);
     auto rotation = lv_disp_get_rotation(disp);
