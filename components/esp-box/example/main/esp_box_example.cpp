@@ -164,6 +164,17 @@ extern "C" void app_main(void) {
   lv_line_set_points(line1, line_points1, 2);
   lv_obj_add_style(line1, &style_line1, 0);
 
+  static auto rotate_display = [&]() {
+    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+    clear_circles();
+    static auto rotation = LV_DISPLAY_ROTATION_0;
+    rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
+    lv_display_t *disp = lv_display_get_default();
+    lv_disp_set_rotation(disp, rotation);
+    // update the size of the screen
+    lv_obj_set_size(bg, box.rotated_display_width(), box.rotated_display_height());
+  };
+
   // add a button in the top left which (when pressed) will rotate the display
   // through 0, 90, 180, 270 degrees
   lv_obj_t *btn = lv_btn_create(lv_screen_active());
@@ -174,16 +185,7 @@ extern "C" void app_main(void) {
   // center the text in the button
   lv_obj_align(label_btn, LV_ALIGN_CENTER, 0, 0);
   lv_obj_add_event_cb(
-      btn,
-      [](auto event) {
-        std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
-        clear_circles();
-        static auto rotation = LV_DISPLAY_ROTATION_0;
-        rotation = static_cast<lv_display_rotation_t>((static_cast<int>(rotation) + 1) % 4);
-        lv_display_t *disp = lv_display_get_default();
-        lv_disp_set_rotation(disp, rotation);
-      },
-      LV_EVENT_PRESSED, nullptr);
+      btn, [](auto event) { rotate_display(); }, LV_EVENT_PRESSED, nullptr);
 
   // disable scrolling on the screen (so that it doesn't behave weirdly when
   // rotated and drawing with your finger)
@@ -276,13 +278,15 @@ extern "C" void app_main(void) {
 
          // use the pitch to to draw a line on the screen indiating the
          // direction from the center of the screen to "down"
-         int x0 = box.lcd_width() / 2;
-         int y0 = box.lcd_height() / 2;
+         int x0 = box.rotated_display_width() / 2;
+         int y0 = box.rotated_display_height() / 2;
 
          int x1 = x0 + 50 * gravity_vector.x;
          int y1 = y0 + 50 * gravity_vector.y;
 
          static lv_point_precise_t line_points0[] = {{x0, y0}, {x1, y1}};
+         line_points0[0].x = x0;
+         line_points0[0].y = y0;
          line_points0[1].x = x1;
          line_points0[1].y = y1;
 
@@ -317,6 +321,8 @@ extern "C" void app_main(void) {
          y1 = y0 + 50 * vy;
 
          static lv_point_precise_t line_points1[] = {{x0, y0}, {x1, y1}};
+         line_points1[0].x = x0;
+         line_points1[0].y = y0;
          line_points1[1].x = x1;
          line_points1[1].y = y1;
 
