@@ -166,6 +166,22 @@ public:
   /// \return The GPIO pin for the LCD data/command signal
   static constexpr auto get_lcd_dc_gpio() { return lcd_dc_io; }
 
+  /// Get the display width in pixels
+  /// \return The display width in pixels
+  static constexpr size_t display_width() { return lcd_width_; }
+
+  /// Get the display height in pixels
+  /// \return The display height in pixels
+  static constexpr size_t display_height() { return lcd_height_; }
+
+  /// Get the display width in pixels, according to the current orientation
+  /// \return The display width in pixels, according to the current orientation
+  size_t rotated_display_width() const;
+
+  /// Get the display height in pixels, according to the current orientation
+  /// \return The display height in pixels, according to the current orientation
+  size_t rotated_display_height() const;
+
   /// Get a shared pointer to the display
   /// \return A shared pointer to the display
   std::shared_ptr<Display<Pixel>> display() const { return display_; }

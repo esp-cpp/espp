@@ -308,3 +308,33 @@ float EspBox::brightness() const {
   }
   return 0.0f; // if no backlight, return 0
 }
+
+size_t EspBox::rotated_display_width() const {
+  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  switch (rotation) {
+  // swap
+  case LV_DISPLAY_ROTATION_90:
+  case LV_DISPLAY_ROTATION_270:
+    return lcd_height_;
+  // as configured
+  case LV_DISPLAY_ROTATION_0:
+  case LV_DISPLAY_ROTATION_180:
+  default:
+    return lcd_width_;
+  }
+}
+
+size_t EspBox::rotated_display_height() const {
+  auto rotation = lv_display_get_rotation(lv_display_get_default());
+  switch (rotation) {
+  // swap
+  case LV_DISPLAY_ROTATION_90:
+  case LV_DISPLAY_ROTATION_270:
+    return lcd_width_;
+  // as configured
+  case LV_DISPLAY_ROTATION_0:
+  case LV_DISPLAY_ROTATION_180:
+  default:
+    return lcd_height_;
+  }
+}
