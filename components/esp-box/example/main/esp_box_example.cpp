@@ -395,6 +395,11 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   // cppcheck-suppress syntaxError
   extern const uint8_t click_wav_end[] asm("_binary_click_wav_end");
   audio_bytes = std::vector<uint8_t>(click_wav_start, click_wav_end);
+  // ensure we have at least a wav header
+  if (audio_bytes.size() < 44) {
+    audio_bytes.clear();
+    return false;
+  }
   // get the sample rate from the wav header (bytes 24-27)
   uint32_t sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
   // set the audio sample rate accordingly

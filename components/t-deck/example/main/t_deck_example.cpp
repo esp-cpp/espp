@@ -188,7 +188,6 @@ extern "C" void app_main(void) {
   }
   logger.info("Loaded {} bytes of audio", wav_size);
 
-  // the wav file is 44.1kHz, set the audio rate to match
   logger.info("Setting audio sample rate to {} Hz", wav_sample_rate);
   tdeck.audio_sample_rate(wav_sample_rate);
 
@@ -245,6 +244,11 @@ static bool load_audio(size_t &out_size, size_t &out_sample_rate) {
   // cppcheck-suppress syntaxError
   extern const uint8_t click_wav_end[] asm("_binary_click_wav_end");
   audio_bytes = std::vector<uint8_t>(click_wav_start, click_wav_end);
+  // ensure we have at least a wav header
+  if (audio_bytes.size() < 44) {
+    audio_bytes.clear();
+    return false;
+  }
   // get the sample rate from the wav header (bytes 24-27)
   uint32_t sample_rate = *(reinterpret_cast<const uint32_t *>(&audio_bytes[24]));
   // set the audio sample rate accordingly
