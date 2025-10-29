@@ -1,11 +1,23 @@
-version: "1.0.0"
-description: "M5Stack Tab5 Board Support Package (BSP) component for ESP32-P4"
-url: "https://github.com/esp-cpp/espp"
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "M5Stack Tab5 Board Support Package (BSP) component in C++ for ESP32-P4"
+url: "https://github.com/esp-cpp/espp/tree/main/components/m5stack-tab5"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/m5stack_tab5.html"
+examples:
+  - path: example
+tags:
+  - cpp
+  - Component
+  - M5Stack
+  - Tab5
+  - BSP
 dependencies:
   idf: ">=5.0"
   espp/base_component: ">=1.0"
   espp/bmi270: ">=1.0"
-  # espp/ble_gatt_server: ">=1.0"
   espp/codec: ">=1.0"
   espp/display: ">=1.0"
   espp/display_drivers: ">=1.0"
@@ -17,6 +29,5 @@ dependencies:
   espp/pi4ioe5v: ">=1.0"
   espp/rx8130ce: ">=1.0"
   espp/task: ">=1.0"
-  # espp/wifi: ">=1.0"
 targets:
   - esp32p4
