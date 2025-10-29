@@ -29,3 +29,5 @@ dependencies:
   espp/mt6701: '>=1.0'
   espp/pid: '>=1.0'
   espp/task: '>=1.0'
+targets:
+  - esp32s3

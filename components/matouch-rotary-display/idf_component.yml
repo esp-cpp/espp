@@ -27,3 +27,5 @@ dependencies:
   espp/input_drivers: '>=1.0'
   espp/interrupt: '>=1.0'
   espp/task: '>=1.0'
+targets:
+  - esp32s3
