@@ -25,3 +25,5 @@ dependencies:
   espp/led: '>=1.0'
   espp/math: '>=1.0'
   espp/task: '>=1.0'
+targets:
+  - esp32

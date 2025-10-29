@@ -22,3 +22,6 @@ dependencies:
   espp/neopixel: '>=1.0'
   espp/task: '>=1.0'
   espp/interrupt: '>=1.0'
+targets:
+  - esp32
+  - esp32s3
