@@ -13,7 +13,7 @@ kconfig) which driver you want to use.
 Legacy API
 ==========
 
-This driver is deprecated and will no longer be available for ESP-IDF >= v5.5 -
+This driver is deprecated and will no longer be available for ESP-IDF >= v6.0 -
 so make sure you upgrade.
 
 The `I2C` class provides a simple interface to the I2C bus. It is a wrapper
