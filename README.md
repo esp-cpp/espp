@@ -2,7 +2,7 @@
 
 This is the repository for some c++ components developed for the
 [ESP-IDF](https://github.com/espressif/esp-idf) framework. Specifically we are
-targeting `ESP-IDF 5.4` currently.
+targeting `ESP-IDF 5.5.1` currently.
 
 > NOTE: This repo attempts to stay up to date with ESP-IDF. This means that the
 > code within may not be supported on older ESP-IDF targets.
@@ -28,7 +28,7 @@ If you have questions or would like to chat, feel free to hop over to our discor
 ## Getting Started
 
 The components in this repository are targeted towards ESP-IDF >=5.0, though
-they are mainly tested against 5.4 right now.
+they are mainly tested against 5.5.1 right now.
 
 To use the components in this repository, you have a few options:
 
