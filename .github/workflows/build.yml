@@ -219,7 +219,7 @@ jobs:
     - name: Build Examples
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: release-v5.4
+        esp_idf_version: v5.5.1
         target: ${{ matrix.test.target }}
         path: ${{ matrix.test.path }}
         command: ${{ matrix.test.command || 'idf.py build' }}
