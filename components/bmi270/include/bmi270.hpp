@@ -89,7 +89,7 @@ public:
      * @brief Maximum number of bytes to write in a single burst during config upload.
      * Default is 128 bytes. Decrease this if you encounter stack overflow.
      */
-    uint16_t burst_write_size = 128;
+    uint16_t burst_write_size = 0;
     bool auto_init{true};                                 ///< Automatically initialize the BMI270
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log level
   };
@@ -100,7 +100,7 @@ public:
       : BasePeripheral<uint8_t, Interface == bmi270::Interface::I2C>({}, "Bmi270", config.log_level)
       , orientation_filter_(config.orientation_filter)
       , imu_config_(config.imu_config)
-      , burst_write_size_(config.burst_write_size) {
+      , burst_write_size_(config.burst_write_size == 0 ? config_file_size : config.burst_write_size) {
     if constexpr (Interface == bmi270::Interface::I2C) {
       set_address(config.device_address);
     }
@@ -712,7 +712,7 @@ protected:
   // Member variables
   filter_fn orientation_filter_{nullptr};
   ImuConfig imu_config_{};
-  uint16_t burst_write_size_{128};
+  uint16_t burst_write_size_{0};
   Value accel_values_{};
   Value gyro_values_{};
   float temperature_{0.0f};
