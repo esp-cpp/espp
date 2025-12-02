@@ -1,0 +1,19 @@
+RX8130CE
+********
+
+The `Rx8130ce` component provides a driver for the RX8130CE Real-Time Clock chip from EPSON.
+
+This component supports both **std::tm based APIs** for portability across different RTC chips, and **device-specific APIs** for accessing advanced features like temperature sensing, timer functionality, and clock output.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   rx8130ce_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/rx8130ce.inc
