@@ -86,9 +86,9 @@ public:
     ImuConfig imu_config;                                 ///< IMU configuration
     filter_fn orientation_filter = nullptr;               ///< Filter function for orientation
     /**
-     * @brief Maximum number of bytes to write in a single burst during config upload.
+     * @brief Maximum number of bytes to write in a single burst during config upload. If 0 will use full config file size of 8192 bytes.
      * Default is 0 (uses full config file size of 8192 bytes).
-     * Decrease this if you encounter stack overflow (e.g., 128 for ESP32-C3).
+     * Set this to a small non-zero value (e.g., 128) if you encounter stack overflow or want to decrease memory usage.
      */
     uint16_t burst_write_size = 0;
     bool auto_init{true};                                 ///< Automatically initialize the BMI270
