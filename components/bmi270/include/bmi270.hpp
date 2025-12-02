@@ -85,6 +85,12 @@ public:
         nullptr;                                          ///< Read function
     ImuConfig imu_config;                                 ///< IMU configuration
     filter_fn orientation_filter = nullptr;               ///< Filter function for orientation
+    /**
+     * @brief Maximum number of bytes to write in a single burst during config upload. If 0 will use full config file size of 8192 bytes.
+     * Default is 0 (uses full config file size of 8192 bytes).
+     * Set this to a small non-zero value (e.g., 128) if you encounter stack overflow or want to decrease memory usage.
+     */
+    uint16_t burst_write_size = 0;
     bool auto_init{true};                                 ///< Automatically initialize the BMI270
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log level
   };
@@ -94,7 +100,8 @@ public:
   explicit Bmi270(const Config &config)
       : BasePeripheral<uint8_t, Interface == bmi270::Interface::I2C>({}, "Bmi270", config.log_level)
       , orientation_filter_(config.orientation_filter)
-      , imu_config_(config.imu_config) {
+      , imu_config_(config.imu_config)
+      , burst_write_size_(config.burst_write_size == 0 ? config_file_size : config.burst_write_size) {
     if constexpr (Interface == bmi270::Interface::I2C) {
       set_address(config.device_address);
     }
@@ -565,9 +572,9 @@ protected:
     }
 
     // upload config file:
-    // - burst write 8 kB init data to INIT_DATA, using 128-byte writes
+    // - burst write init data to INIT_DATA, using configurable chunk size (defaults to 8 kB)
     const uint8_t *config_data = config_file;
-    size_t burst_size = config_file_size;
+    size_t burst_size = burst_write_size_;
     size_t config_size = config_file_size;
     size_t offset = 0;
     while (offset < config_size) {
@@ -706,6 +713,7 @@ protected:
   // Member variables
   filter_fn orientation_filter_{nullptr};
   ImuConfig imu_config_{};
+  uint16_t burst_write_size_{0};
   Value accel_values_{};
   Value gyro_values_{};
   float temperature_{0.0f};
