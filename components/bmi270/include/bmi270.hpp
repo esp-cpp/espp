@@ -571,7 +571,7 @@ protected:
     }
 
     // upload config file:
-    // - burst write 8 kB init data to INIT_DATA, using 128-byte writes
+    // - burst write init data to INIT_DATA, using configurable chunk size (defaults to 8 kB)
     const uint8_t *config_data = config_file;
     size_t burst_size = burst_write_size_;
     size_t config_size = config_file_size;
