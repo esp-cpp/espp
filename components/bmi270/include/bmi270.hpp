@@ -87,7 +87,8 @@ public:
     filter_fn orientation_filter = nullptr;               ///< Filter function for orientation
     /**
      * @brief Maximum number of bytes to write in a single burst during config upload.
-     * Default is 128 bytes. Decrease this if you encounter stack overflow.
+     * Default is 0 (uses full config file size of 8192 bytes).
+     * Decrease this if you encounter stack overflow (e.g., 128 for ESP32-C3).
      */
     uint16_t burst_write_size = 0;
     bool auto_init{true};                                 ///< Automatically initialize the BMI270
