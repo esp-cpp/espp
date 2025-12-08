@@ -12,6 +12,8 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
+  # NOTE: we add esp_vfs_console to be able to see the log output on the console
+  # if we are running on ESP32-S2 and have enabled USB-CDC console output
   "main esptool_py logger esp_vfs_console"
   CACHE STRING
   "List of components to include"
