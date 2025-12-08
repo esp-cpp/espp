@@ -425,7 +425,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
 #if defined(ESP_PLATFORM)
     // use esp_log_timestamp to get the time in milliseconds
     uint64_t time = esp_log_timestamp();
-    uint64_t seconds = time / 1e3f;
+    uint64_t seconds = time / 1'000;
     uint64_t milliseconds = (time % 1'000);
     return fmt::format("{}.{:03}", seconds, milliseconds);
 #else
