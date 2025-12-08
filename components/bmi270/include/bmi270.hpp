@@ -433,17 +433,28 @@ public:
   /// @param ec The error code to set if an error occurs
   /// @return True if interrupts were configured successfully, false otherwise
   bool configure_interrupts(const InterruptConfig &config, std::error_code &ec) {
-    // Configure interrupt pin behavior
-    uint8_t int_io_ctrl =
-        (static_cast<uint8_t>(config.active_level) << 1) | static_cast<uint8_t>(config.output_type);
+    // Configure interrupt pin electrical behavior (Output Enable | Output Type | Active Level)
+    // Bit 3 is Output Enable, which must be set to 1 for the pin to drive the line.
+    uint8_t int_io_ctrl = (1 << 3) | 
+                          (static_cast<uint8_t>(config.output_type) << 2) |
+                          (static_cast<uint8_t>(config.active_level) << 1);
 
-    if (config.pin == InterruptPin::INT1) {
-      write_u8_to_register(static_cast<uint8_t>(Register::INT1_IO_CTRL), int_io_ctrl, ec);
-    } else {
-      write_u8_to_register(static_cast<uint8_t>(Register::INT2_IO_CTRL), int_io_ctrl, ec);
+    auto pin_reg = (config.pin == InterruptPin::INT1) ? Register::INT1_IO_CTRL : Register::INT2_IO_CTRL;
+    write_u8_to_register(static_cast<uint8_t>(pin_reg), int_io_ctrl, ec);
+    if (ec) return false;
+
+    // Map interrupt features to pins
+    uint8_t int_map_data = 0;
+    if (config.enable_data_ready) {
+      // Map Data Ready interrupt to the selected pin
+      // Bit 2: Data Ready -> INT1, Bit 6: Data Ready -> INT2
+      int_map_data |= (config.pin == InterruptPin::INT1) ? (1 << 2) : (1 << 6);
     }
 
-    return !ec;
+    write_u8_to_register(static_cast<uint8_t>(Register::INT_MAP_DATA), int_map_data, ec);
+    if (ec) return false;
+
+    return true;
   }
 
 protected:
