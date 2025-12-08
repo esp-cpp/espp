@@ -7,8 +7,12 @@
 #include <string_view>
 
 #if defined(ESP_PLATFORM)
-#include <esp_timer.h>
+// include sdkconfig before the rest
 #include <sdkconfig.h>
+
+// esp-idf includes
+#include <esp_log_timestamp.h>
+#include <esp_timer.h>
 #endif
 
 #include "format.hpp"
@@ -419,10 +423,10 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    */
   static std::string get_time() {
 #if defined(ESP_PLATFORM)
-    // use esp_timer_get_time to get the time in microseconds
-    uint64_t time = esp_timer_get_time();
-    uint64_t seconds = time / 1e6f;
-    uint64_t milliseconds = (time % 1000000) / 1e3f;
+    // use esp_log_timestamp to get the time in milliseconds
+    uint64_t time = esp_log_timestamp();
+    uint64_t seconds = time / 1e3f;
+    uint64_t milliseconds = (time % 1'000);
     return fmt::format("{}.{:03}", seconds, milliseconds);
 #else
     // get the elapsed time since the start of the logging system as floating

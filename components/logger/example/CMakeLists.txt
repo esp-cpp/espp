@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py logger"
+  "main esptool_py logger esp_vfs_console"
   CACHE STRING
   "List of components to include"
   )

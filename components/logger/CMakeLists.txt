@@ -1,6 +1,6 @@
 if (ESP_PLATFORM)
   # set component requirements for ESP32
-  set(COMPONENT_REQUIRES "format esp_timer")
+  set(COMPONENT_REQUIRES "format esp_timer log")
 else()
   # set component requirements for generic
   set(COMPONENT_REQUIRES "format")
