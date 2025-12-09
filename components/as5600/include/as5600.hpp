@@ -95,6 +95,8 @@ public:
    */
   void initialize(std::error_code &ec) { init(ec); }
 
+
+
   /**
    * @brief Return whether the sensor has found absolute 0 yet.
    * @note The AS5600 (using I2C/SPI) does not need to search for absolute 0
@@ -174,6 +176,8 @@ protected:
     return (int)((angle_h << 6) | angle_l);
   }
 
+
+
   void update(std::error_code &ec) {
     logger_.info("update");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
@@ -183,11 +187,10 @@ protected:
       return;
     }
     count_.store(count);
-    static int prev_count = count_;
-    // compute diff
-    int diff = count_ - prev_count;
+    // compute diff 
+    int diff = count_ - prev_count_;
     // update prev_count
-    prev_count = count_;
+    prev_count_ = count_;
     // check for zero crossing
     if (diff > COUNTS_PER_REVOLUTION / 2) {
       // we crossed zero going clockwise (1 -> 359)
@@ -199,11 +202,10 @@ protected:
     // update accumulator
     accumulator_ += diff;
     logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
-    // update velocity (filtering it)
-    static auto prev_time = std::chrono::high_resolution_clock::now();
+    // update velocity (filtering it) 
     auto now = std::chrono::high_resolution_clock::now();
-    float elapsed = std::chrono::duration<float>(now - prev_time).count();
-    prev_time = now;
+    float elapsed = std::chrono::duration<float>(now - prev_time_).count();
+    prev_time_ = now;
     float seconds = elapsed ? elapsed : update_period_.count();
     float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
@@ -298,5 +300,8 @@ protected:
   std::atomic<int> accumulator_{0};
   std::atomic<float> velocity_rpm_{0};
   std::unique_ptr<Task> task_;
+  // Instance-specific variables (not static) to support multiple AS5600 sensors
+  int prev_count_{0};
+  std::chrono::high_resolution_clock::time_point prev_time_{std::chrono::high_resolution_clock::now()};
 };
 } // namespace espp
