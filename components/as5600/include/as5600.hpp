@@ -95,8 +95,6 @@ public:
    */
   void initialize(std::error_code &ec) { init(ec); }
 
-
-
   /**
    * @brief Return whether the sensor has found absolute 0 yet.
    * @note The AS5600 (using I2C/SPI) does not need to search for absolute 0
@@ -176,8 +174,6 @@ protected:
     return (int)((angle_h << 6) | angle_l);
   }
 
-
-
   void update(std::error_code &ec) {
     logger_.info("update");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
@@ -237,6 +233,7 @@ protected:
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // initialize the accumulator to have the current angle
     auto count = read_count(ec);
+    prev_count_ = count;
     if (ec) {
       return;
     }
