@@ -95,8 +95,6 @@ public:
    */
   void initialize(std::error_code &ec) { init(ec); }
 
-
-
   /**
    * @brief Return whether the sensor has found absolute 0 yet.
    * @note The AS5600 (using I2C/SPI) does not need to search for absolute 0
@@ -176,8 +174,6 @@ protected:
     return (int)((angle_h << 6) | angle_l);
   }
 
-
-
   void update(std::error_code &ec) {
     logger_.info("update");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
@@ -189,11 +185,12 @@ protected:
     // store the previous count
     int prev_count = count_.load();
     // update raw count
-    read(ec);
+    auto count = read_count(ec);
     if (ec) {
       return;
     }
-    // compute diff 
+    count_.store(count);
+    // compute diff
     int diff = count_ - prev_count;
     // check for zero crossing
     if (diff > COUNTS_PER_REVOLUTION / 2) {
@@ -206,7 +203,7 @@ protected:
     // update accumulator
     accumulator_ += diff;
     logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
-    // update velocity (filtering it) 
+    // update velocity (filtering it)
     float raw_velocity = (dt > 0) ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE : 0.0f;
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
     if (dt > 0) {
