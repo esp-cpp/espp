@@ -95,6 +95,8 @@ public:
    */
   void initialize(std::error_code &ec) { init(ec); }
 
+
+
   /**
    * @brief Return whether the sensor has found absolute 0 yet.
    * @note The AS5600 (using I2C/SPI) does not need to search for absolute 0
@@ -174,19 +176,25 @@ protected:
     return (int)((angle_h << 6) | angle_l);
   }
 
+
+
   void update(std::error_code &ec) {
     logger_.info("update");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // measure update timing
+    uint64_t now_us = esp_timer_get_time();
+    auto dt = now_us - prev_time_us_;
+    float seconds = dt / 1e6f;
+    prev_time_us_ = now_us;
+    // store the previous count
+    int prev_count = count_.load();
     // update raw count
-    auto count = read_count(ec);
+    read(ec);
     if (ec) {
       return;
     }
-    count_.store(count);
     // compute diff 
-    int diff = count_ - prev_count_;
-    // update prev_count
-    prev_count_ = count_;
+    int diff = count_ - prev_count;
     // check for zero crossing
     if (diff > COUNTS_PER_REVOLUTION / 2) {
       // we crossed zero going clockwise (1 -> 359)
@@ -199,17 +207,15 @@ protected:
     accumulator_ += diff;
     logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
     // update velocity (filtering it) 
-    auto now = std::chrono::high_resolution_clock::now();
-    float elapsed = std::chrono::duration<float>(now - prev_time_).count();
-    prev_time_ = now;
-    float seconds = elapsed ? elapsed : update_period_.count();
-    float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
+    float raw_velocity = (dt > 0) ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE : 0.0f;
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
-    static float max_velocity = 0.5f / update_period_.count() * SECONDS_PER_MINUTE;
-    if (raw_velocity >= max_velocity) {
-      logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
-                   "update period!",
-                   max_velocity);
+    if (dt > 0) {
+      float max_velocity = 0.5f / seconds * SECONDS_PER_MINUTE;
+      if (raw_velocity >= max_velocity) {
+        logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
+                     "update period!",
+                     max_velocity);
+      }
     }
   }
 
@@ -232,12 +238,13 @@ protected:
   void init(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // initialize the accumulator to have the current angle
-    auto count = read_count(ec);
-    prev_count_ = count;
+    read_count(ec);
     if (ec) {
       return;
     }
-    accumulator_ = count;
+    accumulator_ = count_.load();
+    // initialize timing
+    prev_time_us_ = esp_timer_get_time();
     // start the task
     using namespace std::placeholders;
     task_ = Task::make_unique({
@@ -297,8 +304,6 @@ protected:
   std::atomic<int> accumulator_{0};
   std::atomic<float> velocity_rpm_{0};
   std::unique_ptr<Task> task_;
-  // Instance-specific variables (not static) to support multiple AS5600 sensors
-  int prev_count_{0};
-  std::chrono::high_resolution_clock::time_point prev_time_{std::chrono::high_resolution_clock::now()};
+  uint64_t prev_time_us_{0};
 };
 } // namespace espp
