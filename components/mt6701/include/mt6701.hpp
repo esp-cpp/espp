@@ -4,8 +4,11 @@
 #include <cmath>
 #include <functional>
 
+#include <sdkconfig.h>
+
 #include "base_peripheral.hpp"
 #include "high_resolution_timer.hpp"
+#include "task.hpp"
 
 namespace espp {
 /// @brief Enum class for the interface type of the MT6701.
@@ -94,6 +97,9 @@ public:
   static constexpr float SECONDS_PER_MINUTE =
       60.0f; ///< Conversion factor to convert from seconds to minutes.
 
+  static constexpr int MIN_DIFF =
+      CONFIG_MT6701_MIN_DIFF; ///< Minimum difference for velocity calculation.
+
   /**
    * @brief Configuration information for the Mt6701.
    */
@@ -140,6 +146,15 @@ public:
   /**
    * @brief Initialize the accumulator to the current position and start the
    *        update task.
+   * @param ec Error code to set if there is an error.
+   * @note This version of initialize() starts the update task, so you do not
+   *       need to call update() manually.
+   */
+  void initialize(std::error_code &ec) { initialize(true, ec); }
+
+  /**
+   * @brief Initialize the accumulator to the current position and start the
+   *        update task, if desired.
    * @param run_task Whether to start the update task.
    * @param ec Error code to set if there is an error.
    * @note If you do not start the task, you must call update() manually.
@@ -156,11 +171,11 @@ public:
   }
 
   /**
-   * @brief Return whether the sensor has found absolute 0 yet.
+   * @brief Return whether the sensor needs to search for absolute 0 on startup.
    * @note The MT6701 (using I2C/SPI) does not need to search for absolute 0
    *       and will always know it on startup. Therefore this function always
    *       returns false.
-   * @return True because the magnetic sensor (using I2C/SPI) does not need to
+   * @return False because the magnetic sensor (using I2C/SPI) does not need to
    *         sarch for 0.
    */
   bool needs_zero_search() const { return false; }
@@ -286,7 +301,6 @@ public:
     // update accumulator
     accumulator_ += diff;
     logger_.debug_rate_limited("CDA: {}, {}, {}", count_, diff, accumulator_);
-    static constexpr int MIN_DIFF = 2;
     // update velocity (filtering it)
     float raw_velocity =
         (dt > 0 && std::abs(diff) > MIN_DIFF)
@@ -302,6 +316,45 @@ public:
             max_velocity);
       }
     }
+  }
+
+  /**
+   * @brief Start the update task/timer.
+   * @note This will start the task/timer that calls update() at the update_period.
+   * @note This is only useful if you previously stopped the task/timer or if you
+   *       initialized with run_task = false.
+   * @return True if the task/timer was started successfully, false otherwise.
+   */
+  bool start() {
+    logger_.info("Starting task with update period of {:.3f} seconds", update_period_.count());
+    prev_time_us_ = esp_timer_get_time();
+#if defined(CONFIG_MT6701_USE_TIMER)
+    uint64_t period_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(update_period_).count();
+    timer_.periodic(period_us);
+    return true;
+#else
+    if (!task_) {
+      return false;
+    }
+    return task_->start();
+#endif
+  }
+
+  /**
+   * @brief Stop the update task/timer.
+   * @note This will stop the task/timer that calls update() at the update_period.
+   * @note After stopping, you can manually call update() or restart with start().
+   */
+  void stop() {
+    logger_.info("Stopping task");
+#if defined(CONFIG_MT6701_USE_TIMER)
+    timer_.stop();
+#else
+    if (task_) {
+      task_->stop();
+    }
+#endif
   }
 
 protected:
@@ -360,6 +413,7 @@ protected:
     tracking_status_ = (TrackingStatus)((status >> 3) & 0b1);
   }
 
+#if defined(CONFIG_MT6701_USE_TIMER)
   bool update_task() {
     std::error_code ec;
     update(ec);
@@ -369,6 +423,24 @@ protected:
     // don't want to stop the task
     return false;
   }
+#else
+  bool update_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
+    auto start = std::chrono::high_resolution_clock::now();
+    std::error_code ec;
+    update(ec);
+    if (ec) {
+      logger_.error("Error updating: {}", ec.message());
+    }
+    // sleep until the next update period
+    {
+      std::unique_lock<std::mutex> lk(m);
+      cv.wait_until(lk, start + update_period_, [&task_notified] { return task_notified; });
+      task_notified = false;
+    }
+    // don't want to stop the task
+    return false;
+  }
+#endif
 
   void init(bool run_task, std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
@@ -383,12 +455,18 @@ protected:
           "Not starting task, run_task is false. Manually call update() to update the state.");
       return;
     }
-    logger_.info("Starting task with update period of {:.3f} seconds", update_period_.count());
-    // start the task
-    uint64_t period_us =
-        std::chrono::duration_cast<std::chrono::microseconds>(update_period_).count();
-    timer_.periodic(period_us);
-    prev_time_us_ = esp_timer_get_time();
+#if defined(CONFIG_MT6701_USE_TIMER)
+#else
+    using namespace std::placeholders;
+    task_ = Task::make_unique(Task::Config{
+        .callback = std::bind(&Mt6701::update_task, this, _1, _2, _3),
+        .task_config = {.name = "Mt6701"},
+    });
+#endif
+    if (!start()) {
+      logger_.error("Error starting task");
+      ec = make_error_code(std::errc::operation_not_permitted);
+    }
   }
 
   /**
@@ -429,8 +507,13 @@ protected:
   std::atomic<MagneticFieldStrength> magnetic_field_strength_{MagneticFieldStrength::NORMAL};
   std::atomic<TrackingStatus> tracking_status_{TrackingStatus::NORMAL};
   std::atomic<bool> push_button_{false};
+#if defined(CONFIG_MT6701_USE_TIMER)
   espp::HighResolutionTimer timer_{
-      {.name = "Mt6701", .callback = std::bind(&Mt6701::update_task, this)}};
+      {.name = "Mt6701",
+       .callback = std::bind(&Mt6701::update_task, this) }};
+#else
+  std::unique_ptr<Task> task_;
+#endif
 };
 } // namespace espp
 
