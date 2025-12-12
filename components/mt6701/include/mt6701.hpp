@@ -126,13 +126,14 @@ public:
                ///< velocity.
     bool auto_init{true}; ///< Whether to automatically initialize the accumulator to the current
                           ///< position on startup.
-    bool run_task{true};  ///< Whether to run the task on startup. If false, you must call update()
-                          ///< manually.
+    bool run_task{true};  ///< Whether to run the task/timer on startup. If
+                          ///< false, you must call update() manually.
     Logger::Verbosity log_level{Logger::Verbosity::WARN};
   };
 
   /**
-   * @brief Construct the Mt6701 and start the update task if auto_init and run_task are true.
+   * @brief Construct the Mt6701 and start the update task/timer if auto_init and run_task are true.
+   * @param config Configuration for the Mt6701.
    */
   explicit Mt6701(const Config &config)
       : BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>({}, "Mt6701", config.log_level)
@@ -150,6 +151,31 @@ public:
       initialize(config.run_task, ec);
     }
   }
+
+#if !defined(CONFIG_MT6701_USE_TIMER) || defined(_DOXYGEN_)
+  /**
+   * @brief Construct the Mt6701 and start the update task/timer if auto_init and run_task are true.
+   * @param config Configuration for the Mt6701.
+   * @param task_config Configuration for the internal task.
+   */
+  explicit Mt6701(const Config &config, const espp::Task::Config &task_config)
+      : BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>({}, "Mt6701", config.log_level)
+      , velocity_filter_(config.velocity_filter)
+      , update_period_(config.update_period)
+      , task_(espp::Task::make_unique(task_config)) {
+    if constexpr (Interface == Mt6701Interface::I2C) {
+      set_address(config.device_address);
+      set_write(config.write);
+      set_read(config.read);
+    } else {
+      set_read(config.read);
+    }
+    if (config.auto_init) {
+      std::error_code ec;
+      initialize(config.run_task, ec);
+    }
+  }
+#endif
 
   /**
    * @brief Initialize the accumulator to the current position and start the
@@ -177,6 +203,23 @@ public:
       logger_.error("Error initializing: {}", ec.message());
     }
   }
+
+#if !defined(CONFIG_MT6701_USE_TIMER) || defined(_DOXYGEN_)
+  /**
+   * @brief Initialize the accumulator to the current position and start the
+   *        update task, if desired.
+   * @param run_task Whether to start the update task.
+   * @param task_config Configuration for the internal task.
+   * @param ec Error code to set if there is an error.
+   * @note If you do not start the task, you must call update() manually.
+   */
+  void initialize(bool run_task, const espp::Task::Config &task_config, std::error_code &ec) {
+    // create the task (discard any previous one)
+    task_.reset();
+    task_ = espp::Task::make_unique(task_config);
+    initialize(run_task, ec);
+  }
+#endif
 
   /**
    * @brief Return whether the sensor needs to search for absolute 0 on startup.
