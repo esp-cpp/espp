@@ -23,6 +23,14 @@ enum class Mt6701Interface : uint8_t {
  *        filters / updates the velocity measurement. The Mt6701 supports I2C,
  *        SSI, ABZ, UVW, Analog/PWM, and Push-Button interfaces.
  *
+ * This component can be configured to automatically update within its own
+ * timer/task (timer is default, and can be changed via KConfig / menuconfig),
+ * or if you do not configure it to manage its own timer/task, then you can call
+ * update() within your own function to update the state of the encoder.
+ *
+ * @warning You should not call update() if you have configured the encoder to
+ *          use its own timer/task or if you have called start() yourself.
+ *
  * @note This implementation currently only supports I2C and SSI interfaces.
  *
  * @note There is an implicit assumption in this class regarding the maximum
@@ -124,7 +132,7 @@ public:
   };
 
   /**
-   * @brief Construct the Mt6701 and start the update task.
+   * @brief Construct the Mt6701 and start the update task if auto_init and run_task are true.
    */
   explicit Mt6701(const Config &config)
       : BasePeripheral<uint8_t, Interface == Mt6701Interface::I2C>({}, "Mt6701", config.log_level)
@@ -176,7 +184,7 @@ public:
    *       and will always know it on startup. Therefore this function always
    *       returns false.
    * @return False because the magnetic sensor (using I2C/SPI) does not need to
-   *         sarch for 0.
+   *         search for 0.
    */
   bool needs_zero_search() const { return false; }
 
@@ -331,8 +339,7 @@ public:
 #if defined(CONFIG_MT6701_USE_TIMER)
     uint64_t period_us =
         std::chrono::duration_cast<std::chrono::microseconds>(update_period_).count();
-    timer_.periodic(period_us);
-    return true;
+    return timer_.periodic(period_us);
 #else
     if (!task_) {
       return false;
@@ -425,7 +432,7 @@ protected:
   }
 #else
   bool update_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-    auto start = std::chrono::high_resolution_clock::now();
+    auto start_time = std::chrono::high_resolution_clock::now();
     std::error_code ec;
     update(ec);
     if (ec) {
@@ -434,7 +441,7 @@ protected:
     // sleep until the next update period
     {
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + update_period_, [&task_notified] { return task_notified; });
+      cv.wait_until(lk, start_time + update_period_, [&task_notified] { return task_notified; });
       task_notified = false;
     }
     // don't want to stop the task
@@ -455,14 +462,6 @@ protected:
           "Not starting task, run_task is false. Manually call update() to update the state.");
       return;
     }
-#if defined(CONFIG_MT6701_USE_TIMER)
-#else
-    using namespace std::placeholders;
-    task_ = Task::make_unique(Task::Config{
-        .callback = std::bind(&Mt6701::update_task, this, _1, _2, _3),
-        .task_config = {.name = "Mt6701"},
-    });
-#endif
     if (!start()) {
       logger_.error("Error starting task");
       ec = make_error_code(std::errc::operation_not_permitted);
@@ -512,7 +511,10 @@ protected:
       {.name = "Mt6701",
        .callback = std::bind(&Mt6701::update_task, this) }};
 #else
-  std::unique_ptr<Task> task_;
+  std::unique_ptr<Task> task_ = espp::Task::make_unique(Task::Config{
+      .callback = std::bind_front(&Mt6701::update_task, this),
+      .task_config = {.name = "Mt6701"},
+  });
 #endif
 };
 } // namespace espp

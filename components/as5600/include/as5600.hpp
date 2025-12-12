@@ -19,6 +19,14 @@ namespace espp {
  *        the AS5600 can be found here:
  *        https://ams.com/documents/20143/36005/AS5600_DS000365_5-00.pdf/649ee61c-8f9a-20df-9e10-43173a3eb323
  *
+ * This component can be configured to automatically update within its own
+ * timer/task (timer is default, and can be changed via KConfig / menuconfig),
+ * or if you do not configure it to manage its own timer/task, then you can call
+ * update() within your own function to update the state of the encoder.
+ *
+ * @warning You should not call update() if you have configured the encoder to
+ *          use its own timer/task or if you have called start() yourself.
+ *
  * @note There is an implicit assumption in this class regarding the maximum
  *       velocity it can measure (above which there will be aliasing). The
  *       fastest velocity it can measure will be (0.5f * update_period * 60.0f)
@@ -79,7 +87,7 @@ public:
   };
 
   /**
-   * @brief Construct the As5600 and start the update task.
+   * @brief Construct the As5600 and start the update task if auto_init and run_task are true.
    */
   explicit As5600(const Config &config)
       : BasePeripheral(
@@ -104,7 +112,7 @@ public:
 
   /**
    * @brief Initialize the accumulator to the current position and start the
-   *        update task.
+   *        update task, if desired.
    * @param run_task Whether to start the update task.
    * @param ec Error code to set if there is an error.
    * @note If you do not start the task, you must call update() manually.
@@ -126,7 +134,7 @@ public:
    *       and will always know it on startup. Therefore this function always
    *       returns false.
    * @return False because the magnetic sensor (using I2C/SPI) does not need to
-   *         sarch for 0.
+   *         search for 0.
    */
   bool needs_zero_search() const { return false; }
 
@@ -254,8 +262,7 @@ public:
 #if defined(CONFIG_AS5600_USE_TIMER)
     uint64_t period_us =
         std::chrono::duration_cast<std::chrono::microseconds>(update_period_).count();
-    timer_.periodic(period_us);
-    return true;
+    return timer_.periodic(period_us);
 #else
     if (!task_) {
       return false;
@@ -309,7 +316,7 @@ protected:
   }
 #else
   bool update_task(std::mutex &m, std::condition_variable &cv, bool &task_notified) {
-    auto start = std::chrono::high_resolution_clock::now();
+    auto start_time = std::chrono::high_resolution_clock::now();
     std::error_code ec;
     update(ec);
     if (ec) {
@@ -318,7 +325,7 @@ protected:
     // sleep until the next update period
     {
       std::unique_lock<std::mutex> lk(m);
-      cv.wait_until(lk, start + update_period_, [&task_notified] { return task_notified; });
+      cv.wait_until(lk, start_time + update_period_, [&task_notified] { return task_notified; });
       task_notified = false;
     }
     // don't want to stop the task
@@ -339,14 +346,6 @@ protected:
           "Not starting task, run_task is false. Manually call update() to update the state.");
       return;
     }
-#if defined(CONFIG_AS5600_USE_TIMER)
-#else
-    using namespace std::placeholders;
-    task_ = Task::make_unique(Task::Config{
-        .callback = std::bind(&As5600::update_task, this, _1, _2, _3),
-        .task_config = {.name = "As5600"},
-    });
-#endif
     if (!start()) {
       logger_.error("Error starting task");
       ec = make_error_code(std::errc::operation_not_permitted);
@@ -408,7 +407,10 @@ protected:
       {.name = "As5600",
        .callback = std::bind(&As5600::update_task, this) }};
 #else
-  std::unique_ptr<Task> task_;
+  std::unique_ptr<Task> task_ = espp::Task::make_unique(Task::Config{
+      .callback = std::bind_front(&As5600::update_task, this),
+      .task_config = {.name = "As5600"},
+  });
 #endif
 };
 } // namespace espp
