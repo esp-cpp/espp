@@ -8,6 +8,10 @@ menu "HID Service Example Configuration"
   bool "Xbox Controller Emulation"
   help
     Emulate an Xbox controller for the HID service example application.
+  config EXAMPLE_AS_PLAYSTATION_DUALSHOCK4_BLE
+  bool "PS4 (DualShock 4) Controller Emulation over BLE"
+  help
+    Emulate a PS4 DualShock 4 controller for the HID service example application.
   config EXAMPLE_AS_PLAYSTATION_DUALSENSE_BLE
   bool "PS5 (DualSense) Controller Emulation over BLE"
   help

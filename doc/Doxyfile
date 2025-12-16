@@ -241,6 +241,7 @@ INPUT = \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-gamepad.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-playstation.hpp \
+  $(PROJECT_PATH)/components/hid-rp/include/hid-rp-ps4.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-switch-pro.hpp \
   $(PROJECT_PATH)/components/hid-rp/include/hid-rp-xbox.hpp \
   $(PROJECT_PATH)/components/hid_service/include/hid_service.hpp \

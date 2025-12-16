@@ -5,6 +5,7 @@
 
 #include "hid-rp-gamepad.hpp"
 #include "hid-rp-playstation.hpp"
+#include "hid-rp-ps4.hpp"
 #include "hid-rp-switch-pro.hpp"
 #include "hid-rp-xbox.hpp"
 #include "hid-rp.hpp"
@@ -90,6 +91,23 @@ extern "C" void app_main(void) {
   }
   logger.info("  Data: [{}]", str);
 
+  using PS4DualShock4Input = espp::PS4DualShock4GamepadInputReport<>;
+  PS4DualShock4Input ps4_input_report;
+  logger.info("{}", ps4_input_report);
+  logger.info("PS4 DualShock 4 Input Report Size: {}", ps4_input_report.get_report().size());
+  logger.info("PS4 DualShock 4 Input Report Data: {::#04X}", ps4_input_report.get_report());
+
+  auto ps4_raw_descriptor = espp::ps4_dualshock4_descriptor();
+  auto ps4_descriptor = std::vector<uint8_t>(ps4_raw_descriptor.begin(), ps4_raw_descriptor.end());
+
+  logger.info("PS4 DualShock 4 Report Descriptor:");
+  logger.info("  Size: {}", ps4_descriptor.size());
+  str = "";
+  for (auto &byte : ps4_descriptor) {
+    str += fmt::format("0x{:02X}, ", byte);
+  }
+  logger.info("  Data: [{}]", str);
+
   GamepadInput::Hat hat = GamepadInput::Hat::UP_RIGHT;
   int button_index = 5;
   float angle = 2.0f * M_PI * button_index / num_buttons;
@@ -100,6 +118,7 @@ extern "C" void app_main(void) {
   switch_pro_input_report.reset();
   dualsense_simple_input_report.reset();
   dualsense_complex_input_report.reset();
+  ps4_input_report.reset();
 
   // print out the reports in their default states
   logger.info("{}", gamepad_input_report);
@@ -107,6 +126,7 @@ extern "C" void app_main(void) {
   logger.info("{}", switch_pro_input_report);
   logger.info("{}", dualsense_simple_input_report);
   logger.info("{}", dualsense_complex_input_report);
+  logger.info("{}", ps4_input_report);
 
   // update the gamepad input report
   logger.info("{}", gamepad_input_report);
@@ -139,6 +159,17 @@ extern "C" void app_main(void) {
   dualsense_complex_input_report.set_right_joystick(cos(angle), sin(angle));
   dualsense_complex_input_report.set_left_trigger(std::abs(cos(angle)));
   dualsense_complex_input_report.set_right_trigger(std::abs(sin(angle)));
+
+  ps4_input_report.set_hat(hat);
+  ps4_input_report.set_button_cross(button_index == 1);
+  ps4_input_report.set_button_circle(button_index == 2);
+  ps4_input_report.set_button_square(button_index == 3);
+  ps4_input_report.set_button_triangle(button_index == 4);
+  ps4_input_report.set_left_joystick(128 + 127 * sin(angle), 128 + 127 * cos(angle));
+  ps4_input_report.set_right_joystick(128 + 127 * cos(angle), 128 + 127 * sin(angle));
+  ps4_input_report.set_l2_trigger(std::abs(cos(angle)) * 255);
+  ps4_input_report.set_r2_trigger(std::abs(sin(angle)) * 255);
+  ps4_input_report.set_battery_level(8);
 
   button_index = (button_index % num_buttons) + 1;
 
