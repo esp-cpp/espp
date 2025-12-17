@@ -134,6 +134,9 @@ public:
     FilterType filter_type =
         FilterType::NONE;         ///< The type of filter to use. If set to FLEX_GLITCH_FILTER, the
                                   ///< filter_config should be set.
+                                  ///<
+                                  ///< @note If not FilterType::NONE, then light
+                                  ///        sleep will be disabled.
     FilterConfig filter_config{}; ///< The configuration for the filter. This is only used if
                                   ///< filter_type is set to FLEX_GLITCH_FILTER
   };
