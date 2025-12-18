@@ -174,8 +174,6 @@ bool M5StackTab5::initialize_lcd() {
     }
   }
 
-  using namespace std::placeholders;
-
   espp::display_drivers::Config display_config{
       .write_command = std::bind_front(&M5StackTab5::dsi_write_command, this),
       .read_command = std::bind_front(&M5StackTab5::dsi_read_command, this),

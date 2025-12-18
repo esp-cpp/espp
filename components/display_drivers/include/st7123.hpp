@@ -1,10 +1,10 @@
-
 #pragma once
 
-#include "display_drivers.hpp"
 #include <array>
 #include <chrono>
 #include <thread>
+
+#include "display_drivers.hpp"
 
 namespace espp {
 
@@ -32,7 +32,6 @@ public:
     RAMRD = 0x2E,
     MADCTL = 0x36,
     COLMOD = 0x3A,
-    // ... add more as needed ...
   };
 
   static bool initialize(const display_drivers::Config &config) {
