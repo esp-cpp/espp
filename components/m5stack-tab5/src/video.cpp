@@ -12,6 +12,24 @@ using namespace std::chrono_literals;
 
 namespace espp {
 
+M5StackTab5::DisplayController M5StackTab5::detect_display_controller() {
+  auto &i2c = internal_i2c();
+
+  // Probe for the GT911 touch controller, if it exists we have an ILI9881 display
+  bool exists = i2c.probe_device(0x14);
+  if (exists) {
+    return M5StackTab5::DisplayController::ILI9881;
+  }
+
+  // Probe for the ST7123 display controller
+  exists = i2c.probe_device(0x55);
+  if (exists) {
+    return M5StackTab5::DisplayController::ST7123;
+  }
+
+  // Unknown display controller
+  return M5StackTab5::DisplayController::UNKNOWN;
+}
 bool M5StackTab5::initialize_lcd() {
   logger_.info("Initializing M5Stack Tab5 LCD (MIPI-DSI, {}x{})", display_width_, display_height_);
 
@@ -65,6 +83,10 @@ bool M5StackTab5::initialize_lcd() {
   lcd_reset(false); // Release reset
   std::this_thread::sleep_for(120ms);
 
+  // Detect and initialize the appropriate display controller
+  logger_.info("Detecting display controller type");
+  auto detected_controller = detect_display_controller();
+
   // create MIPI DSI bus first, it will initialize the DSI PHY as well
   if (lcd_handles_.mipi_dsi_bus == nullptr) {
     logger_.info("Creating MIPI DSI bus");
@@ -72,7 +94,8 @@ bool M5StackTab5::initialize_lcd() {
         .bus_id = 0,
         .num_data_lanes = 2,
         .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
-        .lane_bit_rate_mbps = 730,
+        .lane_bit_rate_mbps =
+            (uint32_t)(detected_controller == DisplayController::ILI9881 ? 730 : 965),
     };
     ret = esp_lcd_new_dsi_bus(&bus_config, &lcd_handles_.mipi_dsi_bus);
     if (ret != ESP_OK) {
@@ -97,11 +120,18 @@ bool M5StackTab5::initialize_lcd() {
     }
   }
 
-  // Create DPI panel with M5Stack Tab5 official ILI9881 timing parameters
-  if (lcd_handles_.panel == nullptr) {
+  if (detected_controller == DisplayController::UNKNOWN) {
+    logger_.error("Unable to detect display controller");
+    return false;
+  }
+  logger_.info("Detected display controller: {}", get_display_controller_name(detected_controller));
+
+  esp_lcd_dpi_panel_config_t dpi_cfg{};
+  memset(&dpi_cfg, 0, sizeof(dpi_cfg));
+
+  if (detected_controller == DisplayController::ILI9881 && lcd_handles_.panel == nullptr) {
+    // Create DPI panel with M5Stack Tab5 official ILI9881 timing parameters
     logger_.info("Creating MIPI DSI DPI panel with M5Stack Tab5 ILI9881 configuration");
-    esp_lcd_dpi_panel_config_t dpi_cfg{};
-    memset(&dpi_cfg, 0, sizeof(dpi_cfg));
     dpi_cfg.virtual_channel = 0;
     dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
     dpi_cfg.dpi_clock_freq_mhz = 60;
@@ -117,6 +147,24 @@ bool M5StackTab5::initialize_lcd() {
     dpi_cfg.video_timing.vsync_front_porch = 20;
     dpi_cfg.flags.use_dma2d = true;
 
+  } else if (detected_controller == DisplayController::ST7123 && lcd_handles_.panel == nullptr) {
+    dpi_cfg.virtual_channel = 0;
+    dpi_cfg.dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT;
+    dpi_cfg.dpi_clock_freq_mhz = 100;
+    dpi_cfg.pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565;
+    dpi_cfg.num_fbs = 1;
+    dpi_cfg.video_timing.h_size = display_width_;
+    dpi_cfg.video_timing.v_size = display_height_;
+    dpi_cfg.video_timing.hsync_back_porch = 40;
+    dpi_cfg.video_timing.hsync_pulse_width = 2;
+    dpi_cfg.video_timing.hsync_front_porch = 40;
+    dpi_cfg.video_timing.vsync_back_porch = 8;
+    dpi_cfg.video_timing.vsync_pulse_width = 2;
+    dpi_cfg.video_timing.vsync_front_porch = 220;
+    dpi_cfg.flags.use_dma2d = true;
+  }
+
+  if (lcd_handles_.panel == nullptr) {
     logger_.info("Creating DPI panel with resolution {}x{}", dpi_cfg.video_timing.h_size,
                  dpi_cfg.video_timing.v_size);
     ret = esp_lcd_new_panel_dpi(lcd_handles_.mipi_dsi_bus, &dpi_cfg, &lcd_handles_.panel);
@@ -126,8 +174,6 @@ bool M5StackTab5::initialize_lcd() {
     }
   }
 
-  // Detect and initialize the appropriate display controller
-  logger_.info("Detecting display controller type");
   using namespace std::placeholders;
 
   espp::display_drivers::Config display_config{
@@ -147,22 +193,21 @@ bool M5StackTab5::initialize_lcd() {
       .mirror_portrait = false,
   };
 
-  // Try ILI9881 first
-  logger_.info("Attempting to initialize as ILI9881");
-  if (espp::Ili9881::initialize(display_config)) {
-    logger_.info("Successfully detected ILI9881 display controller");
-    display_controller_ = DisplayController::ILI9881;
-  }
-  // If ILI9881 fails, try ST7123
-  else {
-    logger_.info("ILI9881 detection failed, attempting ST7123");
-    if (espp::St7123::initialize(display_config)) {
-      logger_.info("Successfully detected ST7123 display controller");
-      display_controller_ = DisplayController::ST7123;
-    } else {
-      logger_.error("Failed to detect display controller (tried ILI9881 and ST7123)");
-      return false;
+  if (detected_controller == DisplayController::ILI9881) {
+    logger_.info("Initializing as ILI9881");
+    if (espp::Ili9881::initialize(display_config)) {
+      logger_.info("Successfully initialized ILI9881 display controller");
+      display_controller_ = DisplayController::ILI9881;
     }
+  } else if (detected_controller == DisplayController::ST7123) {
+    logger_.info("Initializing as ST7123");
+    if (espp::St7123::initialize(display_config)) {
+      logger_.info("Successfully initialized ST7123 display controller");
+      display_controller_ = DisplayController::ST7123;
+    }
+  } else {
+    logger_.error("Failed to detect display controller");
+    return false;
   }
 
   logger_.info("Display controller: {}", get_display_controller_name());

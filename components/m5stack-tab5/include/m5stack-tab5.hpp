@@ -79,6 +79,8 @@ public:
   /// Enum for display controller type
   enum class DisplayController { UNKNOWN, ILI9881, ST7123 };
 
+  DisplayController detect_display_controller();
+
   /// Get the detected display controller type
   /// \return The display controller type
   DisplayController get_display_controller() const { return display_controller_; }
@@ -86,7 +88,13 @@ public:
   /// Get a string name for the display controller
   /// \return String name of the controller
   const char *get_display_controller_name() const {
-    switch (display_controller_) {
+    return get_display_controller_name(display_controller_);
+  }
+
+  /// Get a string name for the display controller
+  /// \return String name of the controller
+  const char *get_display_controller_name(DisplayController controller) const {
+    switch (controller) {
     case DisplayController::ILI9881:
       return "ILI9881";
     case DisplayController::ST7123:
