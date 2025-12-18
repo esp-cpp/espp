@@ -13,8 +13,7 @@ using namespace std::chrono_literals;
 namespace espp {
 
 bool M5StackTab5::initialize_lcd() {
-  logger_.info("Initializing M5Stack Tab5 LCD (MIPI-DSI, ILI9881C, {}x{})", display_width_,
-               display_height_);
+  logger_.info("Initializing M5Stack Tab5 LCD (MIPI-DSI, {}x{})", display_width_, display_height_);
 
   if (!ioexp_0x43_) {
     if (!initialize_io_expanders()) {
@@ -127,10 +126,11 @@ bool M5StackTab5::initialize_lcd() {
     }
   }
 
-  // Now initialize DisplayDriver for any additional configuration
-  logger_.info("Initializing DisplayDriver with DSI configuration");
+  // Detect and initialize the appropriate display controller
+  logger_.info("Detecting display controller type");
   using namespace std::placeholders;
-  DisplayDriver::initialize(espp::display_drivers::Config{
+
+  espp::display_drivers::Config display_config{
       .write_command = std::bind_front(&M5StackTab5::dsi_write_command, this),
       .read_command = std::bind_front(&M5StackTab5::dsi_read_command, this),
       .lcd_send_lines = nullptr,
@@ -145,7 +145,27 @@ bool M5StackTab5::initialize_lcd() {
       .mirror_x = mirror_x,
       .mirror_y = mirror_y,
       .mirror_portrait = false,
-  });
+  };
+
+  // Try ILI9881 first
+  logger_.info("Attempting to initialize as ILI9881");
+  if (espp::Ili9881::initialize(display_config)) {
+    logger_.info("Successfully detected ILI9881 display controller");
+    display_controller_ = DisplayController::ILI9881;
+  }
+  // If ILI9881 fails, try ST7123
+  else {
+    logger_.info("ILI9881 detection failed, attempting ST7123");
+    if (espp::St7123::initialize(display_config)) {
+      logger_.info("Successfully detected ST7123 display controller");
+      display_controller_ = DisplayController::ST7123;
+    } else {
+      logger_.error("Failed to detect display controller (tried ILI9881 and ST7123)");
+      return false;
+    }
+  }
+
+  logger_.info("Display controller: {}", get_display_controller_name());
 
   // call init on the panel
   logger_.info("Calling low-level panel init");
