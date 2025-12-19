@@ -307,17 +307,20 @@ extern "C" void app_main(void) {
   // start a simple thread to do the lv_task_handler every 16ms
   logger.info("Starting LVGL task...");
   espp::Task lv_task({.callback = [](std::mutex &m, std::condition_variable &cv) -> bool {
+                        auto start_time = std::chrono::high_resolution_clock::now();
                         {
                           std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
                           lv_task_handler();
                         }
                         std::unique_lock<std::mutex> lock(m);
-                        cv.wait_for(lock, 16ms);
+                        cv.wait_until(lock, start_time + 16ms, []() { return false; });
                         return false;
                       },
                       .task_config = {
                           .name = "lv_task",
                           .stack_size_bytes = 10 * 1024,
+                          .priority = 20,
+                          .core_id = 1,
                       }});
   lv_task.start();
 
@@ -348,7 +351,7 @@ extern "C" void app_main(void) {
          // sleep first in case we don't get IMU data and need to exit early
          {
            std::unique_lock<std::mutex> lock(m);
-           cv.wait_for(lock, 10ms);
+           cv.wait_for(lock, 20ms);
          }
          static auto &tab5 = espp::M5StackTab5::get();
          static auto imu = tab5.imu();
@@ -483,7 +486,7 @@ extern "C" void app_main(void) {
            .name = "Data Display Task",
            .stack_size_bytes = 6 * 1024,
            .priority = 10,
-           .core_id = 0,
+           .core_id = 1,
        }});
   imu_task.start();
 
