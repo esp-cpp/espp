@@ -1,0 +1,17 @@
+GT911 Touch Controller
+**********************
+
+The `Gt911` class provides an interface to the GT911 touch controller.
+
+.. ------------------------------- Example -------------------------------------
+
+.. toctree::
+
+   gt911_example
+
+.. ---------------------------- API Reference ----------------------------------
+
+API Reference
+-------------
+
+.. include-build-file:: inc/gt911.inc
