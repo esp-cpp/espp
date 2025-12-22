@@ -4,6 +4,7 @@
 #include <cmath>
 #include <functional>
 
+#include "esp_timer.h"
 #include "base_peripheral.hpp"
 #include "task.hpp"
 
@@ -180,6 +181,15 @@ protected:
   void update(std::error_code &ec) {
     logger_.info("update");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
+    // update velocity (filtering it) (use member variable instead of static)
+    uint64_t now_us = esp_timer_get_time();
+    uint64_t dt = now_us - prev_time_us_;
+    float seconds = dt / 1e6f;
+    prev_time_us_ = now_us;
+    
+    if (seconds == 0.0f) {
+      seconds = update_period_.count();
+    }
     // update raw count
     auto count = read_count(ec);
     if (ec) {
@@ -201,11 +211,7 @@ protected:
     // update accumulator
     accumulator_ += diff;
     logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
-    // update velocity (filtering it) (use member variable instead of static)
-    auto now = std::chrono::high_resolution_clock::now();
-    float elapsed = std::chrono::duration<float>(now - prev_time_).count();
-    prev_time_ = now;
-    float seconds = elapsed ? elapsed : update_period_.count();
+    
     float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
     static float max_velocity = 0.5f / update_period_.count() * SECONDS_PER_MINUTE;
@@ -301,6 +307,6 @@ protected:
   std::unique_ptr<Task> task_;
   // Instance-specific variables (not static) to support multiple AS5600 sensors
   int prev_count_{0};
-  std::chrono::high_resolution_clock::time_point prev_time_{std::chrono::high_resolution_clock::now()};
+  uint64_t prev_time_us_{0};
 };
 } // namespace espp
