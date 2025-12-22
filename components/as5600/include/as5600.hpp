@@ -40,9 +40,9 @@ public:
   typedef std::function<float(float raw)> velocity_filter_fn;
 
   static constexpr int COUNTS_PER_REVOLUTION =
-      16384; ///< Int number of counts per revolution for the magnetic encoder.
+      4096; ///< Int number of counts per revolution for the magnetic encoder (12-bit).
   static constexpr float COUNTS_PER_REVOLUTION_F =
-      16384.0f; ///< Float number of counts per revolution for the magnetic encoder.
+      4096.0f; ///< Float number of counts per revolution for the magnetic encoder (12-bit).
   static constexpr float COUNTS_TO_RADIANS =
       2.0f * (float)(M_PI) /
       COUNTS_PER_REVOLUTION_F; ///< Conversion factor to convert from count value to radians.
@@ -162,36 +162,34 @@ protected:
   int read_count(std::error_code &ec) {
     logger_.info("read_count");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    // read the angle count registers
+    // read the angle count registers (12-bit value: 0-4095)
     uint8_t angle_h = read_u8_from_register((uint8_t)Registers::ANGLE_H, ec);
     if (ec) {
       return 0;
     }
-    uint8_t angle_l = read_u8_from_register((uint8_t)Registers::ANGLE_L, ec) >> 2;
+    uint8_t angle_l = read_u8_from_register((uint8_t)Registers::ANGLE_L, ec);
     if (ec) {
       return 0;
     }
-    return (int)((angle_h << 6) | angle_l);
+    // Combine the high byte (bits 11-4) and low byte (bits 3-0)
+    // ANGLE_H contains bits [11:8] in the lower nibble
+    // ANGLE_L contains bits [7:0]
+    return (int)(((angle_h & 0x0F) << 8) | angle_l);
   }
 
   void update(std::error_code &ec) {
     logger_.info("update");
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
-    // measure update timing
-    uint64_t now_us = esp_timer_get_time();
-    auto dt = now_us - prev_time_us_;
-    float seconds = dt / 1e6f;
-    prev_time_us_ = now_us;
-    // store the previous count
-    int prev_count = count_.load();
     // update raw count
     auto count = read_count(ec);
     if (ec) {
       return;
     }
     count_.store(count);
-    // compute diff
-    int diff = count_ - prev_count;
+    // compute diff (use member variable instead of static to support multiple instances)
+    int diff = count_ - prev_count_;
+    // update prev_count
+    prev_count_ = count_;
     // check for zero crossing
     if (diff > COUNTS_PER_REVOLUTION / 2) {
       // we crossed zero going clockwise (1 -> 359)
@@ -203,16 +201,18 @@ protected:
     // update accumulator
     accumulator_ += diff;
     logger_.debug("CDA: {}, {}, {}", count_, diff, accumulator_);
-    // update velocity (filtering it)
-    float raw_velocity = (dt > 0) ? (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE : 0.0f;
+    // update velocity (filtering it) (use member variable instead of static)
+    auto now = std::chrono::high_resolution_clock::now();
+    float elapsed = std::chrono::duration<float>(now - prev_time_).count();
+    prev_time_ = now;
+    float seconds = elapsed ? elapsed : update_period_.count();
+    float raw_velocity = (float)(diff) / COUNTS_PER_REVOLUTION_F / seconds * SECONDS_PER_MINUTE;
     velocity_rpm_ = velocity_filter_ ? velocity_filter_(raw_velocity) : raw_velocity;
-    if (dt > 0) {
-      float max_velocity = 0.5f / seconds * SECONDS_PER_MINUTE;
-      if (raw_velocity >= max_velocity) {
-        logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
-                     "update period!",
-                     max_velocity);
-      }
+    static float max_velocity = 0.5f / update_period_.count() * SECONDS_PER_MINUTE;
+    if (raw_velocity >= max_velocity) {
+      logger_.warn("Velocity nearing measurement limit ({:.3f} RPM), consider decreasing your "
+                   "update period!",
+                   max_velocity);
     }
   }
 
@@ -235,13 +235,11 @@ protected:
   void init(std::error_code &ec) {
     std::lock_guard<std::recursive_mutex> lock(base_mutex_);
     // initialize the accumulator to have the current angle
-    read_count(ec);
+    auto count = read_count(ec);
     if (ec) {
       return;
     }
-    accumulator_ = count_.load();
-    // initialize timing
-    prev_time_us_ = esp_timer_get_time();
+    accumulator_ = count;
     // start the task
     using namespace std::placeholders;
     task_ = Task::make_unique({
@@ -301,6 +299,8 @@ protected:
   std::atomic<int> accumulator_{0};
   std::atomic<float> velocity_rpm_{0};
   std::unique_ptr<Task> task_;
-  uint64_t prev_time_us_{0};
+  // Instance-specific variables (not static) to support multiple AS5600 sensors
+  int prev_count_{0};
+  std::chrono::high_resolution_clock::time_point prev_time_{std::chrono::high_resolution_clock::now()};
 };
 } // namespace espp
