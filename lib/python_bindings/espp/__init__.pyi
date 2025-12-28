@@ -1224,6 +1224,8 @@ class RangeMapper_int:  # Python specialization for RangeMapper<int>
      *        the input center will map to both output_max and output_min
      *        depending on the sign of the input.
      *
+     * @tparam T Numeric type to use for the input and output values.
+     *
      * @note When inverting the input range, you are introducing a discontinuity
      *       between the input distribution and the output distribution at the
      *       input center. Noise around the input's center value will create
@@ -1392,7 +1394,7 @@ class RangeMapper_int:  # Python specialization for RangeMapper<int>
         """*
            * @brief Unmap a value \p v from the configured output range (centered,
            *        default [-1,1]) back into the input distribution.
-           * @param T&v Value from the centered output distribution.
+           * @param v Value from the centered output distribution.
            * @return Value within the input distribution.
 
         """
@@ -1415,6 +1417,8 @@ class RangeMapper_float:  # Python specialization for RangeMapper<float>
      *        [maximum-deadband, maximum] will all map to the output_center and
      *        the input center will map to both output_max and output_min
      *        depending on the sign of the input.
+     *
+     * @tparam T Numeric type to use for the input and output values.
      *
      * @note When inverting the input range, you are introducing a discontinuity
      *       between the input distribution and the output distribution at the
@@ -1584,7 +1588,7 @@ class RangeMapper_float:  # Python specialization for RangeMapper<float>
         """*
            * @brief Unmap a value \p v from the configured output range (centered,
            *        default [-1,1]) back into the input distribution.
-           * @param T&v Value from the centered output distribution.
+           * @param v Value from the centered output distribution.
            * @return Value within the input distribution.
 
         """
@@ -3000,10 +3004,24 @@ class Task:
         pass
 
 
+    @overload
     def get_id(self) -> task_id_t:
         """*
            * @brief Get the ID for this Task's thread / task context.
            * @return ID for this Task's thread / task context.
+           * @warning This will only return a valid id if the task is started.
+
+        """
+        pass
+
+    @staticmethod
+    @overload
+    def get_id(task: Task) -> task_id_t:
+        """*
+           * @brief Get the ID for the Task's thread / task context.
+           * @param task Reference to the task for which you want the ID.
+           * @return ID for this Task's thread / task context.
+           * @warning This will only return a valid id if the task is started.
 
         """
         pass
