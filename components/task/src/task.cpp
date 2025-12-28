@@ -221,13 +221,13 @@ bool Task::is_running() const { return is_started(); }
 
 #if defined(ESP_PLATFORM) || defined(_DOXYGEN_)
 std::string Task::get_info() {
-  return fmt::format("[T] '{}',{},{},{}\n", pcTaskGetName(nullptr), xPortGetCoreID(),
+  return fmt::format("[T] '{}',{},{},{}", pcTaskGetName(nullptr), xPortGetCoreID(),
                      uxTaskPriorityGet(nullptr), uxTaskGetStackHighWaterMark(nullptr));
 }
 
 std::string Task::get_info(const Task &task) {
   TaskHandle_t freertos_handle = static_cast<TaskHandle_t>(task.get_id());
-  return fmt::format("[T] '{}',{},{},{}\n", pcTaskGetName(freertos_handle), xPortGetCoreID(),
+  return fmt::format("[T] '{}',{},{},{}", pcTaskGetName(freertos_handle), get_core_id(task),
                      uxTaskPriorityGet(freertos_handle),
                      uxTaskGetStackHighWaterMark(freertos_handle));
 }
