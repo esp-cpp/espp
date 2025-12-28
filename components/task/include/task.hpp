@@ -422,7 +422,7 @@ public:
 
   /**
    * @brief Get the core ID for the task of the current context.
-   * @return size_t Core ID of the task. -1 if the task is not pinned to any
+   * @return int Core ID of the task. -1 if the task is not pinned to any
    *                core.
    * @note This function is only available on ESP
    */
@@ -437,7 +437,7 @@ public:
   /**
    * @brief Get the core ID for the provided task.
    * @param task Reference to the task for which you want the core ID.
-   * @return size_t Core ID of the task. -1 if the task is not pinned to any
+   * @return int Core ID of the task. -1 if the task is not pinned to any
    *                core.
    * @note This function is only available on ESP
    */
