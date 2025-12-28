@@ -352,11 +352,109 @@ public:
    * @note This function is only available on ESP
    */
   static std::string get_info(const Task &task);
+
+  /**
+   * @brief Get the FreeRTOS task handle for the task of the current context.
+   * @return TaskHandle_t FreeRTOS task handle
+   * @note This function is only available on ESP
+   * @note This function is designed to be used in conjunction with FreeRTOS
+   *       APIs which require a TaskHandle_t.
+   */
+  static TaskHandle_t get_freertos_handle() { return xTaskGetCurrentTaskHandle(); }
+
+  /**
+   * @brief Get the FreeRTOS task handle for the task of the current context.
+   * @param task Reference to the task for which you want the FreeRTOS handle.
+   * @return TaskHandle_t FreeRTOS task handle
+   * @warning This will only return a valid handle if the task is started.
+   * @note This function is only available on ESP
+   * @note This function is designed to be used in conjunction with FreeRTOS
+   *       APIs which require a TaskHandle_t. If you're wanting to print or use
+   *       the pointer in other ways, It's recommended to get the void* pointer
+   *       from get_id() instead, which can be directly printed without needing
+   *       fmt::ptr.
+   */
+  static TaskHandle_t get_freertos_handle(const Task &task) {
+    return static_cast<TaskHandle_t>(task.get_id());
+  }
+
+  /**
+   * @brief Get the priority for the task of the current context.
+   * @return int Priority of the task
+   * @note This function is only available on ESP
+   */
+  static int get_priority() { return uxTaskPriorityGet(nullptr); }
+
+  /**
+   * @brief Get the priority for the task of the current context.
+   * @param task Reference to the task for which you want the priority.
+   * @return int Priority of the task
+   * @note This function is only available on ESP
+   */
+  static int get_priority(const Task &task) { return uxTaskPriorityGet(get_freertos_handle(task)); }
+
+  /**
+   * @brief Get the stack high water mark (minimum free stack space) for the
+   *        task of the current context.
+   * @return size_t Stack high water mark (bytes). This is the minimum number of
+   *         bytes that have remained unallocated on the stack since the task
+   *         started. Higher values indicate more free stack space, lower values
+   *         indicate less free stack space.
+   * @note This function is only available on ESP
+   */
+  static size_t get_high_water_mark() {
+    return uxTaskGetStackHighWaterMark(nullptr) * sizeof(StackType_t);
+  }
+
+  /**
+   * @brief Get the stack high water mark (minimum free stack space) for the
+   *        task of the current context.
+   * @param task Reference to the task for which you want the high water mark.
+   * @return size_t Stack high water mark (bytes). This is the minimum number of
+   *         bytes that have remained unallocated on the stack since the task
+   *         started. Higher values indicate more free stack space, lower values
+   *         indicate less free stack space.
+   * @note This function is only available on ESP
+   */
+  static size_t get_high_water_mark(const Task &task) {
+    return uxTaskGetStackHighWaterMark(get_freertos_handle(task)) * sizeof(StackType_t);
+  }
+
+  /**
+   * @brief Get the core ID for the task of the current context.
+   * @return size_t Core ID of the task. -1 if the task is not pinned to any
+   *                core.
+   * @note This function is only available on ESP
+   */
+  static int get_core_id() {
+    auto core_id = xPortGetCoreID();
+    if (core_id == tskNO_AFFINITY) {
+      return -1;
+    }
+    return core_id;
+  }
+
+  /**
+   * @brief Get the core ID for the task of the current context.
+   * @param task Reference to the task for which you want the core ID.
+   * @return size_t Core ID of the task. -1 if the task is not pinned to any
+   *                core.
+   * @note This function is only available on ESP
+   */
+  static int get_core_id(const Task &task) {
+    auto core_id = xTaskGetCoreID(get_freertos_handle(task));
+    if (core_id == tskNO_AFFINITY) {
+      return -1;
+    }
+    return core_id;
+  }
+
 #endif // ESP_PLATFORM
 
   /**
    * @brief Get the ID for this Task's thread / task context.
    * @return ID for this Task's thread / task context.
+   * @warning This will only return a valid id if the task is started.
    */
   task_id_t get_id() const {
 #if defined(ESP_PLATFORM)
@@ -365,6 +463,14 @@ public:
     return thread_.get_id();
 #endif
   }
+
+  /**
+   * @brief Get the ID for the Task's thread / task context.
+   * @param task Reference to the task for which you want the ID.
+   * @return ID for this Task's thread / task context.
+   * @warning This will only return a valid id if the task is started.
+   */
+  static task_id_t get_id(const Task &task) { return task.get_id(); }
 
   /**
    * @brief Get the ID for the current thread / task context.
@@ -404,7 +510,7 @@ protected:
   std::thread thread_;
 #if defined(ESP_PLATFORM)
   std::atomic<bool> watchdog_started_{false};
-  task_id_t task_handle_;
+  task_id_t task_handle_{nullptr};
 #endif
 };
 } // namespace espp
