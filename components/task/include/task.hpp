@@ -363,7 +363,7 @@ public:
   static TaskHandle_t get_freertos_handle() { return xTaskGetCurrentTaskHandle(); }
 
   /**
-   * @brief Get the FreeRTOS task handle for the task of the current context.
+   * @brief Get the FreeRTOS task handle for the provided task.
    * @param task Reference to the task for which you want the FreeRTOS handle.
    * @return TaskHandle_t FreeRTOS task handle
    * @warning This will only return a valid handle if the task is started.
@@ -386,7 +386,7 @@ public:
   static int get_priority() { return uxTaskPriorityGet(nullptr); }
 
   /**
-   * @brief Get the priority for the task of the current context.
+   * @brief Get the priority for the provided task.
    * @param task Reference to the task for which you want the priority.
    * @return int Priority of the task
    * @note This function is only available on ESP
@@ -408,7 +408,7 @@ public:
 
   /**
    * @brief Get the stack high water mark (minimum free stack space) for the
-   *        task of the current context.
+   *        provided task.
    * @param task Reference to the task for which you want the high water mark.
    * @return size_t Stack high water mark (bytes). This is the minimum number of
    *         bytes that have remained unallocated on the stack since the task
@@ -435,7 +435,7 @@ public:
   }
 
   /**
-   * @brief Get the core ID for the task of the current context.
+   * @brief Get the core ID for the provided task.
    * @param task Reference to the task for which you want the core ID.
    * @return size_t Core ID of the task. -1 if the task is not pinned to any
    *                core.
