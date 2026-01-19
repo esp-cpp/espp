@@ -118,10 +118,14 @@ extern "C" void app_main(void) {
         });
 
     //! [led strip ex1]
-    // create the rmt object
+    // create the rmt object with DMA enabled for better performance
     espp::Rmt rmt(espp::Rmt::Config{
         .gpio_num = NEO_BFF_IO,
+        .clock_src = RMT_CLK_SRC_DEFAULT,
+        .dma_enabled = true,
+        .block_size = 1024,
         .resolution_hz = SK6805_FREQ_HZ,
+        .transaction_queue_depth = 2,
         .log_level = espp::Logger::Verbosity::INFO,
     });
 
@@ -138,7 +142,7 @@ extern "C" void app_main(void) {
       rmt.transmit(data, len);
     };
 
-    // now create the LedStrip object
+    // now create the LedStrip object with DMA support
     espp::LedStrip led_strip(espp::LedStrip::Config{
         .num_leds = NEO_BFF_NUM_LEDS,
         .write = neopixel_write,
@@ -146,6 +150,8 @@ extern "C" void app_main(void) {
         .byte_order = espp::LedStrip::ByteOrder::GRB,
         .start_frame = {},
         .end_frame = {},
+        .use_dma = true,
+        .dma_allocation_flags = MALLOC_CAP_DMA,
         .log_level = espp::Logger::Verbosity::INFO,
     });
 

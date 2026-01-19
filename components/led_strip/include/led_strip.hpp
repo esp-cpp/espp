@@ -9,6 +9,7 @@
 
 #include "base_component.hpp"
 #include "color.hpp"
+#include "esp_heap_caps.h"
 
 namespace espp {
 /// \brief Class to control LED strips
@@ -69,7 +70,10 @@ public:
                                           ///< before the first LED if not empty.
     std::vector<uint8_t> end_frame{}; ///< End frame for the strip. Optional - will be sent after
                                       ///< the last LED if not empty.
-    Logger::Verbosity log_level;      ///< Log level for this class
+    bool use_dma{false};              ///< Whether to use DMA-capable memory allocation
+    uint32_t dma_allocation_flags{
+        0}; ///< DMA allocation flags (if use_dma is true). Defaults to MALLOC_CAP_DMA.
+    Logger::Verbosity log_level; ///< Log level for this class
   };
 
   /// \brief Constructor
@@ -79,17 +83,101 @@ public:
       , num_leds_(config.num_leds)
       , send_brightness_(config.send_brightness)
       , byte_order_(config.byte_order)
-      , write_(config.write) {
+      , write_(config.write)
+      , use_dma_(config.use_dma) {
     // set the color data size
     pixel_size_ = send_brightness_ ? 4 : 3;
-    data_.resize(num_leds_ * pixel_size_ + config.start_frame.size() + config.end_frame.size());
+    data_size_ = num_leds_ * pixel_size_ + config.start_frame.size() + config.end_frame.size();
+
+    // Allocate memory based on DMA preference
+    if (use_dma_) {
+      uint32_t dma_flags = config.dma_allocation_flags;
+      if (dma_flags == 0) {
+        dma_flags = MALLOC_CAP_DMA;
+      }
+      data_ = (uint8_t *)heap_caps_malloc(data_size_, dma_flags);
+      if (!data_) {
+        logger_.warn("Failed to allocate DMA memory, falling back to regular malloc");
+        data_ = (uint8_t *)malloc(data_size_);
+      }
+    } else {
+      data_ = (uint8_t *)malloc(data_size_);
+    }
+
+    if (!data_) {
+      logger_.error("Failed to allocate memory for LED strip data");
+      return;
+    }
+
     // copy the start frame
-    std::copy(config.start_frame.begin(), config.start_frame.end(), data_.begin());
+    if (!config.start_frame.empty()) {
+      memcpy(data_, config.start_frame.data(), config.start_frame.size());
+    }
+
     // copy the end frame
-    std::copy(config.end_frame.begin(), config.end_frame.end(),
-              data_.end() - config.end_frame.size());
+    if (!config.end_frame.empty()) {
+      memcpy(data_ + data_size_ - config.end_frame.size(), config.end_frame.data(),
+             config.end_frame.size());
+    }
+
     start_offset_ = config.start_frame.size();
     end_offset_ = config.end_frame.size();
+  }
+
+  /// \brief Destructor
+  /// \details This function frees the memory allocated for the LED strip data.
+  ~LedStrip() {
+    if (data_) {
+      free(data_);
+      data_ = nullptr;
+    }
+  }
+
+  /// \brief Copy constructor (deleted to prevent double-free)
+  LedStrip(const LedStrip &) = delete;
+
+  /// \brief Assignment operator (deleted to prevent double-free)
+  LedStrip &operator=(const LedStrip &) = delete;
+
+  /// \brief Move constructor
+  LedStrip(LedStrip &&other) noexcept
+      : BaseComponent(std::move(other))
+      , num_leds_(other.num_leds_)
+      , send_brightness_(other.send_brightness_)
+      , byte_order_(other.byte_order_)
+      , pixel_size_(other.pixel_size_)
+      , start_offset_(other.start_offset_)
+      , end_offset_(other.end_offset_)
+      , data_size_(other.data_size_)
+      , data_(other.data_)
+      , write_(std::move(other.write_))
+      , use_dma_(other.use_dma_) {
+    other.data_ = nullptr;
+    other.data_size_ = 0;
+  }
+
+  /// \brief Move assignment operator
+  LedStrip &operator=(LedStrip &&other) noexcept {
+    if (this != &other) {
+      if (data_) {
+        free(data_);
+      }
+
+      num_leds_ = other.num_leds_;
+      send_brightness_ = other.send_brightness_;
+      byte_order_ = other.byte_order_;
+      pixel_size_ = other.pixel_size_;
+      start_offset_ = other.start_offset_;
+      end_offset_ = other.end_offset_;
+      data_size_ = other.data_size_;
+      data_ = other.data_;
+      write_ = std::move(other.write_);
+      use_dma_ = other.use_dma_;
+
+      other.data_ = nullptr;
+      other.data_size_ = 0;
+    }
+    return *this;
   }
 
   /// \brief Get the number of LEDs in the strip
@@ -112,8 +200,8 @@ public:
     }
     if (shift_by < 0)
       shift_by += num_leds_;
-    std::rotate(data_.begin() + start_offset_,
-                data_.begin() + start_offset_ + pixel_size_ * shift_by, data_.end() + end_offset_);
+    std::rotate(data_ + start_offset_, data_ + start_offset_ + pixel_size_ * shift_by,
+                data_ + data_size_ - end_offset_);
   }
 
   /// \brief Shift the LEDs to the right
@@ -128,8 +216,10 @@ public:
     }
     if (shift_by < 0)
       shift_by += num_leds_;
-    std::rotate(data_.rbegin() + end_offset_, data_.rbegin() + end_offset_ + pixel_size_ * shift_by,
-                data_.rend() + start_offset_);
+    std::rotate(std::reverse_iterator<uint8_t *>(data_ + data_size_ - end_offset_),
+                std::reverse_iterator<uint8_t *>(data_ + data_size_ - end_offset_) +
+                    pixel_size_ * shift_by,
+                std::reverse_iterator<uint8_t *>(data_ + start_offset_));
   }
 
   /// \brief Set the color of a single LED
@@ -243,8 +333,12 @@ public:
   /// \sa set_pixel
   /// \sa set_all
   void show() {
-    logger_.debug("writing data {::02x}", data_);
-    write_(&data_[0], data_.size());
+    if (!data_) {
+      logger_.error("No data allocated for LED strip");
+      return;
+    }
+    logger_.debug("writing data {::02x}", std::span<uint8_t>(data_, data_ + data_size_));
+    write_(data_, data_size_);
   }
 
 protected:
@@ -254,7 +348,9 @@ protected:
   size_t pixel_size_{3};
   size_t start_offset_{0};
   size_t end_offset_{0};
-  std::vector<uint8_t> data_;
+  size_t data_size_{0};
+  uint8_t *data_{nullptr};
   write_fn write_;
+  bool use_dma_{false};
 };
 } // namespace espp
