@@ -9,7 +9,7 @@
 
 #include "base_component.hpp"
 #include "color.hpp"
-#include "esp_heap_caps.h"
+#include <esp_heap_caps.h>
 
 namespace espp {
 /// \brief Class to control LED strips
