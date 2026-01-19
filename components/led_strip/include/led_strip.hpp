@@ -95,13 +95,13 @@ public:
       if (dma_flags == 0) {
         dma_flags = MALLOC_CAP_DMA;
       }
-      data_ = (uint8_t *)heap_caps_malloc(data_size_, dma_flags);
+      data_ = static_cast<uint8_t *>(heap_caps_malloc(data_size_, dma_flags));
       if (!data_) {
         logger_.warn("Failed to allocate DMA memory, falling back to regular malloc");
-        data_ = (uint8_t *)malloc(data_size_);
+        data_ = static_cast<uint8_t *>(malloc(data_size_));
       }
     } else {
-      data_ = (uint8_t *)malloc(data_size_);
+      data_ = static_cast<uint8_t *>(malloc(data_size_));
     }
 
     if (!data_) {
