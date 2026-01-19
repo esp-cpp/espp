@@ -72,7 +72,7 @@ public:
                                       ///< the last LED if not empty.
     bool use_dma{false};              ///< Whether to use DMA-capable memory allocation
     uint32_t dma_allocation_flags{
-        0}; ///< DMA allocation flags (if use_dma is true). Defaults to MALLOC_CAP_DMA.
+        MALLOC_CAP_DMA}; ///< DMA allocation flags (if use_dma is true). Defaults to MALLOC_CAP_DMA.
     Logger::Verbosity log_level; ///< Log level for this class
   };
 
