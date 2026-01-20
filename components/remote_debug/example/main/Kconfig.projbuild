@@ -1,0 +1,204 @@
+menu "Remote Debug Example Configuration"
+
+    config REMOTE_DEBUG_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the example to connect to.
+
+    config REMOTE_DEBUG_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+
+    config REMOTE_DEBUG_SERVER_PORT
+        int "Debug Server Port"
+        default 8080
+        range 1 65535
+        help
+            HTTP port for the remote debug web interface.
+
+    menu "GPIO Configuration"
+
+        config REMOTE_DEBUG_NUM_GPIOS
+            int "Number of GPIOs to expose"
+            default 4
+            range 1 10
+            help
+                Number of GPIO pins to make available for remote control.
+
+        config REMOTE_DEBUG_GPIO_0
+            int "GPIO Pin 0"
+            default 2
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 1
+            help
+                First GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_1
+            int "GPIO Pin 1"
+            default 4
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 2
+            help
+                Second GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_2
+            int "GPIO Pin 2"
+            default 16
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 3
+            help
+                Third GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_3
+            int "GPIO Pin 3"
+            default 17
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 4
+            help
+                Fourth GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_4
+            int "GPIO Pin 4"
+            default 18
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 5
+            help
+                Fifth GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_5
+            int "GPIO Pin 5"
+            default 19
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 6
+            help
+                Sixth GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_6
+            int "GPIO Pin 6"
+            default 21
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 7
+            help
+                Seventh GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_7
+            int "GPIO Pin 7"
+            default 22
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 8
+            help
+                Eighth GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_8
+            int "GPIO Pin 8"
+            default 23
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 9
+            help
+                Ninth GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_9
+            int "GPIO Pin 9"
+            default 25
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 10
+            help
+                Tenth GPIO pin to control.
+
+    endmenu
+
+    menu "ADC Configuration"
+
+        config REMOTE_DEBUG_NUM_ADCS
+            int "Number of ADC channels to monitor"
+            default 2
+            range 0 8
+            help
+                Number of ADC channels to monitor and plot.
+
+        config REMOTE_DEBUG_ADC_0
+            int "ADC Channel 0"
+            default 36
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_ADCS >= 1
+            help
+                First ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_1
+            int "ADC Channel 1"
+            default 39
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_ADCS >= 2
+            help
+                Second ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_2
+            int "ADC Channel 2"
+            default 34
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_ADCS >= 3
+            help
+                Third ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_3
+            int "ADC Channel 3"
+            default 35
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_ADCS >= 4
+            help
+                Fourth ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_4
+            int "ADC Channel 4"
+            default 32
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_ADCS >= 5
+            help
+                Fifth ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_5
+            int "ADC Channel 5"
+            default 33
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_ADCS >= 6
+            help
+                Sixth ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_6
+            int "ADC Channel 6"
+            default 25
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_ADCS >= 7
+            help
+                Seventh ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_7
+            int "ADC Channel 7"
+            default 26
+            range 0 48
+            depends on REMOTE_DEBUG_NUM_ADCS >= 8
+            help
+                Eighth ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_SAMPLE_RATE_HZ
+            int "ADC Sample Rate (Hz)"
+            default 100
+            range 1 1000
+            depends on REMOTE_DEBUG_NUM_ADCS > 0
+            help
+                How often to sample ADC values (samples per second).
+
+        config REMOTE_DEBUG_ADC_BUFFER_SIZE
+            int "ADC Buffer Size"
+            default 500
+            range 10 10000
+            depends on REMOTE_DEBUG_NUM_ADCS > 0
+            help
+                Number of samples to keep in buffer for plotting.
+
+    endmenu
+
+endmenu
