@@ -66,11 +66,11 @@ public:
     write_fn write;                       ///< Function to write data to the strip
     bool send_brightness{true};           ///< Whether to use the brightness value for the LEDs
     ByteOrder byte_order{ByteOrder::RGB}; ///< Byte order for the LEDs
-    std::vector<uint8_t> start_frame{};   ///< Start frame for the strip. Optional - will be sent
+    std::span<uint8_t> start_frame{};     ///< Start frame for the strip. Optional - will be sent
                                           ///< before the first LED if not empty.
-    std::vector<uint8_t> end_frame{}; ///< End frame for the strip. Optional - will be sent after
-                                      ///< the last LED if not empty.
-    bool use_dma{false};              ///< Whether to use DMA-capable memory allocation
+    std::span<uint8_t> end_frame{}; ///< End frame for the strip. Optional - will be sent after
+                                    ///< the last LED if not empty.
+    bool use_dma{false};            ///< Whether to use DMA-capable memory allocation
     uint32_t dma_allocation_flags{
         0}; ///< DMA allocation flags (if use_dma is true). Defaults to MALLOC_CAP_DMA.
     Logger::Verbosity log_level; ///< Log level for this class
@@ -85,6 +85,11 @@ public:
       , byte_order_(config.byte_order)
       , write_(config.write)
       , use_dma_(config.use_dma) {
+    if (num_leds_ == 0) {
+      logger_.warn("Initialized LedStrip with 0 LEDs");
+      return;
+    }
+
     // set the color data size
     pixel_size_ = send_brightness_ ? 4 : 3;
     data_size_ = num_leds_ * pixel_size_ + config.start_frame.size() + config.end_frame.size();
@@ -140,6 +145,7 @@ public:
   LedStrip &operator=(const LedStrip &) = delete;
 
   /// \brief Move constructor
+  /// \param other The other LedStrip to move from
   LedStrip(LedStrip &&other) noexcept
       : BaseComponent(std::move(other))
       , num_leds_(other.num_leds_)
@@ -157,12 +163,17 @@ public:
   }
 
   /// \brief Move assignment operator
+  /// \param other The other LedStrip to move from
+  /// \return Reference to this LedStrip
   LedStrip &operator=(LedStrip &&other) noexcept {
     if (this != &other) {
+      // Free existing data
       if (data_) {
         free(data_);
       }
 
+      // Move members from other
+      logger_ = std::move(other.logger_);
       num_leds_ = other.num_leds_;
       send_brightness_ = other.send_brightness_;
       byte_order_ = other.byte_order_;
@@ -174,6 +185,7 @@ public:
       write_ = std::move(other.write_);
       use_dma_ = other.use_dma_;
 
+      // Nullify other's pointers
       other.data_ = nullptr;
       other.data_size_ = 0;
     }
@@ -190,29 +202,40 @@ public:
 
   /// \brief Shift the LEDs to the left
   /// \param shift_by Number of LEDs to shift by
+  /// \return true if successful, false if data is invalid or shift_by is out of range
   /// \note A negative value for shift_by will shift the LEDs to the right
-  void shift_left(int shift_by = 1) {
+  bool shift_left(int shift_by = 1) {
+    if (!data_) {
+      logger_.error("No data allocated for LED strip");
+      return false;
+    }
     if (shift_by == 0)
-      return;
+      return true;
     if (shift_by >= num_leds_) {
       logger_.error("Shift by {} is greater than the number of LEDs ({})", shift_by, num_leds_);
-      return;
+      return false;
     }
     if (shift_by < 0)
       shift_by += num_leds_;
     std::rotate(data_ + start_offset_, data_ + start_offset_ + pixel_size_ * shift_by,
                 data_ + data_size_ - end_offset_);
+    return true;
   }
 
   /// \brief Shift the LEDs to the right
   /// \param shift_by Number of LEDs to shift by
+  /// \return true if successful, false if data is invalid or shift_by is out of range
   /// \note A negative value for shift_by will shift the LEDs to the left
-  void shift_right(int shift_by = 1) {
+  bool shift_right(int shift_by = 1) {
+    if (!data_) {
+      logger_.error("No data allocated for LED strip");
+      return false;
+    }
     if (shift_by == 0)
-      return;
+      return true;
     if (shift_by >= num_leds_) {
       logger_.error("Shift by {} is greater than the number of LEDs ({})", shift_by, num_leds_);
-      return;
+      return false;
     }
     if (shift_by < 0)
       shift_by += num_leds_;
@@ -220,33 +243,36 @@ public:
                 std::reverse_iterator<uint8_t *>(data_ + data_size_ - end_offset_) +
                     pixel_size_ * shift_by,
                 std::reverse_iterator<uint8_t *>(data_ + start_offset_));
+    return true;
   }
 
   /// \brief Set the color of a single LED
   /// \param index Index of the LED to set
   /// \param hsv Color to set the LED to
   /// \param brightness Brightness of the LED
+  /// \return true if successful, false if data is invalid or index is out of range
   /// \note The index is zero-based.
   /// \sa Hsv for more information on the HSV color space
   /// \sa show
-  void set_pixel(int index, const Hsv &hsv, float brightness = 1.0f) {
-    set_pixel(index, hsv.rgb(), brightness);
+  bool set_pixel(int index, const Hsv &hsv, float brightness = 1.0f) {
+    return set_pixel(index, hsv.rgb(), brightness);
   }
 
   /// \brief Set the color of a single LED
   /// \param index Index of the LED to set
   /// \param rgb Color to set the LED to
   /// \param brightness Brightness of the LED
+  /// \return true if successful, false if data is invalid or index is out of range
   /// \note The index is zero-based.
   /// \sa Rgb for more information on the RGB color space
   /// \sa show
-  void set_pixel(int index, const Rgb &rgb, float brightness = 1.0f) {
+  bool set_pixel(int index, const Rgb &rgb, float brightness = 1.0f) {
     uint8_t brightness_byte = std::clamp<uint8_t>(brightness * 31.0f, 0, 31);
     uint8_t r, g, b;
     r = std::clamp<uint8_t>(rgb.r * 255.0f, 0, 255);
     g = std::clamp<uint8_t>(rgb.g * 255.0f, 0, 255);
     b = std::clamp<uint8_t>(rgb.b * 255.0f, 0, 255);
-    set_pixel(index, r, g, b, brightness_byte);
+    return set_pixel(index, r, g, b, brightness_byte);
   }
 
   /// \brief Set the color of a single LED
@@ -255,12 +281,17 @@ public:
   /// \param g Green component of the color to set the LED to [0-255]
   /// \param b Blue component of the color to set the LED to [0-255]
   /// \param brightness Brightness of the LED [0-31]
+  /// \return true if successful, false if data is invalid or index is out of range
   /// \note The index is zero-based.
   /// \sa show
-  void set_pixel(int index, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness = 0b11111) {
+  bool set_pixel(int index, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness = 0b11111) {
+    if (!data_) {
+      logger_.error("No data allocated for LED strip");
+      return false;
+    }
     if (index < 0 || index >= num_leds_) {
       logger_.error("set_pixel: index out of range: %d", index);
-      return;
+      return false;
     }
 
     int offset = start_offset_ + index * pixel_size_;
@@ -291,24 +322,27 @@ public:
     data_[offset++] = r;
     data_[offset++] = g;
     data_[offset++] = b;
+    return true;
   }
 
   /// \brief Set the color of all the LEDs
   /// \param hsv Color to set the LEDs to
   /// \param brightness Brightness of the LEDs
+  /// \return true if successful, false if data is invalid
   /// \note The index is zero-based.
   /// \sa set_pixel
   /// \sa show
-  void set_all(const Hsv &hsv, float brightness = 1.0f) { set_all(hsv.rgb(), brightness); }
+  bool set_all(const Hsv &hsv, float brightness = 1.0f) { return set_all(hsv.rgb(), brightness); }
 
   /// \brief Set the color of all the LEDs
   /// \param rgb Color to set the LEDs to
   /// \param brightness Brightness of the LEDs
+  /// \return true if successful, false if data is invalid
   /// \sa set_pixel
   /// \sa show
-  void set_all(const Rgb &rgb, float brightness = 1.0f) {
+  bool set_all(const Rgb &rgb, float brightness = 1.0f) {
     uint8_t brightness_byte = std::clamp<uint8_t>(brightness * 255.0f, 0, 255);
-    set_all(rgb.r, rgb.g, rgb.b, brightness_byte);
+    return set_all(rgb.r, rgb.g, rgb.b, brightness_byte);
   }
 
   /// \brief Set the color of all the LEDs
@@ -316,29 +350,39 @@ public:
   /// \param g Green component of the color to set the LEDs to
   /// \param b Blue component of the color to set the LEDs to
   /// \param brightness Brightness of the LEDs
+  /// \return true if successful, false if data is invalid
   /// \sa set_pixel
   /// \sa show
-  void set_all(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness = 0xff) {
+  bool set_all(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness = 0xff) {
+    if (!data_) {
+      logger_.error("No data allocated for LED strip");
+      return false;
+    }
     // fill out all the color data
     for (int i = 0; i < num_leds_; i++) {
-      set_pixel(i, r, g, b, brightness);
+      if (!set_pixel(i, r, g, b, brightness)) {
+        return false;
+      }
     }
+    return true;
   }
 
   /// \brief Show the colors on the strip
   /// \details This function writes the colors to the strip. It
   /// should be called after setting the colors of the LEDs.
+  /// \return true if successful, false if data is invalid
   /// \note This function blocks until the colors have been written
   /// to the strip.
   /// \sa set_pixel
   /// \sa set_all
-  void show() {
+  bool show() {
     if (!data_) {
       logger_.error("No data allocated for LED strip");
-      return;
+      return false;
     }
     logger_.debug("writing data {::02x}", std::span<uint8_t>(data_, data_ + data_size_));
     write_(data_, data_size_);
+    return true;
   }
 
 protected:
