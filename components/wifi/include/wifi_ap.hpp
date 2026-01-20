@@ -278,8 +278,22 @@ public:
       wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
-    logger_.debug("Setting WiFi mode to AP");
-    err = esp_wifi_set_mode(WIFI_MODE_AP);
+    // Get current mode and add AP to it if needed
+    wifi_mode_t current_mode;
+    err = esp_wifi_get_mode(&current_mode);
+    wifi_mode_t new_mode = WIFI_MODE_AP;
+    if (err == ESP_OK) {
+      if (current_mode == WIFI_MODE_STA) {
+        new_mode = WIFI_MODE_APSTA;
+        logger_.debug("STA mode already active, setting mode to APSTA");
+      } else if (current_mode == WIFI_MODE_APSTA) {
+        new_mode = WIFI_MODE_APSTA;
+        logger_.debug("APSTA mode already set");
+      }
+    }
+
+    logger_.debug("Setting WiFi mode to {}", new_mode);
+    err = esp_wifi_set_mode(new_mode);
     if (err != ESP_OK) {
       logger_.error("Could not set WiFi to AP: {}", err);
       return false;
@@ -328,8 +342,24 @@ public:
    * @return True if the operation was successful, false otherwise.
    */
   bool stop() override {
+    // Check if we're in APSTA mode - if so, just switch to STA mode, don't stop WiFi entirely
+    wifi_mode_t mode;
+    esp_err_t err = esp_wifi_get_mode(&mode);
+    if (err == ESP_OK && mode == WIFI_MODE_APSTA) {
+      // In APSTA mode, switch to STA-only mode
+      logger_.debug("In APSTA mode, switching to STA mode");
+      err = esp_wifi_set_mode(WIFI_MODE_STA);
+      if (err != ESP_OK) {
+        logger_.error("Could not switch to STA mode: {}", esp_err_to_name(err));
+        return false;
+      }
+      logger_.info("WiFi AP stopped, STA still running");
+      return true;
+    }
+
+    // In AP-only mode, stop WiFi entirely
     logger_.debug("Stopping WiFi");
-    esp_err_t err = esp_wifi_stop();
+    err = esp_wifi_stop();
     if (err != ESP_OK) {
       logger_.error("Could not stop WiFi AP: {}", esp_err_to_name(err));
       return false;
