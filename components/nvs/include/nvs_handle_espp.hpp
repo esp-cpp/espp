@@ -9,7 +9,6 @@
 
 #include "base_component.hpp"
 #include "nvs_errc.hpp"
-#include "nvs_handle_espp.hpp"
 
 namespace espp {
 /**
