@@ -9,7 +9,7 @@
 
 #include "base_component.hpp"
 #include "color.hpp"
-#include "esp_heap_caps.h"
+#include <esp_heap_caps.h>
 
 namespace espp {
 /// \brief Class to control LED strips
@@ -72,7 +72,7 @@ public:
                                     ///< the last LED if not empty.
     bool use_dma{false};            ///< Whether to use DMA-capable memory allocation
     uint32_t dma_allocation_flags{
-        0}; ///< DMA allocation flags (if use_dma is true). Defaults to MALLOC_CAP_DMA.
+        MALLOC_CAP_DMA}; ///< DMA allocation flags (if use_dma is true). Defaults to MALLOC_CAP_DMA.
     Logger::Verbosity log_level; ///< Log level for this class
   };
 
@@ -100,13 +100,13 @@ public:
       if (dma_flags == 0) {
         dma_flags = MALLOC_CAP_DMA;
       }
-      data_ = (uint8_t *)heap_caps_malloc(data_size_, dma_flags);
+      data_ = static_cast<uint8_t *>(heap_caps_malloc(data_size_, dma_flags));
       if (!data_) {
         logger_.warn("Failed to allocate DMA memory, falling back to regular malloc");
-        data_ = (uint8_t *)malloc(data_size_);
+        data_ = static_cast<uint8_t *>(malloc(data_size_));
       }
     } else {
-      data_ = (uint8_t *)malloc(data_size_);
+      data_ = static_cast<uint8_t *>(malloc(data_size_));
     }
 
     if (!data_) {
