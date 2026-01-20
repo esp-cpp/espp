@@ -1,0 +1,17 @@
+## IDF Component Manager Manifest File
+license: "MIT"
+description: "WiFi provisioning component with web interface"
+url: "https://github.com/esp-cpp/espp/tree/main/components/provisioning"
+repository: "git://github.com/esp-cpp/espp.git"
+maintainers:
+  - William Emfinger <waemfinger@gmail.com>
+documentation: "https://esp-cpp.github.io/espp/provisioning.html"
+tags:
+  - cpp
+  - WiFi
+  - Provisioning
+dependencies:
+  idf:
+    version: '>=5.0'
+  espp/logger: '>=1.0'
+  espp/task: '>=1.0'
