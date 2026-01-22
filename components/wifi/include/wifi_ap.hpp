@@ -288,15 +288,18 @@ public:
         logger_.debug("STA mode already active, setting mode to APSTA");
       } else if (current_mode == WIFI_MODE_APSTA) {
         new_mode = WIFI_MODE_APSTA;
-        logger_.debug("APSTA mode already set");
       }
     }
 
-    logger_.debug("Setting WiFi mode to {}", new_mode);
-    err = esp_wifi_set_mode(new_mode);
-    if (err != ESP_OK) {
-      logger_.error("Could not set WiFi to AP: {}", err);
-      return false;
+    if (current_mode != new_mode) {
+      logger_.debug("Setting WiFi mode to {}", new_mode);
+      err = esp_wifi_set_mode(new_mode);
+      if (err != ESP_OK) {
+        logger_.error("Could not set WiFi to AP: {}", err);
+        return false;
+      }
+    } else {
+      logger_.debug("WiFi mode already set to {}", new_mode);
     }
 
     logger_.debug("Setting WiFi config");
