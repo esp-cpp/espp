@@ -173,7 +173,7 @@ public:
       }
 
       // Move members from other
-      logger_ = std::move(other.logger_); // cppcheck-suppress accessMoved
+      logger_ = std::move(other.logger_);
       num_leds_ = other.num_leds_;
       send_brightness_ = other.send_brightness_;
       byte_order_ = other.byte_order_;
