@@ -4,6 +4,7 @@
 #include <array>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -59,6 +60,8 @@ public:
 
   /// \brief Start frame for the APA102 protocol
   static const std::vector<uint8_t> APA102_START_FRAME;
+  /// \brief End frame for the APA102 protocol
+  static const std::vector<uint8_t> APA102_END_FRAME;
 
   /// \brief Configuration for the LedStrip class
   struct Config {
@@ -66,11 +69,13 @@ public:
     write_fn write;                       ///< Function to write data to the strip
     bool send_brightness{true};           ///< Whether to use the brightness value for the LEDs
     ByteOrder byte_order{ByteOrder::RGB}; ///< Byte order for the LEDs
-    std::span<uint8_t> start_frame{};     ///< Start frame for the strip. Optional - will be sent
-                                          ///< before the first LED if not empty.
-    std::span<uint8_t> end_frame{}; ///< End frame for the strip. Optional - will be sent after
-                                    ///< the last LED if not empty.
-    bool use_dma{false};            ///< Whether to use DMA-capable memory allocation
+    std::span<const uint8_t> start_frame{}; ///< Start frame for the strip. Optional - will be sent
+                                            ///< before the first LED if not empty. Can be initialized
+                                            ///< with std::array<uint8_t, N>{0x00, 0x00, ...} for compatibility.
+    std::span<const uint8_t> end_frame{}; ///< End frame for the strip. Optional - will be sent after
+                                          ///< the last LED if not empty. Can be initialized
+                                          ///< with std::array<uint8_t, N>{0x00, 0x00, ...} for compatibility.
+    bool use_dma{false};              ///< Whether to use DMA-capable memory allocation
     uint32_t dma_allocation_flags{
         MALLOC_CAP_DMA}; ///< DMA allocation flags (if use_dma is true). Defaults to MALLOC_CAP_DMA.
     Logger::Verbosity log_level; ///< Log level for this class
@@ -92,39 +97,43 @@ public:
 
     // set the color data size
     pixel_size_ = send_brightness_ ? 4 : 3;
-    data_size_ = num_leds_ * pixel_size_ + config.start_frame.size() + config.end_frame.size();
+    size_t data_size = num_leds_ * pixel_size_ + config.start_frame.size() + config.end_frame.size();
 
     // Allocate memory based on DMA preference
+    uint8_t *raw_data = nullptr;
     if (use_dma_) {
       uint32_t dma_flags = config.dma_allocation_flags;
       if (dma_flags == 0) {
         dma_flags = MALLOC_CAP_DMA;
       }
-      data_ = static_cast<uint8_t *>(heap_caps_malloc(data_size_, dma_flags));
-      if (!data_) {
+      raw_data = static_cast<uint8_t *>(heap_caps_malloc(data_size, dma_flags));
+      if (!raw_data) {
         logger_.warn("Failed to allocate DMA memory, falling back to regular malloc");
-        data_ = static_cast<uint8_t *>(malloc(data_size_));
+        raw_data = static_cast<uint8_t *>(malloc(data_size));
       }
     } else {
-      data_ = static_cast<uint8_t *>(malloc(data_size_));
+      raw_data = static_cast<uint8_t *>(malloc(data_size));
     }
 
-    if (!data_) {
+    if (!raw_data) {
       logger_.error("Failed to allocate memory for LED strip data");
       return;
     }
 
+    // create span from raw pointer
+    data_ = std::span<uint8_t>(raw_data, data_size);
+
     // zero out the data
-    memset(data_, 0, data_size_);
+    memset(data_.data(), 0, data_.size());
 
     // copy the start frame
     if (!config.start_frame.empty()) {
-      memcpy(data_, config.start_frame.data(), config.start_frame.size());
+      memcpy(data_.data(), config.start_frame.data(), config.start_frame.size());
     }
 
     // copy the end frame
     if (!config.end_frame.empty()) {
-      memcpy(data_ + data_size_ - config.end_frame.size(), config.end_frame.data(),
+      memcpy(data_.data() + data_.size() - config.end_frame.size(), config.end_frame.data(),
              config.end_frame.size());
     }
 
@@ -135,9 +144,9 @@ public:
   /// \brief Destructor
   /// \details This function frees the memory allocated for the LED strip data.
   ~LedStrip() {
-    if (data_) {
-      free(data_);
-      data_ = nullptr;
+    if (!data_.empty()) {
+      free(data_.data());
+      data_ = std::span<uint8_t>();
     }
   }
 
@@ -158,12 +167,10 @@ public:
       , pixel_size_(other.pixel_size_)
       , start_offset_(other.start_offset_) 
       , end_offset_(other.end_offset_)
-      , data_size_(other.data_size_)
       , data_(other.data_)
       , write_(std::move(other.write_))
       , use_dma_(other.use_dma_) {
-    other.data_ = nullptr;
-    other.data_size_ = 0;
+    other.data_ = std::span<uint8_t>();
     // cppcheck-suppress-end accessMoved
   }
 
@@ -173,8 +180,8 @@ public:
   LedStrip &operator=(LedStrip &&other) noexcept {
     if (this != &other) {
       // Free existing data
-      if (data_) {
-        free(data_);
+      if (!data_.empty()) {
+        free(data_.data());
       }
 
       // move-assign base class
@@ -189,14 +196,12 @@ public:
       pixel_size_ = other.pixel_size_;
       start_offset_ = other.start_offset_;
       end_offset_ = other.end_offset_;
-      data_size_ = other.data_size_;
       data_ = other.data_;
       write_ = std::move(other.write_);
       use_dma_ = other.use_dma_;
 
-      // Nullify other's pointers
-      other.data_ = nullptr;
-      other.data_size_ = 0;
+      // Nullify other's span
+      other.data_ = std::span<uint8_t>();
 
       // cppcheck-suppress-end accessMoved
     }
@@ -216,7 +221,7 @@ public:
   /// \return true if successful, false if data is invalid or shift_by is out of range
   /// \note A negative value for shift_by will shift the LEDs to the right
   bool shift_left(int shift_by = 1) {
-    if (!data_) {
+    if (data_.empty()) {
       logger_.error("No data allocated for LED strip");
       return false;
     }
@@ -228,8 +233,8 @@ public:
     }
     if (shift_by < 0)
       shift_by += num_leds_;
-    std::rotate(data_ + start_offset_, data_ + start_offset_ + pixel_size_ * shift_by,
-                data_ + data_size_ - end_offset_);
+    std::rotate(data_.data() + start_offset_, data_.data() + start_offset_ + pixel_size_ * shift_by,
+                data_.data() + data_.size() - end_offset_);
     return true;
   }
 
@@ -238,7 +243,7 @@ public:
   /// \return true if successful, false if data is invalid or shift_by is out of range
   /// \note A negative value for shift_by will shift the LEDs to the left
   bool shift_right(int shift_by = 1) {
-    if (!data_) {
+    if (data_.empty()) {
       logger_.error("No data allocated for LED strip");
       return false;
     }
@@ -250,10 +255,10 @@ public:
     }
     if (shift_by < 0)
       shift_by += num_leds_;
-    std::rotate(std::reverse_iterator<uint8_t *>(data_ + data_size_ - end_offset_),
-                std::reverse_iterator<uint8_t *>(data_ + data_size_ - end_offset_) +
+    std::rotate(std::reverse_iterator<uint8_t *>(data_.data() + data_.size() - end_offset_),
+                std::reverse_iterator<uint8_t *>(data_.data() + data_.size() - end_offset_) +
                     pixel_size_ * shift_by,
-                std::reverse_iterator<uint8_t *>(data_ + start_offset_));
+                std::reverse_iterator<uint8_t *>(data_.data() + start_offset_));
     return true;
   }
 
@@ -296,7 +301,7 @@ public:
   /// \note The index is zero-based.
   /// \sa show
   bool set_pixel(int index, uint8_t r, uint8_t g, uint8_t b, uint8_t brightness = 0b11111) {
-    if (!data_) {
+    if (data_.empty()) {
       logger_.error("No data allocated for LED strip");
       return false;
     }
@@ -365,7 +370,7 @@ public:
   /// \sa set_pixel
   /// \sa show
   bool set_all(uint8_t r, uint8_t g, uint8_t b, uint8_t brightness = 0xff) {
-    if (!data_) {
+    if (data_.empty()) {
       logger_.error("No data allocated for LED strip");
       return false;
     }
@@ -387,12 +392,12 @@ public:
   /// \sa set_pixel
   /// \sa set_all
   bool show() {
-    if (!data_) {
+    if (data_.empty()) {
       logger_.error("No data allocated for LED strip");
       return false;
     }
-    logger_.debug("writing data {::02x}", std::span<uint8_t>(data_, data_ + data_size_));
-    write_(data_, data_size_);
+    logger_.debug("writing data {::02x}", data_);
+    write_(data_.data(), data_.size());
     return true;
   }
 
@@ -403,8 +408,7 @@ protected:
   size_t pixel_size_{3};
   size_t start_offset_{0};
   size_t end_offset_{0};
-  size_t data_size_{0};
-  uint8_t *data_{nullptr};
+  std::span<uint8_t> data_;
   write_fn write_;
   bool use_dma_{false};
 };
