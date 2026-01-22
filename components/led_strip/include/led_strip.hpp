@@ -114,6 +114,9 @@ public:
       return;
     }
 
+    // zero out the data
+    memset(data_, 0, data_size_);
+
     // copy the start frame
     if (!config.start_frame.empty()) {
       memcpy(data_, config.start_frame.data(), config.start_frame.size());
@@ -172,8 +175,10 @@ public:
         free(data_);
       }
 
+      // move-assign base class
+      BaseComponent::operator=(std::move(other)); // cppcheck-suppress accessMoved
+
       // Move members from other
-      logger_ = std::move(other.logger_);
       num_leds_ = other.num_leds_;
       send_brightness_ = other.send_brightness_;
       byte_order_ = other.byte_order_;
