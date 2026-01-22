@@ -162,9 +162,9 @@ public:
       , data_(other.data_)
       , write_(std::move(other.write_))
       , use_dma_(other.use_dma_) {
-    // cppcheck-suppress-end accessMoved
     other.data_ = nullptr;
     other.data_size_ = 0;
+    // cppcheck-suppress-end accessMoved
   }
 
   /// \brief Move assignment operator
@@ -194,11 +194,11 @@ public:
       write_ = std::move(other.write_);
       use_dma_ = other.use_dma_;
 
-      // cppcheck-suppress-end accessMoved
-
       // Nullify other's pointers
       other.data_ = nullptr;
       other.data_size_ = 0;
+
+      // cppcheck-suppress-end accessMoved
     }
     return *this;
   }
