@@ -108,13 +108,28 @@ public:
     }
 
     // NOTE: Deinit phase
-    // stop the wifi
-    logger_.debug("Stopping WiFi");
-    esp_err_t err = esp_wifi_stop();
-    if (err != ESP_OK) {
-      logger_.error("Could not stop WiFiSta: {}", esp_err_to_name(err));
+    // Check if we're in APSTA mode - if so, just disconnect STA, don't stop WiFi entirely
+    wifi_mode_t mode;
+    esp_err_t err = esp_wifi_get_mode(&mode);
+    if (err == ESP_OK && mode == WIFI_MODE_APSTA) {
+      // In APSTA mode, just disconnect the STA interface
+      logger_.debug("In APSTA mode, disconnecting STA interface");
+      esp_wifi_disconnect();
+      // Switch to AP-only mode
+      err = esp_wifi_set_mode(WIFI_MODE_AP);
+      if (err != ESP_OK) {
+        logger_.error("Could not switch to AP mode: {}", esp_err_to_name(err));
+      }
+      logger_.info("WiFi STA disconnected, AP still running");
+    } else {
+      // In STA-only mode, stop WiFi entirely
+      logger_.debug("Stopping WiFi");
+      err = esp_wifi_stop();
+      if (err != ESP_OK) {
+        logger_.error("Could not stop WiFiSta: {}", esp_err_to_name(err));
+      }
+      logger_.info("WiFi STA stopped");
     }
-    logger_.info("WiFi STA stopped");
     // Note: WiFi deinit and netif destruction are handled by Wifi singleton
   }
 
@@ -364,11 +379,29 @@ public:
       memcpy(wifi_config.sta.bssid, config.ap_mac, 6);
     }
 
-    logger_.debug("Setting WiFi mode to STA");
-    esp_err_t err = esp_wifi_set_mode(WIFI_MODE_STA);
-    if (err != ESP_OK) {
-      logger_.error("Could not set WiFi mode STA: {}", err);
-      return false;
+    // Get current mode and add STA to it if needed
+    wifi_mode_t current_mode;
+    esp_err_t err = esp_wifi_get_mode(&current_mode);
+    wifi_mode_t new_mode = WIFI_MODE_STA;
+    if (err == ESP_OK) {
+      if (current_mode == WIFI_MODE_AP) {
+        new_mode = WIFI_MODE_APSTA;
+        logger_.debug("AP mode already active, setting mode to APSTA");
+      } else if (current_mode == WIFI_MODE_APSTA) {
+        new_mode = WIFI_MODE_APSTA;
+        logger_.debug("APSTA mode already set");
+      }
+    }
+
+    if (current_mode != new_mode) {
+      logger_.debug("Setting WiFi mode to {}", new_mode);
+      err = esp_wifi_set_mode(new_mode);
+      if (err != ESP_OK) {
+        logger_.error("Could not set WiFi mode STA: {}", err);
+        return false;
+      }
+    } else {
+      logger_.debug("WiFi mode already set to {}", new_mode);
     }
 
     logger_.debug("Setting WiFi config");
