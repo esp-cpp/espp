@@ -150,17 +150,19 @@ public:
   /// \brief Move constructor
   /// \param other The other LedStrip to move from
   LedStrip(LedStrip &&other) noexcept
-      : BaseComponent(std::move(other)) // cppcheck-suppress accessMoved
+    // cppcheck-suppress-begin accessMoved
+      : BaseComponent(std::move(other))
       , num_leds_(other.num_leds_)
       , send_brightness_(other.send_brightness_)
       , byte_order_(other.byte_order_)
       , pixel_size_(other.pixel_size_)
-      , start_offset_(other.start_offset_)
+      , start_offset_(other.start_offset_) 
       , end_offset_(other.end_offset_)
       , data_size_(other.data_size_)
       , data_(other.data_)
       , write_(std::move(other.write_))
       , use_dma_(other.use_dma_) {
+    // cppcheck-suppress-end accessMoved
     other.data_ = nullptr;
     other.data_size_ = 0;
   }
@@ -176,8 +178,10 @@ public:
       }
 
       // move-assign base class
-      BaseComponent::operator=(std::move(other)); // cppcheck-suppress accessMoved
+      BaseComponent::operator=(std::move(other));
 
+      // cppcheck-suppress-begin accessMoved
+      
       // Move members from other
       num_leds_ = other.num_leds_;
       send_brightness_ = other.send_brightness_;
@@ -189,6 +193,8 @@ public:
       data_ = other.data_;
       write_ = std::move(other.write_);
       use_dma_ = other.use_dma_;
+
+      // cppcheck-suppress-end accessMoved
 
       // Nullify other's pointers
       other.data_ = nullptr;
