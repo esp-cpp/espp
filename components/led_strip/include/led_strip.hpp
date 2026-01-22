@@ -147,7 +147,7 @@ public:
   /// \brief Move constructor
   /// \param other The other LedStrip to move from
   LedStrip(LedStrip &&other) noexcept
-      : BaseComponent(std::move(other))
+      : BaseComponent(std::move(other)) // cppcheck-suppress accessMoved
       , num_leds_(other.num_leds_)
       , send_brightness_(other.send_brightness_)
       , byte_order_(other.byte_order_)
@@ -173,7 +173,7 @@ public:
       }
 
       // Move members from other
-      logger_ = std::move(other.logger_);
+      logger_ = std::move(other.logger_); // cppcheck-suppress accessMoved
       num_leds_ = other.num_leds_;
       send_brightness_ = other.send_brightness_;
       byte_order_ = other.byte_order_;
