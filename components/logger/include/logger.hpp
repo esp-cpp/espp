@@ -130,7 +130,7 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @brief Move constructor
    * @param other The other logger to move from.
    */
-  Logger(Logger &&other) noexcept // cppcheck-suppress missingMemberCopy
+  Logger(Logger &&other) noexcept
       : tag_([&other] {
         std::scoped_lock lock(other.tag_mutex_);
         return std::move(other.tag_);
@@ -144,8 +144,10 @@ rate limit. @note Only calls that have _rate_limited suffixed will be rate limit
    * @brief Copy assignment operator
    * @param other The other logger to copy from.
    * @return Reference to this logger.
+   * @note This will NOT copy the last_print_ time, as this is not meaningful
+   *       for the new logger.
    */
-  Logger &operator=(const Logger &other) {
+  Logger &operator=(const Logger &other) { // cppcheck-suppress missingMemberCopy
     if (this != &other) {
       std::scoped_lock lock(tag_mutex_, other.tag_mutex_);
       tag_ = other.tag_;
