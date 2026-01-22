@@ -168,6 +168,15 @@ void ExpressiveEyes::draw_eyes() {
   // Apply vertical offset from expression
   int eye_y = center_y + static_cast<int>(current_state_.eye_offset_y * config_.screen_height);
 
+  // Apply eye position offset based on look direction
+  // Scale the offset to be smaller than pupil movement (about 15% of eye width/height)
+  int eye_offset_x = static_cast<int>(current_look_x_ * config_.eye_width * 0.15f);
+  int eye_offset_y = static_cast<int>(current_look_y_ * config_.eye_height * 0.15f);
+
+  left_x += eye_offset_x;
+  right_x += eye_offset_x;
+  eye_y += eye_offset_y;
+
   // Calculate blink effect (0=open, 1=closed)
   float blink_amount = 0.0f;
   if (is_blinking_) {

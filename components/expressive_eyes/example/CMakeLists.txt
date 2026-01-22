@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py expressive_eyes display task box box-3 esp-box esp-box-3"
+  "main esptool_py expressive_eyes display task esp-box matouch-rotary-display ws-s3-touch"
   CACHE STRING
   "List of components to include"
   )

@@ -16,15 +16,29 @@ menu "Expressive Eyes Example Configuration"
             help
                 Use MaTouch Rotary Display board.
 
-        config EXPRESSIVE_EYES_BOARD_WROVER_KIT
-            bool "ESP-WROVER-KIT"
+        config EXPRESSIVE_EYES_BOARD_WS_S3_TOUCH
+            bool "WS-S3-Touch BSP"
             help
-                Use ESP-WROVER-KIT development board.
+                Use WS-S3-Touch development board.
 
-        config EXPRESSIVE_EYES_BOARD_TAB5
-            bool "M5Stack Tab5"
+    endchoice
+
+    choice EXPRESSIVE_EYES_DRAWING_METHOD
+        prompt "Select Drawing Method"
+        default EXPRESSIVE_EYES_MONOCHROME_BLUE if EXPRESSIVE_EYES_BOARD_WS_S3_TOUCH
+        default EXPRESSIVE_EYES_FULL_FEATURED
+        help
+            Select the eye drawing implementation to use.
+
+        config EXPRESSIVE_EYES_FULL_FEATURED
+            bool "Full Featured (White eyes with black pupils)"
             help
-                Use M5Stack Tab5 development board.
+                Draw realistic eyes with white background, black pupils, eyebrows, and cheeks.
+
+        config EXPRESSIVE_EYES_MONOCHROME_BLUE
+            bool "Monochrome Blue (Electric blue on black)"
+            help
+                Draw simple monochrome eyes in electric blue on black background without pupils.
 
     endchoice
 

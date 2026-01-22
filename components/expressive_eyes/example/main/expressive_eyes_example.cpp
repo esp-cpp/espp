@@ -7,6 +7,10 @@
 #include "logger.hpp"
 #include "task.hpp"
 
+// Include drawer implementations
+#include "full_featured_drawer.hpp"
+#include "monochrome_blue_drawer.hpp"
+
 // Board-specific includes based on menuconfig selection
 #if CONFIG_EXPRESSIVE_EYES_BOARD_ESP_BOX
 #include "esp-box.hpp"
@@ -14,12 +18,9 @@ using Board = espp::EspBox;
 #elif CONFIG_EXPRESSIVE_EYES_BOARD_MATOUCH_ROTARY
 #include "matouch-rotary-display.hpp"
 using Board = espp::MatouchRotaryDisplay;
-#elif CONFIG_EXPRESSIVE_EYES_BOARD_WROVER_KIT
-#include "wrover-kit.hpp"
-using Board = espp::WroverKit;
-#elif CONFIG_EXPRESSIVE_EYES_BOARD_TAB5
-#include "m5stack-tab5.hpp"
-using Board = espp::M5StackTab5;
+#elif CONFIG_EXPRESSIVE_EYES_BOARD_WS_S3_TOUCH
+#include "ws-s3-touch.hpp"
+using Board = espp::WsS3Touch;
 #else
 #error "No board selected in menuconfig!"
 #endif
@@ -62,9 +63,6 @@ extern "C" void app_main(void) {
   // Disable scrollbars on screen
   lv_obj_clear_flag(lv_screen_active(), LV_OBJ_FLAG_SCROLLABLE);
 
-  // Get background color
-  lv_color_t bg_color = lv_obj_get_style_bg_color(lv_screen_active(), LV_PART_MAIN);
-
   // Create main canvas for drawing everything
   lv_obj_t *canvas = lv_canvas_create(lv_screen_active());
 
@@ -80,171 +78,31 @@ extern "C" void app_main(void) {
   lv_canvas_set_buffer(canvas, canvas_buffer, screen_width, screen_height, LV_COLOR_FORMAT_RGB565);
   lv_obj_center(canvas);
 
-  // Store original eye dimensions for calculations
-  int original_eye_height = screen_height * 0.55f;
-  int eye_base_width = screen_width * 0.35f;
-  int pupil_size = static_cast<int>(std::min(eye_base_width, original_eye_height) * 0.3f);
+  // Create the drawer based on menuconfig selection
+  std::unique_ptr<eye_drawer::EyeDrawer> drawer;
 
-  // Drawing callback for eyes - single call for both eyes using canvas
-  auto draw_eyes = [&](const espp::ExpressiveEyes::EyeState &left,
-                       const espp::ExpressiveEyes::EyeState &right) {
-    std::lock_guard<std::recursive_mutex> lock(lvgl_mutex);
+#if CONFIG_EXPRESSIVE_EYES_FULL_FEATURED
+  logger.info("Using Full Featured drawer");
+  drawer = std::make_unique<eye_drawer::FullFeaturedDrawer>(
+      eye_drawer::FullFeaturedDrawer::Config{.screen_width = screen_width,
+                                             .screen_height = screen_height,
+                                             .canvas = canvas,
+                                             .canvas_buffer = canvas_buffer,
+                                             .lvgl_mutex = lvgl_mutex});
+#elif CONFIG_EXPRESSIVE_EYES_MONOCHROME_BLUE
+  logger.info("Using Monochrome Blue drawer");
+  drawer = std::make_unique<eye_drawer::MonochromeBlueDrawer>(
+      eye_drawer::MonochromeBlueDrawer::Config{.screen_width = screen_width,
+                                               .screen_height = screen_height,
+                                               .canvas = canvas,
+                                               .canvas_buffer = canvas_buffer,
+                                               .lvgl_mutex = lvgl_mutex});
+#else
+#error "No drawing method selected in menuconfig!"
+#endif
 
-    // Clear canvas with background color
-    lv_canvas_fill_bg(canvas, bg_color, LV_OPA_COVER);
-
-    // Helper to draw filled ellipse (for eyes) using layer API
-    auto draw_ellipse = [&](int cx, int cy, int width, int height, lv_color_t color) {
-      lv_layer_t layer;
-      lv_canvas_init_layer(canvas, &layer);
-
-      lv_draw_rect_dsc_t rect_dsc;
-      lv_draw_rect_dsc_init(&rect_dsc);
-      rect_dsc.bg_color = color;
-      rect_dsc.bg_opa = LV_OPA_COVER;
-      rect_dsc.radius = LV_RADIUS_CIRCLE;
-      rect_dsc.border_width = 0;
-
-      lv_area_t area;
-      area.x1 = cx - width / 2;
-      area.y1 = cy - height / 2;
-      area.x2 = cx + width / 2;
-      area.y2 = cy + height / 2;
-
-      lv_draw_rect(&layer, &rect_dsc, &area);
-      lv_canvas_finish_layer(canvas, &layer);
-    };
-
-    // Lambda to draw single eye
-    auto draw_single_eye = [&](const espp::ExpressiveEyes::EyeState &eye_state, bool is_left) {
-      // Draw eye white
-      draw_ellipse(eye_state.x, eye_state.y, eye_state.width, eye_state.height, lv_color_white());
-
-      // Draw pupil (use original height so blink doesn't move pupil)
-      // Only draw if eye is open enough (not blinking)
-      float openness = eye_state.height / static_cast<float>(original_eye_height);
-      if (eye_state.expression.pupil.enabled && openness > 0.3f) {
-        int px_offset = static_cast<int>(eye_state.expression.pupil.x * eye_state.width * 0.3f);
-        int py_offset = static_cast<int>(eye_state.expression.pupil.y * original_eye_height * 0.3f);
-        int pupil_x = eye_state.x + px_offset;
-        int pupil_y = eye_state.y + py_offset;
-
-        lv_layer_t layer;
-        lv_canvas_init_layer(canvas, &layer);
-
-        lv_draw_rect_dsc_t rect_dsc;
-        lv_draw_rect_dsc_init(&rect_dsc);
-        rect_dsc.bg_color = lv_color_black();
-        rect_dsc.bg_opa = LV_OPA_COVER;
-        rect_dsc.radius = LV_RADIUS_CIRCLE;
-        rect_dsc.border_width = 0;
-
-        lv_area_t area;
-        int r = pupil_size / 2;
-        area.x1 = pupil_x - r;
-        area.y1 = pupil_y - r;
-        area.x2 = pupil_x + r;
-        area.y2 = pupil_y + r;
-
-        lv_draw_rect(&layer, &rect_dsc, &area);
-        lv_canvas_finish_layer(canvas, &layer);
-      }
-
-      // Draw eyebrow as rotated rectangle (using triangles)
-      if (eye_state.expression.eyebrow.enabled) {
-        int brow_width =
-            static_cast<int>(eye_base_width * eye_state.expression.eyebrow.width * 1.5f);
-        int brow_height =
-            static_cast<int>(eye_base_width * eye_state.expression.eyebrow.thickness * 4.0f);
-        int brow_y = eye_state.y - static_cast<int>(original_eye_height * 0.4f);
-
-        // For left eye, positive angle tilts left side down (clockwise rotation)
-        // For right eye, positive angle tilts right side down (counter-clockwise rotation)
-        float angle_rad = eye_state.expression.eyebrow.angle * M_PI / 180.0f;
-        if (!is_left)
-          angle_rad = -angle_rad; // Mirror for right eye
-
-        // Calculate the 4 corners of a rotated rectangle centered at (eye_state.x, brow_y)
-        float half_w = brow_width / 2.0f;
-        float half_h = brow_height / 2.0f;
-        float cos_a = std::cos(angle_rad);
-        float sin_a = std::sin(angle_rad);
-
-        // Four corners relative to center, then rotated
-        int x1 = eye_state.x + static_cast<int>(-half_w * cos_a + half_h * sin_a);
-        int y1 = brow_y + static_cast<int>(-half_w * sin_a - half_h * cos_a);
-
-        int x2 = eye_state.x + static_cast<int>(half_w * cos_a + half_h * sin_a);
-        int y2 = brow_y + static_cast<int>(half_w * sin_a - half_h * cos_a);
-
-        int x3 = eye_state.x + static_cast<int>(half_w * cos_a - half_h * sin_a);
-        int y3 = brow_y + static_cast<int>(half_w * sin_a + half_h * cos_a);
-
-        int x4 = eye_state.x + static_cast<int>(-half_w * cos_a - half_h * sin_a);
-        int y4 = brow_y + static_cast<int>(-half_w * sin_a + half_h * cos_a);
-
-        lv_layer_t layer;
-        lv_canvas_init_layer(canvas, &layer);
-
-        lv_draw_triangle_dsc_t tri_dsc;
-        lv_draw_triangle_dsc_init(&tri_dsc);
-        tri_dsc.color = bg_color;
-        tri_dsc.opa = LV_OPA_COVER;
-
-        // First triangle: top-left, top-right, bottom-right
-        tri_dsc.p[0].x = x1;
-        tri_dsc.p[0].y = y1;
-        tri_dsc.p[1].x = x2;
-        tri_dsc.p[1].y = y2;
-        tri_dsc.p[2].x = x3;
-        tri_dsc.p[2].y = y3;
-        lv_draw_triangle(&layer, &tri_dsc);
-
-        // Second triangle: top-left, bottom-right, bottom-left
-        tri_dsc.p[0].x = x1;
-        tri_dsc.p[0].y = y1;
-        tri_dsc.p[1].x = x3;
-        tri_dsc.p[1].y = y3;
-        tri_dsc.p[2].x = x4;
-        tri_dsc.p[2].y = y4;
-        lv_draw_triangle(&layer, &tri_dsc);
-
-        lv_canvas_finish_layer(canvas, &layer);
-      }
-
-      // Draw cheek
-      if (eye_state.expression.cheek.enabled) {
-        int cheek_width = static_cast<int>(eye_base_width * eye_state.expression.cheek.size * 2.5f);
-        int cheek_height =
-            static_cast<int>(eye_base_width * eye_state.expression.cheek.size * 1.5f);
-        int cheek_y = eye_state.y + static_cast<int>(original_eye_height * 0.4f) +
-                      static_cast<int>(eye_state.expression.cheek_offset_y * screen_height);
-
-        lv_layer_t layer;
-        lv_canvas_init_layer(canvas, &layer);
-
-        lv_draw_rect_dsc_t rect_dsc;
-        lv_draw_rect_dsc_init(&rect_dsc);
-        rect_dsc.bg_color = bg_color;
-        rect_dsc.bg_opa = LV_OPA_COVER;
-        rect_dsc.radius = LV_RADIUS_CIRCLE;
-        rect_dsc.border_width = 0;
-
-        lv_area_t area;
-        area.x1 = eye_state.x - cheek_width / 2;
-        area.y1 = cheek_y - cheek_height / 2;
-        area.x2 = eye_state.x + cheek_width / 2;
-        area.y2 = cheek_y + cheek_height / 2;
-
-        lv_draw_rect(&layer, &rect_dsc, &area);
-        lv_canvas_finish_layer(canvas, &layer);
-      }
-    };
-
-    // Draw both eyes
-    draw_single_eye(left, true);
-    draw_single_eye(right, false);
-  };
+  // Get the draw callback from the drawer
+  auto draw_eyes = drawer->get_draw_callback();
 
   // Configure expressive eyes with adaptive sizing - make eyes larger
   int large_eye_width = screen_width * 0.35f;   // 35% of screen width each
