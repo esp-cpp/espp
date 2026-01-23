@@ -1,5 +1,7 @@
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
+#include <ctime>
 #include <thread>
 #include <vector>
 
@@ -191,8 +193,21 @@ extern "C" void app_main(void) {
     }
   }
 
-  // Back to normal with continuous updates
-  logger.info("Expression: Normal (continuous loop)");
+  // Random demo mode - continuously looks around and changes expressions
+  logger.info("Starting random demo mode - will run continuously");
+
+  // Seed random number generator
+  srand(time(nullptr));
+
+  // Reset to neutral
+  eyes.set_expression(espp::ExpressiveEyes::Expression::NEUTRAL);
+  eyes.look_at(0.0f, 0.0f);
+
+  // Random mode state
+  float time_until_next_look = 2.0f + (rand() % 4000) / 1000.0f;        // 2-6 seconds
+  float time_until_next_expression = 5.0f + (rand() % 10000) / 1000.0f; // 5-15 seconds
+  float look_timer = 0.0f;
+  float expression_timer = 0.0f;
 
   // Animation loop
   last_time = std::chrono::steady_clock::now();
@@ -200,6 +215,42 @@ extern "C" void app_main(void) {
     auto now = std::chrono::steady_clock::now();
     float dt = std::chrono::duration<float>(now - last_time).count();
     last_time = now;
+
+    // Update timers
+    look_timer += dt;
+    expression_timer += dt;
+
+    // Randomly look around
+    if (look_timer >= time_until_next_look) {
+      float look_x = ((rand() % 2000) - 1000) / 1000.0f; // -1.0 to 1.0
+      float look_y = ((rand() % 2000) - 1000) / 1000.0f; // -1.0 to 1.0
+      eyes.look_at(look_x, look_y);
+      look_timer = 0.0f;
+      time_until_next_look = 2.0f + (rand() % 4000) / 1000.0f; // 2-6 seconds
+    }
+
+    // Randomly change expression (weighted toward neutral)
+    if (expression_timer >= time_until_next_expression) {
+      int expr_choice = rand() % 10;
+      if (expr_choice < 5) {
+        // 50% chance: stay neutral
+        eyes.set_expression(espp::ExpressiveEyes::Expression::NEUTRAL);
+      } else if (expr_choice < 7) {
+        // 20% chance: happy
+        eyes.set_expression(espp::ExpressiveEyes::Expression::HAPPY);
+      } else if (expr_choice < 8) {
+        // 10% chance: surprised
+        eyes.set_expression(espp::ExpressiveEyes::Expression::SURPRISED);
+      } else if (expr_choice < 9) {
+        // 10% chance: sad
+        eyes.set_expression(espp::ExpressiveEyes::Expression::SAD);
+      } else {
+        // 10% chance: angry
+        eyes.set_expression(espp::ExpressiveEyes::Expression::ANGRY);
+      }
+      expression_timer = 0.0f;
+      time_until_next_expression = 5.0f + (rand() % 10000) / 1000.0f; // 5-15 seconds
+    }
 
     // Update and render eyes (calls draw callback)
     eyes.update(dt);
