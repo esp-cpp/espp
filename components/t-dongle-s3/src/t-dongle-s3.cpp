@@ -82,8 +82,8 @@ bool TDongleS3::initialize_led() {
       .write = std::bind(&TDongleS3::led_write, this, std::placeholders::_1, std::placeholders::_2),
       .send_brightness = true,
       .byte_order = espp::LedStrip::ByteOrder::BGR,
-      .start_frame = {0x00, 0x00, 0x00, 0x00}, // APA102 start frame
-      .end_frame = {0xFF, 0xFF, 0xFF, 0xFF},   // APA102 end frame
+      .start_frame = std::array<uint8_t, 4>{0x00, 0x00, 0x00, 0x00}, // APA102 start frame
+      .end_frame = std::array<uint8_t, 4>{0xFF, 0xFF, 0xFF, 0xFF},   // APA102 end frame
       .log_level = espp::Logger::Verbosity::INFO});
   led_->set_all(espp::Rgb(0, 0, 0));
   led_->show();
