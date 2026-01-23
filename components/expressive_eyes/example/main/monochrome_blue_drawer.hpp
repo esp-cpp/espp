@@ -12,8 +12,8 @@ namespace eye_drawer {
 /// \details Draws simple eyes with:
 ///          - Electric blue eye shapes (no pupils)
 ///          - Black background
-///          - Eyebrows in electric blue
-///          - Cheeks in electric blue
+///          - Eyebrows in black (cut out from the eye)
+///          - Cheeks in black (cut out from eye)
 class MonochromeBlueDrawer : public EyeDrawer {
 public:
   struct Config {
@@ -42,9 +42,7 @@ public:
 
   ~MonochromeBlueDrawer() override { cleanup(); }
 
-  std::function<void(const espp::ExpressiveEyes::EyeState &,
-                     const espp::ExpressiveEyes::EyeState &)>
-  get_draw_callback() override {
+  DrawCallback get_draw_callback() override {
     return [this](const espp::ExpressiveEyes::EyeState &left,
                   const espp::ExpressiveEyes::EyeState &right) {
       std::lock_guard<std::recursive_mutex> lock(lvgl_mutex_);

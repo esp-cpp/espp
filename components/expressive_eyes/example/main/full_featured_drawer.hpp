@@ -12,8 +12,8 @@ namespace eye_drawer {
 /// \details Draws realistic eyes with:
 ///          - White eye background
 ///          - Black pupils with position control
-///          - Eyebrows with rotation
-///          - Cheeks
+///          - Eyebrows with rotation (cut out from the eye)
+///          - Cheeks (cut out from the eye)
 class FullFeaturedDrawer : public EyeDrawer {
 public:
   struct Config {
@@ -38,9 +38,7 @@ public:
 
   ~FullFeaturedDrawer() override { cleanup(); }
 
-  std::function<void(const espp::ExpressiveEyes::EyeState &,
-                     const espp::ExpressiveEyes::EyeState &)>
-  get_draw_callback() override {
+  DrawCallback get_draw_callback() override {
     return [this](const espp::ExpressiveEyes::EyeState &left,
                   const espp::ExpressiveEyes::EyeState &right) {
       std::lock_guard<std::recursive_mutex> lock(lvgl_mutex_);

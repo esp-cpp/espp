@@ -11,11 +11,13 @@ namespace eye_drawer {
 struct EyeDrawer {
   virtual ~EyeDrawer() = default;
 
+  typedef std::function<void(const espp::ExpressiveEyes::EyeState &,
+                             const espp::ExpressiveEyes::EyeState &)>
+      DrawCallback;
+
   /// \brief Get the draw callback function
   /// \return The callback function to be used with ExpressiveEyes
-  virtual std::function<void(const espp::ExpressiveEyes::EyeState &,
-                             const espp::ExpressiveEyes::EyeState &)>
-  get_draw_callback() = 0;
+  virtual DrawCallback get_draw_callback() = 0;
 
   /// \brief Clean up resources
   virtual void cleanup() = 0;
