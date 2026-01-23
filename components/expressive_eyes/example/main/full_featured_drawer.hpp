@@ -119,7 +119,7 @@ private:
       lv_canvas_finish_layer(canvas_, &layer);
     }
 
-    // Draw eyebrow as rotated rectangle (using triangles)
+    // Draw eyebrow as rotated line
     if (eye_state.expression.eyebrow.enabled) {
       int brow_width =
           static_cast<int>(eye_base_width_ * eye_state.expression.eyebrow.width * 1.5f);
@@ -133,50 +133,31 @@ private:
       if (!is_left)
         angle_rad = -angle_rad; // Mirror for right eye
 
-      // Calculate the 4 corners of a rotated rectangle centered at (eye_state.x, brow_y)
+      // Calculate the two endpoints of the line
       float half_w = brow_width / 2.0f;
-      float half_h = brow_height / 2.0f;
       float cos_a = std::cos(angle_rad);
       float sin_a = std::sin(angle_rad);
 
-      // Four corners relative to center, then rotated
-      int x1 = eye_state.x + static_cast<int>(-half_w * cos_a + half_h * sin_a);
-      int y1 = brow_y + static_cast<int>(-half_w * sin_a - half_h * cos_a);
-
-      int x2 = eye_state.x + static_cast<int>(half_w * cos_a + half_h * sin_a);
-      int y2 = brow_y + static_cast<int>(half_w * sin_a - half_h * cos_a);
-
-      int x3 = eye_state.x + static_cast<int>(half_w * cos_a - half_h * sin_a);
-      int y3 = brow_y + static_cast<int>(half_w * sin_a + half_h * cos_a);
-
-      int x4 = eye_state.x + static_cast<int>(-half_w * cos_a - half_h * sin_a);
-      int y4 = brow_y + static_cast<int>(-half_w * sin_a + half_h * cos_a);
+      lv_point_precise_t p1, p2;
+      p1.x = eye_state.x - half_w * cos_a;
+      p1.y = brow_y - half_w * sin_a;
+      p2.x = eye_state.x + half_w * cos_a;
+      p2.y = brow_y + half_w * sin_a;
 
       lv_layer_t layer;
       lv_canvas_init_layer(canvas_, &layer);
 
-      lv_draw_triangle_dsc_t tri_dsc;
-      lv_draw_triangle_dsc_init(&tri_dsc);
-      tri_dsc.color = bg_color;
-      tri_dsc.opa = LV_OPA_COVER;
+      lv_draw_line_dsc_t line_dsc;
+      lv_draw_line_dsc_init(&line_dsc);
+      line_dsc.color = bg_color;
+      line_dsc.width = brow_height;
+      line_dsc.opa = LV_OPA_COVER;
+      line_dsc.round_start = 1;
+      line_dsc.round_end = 1;
+      line_dsc.p1 = p1;
+      line_dsc.p2 = p2;
 
-      // First triangle: top-left, top-right, bottom-right
-      tri_dsc.p[0].x = x1;
-      tri_dsc.p[0].y = y1;
-      tri_dsc.p[1].x = x2;
-      tri_dsc.p[1].y = y2;
-      tri_dsc.p[2].x = x3;
-      tri_dsc.p[2].y = y3;
-      lv_draw_triangle(&layer, &tri_dsc);
-
-      // Second triangle: top-left, bottom-right, bottom-left
-      tri_dsc.p[0].x = x1;
-      tri_dsc.p[0].y = y1;
-      tri_dsc.p[1].x = x3;
-      tri_dsc.p[1].y = y3;
-      tri_dsc.p[2].x = x4;
-      tri_dsc.p[2].y = y4;
-      lv_draw_triangle(&layer, &tri_dsc);
+      lv_draw_line(&layer, &line_dsc);
 
       lv_canvas_finish_layer(canvas_, &layer);
     }
