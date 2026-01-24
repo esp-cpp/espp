@@ -4,6 +4,25 @@ This example demonstrates animated expressive eyes on various ESP32 display
 boards. It showcases different expressions, eye movements, and includes a
 continuous random demo mode perfect for a desk display.
 
+<table>
+ <tr>
+   <td>happy <img alt="image" src="https://github.com/user-attachments/assets/b0cc5477-e0de-446d-bfd4-7f9e1d6d60e2" /></td>
+   <td>sad <img alt="image" src="https://github.com/user-attachments/assets/12c4acc0-94ee-403b-b557-4062a1596681" /></td>
+ </tr>
+ <tr>
+   <td>angry <img alt="image" src="https://github.com/user-attachments/assets/54059c71-3c0d-4d69-b5de-29e3a55df412" /></td>
+   <td>surprised <img alt="image" src="https://github.com/user-attachments/assets/78cdbe54-2d7a-41b4-a521-70546af1dec7" /></td>
+ </tr>
+ <tr>
+   <td>looking <img alt="image" src="https://github.com/user-attachments/assets/2fdfebb9-a241-4607-9f96-8b2082d51be1" /></td>
+   <td>looking <img alt="image" src="https://github.com/user-attachments/assets/3b12cae4-4c89-4d8b-9038-25e3c09a5833" /></td>
+ </tr>
+</table>
+
+Videos:
+
+https://github.com/user-attachments/assets/42f5db22-1b2b-4a66-945f-542e57df55bf
+
 ## How to use example
 
 ### Hardware Required
@@ -93,6 +112,26 @@ The example includes two drawer implementations:
 See [README_DRAWERS.md](./main/README_DRAWERS.md) for details on creating custom drawer implementations.
 
 ## Example Output
+
+<table>
+ <tr>
+   <td>happy <img alt="image" src="https://github.com/user-attachments/assets/b0cc5477-e0de-446d-bfd4-7f9e1d6d60e2" /></td>
+   <td>sad <img alt="image" src="https://github.com/user-attachments/assets/12c4acc0-94ee-403b-b557-4062a1596681" /></td>
+ </tr>
+ <tr>
+   <td>angry <img alt="image" src="https://github.com/user-attachments/assets/54059c71-3c0d-4d69-b5de-29e3a55df412" /></td>
+   <td>surprised <img alt="image" src="https://github.com/user-attachments/assets/78cdbe54-2d7a-41b4-a521-70546af1dec7" /></td>
+ </tr>
+ <tr>
+   <td>looking <img alt="image" src="https://github.com/user-attachments/assets/2fdfebb9-a241-4607-9f96-8b2082d51be1" /></td>
+   <td>looking <img alt="image" src="https://github.com/user-attachments/assets/3b12cae4-4c89-4d8b-9038-25e3c09a5833" /></td>
+ </tr>
+</table>
+
+Videos:
+
+https://github.com/user-attachments/assets/42f5db22-1b2b-4a66-945f-542e57df55bf
+
 
 <img width="800" height="470" alt="image" src="https://github.com/user-attachments/assets/fcdae7f6-8bcc-4d0a-bf05-38573cb492ad" />
 
