@@ -94,21 +94,33 @@ See [README_DRAWERS.md](./main/README_DRAWERS.md) for details on creating custom
 
 ## Example Output
 
-```
-I (380) Expressive Eyes Example: Starting Expressive Eyes Example
-I (425) Expressive Eyes Example: Display size: 320x240
-I (430) Expressive Eyes Example: Expressive eyes initialized
-I (435) Expressive Eyes Example: Testing different expressions...
-I (440) Expressive Eyes Example: Expression: NEUTRAL
-I (3445) Expressive Eyes Example: Expression: HAPPY
-I (6450) Expressive Eyes Example: Expression: SAD
-I (9455) Expressive Eyes Example: Expression: ANGRY
-I (12460) Expressive Eyes Example: Expression: SURPRISED
-I (15465) Expressive Eyes Example: Testing look_at functionality
-I (15470) Expressive Eyes Example: Looking left
-I (16975) Expressive Eyes Example: Looking right
-I (18480) Expressive Eyes Example: Looking up
-I (19985) Expressive Eyes Example: Looking down
-I (21490) Expressive Eyes Example: Looking center
-I (22995) Expressive Eyes Example: Starting random demo mode - will run continuously
+<img width="800" height="470" alt="image" src="https://github.com/user-attachments/assets/fcdae7f6-8bcc-4d0a-bf05-38573cb492ad" />
+
+```console
+I (886) main_task: Calling app_main()
+[Expressive Eyes Example/I][0.889]: Starting Expressive Eyes Example
+[WsS3Touch/I][0.899]: Initializing LCD...
+[WsS3Touch/I][0.900]: Initializing SPI...
+[WsS3Touch/I][0.906]: Adding device to SPI bus...
+[WsS3Touch/I][0.911]: Initializing the display driver...
+[WsS3Touch/I][1.321]: Display driver initialized successfully!
+W (1322) ledc: the binded timer can't keep alive in sleep
+[WsS3Touch/I][1.324]: Initializing display with pixel buffer size: 12000
+[WsS3Touch/I][1.334]: Display initialized successfully!
+[Expressive Eyes Example/I][1.335]: Display size: 240x280
+[Expressive Eyes Example/I][1.342]: Using Monochrome Blue drawer
+[Expressive Eyes Example/I][1.392]: Expressive eyes initialized
+[Expressive Eyes Example/I][1.392]: Testing different expressions...
+[Expressive Eyes Example/I][1.395]: Expression: Neutral
+[Expressive Eyes Example/I][11.928]: Expression: Happy
+[Expressive Eyes Example/I][22.548]: Expression: Sad
+[Expressive Eyes Example/I][33.168]: Expression: Angry
+[Expressive Eyes Example/I][43.788]: Expression: Surprised
+[Expressive Eyes Example/I][54.407]: Testing look_at functionality
+[Expressive Eyes Example/I][54.408]: Looking left
+[Expressive Eyes Example/I][59.717]: Looking right
+[Expressive Eyes Example/I][65.028]: Looking up
+[Expressive Eyes Example/I][70.337]: Looking down
+[Expressive Eyes Example/I][75.648]: Looking center
+[Expressive Eyes Example/I][80.957]: Starting random demo mode - will run continuously
 ```
