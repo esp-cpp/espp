@@ -40,9 +40,9 @@ public:
     pupil_size_ = static_cast<int>(std::min(eye_base_width_, original_eye_height_) * 0.3f);
   }
 
-  ~FullFeaturedDrawer() override { cleanup(); }
+  virtual ~FullFeaturedDrawer() { cleanup(); }
 
-  DrawCallback get_draw_callback() override {
+  virtual DrawCallback get_draw_callback() override {
     return [this](const espp::ExpressiveEyes::EyeState &left,
                   const espp::ExpressiveEyes::EyeState &right) {
       std::lock_guard<std::recursive_mutex> lock(lvgl_mutex_);
@@ -59,8 +59,8 @@ public:
     };
   }
 
-  void cleanup() override {
-    // Nothing to clean up in this implementation
+  virtual void cleanup() override {
+    // No dynamic resources to free
   }
 
 private:

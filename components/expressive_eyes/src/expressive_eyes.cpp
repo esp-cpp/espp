@@ -144,8 +144,6 @@ void ExpressiveEyes::blend_expression_states(ExpressionState &result, const Expr
   result.eyebrow.height = lerp(from.eyebrow.height, to.eyebrow.height, t);
   result.eyebrow.thickness = lerp(from.eyebrow.thickness, to.eyebrow.thickness, t);
 
-  // Blend cheek
-  result.cheek.enabled = from.cheek.enabled || to.cheek.enabled;
   // Cheek enabled is binary, use the target state
   result.cheek.enabled = t < 0.5f ? from.cheek.enabled : to.cheek.enabled;
 

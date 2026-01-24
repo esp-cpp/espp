@@ -19,6 +19,7 @@ public:
   struct Config {
     int screen_width;
     int screen_height;
+    lv_color_t color = lv_color_hex(0x00BFFF); // Electric blue color
     lv_obj_t *canvas;
     lv_color_t *canvas_buffer;
     std::recursive_mutex &lvgl_mutex;
@@ -33,20 +34,16 @@ public:
       , screen_height_(config.screen_height)
       , canvas_(config.canvas)
       , canvas_buffer_(config.canvas_buffer)
-      , lvgl_mutex_(config.lvgl_mutex) {
+      , lvgl_mutex_(config.lvgl_mutex)
+      , electric_blue_(config.color) {
     // Calculate eye dimensions
     original_eye_height_ = screen_height_ * 0.55f;
     eye_base_width_ = screen_width_ * 0.35f;
-
-    // Electric blue color - RGB565 format
-    // R: 0x00 (0), G: 0xBF (191 -> 23 in 6-bit), B: 0xFF (255 -> 31 in 5-bit)
-    // RGB565: RRRRRGGGGGGBBBBB = 00000101111111111 = 0x05FF
-    electric_blue_ = lv_color_hex(0x00BFFF);
   }
 
-  ~MonochromeBlueDrawer() override { cleanup(); }
+  virtual ~MonochromeBlueDrawer() { cleanup(); }
 
-  DrawCallback get_draw_callback() override {
+  virtual DrawCallback get_draw_callback() override {
     return [this](const espp::ExpressiveEyes::EyeState &left,
                   const espp::ExpressiveEyes::EyeState &right) {
       std::lock_guard<std::recursive_mutex> lock(lvgl_mutex_);
@@ -60,8 +57,8 @@ public:
     };
   }
 
-  void cleanup() override {
-    // Nothing to clean up in this implementation
+  virtual void cleanup() override {
+    // No dynamic resources to free
   }
 
 private:
