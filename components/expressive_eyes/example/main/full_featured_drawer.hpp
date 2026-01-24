@@ -24,6 +24,10 @@ public:
     std::recursive_mutex &lvgl_mutex;
   };
 
+  /**
+   * @brief Construct full-featured drawer
+   * @param config Configuration structure
+   */
   explicit FullFeaturedDrawer(const Config &config)
       : screen_width_(config.screen_width)
       , screen_height_(config.screen_height)
@@ -60,7 +64,14 @@ public:
   }
 
 private:
-  // Helper to draw filled ellipse (for eyes) using layer API
+  /**
+   * @brief Draw a filled ellipse using LVGL layer API
+   * @param cx Center X coordinate
+   * @param cy Center Y coordinate
+   * @param width Ellipse width
+   * @param height Ellipse height
+   * @param color Fill color
+   */
   void draw_ellipse(int cx, int cy, int width, int height, lv_color_t color) {
     lv_layer_t layer;
     lv_canvas_init_layer(canvas_, &layer);
@@ -82,6 +93,12 @@ private:
     lv_canvas_finish_layer(canvas_, &layer);
   }
 
+  /**
+   * @brief Draw a single eye with all components
+   * @param eye_state Eye state data from ExpressiveEyes
+   * @param is_left True if left eye, false if right eye (affects eyebrow mirroring)
+   * @param bg_color Background color for eyebrows and cheeks
+   */
   void draw_single_eye(const espp::ExpressiveEyes::EyeState &eye_state, bool is_left,
                        lv_color_t bg_color) {
     // Draw eye white

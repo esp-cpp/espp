@@ -59,6 +59,7 @@ jobs:
             components/esp-box
             components/esp32-timer-cam
             components/event_manager
+            components/expressive_eyes
             components/file_system
             components/filters
             components/format

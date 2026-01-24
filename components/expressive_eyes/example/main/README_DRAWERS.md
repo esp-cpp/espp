@@ -17,7 +17,7 @@ The drawer system uses a base interface (`EyeDrawer`) with concrete implementati
 Draws realistic-looking eyes with:
 - White eye background
 - Black pupils with position tracking
-- Eyebrows with rotation support
+- Eyebrows with rotation support (using lv_draw_line for smooth rendering)
 - Cheeks for emotional expressions
 - Uses background color from LVGL theme
 
@@ -29,7 +29,7 @@ Draws minimalist electric blue eyes with:
 - Electric blue (#00BFFF) eye shapes
 - Black background
 - No pupils (solid colored eyes)
-- Black eyebrows and cheeks (cut out from eyes as negative space)
+- Black eyebrows and cheeks (using lv_draw_line with rounded caps)
 - Clean, modern aesthetic
 
 **Best for**: Sci-fi/futuristic interfaces, minimal power displays, WS-S3-Touch boards
@@ -100,3 +100,5 @@ public:
 - Use `eye_state.height / original_eye_height` to detect blink state
 - Mirror eyebrow angles for left vs right eyes
 - Use `screen_width` and `screen_height` for relative positioning
+- For eyebrows, use `lv_draw_line` with width parameter instead of triangles for better performance and no seam artifacts
+- Set `round_start` and `round_end` to 1 for smooth rounded line caps

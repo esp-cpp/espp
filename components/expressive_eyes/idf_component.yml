@@ -5,13 +5,15 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/expressive_eyes"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/expressive_eyes.html"
+documentation: "https://esp-cpp.github.io/espp/display/expressive_eyes.html"
 tags:
   - cpp
   - Animation
   - Display
+  - Expressive
+  - Eyes
+  - Face
 dependencies:
   idf:
     version: '>=5.0'
-  espp/logger: '>=1.0'
-  espp/task: '>=1.0'
+  espp/base_component: '>=1.0'

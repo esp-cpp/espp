@@ -147,6 +147,7 @@ extern "C" void app_main(void) {
   // Test different expressions using array iteration
   logger.info("Testing different expressions...");
 
+  // Cycle through each expression preset to demonstrate different emotional states
   const espp::ExpressiveEyes::Expression expressions[] = {
       espp::ExpressiveEyes::Expression::NEUTRAL, espp::ExpressiveEyes::Expression::HAPPY,
       espp::ExpressiveEyes::Expression::SAD, espp::ExpressiveEyes::Expression::ANGRY,
@@ -169,10 +170,11 @@ extern "C" void app_main(void) {
   logger.info("Testing look_at functionality");
   eyes.set_expression(espp::ExpressiveEyes::Expression::NEUTRAL);
 
+  // Demonstrate directional looking in the 4 cardinal directions plus center
   struct LookDirection {
     const char *name;
-    float x;
-    float y;
+    float x; ///< Horizontal direction: -1.0 = left, 1.0 = right, 0 = center
+    float y; ///< Vertical direction: -1.0 = up, 1.0 = down, 0 = center
   };
 
   const LookDirection look_directions[] = {{"left", -1.0f, 0.0f},
@@ -196,20 +198,20 @@ extern "C" void app_main(void) {
   // Random demo mode - continuously looks around and changes expressions
   logger.info("Starting random demo mode - will run continuously");
 
-  // Seed random number generator
+  // Seed random number generator with current time
   srand(time(nullptr));
 
-  // Reset to neutral
+  // Reset to neutral expression and center gaze
   eyes.set_expression(espp::ExpressiveEyes::Expression::NEUTRAL);
   eyes.look_at(0.0f, 0.0f);
 
-  // Random mode state
+  // Random mode state - tracks when to trigger next action
   float time_until_next_look = 2.0f + (rand() % 4000) / 1000.0f;        // 2-6 seconds
   float time_until_next_expression = 5.0f + (rand() % 10000) / 1000.0f; // 5-15 seconds
   float look_timer = 0.0f;
   float expression_timer = 0.0f;
 
-  // Animation loop
+  // Animation loop - runs indefinitely for continuous desk display
   last_time = std::chrono::steady_clock::now();
   while (true) {
     auto now = std::chrono::steady_clock::now();
@@ -220,7 +222,7 @@ extern "C" void app_main(void) {
     look_timer += dt;
     expression_timer += dt;
 
-    // Randomly look around
+    // Randomly look around - gives eyes natural movement
     if (look_timer >= time_until_next_look) {
       float look_x = ((rand() % 2000) - 1000) / 1000.0f; // -1.0 to 1.0
       float look_y = ((rand() % 2000) - 1000) / 1000.0f; // -1.0 to 1.0
@@ -229,7 +231,7 @@ extern "C" void app_main(void) {
       time_until_next_look = 2.0f + (rand() % 4000) / 1000.0f; // 2-6 seconds
     }
 
-    // Randomly change expression (weighted toward neutral)
+    // Randomly change expression (weighted toward neutral for natural behavior)
     if (expression_timer >= time_until_next_expression) {
       int expr_choice = rand() % 10;
       if (expr_choice < 5) {
