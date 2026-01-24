@@ -563,17 +563,21 @@ protected:
 
   void event_handler(esp_event_base_t event_base, int32_t event_id, void *event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+      logger_.debug("WIFI_EVENT_STA_START - initiating connection");
       connected_ = false;
       esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+      logger_.debug("WIFI_EVENT_STA_DISCONNECTED");
       connected_ = false;
       if (disconnecting_) {
+        logger_.debug("Intentional disconnect, not retrying");
         disconnecting_ = false;
       } else {
         if (attempts_ < num_retries_) {
           esp_wifi_connect();
           attempts_++;
-          logger_.info("Retrying to connect to the AP");
+          logger_.info("Retrying to connect to the AP (attempt {}/{})", attempts_.load(),
+                       num_retries_.load());
           // return early, don't call disconnect callback
           return;
         }
@@ -582,6 +586,8 @@ protected:
       if (disconnect_callback_) {
         disconnect_callback_();
       }
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {
+      logger_.debug("WIFI_EVENT_STA_CONNECTED - waiting for IP");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
       ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
       logger_.info("got ip: {}.{}.{}.{}", IP2STR(&event->ip_info.ip));
