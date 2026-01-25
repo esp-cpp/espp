@@ -1,3 +1,2 @@
-# Provisioning Example
-
-@example provisioning_example.cpp
+```{include} ../../../components/provisioning/example/README.md
+```

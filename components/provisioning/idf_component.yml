@@ -16,3 +16,5 @@ dependencies:
   espp/base_component: '>=1.0'
   espp/nvs: '>=1.0'
   espp/wifi: '>=1.0'
+examples:
+  - path: example
