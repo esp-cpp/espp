@@ -41,7 +41,9 @@ public:
     eye_base_width_ = screen_width_ * 0.35f;
   }
 
-  virtual ~MonochromeBlueDrawer() override { cleanup(); }
+  virtual ~MonochromeBlueDrawer() override {
+    // nothing to clean up
+  }
 
   virtual DrawCallback get_draw_callback() override {
     return [this](const espp::ExpressiveEyes::EyeState &left,
@@ -55,10 +57,6 @@ public:
       draw_single_eye(left, true);
       draw_single_eye(right, false);
     };
-  }
-
-  void cleanup() override {
-    // No dynamic resources to free
   }
 
 private:

@@ -34,14 +34,6 @@ struct EyeDrawer {
    * @return The callback function to be used with ExpressiveEyes
    */
   virtual DrawCallback get_draw_callback() = 0;
-
-  /**
-   * @brief Clean up resources
-   *
-   * Called when the drawer is being destroyed. Implementations should
-   * free any allocated resources.
-   */
-  virtual void cleanup() = 0;
 };
 
 } // namespace eye_drawer

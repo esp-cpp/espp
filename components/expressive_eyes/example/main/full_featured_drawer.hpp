@@ -40,7 +40,9 @@ public:
     pupil_size_ = static_cast<int>(std::min(eye_base_width_, original_eye_height_) * 0.3f);
   }
 
-  virtual ~FullFeaturedDrawer() override { cleanup(); }
+  virtual ~FullFeaturedDrawer() override {
+    // nothing to clean up
+  }
 
   virtual DrawCallback get_draw_callback() override {
     return [this](const espp::ExpressiveEyes::EyeState &left,
@@ -57,10 +59,6 @@ public:
       draw_single_eye(left, true, bg_color);
       draw_single_eye(right, false, bg_color);
     };
-  }
-
-  void cleanup() override {
-    // No dynamic resources to free
   }
 
 private:
