@@ -246,16 +246,36 @@ void ExpressiveEyes::draw_eyes() {
   int eye_width = static_cast<int>(config_.eye_width * current_state_.eye_width_scale);
   int base_eye_height = static_cast<int>(config_.eye_height * current_state_.eye_height_scale);
 
-  // Handle wink expressions - apply different blink amounts to each eye
-  float left_blink = blink_amount;
-  float right_blink = blink_amount;
+  // Handle wink expressions - blend between wink states
+  float target_left_blink = blink_amount;
+  float target_right_blink = blink_amount;
 
-  if (current_expression_ == Expression::WINK_LEFT) {
-    left_blink = 0.9f;  // Almost closed
-    right_blink = 0.0f; // Open
-  } else if (current_expression_ == Expression::WINK_RIGHT) {
-    left_blink = 0.0f;  // Open
-    right_blink = 0.9f; // Almost closed
+  if (target_expression_ == Expression::WINK_LEFT) {
+    target_left_blink = 0.9f;  // Almost closed
+    target_right_blink = 0.0f; // Open
+  } else if (target_expression_ == Expression::WINK_RIGHT) {
+    target_left_blink = 0.0f;  // Open
+    target_right_blink = 0.9f; // Almost closed
+  }
+
+  // If blending between expressions, lerp the wink amounts
+  float left_blink = target_left_blink;
+  float right_blink = target_right_blink;
+
+  if (expression_blend_ < 1.0f) {
+    float source_left_blink = blink_amount;
+    float source_right_blink = blink_amount;
+
+    if (source_expression_ == Expression::WINK_LEFT) {
+      source_left_blink = 0.9f;
+      source_right_blink = 0.0f;
+    } else if (source_expression_ == Expression::WINK_RIGHT) {
+      source_left_blink = 0.0f;
+      source_right_blink = 0.9f;
+    }
+
+    left_blink = lerp(source_left_blink, target_left_blink, expression_blend_);
+    right_blink = lerp(source_right_blink, target_right_blink, expression_blend_);
   }
 
   int left_eye_height = static_cast<int>(base_eye_height * (1.0f - left_blink));
