@@ -97,8 +97,8 @@ void ExpressiveEyes::update_pupils(float dt) {
       current_look_y_ += pupil_velocity_y_ * dt;
 
       // Clamp to valid range
-      current_look_x_ = clamp(current_look_x_, -1.0f, 1.0f);
-      current_look_y_ = clamp(current_look_y_, -1.0f, 1.0f);
+      current_look_x_ = std::clamp(current_look_x_, -1.0f, 1.0f);
+      current_look_y_ = std::clamp(current_look_y_, -1.0f, 1.0f);
     }
   } else {
     // Direct movement
@@ -282,8 +282,8 @@ void ExpressiveEyes::draw_eyes() {
 }
 
 void ExpressiveEyes::look_at(float x, float y) {
-  target_look_x_ = clamp(x, -1.0f, 1.0f);
-  target_look_y_ = clamp(y, -1.0f, 1.0f);
+  target_look_x_ = std::clamp(x, -1.0f, 1.0f);
+  target_look_y_ = std::clamp(y, -1.0f, 1.0f);
 }
 
 void ExpressiveEyes::set_expression(Expression expr) {

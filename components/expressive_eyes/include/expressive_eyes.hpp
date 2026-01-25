@@ -179,7 +179,6 @@ protected:
                                const ExpressionState &to, float t);
 
   float lerp(float a, float b, float t) { return a + (b - a) * t; }
-  float clamp(float v, float min, float max) { return std::max(min, std::min(max, v)); }
 
   Config config_;
   Expression source_expression_{Expression::NEUTRAL}; ///< Source expression for blending
