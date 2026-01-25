@@ -110,36 +110,6 @@ public:
   };
 
   /**
-   * @brief Get string name for expression
-   * @param expr Expression enum
-   * @return String name of expression
-   */
-  static constexpr const char *expression_name(Expression expr) {
-    switch (expr) {
-    case Expression::NEUTRAL:
-      return "Neutral";
-    case Expression::HAPPY:
-      return "Happy";
-    case Expression::SAD:
-      return "Sad";
-    case Expression::ANGRY:
-      return "Angry";
-    case Expression::SURPRISED:
-      return "Surprised";
-    case Expression::SLEEPY:
-      return "Sleepy";
-    case Expression::BORED:
-      return "Bored";
-    case Expression::WINK_LEFT:
-      return "Wink Left";
-    case Expression::WINK_RIGHT:
-      return "Wink Right";
-    default:
-      return "Unknown";
-    }
-  }
-
-  /**
    * @brief Configuration for expressive eyes
    */
   struct Config {
@@ -239,3 +209,45 @@ protected:
   float redraw_timer_{0.0f};
 };
 } // namespace espp
+
+// for libfmt formatting of ExpressiveEyes::Expression
+template <> struct fmt::formatter<espp::ExpressiveEyes::Expression> {
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename FormatContext>
+  auto format(const espp::ExpressiveEyes::Expression &expr, FormatContext &ctx) const {
+    std::string name;
+    switch (expr) {
+    case espp::ExpressiveEyes::Expression::NEUTRAL:
+      name = "NEUTRAL";
+      break;
+    case espp::ExpressiveEyes::Expression::HAPPY:
+      name = "HAPPY";
+      break;
+    case espp::ExpressiveEyes::Expression::SAD:
+      name = "SAD";
+      break;
+    case espp::ExpressiveEyes::Expression::ANGRY:
+      name = "ANGRY";
+      break;
+    case espp::ExpressiveEyes::Expression::SURPRISED:
+      name = "SURPRISED";
+      break;
+    case espp::ExpressiveEyes::Expression::SLEEPY:
+      name = "SLEEPY";
+      break;
+    case espp::ExpressiveEyes::Expression::BORED:
+      name = "BORED";
+      break;
+    case espp::ExpressiveEyes::Expression::WINK_LEFT:
+      name = "WINK_LEFT";
+      break;
+    case espp::ExpressiveEyes::Expression::WINK_RIGHT:
+      name = "WINK_RIGHT";
+      break;
+    default:
+      name = "UNKNOWN";
+      break;
+    }
+    return fmt::format_to(ctx.out(), "{}", name);
+  }
+};

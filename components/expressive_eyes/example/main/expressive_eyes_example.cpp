@@ -155,7 +155,7 @@ extern "C" void app_main(void) {
       espp::ExpressiveEyes::Expression::WINK_RIGHT};
 
   for (const auto &expr : expressions) {
-    logger.info("Expression: {}", espp::ExpressiveEyes::expression_name(expr));
+    logger.info("Expression: {}", expr);
     eyes.set_expression(expr);
     auto start = std::chrono::steady_clock::now();
     while (std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count() < 3.0f) {
