@@ -201,27 +201,50 @@ public:
         "Get the current WiFi configuration.");
 
     menu->Insert(
-        "scan",
-        [this](std::ostream &out, int count) -> void {
-          wifi_ap_record_t ap_records[count];
-          int num_records = wifi_sta_.get().scan(ap_records, count);
-          if (num_records > 0) {
-            out << fmt::format("Found {} WiFi networks:\n", num_records);
-            for (int i = 0; i < num_records; ++i) {
-              out << fmt::format("SSID: '{}', RSSI: {}, BSSID: {}\n",
-                                 std::string_view(reinterpret_cast<char *>(ap_records[i].ssid)),
-                                 ap_records[i].rssi, ap_records[i].bssid);
-            }
-          } else {
-            out << "No WiFi networks found.\n";
+        "scan", [this](std::ostream &out) -> void { scan_networks(out, 20); },
+        "Scan for available WiFi networks (shows up to 20 networks).");
+    menu->Insert(
+        "scan", {"max_results"},
+        [this](std::ostream &out, const std::string &max_str) -> void {
+          char *end;
+          long max_long = std::strtol(max_str.c_str(), &end, 10);
+          if (end == max_str.c_str() || *end != '\0' || max_long < 0 || max_long > UINT16_MAX) {
+            out << "Invalid max_results value. Please provide a number between 0 and " << UINT16_MAX
+                << ".\n";
+            return;
           }
+          uint16_t max_results = static_cast<uint16_t>(max_long);
+          scan_networks(out, max_results);
         },
-        "Scan for available WiFi networks.");
+        "Scan for available WiFi networks with specified maximum results.");
 
     return menu;
   }
 
 protected:
+  /// @brief Scan for WiFi networks and display the results.
+  /// @param out The output stream to write to.
+  /// @param max_results Maximum number of networks to return.
+  void scan_networks(std::ostream &out, uint16_t max_results) {
+    out << fmt::format("Scanning for WiFi networks (max {})...\n", max_results);
+    auto scan_results = wifi_sta_.get().scan(max_results);
+    if (scan_results.empty()) {
+      out << "No WiFi networks found.\n";
+    } else {
+      out << fmt::format("Found {} networks:\n", scan_results.size());
+      for (const auto &ap : scan_results) {
+        out << fmt::format("  SSID: '{}', RSSI: {} dBm, Channel: {}, Auth: {}\n", (char *)ap.ssid,
+                           ap.rssi, ap.primary,
+                           ap.authmode == WIFI_AUTH_OPEN           ? "Open"
+                           : ap.authmode == WIFI_AUTH_WEP          ? "WEP"
+                           : ap.authmode == WIFI_AUTH_WPA_PSK      ? "WPA"
+                           : ap.authmode == WIFI_AUTH_WPA2_PSK     ? "WPA2"
+                           : ap.authmode == WIFI_AUTH_WPA_WPA2_PSK ? "WPA/WPA2"
+                                                                   : "Unknown");
+      }
+    }
+  }
+
   /// @brief Set the log level for the WiFi station.
   /// @param out The output stream to write to.
   /// @param verbosity The verbosity level to set.
