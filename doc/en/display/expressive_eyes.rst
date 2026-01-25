@@ -12,11 +12,12 @@ minimalist monochrome designs.
 
 Features include:
 
-- Multiple expressions (happy, sad, angry, surprised, neutral)
+- Multiple expressions (happy, sad, angry, surprised, neutral, sleepy, bored, wink_left, wink_right)
 - Smooth eye movement with look_at positioning
 - Automatic blinking with configurable intervals
 - Optional pupils with physics-based movement
 - Eyebrows and cheeks for enhanced expressions
+- Smooth expression transitions with blending
 - Customizable colors and sizes
 - Frame-based animation system
 
