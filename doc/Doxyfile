@@ -96,6 +96,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/esp32-timer-cam/example/main/esp_timer_cam_example.cpp \
   $(PROJECT_PATH)/components/esp-box/example/main/esp_box_example.cpp \
   $(PROJECT_PATH)/components/event_manager/example/main/event_manager_example.cpp \
+  $(PROJECT_PATH)/components/expressive_eyes/example/main/expressive_eyes_example.cpp \
   $(PROJECT_PATH)/components/file_system/example/main/file_system_example.cpp \
   $(PROJECT_PATH)/components/filters/example/main/filters_example.cpp \
   $(PROJECT_PATH)/components/ftp/example/main/ftp_example.cpp \
@@ -130,6 +131,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
   $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
   $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp \
+  $(PROJECT_PATH)/components/provisioning/example/main/provisioning_example.cpp \
   $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp \
   $(PROJECT_PATH)/components/qmi8658/example/main/qmi8658_example.cpp \
   $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp \
@@ -219,6 +221,7 @@ INPUT = \
   $(PROJECT_PATH)/components/esp32-timer-cam/include/esp32-timer-cam.hpp \
   $(PROJECT_PATH)/components/esp-box/include/esp-box.hpp \
   $(PROJECT_PATH)/components/event_manager/include/event_manager.hpp \
+  $(PROJECT_PATH)/components/expressive_eyes/include/expressive_eyes.hpp \
   $(PROJECT_PATH)/components/file_system/include/file_system.hpp \
   $(PROJECT_PATH)/components/filters/include/biquad_filter.hpp \
   $(PROJECT_PATH)/components/filters/include/butterworth_filter.hpp \
@@ -293,6 +296,7 @@ INPUT = \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
   $(PROJECT_PATH)/components/pid/include/pid.hpp \
   $(PROJECT_PATH)/components/ping/include/ping.hpp \
+  $(PROJECT_PATH)/components/provisioning/include/provisioning.hpp \
   $(PROJECT_PATH)/components/qmi8658/include/qmi8658.hpp \
   $(PROJECT_PATH)/components/qmi8658/include/qmi8658_detail.hpp \
   $(PROJECT_PATH)/components/qtpy/include/qtpy.hpp \

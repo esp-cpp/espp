@@ -1,0 +1,45 @@
+menu "Expressive Eyes Example Configuration"
+
+    choice EXPRESSIVE_EYES_BOARD
+        prompt "Select Board"
+        default EXPRESSIVE_EYES_BOARD_ESP_BOX
+        help
+            Select the hardware board to run the example on.
+
+        config EXPRESSIVE_EYES_BOARD_ESP_BOX
+            bool "ESP-BOX"
+            help
+                Use ESP32-S3-BOX or ESP32-S3-BOX-3 development board.
+
+        config EXPRESSIVE_EYES_BOARD_MATOUCH_ROTARY
+            bool "MaTouch Rotary Display"
+            help
+                Use MaTouch Rotary Display board.
+
+        config EXPRESSIVE_EYES_BOARD_WS_S3_TOUCH
+            bool "WS-S3-Touch BSP"
+            help
+                Use WS-S3-Touch development board.
+
+    endchoice
+
+    choice EXPRESSIVE_EYES_DRAWING_METHOD
+        prompt "Select Drawing Method"
+        default EXPRESSIVE_EYES_MONOCHROME_BLUE if EXPRESSIVE_EYES_BOARD_WS_S3_TOUCH
+        default EXPRESSIVE_EYES_FULL_FEATURED
+        help
+            Select the eye drawing implementation to use.
+
+        config EXPRESSIVE_EYES_FULL_FEATURED
+            bool "Full Featured (White eyes with black pupils)"
+            help
+                Draw realistic eyes with white background, black pupils, eyebrows, and cheeks.
+
+        config EXPRESSIVE_EYES_MONOCHROME_BLUE
+            bool "Monochrome Blue (Electric blue on black)"
+            help
+                Draw simple monochrome eyes in electric blue on black background without pupils.
+
+    endchoice
+
+endmenu
