@@ -40,9 +40,11 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ### Subsequent Boots
 
-Once provisioned, the device will automatically attempt to connect to the saved
-WiFi network on boot. The provisioning interface will not start unless credentials
-are missing or invalid.
+The device stores WiFi credentials in NVS for future use. The provisioning web
+interface allows you to view saved networks and reconnect to them. Note: This
+example does not automatically connect to saved networks - it only demonstrates
+the provisioning UI. To implement auto-connect on boot, your application should
+retrieve saved credentials from NVS and use the `WifiSta` component to connect.
 
 ## Example Output
 

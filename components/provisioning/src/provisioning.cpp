@@ -8,6 +8,47 @@
 using namespace espp;
 using namespace std::chrono_literals;
 
+// Helper function to escape JSON strings
+static std::string json_escape(const std::string &str) {
+  std::string escaped;
+  escaped.reserve(str.size());
+  for (char c : str) {
+    switch (c) {
+    case '"':
+      escaped += "\\\"";
+      break;
+    case '\\':
+      escaped += "\\\\";
+      break;
+    case '\b':
+      escaped += "\\b";
+      break;
+    case '\f':
+      escaped += "\\f";
+      break;
+    case '\n':
+      escaped += "\\n";
+      break;
+    case '\r':
+      escaped += "\\r";
+      break;
+    case '\t':
+      escaped += "\\t";
+      break;
+    default:
+      if (c < 0x20) {
+        // Control characters - escape as \uXXXX
+        char buf[7];
+        snprintf(buf, sizeof(buf), "\\u%04x", static_cast<unsigned char>(c));
+        escaped += buf;
+      } else {
+        escaped += c;
+      }
+    }
+  }
+  return escaped;
+}
+
 static const char *HTML_TEMPLATE = R"HTML(
 <!DOCTYPE html>
 <html>
@@ -25,11 +66,11 @@ static const char *HTML_TEMPLATE = R"HTML(
         .network { padding: 12px; margin: 5px 0; background: #f9f9f9; border-radius: 5px; cursor: pointer; border: 2px solid transparent; display: flex; justify-content: space-between; align-items: center; }
         .network:hover { border-color: #2196F3; }
         .network.selected { border-color: #2196F3; background: #e3f2fd; }
-        .network-name { flex-grow: 1; }
+        .network-name { flex-grow: 1; margin-right: 15px; }
         .signal { color: #666; margin-right: 10px; }
-        .delete-btn { background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .delete-btn { background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer; font-size: 13px; margin-left: 8px; }
         .delete-btn:hover { background: #d32f2f; }
-        .connect-saved-btn { background: #4CAF50; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer; font-size: 12px; margin-right: 5px; }
+        .connect-saved-btn { background: #4CAF50; color: white; border: none; padding: 8px 15px; border-radius: 3px; cursor: pointer; font-size: 13px; }
         .connect-saved-btn:hover { background: #45a049; }
         input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         .status { padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center; display: none; }
@@ -367,9 +408,9 @@ std::string Provisioning::scan_networks() {
   for (size_t i = 0; i < ap_records.size(); i++) {
     if (i > 0)
       json += ",";
-    json += fmt::format(R"({{"ssid":"{}","rssi":{},"secure":{}}})",
-                        reinterpret_cast<char *>(ap_records[i].ssid), ap_records[i].rssi,
-                        ap_records[i].authmode != WIFI_AUTH_OPEN);
+    std::string ssid = reinterpret_cast<char *>(ap_records[i].ssid);
+    json += fmt::format(R"({{"ssid":"{}","rssi":{},"secure":{}}})", json_escape(ssid),
+                        ap_records[i].rssi, ap_records[i].authmode != WIFI_AUTH_OPEN);
   }
   json += "]}";
   return json;
@@ -618,18 +659,24 @@ std::vector<std::string> Provisioning::get_saved_ssids() {
     return ssids;
   }
 
-  // Get list of SSIDs from NVS
-  std::string ssid_list;
-  nvs.get("ssid_list", ssid_list, ec);
+  // Get count of saved networks
+  uint32_t count = 0;
+  nvs.get("count", count, ec);
+  if (ec || count == 0) {
+    return ssids;
+  }
 
-  if (!ec && !ssid_list.empty()) {
-    size_t pos = 0;
-    while ((pos = ssid_list.find(',')) != std::string::npos) {
-      ssids.push_back(ssid_list.substr(0, pos));
-      ssid_list.erase(0, pos + 1);
-    }
-    if (!ssid_list.empty()) {
-      ssids.push_back(ssid_list);
+  // Load each SSID by index
+  for (uint32_t i = 0; i < count; i++) {
+    std::string ssid_key = fmt::format("ssid_{}", i);
+    std::string ssid;
+    nvs.get(ssid_key, ssid, ec);
+    if (!ec && !ssid.empty()) {
+      // Remove any trailing null bytes
+      ssid.erase(std::find(ssid.begin(), ssid.end(), '\0'), ssid.end());
+      if (!ssid.empty()) {
+        ssids.push_back(ssid);
+      }
     }
   }
 
@@ -643,9 +690,22 @@ std::string Provisioning::get_saved_password(const std::string &ssid) {
     return "";
   }
 
-  std::string key = "pwd_" + ssid;
+  // Find the index for this SSID
+  auto ssids = get_saved_ssids();
+  auto it = std::find(ssids.begin(), ssids.end(), ssid);
+  if (it == ssids.end()) {
+    return "";
+  }
+
+  size_t index = std::distance(ssids.begin(), it);
+  std::string pwd_key = fmt::format("pwd_{}", index);
   std::string password;
-  nvs.get(key, password, ec);
+  nvs.get(pwd_key, password, ec);
+
+  if (!ec) {
+    // Remove any trailing null bytes
+    password.erase(std::find(password.begin(), password.end(), '\0'), password.end());
+  }
 
   return ec ? "" : password;
 }
@@ -660,29 +720,37 @@ void Provisioning::save_credentials(const std::string &ssid, const std::string &
 
   logger_.info("Saving credentials for: {}", ssid);
 
-  // Save password
-  nvs.set("pwd_" + ssid, password, ec);
+  // Get or create index for this SSID
+  auto ssids = get_saved_ssids();
+  size_t index = ssids.size();
+  auto it = std::find(ssids.begin(), ssids.end(), ssid);
+  if (it != ssids.end()) {
+    index = std::distance(ssids.begin(), it);
+  } else {
+    ssids.push_back(ssid);
+  }
+
+  // Save SSID and password using index-based keys (keeps keys under 15 chars)
+  std::string ssid_key = fmt::format("ssid_{}", index);
+  std::string pwd_key = fmt::format("pwd_{}", index);
+
+  nvs.set(ssid_key, ssid, ec);
+  if (ec) {
+    logger_.error("Failed to save SSID");
+    return;
+  }
+
+  nvs.set(pwd_key, password, ec);
   if (ec) {
     logger_.error("Failed to save password");
     return;
   }
 
-  // Update SSID list
-  auto ssids = get_saved_ssids();
-  if (std::find(ssids.begin(), ssids.end(), ssid) == ssids.end()) {
-    ssids.push_back(ssid);
-
-    std::string list;
-    for (size_t i = 0; i < ssids.size(); i++) {
-      if (i > 0)
-        list += ",";
-      list += ssids[i];
-    }
-    nvs.set("ssid_list", list, ec);
-    if (ec) {
-      logger_.error("Failed to save SSID list");
-      return;
-    }
+  // Save count
+  nvs.set("count", static_cast<uint32_t>(ssids.size()), ec);
+  if (ec) {
+    logger_.error("Failed to save count");
+    return;
   }
 
   nvs.commit(ec);
@@ -698,22 +766,45 @@ void Provisioning::delete_credentials(const std::string &ssid) {
 
   logger_.info("Deleting credentials for: {}", ssid);
 
-  // Remove password
-  nvs.erase("pwd_" + ssid, ec);
-
-  // Update SSID list
+  // Get current SSIDs
   auto ssids = get_saved_ssids();
-  ssids.erase(std::remove(ssids.begin(), ssids.end(), ssid), ssids.end());
-
-  std::string list;
-  for (size_t i = 0; i < ssids.size(); i++) {
-    if (i > 0)
-      list += ",";
-    list += ssids[i];
+  auto it = std::find(ssids.begin(), ssids.end(), ssid);
+  if (it == ssids.end()) {
+    logger_.warn("SSID not found in saved credentials");
+    return;
   }
-  nvs.set("ssid_list", list, ec);
+
+  size_t index_to_delete = std::distance(ssids.begin(), it);
+  ssids.erase(it);
+
+  // Rewrite all credentials with compacted indices
+  for (size_t i = index_to_delete; i < ssids.size(); i++) {
+    // Move credentials from index i+1 to index i
+    std::string old_ssid_key = fmt::format("ssid_{}", i + 1);
+    std::string old_pwd_key = fmt::format("pwd_{}", i + 1);
+    std::string new_ssid_key = fmt::format("ssid_{}", i);
+    std::string new_pwd_key = fmt::format("pwd_{}", i);
+
+    std::string ssid_val, pwd_val;
+    nvs.get(old_ssid_key, ssid_val, ec);
+    nvs.get(old_pwd_key, pwd_val, ec);
+
+    nvs.set(new_ssid_key, ssid_val, ec);
+    nvs.set(new_pwd_key, pwd_val, ec);
+  }
+
+  // Erase the last entry (now duplicated)
+  if (!ssids.empty()) {
+    std::string last_ssid_key = fmt::format("ssid_{}", ssids.size());
+    std::string last_pwd_key = fmt::format("pwd_{}", ssids.size());
+    nvs.erase(last_ssid_key, ec);
+    nvs.erase(last_pwd_key, ec);
+  }
+
+  // Update count
+  nvs.set("count", static_cast<uint32_t>(ssids.size()), ec);
   if (ec) {
-    logger_.error("Failed to update SSID list");
+    logger_.error("Failed to update count");
     return;
   }
 
@@ -727,7 +818,7 @@ std::string Provisioning::get_saved_networks_json() {
   for (size_t i = 0; i < ssids.size(); i++) {
     if (i > 0)
       json += ",";
-    json += "\"" + ssids[i] + "\"";
+    json += "\"" + json_escape(ssids[i]) + "\"";
   }
   json += "]}";
 

@@ -7,6 +7,7 @@
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
+  //! [provisioning example]
   espp::Logger logger({.tag = "Provisioning Example", .level = espp::Logger::Verbosity::INFO});
 
   logger.info("Starting WiFi Provisioning Example");
@@ -87,6 +88,7 @@ extern "C" void app_main(void) {
   provisioning.stop();
 
   logger.info("Provisioning example finished");
+  //! [provisioning example]
   while (true) {
     std::this_thread::sleep_for(1s);
   }
