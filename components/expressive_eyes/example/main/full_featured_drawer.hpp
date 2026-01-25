@@ -40,7 +40,7 @@ public:
     pupil_size_ = static_cast<int>(std::min(eye_base_width_, original_eye_height_) * 0.3f);
   }
 
-  virtual ~FullFeaturedDrawer() { cleanup(); }
+  virtual ~FullFeaturedDrawer() override { cleanup(); }
 
   virtual DrawCallback get_draw_callback() override {
     return [this](const espp::ExpressiveEyes::EyeState &left,

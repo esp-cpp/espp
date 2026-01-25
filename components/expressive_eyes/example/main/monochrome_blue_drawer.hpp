@@ -41,7 +41,7 @@ public:
     eye_base_width_ = screen_width_ * 0.35f;
   }
 
-  virtual ~MonochromeBlueDrawer() { cleanup(); }
+  virtual ~MonochromeBlueDrawer() override { cleanup(); }
 
   virtual DrawCallback get_draw_callback() override {
     return [this](const espp::ExpressiveEyes::EyeState &left,
