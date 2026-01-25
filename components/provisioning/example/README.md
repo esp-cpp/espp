@@ -3,6 +3,33 @@
 This example demonstrates the `espp::Provisioning` component, which provides a
 web-based WiFi configuration interface for ESP32 devices.
 
+__Scanning for network and connecting__:
+<table>
+  <tr>
+    <td>scan <img alt="image" src="https://github.com/user-attachments/assets/ffc31171-8575-49a9-b5bf-0b934f030497"></td>
+    <td>enter password <img alt="image" src="https://github.com/user-attachments/assets/e230ce28-c1a4-4919-bac0-91757ac3f71c"></td>
+  </tr>
+  <tr>
+    <td>connecting <img alt="image" src="https://github.com/user-attachments/assets/b8a6d2de-927e-4b12-b749-9190b9cf5200"></td>
+    <td>connected <img alt="image" src="https://github.com/user-attachments/assets/19e7d9e8-1c9d-4da6-adba-591ec0c886f9"></td>
+  </tr>
+  <tr>
+    <td>provisioning completed <img alt="image" src="https://github.com/user-attachments/assets/adcbc5db-c4c3-49fb-9a81-e78ef70303c4"></td>
+  </tr>
+</table>
+
+__Managing saved networks__:
+<table>
+  <tr>
+    <td>view <img alt="image" src="https://github.com/user-attachments/assets/ce099bfc-2fe7-4dd6-b0f3-6bf0f7223a4c"></td>
+    <td>connect <img alt="image" src="https://github.com/user-attachments/assets/a17a4999-ae34-4705-a568-c15c428fcff5"></td>
+  </tr>
+  <tr>
+    <td>connected <img alt="image" src="https://github.com/user-attachments/assets/d8f42595-3102-439e-9e1b-3d5b5a438148"></td>
+    <td>delete <img alt="image" src="https://github.com/user-attachments/assets/5d6370ef-0d1b-4a43-bb40-1017b7044f7a"></td>
+  </tr>
+</table>
+
 ## How to use example
 
 ### Hardware Required
@@ -47,6 +74,21 @@ the provisioning UI. To implement auto-connect on boot, your application should
 retrieve saved credentials from NVS and use the `WifiSta` component to connect.
 
 ## Example Output
+
+
+Scanning for network and connecting:
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/ffc31171-8575-49a9-b5bf-0b934f030497" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/e230ce28-c1a4-4919-bac0-91757ac3f71c" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/b8a6d2de-927e-4b12-b749-9190b9cf5200" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/19e7d9e8-1c9d-4da6-adba-591ec0c886f9" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/a261f075-d780-4be9-8a0d-46b8c3e469aa" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/adcbc5db-c4c3-49fb-9a81-e78ef70303c4" />
+
+Managing saved networks:
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/ce099bfc-2fe7-4dd6-b0f3-6bf0f7223a4c" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/a17a4999-ae34-4705-a568-c15c428fcff5" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/d8f42595-3102-439e-9e1b-3d5b5a438148" />
+<img width="852" height="1898" alt="image" src="https://github.com/user-attachments/assets/5d6370ef-0d1b-4a43-bb40-1017b7044f7a" />
 
 ```console
 I (415) main_task: Calling app_main()
