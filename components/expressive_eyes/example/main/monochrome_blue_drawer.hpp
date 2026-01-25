@@ -57,7 +57,7 @@ public:
     };
   }
 
-  virtual void cleanup() override {
+  void cleanup() override {
     // No dynamic resources to free
   }
 
