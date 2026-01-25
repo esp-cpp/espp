@@ -4,8 +4,6 @@
 #include <cstring>
 #include <thread>
 
-#include "esp_wifi.h"
-
 using namespace espp;
 using namespace std::chrono_literals;
 
@@ -499,34 +497,50 @@ esp_err_t Provisioning::scan_handler(httpd_req_t *req) {
 esp_err_t Provisioning::connect_handler(httpd_req_t *req) {
   auto *prov = static_cast<Provisioning *>(req->user_ctx);
 
-  char buf[512];
-  int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
-  if (ret <= 0) {
-    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid request");
+  // Check content length
+  size_t content_len = req->content_len;
+  if (content_len == 0 || content_len > 2048) {
+    httpd_resp_send_err(req,
+                        content_len > 2048 ? HTTPD_413_CONTENT_TOO_LARGE : HTTPD_400_BAD_REQUEST,
+                        "Invalid request size");
     return ESP_FAIL;
   }
-  buf[ret] = '\0';
+
+  // Read full request body
+  std::string body;
+  body.resize(content_len);
+  size_t total_read = 0;
+  while (total_read < content_len) {
+    int ret = httpd_req_recv(req, &body[total_read], content_len - total_read);
+    if (ret <= 0) {
+      if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+        continue;
+      }
+      httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to read request");
+      return ESP_FAIL;
+    }
+    total_read += ret;
+  }
 
   // Parse JSON manually (simple approach)
-  std::string data(buf);
   std::string ssid, password;
   bool use_saved = false;
 
-  size_t ssid_pos = data.find("\"ssid\":\"");
+  size_t ssid_pos = body.find("\"ssid\":\"");
   if (ssid_pos != std::string::npos) {
     ssid_pos += 8;
-    size_t ssid_end = data.find("\"", ssid_pos);
-    ssid = data.substr(ssid_pos, ssid_end - ssid_pos);
+    size_t ssid_end = body.find("\"", ssid_pos);
+    ssid = body.substr(ssid_pos, ssid_end - ssid_pos);
   }
 
-  size_t pass_pos = data.find("\"password\":\"");
+  size_t pass_pos = body.find("\"password\":\"");
   if (pass_pos != std::string::npos) {
     pass_pos += 12;
-    size_t pass_end = data.find("\"", pass_pos);
-    password = data.substr(pass_pos, pass_end - pass_pos);
+    size_t pass_end = body.find("\"", pass_pos);
+    password = body.substr(pass_pos, pass_end - pass_pos);
   }
 
-  size_t saved_pos = data.find("\"use_saved\":true");
+  size_t saved_pos = body.find("\"use_saved\":true");
   if (saved_pos != std::string::npos) {
     use_saved = true;
   }
@@ -577,22 +591,16 @@ esp_err_t Provisioning::complete_handler(httpd_req_t *req) {
   // Send response immediately
   httpd_resp_send(req, "OK", 2);
 
-  // Handle completion in background thread
-  std::thread([prov]() {
-    // Small delay to ensure response transmitted
-    std::this_thread::sleep_for(100ms);
+  // Call callback directly with stored credentials
+  if (prov->config_.on_provisioned && prov->is_provisioned_) {
+    prov->config_.on_provisioned(prov->provisioned_ssid_, prov->provisioned_password_);
+  }
 
-    // Call callback with stored credentials
-    if (prov->config_.on_provisioned && prov->is_provisioned_) {
-      prov->config_.on_provisioned(prov->provisioned_ssid_, prov->provisioned_password_);
-    }
-
-    // Auto-shutdown if configured
-    if (prov->config_.auto_shutdown_ap) {
-      std::this_thread::sleep_for(2s);
-      prov->stop();
-    }
-  }).detach();
+  // Auto-shutdown if configured
+  if (prov->config_.auto_shutdown_ap) {
+    // Note: Stopping AP while in HTTP handler is safe - response is already sent
+    prov->stop();
+  }
 
   return ESP_OK;
 }
@@ -617,23 +625,39 @@ esp_err_t Provisioning::saved_handler(httpd_req_t *req) {
 esp_err_t Provisioning::delete_handler(httpd_req_t *req) {
   auto *prov = static_cast<Provisioning *>(req->user_ctx);
 
-  char buf[256];
-  int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
-  if (ret <= 0) {
-    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid request");
+  // Check content length
+  size_t content_len = req->content_len;
+  if (content_len == 0 || content_len > 1024) {
+    httpd_resp_send_err(req,
+                        content_len > 1024 ? HTTPD_413_CONTENT_TOO_LARGE : HTTPD_400_BAD_REQUEST,
+                        "Invalid request size");
     return ESP_FAIL;
   }
-  buf[ret] = '\0';
+
+  // Read full request body
+  std::string body;
+  body.resize(content_len);
+  size_t total_read = 0;
+  while (total_read < content_len) {
+    int ret = httpd_req_recv(req, &body[total_read], content_len - total_read);
+    if (ret <= 0) {
+      if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+        continue;
+      }
+      httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to read request");
+      return ESP_FAIL;
+    }
+    total_read += ret;
+  }
 
   // Parse SSID from JSON
-  std::string data(buf);
   std::string ssid;
 
-  size_t ssid_pos = data.find("\"ssid\":\"");
+  size_t ssid_pos = body.find("\"ssid\":\"");
   if (ssid_pos != std::string::npos) {
     ssid_pos += 8;
-    size_t ssid_end = data.find("\"", ssid_pos);
-    ssid = data.substr(ssid_pos, ssid_end - ssid_pos);
+    size_t ssid_end = body.find("\"", ssid_pos);
+    ssid = body.substr(ssid_pos, ssid_end - ssid_pos);
   }
 
   if (ssid.empty()) {
