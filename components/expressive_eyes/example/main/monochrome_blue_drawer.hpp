@@ -110,7 +110,7 @@ private:
 
       // For left eye, positive angle tilts left side down (clockwise rotation)
       // For right eye, positive angle tilts right side down (counter-clockwise rotation)
-      float angle_rad = eye_state.expression.eyebrow.angle * M_PI / 180.0f;
+      float angle_rad = eye_state.expression.eyebrow.angle; // Already in radians
       if (!is_left)
         angle_rad = -angle_rad; // Mirror for right eye
 

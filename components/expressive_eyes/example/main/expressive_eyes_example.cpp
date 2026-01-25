@@ -116,7 +116,6 @@ extern "C" void app_main(void) {
                                       .eye_spacing = large_spacing,
                                       .eye_width = large_eye_width,
                                       .eye_height = large_eye_height,
-                                      .eye_color = 0xFFFF,
                                       .blink_duration = 0.12f,
                                       .blink_interval = 4.0f,
                                       .enable_auto_blink = true,
@@ -149,19 +148,18 @@ extern "C" void app_main(void) {
 
   // Cycle through each expression preset to demonstrate different emotional states
   const espp::ExpressiveEyes::Expression expressions[] = {
-      espp::ExpressiveEyes::Expression::NEUTRAL, espp::ExpressiveEyes::Expression::HAPPY,
-      espp::ExpressiveEyes::Expression::SAD, espp::ExpressiveEyes::Expression::ANGRY,
-      espp::ExpressiveEyes::Expression::SURPRISED};
+      espp::ExpressiveEyes::Expression::NEUTRAL,   espp::ExpressiveEyes::Expression::HAPPY,
+      espp::ExpressiveEyes::Expression::SAD,       espp::ExpressiveEyes::Expression::ANGRY,
+      espp::ExpressiveEyes::Expression::SURPRISED, espp::ExpressiveEyes::Expression::SLEEPY,
+      espp::ExpressiveEyes::Expression::BORED,     espp::ExpressiveEyes::Expression::WINK_LEFT,
+      espp::ExpressiveEyes::Expression::WINK_RIGHT};
 
-  auto last_time = std::chrono::steady_clock::now();
   for (const auto &expr : expressions) {
     logger.info("Expression: {}", espp::ExpressiveEyes::expression_name(expr));
     eyes.set_expression(expr);
-    for (int i = 0; i < 180; i++) { // 3 seconds at 60fps
-      auto now = std::chrono::steady_clock::now();
-      float dt = std::chrono::duration<float>(now - last_time).count();
-      last_time = now;
-      eyes.update(dt);
+    auto start = std::chrono::steady_clock::now();
+    while (std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count() < 3.0f) {
+      eyes.update(0.016f); // 16ms update at ~60fps
       std::this_thread::sleep_for(16ms);
     }
   }
@@ -186,11 +184,9 @@ extern "C" void app_main(void) {
   for (const auto &dir : look_directions) {
     logger.info("Looking {}", dir.name);
     eyes.look_at(dir.x, dir.y);
-    for (int i = 0; i < 90; i++) { // 1.5 seconds at 60fps (faster)
-      auto now = std::chrono::steady_clock::now();
-      float dt = std::chrono::duration<float>(now - last_time).count();
-      last_time = now;
-      eyes.update(dt);
+    auto start = std::chrono::steady_clock::now();
+    while (std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count() < 1.5f) {
+      eyes.update(0.016f); // 16ms update at ~60fps
       std::this_thread::sleep_for(16ms);
     }
   }
@@ -212,7 +208,7 @@ extern "C" void app_main(void) {
   float expression_timer = 0.0f;
 
   // Animation loop - runs indefinitely for continuous desk display
-  last_time = std::chrono::steady_clock::now();
+  auto last_time = std::chrono::steady_clock::now();
   while (true) {
     auto now = std::chrono::steady_clock::now();
     float dt = std::chrono::duration<float>(now - last_time).count();

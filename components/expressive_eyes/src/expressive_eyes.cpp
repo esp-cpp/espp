@@ -1,4 +1,6 @@
 #include "expressive_eyes.hpp"
+
+#include <esp_heap_caps.h>
 #include <random>
 
 using namespace espp;
@@ -111,20 +113,35 @@ void ExpressiveEyes::update_pupils(float dt) {
 
 void ExpressiveEyes::update_expression(float dt) {
   if (current_expression_ != target_expression_) {
-    // Start blend
-    current_expression_ = target_expression_;
+    // Start new blend - save current blended state as source
+    source_expression_ = current_expression_;
     target_state_ = get_preset_expression(target_expression_);
     expression_blend_ = 0.0f;
+    current_expression_ = target_expression_; // Update tracking immediately
   }
 
   // Blend towards target
   if (expression_blend_ < 1.0f) {
-    expression_blend_ += dt * 3.0f; // Blend over ~0.33 seconds (slower, smoother)
-    if (expression_blend_ > 1.0f)
+    expression_blend_ += dt * 8.0f; // Blend over ~0.125 seconds (fast, smooth transitions)
+    if (expression_blend_ > 1.0f) {
       expression_blend_ = 1.0f;
+    }
 
-    ExpressionState from = get_preset_expression(current_expression_);
+    ExpressionState from = get_preset_expression(source_expression_);
+    // Save current pupil offset before blending
+    float current_pupil_x = current_state_.pupil.x;
+    float current_pupil_y = current_state_.pupil.y;
     blend_expression_states(current_state_, from, target_state_, expression_blend_);
+    // Restore pupil offset (controlled by update_pupils, not expression blend)
+    current_state_.pupil.x = current_pupil_x;
+    current_state_.pupil.y = current_pupil_y;
+  } else {
+    // Blend complete, use target state but preserve pupil offset
+    float current_pupil_x = current_state_.pupil.x;
+    float current_pupil_y = current_state_.pupil.y;
+    current_state_ = target_state_;
+    current_state_.pupil.x = current_pupil_x;
+    current_state_.pupil.y = current_pupil_y;
   }
 }
 
@@ -136,18 +153,56 @@ void ExpressiveEyes::blend_expression_states(ExpressionState &result, const Expr
   result.top_curve = lerp(from.top_curve, to.top_curve, t);
   result.bottom_curve = lerp(from.bottom_curve, to.bottom_curve, t);
   result.eye_offset_y = lerp(from.eye_offset_y, to.eye_offset_y, t);
-  result.cheek_offset_y = lerp(from.cheek_offset_y, to.cheek_offset_y, t);
 
-  // Blend eyebrow
-  result.eyebrow.enabled = from.eyebrow.enabled || to.eyebrow.enabled;
-  result.eyebrow.angle = lerp(from.eyebrow.angle, to.eyebrow.angle, t);
-  result.eyebrow.height = lerp(from.eyebrow.height, to.eyebrow.height, t);
-  result.eyebrow.thickness = lerp(from.eyebrow.thickness, to.eyebrow.thickness, t);
+  // Eyebrow blending - animate sliding in/out
+  if (from.eyebrow.enabled && to.eyebrow.enabled) {
+    // Both enabled - blend normally
+    result.eyebrow.enabled = true;
+    result.eyebrow.angle = lerp(from.eyebrow.angle, to.eyebrow.angle, t);
+    result.eyebrow.height = lerp(from.eyebrow.height, to.eyebrow.height, t);
+    result.eyebrow.thickness = lerp(from.eyebrow.thickness, to.eyebrow.thickness, t);
+    result.eyebrow.width = lerp(from.eyebrow.width, to.eyebrow.width, t);
+  } else if (!from.eyebrow.enabled && to.eyebrow.enabled) {
+    // Fading in - slide down from above
+    result.eyebrow.enabled = true;
+    result.eyebrow.angle = to.eyebrow.angle;
+    result.eyebrow.height = lerp(-1.2f, to.eyebrow.height, t); // Start above screen
+    result.eyebrow.thickness = to.eyebrow.thickness;
+    result.eyebrow.width = to.eyebrow.width;
+  } else if (from.eyebrow.enabled && !to.eyebrow.enabled) {
+    // Fading out - slide up above screen
+    result.eyebrow.enabled = (t < 1.0f);
+    result.eyebrow.angle = from.eyebrow.angle;
+    result.eyebrow.height = lerp(from.eyebrow.height, -1.2f, t); // Slide up
+    result.eyebrow.thickness = from.eyebrow.thickness;
+    result.eyebrow.width = from.eyebrow.width;
+  } else {
+    // Both disabled
+    result.eyebrow.enabled = false;
+  }
 
-  // Cheek enabled is binary, use the target state
-  result.cheek.enabled = t < 0.5f ? from.cheek.enabled : to.cheek.enabled;
+  // Cheek blending - animate sliding in/out
+  if (from.cheek.enabled && to.cheek.enabled) {
+    // Both enabled - blend normally
+    result.cheek.enabled = true;
+    result.cheek.size = lerp(from.cheek.size, to.cheek.size, t);
+    result.cheek_offset_y = lerp(from.cheek_offset_y, to.cheek_offset_y, t);
+  } else if (!from.cheek.enabled && to.cheek.enabled) {
+    // Fading in - slide up from below
+    result.cheek.enabled = true;
+    result.cheek.size = to.cheek.size;
+    result.cheek_offset_y = lerp(1.2f, to.cheek_offset_y, t); // Start below screen
+  } else if (from.cheek.enabled && !to.cheek.enabled) {
+    // Fading out - slide down below screen
+    result.cheek.enabled = (t < 1.0f);
+    result.cheek.size = from.cheek.size;
+    result.cheek_offset_y = lerp(from.cheek_offset_y, 1.2f, t); // Slide down
+  } else {
+    // Both disabled
+    result.cheek.enabled = false;
+  }
 
-  // Keep pupil settings from target
+  // Keep pupil settings from target but use current look position
   result.pupil = to.pupil;
   result.pupil.x = current_look_x_;
   result.pupil.y = current_look_y_;
@@ -189,22 +244,36 @@ void ExpressiveEyes::draw_eyes() {
 
   // Compute final eye dimensions
   int eye_width = static_cast<int>(config_.eye_width * current_state_.eye_width_scale);
-  int eye_height = static_cast<int>(config_.eye_height * current_state_.eye_height_scale *
-                                    (1.0f - blink_amount));
+  int base_eye_height = static_cast<int>(config_.eye_height * current_state_.eye_height_scale);
+
+  // Handle wink expressions - apply different blink amounts to each eye
+  float left_blink = blink_amount;
+  float right_blink = blink_amount;
+
+  if (current_expression_ == Expression::WINK_LEFT) {
+    left_blink = 0.9f;  // Almost closed
+    right_blink = 0.0f; // Open
+  } else if (current_expression_ == Expression::WINK_RIGHT) {
+    left_blink = 0.0f;  // Open
+    right_blink = 0.9f; // Almost closed
+  }
+
+  int left_eye_height = static_cast<int>(base_eye_height * (1.0f - left_blink));
+  int right_eye_height = static_cast<int>(base_eye_height * (1.0f - right_blink));
 
   // Create state for each eye
   EyeState left_eye;
   left_eye.x = left_x;
   left_eye.y = eye_y;
   left_eye.width = eye_width;
-  left_eye.height = eye_height;
+  left_eye.height = left_eye_height;
   left_eye.expression = current_state_;
 
   EyeState right_eye;
   right_eye.x = right_x;
   right_eye.y = eye_y;
   right_eye.width = eye_width;
-  right_eye.height = eye_height;
+  right_eye.height = right_eye_height;
   right_eye.expression = current_state_;
   right_eye.expression.eye_rotation = -current_state_.eye_rotation; // Mirror rotation
 
@@ -254,10 +323,10 @@ ExpressiveEyes::ExpressionState ExpressiveEyes::get_preset_expression(Expression
     state.top_curve = 0.5f;
     state.bottom_curve = 0.5f;
     state.eye_offset_y = -0.08f;  // Move eyes up slightly on face
-    state.cheek_offset_y = 0.05f; // Move cheeks lower (positive is down)
+    state.cheek_offset_y = 0.18f; // Move cheeks much lower (positive is down)
     // No eyebrows for happy (hidden by default)
     state.cheek.enabled = true; // Shape bottom with cheeks
-    state.cheek.size = 0.6f;    // Wider cheeks
+    state.cheek.size = 0.8f;    // Wider, more prominent cheeks
     break;
 
   case Expression::SAD:
@@ -267,14 +336,14 @@ ExpressiveEyes::ExpressionState ExpressiveEyes::get_preset_expression(Expression
     state.top_curve = 0.3f;         // Flatter top
     state.bottom_curve = 0.7f;      // Rounder bottom
     state.eyebrow.enabled = true;
-    state.eyebrow.angle = -20.0f; // Angled UP toward center (sad brows) - in degrees
+    state.eyebrow.angle = -0.436f; // Angled UP toward center (sad brows) - ~25 degrees in radians
     state.eyebrow.height = -0.35f;
-    state.eyebrow.thickness = 0.08f;
+    state.eyebrow.thickness = 0.1f;
     state.eyebrow.width = 1.0f;
     state.eyebrow.color = 0x0000;
-    // Don't override pupil size
     state.cheek.enabled = true; // Shape bottom with cheeks
-    state.cheek.size = 0.4f;
+    state.cheek.size = 0.6f;
+    state.cheek_offset_y = 0.15f; // Position below eye
     break;
 
   case Expression::ANGRY:
@@ -284,8 +353,9 @@ ExpressiveEyes::ExpressionState ExpressiveEyes::get_preset_expression(Expression
     state.top_curve = 0.2f;    // Angular top
     state.bottom_curve = 0.3f;
     state.eyebrow.enabled = true;
-    state.eyebrow.angle = 25.0f;  // Angled DOWN toward center (angry furrowed brows) - in degrees
-    state.eyebrow.height = -0.2f; // Close to eyes
+    state.eyebrow.angle =
+        0.524f; // Angled DOWN toward center (angry furrowed brows) - ~30 degrees in radians
+    state.eyebrow.height = -0.15f;   // Close to eyes
     state.eyebrow.thickness = 0.12f; // Thicker
     state.eyebrow.width = 0.9f;
     state.eyebrow.color = 0x0000;
@@ -304,15 +374,40 @@ ExpressiveEyes::ExpressionState ExpressiveEyes::get_preset_expression(Expression
 
   case Expression::SLEEPY:
     state.eye_width_scale = 1.0f;
-    state.eye_height_scale = 0.25f; // Very closed
+    state.eye_height_scale = 0.35f; // Eyes mostly closed, droopy
+    state.eye_rotation = -0.1f;     // Slight downward droop
+    state.top_curve = 0.3f;
+    state.bottom_curve = 0.3f;
+    state.pupil.enabled = true; // Keep pupils visible
+    state.eyebrow.enabled = true;
+    state.eyebrow.angle = 0.0f;      // Straight across
+    state.eyebrow.height = -0.15f;   // Lower, almost touching eyes
+    state.eyebrow.thickness = 0.18f; // Very thick, heavy looking
+    state.eyebrow.width = 1.0f;
+    state.eyebrow.color = 0x0000;
+    break;
+
+  case Expression::BORED:
+    state.eye_width_scale = 1.0f;
+    state.eye_height_scale = 0.5f; // Half-closed
     state.eye_rotation = 0.0f;
     state.top_curve = 0.3f;
     state.bottom_curve = 0.3f;
-    state.pupil.enabled = false; // Pupils hidden
+    state.pupil.enabled = true;
+    // No eyebrows for bored - just half-closed neutral eyes
     break;
 
   case Expression::WINK_LEFT:
+    // Base on neutral, blink applied per-eye in draw_eyes()
+    state.eye_width_scale = 1.0f;
+    state.eye_height_scale = 1.0f;
+    state.eye_rotation = 0.0f;
+    state.top_curve = 0.5f;
+    state.bottom_curve = 0.5f;
+    break;
+
   case Expression::WINK_RIGHT:
+    // Base on neutral, blink applied per-eye in draw_eyes()
     state.eye_width_scale = 1.0f;
     state.eye_height_scale = 1.0f;
     state.eye_rotation = 0.0f;

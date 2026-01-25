@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <memory>
 
@@ -43,7 +45,7 @@ public:
    */
   struct Eyebrow {
     bool enabled{false};    ///< Whether to draw eyebrows
-    float angle{0.0f};      ///< Eyebrow angle in radians
+    float angle{0.0f};      ///< Eyebrow angle in degrees
     float height{0.0f};     ///< Vertical offset relative to eye (-1.0 to 1.0)
     float thickness{0.1f};  ///< Eyebrow thickness relative to eye
     float width{1.0f};      ///< Eyebrow width relative to eye
@@ -97,11 +99,12 @@ public:
    */
   enum class Expression {
     NEUTRAL,    ///< Normal open eyes
-    HAPPY,      ///< Squinted happy eyes with raised eyebrows
+    HAPPY,      ///< Squinted happy eyes with raised cheeks
     SAD,        ///< Droopy sad eyes with angled eyebrows
     ANGRY,      ///< Angled angry eyes with furrowed eyebrows
     SURPRISED,  ///< Wide open eyes with raised eyebrows
-    SLEEPY,     ///< Half-closed eyes
+    SLEEPY,     ///< Droopy half-closed eyes with low eyebrows
+    BORED,      ///< Half-closed eyes with neutral expression
     WINK_LEFT,  ///< Left eye closed
     WINK_RIGHT, ///< Right eye closed
   };
@@ -125,6 +128,8 @@ public:
       return "Surprised";
     case Expression::SLEEPY:
       return "Sleepy";
+    case Expression::BORED:
+      return "Bored";
     case Expression::WINK_LEFT:
       return "Wink Left";
     case Expression::WINK_RIGHT:
@@ -143,7 +148,6 @@ public:
     int eye_spacing{100};                                 ///< Distance between eye centers
     int eye_width{60};                                    ///< Base eye width
     int eye_height{80};                                   ///< Base eye height
-    uint16_t eye_color{0xFFFF};                           ///< Eye color (white)
     float blink_duration{0.12f};                          ///< Blink duration in seconds
     float blink_interval{4.0f};                           ///< Average time between blinks
     bool enable_auto_blink{true};                         ///< Automatic random blinking
@@ -208,6 +212,7 @@ protected:
   float clamp(float v, float min, float max) { return std::max(min, std::min(max, v)); }
 
   Config config_;
+  Expression source_expression_{Expression::NEUTRAL}; ///< Source expression for blending
   Expression current_expression_{Expression::NEUTRAL};
   Expression target_expression_{Expression::NEUTRAL};
   ExpressionState current_state_;
