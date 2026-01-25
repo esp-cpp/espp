@@ -109,7 +109,7 @@ public:
    * @brief Get the actual AP SSID (after MAC appending)
    * @return The SSID of the provisioning AP
    */
-  std::string get_ap_ssid() const { return config_.ap_ssid; }
+  const std::string &get_ap_ssid() const { return config_.ap_ssid; }
 
 protected:
   void init(const Config &config);
