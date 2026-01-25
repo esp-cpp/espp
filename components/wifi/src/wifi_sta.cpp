@@ -4,6 +4,9 @@
 namespace espp {
 
 void WifiSta::init(const Config &config) {
+  // Store the configuration for later recovery if needed
+  config_ = config;
+
   if (netif_ == nullptr) {
     logger_.info("Creating network interface and ensuring WiFi stack is initialized");
     auto &wifi = Wifi::get();

@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <functional>
+#include <mutex>
 #include <string>
 
 #include "esp_event.h"
@@ -46,6 +47,14 @@ public:
   typedef std::function<void(ip_event_got_ip_t *ip_evt)> ip_callback;
 
   /**
+   * @brief Scan configuration for WiFi networks
+   */
+  struct ScanConfig {
+    uint16_t max_results{20}; ///< Maximum number of scan results to return
+    bool show_hidden{false};  ///< Whether to show hidden SSIDs
+  };
+
+  /**
    * @brief Configuration structure for the WiFi Station.
    */
   struct Config {
@@ -58,6 +67,8 @@ public:
     size_t num_connect_retries{
         0}; /**< Number of times to retry connecting to the AP before stopping. After this many
                retries, on_disconnected will be called. */
+    bool auto_connect{true}; /**< Whether to automatically connect when started. If false, call
+                                connect() manually. */
     connect_callback on_connected{
         nullptr}; /**< Called when the station connects, or fails to connect. */
     disconnect_callback on_disconnected{nullptr}; /**< Called when the station disconnects. */
@@ -97,9 +108,9 @@ public:
     connected_ = false;
     disconnecting_ = true;
     attempts_ = 0;
-    connect_callback_ = nullptr;
-    disconnect_callback_ = nullptr;
-    ip_callback_ = nullptr;
+    config_.on_connected = nullptr;
+    config_.on_disconnected = nullptr;
+    config_.on_got_ip = nullptr;
 
     // unregister our event handlers
     logger_.debug("Unregistering event handlers");
@@ -240,6 +251,82 @@ public:
   }
 
   /**
+   * @brief Scan for available WiFi networks
+   * @param max_results Maximum number of scan results to return
+   * @param show_hidden Whether to show hidden SSIDs
+   * @return Vector of AP records found during scan (empty on error)
+   * @note This method requires WiFi to be in STA or APSTA mode
+   * @note Scanning will disconnect any active STA connection
+   * @note WiFi will be restarted after scan if auto_connect is enabled
+   */
+  std::vector<wifi_ap_record_t> scan(uint16_t max_results = 20, bool show_hidden = false) {
+    ScanConfig config;
+    config.max_results = max_results;
+    config.show_hidden = show_hidden;
+
+    std::vector<wifi_ap_record_t> results;
+
+    logger_.info("Scanning for WiFi networks (max: {}, show_hidden: {})", config.max_results,
+                 config.show_hidden);
+
+    // Remember if we were connected
+    bool was_connected = is_connected();
+    bool saved_auto_connect;
+    {
+      std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+      saved_auto_connect = config_.auto_connect;
+    }
+
+    // Disconnect if currently connected (scan requires disconnection)
+    esp_wifi_disconnect();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Configure scan parameters
+    wifi_scan_config_t scan_config = {};
+    scan_config.show_hidden = config.show_hidden;
+
+    // Start the scan
+    esp_err_t err = esp_wifi_scan_start(&scan_config, true); // true = blocking
+    if (err != ESP_OK) {
+      logger_.error("WiFi scan failed: {}", esp_err_to_name(err));
+      if (was_connected && saved_auto_connect) {
+        start();
+      }
+      return results;
+    }
+
+    // Get scan results
+    uint16_t ap_count = config.max_results;
+    results.resize(ap_count);
+    err = esp_wifi_scan_get_ap_records(&ap_count, results.data());
+    if (err != ESP_OK) {
+      logger_.error("Failed to get scan results: {}", esp_err_to_name(err));
+      results.clear();
+      if (was_connected && saved_auto_connect) {
+        start();
+      }
+      return results;
+    }
+
+    results.resize(ap_count);
+    logger_.info("Found {} networks", ap_count);
+
+    // Reconnect/restart if needed
+    if (was_connected) {
+      // We were connected before the scan, reconnect
+      if (saved_auto_connect) {
+        start();
+      }
+    } else if (!WifiBase::is_initialized()) {
+      // We were not connected, but WiFi was stopped during scan restoration
+      // Restart WiFi so the STA interface is in a proper state for future connection attempts
+      start();
+    }
+
+    return results;
+  }
+
+  /**
    * @brief Get the RSSI (Received Signal Strength Indicator) of the access point.
    * @return RSSI of the access point.
    */
@@ -289,7 +376,8 @@ public:
    */
   void set_num_retries(size_t num_retries) {
     if (num_retries > 0) {
-      num_retries_ = num_retries;
+      std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+      config_.num_connect_retries = num_retries;
     } else {
       logger_.warn("Number of retries must be greater than 0, not setting it");
     }
@@ -299,19 +387,28 @@ public:
    * @brief Set the callback to be called when the station connects to the access point.
    * @param callback Callback to be called when the station connects to the access point.
    */
-  void set_connect_callback(connect_callback callback) { connect_callback_ = callback; }
+  void set_connect_callback(connect_callback callback) {
+    std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+    config_.on_connected = callback;
+  }
 
   /**
    * @brief Set the callback to be called when the station disconnects from the access point.
    * @param callback Callback to be called when the station disconnects from the access point.
    */
-  void set_disconnect_callback(disconnect_callback callback) { disconnect_callback_ = callback; }
+  void set_disconnect_callback(disconnect_callback callback) {
+    std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+    config_.on_disconnected = callback;
+  }
 
   /**
    * @brief Set the callback to be called when the station gets an IP address.
    * @param callback Callback to be called when the station gets an IP address.
    */
-  void set_ip_callback(ip_callback callback) { ip_callback_ = callback; }
+  void set_ip_callback(ip_callback callback) {
+    std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+    config_.on_got_ip = callback;
+  }
 
   /**
    * @brief Get the saved WiFi configuration.
@@ -348,11 +445,11 @@ public:
       }
     }
 
-    // Update callbacks
-    num_retries_ = config.num_connect_retries;
-    connect_callback_ = config.on_connected;
-    disconnect_callback_ = config.on_disconnected;
-    ip_callback_ = config.on_got_ip;
+    // Update stored configuration using assignment operator
+    {
+      std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+      config_ = config;
+    }
 
     // Update WiFi configuration
     wifi_config_t wifi_config;
@@ -457,6 +554,13 @@ public:
    */
   bool connect() {
     esp_err_t err;
+
+    // Ensure WiFi is properly configured before connecting
+    if (!ensure_wifi_ready()) {
+      logger_.error("Could not ensure WiFi is ready for connection");
+      return false;
+    }
+
     // ensure retries are reset
     attempts_ = 0;
     connected_ = false;
@@ -526,6 +630,7 @@ public:
       logger_.error("Invalid parameters for scan");
       return -1;
     }
+
     uint16_t number = max_records;
     uint16_t ap_count = 0;
     static constexpr bool blocking = true; // blocking scan
@@ -549,6 +654,7 @@ public:
       logger_.warn("Found {} access points, but only {} can be stored", ap_count, max_records);
       ap_count = max_records;
     }
+
     return number;
   }
 
@@ -563,9 +669,19 @@ protected:
 
   void event_handler(esp_event_base_t event_base, int32_t event_id, void *event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-      logger_.debug("WIFI_EVENT_STA_START - initiating connection");
+      logger_.debug("WIFI_EVENT_STA_START");
       connected_ = false;
-      esp_wifi_connect();
+      bool should_auto_connect;
+      {
+        std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+        should_auto_connect = config_.auto_connect;
+      }
+      if (should_auto_connect) {
+        logger_.debug("auto_connect enabled - initiating connection");
+        esp_wifi_connect();
+      } else {
+        logger_.debug("auto_connect disabled - waiting for manual connect()");
+      }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
       logger_.debug("WIFI_EVENT_STA_DISCONNECTED");
       connected_ = false;
@@ -573,18 +689,28 @@ protected:
         logger_.debug("Intentional disconnect, not retrying");
         disconnecting_ = false;
       } else {
-        if (attempts_ < num_retries_) {
+        size_t max_retries;
+        {
+          std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+          max_retries = config_.num_connect_retries;
+        }
+        if (attempts_ < max_retries) {
           esp_wifi_connect();
           attempts_++;
           logger_.info("Retrying to connect to the AP (attempt {}/{})", attempts_.load(),
-                       num_retries_.load());
+                       max_retries);
           // return early, don't call disconnect callback
           return;
         }
       }
       logger_.info("Failed to connect to the AP after {} attempts", attempts_.load());
-      if (disconnect_callback_) {
-        disconnect_callback_();
+      disconnect_callback cb;
+      {
+        std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+        cb = config_.on_disconnected;
+      }
+      if (cb) {
+        cb();
       }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {
       logger_.debug("WIFI_EVENT_STA_CONNECTED - waiting for IP");
@@ -593,11 +719,18 @@ protected:
       logger_.info("got ip: {}.{}.{}.{}", IP2STR(&event->ip_info.ip));
       attempts_ = 0;
       connected_ = true;
-      if (connect_callback_) {
-        connect_callback_();
+      connect_callback on_conn;
+      ip_callback on_ip;
+      {
+        std::lock_guard<std::recursive_mutex> lock(config_mutex_);
+        on_conn = config_.on_connected;
+        on_ip = config_.on_got_ip;
       }
-      if (ip_callback_) {
-        ip_callback_(event);
+      if (on_conn) {
+        on_conn();
+      }
+      if (on_ip) {
+        on_ip(event);
       }
     }
   }
@@ -646,11 +779,47 @@ protected:
 
   void init(const Config &config);
 
+  /**
+   * @brief Ensure WiFi is initialized, configured, and started for this STA instance.
+   * @return true if WiFi is ready, false otherwise.
+   * @note This method will reconfigure and restart WiFi if needed.
+   */
+  bool ensure_wifi_ready() {
+    // Check if WiFi is initialized
+    if (!is_initialized()) {
+      logger_.error("WiFi not initialized - cannot auto-recover. Please reinitialize WiFi.");
+      return false;
+    }
+
+    // Check if WiFi is started
+    wifi_mode_t current_mode;
+    esp_err_t err = esp_wifi_get_mode(&current_mode);
+    if (err != ESP_OK || current_mode == WIFI_MODE_NULL) {
+      logger_.warn("WiFi not started - reconfiguring and starting");
+      // Reconfigure using stored config (without changing callbacks)
+      if (!reconfigure(config_)) {
+        logger_.error("Could not reconfigure WiFi STA");
+        return false;
+      }
+      if (!start()) {
+        logger_.error("Could not start WiFi");
+        return false;
+      }
+    } else {
+      // WiFi is started, just make sure it's started (handles ESP_ERR_WIFI_STATE gracefully)
+      err = esp_wifi_start();
+      if (err != ESP_OK && err != ESP_ERR_WIFI_STATE) {
+        logger_.error("Could not start WiFi: {}", esp_err_to_name(err));
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  Config config_;                             /**< Stored configuration for state recovery */
+  mutable std::recursive_mutex config_mutex_; /**< Mutex for protecting config_ access */
   std::atomic<size_t> attempts_{0};
-  std::atomic<size_t> num_retries_{0};
-  connect_callback connect_callback_{nullptr};
-  disconnect_callback disconnect_callback_{nullptr};
-  ip_callback ip_callback_{nullptr};
   std::atomic<bool> connected_{false};
   std::atomic<bool> disconnecting_{false};
   esp_event_handler_instance_t event_handler_instance_any_id_;
@@ -666,11 +835,11 @@ template <> struct formatter<espp::WifiSta::Config> : fmt::formatter<std::string
     return fmt::format_to(
         ctx.out(),
         "WifiSta::Config {{ ssid: '{}', password length: {}, phy_rate: {}, num_connect_retries: "
-        "{}, "
+        "{}, auto_connect: {}, "
         "channel: {}, set_ap_mac: {}, ap_mac: {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} }}",
         config.ssid, config.password.size(), config.phy_rate, config.num_connect_retries,
-        config.channel, config.set_ap_mac, config.ap_mac[0], config.ap_mac[1], config.ap_mac[2],
-        config.ap_mac[3], config.ap_mac[4], config.ap_mac[5]);
+        config.auto_connect, config.channel, config.set_ap_mac, config.ap_mac[0], config.ap_mac[1],
+        config.ap_mac[2], config.ap_mac[3], config.ap_mac[4], config.ap_mac[5]);
   }
 };
 
