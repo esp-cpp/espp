@@ -9,6 +9,8 @@ display various emotions with smooth animations.
 The component uses a callback-based drawing system, allowing you to implement
 custom renderers for different display types and visual styles.
 
+https://github.com/user-attachments/assets/966f5e63-aeb8-4fc3-b915-c4936fee7a1f
+
 ## Features
 
 - Multiple expressions (happy, sad, angry, surprised, neutral, sleepy, bored, wink_left, wink_right)
@@ -22,22 +24,30 @@ custom renderers for different display types and visual styles.
 
 <table>
  <tr>
-   <td>happy <img alt="image" src="https://github.com/user-attachments/assets/b0cc5477-e0de-446d-bfd4-7f9e1d6d60e2" /></td>
-   <td>sad <img alt="image" src="https://github.com/user-attachments/assets/12c4acc0-94ee-403b-b557-4062a1596681" /></td>
+   <td>happy <img alt="image" src="https://github.com/user-attachments/assets/65f3afd4-fa4e-4100-9269-09b08300d37d" /></td>
+   <td>sad <img alt="image" src="https://github.com/user-attachments/assets/d3df6898-dae4-4884-b72a-81a5c5a371ed" /></td>
  </tr>
  <tr>
-   <td>angry <img alt="image" src="https://github.com/user-attachments/assets/54059c71-3c0d-4d69-b5de-29e3a55df412" /></td>
-   <td>surprised <img alt="image" src="https://github.com/user-attachments/assets/78cdbe54-2d7a-41b4-a521-70546af1dec7" /></td>
+   <td>angry <img alt="image" src="https://github.com/user-attachments/assets/43e54326-8da3-4d6b-8696-66fb85d2675c" /></td>
+   <td>surprised <img alt="image" src="https://github.com/user-attachments/assets/a78b289c-7383-4b92-8651-bdc843b08bf7" /></td>
  </tr>
  <tr>
-   <td>looking <img alt="image" src="https://github.com/user-attachments/assets/2fdfebb9-a241-4607-9f96-8b2082d51be1" /></td>
-   <td>looking <img alt="image" src="https://github.com/user-attachments/assets/3b12cae4-4c89-4d8b-9038-25e3c09a5833" /></td>
+   <td>sleepy <img alt="image" src="https://github.com/user-attachments/assets/b891e260-97dd-4cce-9d80-2300816b6e79" /></td>
+   <td>bored <img alt="image" src="https://github.com/user-attachments/assets/cc955086-bb69-41da-becc-80584b0af5c0" /></td>
+ </tr>
+ <tr>
+   <td>wink left <img alt="image" src="https://github.com/user-attachments/assets/a1dde472-2bfa-480f-8a87-4deccd3b96b9" /></td>
+   <td>wink right <img alt="image" src="https://github.com/user-attachments/assets/d92f8602-f287-441b-9612-50210be5831a" /></td>
+ </tr>
+ <tr>
+   <td>looking left <img alt="image" src="https://github.com/user-attachments/assets/504d90a8-2125-45f7-8eeb-44ca6aa05cba" /></td>
+   <td>looking right <img alt="image" src="https://github.com/user-attachments/assets/58626990-37cf-43d0-a8a6-e5ed01bd8b7c" /></td>
+ </tr>
+ <tr>
+   <td>looking up <img alt="image" src="https://github.com/user-attachments/assets/1765eb2d-7c29-44c9-bbed-658af2ccabd4" /></td>
+   <td>looking down <img alt="image" src="https://github.com/user-attachments/assets/65c19bb7-e8c4-4cee-93ba-a5be96cb2df7" /></td>
  </tr>
 </table>
-
-Videos:
-
-https://github.com/user-attachments/assets/42f5db22-1b2b-4a66-945f-542e57df55bf
 
 ## Example
 
