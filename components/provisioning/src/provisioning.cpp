@@ -450,7 +450,7 @@ bool Provisioning::test_connection(const std::string &ssid, const std::string &p
                                                 IP2STR(&event->ip_info.ip));
                                    got_ip = true;
                                  },
-                             .log_level = Logger::Verbosity::DEBUG};
+                             .log_level = Logger::Verbosity::ERROR};
 
   logger_.info("Creating test WiFi STA instance");
   test_sta_ = std::make_unique<WifiSta>(sta_config);
