@@ -18,4 +18,24 @@ menu "WiFi Example Configuration"
         help
             Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
 
+    config TEST_WIFI_SCAN
+        bool "Test WiFi scanning"
+        default y
+        help
+            Enable WiFi scanning tests in the example.
+
+    config TEST_SCAN_BEFORE_STA
+        bool "Test scan before STA connection"
+        default y
+        depends on TEST_WIFI_SCAN
+        help
+            Test scanning before attempting STA connection.
+
+    config TEST_SCAN_WITH_NO_CONFIG
+        bool "Test scan with no WiFi config"
+        default y
+        depends on TEST_WIFI_SCAN
+        help
+            Test scanning when WiFi is not configured (no STA or AP active).
+
 endmenu

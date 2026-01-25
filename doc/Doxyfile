@@ -131,6 +131,7 @@ EXAMPLE_PATH = \
   $(PROJECT_PATH)/components/odrive_ascii/example/main/odrive_ascii_example.cpp \
   $(PROJECT_PATH)/components/pcf85063/example/main/pcf85063_example.cpp \
   $(PROJECT_PATH)/components/pid/example/main/pid_example.cpp \
+  $(PROJECT_PATH)/components/provisioning/example/main/provisioning_example.cpp \
   $(PROJECT_PATH)/components/qtpy/example/main/qtpy_example.cpp \
   $(PROJECT_PATH)/components/qmi8658/example/main/qmi8658_example.cpp \
   $(PROJECT_PATH)/components/qwiicnes/example/main/qwiicnes_example.cpp \
@@ -295,6 +296,7 @@ INPUT = \
   $(PROJECT_PATH)/components/pcf85063/include/pcf85063.hpp \
   $(PROJECT_PATH)/components/pid/include/pid.hpp \
   $(PROJECT_PATH)/components/ping/include/ping.hpp \
+  $(PROJECT_PATH)/components/provisioning/include/provisioning.hpp \
   $(PROJECT_PATH)/components/qmi8658/include/qmi8658.hpp \
   $(PROJECT_PATH)/components/qmi8658/include/qmi8658_detail.hpp \
   $(PROJECT_PATH)/components/qtpy/include/qtpy.hpp \

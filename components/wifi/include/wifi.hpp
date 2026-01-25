@@ -293,6 +293,39 @@ public:
     return set_max_tx_power_raw(power_quarter_dbm);
   }
 
+  /// @brief Scan for available WiFi networks.
+  /// @param max_aps Maximum number of APs to return (default 20).
+  /// @param show_hidden Whether to show hidden SSIDs (default false).
+  /// @return Vector of wifi_ap_record_t structures, empty on error.
+  /// @note This creates a temporary WifiSta instance to perform the scan.
+  /// @note The scan will temporarily put WiFi in APSTA mode if in AP mode.
+  std::vector<wifi_ap_record_t> scan(uint16_t max_aps = 20, bool show_hidden = false) {
+    std::vector<wifi_ap_record_t> results;
+
+    // Save current mode
+    wifi_mode_t current_mode = WIFI_MODE_NULL;
+    esp_err_t err = esp_wifi_get_mode(&current_mode);
+    if (err != ESP_OK) {
+      logger_.error("Failed to get current WiFi mode: {}", esp_err_to_name(err));
+      return results;
+    }
+
+    // Create a temporary WifiSta instance for scanning
+    {
+      WifiSta::Config scan_config{.ssid = "", .password = "", .auto_connect = false};
+      WifiSta temp_sta(scan_config);
+      results = temp_sta.scan(max_aps, show_hidden);
+    }
+
+    // Restore previous mode
+    err = esp_wifi_set_mode(current_mode);
+    if (err != ESP_OK) {
+      logger_.warn("Failed to restore WiFi mode after scan: {}", esp_err_to_name(err));
+    }
+
+    return results;
+  }
+
   /// @brief Register a new WiFi Access Point configuration.
   /// @param name Unique identifier for this AP configuration.
   /// @param config WifiAp::Config structure with AP configuration.
