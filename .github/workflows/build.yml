@@ -73,6 +73,8 @@ jobs:
           target: esp32s3
         - path: 'components/event_manager/example'
           target: esp32
+        - path: 'components/expressive_eyes/example'
+          target: esp32s3
         - path: 'components/file_system/example'
           target: esp32
         - path: 'components/filters/example'
