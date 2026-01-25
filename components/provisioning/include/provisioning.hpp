@@ -54,7 +54,6 @@ public:
     std::string device_name{"ESP32 Device"};              ///< Device name shown in UI
     uint16_t server_port{80};                             ///< HTTP server port
     bool auto_shutdown_ap{true};                          ///< Shutdown AP after provisioning
-    std::chrono::seconds ap_timeout{300};                 ///< AP timeout (0 = no timeout)
     provisioned_callback on_provisioned{nullptr};         ///< Called on successful provisioning
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log verbosity
   };
@@ -148,6 +147,5 @@ protected:
   std::atomic<bool> is_completed_{false};
   std::string provisioned_ssid_;
   std::string provisioned_password_;
-  std::chrono::time_point<std::chrono::steady_clock> ap_start_time_;
 };
 } // namespace espp

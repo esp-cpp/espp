@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <thread>
 
 #include "esp_wifi.h"
 
@@ -286,7 +287,6 @@ bool Provisioning::start() {
   }
 
   is_active_ = true;
-  ap_start_time_ = std::chrono::steady_clock::now();
   logger_.info("Provisioning started at http://{}", get_ip_address());
   return true;
 }
@@ -372,7 +372,9 @@ void Provisioning::stop_server() {
 
 void Provisioning::stop_ap() { wifi_ap_.reset(); }
 
-std::string Provisioning::get_ip_address() const { return "192.168.4.1"; }
+std::string Provisioning::get_ip_address() const {
+  return wifi_ap_ ? wifi_ap_->get_ip_address() : "N/A";
+}
 
 std::string Provisioning::generate_html() const {
   std::string html = HTML_TEMPLATE;

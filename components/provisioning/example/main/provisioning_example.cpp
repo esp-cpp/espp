@@ -30,7 +30,6 @@ extern "C" void app_main(void) {
       .device_name = "Provisioning Example",
       .server_port = 80,
       .auto_shutdown_ap = false, // Keep AP running for this example
-      .ap_timeout = 0s,          // No timeout
       .on_provisioned =
           [&logger](const std::string &ssid, const std::string &password) {
             logger.info("Provisioned successfully!");
