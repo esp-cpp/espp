@@ -5,7 +5,7 @@ url: "https://github.com/esp-cpp/espp/tree/main/components/provisioning"
 repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
-documentation: "https://esp-cpp.github.io/espp/provisioning.html"
+documentation: "https://esp-cpp.github.io/espp/network/provisioning.html"
 tags:
   - cpp
   - WiFi
@@ -13,5 +13,6 @@ tags:
 dependencies:
   idf:
     version: '>=5.0'
-  espp/logger: '>=1.0'
-  espp/task: '>=1.0'
+  espp/base_component: '>=1.0'
+  espp/nvs: '>=1.0'
+  espp/wifi: '>=1.0'

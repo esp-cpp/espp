@@ -5,6 +5,7 @@ Network APIs
     :maxdepth: 1
 
     ping
+    provisioning
     socket_example
     socket
     tcp_socket

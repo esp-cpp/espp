@@ -9,6 +9,7 @@
 
 #include "base_component.hpp"
 #include "nvs.hpp"
+#include "wifi.hpp"
 #include "wifi_ap.hpp"
 #include "wifi_sta.hpp"
 
@@ -47,7 +48,8 @@ public:
    * @brief Configuration for the provisioning component
    */
   struct Config {
-    std::string ap_ssid{"ESP32-Setup"};                   ///< SSID for the provisioning AP
+    std::string ap_ssid{"ESP-Prov"};                      ///< Base SSID for the provisioning AP
+    bool append_mac_to_ssid{true};                        ///< Append MAC address to AP SSID
     std::string ap_password{""};                          ///< Password for AP (empty = open)
     std::string device_name{"ESP32 Device"};              ///< Device name shown in UI
     uint16_t server_port{80};                             ///< HTTP server port
@@ -92,10 +94,22 @@ public:
   bool is_provisioned() const { return is_provisioned_; }
 
   /**
+   * @brief Check if user has completed provisioning
+   * @return true if user clicked "Complete Setup" button
+   */
+  bool is_completed() const { return is_completed_; }
+
+  /**
    * @brief Get the IP address of the provisioning AP
    * @return IP address string (e.g., "192.168.4.1")
    */
   std::string get_ip_address() const;
+
+  /**
+   * @brief Get the actual AP SSID (after MAC appending)
+   * @return The SSID of the provisioning AP
+   */
+  std::string get_ap_ssid() const { return config_.ap_ssid; }
 
 protected:
   void init(const Config &config);
@@ -131,6 +145,7 @@ protected:
   httpd_handle_t server_{nullptr};
   std::atomic<bool> is_active_{false};
   std::atomic<bool> is_provisioned_{false};
+  std::atomic<bool> is_completed_{false};
   std::string provisioned_ssid_;
   std::string provisioned_password_;
   std::chrono::time_point<std::chrono::steady_clock> ap_start_time_;

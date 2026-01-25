@@ -1,55 +1,26 @@
 # Provisioning Component
 
-WiFi provisioning component with embedded web interface.
+[![Badge](https://components.espressif.com/components/espp/provisioning/badge.svg)](https://components.espressif.com/components/espp/provisioning)
+
+The `Provisioning` component provides a web-based WiFi configuration system
+for ESP32 devices. It creates a temporary WiFi access point with an embedded
+web server, allowing users to scan for available networks, test credentials,
+and save configuration through a mobile-friendly interface.
 
 ## Features
 
-- Creates temporary WiFi AP for configuration
-- Web-based UI for scanning and connecting to networks
-- Tests credentials before saving
-- Mobile-friendly responsive design
-- Automatic AP shutdown after provisioning
+- Creates temporary WiFi AP with configurable SSID and password
+- Embedded web server with responsive HTML interface
+- Network scanning with signal strength indication
+- Manual SSID entry option for hidden networks
+- Credential validation before saving (tests actual connection)
+- Manages stored credentials (view, delete, reconnect)
+- Automatic AP shutdown after successful provisioning
+- NVS-based persistent storage
+- Callbacks for provisioning events
 
-## Usage
+## Example
 
-```cpp
-//! [provisioning example]
-#include "provisioning.hpp"
-#include "nvs.hpp"
-
-// Initialize provisioning
-espp::Provisioning::Config prov_config{
-    .ap_ssid = "MyDevice-Setup",
-    .ap_password = "setup123",  // Leave empty for open AP
-    .device_name = "My ESP32 Device",
-    .auto_shutdown_ap = true,
-    .on_provisioned = [](const std::string& ssid, const std::string& password) {
-        fmt::print("Provisioned! SSID: {}\n", ssid);
-        // Save credentials to NVS
-        espp::Nvs nvs;
-        nvs.set_string("wifi_ssid", ssid);
-        nvs.set_string("wifi_password", password);
-    }
-};
-
-espp::Provisioning prov(prov_config);
-prov.start();
-
-fmt::print("Connect to WiFi: {}\n", prov_config.ap_ssid);
-fmt::print("Open browser to: http://{}\n", prov.get_ip_address());
-
-while (prov.is_active()) {
-    std::this_thread::sleep_for(1s);
-}
-//! [provisioning example]
-```
-
-## Web Interface
-
-Connect to the AP and navigate to `http://192.168.4.1` to:
-1. Scan for available networks
-2. Select a network
-3. Enter password
-4. Test and save configuration
-
-The interface is mobile-friendly and provides visual feedback during scanning and connection.
+The [example](./example) demonstrates how to use the `espp::Provisioning`
+class to configure WiFi credentials via a web interface, with support for
+scanning networks, testing connections, and managing stored credentials.

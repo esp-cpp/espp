@@ -94,10 +94,11 @@ jobs:
             components/neopixel
             components/nvs
             components/odrive_ascii
+            components/pcf85063
             components/pi4ioe5v
             components/pid
             components/ping
-            components/pcf85063
+            components/provisioning
             components/qmi8658
             components/qtpy
             components/qwiicnes

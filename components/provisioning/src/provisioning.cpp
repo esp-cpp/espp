@@ -216,6 +216,14 @@ Provisioning::~Provisioning() { stop(); }
 
 void Provisioning::init(const Config &config) {
   config_ = config;
+
+  // Append MAC address to SSID if requested
+  if (config_.append_mac_to_ssid) {
+    uint8_t mac[6];
+    esp_efuse_mac_get_default(mac);
+    config_.ap_ssid = fmt::format("{}-{:02X}{:02X}", config_.ap_ssid, mac[4], mac[5]);
+  }
+
   logger_.info("Initialized with AP SSID: {}", config_.ap_ssid);
 }
 
@@ -261,14 +269,7 @@ bool Provisioning::start_ap() {
 
   wifi_ap_ = std::make_unique<WifiAp>(ap_config);
 
-  // Set WiFi mode to APSTA to support both AP and scanning
-  esp_err_t ret = esp_wifi_set_mode(WIFI_MODE_APSTA);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to set WiFi mode to APSTA: {}", esp_err_to_name(ret));
-    return false;
-  }
-  logger_.info("WiFi mode set to APSTA");
-
+  // WiFi mode is managed by WifiAp and WifiSta classes
   return wifi_ap_ != nullptr;
 }
 
@@ -344,41 +345,26 @@ std::string Provisioning::generate_html() const {
 std::string Provisioning::scan_networks() {
   logger_.info("Starting WiFi scan...");
 
-  uint16_t ap_count = 0;
-  wifi_scan_config_t scan_config = {.ssid = nullptr,
-                                    .bssid = nullptr,
-                                    .channel = 0,
-                                    .show_hidden = false,
-                                    .scan_type = WIFI_SCAN_TYPE_ACTIVE,
-                                    .scan_time = {.active = {.min = 100, .max = 300}}};
+  // Create a temporary WifiSta for scanning (auto_connect=false so it doesn't try to connect)
+  WifiSta::Config scan_config{
+      .ssid = "", .password = "", .auto_connect = false, .log_level = Logger::Verbosity::WARN};
+  WifiSta temp_sta(scan_config);
 
-  esp_err_t ret = esp_wifi_scan_start(&scan_config, true);
-  if (ret != ESP_OK) {
-    logger_.error("WiFi scan failed: {}", esp_err_to_name(ret));
-    return R"({"networks":[],"error":"scan_failed"})";
-  }
+  auto ap_records = temp_sta.scan(20);
 
-  ret = esp_wifi_scan_get_ap_num(&ap_count);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to get AP count: {}", esp_err_to_name(ret));
-    return R"({"networks":[],"error":"get_count_failed"})";
-  }
-
-  logger_.info("Found {} networks", ap_count);
-
-  if (ap_count == 0) {
+  if (ap_records.empty()) {
+    logger_.info("No networks found");
     return R"({"networks":[]})";
   }
 
-  std::vector<wifi_ap_record_t> ap_records(ap_count);
-  esp_wifi_scan_get_ap_records(&ap_count, ap_records.data());
+  logger_.info("Found {} networks", ap_records.size());
 
   // Sort by signal strength
   std::sort(ap_records.begin(), ap_records.end(),
             [](const wifi_ap_record_t &a, const wifi_ap_record_t &b) { return a.rssi > b.rssi; });
 
   std::string json = R"({"networks":[)";
-  for (size_t i = 0; i < ap_records.size() && i < 20; i++) {
+  for (size_t i = 0; i < ap_records.size(); i++) {
     if (i > 0)
       json += ",";
     json += fmt::format(R"({{"ssid":"{}","rssi":{},"secure":{}}})",
@@ -392,33 +378,60 @@ std::string Provisioning::scan_networks() {
 bool Provisioning::test_connection(const std::string &ssid, const std::string &password) {
   logger_.info("Testing connection to: {}", ssid);
 
+  // Clean up any existing test STA first
+  if (test_sta_) {
+    logger_.info("Cleaning up previous test STA");
+    test_sta_.reset();
+    std::this_thread::sleep_for(500ms); // Give WiFi stack time to clean up
+  }
+
   std::atomic<bool> connected{false};
   std::atomic<bool> got_ip{false};
+  std::atomic<bool> failed{false};
 
   WifiSta::Config sta_config{.ssid = ssid,
                              .password = password,
                              .num_connect_retries = 5,
-                             .on_connected = [&]() { connected = true; },
-                             .on_got_ip = [&](ip_event_got_ip_t *) { got_ip = true; },
-                             .log_level = config_.log_level};
+                             .auto_connect = true, // Auto-connect for testing
+                             .on_connected =
+                                 [&]() {
+                                   logger_.info("Connection callback - connected to AP");
+                                   connected = true;
+                                 },
+                             .on_disconnected =
+                                 [&]() {
+                                   logger_.info("Disconnection callback - failed to connect");
+                                   failed = true;
+                                 },
+                             .on_got_ip =
+                                 [&](ip_event_got_ip_t *event) {
+                                   logger_.info("Got IP callback - {}.{}.{}.{}",
+                                                IP2STR(&event->ip_info.ip));
+                                   got_ip = true;
+                                 },
+                             .log_level = Logger::Verbosity::DEBUG};
 
+  logger_.info("Creating test WiFi STA instance");
   test_sta_ = std::make_unique<WifiSta>(sta_config);
 
+  logger_.info("Waiting for connection (max 15 seconds)...");
   // Wait for connection (max 15 seconds)
   auto start = std::chrono::steady_clock::now();
-  while (!got_ip && (std::chrono::steady_clock::now() - start) < 15s) {
+  while (!got_ip && !failed && (std::chrono::steady_clock::now() - start) < 15s) {
     std::this_thread::sleep_for(100ms);
   }
 
   bool success = got_ip;
 
-  logger_.info("Connection test result: {}", success);
+  logger_.info("Connection test result: {} (got_ip={}, failed={})", success, got_ip.load(),
+               failed.load());
 
   // Clean up test STA immediately to avoid interfering with AP
+  logger_.info("Cleaning up test STA");
   test_sta_.reset();
 
   // Give WiFi stack time to stabilize
-  std::this_thread::sleep_for(100ms);
+  std::this_thread::sleep_for(200ms);
 
   return success;
 }
@@ -514,6 +527,9 @@ esp_err_t Provisioning::connect_handler(httpd_req_t *req) {
 
 esp_err_t Provisioning::complete_handler(httpd_req_t *req) {
   auto *prov = static_cast<Provisioning *>(req->user_ctx);
+
+  // Mark as completed
+  prov->is_completed_ = true;
 
   // Send response immediately
   httpd_resp_send(req, "OK", 2);

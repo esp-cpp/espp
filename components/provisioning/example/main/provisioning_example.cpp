@@ -21,17 +21,12 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // Generate unique AP SSID
-  uint8_t mac[6];
-  esp_efuse_mac_get_default(mac);
-  std::string ap_ssid = fmt::format("ESP-Prov-{:02X}{:02X}", mac[4], mac[5]);
-  logger.info("AP SSID: {}", ap_ssid);
-
   // Create provisioning configuration
   espp::Provisioning::Config config{
-      .ap_ssid = ap_ssid,
-      .ap_password = "", // Open network for simplicity
-      .device_name = "ESP32 Device",
+      .ap_ssid = "ESP-Prov",
+      .append_mac_to_ssid = true, // Will append MAC to make unique
+      .ap_password = "",          // Open network for simplicity
+      .device_name = "Provisioning Example",
       .server_port = 80,
       .auto_shutdown_ap = false, // Keep AP running for this example
       .ap_timeout = 0s,          // No timeout
@@ -56,44 +51,40 @@ extern "C" void app_main(void) {
           },
       .log_level = espp::Logger::Verbosity::INFO};
 
-  {
-    // Create provisioning
-    espp::Provisioning provisioning(config);
+  // Create provisioning
+  espp::Provisioning provisioning(config);
 
-    // print any existing network ssids that have been provisioned
-    {
-      espp::NvsHandle handle("wifi_config", ec);
+  // print any existing network ssids that have been provisioned
+  {
+    espp::NvsHandle handle("wifi_config", ec);
+    if (!ec) {
+      std::string saved_ssid;
+      handle.get("ssid", saved_ssid, ec);
       if (!ec) {
-        std::string saved_ssid;
-        handle.get("ssid", saved_ssid, ec);
-        if (!ec) {
-          logger.info("Existing provisioned network SSID: {}", saved_ssid);
-        } else {
-          logger.info("No existing provisioned network found in NVS");
-        }
+        logger.info("Existing provisioned network SSID: {}", saved_ssid);
+      } else {
+        logger.info("No existing provisioned network found in NVS");
       }
     }
-
-    // Start provisioning
-    if (!provisioning.start()) {
-      logger.error("Failed to start provisioning: {}", ec.message());
-      return;
-    }
-
-    logger.info("Provisioning started");
-    logger.info("Connect to WiFi network: {}", ap_ssid);
-    logger.info("Open browser to: http://192.168.4.1");
-
-    // Keep running
-    while (!provisioning.is_provisioned()) {
-      std::this_thread::sleep_for(1s);
-    }
-
-    logger.info("Device has been provisioned, stopping provisioning service");
-    provisioning.stop();
   }
 
-  // destructor should clean up everything, this tests to ensure no issues
+  // Start provisioning
+  if (!provisioning.start()) {
+    logger.error("Failed to start provisioning");
+    return;
+  }
+
+  logger.info("Provisioning started");
+  logger.info("Connect to WiFi network: {}", provisioning.get_ap_ssid());
+  logger.info("Open browser to: http://192.168.4.1");
+
+  // Keep running until user completes provisioning
+  while (!provisioning.is_completed()) {
+    std::this_thread::sleep_for(1s);
+  }
+
+  logger.info("Provisioning completed by user, stopping service");
+  provisioning.stop();
 
   logger.info("Provisioning example finished");
   while (true) {
