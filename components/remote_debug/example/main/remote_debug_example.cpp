@@ -50,22 +50,22 @@ extern "C" void app_main(void) {
 #if CONFIG_REMOTE_DEBUG_NUM_GPIOS >= 1
   gpios.push_back({.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_0),
                    .mode = GPIO_MODE_INPUT,
-                   .label = "LED"});
+                   .label = CONFIG_REMOTE_DEBUG_GPIO_0_LABEL});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_GPIOS >= 2
   gpios.push_back({.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_1),
                    .mode = GPIO_MODE_INPUT,
-                   .label = "BUZZER"});
+                   .label = CONFIG_REMOTE_DEBUG_GPIO_1_LABEL});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_GPIOS >= 3
   gpios.push_back({.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_2),
                    .mode = GPIO_MODE_INPUT,
-                   .label = "MOTOR"});
+                   .label = CONFIG_REMOTE_DEBUG_GPIO_2_LABEL});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_GPIOS >= 4
   gpios.push_back({.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_3),
                    .mode = GPIO_MODE_INPUT,
-                   .label = "FAN"});
+                   .label = CONFIG_REMOTE_DEBUG_GPIO_3_LABEL});
 #endif
 
   // Build ADC list from menuconfig
@@ -79,12 +79,12 @@ extern "C" void app_main(void) {
 
   std::vector<espp::RemoteDebug::AdcChannelConfig> adc1_channels;
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 1
-  adc1_channels.push_back(
-      {.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_0), .label = "A0"});
+  adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_0),
+                           .label = CONFIG_REMOTE_DEBUG_ADC_0_LABEL});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 2
-  adc1_channels.push_back(
-      {.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_1), .label = "A1"});
+  adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_1),
+                           .label = CONFIG_REMOTE_DEBUG_ADC_1_LABEL});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 3
   adc1_channels.push_back(
@@ -97,6 +97,7 @@ extern "C" void app_main(void) {
 
   // Configure remote debug
   espp::RemoteDebug::Config config{
+      .device_name = CONFIG_REMOTE_DEBUG_DEVICE_NAME,
       .gpios = gpios,
       .adc1_channels = adc1_channels,
       .adc2_channels = {},

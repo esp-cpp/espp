@@ -1,5 +1,11 @@
 menu "Remote Debug Example Configuration"
 
+    config REMOTE_DEBUG_DEVICE_NAME
+        string "Device Name"
+        default "ESP32 Device"
+        help
+            Name of the device shown in the web interface title.
+
     config REMOTE_DEBUG_WIFI_SSID
         string "WiFi SSID"
         default ""
@@ -36,6 +42,13 @@ menu "Remote Debug Example Configuration"
             help
                 First GPIO pin to control.
 
+        config REMOTE_DEBUG_GPIO_0_LABEL
+            string "GPIO Pin 0 Label"
+            default "GPIO 2"
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 1
+            help
+                Label for first GPIO pin.
+
         config REMOTE_DEBUG_GPIO_1
             int "GPIO Pin 1"
             default 4
@@ -43,6 +56,13 @@ menu "Remote Debug Example Configuration"
             depends on REMOTE_DEBUG_NUM_GPIOS >= 2
             help
                 Second GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_1_LABEL
+            string "GPIO Pin 1 Label"
+            default "GPIO 4"
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 2
+            help
+                Label for second GPIO pin.
 
         config REMOTE_DEBUG_GPIO_2
             int "GPIO Pin 2"
@@ -52,6 +72,13 @@ menu "Remote Debug Example Configuration"
             help
                 Third GPIO pin to control.
 
+        config REMOTE_DEBUG_GPIO_2_LABEL
+            string "GPIO Pin 2 Label"
+            default "GPIO 16"
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 3
+            help
+                Label for third GPIO pin.
+
         config REMOTE_DEBUG_GPIO_3
             int "GPIO Pin 3"
             default 17
@@ -59,6 +86,13 @@ menu "Remote Debug Example Configuration"
             depends on REMOTE_DEBUG_NUM_GPIOS >= 4
             help
                 Fourth GPIO pin to control.
+
+        config REMOTE_DEBUG_GPIO_3_LABEL
+            string "GPIO Pin 3 Label"
+            default "GPIO 17"
+            depends on REMOTE_DEBUG_NUM_GPIOS >= 4
+            help
+                Label for fourth GPIO pin.
 
         config REMOTE_DEBUG_GPIO_4
             int "GPIO Pin 4"
@@ -127,6 +161,13 @@ menu "Remote Debug Example Configuration"
             help
                 First ADC pin to monitor (GPIO number).
 
+        config REMOTE_DEBUG_ADC_0_LABEL
+            string "ADC Channel 0 Label"
+            default "ADC 36"
+            depends on REMOTE_DEBUG_NUM_ADCS >= 1
+            help
+                Label for first ADC channel.
+
         config REMOTE_DEBUG_ADC_1
             int "ADC Channel 1"
             default 39
@@ -134,6 +175,13 @@ menu "Remote Debug Example Configuration"
             depends on REMOTE_DEBUG_NUM_ADCS >= 2
             help
                 Second ADC pin to monitor (GPIO number).
+
+        config REMOTE_DEBUG_ADC_1_LABEL
+            string "ADC Channel 1 Label"
+            default "ADC 39"
+            depends on REMOTE_DEBUG_NUM_ADCS >= 2
+            help
+                Label for second ADC channel.
 
         config REMOTE_DEBUG_ADC_2
             int "ADC Channel 2"

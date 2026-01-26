@@ -337,7 +337,7 @@ esp_err_t RemoteDebug::adc_data_handler(httpd_req_t *req) {
 
 std::string RemoteDebug::generate_html() const {
   std::stringstream ss;
-  ss << R"(<!DOCTYPE html><html><head><title>Remote Debug</title>
+  ss << R"(<!DOCTYPE html><html><head><title>Remote Debug - )" << config_.device_name << R"(</title>
 <meta name='viewport' content='width=device-width,initial-scale=1'>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -367,7 +367,8 @@ button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.
 #chart { width: 100%; height: 400px; border-radius: 10px; background: #f8f9fa; }
 </style></head><body>
 <div class='container'>
-<h1>&#x1F527; Remote Debug Interface</h1>)";
+<h1>&#x1F527; )"
+     << config_.device_name << R"(</h1>)";
 
   // GPIO controls
   ss << "<div class='card'><h2>GPIO Control</h2>";

@@ -56,6 +56,7 @@ public:
    * @brief Configuration for remote debug
    */
   struct Config {
+    std::string device_name{"ESP32 Device"};              ///< Device name shown in UI title
     std::vector<GpioConfig> gpios;                        ///< GPIO pins to expose
     std::vector<AdcChannelConfig> adc1_channels;          ///< ADC1 channels to monitor
     std::vector<AdcChannelConfig> adc2_channels;          ///< ADC2 channels to monitor
