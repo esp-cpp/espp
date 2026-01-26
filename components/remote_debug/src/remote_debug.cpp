@@ -16,53 +16,64 @@ RemoteDebug::~RemoteDebug() { stop(); }
 void RemoteDebug::init(const Config &config) {
   config_ = config;
 
-  // Initialize GPIO
+  // Initialize GPIO - default to input mode
   for (const auto &gpio : config_.gpios) {
     gpio_config_t io_conf = {};
     io_conf.pin_bit_mask = (1ULL << gpio.pin);
-    io_conf.mode = gpio.mode;
+    io_conf.mode = GPIO_MODE_INPUT; // Default to input
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     io_conf.intr_type = GPIO_INTR_DISABLE;
     gpio_config(&io_conf);
-    gpio_map_[gpio.pin] = gpio;
+
+    // Store the GPIO config with input mode
+    GpioConfig gpio_copy = gpio;
+    gpio_copy.mode = GPIO_MODE_INPUT;
+    gpio_map_[gpio.pin] = gpio_copy;
+    gpio_state_[gpio.pin] = gpio_get_level(gpio.pin);
+
+    logger_.debug("Configured GPIO {} as input, initial state: {}", gpio.pin,
+                  gpio_state_[gpio.pin]);
   }
 
-  // Initialize ADC
-  bool need_adc1 = false, need_adc2 = false;
-  for (const auto &adc : config_.adcs) {
-    if (adc.unit == ADC_UNIT_1)
-      need_adc1 = true;
-    if (adc.unit == ADC_UNIT_2)
-      need_adc2 = true;
-    adc_map_[{adc.unit, adc.channel}] = adc;
-  }
+  // Initialize ADC1
+  if (!config_.adc1_channels.empty()) {
+    std::vector<AdcConfig> adc1_configs;
+    for (const auto &ch : config_.adc1_channels) {
+      adc1_configs.push_back({.unit = ADC_UNIT_1, .channel = ch.channel, .attenuation = ch.atten});
 
-  if (need_adc1) {
-    adc_oneshot_unit_init_cfg_t adc1_config = {.unit_id = ADC_UNIT_1};
-    adc_oneshot_new_unit(&adc1_config, &adc1_handle_);
-  }
-
-  if (need_adc2) {
-    adc_oneshot_unit_init_cfg_t adc2_config = {.unit_id = ADC_UNIT_2};
-    adc_oneshot_new_unit(&adc2_config, &adc2_handle_);
-  }
-
-  // Configure ADC channels
-  for (const auto &[key, adc] : adc_map_) {
-    adc_oneshot_chan_cfg_t chan_config = {.atten = adc.atten, .bitwidth = ADC_BITWIDTH_DEFAULT};
-    auto handle = (adc.unit == ADC_UNIT_1) ? adc1_handle_ : adc2_handle_;
-    if (handle) {
-      adc_oneshot_config_channel(handle, adc.channel, &chan_config);
+      // Initialize data storage
+      AdcData data;
+      data.values.resize(config_.adc_history_size, 0);
+      data.timestamps.resize(config_.adc_history_size, 0);
+      data.channel = ch.channel;
+      data.label = ch.label;
+      adc1_data_.push_back(std::move(data));
     }
-
-    // Initialize data storage
-    adc_data_[key].values.resize(config_.adc_history_size, 0);
-    adc_data_[key].timestamps.resize(config_.adc_history_size, 0);
+    adc1_ = std::make_unique<OneshotAdc>(OneshotAdc::Config{
+        .unit = ADC_UNIT_1, .channels = adc1_configs, .log_level = config_.log_level});
   }
 
-  logger_.info("RemoteDebug initialized with {} GPIOs and {} ADCs", config_.gpios.size(),
-               config_.adcs.size());
+  // Initialize ADC2
+  if (!config_.adc2_channels.empty()) {
+    std::vector<AdcConfig> adc2_configs;
+    for (const auto &ch : config_.adc2_channels) {
+      adc2_configs.push_back({.unit = ADC_UNIT_2, .channel = ch.channel, .attenuation = ch.atten});
+
+      // Initialize data storage
+      AdcData data;
+      data.values.resize(config_.adc_history_size, 0);
+      data.timestamps.resize(config_.adc_history_size, 0);
+      data.channel = ch.channel;
+      data.label = ch.label;
+      adc2_data_.push_back(std::move(data));
+    }
+    adc2_ = std::make_unique<OneshotAdc>(OneshotAdc::Config{
+        .unit = ADC_UNIT_2, .channels = adc2_configs, .log_level = config_.log_level});
+  }
+
+  logger_.info("RemoteDebug initialized with {} GPIOs, {} ADC1 channels, {} ADC2 channels",
+               config_.gpios.size(), config_.adc1_channels.size(), config_.adc2_channels.size());
 }
 
 bool RemoteDebug::start() {
@@ -76,9 +87,14 @@ bool RemoteDebug::start() {
   }
 
   // Start ADC sampling task if we have ADCs
-  if (!adc_map_.empty()) {
+  if (adc1_ || adc2_) {
     sampling_active_ = true;
     sampling_thread_ = std::make_unique<std::thread>([this]() { adc_sampling_task(); });
+  }
+
+  // Start GPIO update task
+  if (!gpio_map_.empty()) {
+    gpio_thread_ = std::make_unique<std::thread>([this]() { gpio_update_task(); });
   }
 
   is_active_ = true;
@@ -95,6 +111,9 @@ void RemoteDebug::stop() {
   if (sampling_thread_ && sampling_thread_->joinable()) {
     sampling_thread_->join();
   }
+  if (gpio_thread_ && gpio_thread_->joinable()) {
+    gpio_thread_->join();
+  }
 
   stop_server();
   is_active_ = false;
@@ -102,34 +121,66 @@ void RemoteDebug::stop() {
 }
 
 bool RemoteDebug::set_gpio(gpio_num_t pin, int level) {
+  std::lock_guard<std::mutex> lock(gpio_mutex_);
   if (gpio_map_.find(pin) == gpio_map_.end()) {
     logger_.error("GPIO {} not configured", static_cast<int>(pin));
     return false;
   }
+
+  // Only set if it's an output
+  if (gpio_map_[pin].mode != GPIO_MODE_OUTPUT && gpio_map_[pin].mode != GPIO_MODE_OUTPUT_OD &&
+      gpio_map_[pin].mode != GPIO_MODE_INPUT_OUTPUT &&
+      gpio_map_[pin].mode != GPIO_MODE_INPUT_OUTPUT_OD) {
+    logger_.error("GPIO {} is not configured as output", static_cast<int>(pin));
+    return false;
+  }
+
   gpio_set_level(pin, level);
+  gpio_state_[pin] = level;
   return true;
 }
 
 int RemoteDebug::get_gpio(gpio_num_t pin) {
+  std::lock_guard<std::mutex> lock(gpio_mutex_);
   if (gpio_map_.find(pin) == gpio_map_.end()) {
     logger_.error("GPIO {} not configured", static_cast<int>(pin));
     return -1;
   }
-  return gpio_get_level(pin);
+  return gpio_state_[pin];
 }
 
-int RemoteDebug::read_adc(adc_unit_t unit, adc_channel_t channel) {
-  auto key = std::make_pair(unit, channel);
-  if (adc_map_.find(key) == adc_map_.end()) {
-    return -1;
+bool RemoteDebug::configure_gpio(gpio_num_t pin, gpio_mode_t mode) {
+  std::lock_guard<std::mutex> lock(gpio_mutex_);
+  if (gpio_map_.find(pin) == gpio_map_.end()) {
+    logger_.error("GPIO {} not configured", static_cast<int>(pin));
+    return false;
   }
 
-  int raw_value = 0;
-  auto handle = (unit == ADC_UNIT_1) ? adc1_handle_ : adc2_handle_;
-  if (handle && adc_oneshot_read(handle, channel, &raw_value) == ESP_OK) {
-    return raw_value;
+  logger_.info("Configuring GPIO {} to mode {}", static_cast<int>(pin), mode);
+
+  gpio_config_t io_conf = {};
+  io_conf.pin_bit_mask = (1ULL << pin);
+  io_conf.mode = mode;
+  io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+  io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  io_conf.intr_type = GPIO_INTR_DISABLE;
+  gpio_config(&io_conf);
+
+  gpio_map_[pin].mode = mode;
+  gpio_state_[pin] = gpio_get_level(pin);
+  return true;
+}
+
+void RemoteDebug::gpio_update_task() {
+  while (sampling_active_) {
+    {
+      std::lock_guard<std::mutex> lock(gpio_mutex_);
+      for (auto &[pin, config] : gpio_map_) {
+        gpio_state_[pin] = gpio_get_level(pin);
+      }
+    }
+    std::this_thread::sleep_for(config_.gpio_update_rate);
   }
-  return -1;
 }
 
 void RemoteDebug::adc_sampling_task() {
@@ -137,10 +188,24 @@ void RemoteDebug::adc_sampling_task() {
     auto now = esp_timer_get_time();
 
     std::lock_guard<std::mutex> lock(adc_mutex_);
-    for (auto &[key, data] : adc_data_) {
-      int value = read_adc(key.first, key.second);
-      if (value >= 0) {
-        data.values[data.write_index] = value;
+
+    // Sample ADC1
+    if (adc1_) {
+      auto values = adc1_->read_all_mv();
+      for (size_t i = 0; i < values.size() && i < adc1_data_.size(); i++) {
+        auto &data = adc1_data_[i];
+        data.values[data.write_index] = values[i];
+        data.timestamps[data.write_index] = now;
+        data.write_index = (data.write_index + 1) % config_.adc_history_size;
+      }
+    }
+
+    // Sample ADC2
+    if (adc2_) {
+      auto values = adc2_->read_all_mv();
+      for (size_t i = 0; i < values.size() && i < adc2_data_.size(); i++) {
+        auto &data = adc2_data_[i];
+        data.values[data.write_index] = values[i];
         data.timestamps[data.write_index] = now;
         data.write_index = (data.write_index + 1) % config_.adc_history_size;
       }
@@ -174,9 +239,11 @@ bool RemoteDebug::start_server() {
       .uri = "/api/gpio/set", .method = HTTP_POST, .handler = gpio_set_handler, .user_ctx = this};
   httpd_register_uri_handler(server_, &gpio_set_uri);
 
-  httpd_uri_t adc_get_uri = {
-      .uri = "/api/adc/get", .method = HTTP_GET, .handler = adc_get_handler, .user_ctx = this};
-  httpd_register_uri_handler(server_, &adc_get_uri);
+  httpd_uri_t gpio_config_uri = {.uri = "/api/gpio/config",
+                                 .method = HTTP_POST,
+                                 .handler = gpio_config_handler,
+                                 .user_ctx = this};
+  httpd_register_uri_handler(server_, &gpio_config_uri);
 
   httpd_uri_t adc_data_uri = {
       .uri = "/api/adc/data", .method = HTTP_GET, .handler = adc_data_handler, .user_ctx = this};
@@ -234,34 +301,30 @@ esp_err_t RemoteDebug::gpio_set_handler(httpd_req_t *req) {
   return ESP_OK;
 }
 
-esp_err_t RemoteDebug::adc_get_handler(httpd_req_t *req) {
+esp_err_t RemoteDebug::gpio_config_handler(httpd_req_t *req) {
   auto *self = static_cast<RemoteDebug *>(req->user_ctx);
 
-  // Parse query string for unit and channel
-  char query[100];
-  if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
-    int unit = -1, channel = -1;
-    char unit_str[16], channel_str[16];
-    if (httpd_query_key_value(query, "unit", unit_str, sizeof(unit_str)) == ESP_OK) {
-      unit = atoi(unit_str);
-    }
-    if (httpd_query_key_value(query, "channel", channel_str, sizeof(channel_str)) == ESP_OK) {
-      channel = atoi(channel_str);
-    }
+  // Parse POST data
+  char buf[100];
+  int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
+  if (ret <= 0) {
+    httpd_resp_send_500(req);
+    return ESP_FAIL;
+  }
+  buf[ret] = '\0';
 
-    if (unit >= 0 && channel >= 0) {
-      int value =
-          self->read_adc(static_cast<adc_unit_t>(unit), static_cast<adc_channel_t>(channel));
-      char resp[32];
-      snprintf(resp, sizeof(resp), "{\"value\":%d}", value);
-      httpd_resp_set_type(req, "application/json");
-      httpd_resp_send(req, resp, strlen(resp));
-      return ESP_OK;
-    }
+  // Parse pin=X&mode=Y
+  int pin = -1, mode = -1;
+  sscanf(buf, "pin=%d&mode=%d", &pin, &mode);
+
+  if (pin >= 0 && mode >= 0 && mode <= 6) {
+    self->configure_gpio(static_cast<gpio_num_t>(pin), static_cast<gpio_mode_t>(mode));
+    httpd_resp_send(req, "OK", 2);
+  } else {
+    httpd_resp_send_500(req);
   }
 
-  httpd_resp_send_500(req);
-  return ESP_FAIL;
+  return ESP_OK;
 }
 
 esp_err_t RemoteDebug::adc_data_handler(httpd_req_t *req) {
@@ -308,16 +371,28 @@ button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.
 
   // GPIO controls
   ss << "<div class='card'><h2>GPIO Control</h2>";
-  ss << "<div style='display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; padding: 10px; "
+  ss << "<div style='display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; padding: "
+        "10px; "
         "font-weight: bold; border-bottom: 2px solid #667eea; margin-bottom: 15px;'>";
-  ss << "<div>Pin</div><div style='text-align: center;'>Controls</div><div style='text-align: "
+  ss << "<div>Pin</div><div style='text-align: center;'>Mode</div><div style='text-align: "
+        "center;'>Controls</div><div style='text-align: "
         "center;'>State</div>";
   ss << "</div>";
   for (const auto &[pin, cfg] : gpio_map_) {
-    ss << "<div style='display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; padding: "
+    ss << "<div style='display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; padding: "
           "15px; margin: 10px 0; background: #f8f9fa; border-radius: 10px; align-items: center;'>";
-    ss << "<span class='gpio-label'>" << cfg.label << " (GPIO " << pin << ")</span>";
-    ss << "<div style='display: flex; gap: 10px; justify-content: center;'>";
+    ss << "<span class='gpio-label'>"
+       << (cfg.label.empty() ? "GPIO " + std::to_string(pin) : cfg.label) << " (GPIO " << pin
+       << ")</span>";
+    ss << "<select id='mode" << pin << "' onchange='setMode(" << pin
+       << ",this.value)' style='padding: 8px; border-radius: 5px; border: 2px solid #667eea;'>";
+    ss << "<option value='1'" << (cfg.mode == GPIO_MODE_INPUT ? " selected" : "")
+       << ">Input</option>";
+    ss << "<option value='3'" << (cfg.mode == GPIO_MODE_INPUT_OUTPUT ? " selected" : "")
+       << ">Output</option>";
+    ss << "</select>";
+    ss << "<div style='display: flex; gap: 10px; justify-content: center;' id='controls" << pin
+       << "'>";
     ss << "<button class='btn-high' onclick='setGpio(" << pin << ",1)'>HIGH</button>";
     ss << "<button class='btn-low' onclick='setGpio(" << pin << ",0)'>LOW</button>";
     ss << "</div>";
@@ -327,13 +402,26 @@ button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.
   ss << "</div>";
 
   // ADC display
-  if (!adc_map_.empty()) {
+  if (!adc1_data_.empty() || !adc2_data_.empty()) {
     ss << "<div class='card'><h2>ADC Monitoring</h2>";
-    for (const auto &[key, cfg] : adc_map_) {
+    for (const auto &data : adc1_data_) {
       ss << "<div class='adc'>";
-      ss << "<span class='adc-label'>" << cfg.label << " (Unit:" << key.first
-         << " Ch:" << key.second << ")</span>";
-      ss << "<span class='adc-value' id='adc" << key.first << "_" << key.second << "'>?</span>";
+      ss << "<span class='adc-label'>"
+         << (data.label.empty()
+                 ? ("ADC1_CH" + std::to_string(static_cast<int>(data.channel)))
+                 : data.label + " (ADC1_CH" + std::to_string(static_cast<int>(data.channel)) + ")")
+         << "</span>";
+      ss << "<span class='adc-value' id='adc1_" << static_cast<int>(data.channel) << "'>?</span>";
+      ss << "</div>";
+    }
+    for (const auto &data : adc2_data_) {
+      ss << "<div class='adc'>";
+      ss << "<span class='adc-label'>"
+         << (data.label.empty()
+                 ? ("ADC2_CH" + std::to_string(static_cast<int>(data.channel)))
+                 : data.label + " (ADC2_CH" + std::to_string(static_cast<int>(data.channel)) + ")")
+         << "</span>";
+      ss << "<span class='adc-value' id='adc2_" << static_cast<int>(data.channel) << "'>?</span>";
       ss << "</div>";
     }
     ss << "<canvas id='chart'></canvas>";
@@ -345,6 +433,16 @@ button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.
 const adcHistory = {};
 const colors = ['#667eea', '#764ba2', '#48c774', '#f14668', '#ffdd57', '#3298dc'];
 let colorIndex = 0;
+
+function setMode(pin, mode) {
+  fetch('/api/gpio/config', {method: 'POST', body: 'pin=' + pin + '&mode=' + mode})
+    .then(r => r.text())
+    .then(() => {
+      updateControlsVisibility();
+      updateGpio();
+    })
+    .catch(err => console.error('Failed to set mode:', err));
+}
 
 function setGpio(pin, level) {
   fetch('/api/gpio/set', {method: 'POST', body: 'pin=' + pin + '&level=' + level})
@@ -367,23 +465,44 @@ function updateGpio() {
     });
 }
 
+function updateControlsVisibility() {
+  )"
+     << "[";
+  bool first = true;
+  for (const auto &[pin, cfg] : gpio_map_) {
+    if (!first)
+      ss << ",";
+    ss << pin;
+    first = false;
+  }
+  ss << R"(].forEach(pin => {
+    const modeSelect = document.getElementById('mode' + pin);
+    const controls = document.getElementById('controls' + pin);
+    if (modeSelect && controls) {
+      // Show controls for input_output (3), hide for input (1)
+      controls.style.visibility = (modeSelect.value == '3') ? 'visible' : 'hidden';
+    }
+  });
+}
+
 function updateAdc() {
   fetch('/api/adc/data')
     .then(r => r.json())
     .then(data => {
       const now = Date.now();
       for (let key in data) {
+        // key format is "1_8" for ADC1 channel 8
         const elem = document.getElementById('adc' + key);
         if (elem) {
           const volts = (data[key].voltage / 1000.0).toFixed(3);
-          elem.innerText = volts + ' V (' + data[key].current + ' raw)';
+          elem.innerText = volts + ' V';
         }
         
         if (!adcHistory[key]) {
-          adcHistory[key] = { values: [], times: [], color: colors[colorIndex++ % colors.length] };
+          adcHistory[key] = { values: [], times: [], color: colors[colorIndex++ % colors.length], label: data[key].label };
         }
         
-        adcHistory[key].values.push(data[key].current);
+        adcHistory[key].values.push(data[key].voltage / 1000.0); // Store in volts
         adcHistory[key].times.push(now);
         
         // Keep last 100 samples
@@ -411,7 +530,7 @@ function drawChart() {
   const chartWidth = canvas.width - 2 * padding;
   const chartHeight = canvas.height - 2 * padding;
   
-  // Find min/max across all series
+  // Find min/max across all series (values are in volts)
   let minVal = Infinity, maxVal = -Infinity;
   for (let key in adcHistory) {
     const vals = adcHistory[key].values;
@@ -435,10 +554,10 @@ function drawChart() {
     ctx.lineTo(padding + chartWidth, y);
     ctx.stroke();
     
-    const val = Math.round(maxVal - (range * i / 4));
+    const val = (maxVal - (range * i / 4)).toFixed(2);
     ctx.fillStyle = '#666';
     ctx.font = '12px Arial';
-    ctx.fillText(val, 5, y + 4);
+    ctx.fillText(val + 'V', 5, y + 4);
   }
   
   // Draw each ADC line
@@ -466,32 +585,38 @@ function drawChart() {
   // Draw legend
   let legendY = padding + 10;
   for (let key in adcHistory) {
+    const label = adcHistory[key].label || ('ADC ' + key);
     ctx.fillStyle = adcHistory[key].color;
-    ctx.fillRect(padding + chartWidth - 100, legendY, 15, 15);
+    ctx.fillRect(padding + chartWidth - 150, legendY, 15, 15);
     ctx.fillStyle = '#333';
     ctx.font = '12px Arial';
-    ctx.fillText('ADC ' + key, padding + chartWidth - 80, legendY + 12);
+    ctx.fillText(label, padding + chartWidth - 130, legendY + 12);
     legendY += 20;
   }
 }
 
-setInterval(updateGpio, 1000);
-setInterval(updateAdc, 200);
+// Initialize on page load
+updateControlsVisibility();
 updateGpio();
 updateAdc();
+
+// Update periodically
+setInterval(updateGpio, 500);
+setInterval(updateAdc, 200);
 </script></div></body></html>)";
 
   return ss.str();
 }
 
 std::string RemoteDebug::get_gpio_state_json() const {
+  std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(gpio_mutex_));
   std::stringstream ss;
   ss << "{";
   bool first = true;
   for (const auto &[pin, cfg] : gpio_map_) {
     if (!first)
       ss << ",";
-    ss << "\"" << pin << "\":" << gpio_get_level(pin);
+    ss << "\"" << static_cast<int>(pin) << "\":" << gpio_state_.at(pin);
     first = false;
   }
   ss << "}";
@@ -502,22 +627,51 @@ std::string RemoteDebug::get_adc_data_json() const {
   std::lock_guard<std::mutex> lock(const_cast<std::mutex &>(adc_mutex_));
   std::stringstream ss;
   ss << "{";
+
   bool first = true;
-  for (const auto &[key, data] : adc_data_) {
+
+  // ADC1 data
+  for (size_t i = 0; i < adc1_data_.size(); i++) {
+    const auto &data = adc1_data_[i];
     if (!first)
       ss << ",";
+
     auto idx = (data.write_index > 0) ? (data.write_index - 1) : (config_.adc_history_size - 1);
-    int raw_value = data.values[idx];
-    // Convert raw ADC to millivolts
-    float voltage_mv = 0.0f;
-    // if (adcs_.count(key) > 0) {
-    //   voltage_mv = adcs_.at(key)->read_mv();
-    // }
-    ss << "\"" << key.first << "_" << key.second << "\":{";
-    ss << "\"current\":" << raw_value << ",";
-    ss << "\"voltage\":" << std::fixed << std::setprecision(3) << voltage_mv << "}";
+    int voltage_mv = data.values[idx];
+
+    // Key format: "1_5" for ADC1 channel 5
+    ss << "\"1_" << static_cast<int>(data.channel) << "\":{";
+    ss << "\"voltage\":" << voltage_mv << ",";
+    ss << "\"current\":" << voltage_mv << ",";
+    ss << "\"label\":\""
+       << (data.label.empty() ? ("ADC1_CH" + std::to_string(static_cast<int>(data.channel)))
+                              : data.label)
+       << "\"";
+    ss << "}";
     first = false;
   }
+
+  // ADC2 data
+  for (size_t i = 0; i < adc2_data_.size(); i++) {
+    const auto &data = adc2_data_[i];
+    if (!first)
+      ss << ",";
+
+    auto idx = (data.write_index > 0) ? (data.write_index - 1) : (config_.adc_history_size - 1);
+    int voltage_mv = data.values[idx];
+
+    // Key format: "2_5" for ADC2 channel 5
+    ss << "\"2_" << static_cast<int>(data.channel) << "\":{";
+    ss << "\"voltage\":" << voltage_mv << ",";
+    ss << "\"current\":" << voltage_mv << ",";
+    ss << "\"label\":\""
+       << (data.label.empty() ? ("ADC2_CH" + std::to_string(static_cast<int>(data.channel)))
+                              : data.label)
+       << "\"";
+    ss << "}";
+    first = false;
+  }
+
   ss << "}";
   return ss.str();
 }

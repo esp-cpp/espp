@@ -48,20 +48,24 @@ extern "C" void app_main(void) {
   // Build GPIO list from menuconfig
   std::vector<espp::RemoteDebug::GpioConfig> gpios;
 #if CONFIG_REMOTE_DEBUG_NUM_GPIOS >= 1
-  gpios.push_back(
-      {.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_0), .mode = GPIO_MODE_OUTPUT});
+  gpios.push_back({.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_0),
+                   .mode = GPIO_MODE_INPUT,
+                   .label = "LED"});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_GPIOS >= 2
-  gpios.push_back(
-      {.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_1), .mode = GPIO_MODE_OUTPUT});
+  gpios.push_back({.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_1),
+                   .mode = GPIO_MODE_INPUT,
+                   .label = "BUZZER"});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_GPIOS >= 3
-  gpios.push_back(
-      {.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_2), .mode = GPIO_MODE_OUTPUT});
+  gpios.push_back({.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_2),
+                   .mode = GPIO_MODE_INPUT,
+                   .label = "MOTOR"});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_GPIOS >= 4
-  gpios.push_back(
-      {.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_3), .mode = GPIO_MODE_OUTPUT});
+  gpios.push_back({.pin = static_cast<gpio_num_t>(CONFIG_REMOTE_DEBUG_GPIO_3),
+                   .mode = GPIO_MODE_INPUT,
+                   .label = "FAN"});
 #endif
 
   // Build ADC list from menuconfig
@@ -73,30 +77,32 @@ extern "C" void app_main(void) {
   size_t adc_buffer_size = 1; // Default to buffer size of 1 if no ADCs configured
 #endif
 
-  std::vector<espp::RemoteDebug::AdcConfig> adcs;
+  std::vector<espp::RemoteDebug::AdcChannelConfig> adc1_channels;
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 1
-  adcs.push_back(
-      {.unit = ADC_UNIT_1, .channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_0)});
+  adc1_channels.push_back(
+      {.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_0), .label = "A0"});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 2
-  adcs.push_back(
-      {.unit = ADC_UNIT_1, .channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_1)});
+  adc1_channels.push_back(
+      {.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_1), .label = "A1"});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 3
-  adcs.push_back(
-      {.unit = ADC_UNIT_1, .channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_2)});
+  adc1_channels.push_back(
+      {.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_2), .label = "A2"});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 4
-  adcs.push_back(
-      {.unit = ADC_UNIT_1, .channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_3)});
+  adc1_channels.push_back(
+      {.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_3), .label = "A3"});
 #endif
 
   // Configure remote debug
   espp::RemoteDebug::Config config{
       .gpios = gpios,
-      .adcs = adcs,
+      .adc1_channels = adc1_channels,
+      .adc2_channels = {},
       .server_port = static_cast<uint16_t>(CONFIG_REMOTE_DEBUG_SERVER_PORT),
       .adc_sample_rate = std::chrono::milliseconds(1000 / adc_sample_rate_hz),
+      .gpio_update_rate = std::chrono::milliseconds(100),
       .adc_history_size = adc_buffer_size,
       .log_level = espp::Logger::Verbosity::INFO};
 
@@ -105,7 +111,7 @@ extern "C" void app_main(void) {
 
   logger.info("Remote Debug Server started on port {}!", CONFIG_REMOTE_DEBUG_SERVER_PORT);
   logger.info("GPIO pins available: {}", gpios.size());
-  logger.info("ADC channels available: {}", adcs.size());
+  logger.info("ADC channels available: {}", adc1_channels.size());
 
   // Keep running
   while (true) {
