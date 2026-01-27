@@ -42,7 +42,14 @@ void RemoteDebug::init(const Config &config) {
 
   logger_.debug("Configured {} GPIOs", config_.gpios.size());
 
-  logger_.info("ADC history size: {}", config_.adc_history_size);
+  // Calculate actual history size based on sample rate
+  // adc_history_size is the number of samples we want to keep
+  // Sample rate determines how many samples per second
+  // So actual time = adc_history_size / samples_per_second
+  float samples_per_second = 1000.0f / config_.adc_sample_rate.count();
+  float actual_history_seconds = config_.adc_history_size / samples_per_second;
+  logger_.info("ADC history: {} samples at {} Hz = {:.2f} seconds", config_.adc_history_size,
+               samples_per_second, actual_history_seconds);
 
   // Initialize ADC1
   if (!config_.adc1_channels.empty()) {
@@ -547,35 +554,32 @@ function updateAdc() {
     .then(r => r.json())
     .then(data => {
       for (let key in data) {
-        // key format is "1_8" for ADC1 channel 8
-        const elem = document.getElementById('adc' + key);
+        const adcData = data[key];
+        const unit = adcData.unit;
+        const channel = adcData.channel;
+        
+        // Update the ADC value display using unit and channel
+        const elem = document.getElementById(`adc${unit}_${channel}`);
         if (elem) {
-          const volts = data[key].voltage.toFixed(3);
+          const volts = adcData.voltage.toFixed(3);
           elem.innerText = volts + ' V';
         }
         
         if (!adcHistory[key]) {
           adcHistory[key] = { 
-            values: [], 
+            data: [], // Store [timestamp, value] pairs
             color: colors[colorIndex++ % colors.length], 
-            label: data[key].label,
-            lastIndex: 0
+            label: adcData.label
           };
         }
         
-        // Get batched history data
-        const history = data[key].history;
-        if (history && history.values && history.values.length > 0) {
-          // Append new values from the batch
+        // Get batched history data - replace the entire dataset
+        const history = adcData.history;
+        if (history && history.values && history.timestamps && history.values.length > 0) {
+          // Replace the entire dataset with fresh data from the ring buffer
+          adcHistory[key].data = [];
           for (let i = 0; i < history.values.length; i++) {
-            adcHistory[key].values.push(history.values[i]);
-          }
-          
-          // Keep only the most recent samples (limit client-side storage)
-          const maxSamples = 1000;
-          if (adcHistory[key].values.length > maxSamples) {
-            const excess = adcHistory[key].values.length - maxSamples;
-            adcHistory[key].values.splice(0, excess);
+            adcHistory[key].data.push([history.timestamps[i], history.values[i]]);
           }
         }
       }
@@ -601,10 +605,12 @@ function drawChart() {
   // Find min/max across all series (values are in volts)
   let minVal = Infinity, maxVal = -Infinity;
   for (let key in adcHistory) {
-    const vals = adcHistory[key].values;
-    if (vals.length > 0) {
-      minVal = Math.min(minVal, ...vals);
-      maxVal = Math.max(maxVal, ...vals);
+    const data = adcHistory[key].data;
+    if (data.length > 0) {
+      for (const [_, value] of data) {
+        minVal = Math.min(minVal, value);
+        maxVal = Math.max(maxVal, value);
+      }
     }
   }
   
@@ -628,18 +634,30 @@ function drawChart() {
     ctx.fillText(val + 'V', 5, y + 4);
   }
   
+  // Find time range across all data
+  let minTime = Infinity, maxTime = -Infinity;
+  for (let key in adcHistory) {
+    const data = adcHistory[key].data;
+    if (data.length > 0) {
+      minTime = Math.min(minTime, data[0][0]);
+      maxTime = Math.max(maxTime, data[data.length - 1][0]);
+    }
+  }
+  const timeRange = maxTime - minTime || 1;
+  
   // Draw each ADC line
   for (let key in adcHistory) {
     const history = adcHistory[key];
-    if (history.values.length < 2) continue;
+    if (history.data.length < 2) continue;
     
     ctx.strokeStyle = history.color;
     ctx.lineWidth = 2;
     ctx.beginPath();
     
-    for (let i = 0; i < history.values.length; i++) {
-      const x = padding + (chartWidth * i / (history.values.length - 1));
-      const y = padding + chartHeight - ((history.values[i] - minVal) / range * chartHeight);
+    for (let i = 0; i < history.data.length; i++) {
+      const [timestamp, value] = history.data[i];
+      const x = padding + (chartWidth * (timestamp - minTime) / timeRange);
+      const y = padding + chartHeight - ((value - minVal) / range * chartHeight);
       
       if (i === 0) {
         ctx.moveTo(x, y);
@@ -669,8 +687,8 @@ updateGpio();
 updateAdc();
 
 // Update periodically
-setInterval(updateGpio, 500);
-setInterval(updateAdc, 200);
+setInterval(updateGpio, 200);
+setInterval(updateAdc, 100);
 
 // Update logs if enabled
 )";
@@ -770,49 +788,47 @@ std::string RemoteDebug::get_adc_data_json() const {
 
   bool first = true;
 
-  // ADC1 data
+  // Process ADC1 channels
   for (size_t i = 0; i < adc1_data_.size(); i++) {
     const auto &data = adc1_data_[i];
     if (!first)
       ss << ",";
 
     // Get the most recent value
-    size_t read_idx = (data.write_index > 0) ? (data.write_index - 1) : (data.count - 1);
-    float voltage = (data.count > 0) ? data.values[read_idx] : 0.0f;
+    float voltage = 0.0f;
+    if (data.count > 0) {
+      size_t latest_idx = (data.write_index + data.values.size() - 1) % data.values.size();
+      voltage = data.values[latest_idx];
+    }
 
-    // Key format: "1_5" for ADC1 channel 5
-    ss << "\"1_" << static_cast<int>(data.channel) << "\":{";
+    ss << "\"" << data.label << "\":{";
     ss << "\"voltage\":" << std::fixed << std::setprecision(3) << voltage << ",";
     ss << "\"current\":" << voltage << ",";
-    ss << "\"label\":\""
-       << (data.label.empty() ? ("ADC 1_" + std::to_string(static_cast<int>(data.channel)))
-                              : data.label)
-       << "\",";
+    ss << "\"label\":\"" << data.label << "\",";
+    ss << "\"unit\":1,";
+    ss << "\"channel\":" << static_cast<int>(data.channel) << ",";
 
-    // Send batched data for plotting (last N samples)
+    // Send all buffered data for plotting
     ss << "\"history\":{";
     ss << "\"count\":" << data.count << ",";
-    ss << "\"write_index\":" << data.write_index << ",";
     ss << "\"values\":[";
 
-    // Send the most recent batch_size samples
-    size_t num_samples = std::min(config_.adc_batch_size, data.count);
-    for (size_t j = 0; j < num_samples; j++) {
+    // Send data in chronological order (oldest to newest)
+    const size_t count = data.count;
+    const size_t capacity = data.values.size();
+    for (size_t j = 0; j < count; j++) {
       if (j > 0)
         ss << ",";
-      // Calculate index going backwards from write_index
-      size_t idx = (data.write_index + config_.adc_history_size - num_samples + j) %
-                   config_.adc_history_size;
+      size_t idx = (data.write_index + capacity - count + j) % capacity;
       ss << std::fixed << std::setprecision(3) << data.values[idx];
     }
     ss << "],";
 
     ss << "\"timestamps\":[";
-    for (size_t j = 0; j < num_samples; j++) {
+    for (size_t j = 0; j < count; j++) {
       if (j > 0)
         ss << ",";
-      size_t idx = (data.write_index + config_.adc_history_size - num_samples + j) %
-                   config_.adc_history_size;
+      size_t idx = (data.write_index + capacity - count + j) % capacity;
       ss << data.timestamps[idx];
     }
     ss << "]";
@@ -821,49 +837,47 @@ std::string RemoteDebug::get_adc_data_json() const {
     first = false;
   }
 
-  // ADC2 data
+  // Process ADC2 channels
   for (size_t i = 0; i < adc2_data_.size(); i++) {
     const auto &data = adc2_data_[i];
     if (!first)
       ss << ",";
 
     // Get the most recent value
-    size_t read_idx = (data.write_index > 0) ? (data.write_index - 1) : (data.count - 1);
-    float voltage = (data.count > 0) ? data.values[read_idx] : 0.0f;
+    float voltage = 0.0f;
+    if (data.count > 0) {
+      size_t latest_idx = (data.write_index + data.values.size() - 1) % data.values.size();
+      voltage = data.values[latest_idx];
+    }
 
-    // Key format: "2_5" for ADC2 channel 5
-    ss << "\"2_" << static_cast<int>(data.channel) << "\":{";
+    ss << "\"" << data.label << "\":{";
     ss << "\"voltage\":" << std::fixed << std::setprecision(3) << voltage << ",";
     ss << "\"current\":" << voltage << ",";
-    ss << "\"label\":\""
-       << (data.label.empty() ? ("ADC 2_" + std::to_string(static_cast<int>(data.channel)))
-                              : data.label)
-       << "\",";
+    ss << "\"label\":\"" << data.label << "\",";
+    ss << "\"unit\":2,";
+    ss << "\"channel\":" << static_cast<int>(data.channel) << ",";
 
-    // Send batched data for plotting (last N samples)
+    // Send all buffered data for plotting
     ss << "\"history\":{";
     ss << "\"count\":" << data.count << ",";
-    ss << "\"write_index\":" << data.write_index << ",";
     ss << "\"values\":[";
 
-    // Send the most recent batch_size samples
-    size_t num_samples = std::min(config_.adc_batch_size, data.count);
-    for (size_t j = 0; j < num_samples; j++) {
+    // Send data in chronological order (oldest to newest)
+    const size_t count = data.count;
+    const size_t capacity = data.values.size();
+    for (size_t j = 0; j < count; j++) {
       if (j > 0)
         ss << ",";
-      // Calculate index going backwards from write_index
-      size_t idx = (data.write_index + config_.adc_history_size - num_samples + j) %
-                   config_.adc_history_size;
+      size_t idx = (data.write_index + capacity - count + j) % capacity;
       ss << std::fixed << std::setprecision(3) << data.values[idx];
     }
     ss << "],";
 
     ss << "\"timestamps\":[";
-    for (size_t j = 0; j < num_samples; j++) {
+    for (size_t j = 0; j < count; j++) {
       if (j > 0)
         ss << ",";
-      size_t idx = (data.write_index + config_.adc_history_size - num_samples + j) %
-                   config_.adc_history_size;
+      size_t idx = (data.write_index + capacity - count + j) % capacity;
       ss << data.timestamps[idx];
     }
     ss << "]";
