@@ -6,17 +6,19 @@ repository: "git://github.com/esp-cpp/espp.git"
 maintainers:
   - William Emfinger <waemfinger@gmail.com>
 documentation: "https://esp-cpp.github.io/espp/remote_debug.html"
+examples:
+  - path: example
 tags:
   - cpp
   - Debug
   - GPIO
   - ADC
+  - HTTP
+  - WebServer
 dependencies:
   idf:
     version: '>=5.0'
-  espp/base_component:
-    path: ../base_component
-  espp/oneshot_adc:
-    path: ../oneshot_adc
-  espp/timer:
-    path: ../timer
+  espp/adc: '>=1.0'
+  espp/base_component: '>=1.0'
+  espp/file_system: '>=1.0'
+  espp/timer: '>=1.0'
