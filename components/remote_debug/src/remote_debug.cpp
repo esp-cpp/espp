@@ -938,8 +938,12 @@ void RemoteDebug::cleanup_log_redirection() {
 
     // Restore original stdout
     if (original_stdout_) {
-      freopen("/dev/null", "w", stdout); // dummy call to reset stdout
-      *stdout = *original_stdout_;       // restore the FILE structure
+      auto ret = freopen("/dev/null", "w", stdout); // dummy call to reset stdout
+      if (!ret) {
+        logger_.error("Failed to reset stdout (errno: {})", strerror(errno));
+        return;
+      }
+      *stdout = *original_stdout_; // restore the FILE structure
       original_stdout_ = nullptr;
     }
 
