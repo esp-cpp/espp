@@ -22,10 +22,17 @@ Navigate to `Remote Debug Example Configuration`:
 - Set WiFi SSID and password
 - Configure server port (default: 8080)
 - Set number of GPIOs to expose (1-10)
-- Configure which GPIO pins to use
+- Configure which GPIO pins to use and their labels
 - Set number of ADC channels (0-8)
-- Configure which ADC pins to monitor
+- Configure which ADC pins to monitor and their labels
 - Set ADC sample rate and buffer size
+- Enable/disable console log viewer
+- Set log buffer size
+
+**Important for Console Logging**: If you enable the console log viewer, you must also enable:
+- Component config → LittleFS → `CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE=y`
+
+This ensures logs appear in real-time on the web interface. Without this setting, logs will only show after the buffer fills or the file closes.
 
 ### Build and Flash
 

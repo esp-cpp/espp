@@ -779,10 +779,20 @@ void RemoteDebug::setup_log_redirection() {
     return;
   }
 
+#ifndef CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE
+  logger_.warn("**************************************************************");
+  logger_.warn("WARNING: CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE is not enabled!");
+  logger_.warn("Logs will not appear in real-time on the web interface.");
+  logger_.warn("Enable this option in menuconfig:");
+  logger_.warn("  Component config -> LittleFS -> Flush file every write");
+  logger_.warn("**************************************************************");
+#endif
+
   auto &fs = FileSystem::get();
   auto log_path = fs.get_root_path() / config_.log_file_path;
 
   logger_.info("Attempting to redirect stdout to: {}", log_path);
+  logger_.info("Log buffer size: {} bytes", config_.max_log_size);
 
   // Save original stdout before redirecting
   original_stdout_ = stdout;

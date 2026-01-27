@@ -96,26 +96,43 @@ extern "C" void app_main(void) {
                            .label = CONFIG_REMOTE_DEBUG_ADC_1_LABEL});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 3
-  adc1_channels.push_back(
-      {.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_2), .label = "A2"});
+  adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_2),
+                           .label = CONFIG_REMOTE_DEBUG_ADC_2_LABEL});
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 4
-  adc1_channels.push_back(
-      {.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_3), .label = "A3"});
+  adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_3),
+                           .label = CONFIG_REMOTE_DEBUG_ADC_3_LABEL});
+#endif
+#if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 5
+  adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_4),
+                           .label = CONFIG_REMOTE_DEBUG_ADC_4_LABEL});
+#endif
+#if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 6
+  adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_5),
+                           .label = CONFIG_REMOTE_DEBUG_ADC_5_LABEL});
+#endif
+#if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 7
+  adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_6),
+                           .label = CONFIG_REMOTE_DEBUG_ADC_6_LABEL});
+#endif
+#if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 8
+  adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_7),
+                           .label = CONFIG_REMOTE_DEBUG_ADC_7_LABEL});
 #endif
 
   // Configure remote debug
-  espp::RemoteDebug::Config config{
-      .device_name = CONFIG_REMOTE_DEBUG_DEVICE_NAME,
-      .gpios = gpios,
-      .adc1_channels = adc1_channels,
-      .adc2_channels = {},
-      .server_port = static_cast<uint16_t>(CONFIG_REMOTE_DEBUG_SERVER_PORT),
-      .adc_sample_rate = std::chrono::milliseconds(1000 / adc_sample_rate_hz),
-      .gpio_update_rate = std::chrono::milliseconds(100),
-      .adc_history_size = adc_buffer_size,
-      .enable_log_capture = true,
-      .log_level = espp::Logger::Verbosity::INFO};
+  espp::RemoteDebug::Config config {
+    .device_name = CONFIG_REMOTE_DEBUG_DEVICE_NAME, .gpios = gpios, .adc1_channels = adc1_channels,
+    .adc2_channels = {}, .server_port = static_cast<uint16_t>(CONFIG_REMOTE_DEBUG_SERVER_PORT),
+    .adc_sample_rate = std::chrono::milliseconds(1000 / adc_sample_rate_hz),
+    .gpio_update_rate = std::chrono::milliseconds(100), .adc_history_size = adc_buffer_size,
+#if CONFIG_REMOTE_DEBUG_ENABLE_LOGS
+    .enable_log_capture = true, .max_log_size = CONFIG_REMOTE_DEBUG_LOG_BUFFER_SIZE,
+#else
+    .enable_log_capture = false,
+#endif
+    .log_level = espp::Logger::Verbosity::INFO
+  };
 
   espp::RemoteDebug remote_debug(config);
   remote_debug.start();
