@@ -18,3 +18,5 @@ dependencies:
     path: ../base_component
   espp/oneshot_adc:
     path: ../oneshot_adc
+  espp/timer:
+    path: ../timer

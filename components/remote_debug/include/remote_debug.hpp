@@ -3,10 +3,10 @@
 #include <atomic>
 #include <chrono>
 #include <functional>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <driver/gpio.h>
@@ -14,6 +14,7 @@
 
 #include "base_component.hpp"
 #include "oneshot_adc.hpp"
+#include "timer.hpp"
 
 namespace espp {
 /**
@@ -64,6 +65,9 @@ public:
     std::chrono::milliseconds adc_sample_rate{100};  ///< ADC sampling interval
     std::chrono::milliseconds gpio_update_rate{100}; ///< GPIO state update interval
     size_t adc_history_size{1000};                   ///< Number of ADC samples to keep
+    size_t adc_batch_size{10};                       ///< Number of ADC samples to send per update
+    size_t task_priority{5};                         ///< Priority for update tasks
+    size_t task_stack_size{4096};                    ///< Stack size for update tasks
     bool enable_log_capture{false};                  ///< Enable stdout redirection to file
     std::string log_file_path{
         "debug.log"}; ///< Path to log file. Will be appended to espp::FileSystem::get_root_path().
@@ -150,15 +154,16 @@ protected:
   std::unique_ptr<OneshotAdc> adc1_;
   std::unique_ptr<OneshotAdc> adc2_;
 
-  std::map<gpio_num_t, GpioConfig> gpio_map_;
-  std::map<gpio_num_t, int> gpio_state_; // Cached GPIO states
+  std::unordered_map<gpio_num_t, GpioConfig> gpio_map_;
+  std::unordered_map<gpio_num_t, int> gpio_state_; // Cached GPIO states
   std::mutex gpio_mutex_;
 
-  // ADC data storage
+  // ADC data storage - ring buffer implementation
   struct AdcData {
-    std::vector<int> values;
+    std::vector<float> values;
     std::vector<uint64_t> timestamps;
-    size_t write_index{0};
+    size_t write_index{0}; // Current write position in ring buffer
+    size_t count{0};       // Number of valid samples (up to buffer size)
     adc_channel_t channel;
     std::string label;
   };
@@ -168,8 +173,8 @@ protected:
 
   std::atomic<bool> is_active_{false};
   std::atomic<bool> sampling_active_{false};
-  std::unique_ptr<std::thread> sampling_thread_;
-  std::unique_ptr<std::thread> gpio_thread_;
+  std::unique_ptr<Timer> adc_timer_;
+  std::unique_ptr<Timer> gpio_timer_;
 
   // Log redirection
   FILE *log_file_{nullptr};

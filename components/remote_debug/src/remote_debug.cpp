@@ -40,8 +40,13 @@ void RemoteDebug::init(const Config &config) {
                   gpio_state_[gpio.pin]);
   }
 
+  logger_.debug("Configured {} GPIOs", config_.gpios.size());
+
+  logger_.info("ADC history size: {}", config_.adc_history_size);
+
   // Initialize ADC1
   if (!config_.adc1_channels.empty()) {
+    logger_.info("Initializing ADC1 with {} channels", config_.adc1_channels.size());
     std::vector<AdcConfig> adc1_configs;
     for (const auto &ch : config_.adc1_channels) {
       adc1_configs.push_back({.unit = ADC_UNIT_1, .channel = ch.channel, .attenuation = ch.atten});
@@ -60,6 +65,7 @@ void RemoteDebug::init(const Config &config) {
 
   // Initialize ADC2
   if (!config_.adc2_channels.empty()) {
+    logger_.info("Initializing ADC2 with {} channels", config_.adc2_channels.size());
     std::vector<AdcConfig> adc2_configs;
     for (const auto &ch : config_.adc2_channels) {
       adc2_configs.push_back({.unit = ADC_UNIT_2, .channel = ch.channel, .attenuation = ch.atten});
@@ -90,15 +96,38 @@ bool RemoteDebug::start() {
     return false;
   }
 
-  // Start ADC sampling task if we have ADCs
+  // Start ADC sampling timer if we have ADCs
   if (adc1_ || adc2_) {
+    logger_.info("Starting ADC sampling timer with period {} ms", config_.adc_sample_rate.count());
     sampling_active_ = true;
-    sampling_thread_ = std::make_unique<std::thread>([this]() { adc_sampling_task(); });
+    adc_timer_ = std::make_unique<Timer>(Timer::Config{.name = "adc_timer",
+                                                       .period = config_.adc_sample_rate,
+                                                       .callback =
+                                                           [this]() {
+                                                             adc_sampling_task();
+                                                             return false;
+                                                           },
+                                                       .auto_start = false,
+                                                       .stack_size_bytes = config_.task_stack_size,
+                                                       .priority = config_.task_priority,
+                                                       .log_level = config_.log_level});
+    adc_timer_->start();
   }
 
-  // Start GPIO update task
+  // Start GPIO update timer
   if (!gpio_map_.empty()) {
-    gpio_thread_ = std::make_unique<std::thread>([this]() { gpio_update_task(); });
+    gpio_timer_ = std::make_unique<Timer>(Timer::Config{.name = "gpio_timer",
+                                                        .period = config_.gpio_update_rate,
+                                                        .callback =
+                                                            [this]() {
+                                                              gpio_update_task();
+                                                              return false;
+                                                            },
+                                                        .auto_start = false,
+                                                        .stack_size_bytes = config_.task_stack_size,
+                                                        .priority = config_.task_priority,
+                                                        .log_level = config_.log_level});
+    gpio_timer_->start();
   }
 
   // Setup log redirection if enabled
@@ -117,11 +146,15 @@ void RemoteDebug::stop() {
   }
 
   sampling_active_ = false;
-  if (sampling_thread_ && sampling_thread_->joinable()) {
-    sampling_thread_->join();
+
+  // Stop timers
+  if (adc_timer_) {
+    adc_timer_->stop();
+    adc_timer_.reset();
   }
-  if (gpio_thread_ && gpio_thread_->joinable()) {
-    gpio_thread_->join();
+  if (gpio_timer_) {
+    gpio_timer_->stop();
+    gpio_timer_.reset();
   }
 
   cleanup_log_redirection();
@@ -182,46 +215,45 @@ bool RemoteDebug::configure_gpio(gpio_num_t pin, gpio_mode_t mode) {
 }
 
 void RemoteDebug::gpio_update_task() {
-  while (sampling_active_) {
-    {
-      std::lock_guard<std::mutex> lock(gpio_mutex_);
-      for (auto &[pin, config] : gpio_map_) {
-        gpio_state_[pin] = gpio_get_level(pin);
-      }
-    }
-    std::this_thread::sleep_for(config_.gpio_update_rate);
+  std::lock_guard<std::mutex> lock(gpio_mutex_);
+  for (auto &[pin, config] : gpio_map_) {
+    gpio_state_[pin] = gpio_get_level(pin);
   }
 }
 
 void RemoteDebug::adc_sampling_task() {
-  while (sampling_active_) {
-    auto now = esp_timer_get_time();
+  auto now = esp_timer_get_time();
 
-    std::lock_guard<std::mutex> lock(adc_mutex_);
+  std::lock_guard<std::mutex> lock(adc_mutex_);
 
-    // Sample ADC1
-    if (adc1_) {
-      auto values = adc1_->read_all_mv();
-      for (size_t i = 0; i < values.size() && i < adc1_data_.size(); i++) {
-        auto &data = adc1_data_[i];
-        data.values[data.write_index] = values[i];
-        data.timestamps[data.write_index] = now;
-        data.write_index = (data.write_index + 1) % config_.adc_history_size;
+  // Sample ADC1
+  if (adc1_) {
+    auto values = adc1_->read_all_mv();
+    for (size_t i = 0; i < values.size() && i < adc1_data_.size(); i++) {
+      auto &data = adc1_data_[i];
+      // Convert mV to V
+      data.values[data.write_index] = values[i] / 1000.0f;
+      data.timestamps[data.write_index] = now;
+      data.write_index = (data.write_index + 1) % config_.adc_history_size;
+      if (data.count < config_.adc_history_size) {
+        data.count++;
       }
     }
+  }
 
-    // Sample ADC2
-    if (adc2_) {
-      auto values = adc2_->read_all_mv();
-      for (size_t i = 0; i < values.size() && i < adc2_data_.size(); i++) {
-        auto &data = adc2_data_[i];
-        data.values[data.write_index] = values[i];
-        data.timestamps[data.write_index] = now;
-        data.write_index = (data.write_index + 1) % config_.adc_history_size;
+  // Sample ADC2
+  if (adc2_) {
+    auto values = adc2_->read_all_mv();
+    for (size_t i = 0; i < values.size() && i < adc2_data_.size(); i++) {
+      auto &data = adc2_data_[i];
+      // Convert mV to V
+      data.values[data.write_index] = values[i] / 1000.0f;
+      data.timestamps[data.write_index] = now;
+      data.write_index = (data.write_index + 1) % config_.adc_history_size;
+      if (data.count < config_.adc_history_size) {
+        data.count++;
       }
     }
-
-    std::this_thread::sleep_for(config_.adc_sample_rate);
   }
 }
 
@@ -514,26 +546,37 @@ function updateAdc() {
   fetch('/api/adc/data')
     .then(r => r.json())
     .then(data => {
-      const now = Date.now();
       for (let key in data) {
         // key format is "1_8" for ADC1 channel 8
         const elem = document.getElementById('adc' + key);
         if (elem) {
-          const volts = (data[key].voltage / 1000.0).toFixed(3);
+          const volts = data[key].voltage.toFixed(3);
           elem.innerText = volts + ' V';
         }
         
         if (!adcHistory[key]) {
-          adcHistory[key] = { values: [], times: [], color: colors[colorIndex++ % colors.length], label: data[key].label };
+          adcHistory[key] = { 
+            values: [], 
+            color: colors[colorIndex++ % colors.length], 
+            label: data[key].label,
+            lastIndex: 0
+          };
         }
         
-        adcHistory[key].values.push(data[key].voltage / 1000.0); // Store in volts
-        adcHistory[key].times.push(now);
-        
-        // Keep last 100 samples
-        if (adcHistory[key].values.length > 100) {
-          adcHistory[key].values.shift();
-          adcHistory[key].times.shift();
+        // Get batched history data
+        const history = data[key].history;
+        if (history && history.values && history.values.length > 0) {
+          // Append new values from the batch
+          for (let i = 0; i < history.values.length; i++) {
+            adcHistory[key].values.push(history.values[i]);
+          }
+          
+          // Keep only the most recent samples (limit client-side storage)
+          const maxSamples = 1000;
+          if (adcHistory[key].values.length > maxSamples) {
+            const excess = adcHistory[key].values.length - maxSamples;
+            adcHistory[key].values.splice(0, excess);
+          }
         }
       }
       drawChart();
@@ -733,18 +776,48 @@ std::string RemoteDebug::get_adc_data_json() const {
     if (!first)
       ss << ",";
 
-    auto idx = (data.write_index > 0) ? (data.write_index - 1) : (config_.adc_history_size - 1);
-    int voltage_mv = data.values[idx];
+    // Get the most recent value
+    size_t read_idx = (data.write_index > 0) ? (data.write_index - 1) : (data.count - 1);
+    float voltage = (data.count > 0) ? data.values[read_idx] : 0.0f;
 
     // Key format: "1_5" for ADC1 channel 5
     ss << "\"1_" << static_cast<int>(data.channel) << "\":{";
-    ss << "\"voltage\":" << voltage_mv << ",";
-    ss << "\"current\":" << voltage_mv << ",";
+    ss << "\"voltage\":" << std::fixed << std::setprecision(3) << voltage << ",";
+    ss << "\"current\":" << voltage << ",";
     ss << "\"label\":\""
-       << (data.label.empty() ? ("ADC1_CH" + std::to_string(static_cast<int>(data.channel)))
+       << (data.label.empty() ? ("ADC 1_" + std::to_string(static_cast<int>(data.channel)))
                               : data.label)
-       << "\"";
-    ss << "}";
+       << "\",";
+
+    // Send batched data for plotting (last N samples)
+    ss << "\"history\":{";
+    ss << "\"count\":" << data.count << ",";
+    ss << "\"write_index\":" << data.write_index << ",";
+    ss << "\"values\":[";
+
+    // Send the most recent batch_size samples
+    size_t num_samples = std::min(config_.adc_batch_size, data.count);
+    for (size_t j = 0; j < num_samples; j++) {
+      if (j > 0)
+        ss << ",";
+      // Calculate index going backwards from write_index
+      size_t idx = (data.write_index + config_.adc_history_size - num_samples + j) %
+                   config_.adc_history_size;
+      ss << std::fixed << std::setprecision(3) << data.values[idx];
+    }
+    ss << "],";
+
+    ss << "\"timestamps\":[";
+    for (size_t j = 0; j < num_samples; j++) {
+      if (j > 0)
+        ss << ",";
+      size_t idx = (data.write_index + config_.adc_history_size - num_samples + j) %
+                   config_.adc_history_size;
+      ss << data.timestamps[idx];
+    }
+    ss << "]";
+    ss << "}"; // close history
+    ss << "}"; // close channel
     first = false;
   }
 
@@ -754,18 +827,48 @@ std::string RemoteDebug::get_adc_data_json() const {
     if (!first)
       ss << ",";
 
-    auto idx = (data.write_index > 0) ? (data.write_index - 1) : (config_.adc_history_size - 1);
-    int voltage_mv = data.values[idx];
+    // Get the most recent value
+    size_t read_idx = (data.write_index > 0) ? (data.write_index - 1) : (data.count - 1);
+    float voltage = (data.count > 0) ? data.values[read_idx] : 0.0f;
 
     // Key format: "2_5" for ADC2 channel 5
     ss << "\"2_" << static_cast<int>(data.channel) << "\":{";
-    ss << "\"voltage\":" << voltage_mv << ",";
-    ss << "\"current\":" << voltage_mv << ",";
+    ss << "\"voltage\":" << std::fixed << std::setprecision(3) << voltage << ",";
+    ss << "\"current\":" << voltage << ",";
     ss << "\"label\":\""
-       << (data.label.empty() ? ("ADC2_CH" + std::to_string(static_cast<int>(data.channel)))
+       << (data.label.empty() ? ("ADC 2_" + std::to_string(static_cast<int>(data.channel)))
                               : data.label)
-       << "\"";
-    ss << "}";
+       << "\",";
+
+    // Send batched data for plotting (last N samples)
+    ss << "\"history\":{";
+    ss << "\"count\":" << data.count << ",";
+    ss << "\"write_index\":" << data.write_index << ",";
+    ss << "\"values\":[";
+
+    // Send the most recent batch_size samples
+    size_t num_samples = std::min(config_.adc_batch_size, data.count);
+    for (size_t j = 0; j < num_samples; j++) {
+      if (j > 0)
+        ss << ",";
+      // Calculate index going backwards from write_index
+      size_t idx = (data.write_index + config_.adc_history_size - num_samples + j) %
+                   config_.adc_history_size;
+      ss << std::fixed << std::setprecision(3) << data.values[idx];
+    }
+    ss << "],";
+
+    ss << "\"timestamps\":[";
+    for (size_t j = 0; j < num_samples; j++) {
+      if (j > 0)
+        ss << ",";
+      size_t idx = (data.write_index + config_.adc_history_size - num_samples + j) %
+                   config_.adc_history_size;
+      ss << data.timestamps[idx];
+    }
+    ss << "]";
+    ss << "}"; // close history
+    ss << "}"; // close channel
     first = false;
   }
 

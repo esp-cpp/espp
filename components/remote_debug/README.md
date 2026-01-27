@@ -1,14 +1,31 @@
 # Remote Debug
 
-Web-based remote debugging interface providing GPIO control, real-time ADC monitoring, and optional console log viewing over HTTP.
+Web-based remote debugging interface providing GPIO control, real-time ADC monitoring, and optional console log viewing over HTTP. Uses espp::Timer for efficient, configurable periodic updates.
 
 ## Features
 
 - **GPIO Control**: Configure pins as input/output, read states, control outputs via web interface
-- **ADC Monitoring**: Real-time visualization of up to 8 ADC channels with configurable sample rates
+- **ADC Monitoring**: Real-time visualization of ADC channels with configurable sample rates and batching
 - **Console Log Viewer**: Optional stdout redirection to web-viewable log with ANSI color support
+- **Efficient Updates**: Uses espp::Timer with configurable priority and stack size for optimal performance
 - **Clean API**: RESTful JSON endpoints for programmatic access
 - **Responsive UI**: Modern web interface that works on desktop and mobile
+- **Multi-client Support**: Optimized for multiple concurrent clients through batched updates
+
+## Performance Considerations
+
+The remote debug component has been optimized for efficiency:
+
+- Uses `espp::Timer` instead of raw threads for precise, lightweight periodic updates
+- Configurable task priority and stack size for both GPIO and ADC sampling
+- Batched ADC data updates reduce HTTP overhead
+- Single consolidated update endpoint minimizes request count
+- Efficient JSON generation for minimal processing overhead
+
+For best performance with multiple clients:
+- Increase `adc_batch_size` to reduce update frequency
+- Adjust `adc_sample_rate` and `gpio_update_rate` based on actual needs
+- Configure appropriate `task_priority` and `task_stack_size` for your application
 
 ## Usage
 
