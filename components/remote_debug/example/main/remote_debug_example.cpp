@@ -78,7 +78,9 @@ extern "C" void app_main(void) {
 #endif
 
   // Build ADC list from menuconfig
+  size_t task_stack_size = 4096;
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 1
+  task_stack_size += 2048;
   int adc_sample_rate_hz = CONFIG_REMOTE_DEBUG_ADC_SAMPLE_RATE_HZ;
   size_t adc_buffer_size = CONFIG_REMOTE_DEBUG_ADC_BUFFER_SIZE;
 #else
@@ -102,6 +104,7 @@ extern "C" void app_main(void) {
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 4
   adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_3),
                            .label = CONFIG_REMOTE_DEBUG_ADC_3_LABEL});
+  task_stack_size += 2048;
 #endif
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 5
   adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_4),
@@ -118,6 +121,7 @@ extern "C" void app_main(void) {
 #if CONFIG_REMOTE_DEBUG_NUM_ADCS >= 8
   adc1_channels.push_back({.channel = static_cast<adc_channel_t>(CONFIG_REMOTE_DEBUG_ADC_7),
                            .label = CONFIG_REMOTE_DEBUG_ADC_7_LABEL});
+  task_stack_size += 2048;
 #endif
 
   // Configure remote debug
@@ -126,6 +130,7 @@ extern "C" void app_main(void) {
     .adc2_channels = {}, .server_port = static_cast<uint16_t>(CONFIG_REMOTE_DEBUG_SERVER_PORT),
     .adc_sample_rate = std::chrono::milliseconds(1000 / adc_sample_rate_hz),
     .gpio_update_rate = std::chrono::milliseconds(100), .adc_history_size = adc_buffer_size,
+    .adc_batch_size = adc_buffer_size / 3, .task_priority = 5, .task_stack_size = task_stack_size,
 #if CONFIG_REMOTE_DEBUG_ENABLE_LOGS
     .enable_log_capture = true, .max_log_size = CONFIG_REMOTE_DEBUG_LOG_BUFFER_SIZE,
 #else

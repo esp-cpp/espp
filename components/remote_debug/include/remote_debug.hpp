@@ -64,7 +64,7 @@ public:
     uint16_t server_port{8080};                      ///< HTTP server port
     std::chrono::milliseconds adc_sample_rate{100};  ///< ADC sampling interval
     std::chrono::milliseconds gpio_update_rate{100}; ///< GPIO state update interval
-    size_t adc_history_size{1000};                   ///< Number of ADC samples to keep
+    size_t adc_history_size{20};                     ///< Number of ADC samples to keep
     size_t adc_batch_size{10};                       ///< Number of ADC samples to send per update
     size_t task_priority{5};                         ///< Priority for update tasks
     size_t task_stack_size{4096};                    ///< Stack size for update tasks

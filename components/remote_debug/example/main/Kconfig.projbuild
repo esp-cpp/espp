@@ -275,7 +275,7 @@ menu "Remote Debug Example Configuration"
 
         config REMOTE_DEBUG_ADC_SAMPLE_RATE_HZ
             int "ADC Sample Rate (Hz)"
-            default 100
+            default 25
             range 1 1000
             depends on REMOTE_DEBUG_NUM_ADCS > 0
             help
@@ -283,7 +283,7 @@ menu "Remote Debug Example Configuration"
 
         config REMOTE_DEBUG_ADC_BUFFER_SIZE
             int "ADC Buffer Size"
-            default 500
+            default 100
             range 10 10000
             depends on REMOTE_DEBUG_NUM_ADCS > 0
             help
@@ -301,7 +301,7 @@ menu "Remote Debug Example Configuration"
 
         config REMOTE_DEBUG_LOG_BUFFER_SIZE
             int "Log Buffer Size (bytes)"
-            default 8192
+            default 2048
             range 1024 65536
             depends on REMOTE_DEBUG_ENABLE_LOGS
             help
