@@ -12,7 +12,7 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  "main esptool_py remote_debug task nvs_flash esp_wifi esp_event esp_netif"
+  "main esptool_py remote_debug task timer nvs_flash wifi"
   CACHE STRING
   "List of components to include"
   )

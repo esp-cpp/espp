@@ -56,14 +56,18 @@ public:
    * @brief Configuration for remote debug
    */
   struct Config {
-    std::string device_name{"ESP32 Device"};              ///< Device name shown in UI title
-    std::vector<GpioConfig> gpios;                        ///< GPIO pins to expose
-    std::vector<AdcChannelConfig> adc1_channels;          ///< ADC1 channels to monitor
-    std::vector<AdcChannelConfig> adc2_channels;          ///< ADC2 channels to monitor
-    uint16_t server_port{8080};                           ///< HTTP server port
-    std::chrono::milliseconds adc_sample_rate{100};       ///< ADC sampling interval
-    std::chrono::milliseconds gpio_update_rate{100};      ///< GPIO state update interval
-    size_t adc_history_size{1000};                        ///< Number of ADC samples to keep
+    std::string device_name{"ESP32 Device"};         ///< Device name shown in UI title
+    std::vector<GpioConfig> gpios;                   ///< GPIO pins to expose
+    std::vector<AdcChannelConfig> adc1_channels;     ///< ADC1 channels to monitor
+    std::vector<AdcChannelConfig> adc2_channels;     ///< ADC2 channels to monitor
+    uint16_t server_port{8080};                      ///< HTTP server port
+    std::chrono::milliseconds adc_sample_rate{100};  ///< ADC sampling interval
+    std::chrono::milliseconds gpio_update_rate{100}; ///< GPIO state update interval
+    size_t adc_history_size{1000};                   ///< Number of ADC samples to keep
+    bool enable_log_capture{false};                  ///< Enable stdout redirection to file
+    std::string log_file_path{
+        "debug.log"}; ///< Path to log file. Will be appended to espp::FileSystem::get_root_path().
+    size_t max_log_size{100000};                          ///< Maximum log file size in bytes
     Logger::Verbosity log_level{Logger::Verbosity::WARN}; ///< Log verbosity
   };
 
@@ -131,10 +135,14 @@ protected:
   static esp_err_t gpio_set_handler(httpd_req_t *req);
   static esp_err_t gpio_config_handler(httpd_req_t *req);
   static esp_err_t adc_data_handler(httpd_req_t *req);
+  static esp_err_t logs_handler(httpd_req_t *req);
 
   std::string generate_html() const;
   std::string get_gpio_state_json() const;
   std::string get_adc_data_json() const;
+  std::string get_logs() const;
+  void setup_log_redirection();
+  void cleanup_log_redirection();
 
   Config config_;
   httpd_handle_t server_{nullptr};
@@ -162,6 +170,10 @@ protected:
   std::atomic<bool> sampling_active_{false};
   std::unique_ptr<std::thread> sampling_thread_;
   std::unique_ptr<std::thread> gpio_thread_;
+
+  // Log redirection
+  FILE *log_file_{nullptr};
+  FILE *original_stdout_{nullptr};
 };
 } // namespace espp
 

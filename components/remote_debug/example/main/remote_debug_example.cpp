@@ -2,9 +2,11 @@
 #include <thread>
 #include <vector>
 
+#include "file_system.hpp"
 #include "logger.hpp"
 #include "nvs.hpp"
 #include "remote_debug.hpp"
+#include "timer.hpp"
 #include "wifi_sta.hpp"
 
 using namespace std::chrono_literals;
@@ -23,6 +25,13 @@ extern "C" void app_main(void) {
   }
   ESP_ERROR_CHECK(ret);
 #endif
+
+  // Initialize filesystem
+  logger.info("Initializing filesystem...");
+  auto &fs = espp::FileSystem::get();
+  logger.info("Filesystem mounted at: {}", fs.get_mount_point());
+  logger.info("Total space: {}", fs.human_readable(fs.get_total_space()));
+  logger.info("Free space:  {}", fs.human_readable(fs.get_free_space()));
 
   //! [remote debug example]
 
@@ -105,6 +114,7 @@ extern "C" void app_main(void) {
       .adc_sample_rate = std::chrono::milliseconds(1000 / adc_sample_rate_hz),
       .gpio_update_rate = std::chrono::milliseconds(100),
       .adc_history_size = adc_buffer_size,
+      .enable_log_capture = true,
       .log_level = espp::Logger::Verbosity::INFO};
 
   espp::RemoteDebug remote_debug(config);
@@ -113,6 +123,27 @@ extern "C" void app_main(void) {
   logger.info("Remote Debug Server started on port {}!", CONFIG_REMOTE_DEBUG_SERVER_PORT);
   logger.info("GPIO pins available: {}", gpios.size());
   logger.info("ADC channels available: {}", adc1_channels.size());
+
+  std::this_thread::sleep_for(2s);
+
+  // Create a timer to periodically generate log messages
+  int counter = 0;
+  auto timer = espp::Timer(espp::Timer::Config{.name = "Log Timer",
+                                               .period = 2s,
+                                               .callback =
+                                                   [&logger, &counter]() {
+                                                     logger.info("Timer tick #{}", counter++);
+                                                     if (counter % 3 == 0) {
+                                                       logger.warn("Warning message every 3 ticks");
+                                                     }
+                                                     if (counter % 5 == 0) {
+                                                       logger.error("Error message every 5 ticks");
+                                                     }
+                                                     return false; // don't stop
+                                                   },
+                                               .stack_size_bytes = 6192});
+
+  logger.info("Timer started - generating log messages every 2 seconds");
 
   // Keep running
   while (true) {

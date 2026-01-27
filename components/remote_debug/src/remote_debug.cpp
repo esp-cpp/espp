@@ -1,8 +1,12 @@
 #include "remote_debug.hpp"
 
 #include <algorithm>
+#include <cerrno>
+#include <filesystem>
 #include <iomanip>
 #include <sstream>
+
+#include "file_system.hpp"
 
 using namespace espp;
 
@@ -97,6 +101,11 @@ bool RemoteDebug::start() {
     gpio_thread_ = std::make_unique<std::thread>([this]() { gpio_update_task(); });
   }
 
+  // Setup log redirection if enabled
+  if (config_.enable_log_capture) {
+    setup_log_redirection();
+  }
+
   is_active_ = true;
   logger_.info("RemoteDebug started on port {}", config_.server_port);
   return true;
@@ -115,6 +124,7 @@ void RemoteDebug::stop() {
     gpio_thread_->join();
   }
 
+  cleanup_log_redirection();
   stop_server();
   is_active_ = false;
   logger_.info("RemoteDebug stopped");
@@ -248,6 +258,10 @@ bool RemoteDebug::start_server() {
   httpd_uri_t adc_data_uri = {
       .uri = "/api/adc/data", .method = HTTP_GET, .handler = adc_data_handler, .user_ctx = this};
   httpd_register_uri_handler(server_, &adc_data_uri);
+
+  httpd_uri_t logs_uri = {
+      .uri = "/api/logs", .method = HTTP_GET, .handler = logs_handler, .user_ctx = this};
+  httpd_register_uri_handler(server_, &logs_uri);
 
   return true;
 }
@@ -429,6 +443,16 @@ button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.
     ss << "</div>";
   }
 
+  // Log viewer
+  if (config_.enable_log_capture) {
+    ss << R"(<div class='card'>
+<h2>Console Logs</h2>
+<div style='background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px; font-family: "Courier New", monospace; font-size: 12px; max-height: 400px; overflow-y: auto;'>
+<div id='logBox' style='margin: 0; white-space: pre-wrap; word-wrap: break-word;'>Loading logs...</div>
+</div>
+</div>)";
+  }
+
   // JavaScript
   ss << R"(<script>
 const adcHistory = {};
@@ -604,6 +628,78 @@ updateAdc();
 // Update periodically
 setInterval(updateGpio, 500);
 setInterval(updateAdc, 200);
+
+// Update logs if enabled
+)";
+
+  if (config_.enable_log_capture) {
+    ss << R"(
+// ANSI color parser
+function parseAnsi(text) {
+    const ansiRegex = /\x1b\[([0-9;]+)m/g;
+    const colorMap = {
+        '0': 'reset',
+        '30': '#000000', '31': '#e74c3c', '32': '#2ecc71', '33': '#f39c12',
+        '34': '#3498db', '35': '#9b59b6', '36': '#1abc9c', '37': '#ecf0f1',
+        '90': '#7f8c8d', '91': '#ff6b6b', '92': '#51cf66', '93': '#ffd43b',
+        '94': '#74c0fc', '95': '#da77f2', '96': '#4dabf7', '97': '#f8f9fa'
+    };
+    
+    let result = '';
+    let lastIndex = 0;
+    let currentColor = '#d4d4d4';
+    let currentBold = false;
+    
+    text = text.replace(/\r?\n/g, '\n');
+    
+    let match;
+    while ((match = ansiRegex.exec(text)) !== null) {
+        // Add text before the escape sequence
+        if (match.index > lastIndex) {
+            const textBefore = text.substring(lastIndex, match.index);
+            if (textBefore) {
+                result += `<span style="color:${currentColor};${currentBold ? 'font-weight:bold;' : ''}">${textBefore.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+            }
+        }
+        
+        // Parse the escape code
+        const codes = match[1].split(';').map(c => c.trim());
+        for (const code of codes) {
+            if (code === '0') {
+                currentColor = '#d4d4d4';
+                currentBold = false;
+            } else if (code === '1') {
+                currentBold = true;
+            } else if (colorMap[code]) {
+                currentColor = colorMap[code];
+            }
+        }
+        
+        lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+        const remaining = text.substring(lastIndex);
+        result += `<span style="color:${currentColor};${currentBold ? 'font-weight:bold;' : ''}">${remaining.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+    }
+    
+    return result;
+}
+
+setInterval(() => {
+    fetch('/api/logs')
+        .then(r => r.text())
+        .then(data => {
+            const logBox = document.getElementById('logBox');
+            logBox.innerHTML = parseAnsi(data);
+            logBox.scrollTop = logBox.scrollHeight;
+        });
+}, 1000);
+)";
+  }
+
+  ss << R"(
 </script></div></body></html>)";
 
   return ss.str();
@@ -675,4 +771,110 @@ std::string RemoteDebug::get_adc_data_json() const {
 
   ss << "}";
   return ss.str();
+}
+
+void RemoteDebug::setup_log_redirection() {
+  if (!config_.enable_log_capture) {
+    logger_.debug("Log capture not enabled");
+    return;
+  }
+
+  auto &fs = FileSystem::get();
+  auto log_path = fs.get_root_path() / config_.log_file_path;
+
+  logger_.info("Attempting to redirect stdout to: {}", log_path);
+
+  // Save original stdout before redirecting
+  original_stdout_ = stdout;
+
+  // Redirect stdout using freopen
+  log_file_ = freopen(log_path.string().c_str(), "w", stdout);
+  if (!log_file_) {
+    logger_.error("Failed to redirect stdout to log file: {} (errno: {})", log_path,
+                  strerror(errno));
+    return;
+  }
+
+  // remove file buffer so logs are written immediately
+  setvbuf(log_file_, nullptr, _IONBF, 0);
+
+  // Write test messages directly to stdout (which is now the file)
+  fmt::print("=== Log capture started at {} s ===\n", Logger::get_time());
+  fmt::print("Remote Debug log file: {}\n", log_path);
+  fflush(stdout);
+}
+
+void RemoteDebug::cleanup_log_redirection() {
+  if (log_file_) {
+    printf("=== Log capture stopped ===\n");
+    fflush(log_file_);
+
+    // Restore original stdout
+    if (original_stdout_) {
+      freopen("/dev/null", "w", stdout); // dummy call to reset stdout
+      *stdout = *original_stdout_;       // restore the FILE structure
+      original_stdout_ = nullptr;
+    }
+
+    // Don't close log_file_ since it's the same as stdout after freopen
+    log_file_ = nullptr;
+  }
+}
+
+std::string RemoteDebug::get_logs() const {
+  if (!config_.enable_log_capture) {
+    return "Log capture not enabled";
+  }
+
+  // Flush stdout to ensure all logs are written
+  if (log_file_) {
+    fflush(log_file_);
+  }
+
+  auto &fs = FileSystem::get();
+  auto log_path = fs.get_root_path() / config_.log_file_path;
+
+  // Open a separate file handle for reading
+  FILE *read_file = fopen(log_path.string().c_str(), "r");
+  if (!read_file) {
+    return fmt::format("Failed to open log file for reading (errno: {})", strerror(errno));
+  }
+
+  // Get file size
+  fseek(read_file, 0, SEEK_END);
+  long file_size = ftell(read_file);
+
+  if (file_size <= 0) {
+    fclose(read_file);
+    return "Log file is empty";
+  }
+
+  // Limit to max_log_size and seek to start of content we want to read
+  long read_size = std::min(file_size, static_cast<long>(config_.max_log_size));
+  long start_pos = file_size - read_size;
+  fseek(read_file, start_pos, SEEK_SET);
+
+  // Read content
+  std::string content;
+  content.resize(read_size);
+  size_t bytes_read = fread(&content[0], 1, read_size, read_file);
+  content.resize(bytes_read);
+  fclose(read_file);
+
+  if (bytes_read == 0) {
+    return fmt::format("Failed to read log file (errno: {}) (read_size: {})", strerror(errno),
+                       read_size);
+  }
+
+  return content;
+}
+
+esp_err_t RemoteDebug::logs_handler(httpd_req_t *req) {
+  RemoteDebug *self = static_cast<RemoteDebug *>(req->user_ctx);
+
+  std::string logs = self->get_logs();
+
+  httpd_resp_set_type(req, "text/plain");
+  httpd_resp_send(req, logs.c_str(), logs.length());
+  return ESP_OK;
 }
