@@ -1,146 +1,97 @@
 # Remote Debug Example
 
-Web-based remote debugging interface for GPIO control and real-time ADC monitoring.
+This example demonstrates the `espp::RemoteDebug` component, providing a
+web-based interface for GPIO control, real-time ADC monitoring, and console log
+viewing.
 
-## How to Use
+## How to use example
 
-### Hardware Setup
+### Hardware Required
 
-Connect GPIOs and ADC channels you want to monitor/control. Default pins:
-- GPIOs: 2, 4, 16, 17 (configurable)
-- ADCs: 36, 39 (configurable)
+This example can run on any ESP32 development board. For testing:
+- Connect LEDs or other peripherals / inputs to GPIO pins
+- Connect analog sensors to ADC-capable pins
 
-Connect LEDs, sensors, or other peripherals to these pins for testing.
+### Configure the project
 
-### Configure the Project
-
-```bash
+```
 idf.py menuconfig
 ```
 
 Navigate to `Remote Debug Example Configuration`:
-- Set WiFi SSID and password
-- Configure server port (default: 8080)
-- Set number of GPIOs to expose (1-10)
-- Configure which GPIO pins to use and their labels
-- Set number of ADC channels (0-8)
-- Configure which ADC pins to monitor and their labels
-- Set ADC sample rate and buffer size
-- Enable/disable console log viewer
-- Set log buffer size
+- WiFi credentials (SSID and password)
+- Server configuration (port, title)
+- GPIO configuration (number of pins, pin numbers, labels)
+- ADC configuration (channels, attenuation, labels, sample rate, buffer size)
+- Console logging (enable/disable, buffer size)
 
-**Important for Console Logging**: If you enable the console log viewer, you must also enable:
+**Important**: If enabling console logging, you must also set:
 - Component config → LittleFS → `CONFIG_LITTLEFS_FLUSH_FILE_EVERY_WRITE=y`
 
-This ensures logs appear in real-time on the web interface. Without this setting, logs will only show after the buffer fills or the file closes.
+This ensures real-time log updates on the web interface.
 
 ### Build and Flash
 
-```bash
-idf.py build flash monitor
+Build the project and flash it to the board, then run monitor tool to view serial output:
+
 ```
+idf.py -p PORT flash monitor
+```
+
+(Replace PORT with the name of the serial port to use.)
+
+(To exit the serial monitor, type ``Ctrl-]``.)
+
+See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
 
 ### Access the Interface
 
-1. Device connects to your WiFi network
-2. Check serial monitor for IP address
-3. Open browser to `http://<device-ip>:8080`
-4. Use the web interface to control GPIOs and monitor ADCs
-
-## Features
-
-### GPIO Control
-
-- **Read**: Get current state of GPIO pins
-- **Write**: Set GPIO pins HIGH or LOW
-- **Toggle**: Flip GPIO state
-- **Visual indicators**: Shows current state in real-time
-
-### ADC Monitoring
-
-- **Real-time plotting**: Live graph of ADC values
-- **Multiple channels**: Monitor up to 8 channels simultaneously
-- **Configurable sample rate**: 1-1000 Hz
-- **Voltage display**: Shows current values in volts
-- **Time-series data**: Scrolling graph with configurable buffer
-
-### JSON API
-
-For programmatic access:
-```
-GET  /api/gpio         - List all GPIOs and states
-GET  /api/gpio/<pin>   - Read specific GPIO
-POST /api/gpio/<pin>   - Write GPIO (body: {"state": 1})
-GET  /api/adc          - Get current ADC values
-GET  /api/adc/data     - Get ADC plot data (all samples)
-```
+1. Device connects to configured WiFi network
+2. Check serial monitor for assigned IP address
+3. Open web browser to `http://<device-ip>:<port>` (default port: 8080)
+4. Use the interface to control GPIOs, monitor ADCs, and view console logs
 
 ## Example Output
 
 ```
 I (380) Remote Debug Example: Starting Remote Debug Example
-I (385) Remote Debug Example: Connecting to WiFi SSID: MyWiFi
-I (2450) Remote Debug Example: Got IP: 192.168.1.105
-I (2451) Remote Debug Example: Connected to WiFi! IP: 192.168.1.105
+I (390) Remote Debug Example: Connecting to WiFi: MyNetwork
+I (2450) Remote Debug Example: WiFi connected! IP: 192.168.1.105
 I (2456) Remote Debug Example: Initialized 2 ADC channels
-I (2461) Remote Debug Example: Remote Debug Server started!
-I (2462) Remote Debug Example: Open browser to: http://192.168.1.105:8080
-I (2463) Remote Debug Example: GPIO pins available: 4
-I (2464) Remote Debug Example: ADC channels available: 2
+I (2461) Remote Debug Example: Remote Debug Server started
+I (2462) Remote Debug Example: Web interface: http://192.168.1.105:8080
+I (2463) Remote Debug Example: GPIO pins: 4 | ADC channels: 2
 ```
-
-## Use Cases
-
-### Development & Testing
-- Toggle GPIOs to control relays, LEDs, motors
-- Monitor sensor values in real-time
-- Debug analog circuits
-- Test peripheral connections
-
-### Remote Monitoring
-- Monitor battery voltage
-- Track temperature sensors
-- Log environmental data
-- Remote equipment status
-
-### Interactive Demos
-- Control devices from web browser
-- Live sensor visualization
-- Educational demonstrations
-- Prototyping and proof-of-concept
 
 ## Web Interface Features
 
-- **Clean, modern UI**: Responsive design for desktop and mobile
-- **Real-time updates**: ADC plots update automatically
-- **Color-coded states**: Visual feedback for GPIO states
-- **Labeled pins**: Easy identification of each GPIO/ADC
-- **Toggle buttons**: Quick GPIO control
-- **Zoom/pan**: Interactive ADC plots
+- **GPIO Control**
+  - Configure pins as input or output
+  - Read current states in real-time
+  - Set output pins HIGH or LOW
+  - Visual state indicators
 
-## Customization
+- **ADC Monitoring**  
+  - Real-time plotting with automatic updates
+  - Multiple channels displayed simultaneously
+  - Voltage display (converted from raw values)
+  - Configurable sample rate and buffer size
 
-### Adding Custom Controls
+- **Console Log Viewer** (when enabled)
+  - Live stdout output
+  - ANSI color code support
+  - Auto-scrolling display
+  - Configurable buffer size
 
-Modify the HTML/JavaScript in `remote_debug.cpp` to add:
-- Custom widgets
-- Additional data visualization
-- Multi-GPIO patterns
-- PWM control
-- I2C/SPI device control
+## API Endpoints
 
-### Integration
+Programmatic access via JSON REST API:
 
-The component can be integrated into any application that needs remote debugging capabilities. Just initialize with your GPIO/ADC configuration and start the server.
-
-## Troubleshooting
-
-- **Can't connect**: Check WiFi credentials and verify IP address
-- **No ADC readings**: Verify GPIO numbers support ADC on your ESP32 variant
-- **GPIO not responding**: Check pin isn't used by other peripherals
-- **Slow updates**: Reduce ADC sample rate or buffer size
-- **Port conflict**: Change server port if 8080 is in use
-
-## Security Note
-
-This is a development/debugging tool. For production use, add authentication and use HTTPS. The current implementation has no access control.
+```
+GET  /data              - Batched update (GPIO states + ADC data)
+GET  /gpio              - List all GPIOs and current states
+POST /gpio/direction    - Set GPIO direction (input/output)
+POST /gpio/set          - Set GPIO output state
+GET  /adc               - Get current ADC values
+GET  /logs              - Get console log content (if enabled)
+```
